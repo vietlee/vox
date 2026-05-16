@@ -1,0 +1,22 @@
+<% content_for :title, "Share — #{@vote.title}" %>
+<div class="max-w-[560px]">
+  <h1 class="text-[19px] font-extrabold text-slate-900 mb-5">🔗 Share Vote</h1>
+  <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6 space-y-4">
+    <div>
+      <label class="block text-[12px] font-semibold text-slate-500 mb-1.5">Participant Link</label>
+      <div class="flex gap-2">
+        <input readonly value="<%= request.base_url + participate_vote_path(@vote.slug) %>"
+          class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-[12px] bg-slate-50 text-slate-700">
+        <button onclick="navigator.clipboard.writeText(this.previousElementSibling.value)" class="px-3 py-2 bg-slate-100 rounded-lg text-[12px] text-slate-600 hover:bg-slate-200">Copy</button>
+      </div>
+    </div>
+    <div>
+      <label class="block text-[12px] font-semibold text-slate-500 mb-1.5">Presenter Link</label>
+      <div class="flex gap-2">
+        <input readonly value="<%= request.base_url + present_vote_path(@vote.slug) %>"
+          class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-[12px] bg-slate-50 text-slate-700">
+        <a href="<%= present_vote_path(@vote.slug) %>" target="_blank" class="px-3 py-2 bg-indigo-50 rounded-lg text-[12px] text-indigo-700 hover:bg-indigo-100">Open</a>
+      </div>
+    </div>
+  </div>
+</div>

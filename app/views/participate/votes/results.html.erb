@@ -1,0 +1,87 @@
+<% content_for :title, @vote.title %>
+
+<style>
+  body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100vh; }
+  @keyframes fadeIn  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes barGrow { from { width: 0; } to { width: var(--bar-w); } }
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+  .bar-anim { animation: barGrow 0.8s cubic-bezier(0.4,0,0.2,1) forwards; }
+</style>
+
+<%
+  colors = [
+    { bar: 'linear-gradient(90deg,#22d3ee,#3b82f6)', text: '#3b82f6' },
+    { bar: 'linear-gradient(90deg,#a855f7,#7c3aed)',  text: '#a855f7' },
+    { bar: 'linear-gradient(90deg,#fb7185,#e11d48)',  text: '#fb7185' },
+    { bar: 'linear-gradient(90deg,#fbbf24,#f97316)',  text: '#f97316' },
+    { bar: 'linear-gradient(90deg,#34d399,#059669)',  text: '#34d399' },
+    { bar: 'linear-gradient(90deg,#38bdf8,#6366f1)',  text: '#38bdf8' },
+  ]
+%>
+
+<div class="min-h-screen flex flex-col">
+
+  <!-- Top bar -->
+  <div class="flex items-center justify-between px-6 py-4">
+    <span class="text-[17px] font-black tracking-tight" style="background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">VOX</span>
+    <div class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold
+      <%= @vote.active? ? 'text-emerald-700' : 'text-slate-500' %>"
+      style="background:<%= @vote.active? ? 'rgba(16,185,129,0.1)' : 'rgba(100,116,139,0.1)' %>; border:1px solid <%= @vote.active? ? 'rgba(16,185,129,0.2)' : 'rgba(100,116,139,0.2)' %>;">
+      <% if @vote.active? %>
+        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+        LIVE
+      <% else %>
+        Đã kết thúc
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col items-center px-4 pb-10 pt-2">
+    <div class="w-full max-w-[560px]">
+
+      <!-- Header -->
+      <div class="text-center mb-8 fade-in">
+        <h1 class="text-[26px] font-extrabold text-slate-900 tracking-tight leading-snug mb-2"><%= @vote.title %></h1>
+        <p class="text-[13px] text-slate-400"><%= @vote.participant_count %> người đã bình chọn</p>
+      </div>
+
+      <!-- Results -->
+      <div class="space-y-3">
+        <% @results.each_with_index do |result, i| %>
+          <% c = colors[i % colors.size] %>
+          <div class="fade-in rounded-2xl px-5 py-4" style="background:rgba(255,255,255,0.85); border:1px solid rgba(226,232,240,0.8); box-shadow:0 2px 12px rgba(0,0,0,0.04); backdrop-filter:blur(8px); animation-delay:<%= i * 0.07 %>s;">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-[15px] font-semibold text-slate-800"><%= result[:label] %></span>
+              <div class="flex items-center gap-3">
+                <span class="text-[12px] text-slate-400"><%= result[:count] %> votes</span>
+                <span class="text-[18px] font-black tabular-nums" style="color:<%= c[:text] %>"><%= result[:percentage] %>%</span>
+              </div>
+            </div>
+            <div class="h-2.5 rounded-full overflow-hidden" style="background:rgba(226,232,240,0.6);">
+              <div class="h-2.5 rounded-full bar-anim"
+                   style="--bar-w:<%= [result[:percentage].to_f, result[:percentage].to_f > 0 ? 3 : 0].max %>%; background:<%= c[:bar] %>; width:var(--bar-w);"></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <% if @ai_insight.present? %>
+        <div class="mt-6 p-5 rounded-2xl fade-in" style="background:linear-gradient(135deg,rgba(99,102,241,0.06),rgba(168,85,247,0.06)); border:1px solid rgba(99,102,241,0.15);">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-[13px]">✨</span>
+            <span class="text-[11px] font-bold tracking-widest uppercase text-indigo-500">AI Insight</span>
+          </div>
+          <p class="text-[14px] text-slate-700 leading-relaxed"><%= @ai_insight %></p>
+        </div>
+      <% end %>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="text-center pb-6">
+    <span class="text-[11px] text-slate-400">Powered by <strong class="text-slate-500">VOX</strong></span>
+  </div>
+
+</div>

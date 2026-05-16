@@ -1,0 +1,199 @@
+<% content_for :title, @vote.title %>
+
+<style>
+  body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100vh; }
+  .option-btn { transition: all 0.15s ease; }
+  .option-btn:hover { transform: translateY(-1px); }
+  .option-btn.selected { transform: translateY(-1px); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+</style>
+
+<div class="min-h-screen flex flex-col">
+
+  <!-- Top bar -->
+  <div class="flex items-center justify-between px-6 py-4">
+    <span class="text-[17px] font-black tracking-tight" style="background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">VOX</span>
+    <div class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-emerald-700" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2);">
+      <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+      LIVE
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col items-center justify-center px-4 pb-10">
+    <div class="w-full max-w-[520px]">
+
+      <!-- Vote header card -->
+      <div class="text-center mb-6 fade-in">
+        <h1 class="text-[28px] font-extrabold text-slate-900 tracking-tight leading-snug mb-2"><%= @vote.title %></h1>
+        <p class="text-[13px] text-slate-400" id="participant-count">
+          <%= @vote.participant_count %> người đã bình chọn
+        </p>
+
+        <% if @seconds_remaining %>
+          <div class="mt-5 flex flex-col items-center gap-2">
+            <div class="flex items-center gap-2.5">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg>
+              <span class="text-[12px] font-semibold text-slate-500">Thời gian còn lại</span>
+              <span id="countdown-text" class="text-[20px] font-black tabular-nums"
+                    style="color:<%= @seconds_remaining > @vote.countdown_seconds * 0.2 ? '#6366f1' : '#ef4444' %>">
+                <%= format("%02d:%02d", @seconds_remaining / 60, @seconds_remaining % 60) %>
+              </span>
+            </div>
+            <div class="w-56 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+              <div id="countdown-bar" class="h-1.5 rounded-full transition-all duration-1000"
+                   style="width:<%= (@seconds_remaining.to_f / @vote.countdown_seconds * 100).round(1) %>%;
+                          background:<%= @seconds_remaining > @vote.countdown_seconds * 0.2 ? '#6366f1' : '#ef4444' %>;"></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Time up -->
+      <div id="time-up-box" class="hidden fade-in mb-4">
+        <div class="text-center py-8 px-6 rounded-2xl" style="background:rgba(255,255,255,0.85); border:1px solid rgba(239,68,68,0.2); box-shadow:0 8px 32px rgba(239,68,68,0.08); backdrop-filter:blur(12px);">
+          <div class="text-[48px] mb-3">⏰</div>
+          <p class="text-[18px] font-extrabold text-slate-800">Hết thời gian bình chọn!</p>
+        </div>
+      </div>
+
+      <!-- Already voted state -->
+      <div id="already-voted" class="<%= @already_voted ? '' : 'hidden' %> fade-in">
+        <div class="text-center py-10 px-6 rounded-2xl mb-4" style="background:rgba(255,255,255,0.8); border:1px solid rgba(99,102,241,0.15); box-shadow:0 8px 32px rgba(99,102,241,0.08); backdrop-filter:blur(12px);">
+          <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:linear-gradient(135deg,#6366f1,#a855f7);">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <h2 class="text-[20px] font-extrabold text-slate-800 mb-1">Bình chọn thành công!</h2>
+          <p class="text-[13px] text-slate-500 mb-6">Cảm ơn bạn đã tham gia bình chọn.</p>
+          <% if @vote.show_results_live? %>
+            <a href="/v/<%= @vote.slug %>/present?readonly=1" target="_blank"
+               class="inline-flex items-center gap-2 px-6 py-3 text-[14px] font-bold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5"
+               style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 4px 16px rgba(99,102,241,0.35);">
+              Xem kết quả trực tiếp
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            </a>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Vote options -->
+      <div id="vote-form" class="<%= @already_voted ? 'hidden' : '' %> fade-in">
+        <div class="space-y-3" id="options-list">
+          <% @options.each_with_index do |option, i| %>
+            <button data-id="<%= option.id %>" onclick="selectOption(this)"
+              class="option-btn w-full px-5 py-4 text-left flex items-center gap-4 rounded-2xl border-2 border-transparent"
+              style="background:rgba(255,255,255,0.85); border-color:#e2e8f0; box-shadow:0 2px 12px rgba(0,0,0,0.04); backdrop-filter:blur(8px);">
+              <span class="radio-dot flex-shrink-0 w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all">
+                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 scale-0 transition-transform duration-200"></span>
+              </span>
+              <span class="text-[15px] font-semibold text-slate-800"><%= option.label %></span>
+            </button>
+          <% end %>
+        </div>
+
+        <div id="submit-wrap" class="mt-4 hidden">
+          <button onclick="submitVote()"
+            class="w-full py-4 text-[15px] font-bold text-white rounded-2xl transition-all hover:opacity-90 hover:-translate-y-0.5"
+            style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35);">
+            Gửi bình chọn →
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="text-center pb-6">
+    <span class="text-[11px] text-slate-400">Powered by <strong class="text-slate-500">VOX</strong></span>
+  </div>
+
+</div>
+
+<script>
+const CSRF = document.querySelector("meta[name=csrf-token]")?.content || "<%= form_authenticity_token %>";
+let selectedIds = [];
+const multipleChoice = <%= @vote.multiple_choice? ? 'true' : 'false' %>;
+
+function selectOption(btn) {
+  const id = parseInt(btn.dataset.id);
+  if (multipleChoice) {
+    const idx = selectedIds.indexOf(id);
+    if (idx >= 0) { selectedIds.splice(idx, 1); setSelected(btn, false); }
+    else           { selectedIds.push(id);        setSelected(btn, true);  }
+  } else {
+    document.querySelectorAll('.option-btn').forEach(b => setSelected(b, false));
+    selectedIds = [id];
+    setSelected(btn, true);
+  }
+  document.getElementById('submit-wrap').classList.toggle('hidden', selectedIds.length === 0);
+}
+
+function setSelected(btn, on) {
+  btn.style.borderColor  = on ? '#6366f1' : '#e2e8f0';
+  btn.style.background   = on ? 'rgba(238,240,255,0.95)' : 'rgba(255,255,255,0.85)';
+  btn.style.boxShadow    = on ? '0 4px 16px rgba(99,102,241,0.18)' : '0 2px 12px rgba(0,0,0,0.04)';
+  const dot  = btn.querySelector('.radio-dot span');
+  const ring = btn.querySelector('.radio-dot');
+  ring.style.borderColor = on ? '#6366f1' : '#cbd5e1';
+  dot.style.transform    = on ? 'scale(1)' : 'scale(0)';
+}
+
+async function submitVote() {
+  if (selectedIds.length === 0) return;
+  const btn = document.querySelector('#submit-wrap button');
+  btn.disabled = true;
+  btn.textContent = 'Đang gửi...';
+  const res  = await fetch("/v/<%= @vote.slug %>/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": CSRF },
+    body: JSON.stringify({ option_ids: selectedIds })
+  });
+  const data = await res.json();
+  if (res.ok || data.error === 'already_voted') {
+    showAlreadyVoted();
+  } else {
+    btn.disabled = false;
+    btn.textContent = 'Gửi bình chọn →';
+    alert(data.message || "Đã có lỗi xảy ra.");
+  }
+}
+
+function showAlreadyVoted() {
+  document.getElementById("vote-form").classList.add("hidden");
+  const el = document.getElementById("already-voted");
+  el.classList.remove("hidden");
+  el.classList.add("fade-in");
+}
+
+// ── Countdown ────────────────────────────────────────────────────────────────
+(function() {
+  const totalSeconds = <%= @vote.countdown_seconds.to_i %>;
+  if (totalSeconds <= 0) return;
+  let remaining = <%= @seconds_remaining || 0 %>;
+  const textEl = document.getElementById('countdown-text');
+  const barEl  = document.getElementById('countdown-bar');
+
+  function fmt(s) {
+    return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  }
+  function update() {
+    if (!textEl) return;
+    textEl.textContent = fmt(remaining);
+    const isLow = remaining <= totalSeconds * 0.2;
+    const color  = isLow ? '#ef4444' : '#6366f1';
+    textEl.style.color = color;
+    if (barEl) { barEl.style.width = (remaining/totalSeconds*100).toFixed(1)+'%'; barEl.style.background = color; }
+  }
+  update();
+  const timer = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      remaining = 0; update(); clearInterval(timer);
+      document.getElementById('vote-form')?.classList.add('hidden');
+      document.getElementById('time-up-box')?.classList.remove('hidden');
+    } else { update(); }
+  }, 1000);
+})();
+</script>

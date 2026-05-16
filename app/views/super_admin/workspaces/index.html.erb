@@ -1,0 +1,33 @@
+<div class="flex justify-between mb-5">
+  <h1 class="text-[21px] font-extrabold text-slate-900">Workspaces</h1>
+  <%= link_to new_super_admin_workspace_path, class: "px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg" do %>+ New Workspace<% end %>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+  <table class="w-full border-collapse">
+    <thead><tr class="bg-slate-50 border-b border-slate-200">
+      <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Workspace</th>
+      <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Status</th>
+      <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Created</th>
+      <th class="px-4 py-2.5"></th>
+    </tr></thead>
+    <tbody>
+      <% @workspaces.each do |ws| %>
+        <tr class="border-b border-slate-100 hover:bg-slate-50">
+          <td class="px-4 py-3 text-[13px] font-semibold text-slate-900"><%= ws.name %></td>
+          <td class="px-4 py-3 text-[12px] text-slate-500"><%= ws.status %></td>
+          <td class="px-4 py-3 text-[12px] text-slate-500"><%= ws.created_at.strftime("%b %d, %Y") %></td>
+          <td class="px-4 py-3">
+            <div class="flex gap-1.5 justify-end">
+              <%= link_to edit_super_admin_workspace_path(ws), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded text-slate-600" do %>Edit<% end %>
+              <% if ws.active? %>
+                <%= button_to suspend_super_admin_workspace_path(ws), method: :patch, class: "px-2.5 py-1 text-[11px] bg-amber-50 rounded text-amber-700" do %>Suspend<% end %>
+              <% else %>
+                <%= button_to activate_super_admin_workspace_path(ws), method: :patch, class: "px-2.5 py-1 text-[11px] bg-emerald-50 rounded text-emerald-700" do %>Activate<% end %>
+              <% end %>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

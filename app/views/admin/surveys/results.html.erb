@@ -1,0 +1,131 @@
+<% content_for :title, "Results — #{@survey.title}" %>
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-[19px] font-extrabold text-slate-900"><%= @survey.title %></h1>
+    <p class="text-[12px] text-slate-500 mt-0.5"><%= @total_responses %> responses · <%= @survey.completion_rate %>% completion</p>
+  </div>
+  <div class="flex gap-2">
+    <button onclick="requestAiAnalysis()" class="px-3 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-[13px] font-semibold rounded-lg hover:opacity-90">🤖 AI Analyze</button>
+    <%= link_to export_survey_path(@survey, format_type: "csv"), class: "px-3 py-2 bg-white border border-slate-200 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-50" do %>⬇ Export<% end %>
+  </div>
+</div>
+
+<div class="grid grid-cols-[1fr_300px] gap-5">
+  <div class="space-y-5">
+    <% @questions.each do |question| %>
+      <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
+        <h3 class="text-[14px] font-semibold text-slate-900 mb-4"><%= question.title %></h3>
+        <% answers = @survey.responses.completed.flat_map { |r| r.answers.select { |a| a.question_id == question.id } } %>
+        <p class="text-[12px] text-slate-500 mb-3"><%= answers.count %> responses</p>
+
+        <% if question.choice_type? %>
+          <% total = answers.count %>
+          <% question.question_options.each do |opt| %>
+            <% count = answers.count { |a| Array(a.option_ids).include?(opt.id.to_s) || Array(a.option_ids).include?(opt.id) } %>
+            <% pct = total > 0 ? (count.to_f / total * 100).round(1) : 0 %>
+            <div class="mb-3">
+              <div class="flex justify-between text-[12px] mb-1">
+                <span class="text-slate-700"><%= opt.label %></span>
+                <span class="text-slate-500"><%= count %> (<%= pct %>%)</span>
+              </div>
+              <div class="h-5 bg-slate-100 rounded">
+                <div class="h-5 bg-gradient-to-r from-indigo-400 to-indigo-600 rounded text-[11px] font-semibold text-white px-2 flex items-center" style="width: <%= pct %>%">
+                  <% if pct > 10 %><%= pct %>%<% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% elsif question.numeric_type? %>
+          <% values = answers.map(&:numeric_value).compact %>
+          <% if values.any? %>
+            <div class="grid grid-cols-3 gap-4 text-center">
+              <div class="bg-slate-50 rounded-lg p-3">
+                <div class="text-[20px] font-bold text-slate-900"><%= (values.sum / values.size).round(1) %></div>
+                <div class="text-[11px] text-slate-500">Average</div>
+              </div>
+              <div class="bg-slate-50 rounded-lg p-3">
+                <div class="text-[20px] font-bold text-slate-900"><%= values.min %></div>
+                <div class="text-[11px] text-slate-500">Min</div>
+              </div>
+              <div class="bg-slate-50 rounded-lg p-3">
+                <div class="text-[20px] font-bold text-slate-900"><%= values.max %></div>
+                <div class="text-[11px] text-slate-500">Max</div>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="space-y-1.5">
+            <% answers.first(5).each do |ans| %>
+              <% if ans.text_value.present? %>
+                <div class="bg-slate-50 rounded-lg px-3 py-2 text-[13px] text-slate-700">"<%= ans.text_value %>"</div>
+              <% end %>
+            <% end %>
+            <% if answers.count > 5 %>
+              <p class="text-[12px] text-slate-400 text-center">+ <%= answers.count - 5 %> more responses</p>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="space-y-4">
+    <div id="ai-panel">
+      <% if @ai_analysis %>
+        <div class="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200 rounded-[10px] p-4">
+          <div class="text-[11px] font-bold text-violet-600 mb-2">🤖 AI EXECUTIVE SUMMARY</div>
+          <p class="text-[13px] text-slate-700 leading-relaxed"><%= @ai_analysis.output["executive_summary"]&.truncate(300) %></p>
+          <% recommendations = @ai_analysis.output["recommendations"] %>
+          <% if recommendations.present? %>
+            <div class="mt-3 pt-3 border-t border-violet-100">
+              <div class="text-[11px] font-bold text-violet-600 mb-2">Top Recommendations</div>
+              <% recommendations.first(3).each do |rec| %>
+                <div class="flex gap-2 text-[12px] text-slate-700 mb-1.5">
+                  <span class="text-violet-500">→</span>
+                  <%= rec.is_a?(Hash) ? rec["action"] : rec %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+          <div class="text-[10px] text-violet-400 mt-2">Powered by Claude AI</div>
+        </div>
+      <% else %>
+        <div class="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200 rounded-[10px] p-4 text-center">
+          <div class="text-2xl mb-2">🤖</div>
+          <p class="text-[12px] text-slate-600 mb-3">Get AI-powered analysis of your survey results</p>
+          <button onclick="requestAiAnalysis()" class="px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-[12px] font-semibold rounded-lg hover:opacity-90">
+            Analyze with Claude AI
+          </button>
+          <p class="text-[10px] text-slate-400 mt-1.5">Requires ≥10 responses · 5 credits</p>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4">
+      <h3 class="text-[13px] font-bold text-slate-900 mb-3">Quick Stats</h3>
+      <div class="space-y-2 text-[13px]">
+        <div class="flex justify-between"><span class="text-slate-500">Total Responses</span><strong><%= @total_responses %></strong></div>
+        <div class="flex justify-between"><span class="text-slate-500">Completion Rate</span><strong><%= @survey.completion_rate %>%</strong></div>
+        <div class="flex justify-between"><span class="text-slate-500">Status</span><strong><%= @survey.status.capitalize %></strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function requestAiAnalysis() {
+  const resp = await fetch('<%= ai_analyze_survey_path(@survey) %>', {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content }
+  });
+  const { job_id } = await resp.json();
+  document.getElementById('ai-panel').innerHTML = '<div class="bg-violet-50 border border-violet-200 rounded-xl p-4 text-center text-[13px] text-violet-700">🤖 Analyzing with Claude AI... This may take 15-30 seconds.</div>';
+  pollJob(job_id);
+}
+async function pollJob(jobId) {
+  const resp = await fetch('<%= ai_job_status_path("__ID__") %>'.replace('__ID__', jobId));
+  const data = await resp.json();
+  if (data.status === 'done') location.reload();
+  else if (data.status !== 'failed') setTimeout(() => pollJob(jobId), 3000);
+}
+</script>

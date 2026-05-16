@@ -1,0 +1,38 @@
+<h1 class="text-[21px] font-extrabold text-slate-900 mb-6"><%= t("super_admin.dashboard.title") %></h1>
+<div class="grid grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
+    <div class="text-[26px] font-black text-slate-900"><%= @workspaces_count %></div>
+    <div class="text-[12px] text-slate-500"><%= t("super_admin.dashboard.workspaces") %></div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
+    <div class="text-[26px] font-black text-slate-900"><%= @users_count %></div>
+    <div class="text-[12px] text-slate-500"><%= t("super_admin.dashboard.users") %></div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
+    <div class="text-[26px] font-black text-slate-900"><%= @surveys_count %></div>
+    <div class="text-[12px] text-slate-500"><%= t("super_admin.dashboard.surveys") %></div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
+    <div class="text-[26px] font-black text-slate-900"><%= @votes_count %></div>
+    <div class="text-[12px] text-slate-500"><%= t("super_admin.dashboard.votes") %></div>
+  </div>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 p-5">
+  <h2 class="text-[14px] font-bold text-slate-900 mb-4"><%= t("super_admin.dashboard.recent_workspaces") %></h2>
+  <table class="w-full border-collapse">
+    <thead><tr class="border-b border-slate-100">
+      <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-2 py-2"><%= t("super_admin.dashboard.col_name") %></th>
+      <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-2 py-2"><%= t("super_admin.dashboard.col_status") %></th>
+      <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-2 py-2"><%= t("super_admin.dashboard.col_created") %></th>
+    </tr></thead>
+    <tbody>
+      <% @recent_workspaces.each do |ws| %>
+        <tr class="border-b border-slate-50 hover:bg-slate-50">
+          <td class="px-2 py-2.5 text-[13px] font-semibold text-slate-900"><%= link_to ws.name, edit_super_admin_workspace_path(ws), class: "hover:text-indigo-600" %></td>
+          <td class="px-2 py-2.5 text-[12px] text-slate-500"><%= ws.status %></td>
+          <td class="px-2 py-2.5 text-[12px] text-slate-500"><%= ws.created_at.strftime("%b %d") %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= content_for?(:title) ? "#{yield(:title)} — Vox" : "Vox" %></title>
+  <meta name="csrf-token" content="<%= form_authenticity_token %>">
+  <%= stylesheet_link_tag "tailwind", data: { turbo_track: "reload" } %>
+  <%= stylesheet_link_tag "application", data: { turbo_track: "reload" } %>
+  <%= javascript_importmap_tags %>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body class="h-full font-inter antialiased bg-slate-100">
+
+<div class="flex h-full">
+  <!-- Sidebar -->
+  <aside class="w-[232px] bg-[#0F172A] flex flex-col flex-shrink-0 overflow-y-auto">
+    <div class="px-5 pt-[18px] pb-1.5">
+      <div class="text-[21px] font-black text-indigo-400 tracking-tight">VOX</div>
+      <div class="text-[10px] text-slate-500 font-normal mt-0.5"><%= current_workspace&.name || "Platform" %></div>
+    </div>
+
+    <nav class="flex-1 pt-3">
+      <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_overview") %></div>
+      <%= render "shared/nav_item", icon: "📊", label: t("nav.dashboard"), path: dashboard_path %>
+
+      <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_tools") %></div>
+      <%= render "shared/nav_item", icon: "📋", label: t("nav.surveys"), path: surveys_path, badge: current_workspace&.surveys&.active&.count %>
+      <%= render "shared/nav_item", icon: "🗳️", label: t("nav.votes"), path: votes_path, badge: current_workspace&.votes&.active&.count %>
+      <%= render "shared/nav_item", icon: "💬", label: t("nav.feedback"), path: feedback_boards_path %>
+
+      <% if current_user.admin? %>
+        <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_manage") %></div>
+        <%= render "shared/nav_item", icon: "👥", label: t("nav.members"), path: members_path %>
+        <%= render "shared/nav_item", icon: "⚙️", label: t("nav.settings"), path: workspace_settings_path %>
+        <%= render "shared/nav_item", icon: "💳", label: t("nav.subscription"), path: subscription_path %>
+        <%= render "shared/nav_item", icon: "📜", label: t("nav.audit_log"), path: audit_log_path %>
+      <% end %>
+    </nav>
+
+    <!-- Sidebar footer: AI credits + user -->
+    <div class="mt-auto border-t border-white/[0.06] px-4 py-3.5">
+      <% if (sub = current_workspace&.active_subscription) && !sub.free? %>
+        <div class="flex justify-between text-[11px] text-slate-500 mb-1.5">
+          <span>AI Credits</span>
+          <strong class="text-violet-400"><%= sub.credit_balance %> / <%= sub.max_ai_credits || "∞" %></strong>
+        </div>
+        <div class="h-1 bg-white/[0.07] rounded-sm mb-3 overflow-hidden">
+          <div class="h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-sm" style="width: <%= sub.credit_percentage %>%"></div>
+        </div>
+      <% end %>
+      <div class="flex items-center gap-2.5">
+        <div class="w-[30px] h-[30px] rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0">
+          <%= current_user.initials %>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[12px] font-semibold text-white truncate"><%= current_user.display_name %></div>
+          <div class="text-[10px] text-slate-500"><%= t("roles.#{current_user.role}") %></div>
+        </div>
+        <%= button_to destroy_user_session_path, method: :delete, title: t("nav.sign_out"), class: "ml-auto text-slate-600 hover:text-slate-400 text-[13px] bg-transparent border-0 cursor-pointer p-0" do %>⏻<% end %>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main area -->
+  <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <!-- Top header -->
+    <header class="h-14 bg-white border-b border-slate-200 flex items-center px-6 gap-3.5 flex-shrink-0">
+      <nav class="flex items-center gap-1.5 text-[13px] text-slate-400">
+        <% if content_for?(:breadcrumb) %>
+          <%= yield(:breadcrumb) %>
+        <% end %>
+      </nav>
+      <div class="ml-auto flex items-center gap-2.5">
+        <!-- Language switcher -->
+        <div class="flex gap-0.5 bg-slate-100 border border-slate-200 rounded-lg p-0.5">
+          <%= link_to request.path + "?locale=vi", class: "px-2.5 py-1 rounded-md text-[11px] font-semibold #{I18n.locale == :vi ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}" do %>🇻🇳 VI<% end %>
+          <%= link_to request.path + "?locale=en", class: "px-2.5 py-1 rounded-md text-[11px] font-semibold #{I18n.locale == :en ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}" do %>🇬🇧 EN<% end %>
+        </div>
+        <%= link_to notifications_path, class: "relative w-[34px] h-[34px] rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-[15px] text-slate-500 hover:bg-slate-200 transition-colors" do %>
+          🔔
+          <% unread = current_user.notifications.unread.count; if unread > 0 %>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+          <% end %>
+        <% end %>
+        <div class="w-[34px] h-[34px] rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-[13px] font-bold text-white">
+          <%= current_user.initials %>
+        </div>
+      </div>
+    </header>
+
+    <!-- Flash messages -->
+    <% if notice || alert %>
+      <div id="flash" class="px-6 pt-4">
+        <% if notice %>
+          <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-4 py-2.5 text-[13px] font-medium">
+            ✓ <%= notice %>
+          </div>
+        <% end %>
+        <% if alert %>
+          <div class="flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-2.5 text-[13px] font-medium">
+            ⚠ <%= alert %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- Page content -->
+    <main class="flex-1 overflow-y-auto p-6">
+      <%= yield %>
+    </main>
+  </div>
+</div>
+
+</body>
+</html>

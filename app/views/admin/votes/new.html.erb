@@ -1,0 +1,54 @@
+<% content_for :title, "New Vote" %>
+<div class="max-w-[680px]">
+  <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight mb-6">🗳️ New Live Vote</h1>
+  <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6">
+    <%= form_with model: @vote, url: votes_path, local: true do |f| %>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">Question *</label>
+          <%= f.text_field :title, required: true, placeholder: "What would you like to ask?",
+            class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none" %>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">Vote Type</label>
+            <%= f.select :vote_type, Vote.vote_types.keys.map { |k| [k.humanize, k] }, {},
+              class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none" %>
+          </div>
+          <div>
+            <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">Identity Mode</label>
+            <%= f.select :identity_mode, Vote.identity_modes.keys.map { |k| [k.humanize, k] }, {},
+              class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none" %>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[12px] font-semibold text-slate-700 mb-2">Options</label>
+          <div id="options-list" class="space-y-2">
+            <% 2.times do |i| %>
+              <input type="text" name="vote[vote_options_attributes][<%= i %>][label]"
+                placeholder="Option <%= i + 1 %>"
+                class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none">
+            <% end %>
+          </div>
+          <button type="button" onclick="addOption()" class="mt-2 text-[12px] text-indigo-600 hover:text-indigo-700 font-medium">+ Add option</button>
+        </div>
+        <div class="flex gap-2 pt-4 border-t border-slate-100">
+          <%= f.submit "Create Vote", class: "px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700 cursor-pointer" %>
+          <%= link_to "Cancel", votes_path, class: "px-5 py-2.5 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+<script>
+let optionIdx = 2;
+function addOption() {
+  const list = document.getElementById('options-list');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.name = `vote[vote_options_attributes][${optionIdx++}][label]`;
+  input.placeholder = `Option ${optionIdx}`;
+  input.className = 'w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none';
+  list.appendChild(input);
+}
+</script>

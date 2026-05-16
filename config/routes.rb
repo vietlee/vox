@@ -1,0 +1,123 @@
+Rails.application.routes.draw do
+  get "up" => "rails/health#show", as: :rails_health_check
+
+  # Devise auth
+  devise_for :users, controllers: {
+    sessions:      "auth/sessions",
+    registrations: "auth/registrations",
+    passwords:     "auth/passwords"
+  }
+
+  # QR code scan redirect + image
+  get "/qr/:token",       to: "qr_codes#scan",  as: :qr_scan
+  get "/qr/:token/image", to: "qr_codes#image", as: :qr_image
+
+  # PayOS webhook (no CSRF)
+  post "webhooks/payos" => "webhooks/payos#receive", as: :payos_webhook
+
+  # Public participation (End User — no login required)
+  get  "/s/:slug",         to: "participate/surveys#show",    as: :participate_survey
+  post "/s/:slug/submit",  to: "participate/surveys#submit",  as: :submit_survey
+  get  "/v/:slug",         to: "participate/votes#show",      as: :participate_vote
+  post "/v/:slug/submit",  to: "participate/votes#submit",    as: :submit_vote
+  get  "/v/:slug/results", to: "participate/votes#results",   as: :vote_results
+  get  "/v/:slug/present", to: "participate/votes#present",   as: :vote_presenter
+  get  "/f/:slug",         to: "participate/feedbacks#show",  as: :participate_feedback
+  post "/f/:slug/submit",  to: "participate/feedbacks#submit", as: :submit_feedback
+  post "/f/:slug/upvote",  to: "participate/feedbacks#upvote", as: :upvote_feedback
+
+  # Super Admin
+  namespace :super_admin do
+    root to: "dashboard#index"
+    resources :workspaces do
+      member do
+        patch :activate
+        patch :suspend
+        patch :reset_admin_password
+      end
+    end
+    resources :subscriptions, only: [:index, :show, :edit, :update]
+  end
+
+  # Authenticated workspace admin/supporter area
+  scope module: "admin" do
+    root to: "dashboard#index"
+    get "dashboard", to: "dashboard#index", as: :dashboard
+
+    resources :surveys do
+      member do
+        patch :publish
+        patch :close
+        patch :archive
+        get   :results
+        get   :export
+        post  :ai_analyze
+        post  :ai_report
+        get   :share
+      end
+      resources :questions, only: [:create, :update, :destroy] do
+        collection { patch :reorder }
+        resources :question_options, only: [:create, :update, :destroy]
+      end
+    end
+
+    # AI endpoints
+    post "ai/generate_survey",  to: "ai#generate_survey",  as: :ai_generate_survey
+    post "ai/check_question",   to: "ai#check_question",   as: :ai_check_question
+    post "ai/analyze",          to: "ai#analyze_survey",   as: :ai_analyze
+    post "ai/generate_report",  to: "ai#generate_report",  as: :ai_generate_report
+    post "ai/chat",             to: "ai#chat",             as: :ai_chat
+    get  "ai/job_status/:id",   to: "ai#job_status",       as: :ai_job_status
+
+    resources :votes do
+      member do
+        patch :open
+        patch :close
+        get   :results
+        get   :present
+        get   :share
+        post  :ai_insight
+      end
+      resources :vote_options, only: [:create, :update, :destroy], shallow: true
+    end
+
+    resources :feedback_boards do
+      member do
+        patch :close
+        get   :export
+        post  :ai_summarize
+      end
+      resources :feedbacks, only: [:index, :show, :update, :destroy] do
+        member do
+          patch :approve
+          patch :hide
+          patch :pin
+          patch :unpin
+          patch :update_admin_status
+        end
+      end
+    end
+
+    resource  :workspace_settings, only: [:show, :update], path: "settings"
+    resources :members, only: [:index, :new, :create, :destroy] do
+      member { patch :toggle_status }
+    end
+
+    resource :subscription, only: [:show, :update] do
+      get  :billing
+      post :upgrade
+      post :cancel
+      get  :invoices
+      post :checkout
+      get  :payment_return
+      get  :payment_cancel
+    end
+
+    resources :notifications, only: [:index] do
+      collection { patch :mark_all_read }
+      member     { patch :mark_read }
+    end
+
+    get "audit_log", to: "audit_logs#index", as: :audit_log
+  end
+end

@@ -1,0 +1,111 @@
+<div class="flex items-center gap-3 mb-6">
+  <%= link_to super_admin_subscription_path(@subscription), class: "text-[13px] text-slate-500 hover:text-slate-700" do %>← Back<% end %>
+  <h1 class="text-[21px] font-extrabold text-slate-900">Edit Subscription — <%= @subscription.workspace&.name %></h1>
+</div>
+
+<%= form_with model: [:super_admin, @subscription], local: true, class: "space-y-5" do |f| %>
+  <div class="grid grid-cols-2 gap-5">
+
+    <!-- Plan & Status -->
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <h2 class="text-[13px] font-bold text-slate-700 mb-4">Plan & Status</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Plan</label>
+          <%= f.select :plan, [["Free", "free"], ["Pro", "pro"], ["Enterprise", "enterprise"]],
+                { selected: @subscription.plan },
+                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
+          <p class="text-[11px] text-slate-400 mt-1">Thay đổi plan sẽ tự áp dụng limits mặc định.</p>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Status</label>
+          <%= f.select :status, [["Active", "active"], ["Expired", "expired"], ["Cancelled", "cancelled"], ["Trialing", "trialing"]],
+                { selected: @subscription.status },
+                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Billing Cycle</label>
+          <%= f.select :billing_cycle, [["Monthly", "monthly"], ["Yearly", "yearly"]],
+                { selected: @subscription.billing_cycle },
+                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Auto-renew</label>
+          <div class="flex items-center gap-2 mt-1">
+            <%= f.check_box :auto_renew, class: "w-4 h-4 accent-indigo-600" %>
+            <span class="text-[13px] text-slate-600">Bật tự động gia hạn</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dates & Price -->
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <h2 class="text-[13px] font-bold text-slate-700 mb-4">Dates & Pricing</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Starts At</label>
+          <%= f.datetime_local_field :starts_at, value: @subscription.starts_at&.strftime("%Y-%m-%dT%H:%M"),
+                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Expires At</label>
+          <%= f.datetime_local_field :ends_at, value: @subscription.ends_at&.strftime("%Y-%m-%dT%H:%M"),
+                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Price (VND / cycle)</label>
+          <%= f.number_field :price_cents, value: @subscription.price_cents,
+                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800",
+                placeholder: "0" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Limits -->
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <h2 class="text-[13px] font-bold text-slate-700 mb-4">Usage Limits <span class="font-normal text-slate-400 text-[11px]">(để trống = không giới hạn)</span></h2>
+      <div class="space-y-3">
+        <% [
+          [:max_surveys,    "Max Surveys"],
+          [:max_votes,      "Max Votes"],
+          [:max_feedbacks,  "Max Feedbacks"],
+          [:max_supporters, "Max Supporters"]
+        ].each do |field, label| %>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= label %></label>
+            <%= f.number_field field, value: @subscription.send(field),
+                  class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800",
+                  placeholder: "∞" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- AI Credits -->
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <h2 class="text-[13px] font-bold text-slate-700 mb-4">AI Credits</h2>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Max AI Credits / cycle</label>
+          <%= f.number_field :max_ai_credits, value: @subscription.max_ai_credits,
+                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800",
+                placeholder: "∞" %>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Current Credit Balance</label>
+          <%= f.number_field :credit_balance, value: @subscription.credit_balance,
+                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
+        </div>
+        <div class="pt-2 p-3 bg-amber-50 rounded-lg border border-amber-100">
+          <p class="text-[11px] text-amber-700">Thay đổi Max AI Credits sẽ không tự reset credit balance. Điều chỉnh Credit Balance thủ công nếu cần.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex gap-3">
+    <%= f.submit "Lưu thay đổi", class: "px-6 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg cursor-pointer hover:bg-indigo-700" %>
+    <%= link_to "Huỷ", super_admin_subscription_path(@subscription), class: "px-6 py-2.5 bg-slate-100 text-slate-700 text-[13px] font-semibold rounded-lg hover:bg-slate-200" %>
+  </div>
+<% end %>

@@ -1,0 +1,87 @@
+<div class="flex justify-between items-center mb-5">
+  <h1 class="text-[21px] font-extrabold text-slate-900">Subscriptions</h1>
+  <div class="flex gap-2">
+    <%= form_with url: super_admin_subscriptions_path, method: :get, local: true, class: "flex gap-2 items-center" do |f| %>
+      <%= f.select :plan, [["All plans", ""], ["Free", "free"], ["Pro", "pro"], ["Enterprise", "enterprise"]],
+            { selected: params[:plan] },
+            class: "text-[12px] border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700" %>
+      <%= f.select :status, [["All status", ""], ["Active", "active"], ["Expired", "expired"], ["Cancelled", "cancelled"], ["Trialing", "trialing"]],
+            { selected: params[:status] },
+            class: "text-[12px] border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700" %>
+      <%= f.submit "Filter", class: "px-3 py-1.5 bg-slate-800 text-white text-[12px] font-semibold rounded-lg cursor-pointer" %>
+    <% end %>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+  <table class="w-full border-collapse">
+    <thead>
+      <tr class="bg-slate-50 border-b border-slate-200">
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Workspace</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Plan</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Status</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Expires</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Price</th>
+        <th class="px-4 py-2.5"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @subscriptions.each do |sub| %>
+        <tr class="border-b border-slate-100 hover:bg-slate-50">
+          <td class="px-4 py-3">
+            <div class="text-[13px] font-semibold text-slate-900"><%= sub.workspace&.name %></div>
+            <div class="text-[11px] text-slate-400"><%= sub.workspace&.slug %></div>
+          </td>
+          <td class="px-4 py-3">
+            <% plan_color = { "free" => "bg-slate-100 text-slate-600", "pro" => "bg-indigo-100 text-indigo-700", "enterprise" => "bg-violet-100 text-violet-700" } %>
+            <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold <%= plan_color[sub.plan] || 'bg-slate-100 text-slate-600' %>">
+              <%= sub.plan&.upcase %>
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            <% status_color = { "active" => "bg-emerald-50 text-emerald-700", "expired" => "bg-red-50 text-red-600", "cancelled" => "bg-slate-100 text-slate-500", "trialing" => "bg-amber-50 text-amber-700" } %>
+            <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold <%= status_color[sub.status] || 'bg-slate-100' %>">
+              <%= sub.status %>
+            </span>
+          </td>
+          <td class="px-4 py-3 text-[12px] text-slate-500">
+            <% if sub.ends_at %>
+              <% if sub.expires_soon? && sub.active? %>
+                <span class="text-amber-600 font-semibold"><%= sub.ends_at.strftime("%b %d, %Y") %> ⚠</span>
+              <% else %>
+                <%= sub.ends_at.strftime("%b %d, %Y") %>
+              <% end %>
+            <% else %>
+              <span class="text-slate-300">—</span>
+            <% end %>
+          </td>
+          <td class="px-4 py-3 text-[12px] text-slate-600">
+            <% if sub.price_cents.to_i > 0 %>
+              <%= number_with_delimiter(sub.price_cents) %> ₫/<%= sub.billing_cycle %>
+            <% else %>
+              <span class="text-slate-300">Free</span>
+            <% end %>
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex gap-1.5 justify-end">
+              <%= link_to super_admin_subscription_path(sub), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded text-slate-600 hover:bg-slate-200" do %>View<% end %>
+              <%= link_to edit_super_admin_subscription_path(sub), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded text-indigo-600 hover:bg-indigo-100" do %>Edit<% end %>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+      <% if @subscriptions.empty? %>
+        <tr><td colspan="6" class="px-4 py-8 text-center text-[13px] text-slate-400">Không có subscription nào.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<% if @pagy.pages > 1 %>
+  <div class="flex justify-center gap-1 mt-4">
+    <% (1..@pagy.pages).each do |p| %>
+      <%= link_to p, super_admin_subscriptions_path(page: p, plan: params[:plan], status: params[:status]),
+            class: "px-3 py-1 text-[12px] rounded #{p == @pagy.page ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600'}" %>
+    <% end %>
+  </div>
+<% end %>

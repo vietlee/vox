@@ -1,0 +1,31 @@
+class Feedback < ApplicationRecord
+  belongs_to :feedback_board
+  belongs_to :workspace
+  has_many   :feedback_upvotes, dependent: :destroy
+
+  enum :status,            { pending: 0, approved: 1, hidden: 2, rejected: 3 }
+  enum :admin_status,      { new_feedback: 0, under_review: 1, implemented: 2, declined: 3 }
+  enum :moderation_status, { moderation_pending: 0, safe: 1, flagged: 2, auto_rejected: 3 }
+
+  validates :content, presence: true, length: { maximum: 1000 }
+
+  scope :visible,   -> { where(status: :approved) }
+  scope :pinned_first, -> { order(pinned: :desc, created_at: :desc) }
+
+  after_create :enqueue_ai_moderation
+
+  def approve!
+    update!(status: :approved)
+  end
+
+  def upvoted_by?(token)
+    feedback_upvotes.exists?(voter_token: token)
+  end
+
+  private
+
+  def enqueue_ai_moderation
+    return unless feedback_board.auto_moderation?
+    AiModerationJob.perform_later(id)
+  end
+end

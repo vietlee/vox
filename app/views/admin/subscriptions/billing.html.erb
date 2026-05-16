@@ -1,0 +1,95 @@
+<% content_for :title, "Nâng cấp gói" %>
+
+<div class="max-w-4xl mx-auto">
+  <div class="flex items-center gap-3 mb-6">
+    <%= link_to subscription_path, class: "text-[13px] text-slate-500 hover:text-slate-700" do %>← Quay lại<% end %>
+    <h1 class="text-[22px] font-extrabold text-slate-900">Nâng cấp gói dịch vụ</h1>
+  </div>
+
+  <% if flash[:alert] %>
+    <div class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-[13px]"><%= flash[:alert] %></div>
+  <% end %>
+
+  <!-- Current plan banner -->
+  <% if @subscription %>
+    <div class="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center gap-3">
+      <div class="text-[13px] text-indigo-700">
+        Gói hiện tại: <strong><%= @subscription.plan&.upcase %></strong>
+        <% if @subscription.ends_at %>
+          · Hết hạn <strong><%= @subscription.ends_at.strftime("%d/%m/%Y") %></strong>
+          <% if @subscription.expires_soon? %>
+            <span class="ml-2 text-amber-600 font-semibold">⚠ Sắp hết hạn</span>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Plan cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+
+    <!-- Pro -->
+    <div class="bg-white rounded-2xl border-2 border-indigo-200 p-6 relative shadow-sm">
+      <div class="absolute top-4 right-4 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Phổ biến</div>
+      <div class="text-[13px] font-bold text-indigo-600 uppercase mb-1">Pro</div>
+      <div class="text-[32px] font-black text-slate-900 mb-1">1.000.000 <span class="text-[16px] font-semibold text-slate-500">₫</span></div>
+      <div class="text-[12px] text-slate-500 mb-4">mỗi tháng / workspace</div>
+      <ul class="space-y-2 mb-6 text-[13px] text-slate-700">
+        <li class="flex gap-2"><span class="text-indigo-500">✓</span> Survey, Vote, Feedback không giới hạn</li>
+        <li class="flex gap-2"><span class="text-indigo-500">✓</span> 10 Supporter accounts</li>
+        <li class="flex gap-2"><span class="text-indigo-500">✓</span> 500 AI Credits / tháng</li>
+        <li class="flex gap-2"><span class="text-indigo-500">✓</span> AI Phân tích & Báo cáo</li>
+        <li class="flex gap-2"><span class="text-indigo-500">✓</span> Export Excel/PDF</li>
+        <li class="flex gap-2"><span class="text-indigo-500">✓</span> Custom branding</li>
+      </ul>
+      <% if @subscription&.pro? %>
+        <div class="w-full py-3 text-center bg-slate-100 text-slate-500 text-[13px] font-semibold rounded-xl">Gói hiện tại</div>
+      <% else %>
+        <%= button_to checkout_subscription_path(plan: "pro"), method: :post,
+              class: "w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-[14px] font-bold rounded-xl cursor-pointer border-0" do %>
+          Thanh toán qua PayOS →
+        <% end %>
+      <% end %>
+    </div>
+
+    <!-- Enterprise -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 relative shadow-sm">
+      <div class="text-[13px] font-bold text-violet-600 uppercase mb-1">Enterprise</div>
+      <div class="text-[32px] font-black text-slate-900 mb-1">Liên hệ</div>
+      <div class="text-[12px] text-slate-500 mb-4">giá tuỳ chỉnh theo nhu cầu</div>
+      <ul class="space-y-2 mb-6 text-[13px] text-slate-700">
+        <li class="flex gap-2"><span class="text-violet-500">✓</span> Tất cả tính năng Pro</li>
+        <li class="flex gap-2"><span class="text-violet-500">✓</span> Supporter không giới hạn</li>
+        <li class="flex gap-2"><span class="text-violet-500">✓</span> AI Credits không giới hạn</li>
+        <li class="flex gap-2"><span class="text-violet-500">✓</span> AI Chat với dữ liệu</li>
+        <li class="flex gap-2"><span class="text-violet-500">✓</span> SSO / SAML</li>
+        <li class="flex gap-2"><span class="text-violet-500">✓</span> SLA & hỗ trợ ưu tiên</li>
+      </ul>
+      <a href="mailto:sales@vox.vn" class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold rounded-xl cursor-pointer block text-center">
+        Liên hệ Sales →
+      </a>
+    </div>
+  </div>
+
+  <!-- How PayOS works -->
+  <div class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+    <h2 class="text-[14px] font-bold text-slate-700 mb-3">Quy trình thanh toán</h2>
+    <div class="grid grid-cols-4 gap-4">
+      <% [
+        ["1", "Chọn gói", "Nhấn Thanh toán và chọn plan"],
+        ["2", "Quét QR", "Dùng app ngân hàng quét mã QR PayOS"],
+        ["3", "Xác nhận", "Hệ thống tự xác nhận sau vài giây"],
+        ["4", "Kích hoạt", "Gói được kích hoạt ngay lập tức"]
+      ].each do |step, title, desc| %>
+        <div class="text-center">
+          <div class="w-8 h-8 rounded-full bg-indigo-600 text-white text-[13px] font-bold flex items-center justify-center mx-auto mb-2"><%= step %></div>
+          <div class="text-[12px] font-semibold text-slate-700 mb-1"><%= title %></div>
+          <div class="text-[11px] text-slate-500"><%= desc %></div>
+        </div>
+      <% end %>
+    </div>
+    <p class="text-[11px] text-slate-400 mt-4 text-center">
+      Thanh toán bảo mật qua PayOS. Hỗ trợ mọi ngân hàng tại Việt Nam qua VietQR.
+    </p>
+  </div>
+</div>

@@ -1,0 +1,63 @@
+<div class="flex items-center gap-3 mb-5">
+  <%= link_to super_admin_workspaces_path, class: "text-[13px] text-slate-500 hover:text-slate-700" do %>← Back<% end %>
+  <h1 class="text-[21px] font-extrabold text-slate-900"><%= @workspace.name %></h1>
+  <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full <%= @workspace.active? ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' %>"><%= @workspace.status %></span>
+</div>
+
+<div class="grid grid-cols-2 gap-4">
+  <div class="bg-white rounded-xl border border-slate-200 p-5">
+    <h2 class="text-[13px] font-bold text-slate-700 mb-3">Details</h2>
+    <dl class="space-y-2 text-[13px]">
+      <div class="flex justify-between"><dt class="text-slate-500">Slug</dt><dd class="font-medium text-slate-900"><%= @workspace.slug %></dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500">Language</dt><dd class="font-medium text-slate-900"><%= @workspace.language&.upcase %></dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500">Timezone</dt><dd class="font-medium text-slate-900"><%= @workspace.timezone %></dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500">Created</dt><dd class="font-medium text-slate-900"><%= @workspace.created_at.strftime("%b %d, %Y") %></dd></div>
+    </dl>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 p-5">
+    <h2 class="text-[13px] font-bold text-slate-700 mb-3">Subscription</h2>
+    <% if (sub = @workspace.active_subscription) %>
+      <dl class="space-y-2 text-[13px]">
+        <div class="flex justify-between"><dt class="text-slate-500">Plan</dt><dd class="font-medium text-slate-900"><%= sub.plan&.capitalize %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">Status</dt><dd class="font-medium text-slate-900"><%= sub.status %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">AI Credits</dt><dd class="font-medium text-slate-900"><%= sub.credit_balance %> / <%= sub.max_ai_credits || "∞" %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">Expires</dt><dd class="font-medium text-slate-900"><%= sub.ends_at&.strftime("%b %d, %Y") || "—" %></dd></div>
+      </dl>
+    <% else %>
+      <p class="text-[13px] text-slate-400">No active subscription</p>
+    <% end %>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 p-5 col-span-2">
+    <h2 class="text-[13px] font-bold text-slate-700 mb-3">Members (<%= @workspace.users.count %>)</h2>
+    <table class="w-full text-[13px]">
+      <thead><tr class="border-b border-slate-100">
+        <th class="text-left text-[11px] font-semibold text-slate-400 uppercase pb-2">Name</th>
+        <th class="text-left text-[11px] font-semibold text-slate-400 uppercase pb-2">Email</th>
+        <th class="text-left text-[11px] font-semibold text-slate-400 uppercase pb-2">Role</th>
+        <th class="text-left text-[11px] font-semibold text-slate-400 uppercase pb-2">Status</th>
+      </tr></thead>
+      <tbody>
+        <% @workspace.users.order(:role).each do |u| %>
+          <tr class="border-b border-slate-50">
+            <td class="py-2 font-medium text-slate-900"><%= u.display_name %></td>
+            <td class="py-2 text-slate-500"><%= u.email %></td>
+            <td class="py-2 text-slate-500"><%= u.role %></td>
+            <td class="py-2"><span class="px-1.5 py-0.5 rounded text-[10px] <%= u.active? ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' %>"><%= u.status %></span></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="flex gap-2 mt-4">
+  <%= link_to edit_super_admin_workspace_path(@workspace), class: "px-4 py-2 text-[13px] bg-slate-100 text-slate-700 rounded-lg font-medium" do %>Edit<% end %>
+  <%= button_to reset_admin_password_super_admin_workspace_path(@workspace), method: :patch, class: "px-4 py-2 text-[13px] bg-amber-50 text-amber-700 rounded-lg font-medium" do %>Reset Admin Password<% end %>
+  <% if @workspace.active? %>
+    <%= button_to suspend_super_admin_workspace_path(@workspace), method: :patch, class: "px-4 py-2 text-[13px] bg-red-50 text-red-700 rounded-lg font-medium" do %>Suspend<% end %>
+  <% else %>
+    <%= button_to activate_super_admin_workspace_path(@workspace), method: :patch, class: "px-4 py-2 text-[13px] bg-emerald-50 text-emerald-700 rounded-lg font-medium" do %>Activate<% end %>
+  <% end %>
+</div>

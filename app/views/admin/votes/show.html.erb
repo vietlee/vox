@@ -1,0 +1,82 @@
+<% content_for :title, @vote.title %>
+<% content_for :breadcrumb do %>
+  <%= link_to "Votes", votes_path, class: "hover:text-slate-600" %> <span class="text-slate-300 mx-1">/</span>
+  <span class="text-slate-700 font-medium"><%= @vote.title %></span>
+<% end %>
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-[21px] font-extrabold text-slate-900"><%= @vote.title %></h1>
+    <div class="flex items-center gap-2 mt-1">
+      <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold <%= @vote.active? ? 'bg-emerald-100 text-emerald-700' : @vote.draft? ? 'bg-slate-100 text-slate-500' : 'bg-red-100 text-red-700' %>">
+        <%= @vote.status.capitalize %>
+      </span>
+      <span class="text-[12px] text-slate-400"><%= @vote.vote_type.humanize %> · <%= @vote.participant_count %> participants</span>
+    </div>
+  </div>
+  <div class="flex gap-2">
+    <% if @vote.draft? %>
+      <%= button_to open_vote_path(@vote), method: :patch, class: "px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-semibold rounded-lg" do %>▶ Open Vote<% end %>
+    <% elsif @vote.active? %>
+      <%= button_to close_vote_path(@vote), method: :patch, class: "px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-[13px] font-semibold rounded-lg" do %>■ Close Vote<% end %>
+      <%= link_to present_vote_path(@vote), target: "_blank", class: "px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-semibold rounded-lg" do %>⛶ Present<% end %>
+    <% end %>
+    <%= link_to edit_vote_path(@vote), class: "px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[13px] font-semibold rounded-lg" do %>Edit<% end %>
+  </div>
+</div>
+
+<div class="grid grid-cols-3 gap-4">
+  <div class="col-span-2 bg-white rounded-xl border border-slate-200 p-5">
+    <h2 class="text-[13px] font-bold text-slate-700 mb-3">Options</h2>
+    <% if @vote.vote_options.any? %>
+      <div class="space-y-2">
+        <% @vote.vote_options.order(:position).each do |opt| %>
+          <div class="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+            <span class="text-[13px] text-slate-700 font-medium"><%= opt.label %></span>
+            <span class="text-[12px] text-slate-400"><%= opt.votes_count %> votes</span>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-[13px] text-slate-400">No options added yet. <%= link_to "Edit vote", edit_vote_path(@vote), class: "text-indigo-500 hover:underline" %> to add options.</p>
+    <% end %>
+  </div>
+
+  <div class="space-y-4">
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <h2 class="text-[13px] font-bold text-slate-700 mb-3">Settings</h2>
+      <dl class="space-y-2 text-[12px]">
+        <div class="flex justify-between"><dt class="text-slate-400">Identity</dt><dd class="text-slate-700"><%= @vote.identity_mode.humanize %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-400">Live results</dt><dd class="text-slate-700"><%= @vote.show_results_live? ? "Yes" : "No" %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-400">Countdown</dt><dd class="text-slate-700"><%= @vote.countdown_seconds&.positive? ? "#{@vote.countdown_seconds}s" : "None" %></dd></div>
+      </dl>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <h2 class="text-[13px] font-bold text-slate-700 mb-2">Share</h2>
+      <p class="text-[12px] text-slate-400 mb-2">Public link</p>
+      <div class="flex gap-1 mb-3">
+        <input id="vote-link" readonly value="<%= participate_vote_url(@vote.slug) %>"
+          class="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] font-mono text-slate-600 min-w-0">
+        <button onclick="navigator.clipboard.writeText(document.getElementById('vote-link').value);this.textContent='✓';setTimeout(()=>this.textContent='Copy',2000)"
+          class="px-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-semibold rounded hover:bg-indigo-100 border-0 cursor-pointer flex-shrink-0">Copy</button>
+      </div>
+      <% if @vote.qr_code %>
+        <div class="text-center">
+          <img src="<%= qr_image_path(@vote.qr_code.token) %>" alt="QR Code" class="w-32 h-32 mx-auto rounded-lg border border-slate-100">
+          <p class="text-[10px] text-slate-400 mt-1"><%= @vote.qr_code.scan_count %> scans</p>
+          <a href="<%= qr_image_path(@vote.qr_code.token) %>" download="qr-<%= @vote.slug %>.svg"
+            class="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded hover:bg-slate-200">
+            ↓ Download QR
+          </a>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<% if @vote.closed? %>
+  <div class="mt-4">
+    <%= link_to results_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 text-indigo-700 text-[13px] font-semibold rounded-lg hover:bg-indigo-100" do %>📊 View Results<% end %>
+  </div>
+<% end %>

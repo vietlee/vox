@@ -1,0 +1,17 @@
+<% content_for :title, "Notifications" %>
+<div class="flex items-center justify-between mb-5">
+  <h1 class="text-[21px] font-extrabold text-slate-900">🔔 Notifications</h1>
+  <%= button_to mark_all_read_notifications_path, method: :patch, class: "text-[12px] text-indigo-600 hover:underline" do %>Mark all read<% end %>
+</div>
+<div class="space-y-2">
+  <% @notifications.each do |notif| %>
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4 flex items-start gap-3 <%= 'opacity-60' if notif.read? %>">
+      <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0 <%= notif.read? ? 'bg-slate-300' : 'bg-indigo-500' %>"></div>
+      <div class="flex-1">
+        <div class="text-[13px] font-semibold text-slate-900"><%= notif.title %></div>
+        <% if notif.body.present? %><p class="text-[12px] text-slate-500 mt-0.5"><%= notif.body %></p><% end %>
+        <div class="text-[11px] text-slate-400 mt-1"><%= notif.created_at.strftime("%b %d, %H:%M") %></div>
+      </div>
+    </div>
+  <% end %>
+</div>

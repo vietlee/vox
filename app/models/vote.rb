@@ -1,0 +1,57 @@
+class Vote < ApplicationRecord
+  belongs_to :workspace
+  belongs_to :user
+  has_many   :vote_options,    -> { order(:position) }, dependent: :destroy
+  has_many   :vote_responses,  dependent: :destroy
+  has_one    :qr_code,         as: :resource, dependent: :destroy
+
+  enum :vote_type,     { single_choice: 0, multiple_choice: 1, word_cloud: 2, open_ended: 3, ranking: 4, qa_upvote: 5 }
+  enum :status,        { draft: 0, active: 1, closed: 2 }
+  enum :identity_mode, { anonymous: 0, email_required: 1 }
+
+  validates :title, presence: true, length: { maximum: 300 }
+
+  before_create :generate_slug
+  after_create  :generate_qr_code
+
+  def open!
+    update!(status: :active, opened_at: Time.current)
+    broadcast_status_change
+  end
+
+  def seconds_remaining
+    return nil unless countdown_seconds.to_i > 0 && active? && opened_at
+    remaining = countdown_seconds - (Time.current - opened_at).to_i
+    [remaining, 0].max
+  end
+
+  def close!
+    update!(status: :closed)
+    broadcast_status_change
+  end
+
+  def results_by_option
+    vote_options.map do |opt|
+      { id: opt.id, label: opt.label, count: opt.votes_count, percentage: total_votes > 0 ? (opt.votes_count.to_f / total_votes * 100).round(1) : 0 }
+    end
+  end
+
+  def total_votes
+    vote_options.sum(:votes_count)
+  end
+
+  private
+
+  def generate_slug
+    base = title.downcase.gsub(/[^a-z0-9]+/, "-").gsub(/^-|-$/, "").first(50)
+    self.slug = "#{base}-#{SecureRandom.hex(4)}"
+  end
+
+  def generate_qr_code
+    QrCode.create!(workspace: workspace, resource: self, token: SecureRandom.urlsafe_base64(12))
+  end
+
+  def broadcast_status_change
+    ActionCable.server.broadcast("vote_#{id}", { type: "status_change", status: status })
+  end
+end

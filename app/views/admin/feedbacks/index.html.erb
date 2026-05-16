@@ -1,0 +1,89 @@
+<% content_for :title, @board.title %>
+<div class="flex items-start justify-between mb-5">
+  <div>
+    <h1 class="text-[19px] font-extrabold text-slate-900"><%= @board.title %></h1>
+    <p class="text-[12px] text-slate-500 mt-0.5"><%= @board.feedbacks.count %> total · <%= @board.feedbacks.where(status: :pending).count %> pending review</p>
+  </div>
+  <div class="flex gap-2">
+    <button onclick="aiSummarize()" class="px-3 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-[12px] font-semibold rounded-lg hover:opacity-90">🤖 AI Summarize</button>
+    <%= link_to participate_feedback_path(@board.slug), class: "px-3 py-2 bg-white border border-slate-200 text-slate-600 text-[12px] font-semibold rounded-lg hover:bg-slate-50", target: "_blank" do %>View Public<% end %>
+  </div>
+</div>
+
+<!-- Filter tabs -->
+<div class="flex gap-1 mb-4">
+  <% ["", "pending", "approved", "hidden", "rejected"].each do |s| %>
+    <%= link_to feedback_board_feedbacks_path(@board, status: s.presence), class: "px-3 py-1.5 rounded-full text-[12px] font-semibold #{params[:status].to_s == s ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" do %>
+      <%= s.blank? ? "All" : s.capitalize %>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="space-y-3">
+  <% @feedbacks.each do |fb| %>
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4" id="feedback-<%= fb.id %>">
+      <div class="flex gap-3">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-2">
+            <% if fb.pinned? %><span class="text-[10px] font-bold text-amber-600">📌 Pinned</span><% end %>
+            <span class="text-[10px] px-2 py-0.5 rounded-full <%= fb.safe? ? 'bg-emerald-50 text-emerald-700' : fb.flagged? ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500' %>">
+              <%= fb.moderation_status.humanize %>
+            </span>
+            <span class="text-[10px] text-slate-400 ml-auto"><%= fb.created_at.strftime("%b %d, %H:%M") %></span>
+          </div>
+          <p class="text-[13px] text-slate-800 leading-relaxed mb-2"><%= fb.content %></p>
+          <div class="text-[11px] text-slate-400">
+            <%= fb.anonymous? ? "Anonymous" : (fb.author_name.presence || fb.author_email) %>
+            · 👍 <%= fb.upvotes_count %> upvotes
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5 flex-shrink-0">
+          <% unless fb.approved? %>
+            <%= button_to approve_feedback_board_feedback_path(@board, fb), method: :patch, class: "px-2.5 py-1 text-[11px] bg-emerald-50 rounded text-emerald-700 hover:bg-emerald-100" do %>✓ Approve<% end %>
+          <% end %>
+          <% unless fb.hidden? %>
+            <%= button_to hide_feedback_board_feedback_path(@board, fb), method: :patch, class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded text-slate-600 hover:bg-slate-200" do %>Hide<% end %>
+          <% end %>
+          <%= button_to fb.pinned? ? unpin_feedback_board_feedback_path(@board, fb) : pin_feedback_board_feedback_path(@board, fb),
+              method: :patch, class: "px-2.5 py-1 text-[11px] bg-amber-50 rounded text-amber-700 hover:bg-amber-100" do %>
+            <%= fb.pinned? ? "Unpin" : "📌 Pin" %>
+          <% end %>
+          <%= button_to feedback_board_feedback_path(@board, fb), method: :delete, data: { confirm: "Delete?" }, class: "px-2.5 py-1 text-[11px] bg-red-50 rounded text-red-600 hover:bg-red-100" do %>Delete<% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <% if @feedbacks.empty? %>
+    <div class="text-center py-12 text-slate-400">
+      <div class="text-3xl mb-2">💬</div>
+      <p class="text-[13px]">No feedbacks yet</p>
+    </div>
+  <% end %>
+</div>
+
+<div id="ai-summary-result" class="mt-4"></div>
+
+<script>
+async function aiSummarize() {
+  const resp = await fetch('<%= ai_summarize_feedback_board_path(@board) %>', {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content }
+  });
+  const { job_id } = await resp.json();
+  const box = document.getElementById('ai-summary-result');
+  box.innerHTML = '<div class="bg-violet-50 border border-violet-200 rounded-xl p-4 text-[13px] text-slate-600">🤖 Analyzing feedback with Claude AI...</div>';
+  pollJob(job_id, (result) => {
+    box.innerHTML = `<div class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+      <div class="text-[11px] font-bold text-violet-600 mb-2">AI SUMMARY</div>
+      <p class="text-[13px] text-slate-800">${result.summary}</p>
+    </div>`;
+  });
+}
+async function pollJob(jobId, onDone) {
+  const resp = await fetch('<%= ai_job_status_path("__ID__") %>'.replace('__ID__', jobId));
+  const data = await resp.json();
+  if (data.status === 'done') onDone(data.output);
+  else if (data.status !== 'failed') setTimeout(() => pollJob(jobId, onDone), 2000);
+}
+</script>

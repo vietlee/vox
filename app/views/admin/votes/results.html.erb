@@ -1,0 +1,38 @@
+<% content_for :title, "Results — #{@vote.title}" %>
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-[19px] font-extrabold text-slate-900"><%= @vote.title %></h1>
+    <p class="text-[12px] text-slate-500 mt-0.5"><%= @vote.participant_count %> total votes</p>
+  </div>
+  <%= link_to present_vote_path(@vote), class: "px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700", target: "_blank" do %>Present<% end %>
+</div>
+
+<div class="grid grid-cols-[1fr_300px] gap-5">
+  <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6">
+    <h2 class="text-[14px] font-bold text-slate-900 mb-5">Results</h2>
+    <% @results.each do |result| %>
+      <div class="mb-4">
+        <div class="flex justify-between mb-1.5 text-[13px]">
+          <span class="font-semibold text-slate-900"><%= result[:label] %></span>
+          <span class="text-slate-500"><%= result[:count] %> · <%= result[:percentage] %>%</span>
+        </div>
+        <div class="h-7 bg-slate-100 rounded-lg overflow-hidden">
+          <div class="h-7 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-lg" style="width: <%= result[:percentage] %>%"></div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="space-y-4">
+    <% if @ai_insight %>
+      <div class="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200 rounded-[10px] p-4">
+        <div class="text-[11px] font-bold text-violet-600 uppercase tracking-wide mb-2">🤖 AI Insight</div>
+        <p class="text-[13px] text-slate-700 leading-relaxed"><%= @ai_insight["insight"] %></p>
+      </div>
+    <% end %>
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4">
+      <h3 class="text-[13px] font-bold text-slate-900 mb-3">Share</h3>
+      <%= render "admin/shared/qr_section", resource: @vote %>
+    </div>
+  </div>
+</div>

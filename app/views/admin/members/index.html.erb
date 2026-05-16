@@ -1,0 +1,54 @@
+<% content_for :title, "Members" %>
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-[21px] font-extrabold text-slate-900">👥 Team Members</h1>
+    <p class="text-[13px] text-slate-500 mt-0.5"><%= @members.count %> supporters</p>
+  </div>
+  <%= link_to new_member_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700" do %>
+    + Invite Member
+  <% end %>
+</div>
+
+<div class="bg-white rounded-[10px] border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full border-collapse">
+    <thead>
+      <tr class="bg-slate-50 border-b border-slate-200">
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Member</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Status</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Joined</th>
+        <th class="px-4 py-2.5"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @members.each do |member| %>
+        <tr class="border-b border-slate-100 hover:bg-slate-50">
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0">
+                <%= member.initials %>
+              </div>
+              <div>
+                <div class="text-[13px] font-semibold text-slate-900"><%= member.name %></div>
+                <div class="text-[11px] text-slate-400"><%= member.email %></div>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-3">
+            <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold <%= member.active? ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' %>">
+              <%= member.status.capitalize %>
+            </span>
+          </td>
+          <td class="px-4 py-3 text-[12px] text-slate-500"><%= member.created_at.strftime("%b %d, %Y") %></td>
+          <td class="px-4 py-3">
+            <div class="flex gap-1.5 justify-end">
+              <%= button_to toggle_status_member_path(member), method: :patch, class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %>
+                <%= member.active? ? "Disable" : "Enable" %>
+              <% end %>
+              <%= button_to member_path(member), method: :delete, data: { confirm: "Remove this member?" }, class: "px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-600 hover:bg-red-100" do %>Remove<% end %>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

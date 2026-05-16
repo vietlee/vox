@@ -1,0 +1,24 @@
+<% content_for :title, "Audit Log" %>
+<h1 class="text-[21px] font-extrabold text-slate-900 mb-5">📜 Audit Log</h1>
+<div class="bg-white rounded-[10px] border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full border-collapse">
+    <thead>
+      <tr class="bg-slate-50 border-b border-slate-200">
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Time</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">User</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Action</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Resource</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @logs.each do |log| %>
+        <tr class="border-b border-slate-100 hover:bg-slate-50">
+          <td class="px-4 py-2.5 text-[11px] text-slate-500"><%= log.created_at.strftime("%b %d, %H:%M") %></td>
+          <td class="px-4 py-2.5 text-[12px] text-slate-700"><%= log.user&.name || "System" %></td>
+          <td class="px-4 py-2.5 text-[12px] font-mono text-slate-700"><%= log.action %></td>
+          <td class="px-4 py-2.5 text-[12px] text-slate-500"><%= log.resource_type %> #<%= log.resource_id %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

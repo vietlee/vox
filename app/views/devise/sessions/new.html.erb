@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — VOX</title>
+  <%= csrf_meta_tags %>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0 auto; padding: 0; background: #0F172A; font-family: 'Inter', sans-serif; }
+    * { box-sizing: border-box; }
+    input:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important; outline: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Language switcher fixed top-right -->
+  <div style="position:fixed; top:16px; right:16px; z-index:999; display:flex; gap:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:4px;">
+    <%= link_to request.path + "?locale=vi", style: "display:inline-flex; align-items:center; gap:5px; padding:7px 14px; border-radius:7px; font-size:12px; font-weight:600; text-decoration:none; #{I18n.locale == :vi ? 'background:#4f46e5; color:#fff;' : 'color:#64748b;'}" do %>🇻🇳 VI<% end %>
+    <%= link_to request.path + "?locale=en", style: "display:inline-flex; align-items:center; gap:5px; padding:7px 14px; border-radius:7px; font-size:12px; font-weight:600; text-decoration:none; #{I18n.locale == :en ? 'background:#4f46e5; color:#fff;' : 'color:#64748b;'}" do %>🇬🇧 EN<% end %>
+  </div>
+
+  <!-- Centered wrapper -->
+  <div style="padding: 72px 16px 48px;margin: 0 auto;">
+    <div style="width: 100%; width: 480px; margin-left: auto; margin-right: auto;">
+
+      <!-- Logo -->
+      <div style="text-align:center; margin-bottom:28px;">
+        <div style="display:inline-flex; align-items:center; justify-content:center; width:58px; height:58px; background:#4f46e5; border-radius:16px; margin-bottom:12px; box-shadow:0 8px 32px rgba(99,102,241,0.4);">
+          <span style="font-size:22px; font-weight:900; color:#fff;">V</span>
+        </div>
+        <div style="font-size:30px; font-weight:900; color:#fff; letter-spacing:-0.5px;">VOX</div>
+        <p style="font-size:13px; color:#64748b; margin-top:6px;">
+          <%= I18n.locale == :vi ? "Đăng nhập vào workspace của bạn" : "Sign in to your workspace" %>
+        </p>
+      </div>
+
+      <!-- Card -->
+      <div style="background:#1E293B; border-radius:20px; border:1px solid rgba(255,255,255,0.07); padding:28px; box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+
+        <% if flash[:alert] %>
+          <div style="margin-bottom:18px; display:flex; align-items:flex-start; gap:10px; padding:14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:12px; font-size:13px; color:#f87171; line-height:1.5;">
+            <span>⚠</span><span><%= flash[:alert] %></span>
+          </div>
+        <% end %>
+
+        <%= form_with model: resource, as: resource_name, url: session_path(resource_name), local: true do |f| %>
+
+          <div style="margin-bottom:16px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Email</label>
+            <%= f.email_field :email, autofocus: true, autocomplete: "email",
+              placeholder: (I18n.locale == :vi ? "ban@congty.com" : "you@company.com"),
+              style: "display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:14px; color:#f1f5f9; font-family:'Inter',sans-serif;" %>
+          </div>
+
+          <div style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <label style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em;">
+                <%= I18n.locale == :vi ? "Mật khẩu" : "Password" %>
+              </label>
+              <%= link_to new_user_password_path(locale: I18n.locale), style: "font-size:12px; color:#818cf8; text-decoration:none; font-weight:600;" do %>
+                <%= I18n.locale == :vi ? "Quên mật khẩu?" : "Forgot password?" %>
+              <% end %>
+            </div>
+            <%= f.password_field :password, autocomplete: "current-password",
+              placeholder: "••••••••",
+              style: "display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:14px; color:#f1f5f9; font-family:'Inter',sans-serif;" %>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+            <%= f.check_box :remember_me, id: "remember_me", style: "width:16px; height:16px; accent-color:#6366f1; cursor:pointer;" %>
+            <label for="remember_me" style="font-size:13px; color:#64748b; cursor:pointer;">
+              <%= I18n.locale == :vi ? "Ghi nhớ đăng nhập" : "Remember me" %>
+            </label>
+          </div>
+
+          <%= f.submit (I18n.locale == :vi ? "Đăng nhập →" : "Sign In →"),
+            style: "display:block; width:100%; padding:14px; background:#4f46e5; color:#fff; font-size:15px; font-weight:700; border:none; border-radius:12px; cursor:pointer; font-family:'Inter',sans-serif; box-shadow:0 4px 20px rgba(79,70,229,0.35);" %>
+
+        <% end %>
+      </div>
+
+      <p style="text-align:center; font-size:12px; color:#334155; margin-top:18px;">
+        <%= I18n.locale == :vi ? "Chỉ truy cập bằng lời mời. Liên hệ quản trị viên." : "Access is invitation-only. Contact your workspace admin." %>
+      </p>
+
+    </div>
+  </div>
+
+</body>
+</html>

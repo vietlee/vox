@@ -1,0 +1,138 @@
+<% content_for :title, t("surveys.title") %>
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight">📋 <%= t("surveys.title") %></h1>
+    <p class="text-[13px] text-slate-500 mt-0.5"><%= @surveys.total_count rescue @surveys.count %> surveys total</p>
+  </div>
+  <div class="flex gap-2">
+    <button onclick="document.getElementById('ai-builder-modal').classList.remove('hidden')"
+      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:opacity-90 transition">
+      🤖 AI Create
+    </button>
+    <%= link_to new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition" do %>
+      + New Survey
+    <% end %>
+  </div>
+</div>
+
+<!-- Filter tabs -->
+<div class="flex gap-1 mb-5">
+  <% ["", "draft", "active", "closed", "archived"].each do |s| %>
+    <%= link_to surveys_path(status: s.presence), class: "px-3 py-1.5 rounded-full text-[12px] font-semibold #{params[:status].to_s == s ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" do %>
+      <%= s.blank? ? "All" : s.capitalize %>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="bg-white rounded-[10px] border border-slate-200 shadow-sm overflow-hidden">
+  <% if @surveys.any? %>
+    <table class="w-full border-collapse">
+      <thead>
+        <tr class="bg-slate-50 border-b border-slate-200">
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Survey</th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Status</th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Responses</th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Created</th>
+          <th class="px-4 py-2.5"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @surveys.each do |survey| %>
+          <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="px-4 py-3">
+              <div class="text-[13px] font-semibold text-slate-900"><%= survey.title %></div>
+              <div class="text-[11px] text-slate-400"><%= survey.questions.count %> questions · <%= survey.identity_mode.humanize %></div>
+            </td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold <%= survey_status_class(survey.status) %>">
+                <%= survey.status.capitalize %>
+              </span>
+            </td>
+            <td class="px-4 py-3 text-[13px] text-slate-700"><%= survey.response_count %></td>
+            <td class="px-4 py-3 text-[12px] text-slate-500"><%= survey.created_at.strftime("%b %d, %Y") %></td>
+            <td class="px-4 py-3">
+              <div class="flex gap-1.5 justify-end">
+                <%= link_to edit_survey_path(survey), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %>Edit<% end %>
+                <%= link_to results_survey_path(survey), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100" do %>Results<% end %>
+                <% if survey.draft? %>
+                  <%= button_to publish_survey_path(survey), method: :patch, class: "px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100" do %>Publish<% end %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <div class="text-center py-16">
+      <div class="text-4xl mb-3">📋</div>
+      <h3 class="text-[15px] font-semibold text-slate-700 mb-1">No surveys yet</h3>
+      <p class="text-[13px] text-slate-400 mb-4">Create your first survey to start collecting responses</p>
+      <%= link_to "Create Survey", new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700" %>
+    </div>
+  <% end %>
+</div>
+
+<!-- AI Survey Builder Modal -->
+<div id="ai-builder-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+  <div class="bg-white rounded-xl shadow-2xl w-[520px] max-w-full mx-4 p-6">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-[18px]">🤖</div>
+      <div>
+        <h2 class="text-[16px] font-bold text-slate-900">AI Survey Builder</h2>
+        <p class="text-[12px] text-slate-500">5 AI credits · Powered by Claude</p>
+      </div>
+      <button onclick="document.getElementById('ai-builder-modal').classList.add('hidden')" class="ml-auto text-slate-400 hover:text-slate-600 text-xl">✕</button>
+    </div>
+    <div id="ai-builder-form">
+      <label class="block text-[12px] font-semibold text-slate-700 mb-2">Describe your survey goal</label>
+      <textarea id="ai-prompt" rows="4" placeholder="E.g.: I want to measure employee satisfaction after the Q1 office relocation, focusing on commute, workspace comfort, and team collaboration..."
+        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-none outline-none"></textarea>
+      <div class="flex gap-2 mt-4">
+        <button onclick="generateAiSurvey()" class="flex-1 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-[13px] font-semibold rounded-lg hover:opacity-90">
+          Generate Survey ✨
+        </button>
+        <button onclick="document.getElementById('ai-builder-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200">Cancel</button>
+      </div>
+    </div>
+    <div id="ai-builder-loading" class="hidden text-center py-8">
+      <div class="text-3xl mb-3 animate-spin inline-block">⟳</div>
+      <p class="text-[13px] text-slate-600">Generating your survey with Claude AI...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+async function generateAiSurvey() {
+  const prompt = document.getElementById('ai-prompt').value;
+  if (!prompt.trim()) return;
+  document.getElementById('ai-builder-form').classList.add('hidden');
+  document.getElementById('ai-builder-loading').classList.remove('hidden');
+
+  const resp = await fetch('<%= ai_generate_survey_path %>', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content },
+    body: JSON.stringify({ prompt })
+  });
+  const { job_id } = await resp.json();
+
+  pollJobStatus(job_id, (result) => {
+    // Redirect to new survey page with pre-filled data
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '<%= surveys_path %>';
+    form.innerHTML = `<input name="authenticity_token" value="${document.querySelector('meta[name=csrf-token]').content}"><input name="survey[title]" value="${result.title}"><input name="ai_generated" value="true"><input name="ai_data" value='${JSON.stringify(result)}'>`;
+    document.body.appendChild(form);
+    form.submit();
+  });
+}
+
+async function pollJobStatus(jobId, onDone) {
+  const resp = await fetch(`<%= ai_job_status_path("__ID__") %>`.replace('__ID__', jobId));
+  const data = await resp.json();
+  if (data.status === 'done') { onDone(data.output); }
+  else if (data.status === 'failed') { alert('AI generation failed: ' + data.error); }
+  else { setTimeout(() => pollJobStatus(jobId, onDone), 2000); }
+}
+</script>

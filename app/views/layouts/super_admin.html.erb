@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Admin — Vox</title>
+  <%= stylesheet_link_tag "tailwind", data: { turbo_track: "reload" } %>
+  <%= stylesheet_link_tag "application", data: { turbo_track: "reload" } %>
+  <%= javascript_importmap_tags %>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body class="h-full font-inter antialiased bg-slate-100">
+<div class="flex h-full">
+  <aside class="w-[200px] bg-[#0F172A] flex flex-col flex-shrink-0 p-4">
+    <div class="text-[18px] font-black text-red-400 mb-1">VOX</div>
+    <div class="text-[10px] text-slate-500 mb-5">Super Admin</div>
+    <%= link_to super_admin_root_path, class: "text-[13px] text-slate-400 hover:text-white py-1" do %><%= t("super_admin.nav.dashboard") %><% end %>
+    <%= link_to super_admin_workspaces_path, class: "text-[13px] text-slate-400 hover:text-white py-1" do %><%= t("super_admin.nav.workspaces") %><% end %>
+    <%= link_to super_admin_subscriptions_path, class: "text-[13px] text-slate-400 hover:text-white py-1" do %><%= t("super_admin.nav.subscriptions") %><% end %>
+    <div class="mt-auto">
+      <%= button_to destroy_user_session_path, method: :delete, class: "text-[12px] text-slate-600 hover:text-slate-400 bg-transparent border-0 cursor-pointer p-0" do %><%= t("super_admin.nav.sign_out") %><% end %>
+    </div>
+  </aside>
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Top bar -->
+    <header class="h-12 bg-white border-b border-slate-200 flex items-center justify-end px-6 gap-2 flex-shrink-0">
+      <div class="flex gap-0.5 bg-slate-100 border border-slate-200 rounded-lg p-0.5">
+        <%= link_to request.path + "?locale=vi", class: "px-2.5 py-1 rounded-md text-[11px] font-semibold #{I18n.locale == :vi ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}" do %>🇻🇳 VI<% end %>
+        <%= link_to request.path + "?locale=en", class: "px-2.5 py-1 rounded-md text-[11px] font-semibold #{I18n.locale == :en ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}" do %>🇬🇧 EN<% end %>
+      </div>
+    </header>
+    <div class="flex-1 overflow-auto p-6">
+      <% if notice %><div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-[13px]"><%= notice %></div><% end %>
+      <% if alert %><div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[13px]"><%= alert %></div><% end %>
+      <%= yield %>
+    </div>
+  </div>
+</div>
+</body>
+</html>
