@@ -25,6 +25,7 @@ Rails.application.routes.draw do
   get  "/f/:slug",         to: "participate/feedbacks#show",  as: :participate_feedback
   post "/f/:slug/submit",  to: "participate/feedbacks#submit", as: :submit_feedback
   post "/f/:slug/upvote",  to: "participate/feedbacks#upvote", as: :upvote_feedback
+  post "/f/:slug/reply",   to: "participate/feedbacks#reply",  as: :reply_feedback
 
   # Super Admin
   namespace :super_admin do
@@ -37,6 +38,8 @@ Rails.application.routes.draw do
       end
     end
     resources :subscriptions, only: [:index, :show, :edit, :update]
+    resources :plan_configs, only: [:index, :edit, :update]
+    resources :addon_configs
   end
 
   # Authenticated workspace admin/supporter area
@@ -54,6 +57,7 @@ Rails.application.routes.draw do
         post  :ai_analyze
         post  :ai_report
         get   :share
+        post  :clone
       end
       resources :questions, only: [:create, :update, :destroy] do
         collection { patch :reorder }
@@ -66,6 +70,7 @@ Rails.application.routes.draw do
     post "ai/check_question",   to: "ai#check_question",   as: :ai_check_question
     post "ai/analyze",          to: "ai#analyze_survey",   as: :ai_analyze
     post "ai/generate_report",  to: "ai#generate_report",  as: :ai_generate_report
+    get  "ai/chat",             to: "ai#chat_page",        as: :ai_chat_page
     post "ai/chat",             to: "ai#chat",             as: :ai_chat
     get  "ai/job_status/:id",   to: "ai#job_status",       as: :ai_job_status
 
@@ -91,6 +96,7 @@ Rails.application.routes.draw do
         member do
           patch :approve
           patch :hide
+          patch :unhide
           patch :pin
           patch :unpin
           patch :update_admin_status
@@ -109,8 +115,10 @@ Rails.application.routes.draw do
       post :cancel
       get  :invoices
       post :checkout
+      post :checkout_addon
       get  :payment_return
       get  :payment_cancel
+      get  :payment_status
     end
 
     resources :notifications, only: [:index] do

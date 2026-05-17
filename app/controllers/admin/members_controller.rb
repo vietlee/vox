@@ -2,7 +2,10 @@ class Admin::MembersController < Admin::BaseController
   before_action :require_admin!
 
   def index
-    @members = current_workspace.users.where(role: :supporter).order(created_at: :desc)
+    @members = current_workspace.workspace_memberships
+                                .includes(:user)
+                                .where(status: :active)
+                                .order(created_at: :desc)
   end
 
   def new
@@ -10,34 +13,59 @@ class Admin::MembersController < Admin::BaseController
   end
 
   def create
-    password = SecureRandom.hex(8)
-    @member = current_workspace.users.build(
-      name: params[:user][:name],
-      email: params[:user][:email],
-      role: :supporter,
-      password: password,
-      password_confirmation: password,
-      must_change_password: true
-    )
+    email = params[:user][:email].to_s.strip.downcase
+    name  = params[:user][:name].to_s.strip
 
-    if @member.save
-      MemberMailer.invitation(@member, password).deliver_later
-      AuditLog.record(user: current_user, action: "member.invite", resource: @member)
+    # Check if already an ACTIVE member of this workspace
+    existing_user = User.find_by(email: email)
+    if existing_user && current_workspace.workspace_memberships.active.exists?(user: existing_user)
+      @member = User.new(email: email, name: name)
+      @member.errors.add(:email, "đã là thành viên của workspace này")
+      return render :new, status: :unprocessable_entity
+    end
+
+    if existing_user
+      # User exists globally — restore or create membership
+      membership = current_workspace.workspace_memberships.find_or_initialize_by(user: existing_user)
+      membership.update!(role: :supporter, status: :active)
+      MemberMailer.workspace_added(existing_user, current_workspace).deliver_later
+      audit_log("member.invite", resource: existing_user)
       redirect_to members_path, notice: t("members.invited")
     else
-      render :new, status: :unprocessable_entity
+      # New user — create account then membership
+      password = SecureRandom.hex(8)
+      @member = User.new(
+        name:                  name,
+        email:                 email,
+        workspace:             current_workspace,
+        role:                  :supporter,
+        password:              password,
+        password_confirmation: password,
+        must_change_password:  true,
+        confirmed_at:          Time.current
+      )
+      @member.skip_confirmation_notification!
+
+      if @member.save
+        current_workspace.workspace_memberships.create!(user: @member, role: :supporter)
+        MemberMailer.invitation(@member, password).deliver_later
+        audit_log("member.invite", resource: @member)
+        redirect_to members_path, notice: t("members.invited")
+      else
+        render :new, status: :unprocessable_entity
+      end
     end
   end
 
   def destroy
-    member = current_workspace.users.find(params[:id])
-    member.update!(status: :inactive)
+    membership = current_workspace.workspace_memberships.find_by!(user_id: params[:id])
+    membership.destroy!
     redirect_to members_path, notice: t("members.deactivated")
   end
 
   def toggle_status
-    member = current_workspace.users.find(params[:id])
-    member.update!(status: member.active? ? :inactive : :active)
+    membership = current_workspace.workspace_memberships.find_by!(user_id: params[:id])
+    membership.update!(status: membership.active? ? :inactive : :active)
     redirect_to members_path
   end
 end

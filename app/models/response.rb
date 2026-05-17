@@ -6,6 +6,7 @@ class Response < ApplicationRecord
   enum :status, { in_progress: 0, completed: 1 }
 
   validates :survey, :workspace, presence: true
+  validate :prevent_duplicate_response, on: :create
 
   scope :completed, -> { where(status: :completed) }
   scope :quality,   -> { where(excluded: false) }
@@ -25,5 +26,19 @@ class Response < ApplicationRecord
 
   def increment_survey_counter
     # response_count will be incremented on complete!
+  end
+
+  def prevent_duplicate_response
+    return if survey.nil?
+    return unless survey.max_per_user.to_i > 0
+
+    completed = survey.responses.completed
+    if respondent_token.present? && completed.exists?(respondent_token: respondent_token)
+      errors.add(:base, :already_responded)
+      return
+    end
+    if respondent_email.present? && completed.exists?(respondent_email: respondent_email)
+      errors.add(:base, :already_responded)
+    end
   end
 end

@@ -6,9 +6,9 @@ class AuditLog < ApplicationRecord
 
   scope :recent, -> { order(created_at: :desc) }
 
-  def self.record(user:, action:, resource: nil, changes: {}, request: nil)
+  def self.record(user:, action:, workspace: nil, resource: nil, changes: {}, request: nil)
     create!(
-      workspace:     user&.workspace,
+      workspace:     workspace || user&.workspace,
       user:          user,
       action:        action,
       resource_type: resource&.class&.name,

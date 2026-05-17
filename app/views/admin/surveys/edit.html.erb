@@ -11,6 +11,9 @@
         🚀 Publish
       <% end %>
     <% end %>
+    <%= link_to results_survey_path(@survey), class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50" do %>
+      📊 Kết quả
+    <% end %>
     <%= link_to share_survey_path(@survey), class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50" do %>
       🔗 Share
     <% end %>
@@ -127,12 +130,44 @@
 
 <script>
 async function addQuestion(type) {
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+
   const resp = await fetch('<%= survey_questions_path(@survey) %>', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content },
     body: JSON.stringify({ question: { question_type: type, title: 'New question', position: document.querySelectorAll('.question-card').length } })
   });
-  if (resp.ok) { location.reload(); }
+
+  btn.disabled = false;
+  btn.style.opacity = '';
+
+  if (!resp.ok) return;
+  const data = await resp.json();
+
+  // Insert card HTML before the "Add question" panel
+  const container = document.getElementById('questions-container');
+  const tmp = document.createElement('div');
+  tmp.innerHTML = data.html.trim();
+  const card = tmp.firstElementChild;
+  card.style.opacity = '0';
+  card.style.transform = 'translateY(8px)';
+  card.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+  container.appendChild(card);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    card.style.opacity = '1';
+    card.style.transform = 'translateY(0)';
+  });
+
+  // Auto-open the edit panel for the new card
+  const editPanel = card.querySelector('[id^="edit-panel-"]');
+  if (editPanel) editPanel.classList.remove('hidden');
+
+  // Scroll to new card
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 async function checkQuestion() {

@@ -79,26 +79,97 @@
 
       <!-- Vote options -->
       <div id="vote-form" class="<%= @already_voted ? 'hidden' : '' %> fade-in">
-        <div class="space-y-3" id="options-list">
-          <% @options.each_with_index do |option, i| %>
-            <button data-id="<%= option.id %>" onclick="selectOption(this)"
-              class="option-btn w-full px-5 py-4 text-left flex items-center gap-4 rounded-2xl border-2 border-transparent"
-              style="background:rgba(255,255,255,0.85); border-color:#e2e8f0; box-shadow:0 2px 12px rgba(0,0,0,0.04); backdrop-filter:blur(8px);">
-              <span class="radio-dot flex-shrink-0 w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all">
-                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 scale-0 transition-transform duration-200"></span>
-              </span>
-              <span class="text-[15px] font-semibold text-slate-800"><%= option.label %></span>
-            </button>
-          <% end %>
-        </div>
 
-        <div id="submit-wrap" class="mt-4 hidden">
-          <button onclick="submitVote()"
-            class="w-full py-4 text-[15px] font-bold text-white rounded-2xl transition-all hover:opacity-90 hover:-translate-y-0.5"
-            style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35);">
-            Gửi bình chọn →
-          </button>
-        </div>
+        <% if @vote.email_required? %>
+          <div class="mb-4 rounded-2xl p-4" style="background:rgba(255,255,255,0.85); border:1px solid rgba(99,102,241,0.15); box-shadow:0 2px 12px rgba(99,102,241,0.06); backdrop-filter:blur(8px);">
+            <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">Email <span class="text-red-400">*</span></label>
+            <input id="voter-email" type="email" placeholder="your@email.com" required
+              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white">
+            <p id="email-error" class="hidden mt-1.5 text-[12px] text-red-500">Vui lòng nhập email hợp lệ.</p>
+          </div>
+        <% end %>
+
+        <%# ── Single / Multiple choice ── %>
+        <% if @vote.single_choice? || @vote.multiple_choice? %>
+          <div class="space-y-3" id="options-list">
+            <% @options.each do |option| %>
+              <button data-id="<%= option.id %>" onclick="selectOption(this)"
+                class="option-btn w-full px-5 py-4 text-left flex items-center gap-4 rounded-2xl border-2"
+                style="background:rgba(255,255,255,0.85); border-color:#e2e8f0; box-shadow:0 2px 12px rgba(0,0,0,0.04); backdrop-filter:blur(8px);">
+                <% if @vote.multiple_choice? %>
+                  <span class="radio-dot flex-shrink-0 w-5 h-5 rounded-md border-2 border-slate-300 flex items-center justify-center transition-all">
+                    <span class="text-white text-[11px] font-black opacity-0 transition-opacity duration-150">✓</span>
+                  </span>
+                <% else %>
+                  <span class="radio-dot flex-shrink-0 w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all">
+                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 scale-0 transition-transform duration-200"></span>
+                  </span>
+                <% end %>
+                <span class="text-[15px] font-semibold text-slate-800"><%= option.label %></span>
+              </button>
+            <% end %>
+          </div>
+          <div id="submit-wrap" class="mt-4 hidden">
+            <button onclick="submitVote()" class="w-full py-4 text-[15px] font-bold text-white rounded-2xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35);">Gửi bình chọn →</button>
+          </div>
+
+        <%# ── Ranking ── %>
+        <% elsif @vote.ranking? %>
+          <p class="text-[12px] text-slate-500 mb-3 text-center">Kéo thả hoặc dùng ↑↓ để xếp thứ tự ưu tiên</p>
+          <div id="ranking-list" class="space-y-2">
+            <% @options.each_with_index do |opt, i| %>
+              <div class="ranking-item flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-slate-200 bg-white/90 select-none"
+                   data-id="<%= opt.id %>" draggable="true"
+                   style="box-shadow:0 2px 8px rgba(0,0,0,0.04); cursor:grab; backdrop-filter:blur(8px);">
+                <span class="rank-num w-7 h-7 rounded-full text-[12px] font-black flex items-center justify-center flex-shrink-0 text-white" style="background:linear-gradient(135deg,#6366f1,#a855f7);"><%= i + 1 %></span>
+                <svg class="w-4 h-4 text-slate-300 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-6 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
+                </svg>
+                <span class="text-[15px] font-semibold text-slate-800 flex-1"><%= opt.label %></span>
+                <div class="flex flex-col gap-0.5">
+                  <button type="button" onclick="rankMove(this,-1)" class="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 border-0 bg-transparent cursor-pointer text-[13px]">↑</button>
+                  <button type="button" onclick="rankMove(this,1)"  class="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 border-0 bg-transparent cursor-pointer text-[13px]">↓</button>
+                </div>
+              </div>
+            <% end %>
+          </div>
+          <div class="mt-4">
+            <button onclick="submitVote()" class="w-full py-4 text-[15px] font-bold text-white rounded-2xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35);">Xác nhận thứ tự →</button>
+          </div>
+
+        <%# ── Word Cloud ── %>
+        <% elsif @vote.word_cloud? %>
+          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,0.85); border:2px solid #e2e8f0; backdrop-filter:blur(8px);">
+            <label class="block text-[12px] font-semibold text-slate-600 mb-2">Nhập một từ hoặc cụm từ ngắn</label>
+            <input id="wc-input" type="text" maxlength="40" placeholder="VD: Sáng tạo, Teamwork..."
+              oninput="document.getElementById('wc-count').textContent=this.value.length"
+              class="w-full px-4 py-3 border border-slate-200 rounded-xl text-[15px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white">
+            <p class="text-[11px] text-slate-400 mt-1.5 text-right"><span id="wc-count">0</span>/40 ký tự</p>
+          </div>
+          <div class="mt-3">
+            <button onclick="submitVote()" class="w-full py-4 text-[15px] font-bold text-white rounded-2xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35);">Gửi →</button>
+          </div>
+
+        <%# ── Open Ended ── %>
+        <% elsif @vote.open_ended? %>
+          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,0.85); border:2px solid #e2e8f0; backdrop-filter:blur(8px);">
+            <label class="block text-[12px] font-semibold text-slate-600 mb-2">Câu trả lời của bạn</label>
+            <textarea id="oe-input" rows="4" placeholder="Nhập câu trả lời tự do..."
+              class="w-full px-4 py-3 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white resize-none"></textarea>
+          </div>
+          <div class="mt-3">
+            <button onclick="submitVote()" class="w-full py-4 text-[15px] font-bold text-white rounded-2xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35);">Gửi →</button>
+          </div>
+
+        <%# ── Q&A Upvote ── %>
+        <% elsif @vote.qa_upvote? %>
+          <div class="rounded-2xl p-5 mb-3" style="background:rgba(255,255,255,0.85); border:2px solid #e2e8f0; backdrop-filter:blur(8px);">
+            <label class="block text-[12px] font-semibold text-slate-600 mb-2">Đặt câu hỏi của bạn</label>
+            <textarea id="qa-input" rows="3" placeholder="Nhập câu hỏi bạn muốn hỏi..."
+              class="w-full px-4 py-3 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white resize-none"></textarea>
+            <button onclick="submitVote()" class="mt-3 w-full py-3 text-[14px] font-bold text-white rounded-xl transition-all hover:opacity-90" style="background:linear-gradient(135deg,#6366f1,#a855f7);">Gửi câu hỏi →</button>
+          </div>
+        <% end %>
       </div>
 
     </div>
@@ -113,6 +184,7 @@
 
 <script>
 const CSRF = document.querySelector("meta[name=csrf-token]")?.content || "<%= form_authenticity_token %>";
+const VOTE_TYPE = "<%= @vote.vote_type %>";
 let selectedIds = [];
 const multipleChoice = <%= @vote.multiple_choice? ? 'true' : 'false' %>;
 
@@ -127,35 +199,128 @@ function selectOption(btn) {
     selectedIds = [id];
     setSelected(btn, true);
   }
-  document.getElementById('submit-wrap').classList.toggle('hidden', selectedIds.length === 0);
+  document.getElementById('submit-wrap')?.classList.toggle('hidden', selectedIds.length === 0);
 }
 
 function setSelected(btn, on) {
-  btn.style.borderColor  = on ? '#6366f1' : '#e2e8f0';
-  btn.style.background   = on ? 'rgba(238,240,255,0.95)' : 'rgba(255,255,255,0.85)';
-  btn.style.boxShadow    = on ? '0 4px 16px rgba(99,102,241,0.18)' : '0 2px 12px rgba(0,0,0,0.04)';
-  const dot  = btn.querySelector('.radio-dot span');
+  btn.style.borderColor = on ? '#6366f1' : '#e2e8f0';
+  btn.style.background  = on ? 'rgba(238,240,255,0.95)' : 'rgba(255,255,255,0.85)';
+  btn.style.boxShadow   = on ? '0 4px 16px rgba(99,102,241,0.18)' : '0 2px 12px rgba(0,0,0,0.04)';
   const ring = btn.querySelector('.radio-dot');
+  if (!ring) return;
   ring.style.borderColor = on ? '#6366f1' : '#cbd5e1';
-  dot.style.transform    = on ? 'scale(1)' : 'scale(0)';
+  if (multipleChoice) {
+    ring.style.background = on ? '#6366f1' : '';
+    const check = ring.querySelector('span');
+    if (check) check.style.opacity = on ? '1' : '0';
+  } else {
+    const dot = ring.querySelector('span');
+    if (dot) dot.style.transform = on ? 'scale(1)' : 'scale(0)';
+  }
 }
 
+// ── Ranking drag-drop ─────────────────────────────────────────────────────────
+function updateRankNumbers() {
+  document.querySelectorAll('#ranking-list .ranking-item').forEach((el, i) => {
+    el.querySelector('.rank-num').textContent = i + 1;
+  });
+}
+
+function rankMove(btn, dir) {
+  const item = btn.closest('.ranking-item');
+  const list = item.parentElement;
+  if (dir === -1 && item.previousElementSibling) {
+    list.insertBefore(item, item.previousElementSibling);
+  } else if (dir === 1 && item.nextElementSibling) {
+    list.insertBefore(item.nextElementSibling, item);
+  }
+  updateRankNumbers();
+}
+
+(function initDragDrop() {
+  let dragged = null;
+  document.addEventListener('dragstart', e => {
+    if (!e.target.classList.contains('ranking-item')) return;
+    dragged = e.target;
+    setTimeout(() => e.target.style.opacity = '0.4', 0);
+  });
+  document.addEventListener('dragend', e => {
+    if (dragged) { dragged.style.opacity = '1'; dragged = null; }
+    document.querySelectorAll('.ranking-item').forEach(el => el.style.borderColor = '#e2e8f0');
+    updateRankNumbers();
+  });
+  document.addEventListener('dragover', e => {
+    e.preventDefault();
+    const target = e.target.closest('.ranking-item');
+    if (target && target !== dragged) target.style.borderColor = '#6366f1';
+  });
+  document.addEventListener('dragleave', e => {
+    const target = e.target.closest('.ranking-item');
+    if (target) target.style.borderColor = '#e2e8f0';
+  });
+  document.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.ranking-item');
+    if (target && dragged && target !== dragged) {
+      const list = target.parentElement;
+      const items = [...list.children];
+      const dragIdx = items.indexOf(dragged);
+      const targetIdx = items.indexOf(target);
+      list.insertBefore(dragged, dragIdx < targetIdx ? target.nextSibling : target);
+    }
+  });
+})();
+
 async function submitVote() {
-  if (selectedIds.length === 0) return;
-  const btn = document.querySelector('#submit-wrap button');
-  btn.disabled = true;
-  btn.textContent = 'Đang gửi...';
+  // Email validation
+  const emailRequired = <%= @vote.email_required? ? 'true' : 'false' %>;
+  let respondentEmail = null;
+  if (emailRequired) {
+    respondentEmail = document.getElementById('voter-email')?.value?.trim();
+    if (!respondentEmail || !respondentEmail.includes('@')) {
+      document.getElementById('email-error')?.classList.remove('hidden');
+      document.getElementById('voter-email')?.focus();
+      return;
+    }
+    document.getElementById('email-error')?.classList.add('hidden');
+  }
+
+  // Build payload by vote type
+  const payload = {};
+  if (respondentEmail) payload.respondent_email = respondentEmail;
+
+  if (VOTE_TYPE === 'ranking') {
+    payload.ranking_order = [...document.querySelectorAll('#ranking-list .ranking-item')].map(el => parseInt(el.dataset.id));
+  } else if (VOTE_TYPE === 'word_cloud') {
+    const val = document.getElementById('wc-input')?.value?.trim();
+    if (!val) { document.getElementById('wc-input')?.focus(); return; }
+    payload.text_value = val;
+  } else if (VOTE_TYPE === 'open_ended') {
+    const val = document.getElementById('oe-input')?.value?.trim();
+    if (!val) { document.getElementById('oe-input')?.focus(); return; }
+    payload.text_value = val;
+  } else if (VOTE_TYPE === 'qa_upvote') {
+    const val = document.getElementById('qa-input')?.value?.trim();
+    if (!val) { document.getElementById('qa-input')?.focus(); return; }
+    payload.text_value = val;
+  } else {
+    if (selectedIds.length === 0) return;
+    payload.option_ids = selectedIds;
+  }
+
+  // Disable all submit buttons
+  document.querySelectorAll('#vote-form button[onclick="submitVote()"]').forEach(b => { b.disabled = true; b.textContent = 'Đang gửi...'; });
+
   const res  = await fetch("/v/<%= @vote.slug %>/submit", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-CSRF-Token": CSRF },
-    body: JSON.stringify({ option_ids: selectedIds })
+    body: JSON.stringify(payload)
   });
   const data = await res.json();
   if (res.ok || data.error === 'already_voted') {
     showAlreadyVoted();
   } else {
-    btn.disabled = false;
-    btn.textContent = 'Gửi bình chọn →';
+    document.querySelectorAll('#vote-form button[onclick="submitVote()"]').forEach(b => { b.disabled = false; b.textContent = 'Gửi bình chọn →'; });
     alert(data.message || "Đã có lỗi xảy ra.");
   }
 }

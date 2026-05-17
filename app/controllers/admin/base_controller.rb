@@ -1,5 +1,6 @@
 class Admin::BaseController < ApplicationController
   before_action :require_workspace_member!
+  before_action :require_workspace_active!
   layout "admin"
 
   private
@@ -8,6 +9,25 @@ class Admin::BaseController < ApplicationController
     unless current_user&.admin? || current_user&.supporter?
       redirect_to new_user_session_path, alert: "Access denied."
     end
+  end
+
+  def require_workspace_active!
+    return if current_workspace.nil?
+    unless current_workspace.active?
+      sign_out current_user
+      redirect_to new_user_session_path, alert: t("errors.workspace_suspended")
+    end
+  end
+
+  def audit_log(action, resource: nil, changes: {})
+    AuditLog.record(
+      user:      current_user,
+      workspace: current_workspace,
+      action:    action,
+      resource:  resource,
+      changes:   changes,
+      request:   request
+    )
   end
 
   def require_admin!

@@ -10,9 +10,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_05_16_120001) do
+ActiveRecord::Schema[7.2].define(version: 2026_05_17_120729) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "addon_configs", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "description"
+    t.string "addon_type", default: "resource_pack", null: false
+    t.integer "price_cents", default: 0, null: false
+    t.integer "surveys_bonus", default: 0
+    t.integer "votes_bonus", default: 0
+    t.integer "feedbacks_bonus", default: 0
+    t.integer "ai_credits_bonus", default: 0
+    t.boolean "active", default: true, null: false
+    t.integer "sort_order", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "ai_analysis_results", force: :cascade do |t|
     t.bigint "workspace_id", null: false
@@ -108,6 +123,16 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_16_120001) do
     t.index ["workspace_id"], name: "index_feedback_boards_on_workspace_id"
   end
 
+  create_table "feedback_replies", force: :cascade do |t|
+    t.bigint "feedback_id", null: false
+    t.string "author_name"
+    t.boolean "anonymous", default: true
+    t.text "content"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["feedback_id"], name: "index_feedback_replies_on_feedback_id"
+  end
+
   create_table "feedback_upvotes", force: :cascade do |t|
     t.bigint "feedback_id", null: false
     t.string "voter_token", null: false
@@ -178,11 +203,26 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_16_120001) do
     t.datetime "updated_at", null: false
     t.bigint "payos_order_code"
     t.string "payment_link_id"
+    t.bigint "addon_config_id"
+    t.index ["addon_config_id"], name: "index_payments_on_addon_config_id"
     t.index ["gateway"], name: "index_payments_on_gateway"
     t.index ["payos_order_code"], name: "index_payments_on_payos_order_code", unique: true, where: "(payos_order_code IS NOT NULL)"
     t.index ["status"], name: "index_payments_on_status"
     t.index ["subscription_id"], name: "index_payments_on_subscription_id"
     t.index ["workspace_id"], name: "index_payments_on_workspace_id"
+  end
+
+  create_table "plan_configs", force: :cascade do |t|
+    t.string "plan_key", null: false
+    t.string "display_name", null: false
+    t.integer "price_vnd", default: 0, null: false
+    t.string "billing_cycle", default: "month"
+    t.jsonb "limits", default: {}, null: false
+    t.jsonb "features", default: {}, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["plan_key"], name: "index_plan_configs_on_plan_key", unique: true
   end
 
   create_table "qr_codes", force: :cascade do |t|
@@ -392,6 +432,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_16_120001) do
     t.index ["workspace_id"], name: "index_votes_on_workspace_id"
   end
 
+  create_table "workspace_memberships", force: :cascade do |t|
+    t.bigint "workspace_id", null: false
+    t.bigint "user_id", null: false
+    t.integer "role", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_workspace_memberships_on_user_id"
+    t.index ["workspace_id", "user_id"], name: "index_workspace_memberships_on_workspace_id_and_user_id", unique: true
+    t.index ["workspace_id"], name: "index_workspace_memberships_on_workspace_id"
+  end
+
   create_table "workspaces", force: :cascade do |t|
     t.string "name", null: false
     t.string "slug", null: false
@@ -421,6 +473,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_16_120001) do
   add_foreign_key "audit_logs", "workspaces"
   add_foreign_key "feedback_boards", "users"
   add_foreign_key "feedback_boards", "workspaces"
+  add_foreign_key "feedback_replies", "feedbacks"
   add_foreign_key "feedback_upvotes", "feedbacks"
   add_foreign_key "feedbacks", "feedback_boards"
   add_foreign_key "feedbacks", "workspaces"
@@ -442,4 +495,6 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_16_120001) do
   add_foreign_key "vote_responses", "workspaces"
   add_foreign_key "votes", "users"
   add_foreign_key "votes", "workspaces"
+  add_foreign_key "workspace_memberships", "users"
+  add_foreign_key "workspace_memberships", "workspaces"
 end

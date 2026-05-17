@@ -1,66 +1,124 @@
 <% field_name = "answers[#{question.id}]" %>
-<% case question.question_type.to_sym %>
-<% when :multiple_choice, :dropdown %>
+<% prev_answer ||= nil %>
+<% prev_option_ids = prev_answer&.option_ids&.map(&:to_s) || [] %>
+<% case question.question_type.to_sym
+   when :multiple_choice, :dropdown %>
   <div class="space-y-2">
     <% question.question_options.each do |opt| %>
-      <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 cursor-pointer transition-colors">
-        <input type="radio" name="<%= field_name %>[option_id]" value="<%= opt.id %>" class="accent-indigo-600 w-4 h-4">
-        <span class="text-[14px] text-slate-700"><%= opt.label %></span>
+      <label class="opt-label">
+        <input type="radio" name="<%= field_name %>[option_id]" value="<%= opt.id %>" class="sr-only" <%= "required" if question.required? %> <%= "checked" if prev_option_ids.include?(opt.id.to_s) %>>
+        <span class="opt-dot"></span>
+        <span class="text-[14px] font-medium text-slate-800"><%= opt.label %></span>
       </label>
     <% end %>
   </div>
 <% when :checkbox %>
   <div class="space-y-2">
     <% question.question_options.each do |opt| %>
-      <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 cursor-pointer transition-colors">
-        <input type="checkbox" name="<%= field_name %>[option_ids][]" value="<%= opt.id %>" class="accent-indigo-600 w-4 h-4 rounded">
-        <span class="text-[14px] text-slate-700"><%= opt.label %></span>
+      <label class="opt-label">
+        <input type="checkbox" name="<%= field_name %>[option_ids][]" value="<%= opt.id %>" class="sr-only" <%= "checked" if prev_option_ids.include?(opt.id.to_s) %>>
+        <span class="opt-box"></span>
+        <span class="text-[14px] font-medium text-slate-800"><%= opt.label %></span>
       </label>
     <% end %>
   </div>
 <% when :short_text %>
   <input type="text" name="<%= field_name %>[text]" <%= "required" if question.required? %>
-    class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
-    placeholder="Your answer...">
+    value="<%= prev_answer&.text_value %>"
+    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-[14px] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none bg-white/80 transition-colors"
+    placeholder="Nhập câu trả lời của bạn...">
 <% when :long_text %>
   <textarea name="<%= field_name %>[text]" rows="4" <%= "required" if question.required? %>
-    class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
-    placeholder="Your answer..."></textarea>
+    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-[14px] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none bg-white/80 resize-none transition-colors"
+    placeholder="Nhập câu trả lời của bạn..."><%= prev_answer&.text_value %></textarea>
 <% when :rating %>
   <% max = question.settings["max_value"]&.to_i || 5 %>
-  <div class="flex gap-2">
+  <% prev_num = prev_answer&.numeric_value&.to_i %>
+  <div class="flex gap-2 flex-wrap">
     <% (1..max).each do |i| %>
-      <label class="flex flex-col items-center gap-1 cursor-pointer">
-        <input type="radio" name="<%= field_name %>[value]" value="<%= i %>" class="sr-only peer">
-        <div class="w-10 h-10 rounded-full border-2 border-slate-200 flex items-center justify-center text-[14px] font-semibold text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-500 peer-checked:text-white hover:border-indigo-300 transition-colors"><%= i %></div>
+      <label class="cursor-pointer">
+        <input type="radio" name="<%= field_name %>[value]" value="<%= i %>" class="sr-only peer" <%= "required" if question.required? %> <%= "checked" if prev_num == i %>>
+        <div class="w-11 h-11 rounded-full border-2 border-slate-200 flex items-center justify-center text-[14px] font-bold text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-500 peer-checked:text-white hover:border-indigo-300 hover:bg-indigo-50 transition-all">
+          <%= i %>
+        </div>
       </label>
     <% end %>
   </div>
-<% when :nps %>
+<% when :nps, :nps_score %>
+  <% prev_num = prev_answer&.numeric_value&.to_i %>
   <div class="flex gap-1.5 flex-wrap">
     <% (0..10).each do |i| %>
       <label class="cursor-pointer">
-        <input type="radio" name="<%= field_name %>[value]" value="<%= i %>" class="sr-only peer">
-        <div class="w-10 h-10 rounded-lg border-2 border-slate-200 flex items-center justify-center text-[13px] font-semibold <%= i <= 6 ? 'text-red-500' : i <= 8 ? 'text-amber-500' : 'text-emerald-500' %> peer-checked:border-current peer-checked:bg-current peer-checked:text-white transition-colors"><%= i %></div>
+        <input type="radio" name="<%= field_name %>[value]" value="<%= i %>" class="sr-only peer" <%= "required" if question.required? %> <%= "checked" if prev_answer && prev_num == i %>>
+        <% cls = i <= 6 ? "border-red-200 text-red-500 peer-checked:bg-red-500 peer-checked:border-red-500 peer-checked:text-white" : i <= 8 ? "border-amber-200 text-amber-500 peer-checked:bg-amber-500 peer-checked:border-amber-500 peer-checked:text-white" : "border-emerald-200 text-emerald-600 peer-checked:bg-emerald-500 peer-checked:border-emerald-500 peer-checked:text-white" %>
+        <div class="w-10 h-10 rounded-xl border-2 flex items-center justify-center text-[13px] font-bold transition-all <%= cls %>">
+          <%= i %>
+        </div>
       </label>
     <% end %>
   </div>
-  <div class="flex justify-between text-[11px] text-slate-400 mt-1.5">
-    <span>Not likely at all</span><span>Extremely likely</span>
+  <div class="flex justify-between text-[11px] text-slate-400 mt-2">
+    <span>Rất không có khả năng</span><span>Rất có khả năng</span>
   </div>
 <% when :linear_scale %>
-  <% min = question.settings["min_value"]&.to_i || 1; max = question.settings["max_value"]&.to_i || 5 %>
-  <div class="flex gap-2 items-center">
-    <span class="text-[12px] text-slate-500"><%= question.settings["min_label"] %></span>
+  <% min = question.settings["min_value"]&.to_i || 1
+     max = question.settings["max_value"]&.to_i || 5
+     min_label = question.settings["min_label"]
+     max_label = question.settings["max_label"]
+     prev_num = prev_answer&.numeric_value&.to_i %>
+  <div class="flex items-center gap-2 flex-wrap">
+    <% if min_label.present? %><span class="text-[12px] text-slate-500 flex-shrink-0"><%= min_label %></span><% end %>
     <% (min..max).each do |i| %>
       <label class="cursor-pointer">
-        <input type="radio" name="<%= field_name %>[value]" value="<%= i %>" class="sr-only peer">
-        <div class="w-9 h-9 rounded-lg border-2 border-slate-200 flex items-center justify-center text-[13px] font-semibold text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-500 peer-checked:text-white hover:border-indigo-300 transition-colors"><%= i %></div>
+        <input type="radio" name="<%= field_name %>[value]" value="<%= i %>" class="sr-only peer" <%= "required" if question.required? %> <%= "checked" if prev_num == i %>>
+        <div class="w-10 h-10 rounded-xl border-2 border-slate-200 flex items-center justify-center text-[13px] font-bold text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-500 peer-checked:text-white hover:border-indigo-300 hover:bg-indigo-50 transition-all"><%= i %></div>
       </label>
     <% end %>
-    <span class="text-[12px] text-slate-500"><%= question.settings["max_label"] %></span>
+    <% if max_label.present? %><span class="text-[12px] text-slate-500 flex-shrink-0"><%= max_label %></span><% end %>
+  </div>
+<% when :date_time %>
+  <input type="datetime-local" name="<%= field_name %>[date]" <%= "required" if question.required? %>
+    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-[14px] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none bg-white/80 transition-colors">
+<% when :file_upload %>
+  <label class="block cursor-pointer">
+    <input type="file" name="<%= field_name %>[file]" id="file-<%= question.id %>" class="sr-only"
+           onchange="updateFileLabel(<%= question.id %>, this)">
+    <div id="file-zone-<%= question.id %>"
+         class="flex flex-col items-center justify-center gap-2 py-8 px-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/40 transition-all text-center">
+      <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+      </svg>
+      <p id="file-label-<%= question.id %>" class="text-[13px] text-slate-500 font-medium">Nhấn để chọn file hoặc kéo thả vào đây</p>
+      <p class="text-[11px] text-slate-400">Tối đa 10MB</p>
+    </div>
+  </label>
+<% when :ranking %>
+  <div class="space-y-2">
+    <% question.question_options.each_with_index do |opt, idx| %>
+      <div class="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-200 bg-white/80">
+        <input type="hidden" name="<%= field_name %>[rankings][]" value="<%= opt.id %>">
+        <span class="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black text-slate-500 bg-slate-100 flex-shrink-0"><%= idx + 1 %></span>
+        <span class="text-[14px] font-medium text-slate-800 flex-1"><%= opt.label %></span>
+        <svg class="w-4 h-4 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" d="M4 8h16M4 16h16"/>
+        </svg>
+      </div>
+    <% end %>
   </div>
 <% else %>
   <input type="text" name="<%= field_name %>[text]"
-    class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-500 outline-none">
+    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-[14px] focus:border-indigo-400 outline-none bg-white/80 transition-colors"
+    placeholder="Nhập câu trả lời...">
 <% end %>
+
+<script>
+function updateFileLabel(qid, input) {
+  const label = document.getElementById('file-label-' + qid);
+  const zone  = document.getElementById('file-zone-' + qid);
+  if (input.files && input.files[0]) {
+    label.textContent = input.files[0].name;
+    zone.style.borderColor = '#6366f1';
+    zone.style.background  = 'rgba(238,240,255,0.4)';
+  }
+}
+</script>

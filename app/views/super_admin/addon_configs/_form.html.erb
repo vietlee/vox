@@ -1,0 +1,91 @@
+<div class="max-w-xl">
+  <%= form_with model: [:super_admin, @addon_config], local: true, class: "space-y-5" do |f| %>
+    <div>
+      <%= f.label :name, "Tên gói", class: "block text-[12px] font-semibold text-slate-700 mb-1" %>
+      <%= f.text_field :name, class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500", placeholder: "VD: Resource Pack M" %>
+    </div>
+
+    <div>
+      <%= f.label :description, "Mô tả", class: "block text-[12px] font-semibold text-slate-700 mb-1" %>
+      <%= f.text_field :description, class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500", placeholder: "Mô tả ngắn gọn" %>
+    </div>
+
+    <div>
+      <%= f.label :addon_type, "Loại add-on", class: "block text-[12px] font-semibold text-slate-700 mb-1" %>
+      <%= f.select :addon_type,
+            [["📦 Resource Pack (Survey / Vote / Feedback)", "resource_pack"], ["🤖 AI Credits", "ai_credits"]],
+            {},
+            class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500",
+            id: "addon_type_select" %>
+    </div>
+
+    <div>
+      <%= f.label :price_cents, "Giá (VNĐ)", class: "block text-[12px] font-semibold text-slate-700 mb-1" %>
+      <%= f.number_field :price_cents, min: 1000, step: 1000, class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500", placeholder: "VD: 200000" %>
+    </div>
+
+    <!-- Resource bonus fields -->
+    <div id="resource_fields">
+      <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 space-y-3">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Bonus nhận được</div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <%= f.label :surveys_bonus, "Surveys", class: "block text-[12px] font-semibold text-slate-700 mb-1" %>
+            <%= f.number_field :surveys_bonus, min: 0, class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <%= f.label :votes_bonus, "Votes", class: "block text-[12px] font-semibold text-slate-700 mb-1" %>
+            <%= f.number_field :votes_bonus, min: 0, class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <%= f.label :feedbacks_bonus, "Feedbacks", class: "block text-[12px] font-semibold text-slate-700 mb-1" %>
+            <%= f.number_field :feedbacks_bonus, min: 0, class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI credits bonus field -->
+    <div id="ai_fields">
+      <div class="bg-violet-50 rounded-lg p-4 border border-violet-200">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">AI Credits bonus</div>
+        <%= f.label :ai_credits_bonus, "Số AI Credits", class: "block text-[12px] font-semibold text-slate-700 mb-1" %>
+        <%= f.number_field :ai_credits_bonus, min: 0, class: "w-full border border-violet-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-violet-500" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <%= f.label :sort_order, "Thứ tự hiển thị", class: "block text-[12px] font-semibold text-slate-700 mb-1" %>
+        <%= f.number_field :sort_order, min: 0, class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500" %>
+      </div>
+      <div class="flex items-end pb-1">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <%= f.check_box :active, class: "w-4 h-4 rounded accent-indigo-600" %>
+          <span class="text-[13px] font-medium text-slate-700">Hiển thị cho user</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <%= f.submit @addon_config.new_record? ? "Tạo add-on" : "Lưu thay đổi",
+            class: "px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700 cursor-pointer" %>
+      <%= link_to "Huỷ", super_admin_addon_configs_path, class: "px-5 py-2.5 bg-slate-100 text-slate-700 text-[13px] font-semibold rounded-lg hover:bg-slate-200" %>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  (function() {
+    const sel = document.getElementById('addon_type_select');
+    const res = document.getElementById('resource_fields');
+    const ai  = document.getElementById('ai_fields');
+    function toggle() {
+      const isAI = sel.value === 'ai_credits';
+      res.style.display = isAI ? 'none' : '';
+      ai.style.display  = isAI ? '' : 'none';
+    }
+    sel.addEventListener('change', toggle);
+    toggle();
+  })();
+</script>

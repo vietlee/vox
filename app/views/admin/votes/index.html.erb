@@ -93,6 +93,26 @@
         </tr>
       </tbody>
     </table>
+
+    <% if @pagy && @pagy.pages > 1 %>
+      <div class="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+        <p class="text-[12px] text-slate-500">
+          <% from = (@pagy.page - 1) * @pagy.items + 1; to = [@pagy.page * @pagy.items, @pagy.count].min %>
+          Hiển thị <%= from %>–<%= to %> / <%= @pagy.count %> votes
+        </p>
+        <div class="flex gap-1">
+          <% if @pagy.page > 1 %>
+            <%= link_to votes_path(page: @pagy.page - 1, q: params[:q]),
+              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>← Trước<% end %>
+          <% end %>
+          <% if @pagy.page < @pagy.pages %>
+            <%= link_to votes_path(page: @pagy.page + 1, q: params[:q]),
+              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>Tiếp →<% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
   <% else %>
     <div class="text-center py-16">
       <div class="text-4xl mb-3">🗳️</div>

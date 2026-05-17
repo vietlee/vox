@@ -80,3 +80,57 @@
     <%= link_to results_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 text-indigo-700 text-[13px] font-semibold rounded-lg hover:bg-indigo-100" do %>📊 View Results<% end %>
   </div>
 <% end %>
+
+<% if @responses.any? %>
+  <div class="mt-5 bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+      <h2 class="text-[13px] font-bold text-slate-700">
+        <%= @vote.email_required? ? "Phản hồi theo email" : "Phản hồi" %>
+      </h2>
+      <span class="text-[12px] text-slate-400"><%= @responses.count %> người</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-[12px] border-collapse">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200">
+            <th class="text-left px-4 py-2.5 font-semibold text-slate-500 uppercase tracking-[0.4px] text-[11px]">
+              <%= @vote.email_required? ? "Email" : "Người dùng" %>
+            </th>
+            <th class="text-left px-4 py-2.5 font-semibold text-slate-500 uppercase tracking-[0.4px] text-[11px]">Lựa chọn</th>
+            <th class="text-left px-4 py-2.5 font-semibold text-slate-500 uppercase tracking-[0.4px] text-[11px]">Thời gian</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @responses.each do |r| %>
+            <tr class="border-b border-slate-100 hover:bg-slate-50">
+              <td class="px-4 py-3 font-medium text-slate-800">
+                <% if r.respondent_email.present? %>
+                  <%= r.respondent_email %>
+                <% else %>
+                  <span class="text-slate-400 font-mono">···<%= r.respondent_token&.last(6) %></span>
+                <% end %>
+              </td>
+              <td class="px-4 py-3 text-slate-700">
+                <% if r.text_value.present? %>
+                  <%= r.text_value.truncate(80) %>
+                <% elsif r.selected_option_ids.present? %>
+                  <div class="flex flex-wrap gap-1">
+                    <% Array(r.selected_option_ids).each do |oid| %>
+                      <% opt = @option_map[oid.to_s] %>
+                      <span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full text-[11px] font-medium">
+                        <%= opt&.label || "Option ##{oid}" %>
+                      </span>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <span class="text-slate-300">—</span>
+                <% end %>
+              </td>
+              <td class="px-4 py-3 text-slate-400"><%= r.created_at.strftime("%d/%m %H:%M") %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% end %>

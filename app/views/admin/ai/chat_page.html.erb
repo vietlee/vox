@@ -1,0 +1,238 @@
+<% content_for :title, "AI Chat" %>
+
+<div class="flex items-center justify-between mb-5">
+  <div>
+    <h1 class="text-[19px] font-extrabold text-slate-900">🤖 AI Chat</h1>
+    <p class="text-[12px] text-slate-500 mt-0.5">Hỏi AI về dữ liệu surveys, votes và feedbacks của workspace.</p>
+  </div>
+  <% sub = current_workspace.active_subscription %>
+  <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold" style="background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.2); color:#7c3aed;">
+    ⚡ <span id="credit-display"><%= sub&.credit_balance || 0 %></span> credits còn lại · 2 credits/tin
+  </div>
+</div>
+
+<div class="grid grid-cols-[1fr_260px] gap-5 h-[calc(100vh-180px)]">
+
+  <!-- Chat area -->
+  <div class="flex flex-col bg-white rounded-[10px] border border-slate-200 shadow-sm overflow-hidden">
+
+    <!-- Messages -->
+    <div id="chat-messages" class="flex-1 overflow-y-auto p-5 space-y-4">
+      <!-- Welcome message -->
+      <div class="flex gap-3">
+        <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[14px]" style="background:linear-gradient(135deg,#6366f1,#a855f7);">🤖</div>
+        <div class="flex-1 max-w-[80%]">
+          <div class="rounded-2xl rounded-tl-sm px-4 py-3 text-[13px] text-slate-700 leading-relaxed" style="background:#f8f9ff; border:1px solid rgba(99,102,241,0.12);">
+            Xin chào! Tôi là AI assistant của VOX. Tôi có thể giúp bạn phân tích dữ liệu surveys, votes và feedbacks của workspace <strong><%= current_workspace.name %></strong>.<br><br>
+            Bạn có thể hỏi tôi những câu như:<br>
+            <span class="text-indigo-600">· "Tổng kết kết quả survey gần nhất?"</span><br>
+            <span class="text-indigo-600">· "Vote nào đang có nhiều người tham gia nhất?"</span><br>
+            <span class="text-indigo-600">· "Các feedback nổi bật tuần này là gì?"</span>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1 ml-1">VOX AI</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input area -->
+    <div class="border-t border-slate-100 p-4">
+      <div class="flex gap-2 items-end">
+        <textarea id="chat-input" rows="1" placeholder="Hỏi về dữ liệu của bạn..."
+          class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-[13px] text-slate-800 outline-none resize-none leading-relaxed"
+          style="max-height:120px;"
+          onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"
+          onkeydown="handleKey(event)"></textarea>
+        <button id="send-btn" onclick="sendMessage()"
+          class="px-4 py-2.5 text-white text-[13px] font-bold rounded-xl flex-shrink-0 border-0 flex items-center gap-1.5 transition-opacity"
+          style="background:linear-gradient(135deg,#6366f1,#a855f7);">
+          Gửi
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
+        </button>
+      </div>
+      <p class="text-[10px] text-slate-400 mt-2">Nhấn Enter để gửi · Shift+Enter xuống dòng · 2 credits/tin nhắn</p>
+    </div>
+  </div>
+
+  <!-- Sidebar: suggestions + history -->
+  <div class="space-y-4 overflow-y-auto">
+
+    <!-- Quick prompts -->
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4">
+      <h3 class="text-[12px] font-bold text-slate-700 mb-3">💡 Câu hỏi gợi ý</h3>
+      <div class="space-y-2">
+        <% [
+          "Tóm tắt tất cả dữ liệu workspace hiện tại?",
+          "Survey nào có tỉ lệ hoàn thành thấp nhất?",
+          "Có bao nhiêu votes đang active?",
+          "Feedback nào được upvote nhiều nhất?",
+          "Cho tôi biết tổng số thành viên và hoạt động gần đây?",
+        ].each do |prompt| %>
+          <button onclick="usePrompt('<%= j(prompt) %>')"
+            class="w-full text-left px-3 py-2 rounded-lg text-[12px] text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-100 hover:border-indigo-200 transition-colors">
+            <%= prompt %>
+          </button>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Stats snapshot -->
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4">
+      <h3 class="text-[12px] font-bold text-slate-700 mb-3">📊 Dữ liệu workspace</h3>
+      <div class="space-y-2 text-[12px]">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Surveys</span>
+          <strong class="text-slate-800"><%= current_workspace.surveys.count %></strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Votes</span>
+          <strong class="text-slate-800"><%= current_workspace.votes.count %></strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Feedback boards</span>
+          <strong class="text-slate-800"><%= current_workspace.feedback_boards.count %></strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Thành viên</span>
+          <strong class="text-slate-800"><%= current_workspace.users.count %></strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clear chat -->
+    <button onclick="clearChat()" class="w-full py-2 text-[12px] text-slate-500 hover:text-red-500 border border-slate-200 rounded-lg hover:border-red-200 bg-white transition-colors">
+      🗑 Xoá lịch sử chat
+    </button>
+  </div>
+</div>
+
+<script>
+const CHAT_URL      = "<%= ai_chat_path %>";
+const STATUS_URL    = "<%= ai_job_status_path("__ID__") %>";
+const CSRF          = document.querySelector('meta[name="csrf-token"]').content;
+
+let conversationHistory = [];
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+  // Auto-resize
+  const ta = document.getElementById('chat-input');
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+}
+
+function usePrompt(text) {
+  document.getElementById('chat-input').value = text;
+  document.getElementById('chat-input').focus();
+}
+
+function clearChat() {
+  conversationHistory = [];
+  const messages = document.getElementById('chat-messages');
+  // Keep only welcome message (first child)
+  while (messages.children.length > 1) messages.removeChild(messages.lastChild);
+}
+
+function appendMessage(role, content) {
+  const messages = document.getElementById('chat-messages');
+  const isUser   = role === 'user';
+  const div      = document.createElement('div');
+  div.className  = 'flex gap-3' + (isUser ? ' flex-row-reverse' : '');
+  div.innerHTML  = `
+    <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[13px] font-bold text-white"
+      style="background:${isUser ? 'linear-gradient(135deg,#6366f1,#a855f7)' : 'linear-gradient(135deg,#94a3b8,#64748b)'};">
+      ${isUser ? '<%= current_user.initials %>' : '🤖'}
+    </div>
+    <div class="flex-1 max-w-[80%]">
+      <div class="rounded-2xl ${isUser ? 'rounded-tr-sm' : 'rounded-tl-sm'} px-4 py-3 text-[13px] leading-relaxed"
+        style="background:${isUser ? 'linear-gradient(135deg,#6366f1,#a855f7)' : '#f8f9ff'}; color:${isUser ? 'white' : '#334155'}; border:1px solid ${isUser ? 'transparent' : 'rgba(99,102,241,0.12)'};">
+        ${content.replace(/\n/g, '<br>')}
+      </div>
+      <div class="text-[10px] text-slate-400 mt-1 ${isUser ? 'text-right mr-1' : 'ml-1'}">${isUser ? 'Bạn' : 'VOX AI'}</div>
+    </div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  return div;
+}
+
+function appendTyping() {
+  const messages = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.id = 'typing-indicator';
+  div.className = 'flex gap-3';
+  div.innerHTML = `
+    <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[14px]" style="background:linear-gradient(135deg,#94a3b8,#64748b);">🤖</div>
+    <div class="rounded-2xl rounded-tl-sm px-4 py-3 flex gap-1 items-center" style="background:#f8f9ff; border:1px solid rgba(99,102,241,0.12);">
+      <span class="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style="animation-delay:0ms"></span>
+      <span class="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style="animation-delay:150ms"></span>
+      <span class="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style="animation-delay:300ms"></span>
+    </div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const msg   = input.value.trim();
+  if (!msg) return;
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+
+  appendMessage('user', msg);
+  conversationHistory.push({ role: 'user', content: msg });
+  input.value = '';
+  input.style.height = 'auto';
+  appendTyping();
+
+  try {
+    const res = await fetch(CHAT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF, 'Accept': 'application/json' },
+      body: JSON.stringify({ message: msg, history: conversationHistory.slice(-10) })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      document.getElementById('typing-indicator')?.remove();
+      appendMessage('assistant', '❌ ' + (err.error || 'Lỗi, vui lòng thử lại.'));
+      btn.disabled = false; btn.style.opacity = '';
+      return;
+    }
+
+    const { job_id } = await res.json();
+    pollChat(job_id, btn);
+  } catch (e) {
+    document.getElementById('typing-indicator')?.remove();
+    appendMessage('assistant', '❌ Không thể kết nối, vui lòng thử lại.');
+    btn.disabled = false; btn.style.opacity = '';
+  }
+}
+
+async function pollChat(jobId, btn) {
+  const res  = await fetch(STATUS_URL.replace('__ID__', jobId));
+  const data = await res.json();
+
+  if (data.status === 'done') {
+    document.getElementById('typing-indicator')?.remove();
+    const reply = data.output?.response || '(Không có phản hồi)';
+    appendMessage('assistant', reply);
+    conversationHistory.push({ role: 'assistant', content: reply });
+
+    // Update credit display
+    const creditEl = document.getElementById('credit-display');
+    if (creditEl) creditEl.textContent = Math.max(0, parseInt(creditEl.textContent) - 2);
+
+    btn.disabled = false; btn.style.opacity = '';
+  } else if (data.status === 'failed') {
+    document.getElementById('typing-indicator')?.remove();
+    appendMessage('assistant', '❌ AI gặp lỗi: ' + (data.error || 'Unknown error'));
+    btn.disabled = false; btn.style.opacity = '';
+  } else {
+    setTimeout(() => pollChat(jobId, btn), 1500);
+  }
+}
+</script>

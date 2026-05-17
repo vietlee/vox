@@ -26,14 +26,16 @@
   <% end %>
 
   <!-- Plan cards -->
+  <% pro_config = PlanConfig.find_for("pro") %>
+  <% pro_price  = PlanConfig.price_for("pro") %>
   <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
 
     <!-- Pro -->
     <div class="bg-white rounded-2xl border-2 border-indigo-200 p-6 relative shadow-sm">
       <div class="absolute top-4 right-4 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Phổ biến</div>
-      <div class="text-[13px] font-bold text-indigo-600 uppercase mb-1">Pro</div>
-      <div class="text-[32px] font-black text-slate-900 mb-1">1.000.000 <span class="text-[16px] font-semibold text-slate-500">₫</span></div>
-      <div class="text-[12px] text-slate-500 mb-4">mỗi tháng / workspace</div>
+      <div class="text-[13px] font-bold text-indigo-600 uppercase mb-1"><%= pro_config&.display_name || "Pro" %></div>
+      <div class="text-[32px] font-black text-slate-900 mb-1"><%= number_with_delimiter(pro_price) %> <span class="text-[16px] font-semibold text-slate-500">₫</span></div>
+      <div class="text-[12px] text-slate-500 mb-4">mỗi <%= pro_config&.billing_cycle == "year" ? "năm" : "tháng" %> / workspace</div>
       <ul class="space-y-2 mb-6 text-[13px] text-slate-700">
         <li class="flex gap-2"><span class="text-indigo-500">✓</span> Survey, Vote, Feedback không giới hạn</li>
         <li class="flex gap-2"><span class="text-indigo-500">✓</span> 10 Supporter accounts</li>
@@ -43,9 +45,20 @@
         <li class="flex gap-2"><span class="text-indigo-500">✓</span> Custom branding</li>
       </ul>
       <% if @subscription&.pro? %>
-        <div class="w-full py-3 text-center bg-slate-100 text-slate-500 text-[13px] font-semibold rounded-xl">Gói hiện tại</div>
+        <div class="w-full py-2 text-center bg-indigo-50 text-indigo-600 text-[12px] font-semibold rounded-xl mb-2">
+          ✓ Gói hiện tại
+          <% if @subscription.ends_at %>
+            · hết hạn <%= @subscription.ends_at.strftime("%d/%m/%Y") %>
+          <% end %>
+        </div>
+        <%= button_to checkout_subscription_path(plan: "pro"), method: :post,
+              data: { turbo: false },
+              class: "w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-[14px] font-bold rounded-xl cursor-pointer border-0" do %>
+          Gia hạn thêm 1 tháng →
+        <% end %>
       <% else %>
         <%= button_to checkout_subscription_path(plan: "pro"), method: :post,
+              data: { turbo: false },
               class: "w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-[14px] font-bold rounded-xl cursor-pointer border-0" do %>
           Thanh toán qua PayOS →
         <% end %>
@@ -53,23 +66,112 @@
     </div>
 
     <!-- Enterprise -->
+    <% ent_config = PlanConfig.find_for("enterprise") %>
+    <% ent_price  = PlanConfig.price_for("enterprise").to_i %>
     <div class="bg-white rounded-2xl border border-slate-200 p-6 relative shadow-sm">
-      <div class="text-[13px] font-bold text-violet-600 uppercase mb-1">Enterprise</div>
-      <div class="text-[32px] font-black text-slate-900 mb-1">Liên hệ</div>
-      <div class="text-[12px] text-slate-500 mb-4">giá tuỳ chỉnh theo nhu cầu</div>
+      <div class="text-[13px] font-bold text-violet-600 uppercase mb-1"><%= ent_config&.display_name || "Enterprise" %></div>
+      <% if ent_price > 0 %>
+        <div class="text-[32px] font-black text-slate-900 mb-1"><%= number_with_delimiter(ent_price) %> <span class="text-[16px] font-semibold text-slate-500">₫</span></div>
+        <div class="text-[12px] text-slate-500 mb-4">mỗi <%= ent_config&.billing_cycle == "year" ? "năm" : "tháng" %> / workspace</div>
+      <% else %>
+        <div class="text-[32px] font-black text-slate-900 mb-1">Liên hệ</div>
+        <div class="text-[12px] text-slate-500 mb-4">giá tuỳ chỉnh theo nhu cầu</div>
+      <% end %>
+      <% ent_limits = PlanConfig.limits_for("enterprise") %>
       <ul class="space-y-2 mb-6 text-[13px] text-slate-700">
         <li class="flex gap-2"><span class="text-violet-500">✓</span> Tất cả tính năng Pro</li>
-        <li class="flex gap-2"><span class="text-violet-500">✓</span> Supporter không giới hạn</li>
-        <li class="flex gap-2"><span class="text-violet-500">✓</span> AI Credits không giới hạn</li>
+        <li class="flex gap-2"><span class="text-violet-500">✓</span> Supporter <%= ent_limits[:max_supporters].nil? ? "không giới hạn" : "tối đa #{ent_limits[:max_supporters]}" %></li>
+        <li class="flex gap-2"><span class="text-violet-500">✓</span> AI Credits <%= ent_limits[:max_ai_credits].nil? ? "không giới hạn" : "#{ent_limits[:max_ai_credits]} / tháng" %></li>
         <li class="flex gap-2"><span class="text-violet-500">✓</span> AI Chat với dữ liệu</li>
         <li class="flex gap-2"><span class="text-violet-500">✓</span> SSO / SAML</li>
         <li class="flex gap-2"><span class="text-violet-500">✓</span> SLA & hỗ trợ ưu tiên</li>
       </ul>
-      <a href="mailto:sales@vox.vn" class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold rounded-xl cursor-pointer block text-center">
-        Liên hệ Sales →
-      </a>
+      <% if @subscription&.enterprise? %>
+        <div class="w-full py-3 text-center bg-slate-100 text-slate-500 text-[13px] font-semibold rounded-xl">Gói hiện tại</div>
+        <%= button_to checkout_subscription_path(plan: "enterprise"), method: :post,
+              data: { turbo: false },
+              class: "w-full py-3 mt-2 bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold rounded-xl cursor-pointer border-0" do %>
+          Gia hạn thêm 1 tháng →
+        <% end %>
+      <% elsif ent_price > 0 %>
+        <%= button_to checkout_subscription_path(plan: "enterprise"), method: :post,
+              data: { turbo: false },
+              class: "w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold rounded-xl cursor-pointer border-0" do %>
+          Thanh toán qua PayOS →
+        <% end %>
+      <% else %>
+        <a href="mailto:sales@vox.vn" class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold rounded-xl cursor-pointer block text-center">
+          Liên hệ Sales →
+        </a>
+      <% end %>
     </div>
   </div>
+
+  <!-- Add-on packs (chỉ hiện khi đang có subscription active) -->
+  <% if @subscription && (@addon_resources.any? || @addon_credits.any?) %>
+    <div class="mt-8">
+      <h2 class="text-[16px] font-extrabold text-slate-900 mb-1">Mua thêm</h2>
+      <p class="text-[13px] text-slate-500 mb-4">Cộng thêm giới hạn vào gói hiện tại của bạn, không cần đổi plan.</p>
+
+      <% if @addon_resources.any? %>
+        <div class="mb-4">
+          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">📦 Resource Packs</div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <% @addon_resources.each do |addon| %>
+              <div class="bg-white rounded-xl border border-slate-200 p-4 flex flex-col">
+                <div class="font-bold text-[14px] text-slate-900 mb-0.5"><%= addon.name %></div>
+                <div class="text-[12px] text-slate-400 mb-3"><%= addon.description %></div>
+                <div class="space-y-1 mb-4 flex-1">
+                  <% if addon.surveys_bonus.to_i > 0 %>
+                    <div class="flex items-center gap-1.5 text-[12px] text-slate-600"><span class="text-indigo-500">+</span> <%= addon.surveys_bonus %> Surveys</div>
+                  <% end %>
+                  <% if addon.votes_bonus.to_i > 0 %>
+                    <div class="flex items-center gap-1.5 text-[12px] text-slate-600"><span class="text-indigo-500">+</span> <%= addon.votes_bonus %> Votes</div>
+                  <% end %>
+                  <% if addon.feedbacks_bonus.to_i > 0 %>
+                    <div class="flex items-center gap-1.5 text-[12px] text-slate-600"><span class="text-indigo-500">+</span> <%= addon.feedbacks_bonus %> Feedbacks</div>
+                  <% end %>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-[16px] font-extrabold text-indigo-600"><%= addon.price_formatted %></span>
+                  <%= button_to checkout_addon_subscription_path(addon_config_id: addon.id), method: :post,
+                        data: { turbo: false },
+                        class: "px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0" do %>
+                    Mua ngay →
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @addon_credits.any? %>
+        <div>
+          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">🤖 AI Credits Packs</div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <% @addon_credits.each do |addon| %>
+              <div class="bg-white rounded-xl border border-violet-200 p-4 flex flex-col">
+                <div class="font-bold text-[14px] text-slate-900 mb-0.5"><%= addon.name %></div>
+                <div class="text-[12px] text-slate-400 mb-3"><%= addon.description %></div>
+                <div class="flex items-center gap-1.5 text-[12px] text-violet-700 font-semibold mb-4 flex-1">
+                  <span>+</span> <%= addon.ai_credits_bonus %> AI Credits
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-[16px] font-extrabold text-violet-600"><%= addon.price_formatted %></span>
+                  <%= button_to checkout_addon_subscription_path(addon_config_id: addon.id), method: :post,
+                        data: { turbo: false },
+                        class: "px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0" do %>
+                    Mua ngay →
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
 
   <!-- How PayOS works -->
   <div class="bg-slate-50 rounded-2xl border border-slate-200 p-6">

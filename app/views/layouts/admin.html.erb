@@ -29,6 +29,9 @@
       <%= render "shared/nav_item", icon: "📋", label: t("nav.surveys"), path: surveys_path, badge: current_workspace&.surveys&.active&.count %>
       <%= render "shared/nav_item", icon: "🗳️", label: t("nav.votes"), path: votes_path, badge: current_workspace&.votes&.active&.count %>
       <%= render "shared/nav_item", icon: "💬", label: t("nav.feedback"), path: feedback_boards_path %>
+      <% if current_workspace&.active_subscription&.has_feature?(:ai_chat) %>
+        <%= render "shared/nav_item", icon: "🤖", label: "AI Chat", path: ai_chat_page_path %>
+      <% end %>
 
       <% if current_user.admin? %>
         <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_manage") %></div>
@@ -58,7 +61,7 @@
           <div class="text-[12px] font-semibold text-white truncate"><%= current_user.display_name %></div>
           <div class="text-[10px] text-slate-500"><%= t("roles.#{current_user.role}") %></div>
         </div>
-        <%= button_to destroy_user_session_path, method: :delete, title: t("nav.sign_out"), class: "ml-auto text-slate-600 hover:text-slate-400 text-[13px] bg-transparent border-0 cursor-pointer p-0" do %>⏻<% end %>
+        <button type="button" onclick="document.getElementById('logout-modal').classList.remove('hidden')" title="<%= t('nav.sign_out') %>" class="ml-auto text-slate-600 hover:text-slate-400 text-[13px] bg-transparent border-0 cursor-pointer p-0">⏻</button>
       </div>
     </div>
   </aside>
@@ -90,6 +93,28 @@
       </div>
     </header>
 
+    <!-- Subscription expiry banner -->
+    <% sub = current_workspace&.active_subscription %>
+    <% if sub && !sub.free? && sub.ends_at && sub.ends_at <= 7.days.from_now %>
+      <% days_left = [(sub.ends_at.to_date - Date.current).to_i, 0].max %>
+      <div class="<%= days_left <= 1 ? 'bg-red-600' : 'bg-amber-500' %> text-white px-6 py-2.5 flex items-center gap-3 flex-shrink-0">
+        <span class="text-[14px]"><%= days_left <= 1 ? '🚨' : '⚠️' %></span>
+        <span class="text-[13px] font-semibold flex-1">
+          <% if days_left == 0 %>
+            Gói <%= sub.plan.upcase %> của bạn hết hạn hôm nay!
+          <% elsif days_left == 1 %>
+            Gói <%= sub.plan.upcase %> của bạn hết hạn vào ngày mai!
+          <% else %>
+            Gói <%= sub.plan.upcase %> của bạn sẽ hết hạn sau <strong><%= days_left %> ngày</strong> (<%= sub.ends_at.strftime("%d/%m/%Y") %>).
+          <% end %>
+          Gia hạn ngay để không bị gián đoạn.
+        </span>
+        <%= link_to billing_subscription_path, class: "px-3 py-1 bg-white/20 hover:bg-white/30 text-white text-[12px] font-bold rounded-lg whitespace-nowrap" do %>
+          Gia hạn ngay →
+        <% end %>
+      </div>
+    <% end %>
+
     <!-- Flash messages -->
     <% if notice || alert %>
       <div id="flash" class="px-6 pt-4">
@@ -110,6 +135,27 @@
     <main class="flex-1 overflow-y-auto p-6">
       <%= yield %>
     </main>
+  </div>
+</div>
+
+<!-- Logout confirm modal -->
+<div id="logout-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/40" onclick="document.getElementById('logout-modal').classList.add('hidden')"></div>
+  <div class="relative bg-white rounded-2xl shadow-xl p-6 w-[320px] text-center">
+    <div class="text-[32px] mb-3">👋</div>
+    <h3 class="text-[16px] font-extrabold text-slate-900 mb-1">Đăng xuất?</h3>
+    <p class="text-[13px] text-slate-500 mb-5">Bạn sẽ cần đăng nhập lại để tiếp tục.</p>
+    <div class="flex gap-2">
+      <button onclick="document.getElementById('logout-modal').classList.add('hidden')"
+        class="flex-1 py-2.5 bg-slate-100 text-slate-700 text-[13px] font-semibold rounded-xl hover:bg-slate-200 border-0 cursor-pointer">
+        Huỷ
+      </button>
+      <%= button_to destroy_user_session_path, method: :delete,
+            form_class: "flex-1",
+            class: "w-full py-2.5 bg-red-500 text-white text-[13px] font-semibold rounded-xl hover:bg-red-600 border-0 cursor-pointer" do %>
+        Đăng xuất
+      <% end %>
+    </div>
   </div>
 </div>
 

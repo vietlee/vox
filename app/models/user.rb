@@ -6,6 +6,8 @@ class User < ApplicationRecord
          otp_secret_encryption_key: ENV.fetch("OTP_ENCRYPTION_KEY", "a" * 32)
 
   belongs_to :workspace, optional: true
+  has_many :workspace_memberships, dependent: :destroy
+  has_many :workspaces, through: :workspace_memberships
   has_many :surveys, dependent: :nullify
   has_many :votes, dependent: :nullify
   has_many :feedback_boards, dependent: :nullify

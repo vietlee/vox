@@ -3,7 +3,7 @@
 <div class="flex items-start justify-between mb-6">
   <div>
     <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight">📋 <%= t("surveys.title") %></h1>
-    <p class="text-[13px] text-slate-500 mt-0.5"><%= @surveys.total_count rescue @surveys.count %> surveys total</p>
+    <p class="text-[13px] text-slate-500 mt-0.5"><%= @surveys.total_count rescue @surveys.count %> surveys</p>
   </div>
   <div class="flex gap-2">
     <button onclick="document.getElementById('ai-builder-modal').classList.remove('hidden')"
@@ -16,13 +16,24 @@
   </div>
 </div>
 
-<!-- Filter tabs -->
-<div class="flex gap-1 mb-5">
-  <% ["", "draft", "active", "closed", "archived"].each do |s| %>
-    <%= link_to surveys_path(status: s.presence), class: "px-3 py-1.5 rounded-full text-[12px] font-semibold #{params[:status].to_s == s ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" do %>
-      <%= s.blank? ? "All" : s.capitalize %>
-    <% end %>
-  <% end %>
+<!-- Search + Filter row -->
+<div class="flex gap-3 mb-5">
+  <div class="relative flex-1">
+    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+    </svg>
+    <input id="survey-search" type="text" placeholder="Tìm theo tên survey..."
+      class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white"
+      oninput="filterSurveys()">
+  </div>
+  <select id="survey-status-filter" onchange="filterSurveys()"
+    class="px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white text-slate-600 cursor-pointer">
+    <option value="">Tất cả trạng thái</option>
+    <option value="draft">Draft</option>
+    <option value="active">Active</option>
+    <option value="closed">Closed</option>
+    <option value="archived">Archived</option>
+  </select>
 </div>
 
 <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm overflow-hidden">
@@ -31,49 +42,99 @@
       <thead>
         <tr class="bg-slate-50 border-b border-slate-200">
           <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Survey</th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Status</th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Responses</th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Created</th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Trạng thái</th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Phản hồi</th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Ngày tạo</th>
           <th class="px-4 py-2.5"></th>
         </tr>
       </thead>
       <tbody>
+        <tr id="no-results-row" class="hidden">
+          <td colspan="5" class="px-4 py-10 text-center text-[13px] text-slate-400">Không tìm thấy survey nào phù hợp.</td>
+        </tr>
         <% @surveys.each do |survey| %>
-          <tr class="border-b border-slate-100 hover:bg-slate-50">
+          <tr class="survey-row border-b border-slate-100 hover:bg-slate-50" id="survey-row-<%= survey.id %>"
+              data-title="<%= survey.title.downcase %>"
+              data-status="<%= survey.status %>">
             <td class="px-4 py-3">
-              <div class="text-[13px] font-semibold text-slate-900"><%= survey.title %></div>
-              <div class="text-[11px] text-slate-400"><%= survey.questions.count %> questions · <%= survey.identity_mode.humanize %></div>
+              <% title_path = (survey.closed? || survey.archived?) ? results_survey_path(survey) : edit_survey_path(survey) %>
+              <%= link_to title_path, class: "group block" do %>
+                <div class="text-[13px] font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors"><%= survey.title %></div>
+                <div class="text-[11px] text-slate-400"><%= survey.questions.count %> câu hỏi · <%= survey.identity_mode.humanize %></div>
+              <% end %>
             </td>
             <td class="px-4 py-3">
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold <%= survey_status_class(survey.status) %>">
+              <span id="survey-badge-<%= survey.id %>" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold <%= survey_status_class(survey.status) %>">
                 <%= survey.status.capitalize %>
               </span>
             </td>
             <td class="px-4 py-3 text-[13px] text-slate-700"><%= survey.response_count %></td>
-            <td class="px-4 py-3 text-[12px] text-slate-500"><%= survey.created_at.strftime("%b %d, %Y") %></td>
+            <td class="px-4 py-3 text-[12px] text-slate-500"><%= survey.created_at.strftime("%d/%m/%Y") %></td>
             <td class="px-4 py-3">
-              <div class="flex gap-1.5 justify-end">
-                <%= link_to edit_survey_path(survey), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %>Edit<% end %>
-                <%= link_to results_survey_path(survey), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100" do %>Results<% end %>
-                <% if survey.draft? %>
-                  <%= button_to publish_survey_path(survey), method: :patch, class: "px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100" do %>Publish<% end %>
-                <% end %>
+              <div id="survey-actions-<%= survey.id %>" class="flex gap-1.5 justify-end flex-wrap"
+                   data-publish-url="<%= publish_survey_path(survey) %>"
+                   data-close-url="<%= close_survey_path(survey) %>"
+                   data-archive-url="<%= archive_survey_path(survey) %>"
+                   data-delete-url="<%= survey_path(survey) %>"
+                   data-edit-url="<%= edit_survey_path(survey) %>"
+                   data-results-url="<%= results_survey_path(survey) %>"
+                   data-clone-url="<%= clone_survey_path(survey) %>">
+                <%= render "admin/surveys/survey_actions", survey: survey %>
               </div>
             </td>
           </tr>
         <% end %>
       </tbody>
     </table>
+
+    <!-- Pagination -->
+    <% if @pagy && @pagy.pages > 1 %>
+      <div class="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+        <p class="text-[12px] text-slate-500">
+          <% from = (@pagy.page - 1) * @pagy.items + 1; to = [@pagy.page * @pagy.items, @pagy.count].min %>
+          Hiển thị <%= from %>–<%= to %> / <%= @pagy.count %> surveys
+        </p>
+        <div class="flex gap-1">
+          <% if @pagy.page > 1 %>
+            <%= link_to surveys_path(page: @pagy.page - 1, status: params[:status], q: params[:q]),
+              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>← Trước<% end %>
+          <% end %>
+          <% if @pagy.page < @pagy.pages %>
+            <%= link_to surveys_path(page: @pagy.page + 1, status: params[:status], q: params[:q]),
+              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>Tiếp →<% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
   <% else %>
     <div class="text-center py-16">
       <div class="text-4xl mb-3">📋</div>
-      <h3 class="text-[15px] font-semibold text-slate-700 mb-1">No surveys yet</h3>
-      <p class="text-[13px] text-slate-400 mb-4">Create your first survey to start collecting responses</p>
-      <%= link_to "Create Survey", new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700" %>
+      <h3 class="text-[15px] font-semibold text-slate-700 mb-1">Chưa có survey nào</h3>
+      <p class="text-[13px] text-slate-400 mb-4">Tạo survey đầu tiên để bắt đầu thu thập phản hồi</p>
+      <%= link_to "Tạo Survey", new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700" %>
     </div>
   <% end %>
 </div>
 
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-[400px] max-w-full mx-4 p-6">
+    <div id="confirm-icon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"></div>
+    <h3 id="confirm-title" class="text-[17px] font-bold text-slate-900 text-center mb-2"></h3>
+    <p id="confirm-body" class="text-[13px] text-slate-500 text-center leading-relaxed mb-6"></p>
+    <div class="flex gap-3">
+      <button onclick="closeConfirm()"
+        class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 border-0 cursor-pointer">
+        Huỷ
+      </button>
+      <button id="confirm-btn" onclick="submitConfirm()"
+        class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white border-0 cursor-pointer">
+        Xác nhận
+      </button>
+    </div>
+  </div>
+</div>
 <!-- AI Survey Builder Modal -->
 <div id="ai-builder-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
   <div class="bg-white rounded-xl shadow-2xl w-[520px] max-w-full mx-4 p-6">
@@ -86,24 +147,158 @@
       <button onclick="document.getElementById('ai-builder-modal').classList.add('hidden')" class="ml-auto text-slate-400 hover:text-slate-600 text-xl">✕</button>
     </div>
     <div id="ai-builder-form">
-      <label class="block text-[12px] font-semibold text-slate-700 mb-2">Describe your survey goal</label>
-      <textarea id="ai-prompt" rows="4" placeholder="E.g.: I want to measure employee satisfaction after the Q1 office relocation, focusing on commute, workspace comfort, and team collaboration..."
+      <label class="block text-[12px] font-semibold text-slate-700 mb-2">Mô tả mục tiêu survey của bạn</label>
+      <textarea id="ai-prompt" rows="4" placeholder="VD: Tôi muốn đo lường mức độ hài lòng của nhân viên sau khi chuyển văn phòng Q1..."
         class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-none outline-none"></textarea>
       <div class="flex gap-2 mt-4">
         <button onclick="generateAiSurvey()" class="flex-1 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-[13px] font-semibold rounded-lg hover:opacity-90">
-          Generate Survey ✨
+          Tạo Survey ✨
         </button>
-        <button onclick="document.getElementById('ai-builder-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200">Cancel</button>
+        <button onclick="document.getElementById('ai-builder-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200">Huỷ</button>
       </div>
     </div>
     <div id="ai-builder-loading" class="hidden text-center py-8">
       <div class="text-3xl mb-3 animate-spin inline-block">⟳</div>
-      <p class="text-[13px] text-slate-600">Generating your survey with Claude AI...</p>
+      <p class="text-[13px] text-slate-600">Đang tạo survey với Claude AI...</p>
     </div>
   </div>
 </div>
 
 <script>
+const CSRF = document.querySelector('meta[name=csrf-token]')?.content;
+
+// ── Live filter ───────────────────────────────────────────────────────────────
+function filterSurveys() {
+  const q      = document.getElementById('survey-search').value.toLowerCase().trim();
+  const status = document.getElementById('survey-status-filter').value;
+  const rows   = document.querySelectorAll('tr.survey-row');
+  let visible  = 0;
+  rows.forEach(row => {
+    const show = (!q || row.dataset.title.includes(q)) && (!status || row.dataset.status === status);
+    row.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+  document.getElementById('no-results-row')?.classList.toggle('hidden', visible > 0);
+}
+
+// ── AJAX survey actions ───────────────────────────────────────────────────────
+const STATUS_BADGE = {
+  draft:    { cls: 'bg-slate-100 text-slate-600',   label: 'Draft' },
+  active:   { cls: 'bg-emerald-50 text-emerald-700', label: 'Active' },
+  closed:   { cls: 'bg-amber-50 text-amber-700',     label: 'Closed' },
+  archived: { cls: 'bg-slate-100 text-slate-400',    label: 'Archived' }
+};
+
+function updateRowStatus(id, newStatus) {
+  const row = document.getElementById('survey-row-' + id);
+  if (!row) return;
+  row.dataset.status = newStatus;
+
+  // Update badge
+  const badge = document.getElementById('survey-badge-' + id);
+  if (badge) {
+    const cfg = STATUS_BADGE[newStatus] || {};
+    badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ' + (cfg.cls || '');
+    badge.textContent = cfg.label || newStatus;
+  }
+
+  // Rebuild action buttons
+  const actionsDiv = document.getElementById('survey-actions-' + id);
+  if (!actionsDiv) return;
+  const u = actionsDiv.dataset;
+  const btn = (label, onclick, cls) =>
+    `<button onclick="${onclick}" class="px-2.5 py-1 text-[11px] rounded-md border-0 cursor-pointer ${cls}">${label}</button>`;
+
+  const canEdit = newStatus !== 'closed' && newStatus !== 'archived';
+  let html = canEdit
+    ? `<a href="${u.editUrl}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200">Chỉnh sửa</a>`
+    : `<span class="px-2.5 py-1 text-[11px] bg-slate-50 rounded-md text-slate-300 cursor-not-allowed" title="Survey đã đóng">Chỉnh sửa</span>`;
+  html += `<a href="${u.resultsUrl}" class="px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100">Kết quả</a>`
+        + btn('Nhân bản', `cloneSurvey(${id})`, 'bg-violet-50 text-violet-700 hover:bg-violet-100');
+
+  if (newStatus === 'draft')
+    html += btn('Publish', `surveyAction('publish',${id})`, 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100');
+  if (newStatus === 'active')
+    html += btn('Đóng', `showConfirm('close',${id},'Đóng survey?','Người dùng sẽ không thể gửi câu trả lời nữa.')`, 'bg-amber-50 text-amber-700 hover:bg-amber-100');
+  if (newStatus !== 'archived')
+    html += btn('Archive', `showConfirm('archive',${id},'Archive survey?','Survey sẽ không nhận phản hồi mới.')`, 'bg-slate-100 text-slate-500 hover:bg-slate-200');
+
+  html += btn('Xoá', `showConfirm('delete',${id},'Xoá survey?','Tất cả câu hỏi và phản hồi sẽ bị xoá vĩnh viễn.')`, 'bg-red-50 text-red-500 hover:bg-red-100');
+  actionsDiv.innerHTML = html;
+}
+
+async function surveyAction(type, id) {
+  const actionsDiv = document.getElementById('survey-actions-' + id);
+  if (!actionsDiv) return;
+  const urlMap = { publish: actionsDiv.dataset.publishUrl, close: actionsDiv.dataset.closeUrl, archive: actionsDiv.dataset.archiveUrl };
+  const url = urlMap[type];
+  if (!url) return;
+
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json', 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) return;
+
+  const newStatus = { publish: 'active', close: 'closed', archive: 'archived' }[type];
+  updateRowStatus(id, newStatus);
+}
+
+// ── Confirm modal ─────────────────────────────────────────────────────────────
+const CONFIRM_CONFIG = {
+  close:   { icon: '🔒', iconBg: '#fef3c7', btnColor: '#d97706' },
+  archive: { icon: '📦', iconBg: '#f1f5f9', btnColor: '#64748b' },
+  delete:  { icon: '🗑️', iconBg: '#fee2e2', btnColor: '#ef4444' }
+};
+let _confirmState = {};
+
+function showConfirm(type, id, title, body) {
+  const cfg = CONFIRM_CONFIG[type] || {};
+  _confirmState = { type, id };
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-body').textContent = body;
+  const icon = document.getElementById('confirm-icon');
+  icon.style.background = cfg.iconBg || '#f1f5f9';
+  icon.textContent = cfg.icon || '❓';
+  document.getElementById('confirm-btn').style.background = cfg.btnColor || '#6366f1';
+  document.getElementById('confirm-modal').classList.remove('hidden');
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-modal').classList.add('hidden');
+  _confirmState = {};
+}
+
+async function submitConfirm() {
+  const { type, id } = _confirmState;
+  if (!type || !id) return;
+  closeConfirm();
+
+  if (type === 'delete') {
+    const actionsDiv = document.getElementById('survey-actions-' + id);
+    const url = actionsDiv?.dataset.deleteUrl;
+    if (!url) return;
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }
+    });
+    if (res.ok) {
+      const row = document.getElementById('survey-row-' + id);
+      if (row) {
+        row.style.transition = 'opacity 0.2s, transform 0.2s';
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(8px)';
+        setTimeout(() => row.remove(), 220);
+      }
+    }
+  } else {
+    await surveyAction(type, id);
+  }
+}
+
+document.getElementById('confirm-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeConfirm(); });
+
+// ── AI builder ────────────────────────────────────────────────────────────────
 async function generateAiSurvey() {
   const prompt = document.getElementById('ai-prompt').value;
   if (!prompt.trim()) return;
@@ -118,7 +313,6 @@ async function generateAiSurvey() {
   const { job_id } = await resp.json();
 
   pollJobStatus(job_id, (result) => {
-    // Redirect to new survey page with pre-filled data
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '<%= surveys_path %>';
@@ -126,6 +320,20 @@ async function generateAiSurvey() {
     document.body.appendChild(form);
     form.submit();
   });
+}
+
+// ── Clone survey ──────────────────────────────────────────────────────────────
+async function cloneSurvey(id) {
+  const actionsDiv = document.getElementById('survey-actions-' + id);
+  const url = actionsDiv?.dataset.cloneUrl;
+  if (!url) return;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json', 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+  if (data.redirect) window.location.href = data.redirect;
 }
 
 async function pollJobStatus(jobId, onDone) {

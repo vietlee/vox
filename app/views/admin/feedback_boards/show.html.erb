@@ -15,7 +15,8 @@
     </div>
   </div>
   <div class="flex gap-2">
-    <%= link_to feedback_board_feedbacks_path(@board), class: "px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-semibold rounded-lg" do %>View Feedbacks<% end %>
+    <%= link_to participate_feedback_path(@board.slug), class: "px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[13px] font-semibold rounded-lg", target: "_blank" do %>↗ View Public<% end %>
+    <%= link_to feedback_board_feedbacks_path(@board), class: "px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-semibold rounded-lg" do %>Manage Feedbacks<% end %>
     <%= link_to edit_feedback_board_path(@board), class: "px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[13px] font-semibold rounded-lg" do %>Edit<% end %>
     <% if @board.active? %>
       <%= button_to close_feedback_board_path(@board), method: :patch, class: "px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-[13px] font-semibold rounded-lg" do %>Close Board<% end %>
@@ -64,8 +65,28 @@
     </div>
 
     <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-2">Public Link</h2>
-      <div class="bg-slate-50 rounded px-2.5 py-1.5 text-[11px] text-slate-600 font-mono break-all"><%= participate_feedback_url(@board.slug) %></div>
+      <h2 class="text-[13px] font-bold text-slate-700 mb-2">Chia sẻ</h2>
+      <p class="text-[11px] text-slate-400 mb-2">Link công khai</p>
+      <div class="flex gap-1 mb-4">
+        <input id="feedback-link" readonly value="<%= participate_feedback_url(@board.slug) %>"
+          class="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] font-mono text-slate-600 min-w-0">
+        <button onclick="navigator.clipboard.writeText(document.getElementById('feedback-link').value);this.textContent='✓';setTimeout(()=>this.textContent='Copy',2000)"
+          class="px-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-semibold rounded hover:bg-indigo-100 border-0 cursor-pointer flex-shrink-0">Copy</button>
+      </div>
+
+      <% if @board.qr_code %>
+        <div class="text-center">
+          <p class="text-[11px] text-slate-400 mb-2">QR Code — Scan để mở form góp ý</p>
+          <div class="inline-block p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+            <img src="<%= qr_image_path(@board.qr_code.token) %>" alt="QR Code" class="w-40 h-40">
+          </div>
+          <p class="text-[10px] text-slate-400 mt-2"><%= @board.qr_code.scan_count %> lượt scan</p>
+          <a href="<%= qr_image_path(@board.qr_code.token) %>" download="qr-<%= @board.slug %>.svg"
+            class="inline-flex items-center gap-1 mt-2 px-3 py-1.5 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-lg hover:bg-slate-200">
+            ↓ Tải QR Code
+          </a>
+        </div>
+      <% end %>
     </div>
   </div>
 </div>

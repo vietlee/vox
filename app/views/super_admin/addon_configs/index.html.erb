@@ -1,0 +1,55 @@
+<div class="flex justify-between items-center mb-5">
+  <h1 class="text-[21px] font-extrabold text-slate-900">Add-on Packs</h1>
+  <%= link_to new_super_admin_addon_config_path, class: "px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700" do %>+ New Add-on<% end %>
+</div>
+
+<% [["resource_pack", "📦 Resource Packs (Survey / Vote / Feedback)"], ["ai_credits", "🤖 AI Credits Packs"]].each do |type, label| %>
+  <% configs = @addon_configs.select { |c| c.addon_type == type } %>
+  <div class="mb-6">
+    <h2 class="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-2"><%= label %></h2>
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <% if configs.any? %>
+        <table class="w-full border-collapse">
+          <thead><tr class="bg-slate-50 border-b border-slate-200">
+            <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Tên</th>
+            <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Giá</th>
+            <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Bonus</th>
+            <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Thứ tự</th>
+            <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Trạng thái</th>
+            <th class="px-4 py-2.5"></th>
+          </tr></thead>
+          <tbody>
+            <% configs.each do |cfg| %>
+              <tr class="border-b border-slate-100 hover:bg-slate-50">
+                <td class="px-4 py-3">
+                  <div class="text-[13px] font-semibold text-slate-900"><%= cfg.name %></div>
+                  <div class="text-[11px] text-slate-400"><%= cfg.description %></div>
+                </td>
+                <td class="px-4 py-3 text-[13px] font-bold text-indigo-600"><%= cfg.price_formatted %></td>
+                <td class="px-4 py-3 text-[12px] text-slate-600"><%= cfg.bonus_summary %></td>
+                <td class="px-4 py-3 text-[12px] text-slate-400"><%= cfg.sort_order %></td>
+                <td class="px-4 py-3">
+                  <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full <%= cfg.active? ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400' %>">
+                    <%= cfg.active? ? "Active" : "Hidden" %>
+                  </span>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="flex gap-1.5 justify-end">
+                    <%= link_to edit_super_admin_addon_config_path(cfg), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded text-indigo-600 hover:bg-indigo-100" do %>Edit<% end %>
+                    <%= button_to super_admin_addon_config_path(cfg), method: :delete,
+                          data: { turbo_confirm: "Xoá gói này?" },
+                          class: "px-2.5 py-1 text-[11px] bg-red-50 rounded text-red-600 hover:bg-red-100" do %>Xoá<% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% else %>
+        <div class="px-4 py-6 text-[13px] text-slate-400 text-center">
+          Chưa có gói nào. <%= link_to "+ Tạo gói mới", new_super_admin_addon_config_path(addon_type: type), class: "text-indigo-600 hover:underline" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>

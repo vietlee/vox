@@ -6,6 +6,8 @@ class Admin::VotesController < Admin::BaseController
   end
 
   def show
+    @responses = @vote.vote_responses.order(created_at: :desc)
+    @option_map = @vote.vote_options.index_by { |o| o.id.to_s }
   end
 
   def new
@@ -59,7 +61,7 @@ class Admin::VotesController < Admin::BaseController
 
   def open
     @vote.open!
-    AuditLog.record(user: current_user, action: "vote.open", resource: @vote)
+    audit_log("vote.open", resource: @vote)
     respond_to do |format|
       format.html { redirect_to present_vote_path(@vote) }
       format.json { render json: { status: "active" } }
@@ -68,7 +70,7 @@ class Admin::VotesController < Admin::BaseController
 
   def close
     @vote.close!
-    AuditLog.record(user: current_user, action: "vote.close", resource: @vote)
+    audit_log("vote.close", resource: @vote)
     # Trigger AI insight if applicable
     if current_workspace.active_subscription&.has_feature?(:ai_analysis)
       AiPostVoteInsightJob.perform_later(@vote.id)

@@ -1,12 +1,24 @@
 class Payment < ApplicationRecord
   belongs_to :workspace
   belongs_to :subscription
+  belongs_to :addon_config, optional: true
 
   enum :status,  { pending: 0, completed: 1, failed: 2, refunded: 3 }
-  enum :gateway, { vnpay: 0, momo: 1, stripe: 2, payos: 3 }
+  enum :gateway, { vnpay: "vnpay", momo: "momo", stripe: "stripe", payos: "payos" }
 
   validates :amount_cents, numericality: { greater_than: 0 }
   validates :gateway, presence: true
+
+  GATEWAY_LABELS = {
+    "payos"  => "QR Code (PayOS)",
+    "vnpay"  => "VNPay",
+    "momo"   => "MoMo",
+    "stripe" => "Stripe"
+  }.freeze
+
+  def gateway_label
+    GATEWAY_LABELS[gateway] || gateway&.upcase || "—"
+  end
 
   def amount_formatted
     if currency == "VND"

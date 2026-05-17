@@ -15,7 +15,19 @@
         <%= link_to present_vote_path(@vote), target: "_blank", class: "px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700" do %>🖥 Trình chiếu<% end %>
         <%= button_to close_vote_path(@vote), method: :patch, class: "px-4 py-2 bg-red-500 text-white text-[13px] font-semibold rounded-lg hover:bg-red-600 border-0 cursor-pointer" do %>■ Đóng vote<% end %>
       <% elsif @vote.draft? %>
-        <%= button_to open_vote_path(@vote), method: :patch, class: "px-4 py-2 bg-emerald-600 text-white text-[13px] font-semibold rounded-lg hover:bg-emerald-700 border-0 cursor-pointer" do %>▶ Mở vote<% end %>
+        <button onclick="openVote()" class="px-4 py-2 bg-emerald-600 text-white text-[13px] font-semibold rounded-lg hover:bg-emerald-700 border-0 cursor-pointer">▶ Mở vote</button>
+        <script>
+        async function openVote() {
+          const res = await fetch('<%= open_vote_path(@vote) %>', {
+            method: 'PATCH',
+            headers: { 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' }
+          });
+          if (res.ok) {
+            window.open('<%= present_vote_path(@vote) %>', '_blank');
+            location.reload();
+          }
+        }
+        </script>
       <% end %>
     </div>
   </div>

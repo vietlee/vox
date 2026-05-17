@@ -8,7 +8,7 @@ class Admin::WorkspaceSettingsController < Admin::BaseController
   def update
     @workspace = current_workspace
     if @workspace.update(workspace_params)
-      AuditLog.record(user: current_user, action: "workspace.settings_update", resource: @workspace)
+      audit_log("workspace.settings_update", resource: @workspace)
       redirect_to workspace_settings_path, notice: t("settings.updated")
     else
       render :show, status: :unprocessable_entity

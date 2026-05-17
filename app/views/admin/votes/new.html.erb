@@ -9,46 +9,72 @@
           <%= f.text_field :title, required: true, placeholder: "What would you like to ask?",
             class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none" %>
         </div>
+
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">Vote Type</label>
-            <%= f.select :vote_type, Vote.vote_types.keys.map { |k| [k.humanize, k] }, {},
-              class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none" %>
+            <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">Loại vote</label>
+            <%= f.select :vote_type, [["Single choice", "single_choice"], ["Multiple choice", "multiple_choice"], ["Ranking", "ranking"]], {},
+              class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none",
+              onchange: "onTypeChange(this.value)" %>
           </div>
           <div>
-            <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">Identity Mode</label>
+            <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">Danh tính</label>
             <%= f.select :identity_mode, Vote.identity_modes.keys.map { |k| [k.humanize, k] }, {},
               class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none" %>
           </div>
         </div>
-        <div>
-          <label class="block text-[12px] font-semibold text-slate-700 mb-2">Options</label>
+
+        <!-- Type description card -->
+        <div id="type-hint" class="rounded-lg px-4 py-3 text-[12px] leading-relaxed" style="background:#f8faff; border:1px solid #e0e7ff;">
+          <span id="type-icon" class="font-bold mr-1">☑️</span>
+          <span id="type-desc">Người tham gia chọn <strong>một</strong> trong các đáp án có sẵn. Phù hợp cho câu hỏi Yes/No hoặc lựa chọn đơn.</span>
+        </div>
+
+        <!-- Options (ẩn với word_cloud, open_ended, qa_upvote) -->
+        <div id="options-wrap">
+          <label class="block text-[12px] font-semibold text-slate-700 mb-2">Các lựa chọn</label>
           <div id="options-list" class="space-y-2">
             <% 2.times do |i| %>
-              <input type="text" name="vote[vote_options_attributes][<%= i %>][label]"
-                placeholder="Option <%= i + 1 %>"
-                class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none">
+              <div class="flex gap-2">
+                <input type="text" name="vote[vote_options_attributes][<%= i %>][label]"
+                  placeholder="Lựa chọn <%= i + 1 %>"
+                  class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none">
+              </div>
             <% end %>
           </div>
-          <button type="button" onclick="addOption()" class="mt-2 text-[12px] text-indigo-600 hover:text-indigo-700 font-medium">+ Add option</button>
+          <button type="button" onclick="addOption()"
+            class="mt-2 text-[12px] text-indigo-600 hover:text-indigo-700 font-medium">+ Thêm lựa chọn</button>
         </div>
+
         <div class="flex gap-2 pt-4 border-t border-slate-100">
-          <%= f.submit "Create Vote", class: "px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700 cursor-pointer" %>
-          <%= link_to "Cancel", votes_path, class: "px-5 py-2.5 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200" %>
+          <%= f.submit "Tạo vote", class: "px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700 cursor-pointer" %>
+          <%= link_to "Huỷ", votes_path, class: "px-5 py-2.5 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200" %>
         </div>
       </div>
     <% end %>
   </div>
 </div>
+
 <script>
+const TYPE_INFO = {
+  single_choice:  { icon: '☑️', desc: 'Người tham gia chọn <strong>một</strong> trong các đáp án có sẵn. Phù hợp cho câu hỏi Yes/No hoặc lựa chọn đơn.', hasOptions: true },
+  multiple_choice: { icon: '✅', desc: 'Người tham gia có thể chọn <strong>nhiều đáp án</strong> cùng lúc. Phù hợp khi muốn biết tất cả lựa chọn của họ.', hasOptions: true },
+  ranking:        { icon: '🏆', desc: 'Người tham gia <strong>xếp hạng thứ tự</strong> các lựa chọn bằng cách kéo thả. Xem lựa chọn nào được ưu tiên nhất.', hasOptions: true },
+};
+
+function onTypeChange(val) {
+  const info = TYPE_INFO[val] || TYPE_INFO['single_choice'];
+  document.getElementById('type-icon').textContent = info.icon + ' ';
+  document.getElementById('type-desc').innerHTML = info.desc;
+  document.getElementById('options-wrap').style.display = info.hasOptions ? '' : 'none';
+}
+
 let optionIdx = 2;
 function addOption() {
   const list = document.getElementById('options-list');
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.name = `vote[vote_options_attributes][${optionIdx++}][label]`;
-  input.placeholder = `Option ${optionIdx}`;
-  input.className = 'w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none';
-  list.appendChild(input);
+  const div = document.createElement('div');
+  div.className = 'flex gap-2';
+  div.innerHTML = `<input type="text" name="vote[vote_options_attributes][${optionIdx++}][label]" placeholder="Lựa chọn ${optionIdx}" class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none">`;
+  list.appendChild(div);
 }
 </script>

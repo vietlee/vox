@@ -1,5 +1,6 @@
 class Admin::SurveysController < Admin::BaseController
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :archive, :results, :export, :ai_analyze, :ai_report, :share]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :archive, :results, :export, :ai_analyze, :ai_report, :share, :clone]
+  before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
     surveys = current_workspace.surveys.order(created_at: :desc)
@@ -20,7 +21,7 @@ class Admin::SurveysController < Admin::BaseController
     @survey.user = current_user
 
     if @survey.save
-      AuditLog.record(user: current_user, action: "survey.create", resource: @survey)
+      audit_log("survey.create", resource: @survey)
       redirect_to edit_survey_path(@survey), notice: t("surveys.created")
     else
       render :new, status: :unprocessable_entity
@@ -32,7 +33,7 @@ class Admin::SurveysController < Admin::BaseController
 
   def update
     if @survey.update(survey_params)
-      AuditLog.record(user: current_user, action: "survey.update", resource: @survey)
+      audit_log("survey.update", resource: @survey)
       respond_to do |format|
         format.html { redirect_to edit_survey_path(@survey), notice: t("surveys.updated") }
         format.turbo_stream { render turbo_stream: turbo_stream.replace("flash", partial: "shared/flash", locals: { notice: t("surveys.updated") }) }
@@ -44,37 +45,84 @@ class Admin::SurveysController < Admin::BaseController
 
   def destroy
     @survey.destroy
-    redirect_to surveys_path, notice: t("surveys.deleted")
+    respond_to do |format|
+      format.json { render json: { ok: true } }
+      format.html { redirect_to surveys_path, notice: t("surveys.deleted") }
+    end
   end
 
   def publish
     subscription = current_workspace.active_subscription
     unless subscription&.within_survey_limit?
-      redirect_to surveys_path, alert: t("surveys.limit_reached")
+      respond_to do |format|
+        format.json { render json: { error: t("surveys.limit_reached") }, status: :forbidden }
+        format.html { redirect_to surveys_path, alert: t("surveys.limit_reached") }
+      end
       return
     end
     @survey.update!(status: :active)
-    AuditLog.record(user: current_user, action: "survey.publish", resource: @survey)
-    redirect_to share_survey_path(@survey), notice: t("surveys.published")
+    audit_log("survey.publish", resource: @survey)
+    respond_to do |format|
+      format.json { render json: { ok: true, status: "active" } }
+      format.html { redirect_to share_survey_path(@survey), notice: t("surveys.published") }
+    end
   end
 
   def close
     @survey.update!(status: :closed)
-    redirect_to results_survey_path(@survey), notice: t("surveys.closed")
+    audit_log("survey.close", resource: @survey)
+    respond_to do |format|
+      format.json { render json: { ok: true, status: "closed" } }
+      format.html { redirect_to results_survey_path(@survey), notice: t("surveys.closed") }
+    end
   end
 
   def archive
     @survey.update!(status: :archived)
-    redirect_to surveys_path, notice: t("surveys.archived")
+    audit_log("survey.archive", resource: @survey)
+    respond_to do |format|
+      format.json { render json: { ok: true, status: "archived" } }
+      format.html { redirect_to surveys_path, notice: t("surveys.archived") }
+    end
   end
 
   def results
-    @questions      = @survey.questions.includes(:question_options, :answers)
+    @questions       = @survey.questions.includes(:question_options, :answers)
     @total_responses = @survey.responses.completed.count
-    @ai_analysis    = @survey.latest_ai_analysis
+    @ai_analysis     = @survey.latest_ai_analysis
+    @individual_responses = @survey.responses.completed
+                              .includes(:answers)
+                              .order(completed_at: :desc)
   end
 
   def share
+  end
+
+  def clone
+    copy = @survey.dup
+    copy.title  = "#{@survey.title} copy"
+    copy.status = :draft
+    copy.slug   = nil
+
+    Survey.transaction do
+      copy.save!
+      @survey.questions.includes(:question_options).each do |q|
+        new_q = q.dup
+        new_q.survey = copy
+        new_q.save!
+        q.question_options.each do |opt|
+          new_opt = opt.dup
+          new_opt.question = new_q
+          new_opt.save!
+        end
+      end
+    end
+
+    audit_log("survey.clone", resource: copy)
+    respond_to do |format|
+      format.json { render json: { ok: true, redirect: edit_survey_path(copy) } }
+      format.html { redirect_to edit_survey_path(copy), notice: "Survey đã được nhân bản." }
+    end
   end
 
   def export
@@ -125,6 +173,15 @@ class Admin::SurveysController < Admin::BaseController
 
   def set_survey
     @survey = current_workspace.surveys.find(params[:id])
+  end
+
+  def prevent_edit_if_closed
+    if @survey.closed? || @survey.archived?
+      respond_to do |format|
+        format.json { render json: { error: "Survey đã đóng, không thể chỉnh sửa." }, status: :forbidden }
+        format.html { redirect_to results_survey_path(@survey), alert: "Survey đã đóng, không thể chỉnh sửa." }
+      end
+    end
   end
 
   def survey_params

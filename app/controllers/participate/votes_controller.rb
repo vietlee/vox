@@ -17,10 +17,15 @@ class Participate::VotesController < Participate::BaseController
       return
     end
 
+    if @vote.email_required? && params[:respondent_email].blank?
+      render json: { error: "email_required", message: "Vui lòng nhập email trước khi bình chọn." }, status: :unprocessable_entity
+      return
+    end
+
     vote_response = @vote.vote_responses.build(
       workspace: @vote.workspace,
       respondent_token: respondent_token,
-      respondent_email: params[:respondent_email],
+      respondent_email: params[:respondent_email].presence,
       selected_option_ids: Array(params[:option_ids]).map(&:to_i),
       text_value: params[:text_value],
       ranking_order: params[:ranking_order] || []

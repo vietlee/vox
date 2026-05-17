@@ -1,5 +1,7 @@
 class Workspace < ApplicationRecord
   has_many :users, dependent: :destroy
+  has_many :workspace_memberships, dependent: :destroy
+  has_many :members, through: :workspace_memberships, source: :user
   has_many :subscriptions, dependent: :destroy
   has_many :surveys, dependent: :destroy
   has_many :votes, dependent: :destroy
@@ -28,7 +30,9 @@ class Workspace < ApplicationRecord
   end
 
   def active_subscription
-    subscriptions.active.order(created_at: :desc).first
+    subscriptions.active
+                 .where("ends_at IS NULL OR ends_at > ?", Time.current)
+                 .order(created_at: :desc).first
   end
 
   def plan

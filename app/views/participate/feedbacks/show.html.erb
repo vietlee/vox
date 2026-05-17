@@ -1,0 +1,267 @@
+<% content_for :title, @board.title %>
+
+<style>
+  body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100vh; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.35s ease forwards; }
+  .reply-section { transition: all 0.2s ease; }
+</style>
+
+<div class="min-h-screen flex flex-col">
+
+  <!-- Top bar -->
+  <div class="flex items-center justify-between px-6 py-4 flex-shrink-0">
+    <span class="text-[17px] font-black tracking-tight" style="background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">VOX</span>
+    <div class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-indigo-700" style="background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.15);">
+      💬 Góp ý
+    </div>
+  </div>
+
+  <!-- Board header -->
+  <div class="max-w-2xl mx-auto w-full px-4 pb-5 fade-in">
+    <div class="text-center mb-6">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-[28px] mx-auto mb-3" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 8px 24px rgba(99,102,241,0.3);">💬</div>
+      <h1 class="text-[26px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @board.title %></h1>
+      <% if @board.description.present? %>
+        <p class="text-[14px] text-slate-500 mb-2"><%= @board.description %></p>
+      <% end %>
+      <span class="text-[12px] text-slate-400"><%= @feedbacks.size %> góp ý</span>
+    </div>
+
+    <!-- Flash -->
+    <% if notice %>
+      <div class="flex items-center gap-2 px-4 py-3 mb-4 rounded-2xl text-[13px] font-semibold fade-in" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); color:#065f46;">
+        ✓ <%= notice %>
+      </div>
+    <% end %>
+
+    <!-- Submit form -->
+    <div class="rounded-2xl p-5 mb-5" style="background:rgba(255,255,255,0.85); border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 24px rgba(99,102,241,0.08); backdrop-filter:blur(12px);">
+      <p class="text-[13px] font-bold text-slate-700 mb-3">Gửi góp ý của bạn</p>
+      <%= form_with url: submit_feedback_path(@board.slug), method: :post, local: true do |f| %>
+        <div class="space-y-3">
+          <textarea name="feedback[content]" rows="3" required maxlength="1000"
+            placeholder="Chia sẻ ý kiến, đề xuất hoặc phản hồi của bạn..."
+            class="w-full px-4 py-3 rounded-xl text-[14px] text-slate-800 outline-none resize-none"
+            style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9);"
+            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+
+          <% if @board.public_identity? || @board.user_choice? %>
+            <div class="grid grid-cols-2 gap-3">
+              <input type="text" name="feedback[author_name]" placeholder="Tên của bạn"
+                class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
+                style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9);"
+                onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+              <input type="email" name="feedback[author_email]" placeholder="Email (tuỳ chọn)"
+                class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
+                style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9);"
+                onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+          <% end %>
+
+          <% if @board.user_choice? %>
+            <label class="flex items-center gap-2 cursor-pointer text-[13px] text-slate-500">
+              <input type="checkbox" name="feedback[anonymous]" value="1" class="w-4 h-4 accent-indigo-600">
+              Gửi ẩn danh
+            </label>
+          <% end %>
+
+          <button type="submit"
+            class="w-full py-3 text-[14px] font-bold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5"
+            style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 4px 16px rgba(99,102,241,0.35);">
+            Gửi góp ý →
+          </button>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Feedbacks list -->
+    <% if @feedbacks.any? %>
+      <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Tất cả góp ý</p>
+      <div class="space-y-3">
+        <% @feedbacks.each do |fb| %>
+          <div id="feedback-card-<%= fb.id %>" class="rounded-2xl overflow-hidden fade-in" style="background:rgba(255,255,255,0.85); border:1.5px solid <%= fb.pinned? ? '#fbbf24' : 'rgba(226,232,240,0.8)' %>; box-shadow:0 2px 12px rgba(0,0,0,0.04); backdrop-filter:blur(8px);">
+
+            <% if fb.pinned? %>
+              <div class="px-4 py-1.5 flex items-center gap-1.5" style="background:rgba(251,191,36,0.12);">
+                <span class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">📌 Ghim</span>
+              </div>
+            <% end %>
+
+            <div class="p-4 flex items-start gap-3">
+              <!-- Avatar -->
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0 text-white mt-0.5"
+                style="background:linear-gradient(135deg,#6366f1,#a855f7);">
+                <%= fb.anonymous? || fb.author_name.blank? ? "?" : fb.author_name.first.upcase %>
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <p class="text-[14px] text-slate-800 leading-relaxed mb-2"><%= fb.content %></p>
+                <div class="flex items-center gap-3 flex-wrap">
+                  <span class="text-[12px] font-semibold text-slate-500">
+                    <%= fb.anonymous? || fb.author_name.blank? ? "Ẩn danh" : fb.author_name %>
+                  </span>
+                  <span class="text-[11px] text-slate-300"><%= fb.created_at.strftime("%d/%m/%Y") %></span>
+                  <% if fb.implemented? %>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-700" style="background:rgba(16,185,129,0.1);">✓ Đã thực hiện</span>
+                  <% end %>
+                  <% if @board.allow_replies? %>
+                    <button onclick="toggleReplyForm(<%= fb.id %>)"
+                      class="ml-auto text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 border-0 bg-transparent p-0">
+                      💬 <%= fb.feedback_replies.count > 0 ? "#{fb.feedback_replies.count} phản hồi" : "Phản hồi" %>
+                    </button>
+                  <% end %>
+                </div>
+              </div>
+
+              <!-- Upvote button -->
+              <% if @board.allow_upvotes? %>
+                <% upvoted = @upvoted_ids.include?(fb.id) %>
+                <button data-feedback-id="<%= fb.id %>" onclick="toggleUpvote(this, <%= fb.id %>)"
+                  class="flex flex-col items-center gap-0.5 px-2.5 py-2 rounded-xl border transition-all cursor-pointer flex-shrink-0 upvote-btn"
+                  style="<%= upvoted ? 'background:rgba(99,102,241,0.08);border-color:#6366f1;color:#6366f1;' : 'background:white;border-color:#e2e8f0;color:#64748b;' %>">
+                  <span class="text-[15px] leading-none"><%= upvoted ? '▲' : '△' %></span>
+                  <span class="text-[12px] font-bold upvote-count"><%= fb.upvotes_count %></span>
+                </button>
+              <% end %>
+            </div>
+
+            <!-- Replies -->
+            <% if @board.allow_replies? %>
+              <div id="replies-<%= fb.id %>" class="hidden border-t reply-section" style="border-color:rgba(226,232,240,0.6);">
+                <% if fb.feedback_replies.any? %>
+                  <div id="replies-list-<%= fb.id %>" class="px-4 pt-3 space-y-2">
+                    <% fb.feedback_replies.order(:created_at).each do |r| %>
+                      <div class="flex gap-2">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 mt-0.5"
+                          style="background:linear-gradient(135deg,#94a3b8,#64748b);">
+                          <%= r.anonymous? ? "?" : r.author_name.to_s.first.upcase %>
+                        </div>
+                        <div class="flex-1 rounded-xl px-3 py-2" style="background:rgba(248,250,252,0.9);">
+                          <div class="flex items-baseline gap-2 mb-0.5">
+                            <span class="text-[11px] font-semibold text-slate-600"><%= r.anonymous? ? "Ẩn danh" : r.author_name %></span>
+                            <span class="text-[10px] text-slate-300"><%= r.created_at.strftime("%d/%m %H:%M") %></span>
+                          </div>
+                          <p class="text-[13px] text-slate-700"><%= r.content %></p>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <div id="replies-list-<%= fb.id %>" class="px-4 pt-3 space-y-2"></div>
+                <% end %>
+
+                <div class="px-4 py-3">
+                  <div class="flex gap-2 items-end">
+                    <div class="flex-1 space-y-2">
+                      <input type="text" id="reply-name-<%= fb.id %>" placeholder="Tên (để trống = ẩn danh)"
+                        class="w-full px-3 py-1.5 rounded-lg text-[12px] outline-none"
+                        style="border:1.5px solid #e2e8f0; background:white;"
+                        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+                      <textarea id="reply-content-<%= fb.id %>" rows="2" maxlength="500"
+                        placeholder="Viết phản hồi..."
+                        class="w-full px-3 py-1.5 rounded-lg text-[13px] text-slate-800 outline-none resize-none"
+                        style="border:1.5px solid #e2e8f0; background:white;"
+                        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                    </div>
+                    <button onclick="submitReply(<%= fb.id %>)"
+                      class="px-4 py-2 text-white text-[12px] font-bold rounded-xl self-end flex-shrink-0 border-0"
+                      style="background:linear-gradient(135deg,#6366f1,#a855f7);">
+                      Gửi
+                    </button>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="text-center py-16 fade-in">
+        <div class="text-[48px] mb-3">💭</div>
+        <p class="text-[15px] font-semibold text-slate-500">Chưa có góp ý nào.</p>
+        <p class="text-[13px] text-slate-400 mt-1">Hãy là người đầu tiên chia sẻ!</p>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Footer -->
+  <div class="text-center py-6 mt-auto">
+    <span class="text-[11px] text-slate-400">Powered by <strong class="text-slate-500">VOX</strong></span>
+  </div>
+
+</div>
+
+<script>
+const UPVOTE_URL = "<%= upvote_feedback_path(@board.slug) %>";
+const REPLY_URL  = "<%= reply_feedback_path(@board.slug) %>";
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+
+function toggleReplyForm(id) {
+  const section = document.getElementById(`replies-${id}`);
+  section.classList.toggle('hidden');
+  if (!section.classList.contains('hidden')) {
+    document.getElementById(`reply-content-${id}`)?.focus();
+  }
+}
+
+async function submitReply(feedbackId) {
+  const nameEl    = document.getElementById(`reply-name-${feedbackId}`);
+  const contentEl = document.getElementById(`reply-content-${feedbackId}`);
+  const content   = contentEl.value.trim();
+  if (!content) { contentEl.focus(); return; }
+
+  const res = await fetch(REPLY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": CSRF, "Accept": "application/json" },
+    body: JSON.stringify({ feedback_id: feedbackId, reply: { content, author_name: nameEl.value.trim() } })
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+
+  const list = document.getElementById(`replies-list-${feedbackId}`);
+  const initial = data.anonymous ? "?" : (data.author_name || "?").charAt(0).toUpperCase();
+  const authorLabel = data.anonymous ? "Ẩn danh" : data.author_name;
+  const div = document.createElement('div');
+  div.className = 'flex gap-2';
+  div.innerHTML = `
+    <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 mt-0.5" style="background:linear-gradient(135deg,#94a3b8,#64748b);">${initial}</div>
+    <div class="flex-1 rounded-xl px-3 py-2" style="background:rgba(248,250,252,0.9);">
+      <div class="flex items-baseline gap-2 mb-0.5">
+        <span class="text-[11px] font-semibold text-slate-600">${authorLabel}</span>
+        <span class="text-[10px] text-slate-300">${data.created_at}</span>
+      </div>
+      <p class="text-[13px] text-slate-700">${data.content}</p>
+    </div>`;
+  list.appendChild(div);
+  contentEl.value = '';
+  nameEl.value = '';
+}
+
+async function toggleUpvote(btn, feedbackId) {
+  btn.disabled = true;
+  try {
+    const res = await fetch(UPVOTE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": CSRF, "Accept": "application/json" },
+      body: JSON.stringify({ feedback_id: feedbackId })
+    });
+    const data = await res.json();
+    btn.querySelector(".upvote-count").textContent = data.count;
+    const arrow = btn.querySelector("span:first-child");
+    if (data.upvoted) {
+      btn.style.background = 'rgba(99,102,241,0.08)';
+      btn.style.borderColor = '#6366f1';
+      btn.style.color = '#6366f1';
+      arrow.textContent = "▲";
+    } else {
+      btn.style.background = 'white';
+      btn.style.borderColor = '#e2e8f0';
+      btn.style.color = '#64748b';
+      arrow.textContent = "△";
+    }
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>

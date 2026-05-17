@@ -39,6 +39,8 @@ module Vox
     # Don't generate system test files.
     config.generators.system_tests = nil
 
+    config.active_job.queue_adapter = :sidekiq
+
     # i18n
     config.i18n.default_locale = :vi
     config.i18n.available_locales = [:vi, :en]

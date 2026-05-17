@@ -5,8 +5,9 @@ class Participate::FeedbacksController < Participate::BaseController
     unless @board.active?
       render :closed and return
     end
-    @feedbacks = @board.feedbacks.visible.pinned_first.limit(50)
-    @feedback  = @board.feedbacks.build
+    @feedbacks   = @board.feedbacks.visible.pinned_first.includes(:feedback_replies).limit(50)
+    @feedback    = @board.feedbacks.build
+    @upvoted_ids = FeedbackUpvote.where(feedback: @feedbacks, voter_token: respondent_token).pluck(:feedback_id).to_set
   end
 
   def submit
@@ -29,6 +30,26 @@ class Participate::FeedbacksController < Participate::BaseController
       @feedbacks = @board.feedbacks.visible.pinned_first.limit(50)
       render :show, status: :unprocessable_entity
     end
+  end
+
+  def reply
+    unless @board.allow_replies?
+      render json: { error: "Replies not allowed" }, status: :forbidden and return
+    end
+    feedback = @board.feedbacks.visible.find(params[:feedback_id])
+    anonymous = params[:reply][:author_name].blank?
+    reply = feedback.feedback_replies.create!(
+      content:     params[:reply][:content],
+      author_name: anonymous ? nil : params[:reply][:author_name],
+      anonymous:   anonymous
+    )
+    render json: {
+      id:          reply.id,
+      content:     reply.content,
+      author_name: reply.author_name,
+      anonymous:   reply.anonymous?,
+      created_at:  reply.created_at.strftime("%d/%m/%Y %H:%M")
+    }
   end
 
   def upvote

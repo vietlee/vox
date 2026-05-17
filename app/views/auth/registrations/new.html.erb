@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng ký — VOX</title>
+  <%= csrf_meta_tags %>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; background: #0F172A; font-family: 'Inter', sans-serif; min-height: 100vh; }
+    * { box-sizing: border-box; }
+    input:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important; outline: none; }
+  </style>
+</head>
+<body>
+
+  <div style="position:fixed; top:16px; right:16px; z-index:999; display:flex; gap:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:4px;">
+    <%= link_to request.path + "?locale=vi", style: "display:inline-flex; align-items:center; gap:5px; padding:7px 14px; border-radius:7px; font-size:12px; font-weight:600; text-decoration:none; #{I18n.locale == :vi ? 'background:#4f46e5; color:#fff;' : 'color:#64748b;'}" do %>🇻🇳 VI<% end %>
+    <%= link_to request.path + "?locale=en", style: "display:inline-flex; align-items:center; gap:5px; padding:7px 14px; border-radius:7px; font-size:12px; font-weight:600; text-decoration:none; #{I18n.locale == :en ? 'background:#4f46e5; color:#fff;' : 'color:#64748b;'}" do %>🇬🇧 EN<% end %>
+  </div>
+
+  <div style="padding: 56px 16px 48px; margin: 0 auto;">
+    <div style="width: 100%; max-width: 480px; margin: 0 auto;">
+
+      <!-- Logo -->
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="display:inline-flex; align-items:center; justify-content:center; width:58px; height:58px; background:#4f46e5; border-radius:16px; margin-bottom:12px; box-shadow:0 8px 32px rgba(99,102,241,0.4);">
+          <span style="font-size:22px; font-weight:900; color:#fff;">V</span>
+        </div>
+        <div style="font-size:30px; font-weight:900; color:#fff; letter-spacing:-0.5px;">VOX</div>
+        <p style="font-size:13px; color:#64748b; margin-top:6px;">Tạo workspace và bắt đầu ngay — miễn phí</p>
+      </div>
+
+      <!-- Card -->
+      <div style="background:#1E293B; border-radius:20px; border:1px solid rgba(255,255,255,0.07); padding:28px; box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+
+        <% if flash[:alert] %>
+          <div style="margin-bottom:18px; display:flex; align-items:flex-start; gap:10px; padding:14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:12px; font-size:13px; color:#f87171; line-height:1.5;">
+            <span>⚠</span><span><%= flash[:alert] %></span>
+          </div>
+        <% end %>
+
+        <%= form_with url: user_registration_path, method: :post, local: true do |f| %>
+
+          <!-- Workspace name -->
+          <div style="margin-bottom:16px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">
+              Tên Workspace *
+            </label>
+            <input type="text" name="workspace_name" value="<%= params[:workspace_name] %>"
+              placeholder="Công ty / Tổ chức của bạn"
+              required
+              style="display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:14px; color:#f1f5f9; font-family:'Inter',sans-serif;">
+            <p style="font-size:11px; color:#475569; margin-top:6px;">Workspace là nơi bạn tạo survey, vote, feedback.</p>
+          </div>
+
+          <div style="height:1px; background:rgba(255,255,255,0.05); margin:20px 0;"></div>
+
+          <!-- Name -->
+          <div style="margin-bottom:16px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Họ tên *</label>
+            <input type="text" name="name" value="<%= @user&.name %>"
+              placeholder="Nguyễn Văn A"
+              required
+              style="display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:14px; color:#f1f5f9; font-family:'Inter',sans-serif;">
+          </div>
+
+          <!-- Email -->
+          <div style="margin-bottom:16px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Email *</label>
+            <input type="email" name="email" value="<%= @user&.email %>"
+              placeholder="ban@congty.com"
+              required
+              style="display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:14px; color:#f1f5f9; font-family:'Inter',sans-serif;">
+          </div>
+
+          <!-- Password -->
+          <div style="margin-bottom:16px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Mật khẩu *</label>
+            <input type="password" name="password"
+              placeholder="Tối thiểu 8 ký tự"
+              required minlength="8"
+              style="display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:14px; color:#f1f5f9; font-family:'Inter',sans-serif;">
+          </div>
+
+          <!-- Password confirmation -->
+          <div style="margin-bottom:24px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Xác nhận mật khẩu *</label>
+            <input type="password" name="password_confirmation"
+              placeholder="Nhập lại mật khẩu"
+              required
+              style="display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:14px; color:#f1f5f9; font-family:'Inter',sans-serif;">
+          </div>
+
+          <!-- Free plan badge -->
+          <div style="margin-bottom:20px; padding:12px 14px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.2); border-radius:12px; display:flex; align-items:center; gap:10px;">
+            <span style="font-size:18px;">🎁</span>
+            <div>
+              <div style="font-size:12px; font-weight:700; color:#a5b4fc;">Gói Free — Miễn phí mãi mãi</div>
+              <div style="font-size:11px; color:#475569; margin-top:2px;">3 surveys · 3 votes · 10 feedback boards</div>
+            </div>
+          </div>
+
+          <button type="submit"
+            style="display:block; width:100%; padding:14px; background:#4f46e5; color:#fff; font-size:15px; font-weight:700; border:none; border-radius:12px; cursor:pointer; font-family:'Inter',sans-serif; box-shadow:0 4px 20px rgba(79,70,229,0.35);">
+            Tạo workspace →
+          </button>
+
+        <% end %>
+      </div>
+
+      <p style="text-align:center; font-size:13px; color:#475569; margin-top:18px;">
+        Đã có tài khoản?
+        <%= link_to "Đăng nhập", new_user_session_path, style: "color:#818cf8; font-weight:600; text-decoration:none;" %>
+      </p>
+
+    </div>
+  </div>
+
+</body>
+</html>

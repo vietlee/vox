@@ -1,5 +1,30 @@
 <% content_for :title, "Results — #{@survey.title}" %>
-<div class="flex items-start justify-between mb-6">
+
+<%
+  # Build option label lookup: { option_id => label }
+  option_labels = @questions.flat_map(&:question_options).each_with_object({}) { |o, h| h[o.id.to_s] = o.label }
+  # Build answer lookup per response: { response_id => { question_id => answer } }
+  response_answer_map = @individual_responses.each_with_object({}) do |r, h|
+    h[r.id] = r.answers.index_by(&:question_id)
+  end
+
+  def fmt_answer(ans, option_labels)
+    return "—" if ans.nil?
+    if ans.text_value.present?
+      ans.text_value.truncate(80)
+    elsif ans.numeric_value.present?
+      ans.numeric_value.to_i.to_s
+    elsif ans.option_ids.present?
+      ans.option_ids.map { |id| option_labels[id.to_s] || id }.join(", ").truncate(80)
+    elsif ans.date_value.present?
+      ans.date_value.to_s
+    else
+      "—"
+    end
+  end
+%>
+
+<div class="flex items-start justify-between mb-5">
   <div>
     <h1 class="text-[19px] font-extrabold text-slate-900"><%= @survey.title %></h1>
     <p class="text-[12px] text-slate-500 mt-0.5"><%= @total_responses %> responses · <%= @survey.completion_rate %>% completion</p>
@@ -10,18 +35,32 @@
   </div>
 </div>
 
+<!-- Tabs -->
+<div class="flex gap-1 mb-5 border-b border-slate-200">
+  <button id="tab-summary" onclick="switchTab('summary')"
+    class="px-4 py-2 text-[13px] font-semibold text-indigo-600 border-b-2 border-indigo-500 -mb-px bg-transparent">
+    Tổng hợp
+  </button>
+  <button id="tab-individual" onclick="switchTab('individual')"
+    class="px-4 py-2 text-[13px] font-semibold text-slate-500 border-b-2 border-transparent -mb-px bg-transparent hover:text-slate-700">
+    Từng người (<%= @total_responses %>)
+  </button>
+</div>
+
+<!-- Tab: Tổng hợp -->
+<div id="panel-summary">
 <div class="grid grid-cols-[1fr_300px] gap-5">
   <div class="space-y-5">
     <% @questions.each do |question| %>
       <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
         <h3 class="text-[14px] font-semibold text-slate-900 mb-4"><%= question.title %></h3>
-        <% answers = @survey.responses.completed.flat_map { |r| r.answers.select { |a| a.question_id == question.id } } %>
-        <p class="text-[12px] text-slate-500 mb-3"><%= answers.count %> responses</p>
+        <% q_answers = response_answer_map.values.map { |h| h[question.id] }.compact %>
+        <p class="text-[12px] text-slate-500 mb-3"><%= q_answers.count %> responses</p>
 
         <% if question.choice_type? %>
-          <% total = answers.count %>
+          <% total = q_answers.count %>
           <% question.question_options.each do |opt| %>
-            <% count = answers.count { |a| Array(a.option_ids).include?(opt.id.to_s) || Array(a.option_ids).include?(opt.id) } %>
+            <% count = q_answers.count { |a| Array(a.option_ids).map(&:to_s).include?(opt.id.to_s) } %>
             <% pct = total > 0 ? (count.to_f / total * 100).round(1) : 0 %>
             <div class="mb-3">
               <div class="flex justify-between text-[12px] mb-1">
@@ -36,7 +75,7 @@
             </div>
           <% end %>
         <% elsif question.numeric_type? %>
-          <% values = answers.map(&:numeric_value).compact %>
+          <% values = q_answers.map(&:numeric_value).compact %>
           <% if values.any? %>
             <div class="grid grid-cols-3 gap-4 text-center">
               <div class="bg-slate-50 rounded-lg p-3">
@@ -55,13 +94,13 @@
           <% end %>
         <% else %>
           <div class="space-y-1.5">
-            <% answers.first(5).each do |ans| %>
+            <% q_answers.first(5).each do |ans| %>
               <% if ans.text_value.present? %>
                 <div class="bg-slate-50 rounded-lg px-3 py-2 text-[13px] text-slate-700">"<%= ans.text_value %>"</div>
               <% end %>
             <% end %>
-            <% if answers.count > 5 %>
-              <p class="text-[12px] text-slate-400 text-center">+ <%= answers.count - 5 %> more responses</p>
+            <% if q_answers.count > 5 %>
+              <p class="text-[12px] text-slate-400 text-center">+ <%= q_answers.count - 5 %> more responses</p>
             <% end %>
           </div>
         <% end %>
@@ -101,6 +140,41 @@
       <% end %>
     </div>
 
+    <!-- Executive Report -->
+    <div id="report-panel" class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-[13px] font-bold text-slate-900">📄 Báo cáo điều hành</h3>
+        <span class="text-[10px] text-slate-400 font-semibold">15 credits</span>
+      </div>
+      <p class="text-[12px] text-slate-500 mb-3">Tạo báo cáo chuyên nghiệp theo phong cách HR consultant.</p>
+      <div class="flex gap-2 mb-3">
+        <select id="report-lang" class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[12px] text-slate-700 outline-none focus:border-indigo-400">
+          <option value="vi">Tiếng Việt</option>
+          <option value="en">English</option>
+        </select>
+        <button onclick="requestReport()" class="px-3 py-1.5 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-[12px] font-semibold rounded-lg hover:opacity-90 whitespace-nowrap flex items-center gap-1.5">
+          🤖 Tạo báo cáo
+        </button>
+      </div>
+      <div id="report-status" class="hidden"></div>
+      <% latest_report = @survey.ai_analysis_results.where(result_type: "executive_report").order(created_at: :desc).first %>
+      <% if latest_report %>
+        <div class="mt-2 pt-2 border-t border-slate-100">
+          <div class="text-[11px] text-slate-400 mb-2">Báo cáo gần nhất · <%= latest_report.created_at.strftime("%d/%m/%Y %H:%M") %></div>
+          <% sections = latest_report.output["sections"] || [] %>
+          <% if latest_report.output["executive_summary"].present? %>
+            <p class="text-[12px] text-slate-700 leading-relaxed mb-2"><%= latest_report.output["executive_summary"]&.truncate(200) %></p>
+          <% end %>
+          <% sections.first(2).each do |s| %>
+            <div class="mb-2">
+              <div class="text-[11px] font-bold text-indigo-600 mb-0.5"><%= s["heading"] %></div>
+              <p class="text-[11px] text-slate-600"><%= s["key_finding"] %></p>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4">
       <h3 class="text-[13px] font-bold text-slate-900 mb-3">Quick Stats</h3>
       <div class="space-y-2 text-[13px]">
@@ -111,8 +185,91 @@
     </div>
   </div>
 </div>
+</div><%# end panel-summary %>
+
+<!-- Tab: Từng người -->
+<div id="panel-individual" class="hidden">
+  <% identity_mode = @survey.identity_mode %>
+  <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm overflow-hidden">
+    <% if @individual_responses.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-[12px] border-collapse" style="min-width: <%= [600, @questions.count * 140 + 260].max %>px">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200">
+              <th class="text-left px-4 py-2.5 font-semibold text-slate-500 uppercase tracking-[0.4px] text-[11px] w-[200px]">
+                <% if identity_mode == "login_required" %>Người dùng<% elsif identity_mode == "email_required" %>Email<% else %>Token<% end %>
+              </th>
+              <th class="text-left px-4 py-2.5 font-semibold text-slate-500 uppercase tracking-[0.4px] text-[11px] w-[120px]">Thời gian</th>
+              <% @questions.each do |q| %>
+                <th class="text-left px-4 py-2.5 font-semibold text-slate-500 uppercase tracking-[0.4px] text-[11px]">
+                  <%= q.title.truncate(30) %>
+                </th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody>
+            <% @individual_responses.each do |resp| %>
+              <tr class="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onclick="toggleRow(<%= resp.id %>)">
+                <td class="px-4 py-3 font-medium text-slate-800">
+                  <% if resp.respondent_email.present? %>
+                    <%= resp.respondent_email %>
+                  <% else %>
+                    <span class="text-slate-400 font-mono text-[11px]">···<%= resp.respondent_token&.last(6) %></span>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3 text-slate-500"><%= resp.completed_at&.strftime("%d/%m %H:%M") %></td>
+                <% ans_map = response_answer_map[resp.id] || {} %>
+                <% @questions.each do |q| %>
+                  <td class="px-4 py-3 text-slate-700 max-w-[180px] truncate">
+                    <%= fmt_answer(ans_map[q.id], option_labels) %>
+                  </td>
+                <% end %>
+              </tr>
+              <!-- Expanded row -->
+              <tr id="row-detail-<%= resp.id %>" class="hidden bg-indigo-50/40">
+                <td colspan="<%= @questions.count + 2 %>" class="px-5 py-4">
+                  <div class="grid grid-cols-1 gap-2">
+                    <% @questions.each do |q| %>
+                      <% ans = ans_map[q.id] %>
+                      <% next if ans.nil? %>
+                      <div class="flex gap-3">
+                        <span class="text-[12px] font-semibold text-slate-500 min-w-[180px] flex-shrink-0"><%= q.title.truncate(40) %></span>
+                        <span class="text-[13px] text-slate-800"><%= fmt_answer(ans, option_labels) %></span>
+                      </div>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="text-center py-12 text-[13px] text-slate-400">Chưa có phản hồi nào.</div>
+    <% end %>
+  </div>
+</div>
 
 <script>
+function switchTab(tab) {
+  ['summary', 'individual'].forEach(t => {
+    document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab);
+    const btn = document.getElementById('tab-' + t);
+    if (t === tab) {
+      btn.classList.add('text-indigo-600', 'border-indigo-500');
+      btn.classList.remove('text-slate-500', 'border-transparent');
+    } else {
+      btn.classList.remove('text-indigo-600', 'border-indigo-500');
+      btn.classList.add('text-slate-500', 'border-transparent');
+    }
+  });
+}
+
+function toggleRow(id) {
+  const row = document.getElementById('row-detail-' + id);
+  if (row) row.classList.toggle('hidden');
+}
+
 async function requestAiAnalysis() {
   const resp = await fetch('<%= ai_analyze_survey_path(@survey) %>', {
     method: 'POST',
@@ -127,5 +284,39 @@ async function pollJob(jobId) {
   const data = await resp.json();
   if (data.status === 'done') location.reload();
   else if (data.status !== 'failed') setTimeout(() => pollJob(jobId), 3000);
+}
+
+async function requestReport() {
+  const lang = document.getElementById('report-lang').value;
+  const statusEl = document.getElementById('report-status');
+  statusEl.classList.remove('hidden');
+  statusEl.innerHTML = '<div class="text-[11px] text-violet-600 text-center py-2">⏳ Đang tạo báo cáo... (~30 giây)</div>';
+
+  const resp = await fetch('<%= ai_report_survey_path(@survey) %>', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content },
+    body: JSON.stringify({ language: lang })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    statusEl.innerHTML = `<div class="text-[11px] text-red-600 text-center py-2">❌ ${err.error || 'Lỗi, thử lại sau.'}</div>`;
+    return;
+  }
+
+  const { job_id } = await resp.json();
+  pollReport(job_id, statusEl);
+}
+
+async function pollReport(jobId, statusEl) {
+  const resp = await fetch('<%= ai_job_status_path("__ID__") %>'.replace('__ID__', jobId));
+  const data = await resp.json();
+  if (data.status === 'done') {
+    location.reload();
+  } else if (data.status === 'failed') {
+    statusEl.innerHTML = '<div class="text-[11px] text-red-600 text-center py-2">❌ Tạo báo cáo thất bại.</div>';
+  } else {
+    setTimeout(() => pollReport(jobId, statusEl), 3000);
+  }
 }
 </script>

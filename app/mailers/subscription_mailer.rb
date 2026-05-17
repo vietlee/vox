@@ -8,6 +8,14 @@ class SubscriptionMailer < ApplicationMailer
     mail(to: admin.email, subject: "Gói #{@subscription.plan.upcase} của #{@workspace.name} sắp hết hạn (còn #{@days_left} ngày)")
   end
 
+  def plan_expired(subscription, admin)
+    @subscription = subscription
+    @admin        = admin
+    @workspace    = subscription.workspace
+    @billing_url  = "#{Rails.application.routes.url_helpers.billing_subscription_url(host: ENV.fetch('APP_HOST', 'localhost:3000'))}"
+    mail(to: admin.email, subject: "Gói #{@subscription.plan.upcase} của #{@workspace.name} đã hết hạn — workspace đã được chuyển về Free")
+  end
+
   def payment_confirmed(payment, admin)
     @payment  = payment
     @admin    = admin

@@ -39,8 +39,9 @@ class PayosService
   def verify_webhook(payload)
     data = payload["data"]
     return false unless data.is_a?(Hash)
+    received_sig = payload["signature"].to_s  # signature is at root level, not inside data
     expected = sign_webhook(data)
-    ActiveSupport::SecurityUtils.secure_compare(data["signature"].to_s, expected)
+    ActiveSupport::SecurityUtils.secure_compare(received_sig, expected)
   end
 
   private

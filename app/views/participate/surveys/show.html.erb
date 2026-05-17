@@ -1,56 +1,150 @@
 <% content_for :title, @survey.title %>
 
-<div class="max-w-[680px] mx-auto px-4 py-10">
-  <!-- Survey header -->
-  <div class="mb-8 text-center">
-    <h1 class="text-[24px] font-extrabold text-slate-900 tracking-tight mb-2"><%= @survey.title %></h1>
-    <% if @survey.description.present? %>
-      <p class="text-[14px] text-slate-600 leading-relaxed"><%= @survey.description %></p>
-    <% end %>
+<style>
+  body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100vh; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .q-card { animation: fadeIn 0.35s ease forwards; }
+  .opt-label { transition: all 0.15s ease; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px; border: 2px solid #e2e8f0; background: rgba(255,255,255,0.85); }
+  .opt-label:hover { border-color: #a5b4fc; background: rgba(238,240,255,0.5); }
+  .opt-label:has(input:checked) { border-color: #6366f1; background: rgba(238,240,255,0.9); }
+  .opt-dot { flex-shrink:0; width:18px; height:18px; border-radius:50%; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition: all 0.15s; }
+  .opt-label:has(input[type=radio]:checked) .opt-dot { border-color:#6366f1; background:#6366f1; }
+  .opt-label:has(input[type=radio]:checked) .opt-dot::after { content:''; width:7px; height:7px; border-radius:50%; background:#fff; }
+  .opt-box { flex-shrink:0; width:18px; height:18px; border-radius:5px; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition: all 0.15s; }
+  .opt-label:has(input[type=checkbox]:checked) .opt-box { border-color:#6366f1; background:#6366f1; }
+  .opt-label:has(input[type=checkbox]:checked) .opt-box::after { content:'✓'; font-size:11px; font-weight:900; color:#fff; }
+</style>
+
+<div class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between px-6 py-4">
+    <span class="text-[17px] font-black tracking-tight" style="background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">VOX</span>
+    <div class="text-[11px] text-slate-400"><%= @questions.count %> câu hỏi</div>
   </div>
 
-  <!-- Progress -->
   <% if @survey.show_progress? %>
-    <div class="mb-6">
+  <!-- Progress -->
+  <div class="px-6 pb-1">
+    <div class="max-w-[680px] mx-auto">
       <div class="flex justify-between text-[11px] text-slate-500 mb-1.5">
-        <span><%= @questions.count %> questions</span>
-        <span>~<%= (@questions.count * 1.5).ceil %> min</span>
+        <span id="progress-label">0 / <%= @questions.count %> câu đã trả lời</span>
+        <span>~<%= (@questions.count * 1.5).ceil %> phút</span>
       </div>
-      <div class="h-1.5 bg-slate-200 rounded-full"><div class="h-1.5 bg-indigo-500 rounded-full w-0"></div></div>
+      <div class="h-1.5 bg-white/60 rounded-full overflow-hidden" style="border:1px solid rgba(99,102,241,0.15);">
+        <div id="progress-bar" class="h-full rounded-full transition-all duration-500" style="width:0%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
+      </div>
     </div>
+  </div>
   <% end %>
 
-  <%= form_with url: submit_survey_path(@survey.slug), method: :post, local: true, class: "space-y-6" do |f| %>
-    <% if @survey.email_required? %>
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-        <label class="block text-[13px] font-semibold text-slate-700 mb-2">Email address <span class="text-red-500">*</span></label>
-        <%= f.fields_for :response do |rf| %>
-          <%= rf.email_field :respondent_email, required: true, placeholder: "your@email.com",
-            class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none" %>
+  <!-- Content -->
+  <div class="flex-1 px-4 py-6">
+    <div class="max-w-[680px] mx-auto">
+
+      <!-- Survey header -->
+      <div class="text-center mb-7 fade-in">
+        <h1 class="text-[26px] font-extrabold text-slate-900 tracking-tight leading-snug mb-2"><%= @survey.title %></h1>
+        <% if @survey.description.present? %>
+          <p class="text-[14px] text-slate-500 leading-relaxed"><%= @survey.description %></p>
         <% end %>
       </div>
-    <% end %>
 
-    <% @questions.each_with_index do |question, idx| %>
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-        <p class="text-[15px] font-semibold text-slate-900 mb-1 leading-snug">
-          <span class="text-slate-400 mr-1"><%= idx + 1 %>.</span>
-          <%= question.title %>
-          <% if question.required? %><span class="text-red-500 ml-0.5">*</span><% end %>
-        </p>
-        <% if question.description.present? %>
-          <p class="text-[12px] text-slate-500 mb-3"><%= question.description %></p>
-        <% end %>
-        <div class="mt-4">
-          <%= render "participate/surveys/question_input", question: question %>
+      <% if @already_responded %>
+        <div class="fade-in text-center">
+          <div class="rounded-2xl py-10 px-8" style="background:rgba(255,255,255,0.85); border:1px solid rgba(99,102,241,0.15); box-shadow:0 8px 32px rgba(99,102,241,0.08); backdrop-filter:blur(12px);">
+            <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+                 style="background:linear-gradient(135deg,#6366f1,#a855f7);">
+              <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <h2 class="text-[20px] font-extrabold text-slate-800 mb-2">Bạn đã trả lời rồi!</h2>
+            <p class="text-[13px] text-slate-500">Mỗi người chỉ được phép gửi câu trả lời một lần.</p>
+          </div>
         </div>
-      </div>
-    <% end %>
+      <% else %>
 
-    <div class="flex justify-center pt-2">
-      <%= f.submit "Submit Survey →", class: "px-10 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[15px] font-bold rounded-xl transition-colors cursor-pointer min-w-[200px] text-center" %>
+      <% if @previous_answers.present? %>
+        <div class="mb-4 px-4 py-3 rounded-xl text-[13px] text-amber-700 font-medium" style="background:#fffbeb; border:1px solid #fcd34d;">
+          ✏️ Bạn đang chỉnh sửa câu trả lời đã gửi trước đó.
+        </div>
+      <% end %>
+
+      <%= form_with url: submit_survey_path(@survey.slug), method: :post, local: true, id: "survey-form", class: "space-y-4", multipart: true, data: { turbo: false } do |f| %>
+
+        <% if @survey.email_required? %>
+          <div class="q-card rounded-2xl p-5" style="background:rgba(255,255,255,0.85); border:1px solid rgba(99,102,241,0.15); box-shadow:0 4px 16px rgba(99,102,241,0.06); backdrop-filter:blur(12px);">
+            <label class="block text-[13px] font-semibold text-slate-700 mb-2">Email <span class="text-red-400">*</span></label>
+            <input type="email" name="response[respondent_email]" required placeholder="your@email.com"
+              value="<%= @previous_email %>"
+              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white">
+          </div>
+        <% end %>
+
+        <% @questions.each_with_index do |question, idx| %>
+          <div class="q-card rounded-2xl p-5" data-qid="<%= question.id %>"
+               style="background:rgba(255,255,255,0.85); border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 16px rgba(99,102,241,0.06); backdrop-filter:blur(12px);">
+            <div class="flex items-start gap-3 mb-4">
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-black text-white flex-shrink-0 mt-0.5"
+                    style="background:linear-gradient(135deg,#6366f1,#a855f7);"><%= idx + 1 %></span>
+              <div>
+                <p class="text-[15px] font-semibold text-slate-900 leading-snug">
+                  <%= question.title %>
+                  <% if question.required? %><span class="text-red-400 ml-1">*</span><% end %>
+                </p>
+                <% if question.description.present? %>
+                  <p class="text-[12px] text-slate-400 mt-1"><%= question.description %></p>
+                <% end %>
+              </div>
+            </div>
+            <%= render "participate/surveys/question_input", question: question, prev_answer: @previous_answers&.[](question.id) %>
+          </div>
+        <% end %>
+
+        <div class="pt-2 pb-2">
+          <%= f.submit "Gửi khảo sát →",
+            class: "w-full py-4 text-[15px] font-bold text-white rounded-2xl cursor-pointer hover:opacity-90 hover:-translate-y-0.5 transition-all",
+            style: "background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35); border:0;" %>
+        </div>
+      <% end %>
+
+      <% end %> <%# end unless @already_responded %>
+
+      <p class="text-center text-[11px] text-slate-400 pb-6">Powered by <strong class="text-slate-500">VOX</strong></p>
     </div>
+  </div>
 
-    <p class="text-center text-[11px] text-slate-400">This survey is powered by <strong>Vox</strong></p>
-  <% end %>
 </div>
+
+<script>
+const totalQ = <%= @questions.count %>;
+
+function updateProgress() {
+  let answered = 0;
+  document.querySelectorAll('.q-card[data-qid]').forEach(card => {
+    let isAnswered = false;
+    card.querySelectorAll('input[type=radio], input[type=checkbox]').forEach(inp => {
+      if (inp.checked) isAnswered = true;
+    });
+    card.querySelectorAll('input[type=text], input[type=email], input[type=number], textarea').forEach(inp => {
+      if (inp.value && inp.value.trim()) isAnswered = true;
+    });
+    card.querySelectorAll('input[type=file]').forEach(inp => {
+      if (inp.files && inp.files.length > 0) isAnswered = true;
+    });
+    if (isAnswered) answered++;
+  });
+  const pct = totalQ > 0 ? Math.round(answered / totalQ * 100) : 0;
+  const bar = document.getElementById('progress-bar');
+  const label = document.getElementById('progress-label');
+  if (bar) bar.style.width = pct + '%';
+  if (label) label.textContent = answered + ' / ' + totalQ + ' câu đã trả lời';
+}
+
+const form = document.getElementById('survey-form');
+if (form) {
+  form.addEventListener('change', updateProgress);
+  form.addEventListener('input', updateProgress);
+}
+</script>

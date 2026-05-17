@@ -48,6 +48,10 @@ class Admin::AiController < Admin::BaseController
     render json: { job_id: job.id }
   end
 
+  def chat_page
+    require_ai_feature!(:ai_chat)
+  end
+
   def chat
     require_ai_feature!(:ai_chat)
     require_credits!(2)

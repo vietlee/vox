@@ -4,7 +4,7 @@ class Admin::AuditLogsController < Admin::BaseController
   def index
     logs = current_workspace.audit_logs.recent
     logs = logs.where(user_id: params[:user_id]) if params[:user_id].present?
-    logs = logs.where("action LIKE ?", "%#{params[:action]}%") if params[:action].present?
+    logs = logs.where("action LIKE ?", "%#{params[:action_filter]}%") if params[:action_filter].present?
     @pagy, @logs = pagy(logs, items: 30)
   end
 end

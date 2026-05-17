@@ -1,0 +1,103 @@
+<% content_for :title, "Đang xác nhận thanh toán" %>
+
+<div class="min-h-screen flex items-center justify-center">
+  <div class="text-center max-w-sm">
+    <!-- Spinner -->
+    <div id="pending-icon" class="flex items-center justify-center mb-5">
+      <div class="w-16 h-16 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin"></div>
+    </div>
+    <div id="success-icon" class="hidden flex items-center justify-center mb-5">
+      <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-[32px]">✅</div>
+    </div>
+    <div id="failed-icon" class="hidden flex items-center justify-center mb-5">
+      <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center text-[32px]">❌</div>
+    </div>
+
+    <h2 id="status-title" class="text-[20px] font-extrabold text-slate-900 mb-2">Đang xác nhận thanh toán</h2>
+    <p id="status-desc" class="text-[13px] text-slate-500 mb-6">Hệ thống đang chờ xác nhận từ PayOS. Vui lòng đợi trong giây lát...</p>
+
+    <!-- Progress dots -->
+    <div id="progress-dots" class="flex justify-center gap-1.5 mb-6">
+      <div class="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style="animation-delay:0s"></div>
+      <div class="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style="animation-delay:0.15s"></div>
+      <div class="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style="animation-delay:0.3s"></div>
+    </div>
+
+    <div id="action-btn" class="hidden">
+      <%= link_to subscription_path, id: "goto-sub",
+            class: "px-6 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700" do %>
+        Xem gói dịch vụ →
+      <% end %>
+    </div>
+
+    <p class="text-[11px] text-slate-400 mt-4">Mã giao dịch: #<%= @payment&.payos_order_code %></p>
+  </div>
+</div>
+
+<script>
+const PAYMENT_ID  = "<%= @payment&.id %>";
+const STATUS_URL  = "<%= payment_status_subscription_path %>";
+const SUB_URL     = "<%= subscription_path %>";
+let attempts = 0;
+const MAX_ATTEMPTS = 30; // 30 × 2s = 60 giây
+
+async function checkStatus() {
+  try {
+    const res  = await fetch(`${STATUS_URL}?payment_id=${PAYMENT_ID}`, {
+      headers: { "Accept": "application/json" }
+    });
+    const data = await res.json();
+
+    if (data.status === "completed") {
+      showSuccess(data.plan);
+      return;
+    }
+
+    if (data.status === "failed") {
+      showFailed();
+      return;
+    }
+  } catch (e) { /* network error, keep polling */ }
+
+  attempts++;
+  if (attempts >= MAX_ATTEMPTS) {
+    showTimeout();
+    return;
+  }
+  setTimeout(checkStatus, 2000);
+}
+
+function showSuccess(plan) {
+  document.getElementById("pending-icon").classList.add("hidden");
+  document.getElementById("success-icon").classList.remove("hidden");
+  document.getElementById("progress-dots").classList.add("hidden");
+  document.getElementById("status-title").textContent = "Thanh toán thành công!";
+  document.getElementById("status-desc").textContent  =
+    `Gói ${(plan || "").toUpperCase()} đã được kích hoạt. Chuyển trang trong 2 giây...`;
+  document.getElementById("action-btn").classList.remove("hidden");
+  setTimeout(() => { window.location.href = SUB_URL; }, 2000);
+}
+
+function showFailed() {
+  document.getElementById("pending-icon").classList.add("hidden");
+  document.getElementById("failed-icon").classList.remove("hidden");
+  document.getElementById("progress-dots").classList.add("hidden");
+  document.getElementById("status-title").textContent = "Thanh toán thất bại";
+  document.getElementById("status-desc").textContent  = "Giao dịch không thành công. Vui lòng thử lại.";
+  document.getElementById("action-btn").classList.remove("hidden");
+  document.getElementById("goto-sub").href = "<%= billing_subscription_path %>";
+  document.getElementById("goto-sub").textContent = "Quay lại trang thanh toán";
+  document.getElementById("goto-sub").className = document.getElementById("goto-sub").className.replace("bg-indigo-600 hover:bg-indigo-700", "bg-red-500 hover:bg-red-600");
+}
+
+function showTimeout() {
+  document.getElementById("progress-dots").classList.add("hidden");
+  document.getElementById("status-title").textContent = "Đang chờ xác nhận";
+  document.getElementById("status-desc").textContent  =
+    "Thanh toán của bạn đang được xử lý. Gói sẽ được kích hoạt trong vài phút.";
+  document.getElementById("action-btn").classList.remove("hidden");
+}
+
+// Bắt đầu poll ngay sau 1 giây
+setTimeout(checkStatus, 1000);
+</script>

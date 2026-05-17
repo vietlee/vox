@@ -1,9 +1,26 @@
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
-  config.action_mailer.delivery_method = :letter_opener
+  config.hosts << /.*\.ngrok-free\.app/
+  if ENV["APP_HOST"].present? && ENV["APP_HOST"] != "localhost:3000"
+    routes.default_url_options = { host: ENV["APP_HOST"], protocol: "https" }
+    config.action_mailer.default_url_options = { host: ENV["APP_HOST"], protocol: "https" }
+  else
+    config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  end
+
+  config.action_mailer.delivery_method    = :smtp
   config.action_mailer.perform_deliveries = true
+  config.action_mailer.raise_delivery_errors = true
+  config.action_mailer.smtp_settings = {
+    address:              'smtp.gmail.com',
+    port:                 587,
+    domain:               'gmail.com',
+    user_name:            ENV['SMTP_USERNAME'],
+    password:             ENV['SMTP_PASSWORD'].to_s.gsub(' ', ''),
+    authentication:       'plain',
+    enable_starttls_auto: true
+  }
   # Settings specified here will take precedence over those in config/application.rb.
 
   # In the development environment your application's code is reloaded any time
@@ -37,14 +54,9 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Don't care if the mailer can't send.
-  config.action_mailer.raise_delivery_errors = false
-
   # Disable caching for Action Mailer templates even if Action Controller
   # caching is enabled.
   config.action_mailer.perform_caching = false
-
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log

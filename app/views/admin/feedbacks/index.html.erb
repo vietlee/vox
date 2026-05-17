@@ -10,23 +10,41 @@
   </div>
 </div>
 
-<!-- Filter tabs -->
+<!-- Search + Filter -->
+<div class="flex items-center gap-3 mb-4">
+  <%= form_with url: feedback_board_feedbacks_path(@board), method: :get, local: true, class: "flex-1" do |f| %>
+    <%= f.hidden_field :status, value: params[:status] %>
+    <div class="relative">
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[13px]">🔍</span>
+      <%= f.text_field :q, value: params[:q], placeholder: "Tìm trong feedback...",
+          class: "w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none bg-white" %>
+    </div>
+  <% end %>
+  <% if params[:q].present? %>
+    <%= link_to feedback_board_feedbacks_path(@board, status: params[:status]), class: "text-[12px] text-slate-400 hover:text-slate-600 flex-shrink-0" do %>✕ Xoá<% end %>
+  <% end %>
+</div>
+
 <div class="flex gap-1 mb-4">
   <% ["", "pending", "approved", "hidden", "rejected"].each do |s| %>
-    <%= link_to feedback_board_feedbacks_path(@board, status: s.presence), class: "px-3 py-1.5 rounded-full text-[12px] font-semibold #{params[:status].to_s == s ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" do %>
+    <%= link_to feedback_board_feedbacks_path(@board, status: s.presence, q: params[:q]), class: "px-3 py-1.5 rounded-full text-[12px] font-semibold #{params[:status].to_s == s ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" do %>
       <%= s.blank? ? "All" : s.capitalize %>
     <% end %>
   <% end %>
 </div>
 
-<div class="space-y-3">
+<div class="space-y-3" id="feedbacks-list">
   <% @feedbacks.each do |fb| %>
-    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4" id="feedback-<%= fb.id %>">
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4 transition-all duration-200" id="feedback-<%= fb.id %>">
       <div class="flex gap-3">
         <div class="flex-1">
           <div class="flex items-center gap-2 mb-2">
-            <% if fb.pinned? %><span class="text-[10px] font-bold text-amber-600">📌 Pinned</span><% end %>
-            <span class="text-[10px] px-2 py-0.5 rounded-full <%= fb.safe? ? 'bg-emerald-50 text-emerald-700' : fb.flagged? ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500' %>">
+            <% if fb.pinned? %>
+              <span class="pin-badge-<%= fb.id %> text-[10px] font-bold text-amber-600">📌 Pinned</span>
+            <% else %>
+              <span class="pin-badge-<%= fb.id %> hidden text-[10px] font-bold text-amber-600">📌 Pinned</span>
+            <% end %>
+            <span class="status-badge-<%= fb.id %> text-[10px] px-2 py-0.5 rounded-full <%= fb.safe? ? 'bg-emerald-50 text-emerald-700' : fb.flagged? ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500' %>">
               <%= fb.moderation_status.humanize %>
             </span>
             <span class="text-[10px] text-slate-400 ml-auto"><%= fb.created_at.strftime("%b %d, %H:%M") %></span>
@@ -38,17 +56,36 @@
           </div>
         </div>
         <div class="flex flex-col gap-1.5 flex-shrink-0">
-          <% unless fb.approved? %>
-            <%= button_to approve_feedback_board_feedback_path(@board, fb), method: :patch, class: "px-2.5 py-1 text-[11px] bg-emerald-50 rounded text-emerald-700 hover:bg-emerald-100" do %>✓ Approve<% end %>
+          <% if fb.hidden? %>
+            <%# Hidden tab: show "Restore" to bring back, no "Hide" button %>
+            <button id="approve-btn-<%= fb.id %>"
+              onclick="feedbackAction(<%= fb.id %>, '<%= unhide_feedback_board_feedback_path(@board, fb) %>', 'PATCH', 'unhide')"
+              class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded text-emerald-700 hover:bg-emerald-100">
+              ↩ Restore
+            </button>
+          <% else %>
+            <%# Other tabs: show "Approve" if not yet approved, "Hide" if not hidden %>
+            <button id="approve-btn-<%= fb.id %>"
+              onclick="feedbackAction(<%= fb.id %>, '<%= approve_feedback_board_feedback_path(@board, fb) %>', 'PATCH', 'approve')"
+              class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded text-emerald-700 hover:bg-emerald-100 <%= fb.approved? ? 'hidden' : '' %>">
+              ✓ Approve
+            </button>
+            <button id="hide-btn-<%= fb.id %>"
+              onclick="feedbackAction(<%= fb.id %>, '<%= hide_feedback_board_feedback_path(@board, fb) %>', 'PATCH', 'hide')"
+              class="px-2.5 py-1 text-[11px] bg-slate-100 rounded text-slate-600 hover:bg-slate-200">
+              Hide
+            </button>
           <% end %>
-          <% unless fb.hidden? %>
-            <%= button_to hide_feedback_board_feedback_path(@board, fb), method: :patch, class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded text-slate-600 hover:bg-slate-200" do %>Hide<% end %>
-          <% end %>
-          <%= button_to fb.pinned? ? unpin_feedback_board_feedback_path(@board, fb) : pin_feedback_board_feedback_path(@board, fb),
-              method: :patch, class: "px-2.5 py-1 text-[11px] bg-amber-50 rounded text-amber-700 hover:bg-amber-100" do %>
+          <button id="pin-btn-<%= fb.id %>"
+            onclick="togglePin(<%= fb.id %>, '<%= pin_feedback_board_feedback_path(@board, fb) %>', '<%= unpin_feedback_board_feedback_path(@board, fb) %>')"
+            data-pinned="<%= fb.pinned? ? '1' : '0' %>"
+            class="px-2.5 py-1 text-[11px] bg-amber-50 rounded text-amber-700 hover:bg-amber-100">
             <%= fb.pinned? ? "Unpin" : "📌 Pin" %>
-          <% end %>
-          <%= button_to feedback_board_feedback_path(@board, fb), method: :delete, data: { confirm: "Delete?" }, class: "px-2.5 py-1 text-[11px] bg-red-50 rounded text-red-600 hover:bg-red-100" do %>Delete<% end %>
+          </button>
+          <button onclick="deleteFeedback(<%= fb.id %>, '<%= feedback_board_feedback_path(@board, fb) %>')"
+            class="px-2.5 py-1 text-[11px] bg-red-50 rounded text-red-600 hover:bg-red-100">
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -65,10 +102,99 @@
 <div id="ai-summary-result" class="mt-4"></div>
 
 <script>
+const CSRF = document.querySelector('meta[name=csrf-token]').content;
+
+async function feedbackAction(id, url, method, action) {
+  const res = await fetch(url, {
+    method,
+    headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }
+  });
+  if (!res.ok) return;
+
+  const card       = document.getElementById(`feedback-${id}`);
+  const approveBtn = document.getElementById(`approve-btn-${id}`);
+  const hideBtn    = document.getElementById(`hide-btn-${id}`);
+  const badge      = document.querySelector(`.status-badge-${id}`);
+
+  if (action === 'approve') {
+    if (approveBtn) approveBtn.classList.add('hidden');
+    if (badge) {
+      badge.textContent = 'Approved';
+      badge.className = `status-badge-${id} text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700`;
+    }
+  } else if (action === 'hide') {
+    // Remove card from current view (non-hidden tabs)
+    if (card) {
+      card.style.opacity = '0';
+      card.style.transform = 'translateX(10px)';
+      setTimeout(() => card.remove(), 200);
+    }
+  } else if (action === 'unhide') {
+    // On hidden tab: remove card since it no longer belongs here
+    if (card) {
+      card.style.opacity = '0';
+      card.style.transform = 'translateX(10px)';
+      setTimeout(() => card.remove(), 200);
+    }
+  }
+}
+
+async function togglePin(id, pinUrl, unpinUrl) {
+  const btn    = document.getElementById(`pin-btn-${id}`);
+  const pinned = btn.dataset.pinned === '1';
+  const url    = pinned ? unpinUrl : pinUrl;
+
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+
+  // Update button + badge
+  const badge = document.querySelector(`.pin-badge-${id}`);
+  if (data.pinned) {
+    btn.dataset.pinned = '1';
+    btn.textContent = 'Unpin';
+    if (badge) badge.classList.remove('hidden');
+  } else {
+    btn.dataset.pinned = '0';
+    btn.textContent = '📌 Pin';
+    if (badge) badge.classList.add('hidden');
+  }
+
+  // Reorder DOM by server-sorted IDs
+  const list = document.getElementById('feedbacks-list');
+  list.style.opacity = '0.4';
+  list.style.transition = 'opacity 0.15s';
+  setTimeout(() => {
+    data.order.forEach(fid => {
+      const card = document.getElementById(`feedback-${fid}`);
+      if (card) list.appendChild(card);
+    });
+    list.style.opacity = '1';
+  }, 150);
+}
+
+async function deleteFeedback(id, url) {
+  if (!confirm('Xoá feedback này?')) return;
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }
+  });
+  if (!res.ok) return;
+  const card = document.getElementById(`feedback-${id}`);
+  if (card) {
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(10px)';
+    setTimeout(() => card.remove(), 200);
+  }
+}
+
 async function aiSummarize() {
   const resp = await fetch('<%= ai_summarize_feedback_board_path(@board) %>', {
     method: 'POST',
-    headers: { 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content }
+    headers: { 'X-CSRF-Token': CSRF }
   });
   const { job_id } = await resp.json();
   const box = document.getElementById('ai-summary-result');

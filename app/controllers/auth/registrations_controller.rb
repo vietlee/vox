@@ -1,10 +1,52 @@
 class Auth::RegistrationsController < Devise::RegistrationsController
-  # Super admin creates workspace admins — direct registration disabled
-  before_action :redirect_if_registration_disabled
+  skip_before_action :require_no_authentication, only: []
+  layout false
+
+  def new
+    @user = User.new
+  end
+
+  def create
+    workspace_name = params[:workspace_name].to_s.strip
+    if workspace_name.blank?
+      flash.now[:alert] = "Tên workspace không được để trống."
+      @user = User.new(user_params)
+      render :new, status: :unprocessable_entity and return
+    end
+
+    @user = User.new(user_params)
+    @user.role = :admin
+    @user.confirmed_at = Time.current  # auto-confirm
+
+    workspace = Workspace.new(name: workspace_name, status: :active)
+
+    ActiveRecord::Base.transaction do
+      workspace.save!
+      @user.workspace = workspace
+      @user.save!
+
+      free_limits = PlanConfig.limits_for("free").transform_values { |v| v || 0 }
+      workspace.subscriptions.create!(
+        plan:           :free,
+        status:         :active,
+        starts_at:      Time.current,
+        ends_at:        nil,
+        credit_balance: 0,
+        features:       PlanConfig.features_for("free"),
+        **free_limits
+      )
+    end
+
+    sign_in(:user, @user)
+    redirect_to dashboard_path, notice: "Chào mừng! Workspace \"#{workspace.name}\" đã được tạo."
+  rescue ActiveRecord::RecordInvalid => e
+    flash.now[:alert] = e.record.errors.full_messages.first
+    render :new, status: :unprocessable_entity
+  end
 
   private
 
-  def redirect_if_registration_disabled
-    redirect_to new_user_session_path, alert: "Account creation is invitation-only."
+  def user_params
+    params.permit(:name, :email, :password, :password_confirmation)
   end
 end

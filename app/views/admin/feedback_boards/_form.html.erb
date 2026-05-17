@@ -1,0 +1,50 @@
+<%= form_with model: @board, url: @board.new_record? ? feedback_boards_path : feedback_board_path(@board), method: @board.new_record? ? :post : :patch, local: true do |f| %>
+  <div class="space-y-4">
+    <div>
+      <label class="block text-[12px] font-semibold text-slate-700 mb-1.5"><%= t("feedback_boards.form.title") %> *</label>
+      <%= f.text_field :title, required: true, class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-500 outline-none" %>
+    </div>
+
+    <div>
+      <label class="block text-[12px] font-semibold text-slate-700 mb-1.5"><%= t("feedback_boards.form.description") %></label>
+      <%= f.text_area :description, rows: 3, class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none resize-none" %>
+    </div>
+
+    <div>
+      <label class="block text-[12px] font-semibold text-slate-700 mb-1.5"><%= t("feedback_boards.form.identity_mode") %></label>
+      <%= f.select :identity_mode, FeedbackBoard.identity_modes.keys.map { |k| [k.humanize, k] }, {}, class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none" %>
+    </div>
+
+    <div class="border-t border-slate-100 pt-4">
+      <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3"><%= t("feedback_boards.form.settings") %></p>
+      <div class="space-y-2.5">
+        <label class="flex items-center justify-between gap-3 cursor-pointer">
+          <span class="text-[13px] text-slate-700"><%= t("feedback_boards.form.auto_moderation") %></span>
+          <%= f.check_box :auto_moderation, class: "w-4 h-4 accent-indigo-600" %>
+        </label>
+        <label class="flex items-center justify-between gap-3 cursor-pointer">
+          <span class="text-[13px] text-slate-700"><%= t("feedback_boards.form.manual_approval") %></span>
+          <%= f.check_box :manual_approval, class: "w-4 h-4 accent-indigo-600" %>
+        </label>
+        <label class="flex items-center justify-between gap-3 cursor-pointer">
+          <span class="text-[13px] text-slate-700"><%= t("feedback_boards.form.allow_upvotes") %></span>
+          <%= f.check_box :allow_upvotes, class: "w-4 h-4 accent-indigo-600" %>
+        </label>
+        <label class="flex items-center justify-between gap-3 cursor-pointer">
+          <span class="text-[13px] text-slate-700"><%= t("feedback_boards.form.allow_replies") %></span>
+          <%= f.check_box :allow_replies, class: "w-4 h-4 accent-indigo-600" %>
+        </label>
+      </div>
+    </div>
+
+    <div class="flex gap-2 pt-4 border-t border-slate-100">
+      <%= f.submit @board.new_record? ? t("feedback_boards.form.create_btn") : t("feedback_boards.form.save_btn"),
+            class: "px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg cursor-pointer" %>
+      <% if @board.new_record? %>
+        <%= link_to t("feedback_boards.form.cancel"), feedback_boards_path, class: "px-5 py-2.5 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg" %>
+      <% else %>
+        <%= link_to t("feedback_boards.form.view_feedbacks"), feedback_board_feedbacks_path(@board), class: "px-5 py-2.5 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg" %>
+      <% end %>
+    </div>
+  </div>
+<% end %>

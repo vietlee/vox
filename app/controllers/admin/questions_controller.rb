@@ -5,7 +5,11 @@ class Admin::QuestionsController < Admin::BaseController
     @question = @survey.questions.build(question_params)
     @question.position = @survey.questions.count
     if @question.save
-      render json: { id: @question.id, success: true }
+      html = render_to_string(
+        partial: "admin/surveys/question_card",
+        locals: { question: @question, idx: @question.position }
+      )
+      render json: { id: @question.id, success: true, html: html }
     else
       render json: { errors: @question.errors.full_messages }, status: :unprocessable_entity
     end
@@ -23,7 +27,10 @@ class Admin::QuestionsController < Admin::BaseController
   def destroy
     @question = @survey.questions.find(params[:id])
     @question.destroy
-    redirect_to edit_survey_path(@survey)
+    respond_to do |format|
+      format.json { render json: { success: true } }
+      format.html { redirect_to edit_survey_path(@survey) }
+    end
   end
 
   def reorder

@@ -6,21 +6,33 @@
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5 col-span-2">
       <div class="flex items-center gap-3 mb-4">
         <div class="px-3 py-1 bg-indigo-600 text-white text-[13px] font-bold rounded-full"><%= @subscription.plan.capitalize %></div>
-        <span class="text-[13px] text-slate-500">Valid until <%= @subscription.ends_at&.strftime("%b %d, %Y") || "—" %></span>
+        <% if @subscription.ends_at %>
+          <span class="text-[13px] text-slate-500">Hết hạn <%= @subscription.ends_at.strftime("%d/%m/%Y") %></span>
+          <% if @subscription.expires_soon? %>
+            <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[11px] font-semibold rounded-full">⚠ Sắp hết hạn</span>
+          <% end %>
+        <% else %>
+          <span class="text-[13px] text-slate-500">Không giới hạn thời gian</span>
+        <% end %>
+        <div class="ml-auto">
+          <%= link_to billing_subscription_path, class: "px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-semibold rounded-lg" do %>
+            <%= @subscription.free? ? "Nâng cấp" : "Gia hạn / Nâng cấp" %>
+          <% end %>
+        </div>
       </div>
-      <div class="grid grid-cols-3 gap-4 text-center mb-5">
-        <div class="bg-slate-50 rounded-lg p-3">
-          <div class="text-[18px] font-bold text-slate-900"><%= @subscription.max_surveys || "∞" %></div>
-          <div class="text-[11px] text-slate-500">Max Surveys</div>
-        </div>
-        <div class="bg-slate-50 rounded-lg p-3">
-          <div class="text-[18px] font-bold text-slate-900"><%= @subscription.max_supporters || "∞" %></div>
-          <div class="text-[11px] text-slate-500">Supporters</div>
-        </div>
-        <div class="bg-slate-50 rounded-lg p-3">
-          <div class="text-[18px] font-bold text-slate-900"><%= @subscription.max_ai_credits || "∞" %></div>
-          <div class="text-[11px] text-slate-500">AI Credits</div>
-        </div>
+      <div class="grid grid-cols-3 gap-3 text-center mb-5">
+        <% [
+          [@subscription.max_surveys,    "Surveys"],
+          [@subscription.max_votes,      "Votes"],
+          [@subscription.max_feedbacks,  "Feedbacks"],
+          [@subscription.max_supporters, "Supporters"],
+          [@subscription.max_ai_credits, "AI Credits"]
+        ].each do |val, label| %>
+          <div class="bg-slate-50 rounded-lg p-3">
+            <div class="text-[18px] font-bold text-slate-900"><%= val.nil? ? "∞" : val %></div>
+            <div class="text-[11px] text-slate-500"><%= label %></div>
+          </div>
+        <% end %>
       </div>
       <% if !@subscription.enterprise? %>
         <div class="flex gap-2">
@@ -43,6 +55,72 @@
     </div>
   </div>
 
+  <!-- Add-on packs -->
+  <% if @addon_resources.any? || @addon_credits.any? %>
+    <div class="mb-6">
+      <div class="flex items-baseline gap-2 mb-3">
+        <h2 class="text-[16px] font-extrabold text-slate-900">Mua thêm</h2>
+        <span class="text-[12px] text-slate-400">Cộng thêm giới hạn vào gói hiện tại, không cần đổi plan</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-5">
+        <% if @addon_resources.any? %>
+          <div>
+            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">📦 Resource Packs</p>
+            <div class="space-y-3">
+              <% @addon_resources.each do |addon| %>
+                <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4 flex items-center gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[14px] font-bold text-slate-900"><%= addon.name %></div>
+                    <div class="text-[11px] text-slate-400 mb-1"><%= addon.description %></div>
+                    <div class="flex flex-wrap gap-x-3 text-[12px] text-slate-500">
+                      <% if addon.surveys_bonus.to_i > 0 %><span>+<%= addon.surveys_bonus %> Surveys</span><% end %>
+                      <% if addon.votes_bonus.to_i > 0 %><span>+<%= addon.votes_bonus %> Votes</span><% end %>
+                      <% if addon.feedbacks_bonus.to_i > 0 %><span>+<%= addon.feedbacks_bonus %> Feedbacks</span><% end %>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 flex-shrink-0">
+                    <span class="text-[15px] font-extrabold text-indigo-600"><%= addon.price_formatted %></span>
+                    <%= button_to checkout_addon_subscription_path(addon_config_id: addon.id), method: :post,
+                          data: { turbo: false },
+                          class: "px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 whitespace-nowrap" do %>
+                      Mua ngay →
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <% if @addon_credits.any? %>
+          <div>
+            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">🤖 AI Credits Packs</p>
+            <div class="space-y-3">
+              <% @addon_credits.each do |addon| %>
+                <div class="bg-white rounded-[10px] border border-violet-200 shadow-sm p-4 flex items-center gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[14px] font-bold text-slate-900"><%= addon.name %></div>
+                    <div class="text-[11px] text-slate-400 mb-1"><%= addon.description %></div>
+                    <div class="text-[12px] font-semibold text-violet-600">+<%= addon.ai_credits_bonus %> AI Credits</div>
+                  </div>
+                  <div class="flex items-center gap-3 flex-shrink-0">
+                    <span class="text-[15px] font-extrabold text-violet-600"><%= addon.price_formatted %></span>
+                    <%= button_to checkout_addon_subscription_path(addon_config_id: addon.id), method: :post,
+                          data: { turbo: false },
+                          class: "px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 whitespace-nowrap" do %>
+                      Mua ngay →
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Payment history -->
   <% if @payments.any? %>
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm overflow-hidden">
@@ -63,7 +141,7 @@
             <tr class="border-b border-slate-100">
               <td class="px-4 py-3 text-[12px] text-slate-500"><%= payment.created_at.strftime("%b %d, %Y") %></td>
               <td class="px-4 py-3 text-[13px] font-semibold text-slate-900"><%= payment.amount_formatted %></td>
-              <td class="px-4 py-3 text-[12px] text-slate-500"><%= payment.gateway.capitalize %></td>
+              <td class="px-4 py-3 text-[12px] text-slate-500"><%= payment.gateway_label %></td>
               <td class="px-4 py-3">
                 <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full <%= payment.completed? ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' %>">
                   <%= payment.status.capitalize %>

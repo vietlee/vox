@@ -19,15 +19,16 @@ class SuperAdmin::SubscriptionsController < SuperAdmin::BaseController
     if @subscription.update(subscription_params)
       # Apply standard limits when changing plan
       if @subscription.plan != old_plan
-        limits = Subscription::PLAN_LIMITS[@subscription.plan] || {}
+        limits   = PlanConfig.limits_for(@subscription.plan)
+        features = PlanConfig.features_for(@subscription.plan)
         @subscription.update_columns(
-          max_surveys:    limits[:max_surveys]    || @subscription.max_surveys,
-          max_votes:      limits[:max_votes]      || @subscription.max_votes,
-          max_feedbacks:  limits[:max_feedbacks]  || @subscription.max_feedbacks,
-          max_supporters: limits[:max_supporters] || @subscription.max_supporters,
-          max_ai_credits: limits[:max_ai_credits] || @subscription.max_ai_credits,
-          credit_balance: limits[:max_ai_credits] || @subscription.credit_balance,
-          features:       Subscription::FEATURE_FLAGS[@subscription.plan] || {}
+          max_surveys:    limits[:max_surveys],
+          max_votes:      limits[:max_votes],
+          max_feedbacks:  limits[:max_feedbacks],
+          max_supporters: limits[:max_supporters],
+          max_ai_credits: limits[:max_ai_credits],
+          credit_balance: limits[:max_ai_credits] || 0,
+          features:       features
         )
       end
       redirect_to super_admin_subscription_path(@subscription), notice: "Cập nhật subscription thành công."
