@@ -115,7 +115,7 @@
 
     <!-- Sidebar footer: AI credits + user -->
     <div class="mt-auto border-t border-white/[0.06] px-4 py-3.5">
-      <% if (sub = current_workspace&.active_subscription) && !sub.free? %>
+      <% if (sub = current_workspace&.active_subscription) && sub.max_ai_credits.to_i > 0 %>
         <div class="flex justify-between text-[11px] text-slate-500 mb-1.5">
           <span>AI Credits</span>
           <strong class="text-violet-400">
@@ -245,6 +245,29 @@
   </div>
 </div>
 
+<!-- AI Upgrade modal -->
+<div id="ai-upgrade-modal" class="hidden fixed inset-0 z-[60]">
+  <div class="absolute inset-0 w-full h-full flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40" onclick="window.closeAiUpgradeModal()"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl p-7 w-[420px] text-center">
+      <div id="ai-upgrade-modal-icon" class="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4 text-[28px]">✨</div>
+      <h3 id="ai-upgrade-modal-title" class="text-[17px] font-extrabold text-slate-900 mb-2"><%= t("ai.upgrade_modal_title") %></h3>
+      <p id="ai-upgrade-feature-name" class="text-[13px] text-indigo-600 font-semibold mb-1"></p>
+      <p id="ai-upgrade-modal-desc" class="text-[13px] text-slate-500 mb-6"><%= t("ai.upgrade_modal_desc") %></p>
+      <div class="flex gap-2">
+        <button onclick="window.closeAiUpgradeModal()"
+          class="flex-1 py-2.5 bg-slate-100 text-slate-700 text-[13px] font-semibold rounded-lg hover:bg-slate-200 border-0 cursor-pointer transition-colors">
+          <%= t("common.cancel") %>
+        </button>
+        <a id="ai-upgrade-modal-cta" href="<%= billing_subscription_path %>"
+          class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-semibold rounded-lg text-center transition-colors">
+          <%= t("ai.upgrade_modal_cta") %>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Logout confirm modal -->
 <div id="logout-modal" class="hidden fixed inset-0 z-50">
   <div class="absolute inset-0 w-full h-full flex items-center justify-center">
@@ -255,12 +278,12 @@
       <p class="text-[13px] text-slate-500 mb-5"><%= t("super_admin.logout.desc") %></p>
       <div class="flex gap-2">
         <button onclick="document.getElementById('logout-modal').classList.add('hidden')"
-          class="flex-1 py-2.5 bg-slate-100 text-slate-700 text-[13px] font-semibold rounded-xl hover:bg-slate-200 border-0 cursor-pointer">
+          class="flex-1 py-2.5 bg-slate-100 text-slate-700 text-[13px] font-semibold rounded-lg hover:bg-slate-200 border-0 cursor-pointer">
           <%= t("super_admin.logout.cancel") %>
         </button>
         <%= button_to destroy_user_session_path, method: :delete,
               form_class: "flex-1",
-              class: "w-full py-2.5 bg-red-500 text-white text-[13px] font-semibold rounded-xl hover:bg-red-600 border-0 cursor-pointer" do %>
+              class: "w-full py-2.5 bg-red-500 text-white text-[13px] font-semibold rounded-lg hover:bg-red-600 border-0 cursor-pointer" do %>
           <%= t("super_admin.logout.confirm") %>
         <% end %>
       </div>
@@ -269,8 +292,44 @@
 </div>
 
 <script>
+  // ── AI Upgrade Modal ─────────────────────────────────────────────────────────
+  var _aiUpgradeI18n = {
+    upgradeTitle: '<%= j t("ai.upgrade_modal_title") %>',
+    upgradeDesc:  '<%= j t("ai.upgrade_modal_desc") %>',
+    upgradeCta:   '<%= j t("ai.upgrade_modal_cta") %>',
+    creditsTitle: '<%= j t("ai.credits_modal_title") %>',
+    creditsDesc:  '<%= j t("ai.credits_modal_desc") %>',
+    creditsCta:   '<%= j t("ai.credits_modal_cta") %>',
+    billingUrl:   '<%= billing_subscription_path %>'
+  };
+
+  // showAiUpgradeModal(featureName, insufficientCredits)
+  window.showAiUpgradeModal = function(featureName, insufficientCredits) {
+    var isCredits = !!insufficientCredits;
+    document.getElementById('ai-upgrade-modal-icon').textContent = isCredits ? '💎' : '✨';
+    document.getElementById('ai-upgrade-modal-title').textContent = isCredits ? _aiUpgradeI18n.creditsTitle : _aiUpgradeI18n.upgradeTitle;
+    document.getElementById('ai-upgrade-modal-desc').textContent  = isCredits ? _aiUpgradeI18n.creditsDesc  : _aiUpgradeI18n.upgradeDesc;
+    document.getElementById('ai-upgrade-modal-cta').textContent   = isCredits ? _aiUpgradeI18n.creditsCta   : _aiUpgradeI18n.upgradeCta;
+    document.getElementById('ai-upgrade-modal-cta').href          = _aiUpgradeI18n.billingUrl;
+    var nameEl = document.getElementById('ai-upgrade-feature-name');
+    if (nameEl) nameEl.textContent = featureName || '';
+    document.getElementById('ai-upgrade-modal').classList.remove('hidden');
+  };
+  window.closeAiUpgradeModal = function() {
+    document.getElementById('ai-upgrade-modal').classList.add('hidden');
+  };
+
+  // Global helper: call after every AI fetch. Returns true if upgrade required.
+  // Usage: if (window.handleAiUpgrade(resp, data, 'Feature name')) return;
+  window.handleAiUpgrade = function(resp, data, featureName) {
+    if (resp.status === 402 || data?.upgrade_required) {
+      window.showAiUpgradeModal(featureName, data?.insufficient_credits);
+      return true;
+    }
+    return false;
+  };
+
   // Hide all modals before Turbo snapshots the page for its cache.
-  // Without this, any open modal is baked into the snapshot and reappears on next visit.
   document.addEventListener('turbo:before-cache', function() {
     document.querySelectorAll('[id$="-modal"]').forEach(function(el) {
       el.classList.add('hidden');

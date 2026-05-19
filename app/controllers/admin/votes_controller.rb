@@ -41,10 +41,7 @@ class Admin::VotesController < Admin::BaseController
       return
     end
     if @vote.update(vote_params)
-      respond_to do |format|
-        format.html { redirect_to edit_vote_path(@vote), notice: t("votes.updated") }
-        format.turbo_stream
-      end
+      redirect_to edit_vote_path(@vote), notice: t("votes.updated")
     else
       render :edit, status: :unprocessable_entity
     end

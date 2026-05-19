@@ -1,0 +1,31 @@
+<h1><%= survey.title %></h1>
+<p class="meta"><%= t("surveys.results.report_generated", time: report.created_at.strftime("%d/%m/%Y %H:%M")) %></p>
+
+<h2><%= t("surveys.results.ai_executive_summary") %></h2>
+<p><%= report.output["executive_summary"] %></p>
+
+<% (report.output["sections"] || []).each do |s| %>
+  <h2><%= s["heading"] %></h2>
+  <p><%= s["content"] %></p>
+  <% if s["key_finding"].present? %>
+    <p class="key-finding">💡 <%= s["key_finding"] %></p>
+  <% end %>
+<% end %>
+
+<% recs = report.output["recommendations"] || [] %>
+<% if recs.any? %>
+  <h2><%= t("surveys.results.ai_recommendations") %></h2>
+  <% recs.each do |rec| %>
+    <% text = rec.is_a?(Hash) ? rec["action"] : rec %>
+    <% pri  = rec.is_a?(Hash) ? rec["priority"].to_s : "" %>
+    <div class="rec">
+      <% if pri.present? %><span class="rec-badge <%= pri %>"><%= pri.upcase %></span><% end %>
+      <span><%= text %></span>
+    </div>
+  <% end %>
+<% end %>
+
+<% if report.output["conclusion"].present? %>
+  <h2><%= t("surveys.results.ai_conclusion") %></h2>
+  <div class="conclusion"><p><%= report.output["conclusion"] %></p></div>
+<% end %>

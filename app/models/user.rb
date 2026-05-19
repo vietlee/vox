@@ -40,6 +40,10 @@ class User < ApplicationRecord
     workspace&.active_subscription&.has_feature?(:ai_analysis)
   end
 
+  def send_devise_notification(notification, *args)
+    devise_mailer.send(notification, self, *args).deliver_later
+  end
+
   def display_name
     name.presence || email.split("@").first
   end

@@ -19,7 +19,9 @@ Rails.application.configure do
     user_name:            ENV['SMTP_USERNAME'],
     password:             ENV['SMTP_PASSWORD'].to_s.gsub(' ', ''),
     authentication:       'plain',
-    enable_starttls_auto: true
+    enable_starttls_auto: true,
+    open_timeout:         10,
+    read_timeout:         10
   }
   # Settings specified here will take precedence over those in config/application.rb.
 

@@ -55,27 +55,81 @@
 
         <!-- Form -->
         <div style="padding:24px 28px;">
-          <% if flash[:alert] %>
-            <div style="margin-bottom:16px; display:flex; align-items:flex-start; gap:10px; padding:14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:12px; font-size:13px; color:#f87171;">
-              <span>⚠</span><span><%= flash[:alert] %></span>
-            </div>
-          <% end %>
-          <% if flash[:notice] %>
-            <div style="margin-bottom:16px; display:flex; align-items:flex-start; gap:10px; padding:14px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:12px; font-size:13px; color:#34d399;">
-              <span>✓</span><span><%= flash[:notice] %></span>
-            </div>
-          <% end %>
 
-          <%= form_with model: resource, as: resource_name, url: password_path(resource_name), method: :post, local: true do |f| %>
-            <div style="margin-bottom:16px;">
-              <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Email</label>
-              <%= f.email_field :email, autofocus: true, autocomplete: "email",
-                placeholder: (I18n.locale == :vi ? "ban@congty.com" : "you@company.com"),
-                style: "display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:14px; color:#f1f5f9; font-family:'Inter',sans-serif;" %>
+          <%# ── SUCCESS STATE ── %>
+          <div id="sent-state" style="display:<%= @email_sent ? 'block' : 'none' %>; text-align:center; padding:8px 0 16px;">
+            <div style="width:56px; height:56px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto 16px;">📬</div>
+            <div style="font-size:15px; font-weight:700; color:#f1f5f9; margin-bottom:8px;">
+              <%= I18n.locale == :vi ? "Đã gửi email!" : "Email sent!" %>
             </div>
-            <%= f.submit (I18n.locale == :vi ? "Gửi liên kết đặt lại →" : "Send Reset Link →"),
-              style: "display:block; width:100%; padding:14px; background:#4f46e5; color:#fff; font-size:15px; font-weight:700; border:none; border-radius:12px; cursor:pointer; font-family:'Inter',sans-serif; box-shadow:0 4px 20px rgba(79,70,229,0.35);" %>
-          <% end %>
+            <p style="font-size:13px; color:#94a3b8; line-height:1.8; margin:0 0 20px;">
+              <% if I18n.locale == :vi %>
+                Chúng tôi đã gửi liên kết đặt lại mật khẩu tới<br>
+                <span style="color:#a5b4fc; font-weight:600;"><%= @submitted_email %></span><br>
+                Hãy kiểm tra hộp thư (kể cả thư mục Spam).
+              <% else %>
+                We sent a password reset link to<br>
+                <span style="color:#a5b4fc; font-weight:600;"><%= @submitted_email %></span><br>
+                Please check your inbox (and Spam folder).
+              <% end %>
+            </p>
+            <div>
+              <span style="font-size:12px; color:#475569;">
+                <%= I18n.locale == :vi ? "Không nhận được email?" : "Didn't receive it?" %>
+              </span>
+              <button type="button"
+                onclick="document.getElementById('sent-state').style.display='none'; document.getElementById('form-state').style.display='block';"
+                style="background:none; border:none; color:#818cf8; font-size:12px; font-weight:600; cursor:pointer; padding:0 0 0 4px; font-family:'Inter',sans-serif; text-decoration:underline;">
+                <%= I18n.locale == :vi ? "Gửi lại" : "Resend" %>
+              </button>
+            </div>
+          </div>
+
+          <%# ── FORM STATE ── %>
+          <div id="form-state" style="display:<%= @email_sent ? 'none' : 'block' %>;">
+            <% if resource.errors.any? %>
+              <div style="margin-bottom:16px; display:flex; align-items:flex-start; gap:10px; padding:14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:12px; font-size:13px; color:#f87171; line-height:1.5;">
+                <span>⚠</span>
+                <div>
+                  <% resource.errors.full_messages.each do |msg| %>
+                    <div>• <%= msg %></div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+
+            <%= form_with model: resource, as: resource_name, url: password_path(resource_name), method: :post, local: true, data: { turbo: false } do |f| %>
+              <div style="margin-bottom:16px;">
+                <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Email</label>
+                <%= f.email_field :email, autofocus: true, autocomplete: "email",
+                  placeholder: (I18n.locale == :vi ? "ban@congty.com" : "you@company.com"),
+                  style: "display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:14px; color:#f1f5f9; font-family:'Inter',sans-serif;" %>
+              </div>
+              <button type="submit" id="submit-btn"
+                style="display:block; width:100%; padding:14px; background:#4F46E5; color:#fff; font-size:15px; font-weight:700; border:none; border-radius:8px; cursor:pointer; font-family:'Inter',sans-serif; transition:opacity 0.2s;">
+                <span id="submit-text"><%= I18n.locale == :vi ? "Gửi liên kết đặt lại →" : "Send Reset Link →" %></span>
+                <span id="submit-loading" style="display:none;">
+                  <svg style="display:inline;vertical-align:middle;margin-right:6px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
+                      <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+                    </path>
+                  </svg>
+                  <%= I18n.locale == :vi ? "Đang gửi..." : "Sending..." %>
+                </span>
+              </button>
+            <% end %>
+
+            <script>
+              document.querySelector('form').addEventListener('submit', function() {
+                var btn = document.getElementById('submit-btn');
+                document.getElementById('submit-text').style.display = 'none';
+                document.getElementById('submit-loading').style.display = 'inline';
+                btn.disabled = true;
+                btn.style.opacity = '0.75';
+              });
+            </script>
+          </div>
+
         </div>
 
         <!-- Back -->

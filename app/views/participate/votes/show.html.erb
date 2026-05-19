@@ -1,7 +1,7 @@
 <% content_for :title, @vote.title %>
 
 <style>
-  body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100vh; }
+  html, body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100%; }
   .option-btn { transition: all 0.15s ease; }
   .option-btn:hover { transform: translateY(-1px); }
   .option-btn.selected { transform: translateY(-1px); }
@@ -16,7 +16,7 @@
   </div>
 <% end %>
 
-<div class="min-h-screen flex flex-col">
+<div class="min-h-screen flex flex-col" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
 
   <!-- Main -->
   <div class="flex-1 flex flex-col items-center justify-center px-4 pb-10">
@@ -50,7 +50,7 @@
 
       <!-- Time up -->
       <div id="time-up-box" class="hidden fade-in mb-4">
-        <div class="text-center py-8 px-6 rounded-2xl" style="background:rgba(255,255,255,0.85); border:1px solid rgba(239,68,68,0.2); box-shadow:0 8px 32px rgba(239,68,68,0.08); backdrop-filter:blur(12px);">
+        <div class="text-center py-8 px-6 rounded-2xl" style="background:#ffffff; border:1px solid rgba(239,68,68,0.2); box-shadow:0 8px 32px rgba(239,68,68,0.08);">
           <div class="text-[48px] mb-3">⏰</div>
           <p class="text-[18px] font-extrabold text-slate-800"><%= t("participate.vote.time_up") %></p>
         </div>
@@ -58,7 +58,7 @@
 
       <!-- Already voted state -->
       <div id="already-voted" class="<%= @already_voted ? '' : 'hidden' %> fade-in">
-        <div class="text-center py-10 px-6 rounded-2xl mb-4" style="background:rgba(255,255,255,0.8); border:1px solid rgba(99,102,241,0.15); box-shadow:0 8px 32px rgba(99,102,241,0.08); backdrop-filter:blur(12px);">
+        <div class="text-center py-10 px-6 rounded-2xl mb-4" style="background:#ffffff; border:1px solid rgba(99,102,241,0.15); box-shadow:0 8px 32px rgba(99,102,241,0.08);">
           <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:linear-gradient(135deg,#6366f1,#a855f7);">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
           </div>
@@ -66,8 +66,8 @@
           <p class="text-[13px] text-slate-500 mb-6"><%= t("participate.vote.voted_thanks") %></p>
           <% if @vote.show_results_live? %>
             <a href="/v/<%= @vote.slug %>/present?readonly=1" target="_blank"
-               class="inline-flex items-center gap-2 px-6 py-3 text-[14px] font-bold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5"
-               style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);">
+               class="inline-flex items-center gap-2 px-6 py-3 text-[14px] font-bold text-white rounded-lg transition-all hover:opacity-90 hover:-translate-y-0.5"
+               style="background:#4F46E5;">
               <%= t("participate.vote.view_results_live") %>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </a>
@@ -79,7 +79,7 @@
       <div id="vote-form" class="<%= @already_voted ? 'hidden' : '' %> fade-in">
 
         <% if @vote.email_required? %>
-          <div class="mb-4 rounded-2xl p-4" style="background:rgba(255,255,255,0.85); border:1px solid rgba(99,102,241,0.15); box-shadow:0 2px 12px rgba(99,102,241,0.06); backdrop-filter:blur(8px);">
+          <div class="mb-4 rounded-2xl p-4" style="background:#ffffff; border:1px solid rgba(99,102,241,0.15); box-shadow:0 2px 12px rgba(99,102,241,0.06);">
             <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">Email <span class="text-red-400">*</span></label>
             <input id="voter-email" type="email" placeholder="your@email.com" required
               class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white">
@@ -93,7 +93,7 @@
             <% @options.each do |option| %>
               <button data-id="<%= option.id %>" onclick="selectOption(this)"
                 class="option-btn w-full px-5 py-4 text-left flex items-center gap-4 rounded-2xl border-2"
-                style="background:rgba(255,255,255,0.85); border-color:#e2e8f0; box-shadow:0 2px 12px rgba(0,0,0,0.04); backdrop-filter:blur(8px);">
+                style="background:#ffffff; border-color:#e2e8f0; box-shadow:0 2px 12px rgba(0,0,0,0.04);">
                 <% if @vote.multiple_choice? %>
                   <span class="radio-dot flex-shrink-0 w-5 h-5 rounded-md border-2 border-slate-300 flex items-center justify-center transition-all">
                     <span class="text-white text-[11px] font-black opacity-0 transition-opacity duration-150">✓</span>
@@ -108,7 +108,7 @@
             <% end %>
           </div>
           <div id="submit-wrap" class="mt-4 hidden">
-            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);"><%= t("participate.vote.vote_btn") %></button>
+            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-lg transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:#4F46E5;"><%= t("participate.vote.vote_btn") %></button>
           </div>
 
         <%# ── Ranking ── %>
@@ -116,9 +116,9 @@
           <p class="text-[12px] text-slate-500 mb-3 text-center"><%= t("participate.vote.ranking_hint") %></p>
           <div id="ranking-list" class="space-y-2">
             <% @options.each_with_index do |opt, i| %>
-              <div class="ranking-item flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-slate-200 bg-white/90 select-none"
+              <div class="ranking-item flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-slate-200 bg-white select-none"
                    data-id="<%= opt.id %>" draggable="true"
-                   style="box-shadow:0 2px 8px rgba(0,0,0,0.04); cursor:grab; backdrop-filter:blur(8px);">
+                   style="box-shadow:0 2px 8px rgba(0,0,0,0.04); cursor:grab;">
                 <span class="rank-num w-7 h-7 rounded-full text-[12px] font-black flex items-center justify-center flex-shrink-0 text-white" style="background:linear-gradient(135deg,#6366f1,#a855f7);"><%= i + 1 %></span>
                 <svg class="w-4 h-4 text-slate-300 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-6 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
@@ -132,12 +132,12 @@
             <% end %>
           </div>
           <div class="mt-4">
-            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);"><%= t("participate.vote.ranking_btn") %></button>
+            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-lg transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:#4F46E5;"><%= t("participate.vote.ranking_btn") %></button>
           </div>
 
         <%# ── Word Cloud ── %>
         <% elsif @vote.word_cloud? %>
-          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,0.85); border:2px solid #e2e8f0; backdrop-filter:blur(8px);">
+          <div class="rounded-2xl p-5" style="background:#ffffff; border:2px solid #e2e8f0;">
             <label class="block text-[12px] font-semibold text-slate-600 mb-2"><%= t("participate.vote.word_cloud_label") %></label>
             <input id="wc-input" type="text" maxlength="40" placeholder="<%= t("participate.vote.word_cloud_placeholder") %>"
               oninput="document.getElementById('wc-count').textContent=this.value.length"
@@ -145,28 +145,28 @@
             <p class="text-[11px] text-slate-400 mt-1.5 text-right"><span id="wc-count">0</span>/40</p>
           </div>
           <div class="mt-3">
-            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);"><%= t("participate.vote.send_btn") %></button>
+            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-lg transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:#4F46E5;"><%= t("participate.vote.send_btn") %></button>
           </div>
 
         <%# ── Open Ended ── %>
         <% elsif @vote.open_ended? %>
-          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,0.85); border:2px solid #e2e8f0; backdrop-filter:blur(8px);">
+          <div class="rounded-2xl p-5" style="background:#ffffff; border:2px solid #e2e8f0;">
             <label class="block text-[12px] font-semibold text-slate-600 mb-2"><%= t("participate.vote.open_ended_label") %></label>
             <textarea id="oe-input" rows="4" placeholder="<%= t("participate.vote.open_ended_placeholder") %>"
               class="w-full px-4 py-3 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white resize-none"></textarea>
           </div>
           <div class="mt-3">
-            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);"><%= t("participate.vote.send_btn") %></button>
+            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-lg transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:#4F46E5;"><%= t("participate.vote.send_btn") %></button>
           </div>
 
         <%# ── Q&A Upvote ── %>
         <% elsif @vote.qa_upvote? %>
-          <div class="rounded-2xl p-5 mb-3" style="background:rgba(255,255,255,0.85); border:2px solid #e2e8f0; backdrop-filter:blur(8px);">
+          <div class="rounded-2xl p-5 mb-3" style="background:#ffffff; border:2px solid #e2e8f0;">
             <label class="block text-[12px] font-semibold text-slate-600 mb-2"><%= t("participate.vote.qa_label") %></label>
             <textarea id="qa-input" rows="3" placeholder="<%= t("participate.vote.qa_placeholder") %>"
               class="w-full px-4 py-3 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white resize-none"></textarea>
             <div class="mt-3">
-              <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);"><%= t("participate.vote.qa_btn") %></button>
+              <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-lg transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:#4F46E5;"><%= t("participate.vote.qa_btn") %></button>
             </div>
           </div>
         <% end %>

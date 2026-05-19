@@ -14,27 +14,34 @@
 </head>
 <body class="h-full font-inter antialiased bg-slate-50">
   <div class="min-h-full">
-    <!-- Shared participate top bar -->
-    <div class="flex items-center justify-between px-6 py-4">
-      <img src="/vox_logo.svg" alt="VOX" class="h-6 w-auto">
-      <div class="flex items-center gap-2">
-        <!-- Language switcher -->
-        <div class="flex items-center rounded-full overflow-hidden text-[11px] font-bold" style="border:1px solid rgba(99,102,241,0.2); background:rgba(255,255,255,0.7);">
+    <!-- Shared participate top bar — fixed so backdrop-filter stacking contexts on Chrome mobile cannot paint over it -->
+    <div id="participate-header" class="grid grid-cols-3 items-center px-4 py-3 sm:flex sm:justify-between sm:px-6 sm:py-4" style="position:fixed; top:0; left:0; right:0; z-index:9999; transform:translateZ(0); -webkit-transform:translateZ(0); background:linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%);">
+      <!-- Left: logo -->
+      <img src="/vox_logo.svg" alt="VOX" class="h-5 sm:h-6 w-auto">
+
+      <!-- Center: language switcher -->
+      <div class="flex justify-center">
+        <div class="flex items-center rounded-full overflow-hidden font-bold" style="font-size:11px; border:1px solid rgba(99,102,241,0.2); background:rgba(255,255,255,0.7);">
           <a href="?locale=vi"
-             class="px-2.5 py-1 transition-colors <%= I18n.locale.to_s == 'vi' ? 'text-white' : 'text-slate-500 hover:text-indigo-600' %>"
-             style="<%= I18n.locale.to_s == 'vi' ? 'background:linear-gradient(135deg,#6366f1,#8b5cf6);' : '' %>">
+             class="transition-colors <%= I18n.locale.to_s == 'vi' ? 'text-white' : 'text-slate-500' %>"
+             style="padding:5px 14px; <%= I18n.locale.to_s == 'vi' ? 'background:#4F46E5;' : '' %>">
             <%= t("participate.locale_switcher.vi") %>
           </a>
           <a href="?locale=en"
-             class="px-2.5 py-1 transition-colors <%= I18n.locale.to_s == 'en' ? 'text-white' : 'text-slate-500 hover:text-indigo-600' %>"
-             style="<%= I18n.locale.to_s == 'en' ? 'background:linear-gradient(135deg,#6366f1,#8b5cf6);' : '' %>">
+             class="transition-colors <%= I18n.locale.to_s == 'en' ? 'text-white' : 'text-slate-500' %>"
+             style="padding:5px 14px; <%= I18n.locale.to_s == 'en' ? 'background:#4F46E5;' : '' %>">
             <%= t("participate.locale_switcher.en") %>
           </a>
         </div>
-        <!-- View-specific badge -->
+      </div>
+
+      <!-- Right: view-specific badge -->
+      <div class="flex justify-end">
         <%= yield :nav_right %>
       </div>
     </div>
+    <!-- Spacer matching header height so content starts below the fixed bar -->
+    <div id="participate-header-spacer" class="h-[47px] sm:h-[57px]"></div>
     <%= yield %>
   </div>
 

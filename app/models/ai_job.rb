@@ -39,6 +39,16 @@ class AiJob < ApplicationRecord
 
   def fail!(error)
     update!(status: :failed, error_message: error, completed_at: Time.current)
+    # Refund credits back to workspace when job fails
+    refund_credits!
+  end
+
+  def refund_credits!
+    cost = credits_cost.to_i
+    return if cost <= 0
+    sub = workspace.active_subscription
+    return unless sub
+    sub.increment!(:credit_balance, cost)
   end
 
   private

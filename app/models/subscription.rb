@@ -45,7 +45,14 @@ class Subscription < ApplicationRecord
   end
 
   def has_feature?(feature)
-    FEATURE_FLAGS[plan][feature.to_sym]
+    key = feature.to_sym
+    # PlanConfig is the source of truth — super admin controls this live from DB.
+    # The subscription.features column is a stale snapshot set at activation time
+    # and may be out of date if the plan config was changed after activation.
+    plan_features = PlanConfig.features_for(plan)
+    return plan_features[key] if plan_features.key?(key)
+    # Fall back to hardcoded defaults if PlanConfig record is missing
+    FEATURE_FLAGS.dig(plan, key) || false
   end
 
   def within_survey_limit?

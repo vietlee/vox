@@ -56,6 +56,7 @@ Rails.application.routes.draw do
         patch :archive
         get   :results
         get   :export
+        get   :export_report
         post  :ai_analyze
         post  :ai_report
         get   :share

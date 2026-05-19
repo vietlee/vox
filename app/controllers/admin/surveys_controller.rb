@@ -1,7 +1,7 @@
 require "csv"
 
 class Admin::SurveysController < Admin::BaseController
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :archive, :results, :export, :ai_analyze, :ai_report, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :archive, :results, :export, :export_report, :ai_analyze, :ai_report, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
@@ -169,6 +169,84 @@ class Admin::SurveysController < Admin::BaseController
     send_data "\xEF\xBB\xBF#{csv_data}", filename: filename, type: "text/csv; charset=utf-8", disposition: "attachment"
   end
 
+  def export_report
+    report = @survey.ai_analysis_results.where(result_type: "executive_report").order(created_at: :desc).first
+    unless report
+      redirect_to results_survey_path(@survey, tab: "report"), alert: t("surveys.results.export_report_missing")
+      return
+    end
+
+    format_type = params[:format_type].presence_in(%w[excel pdf]) || "excel"
+    filename_base = I18n.transliterate(@survey.title).parameterize(separator: "_").presence || "report"
+
+    if format_type == "pdf"
+      html = render_to_string(
+        template: "admin/surveys/report_pdf",
+        locals: { survey: @survey, report: report },
+        layout: "pdf"
+      )
+      pdf = Grover.new(html, format: "A4", print_background: true).to_pdf
+      set_download_cookie
+      send_data pdf, filename: "#{filename_base}-report-#{Date.today}.pdf", type: "application/pdf", disposition: "attachment"
+    else
+      # Excel via axlsx
+      require "axlsx"
+      package = Axlsx::Package.new
+      wb = package.workbook
+      styles = wb.styles
+      title_style   = styles.add_style(b: true, sz: 14, fg_color: "3730A3")
+      heading_style = styles.add_style(b: true, sz: 11, fg_color: "4338CA", bg_color: "EEF2FF")
+      body_style    = styles.add_style(sz: 11, wrap_text: true)
+      meta_style    = styles.add_style(sz: 10, fg_color: "6B7280", i: true)
+
+      wb.add_worksheet(name: t("surveys.results.report_sheet_name")) do |sheet|
+        sheet.add_row [@survey.title], style: title_style
+        sheet.add_row [t("surveys.results.report_generated", time: report.created_at.strftime("%d/%m/%Y %H:%M"))], style: meta_style
+        sheet.add_row []
+
+        # Executive summary
+        sheet.add_row [t("surveys.results.ai_executive_summary")], style: heading_style
+        sheet.add_row [report.output["executive_summary"]], style: body_style
+        sheet.add_row []
+
+        # Sections
+        (report.output["sections"] || []).each do |s|
+          sheet.add_row [s["heading"]], style: heading_style
+          sheet.add_row [s["content"]], style: body_style
+          if s["key_finding"].present?
+            sheet.add_row ["💡 #{s["key_finding"]}"], style: meta_style
+          end
+          sheet.add_row []
+        end
+
+        # Recommendations
+        recs = report.output["recommendations"] || []
+        if recs.any?
+          sheet.add_row [t("surveys.results.ai_recommendations")], style: heading_style
+          recs.each_with_index do |rec, i|
+            text = rec.is_a?(Hash) ? rec["action"] : rec
+            pri  = rec.is_a?(Hash) ? rec["priority"].to_s.upcase : ""
+            sheet.add_row ["#{i + 1}. #{[pri.presence, text].compact.join(" | ")}"], style: body_style
+          end
+          sheet.add_row []
+        end
+
+        # Conclusion
+        if report.output["conclusion"].present?
+          sheet.add_row [t("surveys.results.ai_conclusion")], style: heading_style
+          sheet.add_row [report.output["conclusion"]], style: body_style
+        end
+
+        sheet.column_widths 100
+      end
+
+      data = package.to_stream.read
+      send_data data, filename: "#{filename_base}-report-#{Date.today}.xlsx",
+                      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                      disposition: "attachment"
+    end
+  end
+
   def ai_analyze
     return unless require_ai_feature!(:ai_analysis)
     return unless require_credits!(5)
@@ -211,6 +289,12 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   private
+
+  def set_download_cookie
+    token = params[:download_token].presence
+    return unless token
+    cookies[:fileDownloadToken] = { value: token, expires: 1.minute.from_now, path: "/" }
+  end
 
   def set_survey
     @survey = current_workspace.surveys.find(params[:id])

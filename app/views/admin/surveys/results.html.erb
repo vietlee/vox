@@ -39,7 +39,14 @@
       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-700 transition-colors">
       📄 <%= t("surveys.results.tab_report").gsub(/\A📄\s*/, '') %>
     </button>
-    <%= link_to export_survey_path(@survey, format_type: "csv"), class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 transition-colors" do %><%= t("surveys.results.export") %><% end %>
+    <!-- Export AI report as PDF -->
+    <a id="export-pdf-btn"
+       href="<%= export_report_survey_path(@survey, format_type: "pdf") %>"
+       onclick="return startPdfExport(event)"
+       data-turbo="false"
+       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 transition-colors">
+      📄 <%= t("surveys.results.export_report") %>
+    </a>
   </div>
 </div>
 
@@ -346,6 +353,10 @@ const CSRF       = document.querySelector('meta[name=csrf-token]').content;
 const STATUS_URL = "<%= ai_job_status_path("__ID__") %>";
 const ANALYZE_URL= "<%= ai_analyze_survey_path(@survey) %>";
 const REPORT_URL = "<%= ai_report_survey_path(@survey) %>";
+const HAS_REPORT    = <%= @survey.ai_analysis_results.where(result_type: "executive_report").exists? ? 'true' : 'false' %>;
+const HAS_ANALYSIS  = <%= @ai_analysis.present? ? 'true' : 'false' %>;
+const NO_REPORT_MSG    = "<%= j t('surveys.results.export_report_missing') %>";
+const NO_ANALYSIS_MSG  = "<%= j t('surveys.results.report_needs_analysis') %>";
 
 const I18N = {
   analysis_phases: [
@@ -494,6 +505,12 @@ async function requestAiAnalysis() {
       body: JSON.stringify({ language: lang })
     });
     const data = await resp.json();
+    if (window.handleAiUpgrade(resp, data, '<%= j t("surveys.results.tab_ai") %>')) {
+      progress.finish();
+      panel.innerHTML = '';
+      resetBtn();
+      return;
+    }
     if (!resp.ok) {
       resetBtn();
       panel.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-[10px] p-4 text-[13px] text-red-600">❌ ${data.error || I18N.error_retry}</div>`;
@@ -526,13 +543,27 @@ async function pollAnalysis(jobId, progress, panel, resetBtn) {
 }
 
 // ── Executive Report ──────────────────────────────────────────────────────────
+function resetReportUI(statusEl, btn, spinner, msg) {
+  statusEl.innerHTML = msg ? `<div class="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-[13px] text-amber-700 mb-4"><span>⚠️</span><span>${msg}</span></div>` : '';
+  if (btn) btn.disabled = false;
+  if (spinner) spinner.classList.add('hidden');
+}
+
 async function requestReport() {
   const lang     = document.getElementById('report-lang')?.value || 'vi';
   const statusEl = document.getElementById('report-status');
   const btn      = document.getElementById('report-btn');
   const spinner  = document.getElementById('report-spinner');
 
-  switchTab('report');
+  // Must have AI analysis first
+  if (!HAS_ANALYSIS) {
+    statusEl.innerHTML = `<div class="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-[13px] text-amber-700 mb-4">
+      <span>⚠️</span>
+      <span>${NO_ANALYSIS_MSG} <button onclick="switchTab('ai')" class="underline font-semibold ml-1 bg-transparent border-0 cursor-pointer text-amber-700">${'<%= j t("surveys.results.tab_ai") %>'} →</button></span>
+    </div>`;
+    return;
+  }
+
   statusEl.innerHTML = `<div class="border border-violet-100 rounded-lg bg-violet-50 mb-4" id="report-progress"></div>`;
   if (btn) { btn.disabled = true; }
   if (spinner) spinner.classList.remove('hidden');
@@ -545,18 +576,20 @@ async function requestReport() {
       body: JSON.stringify({ language: lang })
     });
     const data = await resp.json();
+    if (window.handleAiUpgrade(resp, data, '<%= j t("surveys.results.create_report") %>')) {
+      // Clear progress area — upgrade modal will guide user
+      progress.finish();
+      resetReportUI(statusEl, btn, spinner, null);
+      return;
+    }
     if (!resp.ok) {
       progress.finish();
-      statusEl.innerHTML = `<div class="text-[12px] text-red-600 py-2">❌ ${data.error || I18N.error_retry}</div>`;
-      if (btn) { btn.disabled = false; }
-      if (spinner) spinner.classList.add('hidden');
+      resetReportUI(statusEl, btn, spinner, data.error || I18N.error_retry);
       return;
     }
     pollReport(data.job_id, progress, statusEl, btn, spinner);
   } catch(e) {
-    statusEl.innerHTML = `<div class="text-[12px] text-red-600 py-2">❌ ${I18N.error_retry}</div>`;
-    if (btn) { btn.disabled = false; }
-    if (spinner) spinner.classList.add('hidden');
+    resetReportUI(statusEl, btn, spinner, I18N.error_retry);
   }
 }
 
@@ -580,6 +613,140 @@ async function pollReport(jobId, progress, statusEl, btn, spinner) {
   }
 }
 
-Object.assign(window, { switchTab, toggleRow, requestAiAnalysis, requestReport, toggleReport });
+// ── Export report (PDF only) ──────────────────────────────────────────────────
+function checkReport(e, fmt) {
+  if (!HAS_REPORT) {
+    e.preventDefault();
+    switchTab('report');
+    let toast = document.getElementById('no-report-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'no-report-toast';
+      toast.className = 'mb-4 flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-[13px] text-amber-700';
+      toast.innerHTML = '<span>⚠️</span><span>' + NO_REPORT_MSG + '</span>';
+      const panel = document.getElementById('panel-report');
+      panel?.insertBefore(toast, panel.firstChild);
+    }
+    toast.classList.remove('hidden');
+    setTimeout(() => toast?.classList.add('hidden'), 5000);
+    return false;
+  }
+  return true;
+}
+
+// ── PDF Export with loading popup ─────────────────────────────────────────────
+function setPdfProgress(pct) {
+  const bar = document.getElementById('pdf-progress-bar');
+  const lbl = document.getElementById('pdf-progress-pct');
+  if (bar) bar.style.width = pct + '%';
+  if (lbl) lbl.textContent = pct + '%';
+}
+
+function closePdfModal() {
+  const m = document.getElementById('pdf-loading-modal');
+  if (m) m.style.display = 'none';
+  // Reset href token for next export
+  const btn = document.getElementById('export-pdf-btn');
+  if (btn) {
+    const base = btn.href.split('?')[0];
+    btn.href = base + '?format_type=pdf';
+  }
+}
+
+function startPdfExport(e) {
+  if (!HAS_REPORT) {
+    e.preventDefault();
+    switchTab('report');
+    let toast = document.getElementById('no-report-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'no-report-toast';
+      toast.className = 'mb-4 flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-[13px] text-amber-700';
+      toast.innerHTML = '<span>⚠️</span><span>' + NO_REPORT_MSG + '</span>';
+      document.getElementById('panel-report')?.insertBefore(toast, document.getElementById('panel-report').firstChild);
+    }
+    toast.classList.remove('hidden');
+    setTimeout(() => toast?.classList.add('hidden'), 5000);
+    return false;
+  }
+
+  // Attach unique token to URL
+  const token = 'pdf_' + Date.now();
+  const btn   = document.getElementById('export-pdf-btn');
+  btn.href    = btn.href.split('?')[0] + '?format_type=pdf&download_token=' + token;
+
+  // Build modal if not exists
+  if (!document.getElementById('pdf-loading-modal')) {
+    const m = document.createElement('div');
+    m.id = 'pdf-loading-modal';
+    m.className = 'fixed inset-0 z-[70] flex items-center justify-center';
+    m.innerHTML = `
+      <div class="absolute inset-0 bg-black/40"></div>
+      <div class="relative bg-white rounded-2xl shadow-xl p-8 w-[340px] text-center">
+        <div class="text-[36px] mb-4">📄</div>
+        <h3 id="pdf-modal-title" class="text-[16px] font-extrabold text-slate-900 mb-1"></h3>
+        <p  id="pdf-modal-desc"  class="text-[12px] text-slate-400 mb-5"></p>
+        <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
+          <div id="pdf-progress-bar" class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full" style="width:0%;transition:width 0.4s ease"></div>
+        </div>
+        <div id="pdf-progress-pct" class="text-[13px] font-bold text-indigo-600">0%</div>
+      </div>`;
+    document.body.appendChild(m);
+  }
+
+  // Reset and show
+  document.getElementById('pdf-modal-title').textContent = 'Đang tạo PDF...';
+  document.getElementById('pdf-modal-desc').textContent  = 'Vui lòng chờ, quá trình này mất khoảng 10–20 giây';
+  setPdfProgress(0);
+  document.getElementById('pdf-loading-modal').style.display = 'flex';
+
+  // Smooth progress animation up to 88%
+  let currentPct = 0;
+  const allIntervals = [];
+  const phases = [
+    { target: 20, ms: 1500 },
+    { target: 50, ms: 3000 },
+    { target: 75, ms: 4000 },
+    { target: 88, ms: 5000 },
+  ];
+  let pi = 0;
+  function runPhase() {
+    if (pi >= phases.length) return;
+    const { target, ms } = phases[pi++];
+    const steps  = 20;
+    const stepMs = ms / steps;
+    const step   = (target - currentPct) / steps;
+    const iv = setInterval(() => {
+      currentPct = Math.min(currentPct + step, target);
+      setPdfProgress(Math.round(currentPct));
+      if (Math.round(currentPct) >= target) { clearInterval(iv); runPhase(); }
+    }, stepMs);
+    allIntervals.push(iv);
+  }
+  runPhase();
+
+  // Poll cookie every 500ms
+  const poller = setInterval(() => {
+    const found = document.cookie.split(';').some(c => c.trim().startsWith('fileDownloadToken=' + token));
+    if (!found) return;
+    // Stop all animations
+    allIntervals.forEach(clearInterval);
+    clearInterval(poller);
+    // Clear cookie
+    document.cookie = 'fileDownloadToken=; Max-Age=0; path=/';
+    // Complete
+    setPdfProgress(100);
+    document.getElementById('pdf-modal-title').textContent = '✅ Hoàn thành!';
+    document.getElementById('pdf-modal-desc').textContent  = 'File PDF đã được tải xuống.';
+    setTimeout(closePdfModal, 1500);
+  }, 500);
+
+  // Fallback: close after 90s
+  setTimeout(() => { clearInterval(poller); allIntervals.forEach(clearInterval); closePdfModal(); }, 90000);
+
+  return true;
+}
+
+Object.assign(window, { switchTab, toggleRow, requestAiAnalysis, requestReport, toggleReport, checkReport, startPdfExport });
 })();
 </script>

@@ -1,7 +1,7 @@
 <% content_for :title, @board.title %>
 
 <style>
-  body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100vh; }
+  html, body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100%; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
   .fade-in { animation: fadeIn 0.35s ease forwards; }
   .reply-section { transition: all 0.2s ease; }
@@ -13,10 +13,10 @@
   </div>
 <% end %>
 
-<div class="min-h-screen flex flex-col">
+<div class="min-h-screen flex flex-col" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
 
   <!-- Board header -->
-  <div class="max-w-2xl mx-auto w-full px-4 pb-5 fade-in">
+  <div class="max-w-2xl mx-auto w-full px-4 pt-5 pb-5 fade-in">
     <div class="text-center mb-6">
       <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-[28px] mx-auto mb-3" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 8px 24px rgba(99,102,241,0.3);">💬</div>
       <h1 class="text-[26px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @board.title %></h1>
@@ -39,14 +39,14 @@
     <% end %>
 
     <!-- Submit form -->
-    <div class="rounded-2xl p-5 mb-5" style="background:rgba(255,255,255,0.85); border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 24px rgba(99,102,241,0.08); backdrop-filter:blur(12px);">
+    <div class="rounded-2xl p-5 mb-5" style="background:#ffffff; border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 24px rgba(99,102,241,0.08);">
       <p class="text-[13px] font-bold text-slate-700 mb-3"><%= t("participate.feedback.submit_title") %></p>
       <%= form_with url: submit_feedback_path(@board.slug), method: :post, local: true do |f| %>
         <div class="space-y-3">
           <textarea name="feedback[content]" rows="3" required maxlength="1000"
             placeholder="<%= t("participate.feedback.content_placeholder") %>"
             class="w-full px-4 py-3 rounded-xl text-[14px] text-slate-800 outline-none resize-none"
-            style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9);"
+            style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
             onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
 
           <% if @board.public_identity? || @board.user_choice? %>
@@ -55,11 +55,11 @@
                 placeholder="<%= t("participate.feedback.name_placeholder") %>"
                 required
                 class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
-                style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9);"
+                style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
                 onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
               <input type="email" name="feedback[author_email]" placeholder="<%= t("participate.feedback.email_placeholder") %>"
                 class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
-                style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9);"
+                style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
                 onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
             </div>
           <% end %>
@@ -73,8 +73,8 @@
           <% end %>
 
           <button type="submit"
-            class="w-full py-3 text-[14px] font-bold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5"
-            style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);">
+            class="w-full py-3 text-[14px] font-bold text-white rounded-lg transition-all hover:opacity-90 hover:-translate-y-0.5"
+            style="background:#4F46E5;">
             <%= t("participate.feedback.submit_btn") %>
           </button>
         </div>
@@ -86,7 +86,7 @@
       <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1"><%= t("participate.feedback.all_feedbacks") %></p>
       <div class="space-y-3">
         <% @feedbacks.each do |fb| %>
-          <div id="feedback-card-<%= fb.id %>" class="rounded-2xl overflow-hidden fade-in" style="background:rgba(255,255,255,0.85); border:1.5px solid <%= fb.pinned? ? '#fbbf24' : 'rgba(226,232,240,0.8)' %>; box-shadow:0 2px 12px rgba(0,0,0,0.04); backdrop-filter:blur(8px);">
+          <div id="feedback-card-<%= fb.id %>" class="rounded-2xl overflow-hidden fade-in" style="background:rgba(255,255,255,0.85); border:1.5px solid <%= fb.pinned? ? '#fbbf24' : 'rgba(226,232,240,0.8)' %>; box-shadow:0 2px 12px rgba(0,0,0,0.04); ">
 
             <% if fb.pinned? %>
               <div class="px-4 py-1.5 flex items-center gap-1.5" style="background:rgba(251,191,36,0.12);">
@@ -162,17 +162,17 @@
                     <div class="flex-1 space-y-2">
                       <input type="text" id="reply-name-<%= fb.id %>" placeholder="<%= t("participate.feedback.reply_name_placeholder") %>"
                         class="w-full px-3 py-1.5 rounded-lg text-[12px] outline-none"
-                        style="border:1.5px solid #e2e8f0; background:white;"
+                        style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
                         onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
                       <textarea id="reply-content-<%= fb.id %>" rows="2" maxlength="500"
                         placeholder="<%= t("participate.feedback.reply_content_placeholder") %>"
                         class="w-full px-3 py-1.5 rounded-lg text-[13px] text-slate-800 outline-none resize-none"
-                        style="border:1.5px solid #e2e8f0; background:white;"
+                        style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
                         onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
                     </div>
                     <button onclick="submitReply(<%= fb.id %>)"
-                      class="px-4 py-2 text-white text-[12px] font-bold rounded-xl self-end flex-shrink-0 border-0"
-                      style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">
+                      class="px-4 py-2 text-white text-[12px] font-bold rounded-lg self-end flex-shrink-0 border-0"
+                      style="background:#4F46E5;">
                       <%= t("participate.feedback.reply_submit") %>
                     </button>
                   </div>

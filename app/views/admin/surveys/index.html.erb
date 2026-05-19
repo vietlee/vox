@@ -181,7 +181,7 @@
       <textarea id="ai-prompt" rows="4" placeholder="<%= j t("surveys.ai_builder_placeholder") %>"
         class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-none outline-none"></textarea>
       <div class="flex gap-2 mt-4">
-        <button onclick="generateAiSurvey()" class="flex-1 py-2 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-[13px] font-semibold rounded-lg hover:from-indigo-600 hover:to-violet-600 transition-all">
+        <button onclick="generateAiSurvey()" class="flex-1 py-2 bg-violet-600 text-white text-[13px] font-semibold rounded-lg hover:bg-violet-700 transition-all">
           <%= t("surveys.ai_builder_create") %>
         </button>
         <button onclick="document.getElementById('ai-builder-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200"><%= t("surveys.ai_builder_cancel") %></button>
@@ -438,13 +438,15 @@ async function generateAiSurvey() {
   if (!prompt.trim()) return;
   document.getElementById('ai-builder-form').classList.add('hidden');
   document.getElementById('ai-builder-loading').classList.remove('hidden');
+  var errEl = document.getElementById('ai-builder-error');
+  if (errEl) errEl.classList.add('hidden');
   startProgress();
 
-  let data;
+  let data, resp;
   try {
-    const resp = await fetch('<%= ai_generate_survey_path %>', {
+    resp = await fetch('<%= ai_generate_survey_path %>', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content },
       body: JSON.stringify({ prompt })
     });
     data = await resp.json();
@@ -452,6 +454,18 @@ async function generateAiSurvey() {
     stopProgress(); resetAiBuilder('<%= j t("surveys.ai_builder_error") %>'); return;
   }
 
+  // 402 = feature not available OR insufficient credits → show upgrade modal
+  if (resp.status === 402 || data?.upgrade_required) {
+    stopProgress();
+    // Close the AI builder modal first
+    document.getElementById('ai-builder-modal')?.classList.add('hidden');
+    if (window.showAiUpgradeModal) {
+      window.showAiUpgradeModal('<%= j t("surveys.ai_builder") %>', data?.insufficient_credits);
+    } else {
+      resetAiBuilder(data?.error || '<%= j t("ai.feature_not_available") %>');
+    }
+    return;
+  }
   if (!data.job_id) {
     stopProgress(); resetAiBuilder(data.error || '<%= j t("surveys.ai_builder_error") %>'); return;
   }
@@ -518,7 +532,17 @@ function resetAiBuilder(msg) {
   stopProgress();
   document.getElementById('ai-builder-loading').classList.add('hidden');
   document.getElementById('ai-builder-form').classList.remove('hidden');
-  if (msg) alert(msg);
+  if (msg) {
+    var errEl = document.getElementById('ai-builder-error');
+    if (!errEl) {
+      errEl = document.createElement('div');
+      errEl.id = 'ai-builder-error';
+      errEl.className = 'mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-[12px] text-red-600';
+      document.getElementById('ai-builder-form').appendChild(errEl);
+    }
+    errEl.textContent = msg;
+    errEl.classList.remove('hidden');
+  }
 }
 
 // ── Expose to window so onclick= attributes work after Turbo navigation ───────

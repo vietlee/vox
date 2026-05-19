@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= I18n.locale == :vi ? "Đặt lại mật khẩu" : "Reset Password" %> — VOX</title>
+  <%= csrf_meta_tags %>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0 auto; padding: 0; background: #0F172A; font-family: 'Inter', sans-serif; }
+    * { box-sizing: border-box; }
+    input:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important; outline: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Language switcher -->
+  <div style="position:fixed; top:16px; right:16px; z-index:999; display:flex; gap:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:4px;">
+    <%= link_to request.path + "?locale=vi&reset_password_token=#{params[:reset_password_token]}", style: "display:inline-flex; align-items:center; gap:5px; padding:7px 14px; border-radius:7px; font-size:12px; font-weight:600; text-decoration:none; #{I18n.locale == :vi ? 'background:#4f46e5; color:#fff;' : 'color:#64748b;'}" do %>🇻🇳 VI<% end %>
+    <%= link_to request.path + "?locale=en&reset_password_token=#{params[:reset_password_token]}", style: "display:inline-flex; align-items:center; gap:5px; padding:7px 14px; border-radius:7px; font-size:12px; font-weight:600; text-decoration:none; #{I18n.locale == :en ? 'background:#4f46e5; color:#fff;' : 'color:#64748b;'}" do %>🇬🇧 EN<% end %>
+  </div>
+
+  <!-- Centered wrapper -->
+  <div style="padding: 72px 16px 48px; margin: 0 auto;">
+    <div style="width: 100%; width: 480px; margin-left: auto; margin-right: auto;">
+
+      <!-- Logo -->
+      <div style="text-align:center; margin-bottom:28px;">
+        <div style="display:inline-block; filter:drop-shadow(0 8px 28px rgba(26,107,255,0.5));">
+          <svg width="72" height="72" viewBox="295 27 90 90" xmlns="http://www.w3.org/2000/svg">
+            <rect x="305" y="38" width="70" height="70" rx="18" fill="#1A6BFF"/>
+            <polygon points="325,84 318,98 338,84" fill="white"/>
+            <rect x="317" y="49" width="46" height="37" rx="9" fill="white"/>
+            <rect x="326" y="59" width="7" height="14" rx="2" fill="#1A6BFF"/>
+            <rect x="338" y="53" width="7" height="26" rx="2" fill="#1A6BFF"/>
+            <rect x="350" y="57" width="7" height="18" rx="2" fill="#1A6BFF"/>
+          </svg>
+        </div>
+        <div style="font-family:system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif; font-size:38px; font-weight:800; letter-spacing:10px; color:#1A6BFF; line-height:1; padding-left:10px;">VOX</div>
+      </div>
+
+      <!-- Card -->
+      <div style="background:#1E293B; border-radius:20px; border:1px solid rgba(255,255,255,0.07); box-shadow:0 24px 60px rgba(0,0,0,0.5); overflow:hidden;">
+
+        <!-- Header -->
+        <div style="padding:28px 28px 24px; border-bottom:1px solid rgba(255,255,255,0.05);">
+          <div style="width:46px; height:46px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:16px;">🔒</div>
+          <h1 style="font-size:20px; font-weight:800; color:#f1f5f9; margin:0 0 8px;">
+            <%= I18n.locale == :vi ? "Đặt lại mật khẩu" : "Set new password" %>
+          </h1>
+          <p style="font-size:13px; color:#64748b; margin:0; line-height:1.6;">
+            <%= I18n.locale == :vi ? "Nhập mật khẩu mới cho tài khoản của bạn." : "Enter a new password for your account." %>
+          </p>
+        </div>
+
+        <!-- Form -->
+        <div style="padding:24px 28px;">
+          <% if resource.errors.any? %>
+            <div style="margin-bottom:16px; display:flex; align-items:flex-start; gap:10px; padding:14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:12px; font-size:13px; color:#f87171; line-height:1.5;">
+              <span>⚠</span>
+              <div>
+                <% resource.errors.full_messages.each do |msg| %>
+                  <div>• <%= msg %></div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <%= form_with model: resource, as: resource_name, url: password_path(resource_name), method: :put, local: true do |f| %>
+            <%= f.hidden_field :reset_password_token %>
+
+            <div style="margin-bottom:16px;">
+              <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">
+                <%= I18n.locale == :vi ? "Mật khẩu mới" : "New password" %>
+              </label>
+              <%= f.password_field :password, autofocus: true, autocomplete: "new-password",
+                placeholder: "••••••••",
+                style: "display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:14px; color:#f1f5f9; font-family:'Inter',sans-serif;" %>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">
+                <%= I18n.locale == :vi ? "Xác nhận mật khẩu mới" : "Confirm new password" %>
+              </label>
+              <%= f.password_field :password_confirmation, autocomplete: "new-password",
+                placeholder: "••••••••",
+                style: "display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:14px; color:#f1f5f9; font-family:'Inter',sans-serif;" %>
+            </div>
+
+            <%= f.submit (I18n.locale == :vi ? "Đặt lại mật khẩu →" : "Reset Password →"),
+              style: "display:block; width:100%; padding:14px; background:#4F46E5; color:#fff; font-size:15px; font-weight:700; border:none; border-radius:8px; cursor:pointer; font-family:'Inter',sans-serif;" %>
+          <% end %>
+        </div>
+
+        <!-- Back -->
+        <div style="padding:0 28px 24px;">
+          <%= link_to new_user_session_path(locale: I18n.locale),
+            style: "display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; font-size:13px; color:#64748b; text-decoration:none; border:1.5px solid rgba(255,255,255,0.07); border-radius:12px;" do %>
+            ← <%= I18n.locale == :vi ? "Quay lại đăng nhập" : "Back to sign in" %>
+          <% end %>
+        </div>
+      </div>
+
+      <p style="text-align:center; font-size:11px; color:#334155; margin-top:18px;">© <%= Date.current.year %> VOX Platform</p>
+    </div>
+  </div>
+
+</body>
+</html>

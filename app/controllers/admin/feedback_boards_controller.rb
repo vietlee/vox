@@ -2,7 +2,10 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   before_action :set_board, only: [:show, :edit, :update, :destroy, :close, :export, :ai_summarize]
 
   def index
-    @pagy, @boards = pagy(current_workspace.feedback_boards.order(created_at: :desc))
+    @q = params[:q].to_s.strip
+    boards = current_workspace.feedback_boards.order(created_at: :desc)
+    boards = boards.where("title ILIKE ? OR description ILIKE ?", "%#{@q}%", "%#{@q}%") if @q.present?
+    @pagy, @boards = pagy(boards, items: 12)
   end
 
   def show

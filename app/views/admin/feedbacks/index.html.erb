@@ -40,7 +40,7 @@
         <p class="text-[11px] text-slate-500 mt-0.5"><%= t("feedback_boards.feedbacks_page.ai_cta_desc", default: "Phân tích tất cả góp ý và trích xuất chủ đề, cảm xúc, gợi ý hành động.") %></p>
       </div>
       <button onclick="switchTab('ai')"
-        class="flex-shrink-0 px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-[12px] font-semibold rounded-lg hover:from-indigo-600 hover:to-violet-600 whitespace-nowrap">
+        class="flex-shrink-0 px-3 py-1.5 bg-violet-600 text-white text-[12px] font-semibold rounded-lg hover:bg-violet-700 whitespace-nowrap">
         <%= t("feedback_boards.feedbacks_page.ai_summarize") %> →
       </button>
     </div>
@@ -140,7 +140,10 @@
 
   <!-- AI Summarize controls -->
   <div class="flex items-center justify-between mb-4">
-    <p class="text-[12px] text-slate-500"><%= t("feedback_boards.feedbacks_page.ai_summary_header") %></p>
+    <div>
+      <p class="text-[13px] font-semibold text-slate-700"><%= t("feedback_boards.feedbacks_page.ai_summarize") %></p>
+      <p class="text-[11px] text-slate-400 mt-0.5">3 AI credits </p>
+    </div>
     <div class="flex items-center gap-2">
       <!-- Language selector -->
       <div class="relative">
@@ -153,9 +156,9 @@
       </div>
       <button onclick="aiSummarize()"
         id="ai-summarize-btn"
-        class="px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-[12px] font-semibold rounded-lg hover:from-indigo-600 hover:to-violet-600 flex items-center gap-1.5">
+        class="px-3 py-1.5 bg-indigo-600 text-white text-[12px] font-semibold rounded-lg hover:bg-indigo-700 flex items-center gap-1.5">
         <span id="ai-btn-spinner" class="hidden w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-        <%= t("feedback_boards.feedbacks_page.ai_summarize") %>
+        ✨ <%= t("feedback_boards.feedbacks_page.ai_summarize") %>
       </button>
     </div>
   </div>
@@ -468,6 +471,9 @@ async function aiSummarize() {
     });
     const data = await resp.json();
 
+    if (window.handleAiUpgrade(resp, data, '<%= j t("feedback_boards.feedbacks_page.ai_summarize") %>')) {
+      stopProgress(); resetBtn(); panel.innerHTML = ''; return;
+    }
     if (!resp.ok) {
       stopProgress();
       resetBtn();

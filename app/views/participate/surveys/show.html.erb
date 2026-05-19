@@ -1,7 +1,7 @@
 <% content_for :title, @survey.title %>
 
 <style>
-  body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100vh; }
+  html, body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100%; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .q-card { animation: fadeIn 0.35s ease forwards; }
   .opt-label { transition: all 0.15s ease; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px; border: 2px solid #e2e8f0; background: rgba(255,255,255,0.85); }
@@ -19,26 +19,27 @@
   <div class="text-[11px] text-slate-400"><%= @questions.count %> <%= t("participate.survey.questions_count") %></div>
 <% end %>
 
-<div class="min-h-screen flex flex-col">
+<div class="min-h-screen flex flex-col" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
 
   <% if @survey.show_progress? %>
-  <!-- Progress -->
-  <div class="px-6 pb-1">
+  <!-- Progress — fixed to avoid Chrome mobile stacking context issues -->
+  <div class="px-4 sm:px-6 py-2" style="position:fixed; top:47px; left:0; right:0; z-index:9998; transform:translateZ(0); -webkit-transform:translateZ(0); background:linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%);">
     <div class="max-w-[680px] mx-auto">
       <div class="flex justify-between text-[11px] text-slate-500 mb-1.5">
         <span id="progress-label"><%= t("participate.survey.progress", answered: 0, total: @questions.count) %></span>
-        <span>~<%= (@questions.count * 1.5).ceil %> <%= t("participate.survey.minutes") %></span>
       </div>
       <div class="h-1.5 bg-white/60 rounded-full overflow-hidden" style="border:1px solid rgba(99,102,241,0.15);">
         <div id="progress-bar" class="h-full rounded-full transition-all duration-500" style="width:0%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
       </div>
     </div>
   </div>
+  <!-- Spacer matching progress bar height -->
+  <div style="height:44px;"></div>
   <% end %>
 
   <!-- Content -->
-  <div class="flex-1 px-4 py-6">
-    <div class="max-w-[680px] mx-auto">
+  <div class="flex-1 flex flex-col px-4 py-6">
+    <div class="max-w-[680px] mx-auto w-full flex-1 flex flex-col">
 
       <!-- Survey header -->
       <div class="text-center mb-7 fade-in">
@@ -50,7 +51,7 @@
 
       <% if @already_responded %>
         <div class="fade-in text-center">
-          <div class="rounded-2xl py-10 px-8" style="background:rgba(255,255,255,0.85); border:1px solid rgba(99,102,241,0.15); box-shadow:0 8px 32px rgba(99,102,241,0.08); backdrop-filter:blur(12px);">
+          <div class="rounded-2xl py-10 px-8" style="background:#ffffff; border:1px solid rgba(99,102,241,0.15); box-shadow:0 8px 32px rgba(99,102,241,0.08);">
             <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
                  style="background:linear-gradient(135deg,#6366f1,#a855f7);">
               <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -72,17 +73,17 @@
       <%= form_with url: submit_survey_path(@survey.slug), method: :post, local: true, id: "survey-form", class: "space-y-4", multipart: true, data: { turbo: false } do |f| %>
 
         <% if @survey.email_required? %>
-          <div class="q-card rounded-2xl p-5" style="background:rgba(255,255,255,0.85); border:1px solid rgba(99,102,241,0.15); box-shadow:0 4px 16px rgba(99,102,241,0.06); backdrop-filter:blur(12px);">
+          <div class="q-card rounded-2xl p-5" style="background:#ffffff; border:1px solid rgba(99,102,241,0.15); box-shadow:0 4px 16px rgba(99,102,241,0.06);">
             <label class="block text-[13px] font-semibold text-slate-700 mb-2"><%= t("participate.survey.email_label") %> <span class="text-red-400">*</span></label>
             <input type="email" name="response[respondent_email]" required placeholder="your@email.com"
               value="<%= @previous_email %>"
-              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white">
+              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white" style="font-size:16px;">
           </div>
         <% end %>
 
         <% @questions.each_with_index do |question, idx| %>
-          <div class="q-card rounded-2xl p-5" data-qid="<%= question.id %>"
-               style="background:rgba(255,255,255,0.85); border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 16px rgba(99,102,241,0.06); backdrop-filter:blur(12px);">
+          <div class="q-card rounded-2xl p-5" data-qid="<%= question.id %>" data-required="<%= question.required? %>"
+               style="background:#ffffff; border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 16px rgba(99,102,241,0.06);">
             <div class="flex items-start gap-3 mb-4">
               <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-black text-white flex-shrink-0 mt-0.5"
                     style="background:linear-gradient(135deg,#6366f1,#a855f7);"><%= idx + 1 %></span>
@@ -101,49 +102,130 @@
         <% end %>
 
         <div class="pt-4 pb-10">
-          <%= f.submit t("participate.survey.submit"),
-            class: "w-full py-3 text-[14px] font-semibold text-white rounded-xl cursor-pointer hover:opacity-90 hover:-translate-y-0.5 transition-all",
-            style: "background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18); border:0;" %>
+          <button type="submit" id="survey-submit-btn"
+            class="w-full py-3 text-[14px] font-semibold text-white rounded-lg transition-all"
+            style="background:#4F46E5; border:0; cursor:not-allowed; opacity:0.45;"
+            disabled>
+            <%= t("participate.survey.submit") %>
+          </button>
         </div>
       <% end %>
 
       <% end %> <%# end unless @already_responded %>
 
-      <p class="flex justify-center items-center gap-1.5 pb-6"><img src="/vox_logo.svg" alt="VOX" style="height:18px;width:auto;opacity:0.65;"><span style="font-size:11px;color:#94a3b8;">· Survey &amp; Voting Platform</span></p>
+      <div class="flex-1"></div>
+      <p class="flex justify-center items-center gap-1.5 py-6"><img src="/vox_logo.svg" alt="VOX" style="height:18px;width:auto;opacity:0.65;"><span style="font-size:11px;color:#94a3b8;">· Survey &amp; Voting Platform</span></p>
     </div>
   </div>
 
 </div>
 
 <script>
-const totalQ = <%= @questions.count %>;
-const PROGRESS_TPL = "<%= j t('participate.survey.progress', answered: '__N__', total: @questions.count) %>";
+(function() {
+  const totalQ    = <%= @questions.count %>;
+  const PROG_TPL  = "<%= j t('participate.survey.progress', answered: '__N__', total: @questions.count) %>";
+  const ERR_MSG   = "<%= I18n.locale.to_s == 'vi' ? 'Vui lòng trả lời câu hỏi này' : 'Please answer this question' %>";
+  const hasRequired = document.querySelectorAll('.q-card[data-required="true"]').length > 0;
 
-function updateProgress() {
-  let answered = 0;
-  document.querySelectorAll('.q-card[data-qid]').forEach(card => {
-    let isAnswered = false;
-    card.querySelectorAll('input[type=radio], input[type=checkbox]').forEach(inp => {
-      if (inp.checked) isAnswered = true;
+  function isCardAnswered(card) {
+    const radios    = card.querySelectorAll('input[type=radio]');
+    const checks    = card.querySelectorAll('input[type=checkbox]');
+    const texts     = card.querySelectorAll('input[type=text], input[type=email], input[type=number], textarea');
+    const files     = card.querySelectorAll('input[type=file]');
+    const dtInputs  = card.querySelectorAll('input[type=datetime-local]');
+    if ([...radios].some(i => i.checked))   return true;
+    if ([...checks].some(i => i.checked))   return true;
+    if ([...texts].some(i => i.value.trim())) return true;
+    if ([...files].some(i => i.files && i.files.length)) return true;
+    if ([...dtInputs].some(i => i.value))   return true;
+    return false;
+  }
+
+  function updateProgress() {
+    let answered = 0;
+    document.querySelectorAll('.q-card[data-qid]').forEach(card => {
+      if (isCardAnswered(card)) answered++;
     });
-    card.querySelectorAll('input[type=text], input[type=email], input[type=number], textarea').forEach(inp => {
-      if (inp.value && inp.value.trim()) isAnswered = true;
+    const pct   = totalQ > 0 ? Math.round(answered / totalQ * 100) : 0;
+    const bar   = document.getElementById('progress-bar');
+    const label = document.getElementById('progress-label');
+    if (bar)   bar.style.width = pct + '%';
+    if (label) label.textContent = PROG_TPL.replace('__N__', answered);
+    updateSubmitBtn();
+  }
+
+  function updateSubmitBtn() {
+    const btn = document.getElementById('survey-submit-btn');
+    if (!btn) return;
+    const requiredCards  = document.querySelectorAll('.q-card[data-required="true"]');
+    const allDone = [...requiredCards].every(isCardAnswered);
+    btn.disabled       = !allDone;
+    btn.style.opacity  = allDone ? '1'           : '0.45';
+    btn.style.cursor   = allDone ? 'pointer'     : 'not-allowed';
+  }
+
+  function showErrors() {
+    // Clear previous errors
+    document.querySelectorAll('.q-validation-error').forEach(el => el.remove());
+    document.querySelectorAll('.q-card[data-required="true"]').forEach(card => {
+      card.style.removeProperty('border');
     });
-    card.querySelectorAll('input[type=file]').forEach(inp => {
-      if (inp.files && inp.files.length > 0) isAnswered = true;
+
+    const failed = [];
+    document.querySelectorAll('.q-card[data-required="true"]').forEach(card => {
+      if (!isCardAnswered(card)) {
+        failed.push(card);
+        card.style.border = '2px solid #f87171';
+        const err = document.createElement('p');
+        err.className   = 'q-validation-error';
+        err.textContent = ERR_MSG;
+        err.style.cssText = 'color:#ef4444; font-size:12px; font-weight:600; margin-top:10px;';
+        card.appendChild(err);
+      }
     });
-    if (isAnswered) answered++;
+
+    if (failed.length > 0) {
+      // Scroll to first error, accounting for fixed headers
+      const offset = failed[0].getBoundingClientRect().top + window.scrollY - 120;
+      window.scrollTo({ top: offset, behavior: 'smooth' });
+      return false;
+    }
+    return true;
+  }
+
+  // Clear error styling when user answers a card
+  function clearCardError(card) {
+    if (isCardAnswered(card)) {
+      card.style.removeProperty('border');
+      const err = card.querySelector('.q-validation-error');
+      if (err) err.remove();
+    }
+  }
+
+  // Form submit — run validation (handles cases where button was bypassed)
+  const form = document.getElementById('survey-form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      if (!showErrors()) e.preventDefault();
+    });
+  }
+
+  // Event listeners — document-level for reliable mobile support
+  document.addEventListener('change', function(e) {
+    updateProgress();
+    const card = e.target.closest('.q-card[data-required="true"]');
+    if (card) clearCardError(card);
   });
-  const pct = totalQ > 0 ? Math.round(answered / totalQ * 100) : 0;
-  const bar = document.getElementById('progress-bar');
-  const label = document.getElementById('progress-label');
-  if (bar) bar.style.width = pct + '%';
-  if (label) label.textContent = PROGRESS_TPL.replace('__N__', answered);
-}
+  document.addEventListener('input', function(e) {
+    updateProgress();
+    const card = e.target.closest('.q-card[data-required="true"]');
+    if (card) clearCardError(card);
+  });
+  document.addEventListener('touchend', function() {
+    setTimeout(updateProgress, 50);
+  }, { passive: true });
 
-const form = document.getElementById('survey-form');
-if (form) {
-  form.addEventListener('change', updateProgress);
-  form.addEventListener('input', updateProgress);
-}
+  // Init
+  updateSubmitBtn();
+})();
 </script>

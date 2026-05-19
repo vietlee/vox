@@ -64,8 +64,8 @@ class ApplicationController < ActionController::Base
     subscription = current_workspace&.active_subscription
     unless subscription&.has_feature?(feature)
       respond_to do |format|
-        format.html { redirect_to subscription_path, alert: t("ai.feature_not_available") }
-        format.json { render json: { error: "AI feature not available on your plan" }, status: :payment_required }
+        format.html { redirect_to billing_subscription_path, alert: t("ai.feature_not_available") }
+        format.json { render json: { upgrade_required: true, error: t("ai.feature_not_available") }, status: :payment_required }
         format.turbo_stream { render turbo_stream: turbo_stream.replace("ai-result", partial: "shared/ai_upgrade_prompt") }
       end
       return false
@@ -77,7 +77,7 @@ class ApplicationController < ActionController::Base
     subscription = current_workspace&.active_subscription
     if subscription.nil? || (!subscription.enterprise? && subscription.credit_balance < amount)
       respond_to do |format|
-        format.json { render json: { error: "Insufficient AI credits" }, status: :payment_required }
+        format.json { render json: { upgrade_required: true, insufficient_credits: true, error: t("ai.insufficient_credits") }, status: :payment_required }
         format.turbo_stream { render turbo_stream: turbo_stream.replace("ai-result", partial: "shared/no_credits") }
       end
       return false
