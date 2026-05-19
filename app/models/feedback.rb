@@ -9,8 +9,9 @@ class Feedback < ApplicationRecord
   enum :moderation_status, { moderation_pending: 0, safe: 1, flagged: 2, auto_rejected: 3 }
 
   validates :content, presence: true, length: { maximum: 1000 }
+  validate :require_name_for_public_identity
 
-  scope :visible,   -> { where(status: :approved) }
+  scope :visible,      -> { where(status: :approved) }
   scope :pinned_first, -> { order(pinned: :desc, created_at: :desc) }
 
   after_create :enqueue_ai_moderation
@@ -24,6 +25,14 @@ class Feedback < ApplicationRecord
   end
 
   private
+
+  def require_name_for_public_identity
+    if feedback_board&.public_identity?
+      errors.add(:author_name, :blank) if author_name.blank?
+    elsif feedback_board&.user_choice? && !anonymous? && author_name.blank?
+      errors.add(:author_name, :blank)
+    end
+  end
 
   def enqueue_ai_moderation
     return unless feedback_board.auto_moderation?

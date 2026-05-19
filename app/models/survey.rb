@@ -1,4 +1,5 @@
 class Survey < ApplicationRecord
+  include Sluggable
   belongs_to :workspace
   belongs_to :user
   has_many   :questions,         -> { order(:position) }, dependent: :destroy
@@ -40,7 +41,7 @@ class Survey < ApplicationRecord
   private
 
   def generate_slug
-    base = title.downcase.gsub(/[^a-z0-9]+/, "-").gsub(/^-|-$/, "").first(50)
+    base = self.class.slugify(title)
     self.slug = "#{base}-#{SecureRandom.hex(4)}"
   end
 

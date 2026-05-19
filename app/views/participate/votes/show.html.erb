@@ -9,16 +9,14 @@
   .fade-in { animation: fadeIn 0.4s ease forwards; }
 </style>
 
-<div class="min-h-screen flex flex-col">
-
-  <!-- Top bar -->
-  <div class="flex items-center justify-between px-6 py-4">
-    <span class="text-[17px] font-black tracking-tight" style="background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">VOX</span>
-    <div class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-emerald-700" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2);">
-      <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-      LIVE
-    </div>
+<% content_for :nav_right do %>
+  <div class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-emerald-700" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2);">
+    <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+    <%= t("participate.vote.live_badge") %>
   </div>
+<% end %>
+
+<div class="min-h-screen flex flex-col">
 
   <!-- Main -->
   <div class="flex-1 flex flex-col items-center justify-center px-4 pb-10">
@@ -28,14 +26,14 @@
       <div class="text-center mb-6 fade-in">
         <h1 class="text-[28px] font-extrabold text-slate-900 tracking-tight leading-snug mb-2"><%= @vote.title %></h1>
         <p class="text-[13px] text-slate-400" id="participant-count">
-          <%= @vote.participant_count %> người đã bình chọn
+          <%= @vote.participant_count %> <%= t("participate.vote.participants") %>
         </p>
 
         <% if @seconds_remaining %>
           <div class="mt-5 flex flex-col items-center gap-2">
             <div class="flex items-center gap-2.5">
               <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg>
-              <span class="text-[12px] font-semibold text-slate-500">Thời gian còn lại</span>
+              <span class="text-[12px] font-semibold text-slate-500"><%= t("participate.vote.time_remaining") %></span>
               <span id="countdown-text" class="text-[20px] font-black tabular-nums"
                     style="color:<%= @seconds_remaining > @vote.countdown_seconds * 0.2 ? '#6366f1' : '#ef4444' %>">
                 <%= format("%02d:%02d", @seconds_remaining / 60, @seconds_remaining % 60) %>
@@ -54,7 +52,7 @@
       <div id="time-up-box" class="hidden fade-in mb-4">
         <div class="text-center py-8 px-6 rounded-2xl" style="background:rgba(255,255,255,0.85); border:1px solid rgba(239,68,68,0.2); box-shadow:0 8px 32px rgba(239,68,68,0.08); backdrop-filter:blur(12px);">
           <div class="text-[48px] mb-3">⏰</div>
-          <p class="text-[18px] font-extrabold text-slate-800">Hết thời gian bình chọn!</p>
+          <p class="text-[18px] font-extrabold text-slate-800"><%= t("participate.vote.time_up") %></p>
         </div>
       </div>
 
@@ -64,13 +62,13 @@
           <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:linear-gradient(135deg,#6366f1,#a855f7);">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
           </div>
-          <h2 class="text-[20px] font-extrabold text-slate-800 mb-1">Bình chọn thành công!</h2>
-          <p class="text-[13px] text-slate-500 mb-6">Cảm ơn bạn đã tham gia bình chọn.</p>
+          <h2 class="text-[20px] font-extrabold text-slate-800 mb-1"><%= t("participate.vote.voted") %></h2>
+          <p class="text-[13px] text-slate-500 mb-6"><%= t("participate.vote.voted_thanks") %></p>
           <% if @vote.show_results_live? %>
             <a href="/v/<%= @vote.slug %>/present?readonly=1" target="_blank"
                class="inline-flex items-center gap-2 px-6 py-3 text-[14px] font-bold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5"
-               style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 4px 16px rgba(99,102,241,0.35);">
-              Xem kết quả trực tiếp
+               style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);">
+              <%= t("participate.vote.view_results_live") %>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </a>
           <% end %>
@@ -85,7 +83,7 @@
             <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">Email <span class="text-red-400">*</span></label>
             <input id="voter-email" type="email" placeholder="your@email.com" required
               class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white">
-            <p id="email-error" class="hidden mt-1.5 text-[12px] text-red-500">Vui lòng nhập email hợp lệ.</p>
+            <p id="email-error" class="hidden mt-1.5 text-[12px] text-red-500"><%= t("participate.vote.email_error") %></p>
           </div>
         <% end %>
 
@@ -110,12 +108,12 @@
             <% end %>
           </div>
           <div id="submit-wrap" class="mt-4 hidden">
-            <button onclick="submitVote()" class="w-full py-4 text-[15px] font-bold text-white rounded-2xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35);">Gửi bình chọn →</button>
+            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);"><%= t("participate.vote.vote_btn") %></button>
           </div>
 
         <%# ── Ranking ── %>
         <% elsif @vote.ranking? %>
-          <p class="text-[12px] text-slate-500 mb-3 text-center">Kéo thả hoặc dùng ↑↓ để xếp thứ tự ưu tiên</p>
+          <p class="text-[12px] text-slate-500 mb-3 text-center"><%= t("participate.vote.ranking_hint") %></p>
           <div id="ranking-list" class="space-y-2">
             <% @options.each_with_index do |opt, i| %>
               <div class="ranking-item flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-slate-200 bg-white/90 select-none"
@@ -134,40 +132,42 @@
             <% end %>
           </div>
           <div class="mt-4">
-            <button onclick="submitVote()" class="w-full py-4 text-[15px] font-bold text-white rounded-2xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35);">Xác nhận thứ tự →</button>
+            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);"><%= t("participate.vote.ranking_btn") %></button>
           </div>
 
         <%# ── Word Cloud ── %>
         <% elsif @vote.word_cloud? %>
           <div class="rounded-2xl p-5" style="background:rgba(255,255,255,0.85); border:2px solid #e2e8f0; backdrop-filter:blur(8px);">
-            <label class="block text-[12px] font-semibold text-slate-600 mb-2">Nhập một từ hoặc cụm từ ngắn</label>
-            <input id="wc-input" type="text" maxlength="40" placeholder="VD: Sáng tạo, Teamwork..."
+            <label class="block text-[12px] font-semibold text-slate-600 mb-2"><%= t("participate.vote.word_cloud_label") %></label>
+            <input id="wc-input" type="text" maxlength="40" placeholder="<%= t("participate.vote.word_cloud_placeholder") %>"
               oninput="document.getElementById('wc-count').textContent=this.value.length"
               class="w-full px-4 py-3 border border-slate-200 rounded-xl text-[15px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white">
-            <p class="text-[11px] text-slate-400 mt-1.5 text-right"><span id="wc-count">0</span>/40 ký tự</p>
+            <p class="text-[11px] text-slate-400 mt-1.5 text-right"><span id="wc-count">0</span>/40</p>
           </div>
           <div class="mt-3">
-            <button onclick="submitVote()" class="w-full py-4 text-[15px] font-bold text-white rounded-2xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35);">Gửi →</button>
+            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);"><%= t("participate.vote.send_btn") %></button>
           </div>
 
         <%# ── Open Ended ── %>
         <% elsif @vote.open_ended? %>
           <div class="rounded-2xl p-5" style="background:rgba(255,255,255,0.85); border:2px solid #e2e8f0; backdrop-filter:blur(8px);">
-            <label class="block text-[12px] font-semibold text-slate-600 mb-2">Câu trả lời của bạn</label>
-            <textarea id="oe-input" rows="4" placeholder="Nhập câu trả lời tự do..."
+            <label class="block text-[12px] font-semibold text-slate-600 mb-2"><%= t("participate.vote.open_ended_label") %></label>
+            <textarea id="oe-input" rows="4" placeholder="<%= t("participate.vote.open_ended_placeholder") %>"
               class="w-full px-4 py-3 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white resize-none"></textarea>
           </div>
           <div class="mt-3">
-            <button onclick="submitVote()" class="w-full py-4 text-[15px] font-bold text-white rounded-2xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35);">Gửi →</button>
+            <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);"><%= t("participate.vote.send_btn") %></button>
           </div>
 
         <%# ── Q&A Upvote ── %>
         <% elsif @vote.qa_upvote? %>
           <div class="rounded-2xl p-5 mb-3" style="background:rgba(255,255,255,0.85); border:2px solid #e2e8f0; backdrop-filter:blur(8px);">
-            <label class="block text-[12px] font-semibold text-slate-600 mb-2">Đặt câu hỏi của bạn</label>
-            <textarea id="qa-input" rows="3" placeholder="Nhập câu hỏi bạn muốn hỏi..."
+            <label class="block text-[12px] font-semibold text-slate-600 mb-2"><%= t("participate.vote.qa_label") %></label>
+            <textarea id="qa-input" rows="3" placeholder="<%= t("participate.vote.qa_placeholder") %>"
               class="w-full px-4 py-3 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white resize-none"></textarea>
-            <button onclick="submitVote()" class="mt-3 w-full py-3 text-[14px] font-bold text-white rounded-xl transition-all hover:opacity-90" style="background:linear-gradient(135deg,#6366f1,#a855f7);">Gửi câu hỏi →</button>
+            <div class="mt-3">
+              <button onclick="submitVote()" class="w-full py-3 text-[14px] font-semibold text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18);"><%= t("participate.vote.qa_btn") %></button>
+            </div>
           </div>
         <% end %>
       </div>
@@ -177,7 +177,7 @@
 
   <!-- Footer -->
   <div class="text-center pb-6">
-    <span class="text-[11px] text-slate-400">Powered by <strong class="text-slate-500">VOX</strong></span>
+    <span class="inline-flex items-center gap-1.5"><img src="/vox_logo.svg" alt="VOX" style="height:18px;width:auto;opacity:0.65;"><span style="font-size:11px;color:#94a3b8;">· Survey &amp; Voting Platform</span></span>
   </div>
 
 </div>
@@ -185,6 +185,9 @@
 <script>
 const CSRF = document.querySelector("meta[name=csrf-token]")?.content || "<%= form_authenticity_token %>";
 const VOTE_TYPE = "<%= @vote.vote_type %>";
+const VOTE_BTN_TEXT = "<%= j t('participate.vote.vote_btn') %>";
+const VOTE_SUBMITTING_TEXT = "<%= j t('participate.vote.voting') %>";
+const VOTE_ERROR_TEXT = "<%= j t('participate.vote.error_occurred') %>";
 let selectedIds = [];
 const multipleChoice = <%= @vote.multiple_choice? ? 'true' : 'false' %>;
 
@@ -309,7 +312,7 @@ async function submitVote() {
   }
 
   // Disable all submit buttons
-  document.querySelectorAll('#vote-form button[onclick="submitVote()"]').forEach(b => { b.disabled = true; b.textContent = 'Đang gửi...'; });
+  document.querySelectorAll('#vote-form button[onclick="submitVote()"]').forEach(b => { b.disabled = true; b.textContent = VOTE_SUBMITTING_TEXT; });
 
   const res  = await fetch("/v/<%= @vote.slug %>/submit", {
     method: "POST",
@@ -320,8 +323,8 @@ async function submitVote() {
   if (res.ok || data.error === 'already_voted') {
     showAlreadyVoted();
   } else {
-    document.querySelectorAll('#vote-form button[onclick="submitVote()"]').forEach(b => { b.disabled = false; b.textContent = 'Gửi bình chọn →'; });
-    alert(data.message || "Đã có lỗi xảy ra.");
+    document.querySelectorAll('#vote-form button[onclick="submitVote()"]').forEach(b => { b.disabled = false; b.textContent = VOTE_BTN_TEXT; });
+    alert(data.message || VOTE_ERROR_TEXT);
   }
 }
 

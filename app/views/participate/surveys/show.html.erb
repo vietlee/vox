@@ -15,21 +15,19 @@
   .opt-label:has(input[type=checkbox]:checked) .opt-box::after { content:'✓'; font-size:11px; font-weight:900; color:#fff; }
 </style>
 
-<div class="min-h-screen flex flex-col">
+<% content_for :nav_right do %>
+  <div class="text-[11px] text-slate-400"><%= @questions.count %> <%= t("participate.survey.questions_count") %></div>
+<% end %>
 
-  <!-- Header -->
-  <div class="flex items-center justify-between px-6 py-4">
-    <span class="text-[17px] font-black tracking-tight" style="background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">VOX</span>
-    <div class="text-[11px] text-slate-400"><%= @questions.count %> câu hỏi</div>
-  </div>
+<div class="min-h-screen flex flex-col">
 
   <% if @survey.show_progress? %>
   <!-- Progress -->
   <div class="px-6 pb-1">
     <div class="max-w-[680px] mx-auto">
       <div class="flex justify-between text-[11px] text-slate-500 mb-1.5">
-        <span id="progress-label">0 / <%= @questions.count %> câu đã trả lời</span>
-        <span>~<%= (@questions.count * 1.5).ceil %> phút</span>
+        <span id="progress-label"><%= t("participate.survey.progress", answered: 0, total: @questions.count) %></span>
+        <span>~<%= (@questions.count * 1.5).ceil %> <%= t("participate.survey.minutes") %></span>
       </div>
       <div class="h-1.5 bg-white/60 rounded-full overflow-hidden" style="border:1px solid rgba(99,102,241,0.15);">
         <div id="progress-bar" class="h-full rounded-full transition-all duration-500" style="width:0%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
@@ -59,15 +57,15 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
               </svg>
             </div>
-            <h2 class="text-[20px] font-extrabold text-slate-800 mb-2">Bạn đã trả lời rồi!</h2>
-            <p class="text-[13px] text-slate-500">Mỗi người chỉ được phép gửi câu trả lời một lần.</p>
+            <h2 class="text-[20px] font-extrabold text-slate-800 mb-2"><%= t("participate.survey.already_answered") %></h2>
+            <p class="text-[13px] text-slate-500"><%= t("participate.survey.already_answered_desc") %></p>
           </div>
         </div>
       <% else %>
 
       <% if @previous_answers.present? %>
         <div class="mb-4 px-4 py-3 rounded-xl text-[13px] text-amber-700 font-medium" style="background:#fffbeb; border:1px solid #fcd34d;">
-          ✏️ Bạn đang chỉnh sửa câu trả lời đã gửi trước đó.
+          ✏️ <%= t("participate.survey.editing_previous") %>
         </div>
       <% end %>
 
@@ -75,7 +73,7 @@
 
         <% if @survey.email_required? %>
           <div class="q-card rounded-2xl p-5" style="background:rgba(255,255,255,0.85); border:1px solid rgba(99,102,241,0.15); box-shadow:0 4px 16px rgba(99,102,241,0.06); backdrop-filter:blur(12px);">
-            <label class="block text-[13px] font-semibold text-slate-700 mb-2">Email <span class="text-red-400">*</span></label>
+            <label class="block text-[13px] font-semibold text-slate-700 mb-2"><%= t("participate.survey.email_label") %> <span class="text-red-400">*</span></label>
             <input type="email" name="response[respondent_email]" required placeholder="your@email.com"
               value="<%= @previous_email %>"
               class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white">
@@ -102,16 +100,16 @@
           </div>
         <% end %>
 
-        <div class="pt-2 pb-2">
-          <%= f.submit "Gửi khảo sát →",
-            class: "w-full py-4 text-[15px] font-bold text-white rounded-2xl cursor-pointer hover:opacity-90 hover:-translate-y-0.5 transition-all",
-            style: "background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 6px 20px rgba(99,102,241,0.35); border:0;" %>
+        <div class="pt-4 pb-10">
+          <%= f.submit t("participate.survey.submit"),
+            class: "w-full py-3 text-[14px] font-semibold text-white rounded-xl cursor-pointer hover:opacity-90 hover:-translate-y-0.5 transition-all",
+            style: "background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 2px 10px rgba(99,102,241,0.18); border:0;" %>
         </div>
       <% end %>
 
       <% end %> <%# end unless @already_responded %>
 
-      <p class="text-center text-[11px] text-slate-400 pb-6">Powered by <strong class="text-slate-500">VOX</strong></p>
+      <p class="flex justify-center items-center gap-1.5 pb-6"><img src="/vox_logo.svg" alt="VOX" style="height:18px;width:auto;opacity:0.65;"><span style="font-size:11px;color:#94a3b8;">· Survey &amp; Voting Platform</span></p>
     </div>
   </div>
 
@@ -119,6 +117,7 @@
 
 <script>
 const totalQ = <%= @questions.count %>;
+const PROGRESS_TPL = "<%= j t('participate.survey.progress', answered: '__N__', total: @questions.count) %>";
 
 function updateProgress() {
   let answered = 0;
@@ -139,7 +138,7 @@ function updateProgress() {
   const bar = document.getElementById('progress-bar');
   const label = document.getElementById('progress-label');
   if (bar) bar.style.width = pct + '%';
-  if (label) label.textContent = answered + ' / ' + totalQ + ' câu đã trả lời';
+  if (label) label.textContent = PROGRESS_TPL.replace('__N__', answered);
 }
 
 const form = document.getElementById('survey-form');

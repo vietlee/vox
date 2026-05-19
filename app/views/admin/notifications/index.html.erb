@@ -1,17 +1,46 @@
-<% content_for :title, "Notifications" %>
+<% content_for :title, t("notifications.title") %>
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+async function markRead(btn, url) {
+  const card = btn.closest('div.bg-white');
+  btn.disabled = true;
+  await fetch(url, {
+    method: 'PATCH',
+    headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }
+  });
+  card.style.transition = 'opacity 0.2s';
+  card.style.opacity = '0';
+  setTimeout(() => card.remove(), 220);
+}
+</script>
 <div class="flex items-center justify-between mb-5">
-  <h1 class="text-[21px] font-extrabold text-slate-900">🔔 Notifications</h1>
-  <%= button_to mark_all_read_notifications_path, method: :patch, class: "text-[12px] text-indigo-600 hover:underline" do %>Mark all read<% end %>
+  <h1 class="text-[21px] font-extrabold text-slate-900">🔔 <%= t("notifications.title") %></h1>
+  <%= button_to mark_all_read_notifications_path, method: :patch, class: "text-[12px] text-indigo-600 hover:underline" do %><%= t("notifications.mark_all_read") %><% end %>
 </div>
 <div class="space-y-2">
-  <% @notifications.each do |notif| %>
-    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4 flex items-start gap-3 <%= 'opacity-60' if notif.read? %>">
-      <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0 <%= notif.read? ? 'bg-slate-300' : 'bg-indigo-500' %>"></div>
-      <div class="flex-1">
-        <div class="text-[13px] font-semibold text-slate-900"><%= notif.title %></div>
-        <% if notif.body.present? %><p class="text-[12px] text-slate-500 mt-0.5"><%= notif.body %></p><% end %>
-        <div class="text-[11px] text-slate-400 mt-1"><%= notif.created_at.strftime("%b %d, %H:%M") %></div>
+  <% if @notifications.any? %>
+    <% @notifications.each do |notif| %>
+      <div class="bg-white rounded-[10px] border <%= notif.notification_type == 'system_broadcast' ? 'border-indigo-200' : 'border-slate-200' %> shadow-sm p-4 flex items-start gap-3 <%= 'opacity-60' if notif.read? %>">
+        <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0 <%= notif.read? ? 'bg-slate-300' : (notif.notification_type == 'system_broadcast' ? 'bg-indigo-500' : 'bg-indigo-500') %>"></div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="text-[13px] font-semibold text-slate-900"><%= notif.title %></div>
+            <% if notif.notification_type == "system_broadcast" %>
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">📢 System</span>
+            <% end %>
+          </div>
+          <% if notif.body.present? %><p class="text-[12px] text-slate-500 mt-0.5"><%= notif.body %></p><% end %>
+          <div class="text-[11px] text-slate-400 mt-1"><%= I18n.l(notif.created_at, format: :short) %></div>
+        </div>
+        <% unless notif.read? %>
+          <button type="button"
+            onclick="markRead(this, '<%= mark_read_notification_path(notif) %>')"
+            class="flex-shrink-0 text-[14px] text-slate-300 hover:text-slate-500 bg-transparent border-0 cursor-pointer px-1 leading-none"
+            title="<%= t("notifications.mark_read") %>">×</button>
+        <% end %>
       </div>
-    </div>
+    <% end %>
+  <% else %>
+    <div class="text-center py-12 text-[13px] text-slate-400"><%= t("notifications.empty") %></div>
   <% end %>
 </div>

@@ -1,11 +1,11 @@
-<% content_for :title, "Members" %>
+<% content_for :title, t("members.title") %>
 <div class="flex items-start justify-between mb-6">
   <div>
-    <h1 class="text-[21px] font-extrabold text-slate-900">👥 Team Members</h1>
-    <p class="text-[13px] text-slate-500 mt-0.5"><%= @members.count %> supporters</p>
+    <h1 class="text-[21px] font-extrabold text-slate-900">👥 <%= t("members.title") %></h1>
+    <p class="text-[13px] text-slate-500 mt-0.5"><%= @members.count %> <%= t("members.subtitle") %></p>
   </div>
   <%= link_to new_member_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700" do %>
-    + Invite Member
+    <%= t("members.invite") %>
   <% end %>
 </div>
 
@@ -13,9 +13,9 @@
   <table class="w-full border-collapse">
     <thead>
       <tr class="bg-slate-50 border-b border-slate-200">
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Member</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Status</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Joined</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("members.col_member") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("members.col_status") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("members.col_joined") %></th>
         <th class="px-4 py-2.5"></th>
       </tr>
     </thead>
@@ -36,16 +36,23 @@
           </td>
           <td class="px-4 py-3">
             <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold <%= membership.active? ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' %>">
-              <%= membership.status.capitalize %>
+              <%= t("status.#{membership.status}", default: membership.status.capitalize) %>
             </span>
           </td>
-          <td class="px-4 py-3 text-[12px] text-slate-500"><%= membership.created_at.strftime("%b %d, %Y") %></td>
+          <td class="px-4 py-3 text-[12px] text-slate-500"><%= I18n.l(membership.created_at.to_date) %></td>
           <td class="px-4 py-3">
             <div class="flex gap-1.5 justify-end">
-              <%= button_to toggle_status_member_path(member), method: :patch, class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %>
-                <%= membership.active? ? "Disable" : "Enable" %>
+              <%= button_to reset_password_member_path(member), method: :post,
+                    data: { confirm: t("members.reset_password_confirm", email: member.email) },
+                    class: "px-2.5 py-1 text-[11px] bg-amber-50 rounded-md text-amber-700 hover:bg-amber-100" do %>
+                🔑 <%= t("members.reset_password") %>
               <% end %>
-              <%= button_to member_path(member), method: :delete, data: { confirm: "Remove this member?" }, class: "px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-600 hover:bg-red-100" do %>Remove<% end %>
+              <%= button_to toggle_status_member_path(member), method: :patch, class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %>
+                <%= membership.active? ? t("members.disable") : t("members.enable") %>
+              <% end %>
+              <%= button_to member_path(member), method: :delete, data: { confirm: t("members.remove_confirm") }, class: "px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-600 hover:bg-red-100" do %>
+                <%= t("members.remove") %>
+              <% end %>
             </div>
           </td>
         </tr>
@@ -54,7 +61,7 @@
       <% if @members.empty? %>
         <tr>
           <td colspan="4" class="px-4 py-12 text-center text-slate-400 text-[13px]">
-            Chưa có thành viên nào. Mời thành viên đầu tiên!
+            <%= t("members.empty") %>
           </td>
         </tr>
       <% end %>

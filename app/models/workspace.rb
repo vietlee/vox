@@ -1,4 +1,5 @@
 class Workspace < ApplicationRecord
+  include Sluggable
   has_many :users, dependent: :destroy
   has_many :workspace_memberships, dependent: :destroy
   has_many :members, through: :workspace_memberships, source: :user
@@ -46,6 +47,6 @@ class Workspace < ApplicationRecord
   private
 
   def generate_slug
-    self.slug ||= name.to_s.downcase.gsub(/[^a-z0-9]+/, "-").gsub(/^-|-$/, "") if name.present?
+    self.slug ||= self.class.slugify(name) if name.present?
   end
 end

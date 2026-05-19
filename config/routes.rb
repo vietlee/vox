@@ -40,6 +40,7 @@ Rails.application.routes.draw do
     resources :subscriptions, only: [:index, :show, :edit, :update]
     resources :plan_configs, only: [:index, :edit, :update]
     resources :addon_configs
+    resources :broadcasts, only: [:index, :new, :create]
   end
 
   # Authenticated workspace admin/supporter area
@@ -104,9 +105,13 @@ Rails.application.routes.draw do
       end
     end
 
+    resource  :profile, only: [:show, :update]
     resource  :workspace_settings, only: [:show, :update], path: "settings"
     resources :members, only: [:index, :new, :create, :destroy] do
-      member { patch :toggle_status }
+      member do
+        patch :toggle_status
+        post  :reset_password
+      end
     end
 
     resource :subscription, only: [:show, :update] do

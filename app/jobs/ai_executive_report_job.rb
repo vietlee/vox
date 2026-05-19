@@ -34,12 +34,12 @@ class AiExecutiveReportJob < ApplicationJob
       }
     PROMPT
 
-    result_text = ClaudeService.sonnet.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 6000)
-    result = JSON.parse(result_text.match(/\{.*\}/m)&.to_s || result_text)
+    result_text = ClaudeService.sonnet_long.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 6000)
+    clean = result_text.gsub(/\A```(?:json)?\s*/i, '').gsub(/\s*```\z/, '').strip
+    result = JSON.parse(clean.match(/\{.*\}/m)&.to_s || clean)
 
     AiAnalysisResult.create!(workspace: job.workspace, ai_job: job, result_type: "executive_report", resource_type: "Survey", resource_id: survey.id, output: result, credits_cost: 15, response_count: responses.count)
     job.complete!(result)
-    job.workspace.active_subscription&.deduct_credits!(15)
   rescue => e
     job.fail!(e.message)
   end

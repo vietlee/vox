@@ -24,6 +24,7 @@ class Participate::FeedbacksController < Participate::BaseController
         flash[:notice] = t("feedbacks.pending_approval")
       else
         @feedback.approve! unless @board.auto_moderation?
+        flash[:notice] = t("feedbacks.submitted")
       end
       redirect_to participate_feedback_path(@board.slug)
     else

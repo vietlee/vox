@@ -1,14 +1,14 @@
 <div class="flex items-center gap-3 mb-6">
-  <%= link_to super_admin_subscriptions_path, class: "text-[13px] text-slate-500 hover:text-slate-700" do %>← Back<% end %>
-  <h1 class="text-[21px] font-extrabold text-slate-900">Subscription — <%= @subscription.workspace&.name %></h1>
-  <%= link_to edit_super_admin_subscription_path(@subscription), class: "ml-auto px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700" do %>Edit<% end %>
+  <%= link_to super_admin_subscriptions_path, class: "text-[13px] text-slate-500 hover:text-slate-700" do %><%= t("super_admin.subscriptions.back") %><% end %>
+  <h1 class="text-[21px] font-extrabold text-slate-900"><%= t("super_admin.subscriptions.title") %> — <%= @subscription.workspace&.name %></h1>
+  <%= link_to edit_super_admin_subscription_path(@subscription), class: "ml-auto px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700" do %><%= t("super_admin.subscriptions.show_edit_btn") %><% end %>
 </div>
 
 <div class="grid grid-cols-3 gap-4 mb-6">
   <% [
-    ["Plan",    @subscription.plan&.upcase,    "indigo"],
-    ["Status",  @subscription.status,          "emerald"],
-    ["Billing", @subscription.billing_cycle,   "slate"]
+    [t("super_admin.subscriptions.stat_plan"),    @subscription.plan&.upcase,    "indigo"],
+    [t("super_admin.subscriptions.stat_status"),  @subscription.status,          "emerald"],
+    [t("super_admin.subscriptions.stat_billing"), @subscription.billing_cycle,   "slate"]
   ].each do |label, value, color| %>
     <div class="bg-white rounded-xl border border-slate-200 p-5">
       <div class="text-[11px] font-semibold text-slate-400 uppercase mb-1"><%= label %></div>
@@ -19,26 +19,26 @@
 
 <div class="grid grid-cols-2 gap-4 mb-6">
   <div class="bg-white rounded-xl border border-slate-200 p-5">
-    <h2 class="text-[13px] font-bold text-slate-700 mb-3">Subscription Details</h2>
+    <h2 class="text-[13px] font-bold text-slate-700 mb-3"><%= t("super_admin.subscriptions.detail_title") %></h2>
     <dl class="space-y-2 text-[13px]">
-      <div class="flex justify-between"><dt class="text-slate-500">Workspace</dt><dd class="font-semibold text-slate-900"><%= @subscription.workspace&.name %></dd></div>
-      <div class="flex justify-between"><dt class="text-slate-500">Starts</dt><dd class="text-slate-700"><%= @subscription.starts_at&.strftime("%b %d, %Y") || "—" %></dd></div>
-      <div class="flex justify-between"><dt class="text-slate-500">Expires</dt><dd class="<%= @subscription.expires_soon? ? 'text-amber-600 font-semibold' : 'text-slate-700' %>"><%= @subscription.ends_at&.strftime("%b %d, %Y") || "—" %></dd></div>
-      <div class="flex justify-between"><dt class="text-slate-500">Auto-renew</dt><dd class="text-slate-700"><%= @subscription.auto_renew? ? "Yes" : "No" %></dd></div>
-      <div class="flex justify-between"><dt class="text-slate-500">Price</dt><dd class="text-slate-700"><%= number_with_delimiter(@subscription.price_cents) %> ₫</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.subscriptions.detail_workspace") %></dt><dd class="font-semibold text-slate-900"><%= @subscription.workspace&.name %></dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.subscriptions.detail_starts") %></dt><dd class="text-slate-700"><%= @subscription.starts_at&.strftime("%b %d, %Y") || "—" %></dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.subscriptions.detail_expires") %></dt><dd class="<%= @subscription.expires_soon? ? 'text-amber-600 font-semibold' : 'text-slate-700' %>"><%= @subscription.ends_at&.strftime("%b %d, %Y") || "—" %></dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.subscriptions.detail_auto_renew") %></dt><dd class="text-slate-700"><%= @subscription.auto_renew? ? t("super_admin.subscriptions.detail_yes") : t("super_admin.subscriptions.detail_no") %></dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.subscriptions.detail_price") %></dt><dd class="text-slate-700"><%= number_with_delimiter(@subscription.price_cents) %> ₫</dd></div>
     </dl>
   </div>
 
   <div class="bg-white rounded-xl border border-slate-200 p-5">
-    <h2 class="text-[13px] font-bold text-slate-700 mb-3">Limits & Credits</h2>
+    <h2 class="text-[13px] font-bold text-slate-700 mb-3"><%= t("super_admin.subscriptions.limits_title") %></h2>
     <dl class="space-y-2 text-[13px]">
       <% [
-        ["Max Surveys",    @subscription.max_surveys],
-        ["Max Votes",      @subscription.max_votes],
-        ["Max Feedbacks",  @subscription.max_feedbacks],
-        ["Max Supporters", @subscription.max_supporters],
-        ["AI Credits",     @subscription.max_ai_credits],
-        ["Credit Balance", @subscription.credit_balance]
+        [t("super_admin.subscriptions.limit_max_surveys"),    @subscription.max_surveys],
+        [t("super_admin.subscriptions.limit_max_votes"),      @subscription.max_votes],
+        [t("super_admin.subscriptions.limit_max_feedbacks"),  @subscription.max_feedbacks],
+        [t("super_admin.subscriptions.limit_max_supporters"), @subscription.max_supporters],
+        [t("super_admin.subscriptions.limit_max_ai_credits"), @subscription.max_ai_credits],
+        [t("super_admin.subscriptions.limit_credit_balance"), @subscription.credit_balance]
       ].each do |label, val| %>
         <div class="flex justify-between">
           <dt class="text-slate-500"><%= label %></dt>
@@ -51,16 +51,16 @@
 
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
   <div class="px-5 py-3 border-b border-slate-100">
-    <h2 class="text-[13px] font-bold text-slate-700">Payment History</h2>
+    <h2 class="text-[13px] font-bold text-slate-700"><%= t("super_admin.subscriptions.payments_title") %></h2>
   </div>
   <table class="w-full border-collapse">
     <thead>
       <tr class="bg-slate-50 border-b border-slate-200">
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2">Invoice</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2">Amount</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2">Gateway</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2">Status</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2">Date</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2"><%= t("super_admin.subscriptions.col_invoice") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2"><%= t("super_admin.subscriptions.col_amount") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2"><%= t("super_admin.subscriptions.col_gateway") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2"><%= t("super_admin.subscriptions.col_status") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2"><%= t("super_admin.subscriptions.col_date") %></th>
       </tr>
     </thead>
     <tbody>
@@ -77,7 +77,7 @@
         </tr>
       <% end %>
       <% if @payments.empty? %>
-        <tr><td colspan="5" class="px-4 py-6 text-center text-[13px] text-slate-400">Chưa có giao dịch nào.</td></tr>
+        <tr><td colspan="5" class="px-4 py-6 text-center text-[13px] text-slate-400"><%= t("super_admin.subscriptions.payments_empty") %></td></tr>
       <% end %>
     </tbody>
   </table>

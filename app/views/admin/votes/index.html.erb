@@ -1,37 +1,57 @@
-<% content_for :title, "Live Votes" %>
+<% content_for :title, t("votes.title") %>
+<% sub = current_workspace.active_subscription %>
 <div class="flex items-start justify-between mb-6">
   <div>
-    <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight">🗳️ Live Votes</h1>
-    <p class="text-[13px] text-slate-500 mt-0.5">Real-time audience voting for meetings</p>
+    <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight">🗳️ <%= t("votes.title") %></h1>
+    <div class="flex items-center gap-3 mt-0.5">
+      <p class="text-[13px] text-slate-500"><%= t("votes.subtitle") %></p>
+      <% if sub&.max_votes %>
+        <% pct = sub.votes_pct %>
+        <div class="flex items-center gap-1.5">
+          <div class="w-20 h-1.5 rounded-full overflow-hidden bg-slate-200">
+            <div class="h-1.5 rounded-full" style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
+          </div>
+          <span class="text-[11px] font-semibold <%= pct >= 100 ? 'text-amber-600' : 'text-slate-500' %>">
+            <%= sub.votes_used %> / <%= sub.max_votes %>
+          </span>
+        </div>
+      <% end %>
+    </div>
   </div>
-  <%= link_to new_vote_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700" do %>
-    + New Vote
+  <% if sub && !sub.within_vote_limit? %>
+    <%= link_to billing_subscription_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-amber-300 hover:bg-amber-50 hover:border-amber-400 text-amber-700 transition-colors" do %>
+      ⚠️ <%= t("subscription.limit_reached_short") %> · <%= t("subscription.upgrade") %>
+    <% end %>
+  <% else %>
+    <%= link_to new_vote_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-slate-700 transition-colors" do %>
+      + <%= t("votes.new") %>
+    <% end %>
   <% end %>
 </div>
 
 <div class="flex gap-3 mb-4">
   <div class="relative flex-1 max-w-sm">
     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
-    <input id="search-input" type="text" placeholder="Tìm theo tên vote..."
+    <input id="search-input" type="text" placeholder="<%= t("votes.search_placeholder") %>"
       class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white"
       oninput="filterVotes()">
   </div>
   <select id="status-filter" onchange="filterVotes()"
     class="px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white text-slate-600 cursor-pointer">
-    <option value="">Tất cả trạng thái</option>
-    <option value="draft">Draft</option>
-    <option value="active">Active</option>
-    <option value="closed">Closed</option>
+    <option value=""><%= t("votes.all_statuses") %></option>
+    <option value="draft"><%= t("status.draft") %></option>
+    <option value="active"><%= t("status.active") %></option>
+    <option value="closed"><%= t("status.closed") %></option>
   </select>
   <select id="type-filter" onchange="filterVotes()"
     class="px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white text-slate-600 cursor-pointer">
-    <option value="">Tất cả loại</option>
-    <option value="single_choice">Một lựa chọn</option>
-    <option value="multiple_choice">Nhiều lựa chọn</option>
-    <option value="word_cloud">Word Cloud</option>
-    <option value="open_ended">Trả lời tự do</option>
-    <option value="ranking">Xếp hạng</option>
-    <option value="qa_upvote">Q&A Upvote</option>
+    <option value=""><%= t("votes.all_types") %></option>
+    <option value="single_choice"><%= t("votes.type.single_choice") %></option>
+    <option value="multiple_choice"><%= t("votes.type.multiple_choice") %></option>
+    <option value="word_cloud"><%= t("votes.type.word_cloud") %></option>
+    <option value="open_ended"><%= t("votes.type.open_ended") %></option>
+    <option value="ranking"><%= t("votes.type.ranking") %></option>
+    <option value="qa_upvote"><%= t("votes.type.qa_upvote") %></option>
   </select>
 </div>
 
@@ -40,10 +60,18 @@
     <table class="w-full border-collapse">
       <thead>
         <tr class="bg-slate-50 border-b border-slate-200">
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Vote</th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Type</th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Status</th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Votes</th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_vote") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_type") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_status") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_votes") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">
+            <% next_sort = @sort == "desc" ? "asc" : "desc" %>
+            <%= link_to votes_path(sort: next_sort, status: params[:status], type: params[:type]),
+                class: "inline-flex items-center gap-1 hover:text-indigo-600 transition-colors" do %>
+              Ngày tạo
+              <span class="text-[10px]"><%= @sort == "desc" ? "↓" : "↑" %></span>
+            <% end %>
+          </th>
           <th class="px-4 py-2.5"></th>
         </tr>
       </thead>
@@ -58,30 +86,31 @@
                 <%= vote.title.truncate(60) %>
               <% end %>
             </td>
-            <td class="px-4 py-3 text-[12px] text-slate-500"><%= vote.vote_type.humanize %></td>
+            <td class="px-4 py-3 text-[12px] text-slate-500"><%= t("votes.type.#{vote.vote_type}", default: vote.vote_type.humanize) %></td>
             <td class="px-4 py-3" id="vote-status-<%= vote.id %>"><%= vote_status_badge(vote) %></td>
             <td class="px-4 py-3 text-[13px] text-slate-700" id="vote-count-<%= vote.id %>"><%= vote.participant_count %></td>
+            <td class="px-4 py-3 text-[12px] text-slate-500"><%= vote.created_at.strftime("%d/%m/%Y") %></td>
             <td class="px-4 py-3">
               <div class="flex gap-1.5 justify-end" id="vote-actions-<%= vote.id %>">
                 <% if vote.draft? || vote.closed? %>
                   <button onclick="openVote(<%= vote.id %>, '<%= open_vote_path(vote) %>', '<%= present_vote_path(vote) %>')"
                     class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 cursor-pointer border-0">
-                    ▶ Open
+                    <%= t("votes.open") %>
                   </button>
                 <% end %>
                 <% if vote.active? %>
-                  <%= link_to present_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100", target: "_blank" do %>Present<% end %>
+                  <%= link_to present_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100", target: "_blank" do %><%= t("votes.present") %><% end %>
                   <button onclick="closeVote(<%= vote.id %>, '<%= close_vote_path(vote) %>')"
                     class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-700 hover:bg-red-100 cursor-pointer border-0">
-                    ■ Close
+                    <%= t("votes.close") %>
                   </button>
                 <% end %>
-                <%= link_to results_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %>Results<% end %>
-                <%= link_to edit_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %>Edit<% end %>
+                <%= link_to results_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %><%= t("votes.results_btn") %><% end %>
+                <%= link_to edit_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %><%= t("votes.edit_btn") %><% end %>
                 <% unless vote.active? %>
-                  <button onclick="confirmDelete(<%= vote.id %>, '<%= vote.title.gsub("'", "\\'") %>', '<%= vote_path(vote) %>')"
+                  <button onclick="confirmDelete(<%= vote.id %>, '<%= j(vote.title) %>', '<%= vote_path(vote) %>')"
                     class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 cursor-pointer border-0">
-                    Xoá
+                    <%= t("votes.delete") %>
                   </button>
                 <% end %>
               </div>
@@ -89,7 +118,7 @@
           </tr>
         <% end %>
         <tr id="no-results-row" class="hidden">
-          <td colspan="5" class="px-4 py-12 text-center text-[13px] text-slate-400">Không tìm thấy vote nào phù hợp.</td>
+          <td colspan="6" class="px-4 py-12 text-center text-[13px] text-slate-400"><%= t("votes.not_found") %></td>
         </tr>
       </tbody>
     </table>
@@ -98,16 +127,16 @@
       <div class="flex items-center justify-between px-4 py-3 border-t border-slate-100">
         <p class="text-[12px] text-slate-500">
           <% from = (@pagy.page - 1) * @pagy.items + 1; to = [@pagy.page * @pagy.items, @pagy.count].min %>
-          Hiển thị <%= from %>–<%= to %> / <%= @pagy.count %> votes
+          <%= t("votes.showing") %> <%= from %>–<%= to %> <%= t("votes.of") %> <%= @pagy.count %>
         </p>
         <div class="flex gap-1">
           <% if @pagy.page > 1 %>
             <%= link_to votes_path(page: @pagy.page - 1, q: params[:q]),
-              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>← Trước<% end %>
+              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %><%= t("votes.prev") %><% end %>
           <% end %>
           <% if @pagy.page < @pagy.pages %>
             <%= link_to votes_path(page: @pagy.page + 1, q: params[:q]),
-              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>Tiếp →<% end %>
+              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %><%= t("votes.next") %><% end %>
           <% end %>
         </div>
       </div>
@@ -116,139 +145,107 @@
   <% else %>
     <div class="text-center py-16">
       <div class="text-4xl mb-3">🗳️</div>
-      <h3 class="text-[15px] font-semibold text-slate-700 mb-1">No votes yet</h3>
-      <p class="text-[13px] text-slate-400 mb-4">Create live votes for your meetings and presentations</p>
-      <%= link_to "Create Vote", new_vote_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700" %>
+      <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("votes.empty") %></h3>
+      <p class="text-[13px] text-slate-400 mb-4"><%= t("votes.empty_desc") %></p>
+      <%= link_to t("votes.create_vote"), new_vote_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-slate-700 transition-colors" %>
     </div>
   <% end %>
 </div>
 
 <!-- Delete confirm modal -->
-<div id="delete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+<div id="delete-modal" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 w-full h-full flex items-center justify-center">
   <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="document.getElementById('delete-modal').classList.add('hidden')"></div>
   <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
     <div class="flex items-center gap-3 mb-4">
       <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-[18px]">🗑</div>
       <div>
-        <p class="text-[15px] font-bold text-slate-800">Xoá vote?</p>
-        <p class="text-[12px] text-slate-500 mt-0.5">Thao tác này không thể hoàn tác.</p>
+        <p class="text-[15px] font-bold text-slate-800"><%= t("votes.delete_confirm_title") %></p>
+        <p class="text-[12px] text-slate-500 mt-0.5"><%= t("votes.delete_confirm_irreversible") %></p>
       </div>
     </div>
-    <p class="text-[13px] text-slate-600 mb-5">Bạn có chắc muốn xoá vote <span id="delete-modal-title" class="font-semibold text-slate-800"></span>?</p>
+    <p class="text-[13px] text-slate-600 mb-5"><%= t("votes.delete_confirm_msg") %> <span id="delete-modal-title" class="font-semibold text-slate-800"></span>?</p>
     <div class="flex gap-2 justify-end">
       <button onclick="document.getElementById('delete-modal').classList.add('hidden')"
         class="px-4 py-2 text-[13px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg border-0 cursor-pointer">
-        Huỷ
+        <%= t("votes.cancel") %>
       </button>
       <button id="delete-confirm-btn"
         class="px-4 py-2 text-[13px] font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg border-0 cursor-pointer">
-        Xoá
+        <%= t("votes.delete") %>
       </button>
     </div>
   </div>
+  </div><!-- /flex wrapper -->
 </div>
 
 <script>
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
 
-// ── Delete ─────────────────────────────────────────────────────────────────
 function confirmDelete(id, title, url) {
-  const modal = document.getElementById('delete-modal');
   document.getElementById('delete-modal-title').textContent = `"${title}"`;
   document.getElementById('delete-confirm-btn').onclick = () => deleteVote(id, url);
-  modal.classList.remove('hidden');
+  document.getElementById('delete-modal').classList.remove('hidden');
 }
 
 async function deleteVote(id, url) {
-  const res = await fetch(url, {
-    method: 'DELETE',
-    headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }
-  });
+  const res = await fetch(url, { method: 'DELETE', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' } });
   if (res.ok) {
     document.getElementById('delete-modal').classList.add('hidden');
-    const row = document.getElementById(`vote-row-${id}`);
-    row?.remove();
-    // Show no-results if table is now empty
-    const remaining = document.querySelectorAll('tr.vote-row:not(.hidden)');
-    if (remaining.length === 0) {
+    document.getElementById(`vote-row-${id}`)?.remove();
+    if (!document.querySelectorAll('tr.vote-row:not(.hidden)').length)
       document.getElementById('no-results-row')?.classList.remove('hidden');
-    }
   }
 }
 
 function filterVotes() {
-  const q      = document.getElementById('search-input').value.toLowerCase().trim();
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
   const status = document.getElementById('status-filter').value;
   const type   = document.getElementById('type-filter').value;
-  const rows   = document.querySelectorAll('tr.vote-row');
   let visible  = 0;
-
-  rows.forEach(row => {
-    const matchTitle  = !q      || row.dataset.title.includes(q);
-    const matchStatus = !status || row.dataset.status === status;
-    const matchType   = !type   || row.dataset.type   === type;
-    const show = matchTitle && matchStatus && matchType;
+  document.querySelectorAll('tr.vote-row').forEach(row => {
+    const show = (!q || row.dataset.title.includes(q)) &&
+                 (!status || row.dataset.status === status) &&
+                 (!type   || row.dataset.type   === type);
     row.classList.toggle('hidden', !show);
     if (show) visible++;
   });
-
   document.getElementById('no-results-row')?.classList.toggle('hidden', visible > 0);
 }
 
 async function openVote(id, openUrl, presentUrl) {
-  const res = await fetch(openUrl, {
-    method: 'PATCH',
-    headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json' }
-  });
+  const res = await fetch(openUrl, { method: 'PATCH', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json' } });
   if (!res.ok) return;
-
-  // Update status badge
   const statusCell = document.getElementById(`vote-status-${id}`);
-  if (statusCell) statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700">Active</span>';
-
-  // Update actions — show Present + Close
+  if (statusCell) statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700"><%= t("status.active") %></span>';
   const actions = document.getElementById(`vote-actions-${id}`);
   if (actions) {
     const closeUrl = openUrl.replace('/open', '/close');
-    const resultsUrl = openUrl.replace('/open', '/results');
-    const editUrl = openUrl.replace('/open', '/edit');
     actions.innerHTML = `
-      <a href="${presentUrl}" target="_blank" class="px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100">Present</a>
-      <button onclick="closeVote(${id}, '${closeUrl}')" class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-700 hover:bg-red-100 cursor-pointer border-0">■ Close</button>
-      <a href="${resultsUrl}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200">Results</a>
-      <a href="${editUrl}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200">Edit</a>
-    `;
+      <a href="${presentUrl}" target="_blank" class="px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100"><%= t("votes.present") %></a>
+      <button onclick="closeVote(${id}, '${closeUrl}')" class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-700 hover:bg-red-100 cursor-pointer border-0"><%= t("votes.close") %></button>
+      <a href="${openUrl.replace('/open', '/results')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><%= t("votes.results_btn") %></a>
+      <a href="${openUrl.replace('/open', '/edit')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><%= t("votes.edit_btn") %></a>`;
   }
-
-  // Open present view in new tab
   window.open(presentUrl, '_blank');
 }
 
 async function closeVote(id, url) {
-  const res = await fetch(url, {
-    method: 'PATCH',
-    headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json' }
-  });
+  const res = await fetch(url, { method: 'PATCH', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json' } });
   if (!res.ok) return;
-
-  // Update status badge
   const statusCell = document.getElementById(`vote-status-${id}`);
-  if (statusCell) statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-600">Closed</span>';
-
-  // Update actions — remove Present/Close, show Open + Results
+  if (statusCell) statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-600"><%= t("status.closed") %></span>';
   const actions = document.getElementById(`vote-actions-${id}`);
   if (actions) {
     const openPath = url.replace('/close', '/open');
-    const resultsPath = url.replace('/close', '/results');
     actions.innerHTML = `
       <form action="${openPath}" method="post" style="display:inline">
         <input type="hidden" name="_method" value="patch">
         <input type="hidden" name="authenticity_token" value="${csrf}">
-        <button class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 border-0 cursor-pointer">▶ Open</button>
+        <button class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 border-0 cursor-pointer"><%= t("votes.open") %></button>
       </form>
-      <a href="${resultsPath}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200">Results</a>
-      <a href="${url.replace('/close', '/edit')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200">Edit</a>
-    `;
+      <a href="${url.replace('/close', '/results')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><%= t("votes.results_btn") %></a>
+      <a href="${url.replace('/close', '/edit')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><%= t("votes.edit_btn") %></a>`;
   }
 }
 </script>

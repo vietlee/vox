@@ -2,7 +2,12 @@ class Admin::VotesController < Admin::BaseController
   before_action :set_vote, only: [:show, :edit, :update, :destroy, :open, :close, :results, :present, :share, :ai_insight]
 
   def index
-    @pagy, @votes = pagy(current_workspace.votes.order(created_at: :desc), items: 15)
+    direction = params[:sort] == "asc" ? :asc : :desc
+    @sort     = params[:sort] == "asc" ? "asc" : "desc"
+    votes     = current_workspace.votes.order(created_at: direction)
+    votes     = votes.where(status: params[:status]) if params[:status].present?
+    votes     = votes.where(vote_type: params[:type]) if params[:type].present?
+    @pagy, @votes = pagy(votes, items: 15)
   end
 
   def show
@@ -20,6 +25,7 @@ class Admin::VotesController < Admin::BaseController
 
     if @vote.save
       build_vote_options
+      audit_log("vote.create", resource: @vote)
       redirect_to edit_vote_path(@vote), notice: t("votes.created")
     else
       render :new, status: :unprocessable_entity
@@ -31,7 +37,7 @@ class Admin::VotesController < Admin::BaseController
 
   def update
     unless @vote.draft?
-      redirect_to edit_vote_path(@vote), alert: "Chỉ có thể chỉnh sửa vote ở trạng thái Draft."
+      redirect_to edit_vote_path(@vote), alert: t("votes_errors.draft_only_edit")
       return
     end
     if @vote.update(vote_params)
@@ -47,8 +53,8 @@ class Admin::VotesController < Admin::BaseController
   def destroy
     if @vote.active?
       respond_to do |format|
-        format.json { render json: { error: "Không thể xoá vote đang active." }, status: :forbidden }
-        format.html { redirect_to votes_path, alert: "Không thể xoá vote đang active." }
+        format.json { render json: { error: t("votes_errors.cannot_delete_active") }, status: :forbidden }
+        format.html { redirect_to votes_path, alert: t("votes_errors.cannot_delete_active") }
       end
       return
     end
@@ -96,8 +102,10 @@ class Admin::VotesController < Admin::BaseController
   end
 
   def ai_insight
-    require_ai_feature!(:ai_analysis)
-    require_credits!(2)
+    return unless require_ai_feature!(:ai_analysis)
+    return unless require_credits!(2)
+
+    current_workspace.active_subscription&.deduct_credits!(2)
     job = AiJob.create!(workspace: current_workspace, user: current_user, job_type: "post_vote_insight", resource_type: "Vote", resource_id: @vote.id, credits_cost: 2)
     AiPostVoteInsightJob.perform_later(job.id)
     render json: { job_id: job.id }
@@ -117,7 +125,9 @@ class Admin::VotesController < Admin::BaseController
     options_params = params[:vote][:vote_options_attributes]
     return unless options_params
     options_params.values.each_with_index do |opt, idx|
-      @vote.vote_options.create!(label: opt[:label], position: idx)
+      label = opt[:label].to_s.strip
+      next if label.blank?
+      @vote.vote_options.create(label: label, position: idx)
     end
   end
 end

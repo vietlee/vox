@@ -19,22 +19,20 @@
   ]
 %>
 
-<div class="min-h-screen flex flex-col">
-
-  <!-- Top bar -->
-  <div class="flex items-center justify-between px-6 py-4">
-    <span class="text-[17px] font-black tracking-tight" style="background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">VOX</span>
-    <div class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold
-      <%= @vote.active? ? 'text-emerald-700' : 'text-slate-500' %>"
-      style="background:<%= @vote.active? ? 'rgba(16,185,129,0.1)' : 'rgba(100,116,139,0.1)' %>; border:1px solid <%= @vote.active? ? 'rgba(16,185,129,0.2)' : 'rgba(100,116,139,0.2)' %>;">
-      <% if @vote.active? %>
-        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-        LIVE
-      <% else %>
-        Đã kết thúc
-      <% end %>
-    </div>
+<% content_for :nav_right do %>
+  <div class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold
+    <%= @vote.active? ? 'text-emerald-700' : 'text-slate-500' %>"
+    style="background:<%= @vote.active? ? 'rgba(16,185,129,0.1)' : 'rgba(100,116,139,0.1)' %>; border:1px solid <%= @vote.active? ? 'rgba(16,185,129,0.2)' : 'rgba(100,116,139,0.2)' %>;">
+    <% if @vote.active? %>
+      <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+      <%= t("participate.vote.live_badge") %>
+    <% else %>
+      <%= t("participate.vote.closed_badge") %>
+    <% end %>
   </div>
+<% end %>
+
+<div class="min-h-screen flex flex-col">
 
   <!-- Main -->
   <div class="flex-1 flex flex-col items-center px-4 pb-10 pt-2">
@@ -43,7 +41,7 @@
       <!-- Header -->
       <div class="text-center mb-8 fade-in">
         <h1 class="text-[26px] font-extrabold text-slate-900 tracking-tight leading-snug mb-2"><%= @vote.title %></h1>
-        <p class="text-[13px] text-slate-400"><%= @vote.participant_count %> người đã bình chọn</p>
+        <p class="text-[13px] text-slate-400"><%= @vote.participant_count %> <%= t("participate.vote.participants") %></p>
       </div>
 
       <!-- Results -->
@@ -54,7 +52,7 @@
             <div class="flex justify-between items-center mb-3">
               <span class="text-[15px] font-semibold text-slate-800"><%= result[:label] %></span>
               <div class="flex items-center gap-3">
-                <span class="text-[12px] text-slate-400"><%= result[:count] %> votes</span>
+                <span class="text-[12px] text-slate-400"><%= result[:count] %> <%= t("participate.vote.total_votes") %></span>
                 <span class="text-[18px] font-black tabular-nums" style="color:<%= c[:text] %>"><%= result[:percentage] %>%</span>
               </div>
             </div>
@@ -81,7 +79,7 @@
 
   <!-- Footer -->
   <div class="text-center pb-6">
-    <span class="text-[11px] text-slate-400">Powered by <strong class="text-slate-500">VOX</strong></span>
+    <span class="inline-flex items-center gap-1.5"><img src="/vox_logo.svg" alt="VOX" style="height:18px;width:auto;opacity:0.65;"><span style="font-size:11px;color:#94a3b8;">· Survey &amp; Voting Platform</span></span>
   </div>
 
 </div>

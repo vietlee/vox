@@ -10,7 +10,10 @@ class Auth::SessionsController < Devise::SessionsController
   private
 
   def after_sign_in_path_for(resource)
-    if resource.super_admin?
+    return_to = session.delete(:user_return_to)
+    if return_to.present?
+      return_to
+    elsif resource.super_admin?
       super_admin_root_path
     else
       dashboard_path

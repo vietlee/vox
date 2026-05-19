@@ -7,12 +7,14 @@ class AiSurveyAnalysisJob < ApplicationJob
     job.start!
 
     responses = survey.responses.completed.includes(:answers, answers: :question)
-    return job.complete!({ error: "insufficient_data", min_required: 10 }) if responses.count < 10
+    return job.complete!({ error: "no_data" }) if responses.empty?
 
     # Build summary data for Claude
     data_summary = build_summary(survey, responses)
 
-    system_prompt = "You are a data analyst expert in employee surveys. Provide actionable insights in #{survey.workspace.language == 'vi' ? 'Vietnamese' : 'English'}."
+    language  = job.input_data&.dig("language") || survey.workspace.language || "vi"
+    lang_name = language == "vi" ? "Vietnamese" : "English"
+    system_prompt = "You are a data analyst expert in employee surveys. Provide actionable insights in #{lang_name}."
 
     user_prompt = <<~PROMPT
       Analyze this survey data and provide comprehensive insights:
@@ -34,7 +36,8 @@ class AiSurveyAnalysisJob < ApplicationJob
     PROMPT
 
     result_text = ClaudeService.sonnet.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 4096)
-    result = JSON.parse(result_text.match(/\{.*\}/m)&.to_s || result_text)
+    clean = result_text.gsub(/\A```(?:json)?\s*/i, '').gsub(/\s*```\z/, '').strip
+    result = JSON.parse(clean.match(/\{.*\}/m)&.to_s || clean)
 
     AiAnalysisResult.create!(
       workspace: job.workspace,
@@ -48,7 +51,6 @@ class AiSurveyAnalysisJob < ApplicationJob
     )
 
     job.complete!(result)
-    job.workspace.active_subscription&.deduct_credits!(job.credits_cost)
   rescue => e
     job.fail!(e.message)
   end

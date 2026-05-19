@@ -31,7 +31,6 @@ class AiPostVoteInsightJob < ApplicationJob
 
     job.complete!(result)
     ActionCable.server.broadcast("vote_#{vote.id}", { type: "ai_insight", insight: result["insight"], highlight: result["highlight"] })
-    vote.workspace.active_subscription&.deduct_credits!(2)
   rescue => e
     job&.fail!(e.message)
   end

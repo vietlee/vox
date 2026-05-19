@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= content_for?(:title) ? yield(:title) : "Vox" %></title>
   <meta name="csrf-token" content="<%= form_authenticity_token %>">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="/icon.png" type="image/png">
   <%= stylesheet_link_tag "tailwind", data: { turbo_track: "reload" } %>
   <%= stylesheet_link_tag "application", data: { turbo_track: "reload" } %>
   <%= javascript_importmap_tags %>
@@ -12,7 +14,79 @@
 </head>
 <body class="h-full font-inter antialiased bg-slate-50">
   <div class="min-h-full">
+    <!-- Shared participate top bar -->
+    <div class="flex items-center justify-between px-6 py-4">
+      <img src="/vox_logo.svg" alt="VOX" class="h-6 w-auto">
+      <div class="flex items-center gap-2">
+        <!-- Language switcher -->
+        <div class="flex items-center rounded-full overflow-hidden text-[11px] font-bold" style="border:1px solid rgba(99,102,241,0.2); background:rgba(255,255,255,0.7);">
+          <a href="?locale=vi"
+             class="px-2.5 py-1 transition-colors <%= I18n.locale.to_s == 'vi' ? 'text-white' : 'text-slate-500 hover:text-indigo-600' %>"
+             style="<%= I18n.locale.to_s == 'vi' ? 'background:linear-gradient(135deg,#6366f1,#8b5cf6);' : '' %>">
+            <%= t("participate.locale_switcher.vi") %>
+          </a>
+          <a href="?locale=en"
+             class="px-2.5 py-1 transition-colors <%= I18n.locale.to_s == 'en' ? 'text-white' : 'text-slate-500 hover:text-indigo-600' %>"
+             style="<%= I18n.locale.to_s == 'en' ? 'background:linear-gradient(135deg,#6366f1,#8b5cf6);' : '' %>">
+            <%= t("participate.locale_switcher.en") %>
+          </a>
+        </div>
+        <!-- View-specific badge -->
+        <%= yield :nav_right %>
+      </div>
+    </div>
     <%= yield %>
   </div>
+
+  <script>
+    // Override browser-native HTML5 validation messages with locale-aware strings
+    (function() {
+      const locale = "<%= I18n.locale %>";
+      const messages = {
+        vi: {
+          valueMissing:   "Vui lòng điền vào ô này.",
+          typeMismatch:   "Vui lòng nhập đúng định dạng.",
+          tooShort:       "Vui lòng nhập ít nhất %d ký tự.",
+          tooLong:        "Vui lòng nhập không quá %d ký tự.",
+          rangeUnderflow: "Giá trị phải lớn hơn hoặc bằng %d.",
+          rangeOverflow:  "Giá trị phải nhỏ hơn hoặc bằng %d.",
+          patternMismatch:"Vui lòng nhập đúng định dạng yêu cầu.",
+          badInput:       "Vui lòng nhập một giá trị hợp lệ.",
+        },
+        en: {
+          valueMissing:   "Please fill out this field.",
+          typeMismatch:   "Please enter a valid value.",
+          tooShort:       "Please use at least %d characters.",
+          tooLong:        "Please use no more than %d characters.",
+          rangeUnderflow: "Value must be greater than or equal to %d.",
+          rangeOverflow:  "Value must be less than or equal to %d.",
+          patternMismatch:"Please match the requested format.",
+          badInput:       "Please enter a valid value.",
+        }
+      };
+      const m = messages[locale] || messages.en;
+
+      document.addEventListener('invalid', function(e) {
+        const el = e.target;
+        el.setCustomValidity(''); // reset first to re-check validity
+        const v = el.validity;
+        let msg = '';
+        if (v.valueMissing)    msg = m.valueMissing;
+        else if (v.typeMismatch)    msg = m.typeMismatch;
+        else if (v.tooShort)        msg = m.tooShort.replace('%d', el.minLength);
+        else if (v.tooLong)         msg = m.tooLong.replace('%d', el.maxLength);
+        else if (v.rangeUnderflow)  msg = m.rangeUnderflow.replace('%d', el.min);
+        else if (v.rangeOverflow)   msg = m.rangeOverflow.replace('%d', el.max);
+        else if (v.patternMismatch) msg = m.patternMismatch;
+        else if (v.badInput)        msg = m.badInput;
+        el.setCustomValidity(msg);
+      }, true);
+
+      // Reset custom validity on input so re-validation works correctly
+      document.addEventListener('input', function(e) {
+        if (e.target.setCustomValidity) e.target.setCustomValidity('');
+      }, true);
+    })();
+  </script>
 </body>
 </html>

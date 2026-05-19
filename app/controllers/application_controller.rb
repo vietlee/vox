@@ -42,7 +42,9 @@ class ApplicationController < ActionController::Base
         format.json { render json: { error: "AI feature not available on your plan" }, status: :payment_required }
         format.turbo_stream { render turbo_stream: turbo_stream.replace("ai-result", partial: "shared/ai_upgrade_prompt") }
       end
+      return false
     end
+    true
   end
 
   def require_credits!(amount)
@@ -52,6 +54,8 @@ class ApplicationController < ActionController::Base
         format.json { render json: { error: "Insufficient AI credits" }, status: :payment_required }
         format.turbo_stream { render turbo_stream: turbo_stream.replace("ai-result", partial: "shared/no_credits") }
       end
+      return false
     end
+    true
   end
 end

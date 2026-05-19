@@ -7,7 +7,7 @@ class Admin::BaseController < ApplicationController
 
   def require_workspace_member!
     unless current_user&.admin? || current_user&.supporter?
-      redirect_to new_user_session_path, alert: "Access denied."
+      redirect_to new_user_session_path, alert: t("errors.access_denied")
     end
   end
 

@@ -6,17 +6,15 @@
     <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight"><%= t("dashboard.title") %></h1>
     <p class="text-[13px] text-slate-500 mt-0.5"><%= current_workspace.name %> · <%= Date.current.strftime("%B %Y") %></p>
   </div>
-  <div class="flex gap-2">
-    <%= link_to new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" do %>
-      + <%= t("surveys.new") %>
-    <% end %>
-  </div>
 </div>
 
 <!-- KPI Cards -->
+<% sub = @subscription %>
 <div class="grid grid-cols-4 gap-4 mb-6">
-  <%= render "admin/dashboard/kpi_card", icon: "📋", label: t("kpi.surveys"), value: @surveys_count, color: "bg-indigo-50", trend: nil %>
-  <%= render "admin/dashboard/kpi_card", icon: "🗳️", label: t("kpi.votes"), value: @votes_count, color: "bg-violet-50", trend: nil %>
+  <%= render "admin/dashboard/kpi_card", icon: "📋", label: t("kpi.surveys"), value: @surveys_count, color: "bg-indigo-50",
+      used: sub&.surveys_used, max: sub&.max_surveys, pct: sub&.surveys_pct %>
+  <%= render "admin/dashboard/kpi_card", icon: "🗳️", label: t("kpi.votes"), value: @votes_count, color: "bg-violet-50",
+      used: sub&.votes_used, max: sub&.max_votes, pct: sub&.votes_pct %>
   <%= render "admin/dashboard/kpi_card", icon: "💬", label: t("kpi.feedback"), value: @feedbacks_count, color: "bg-emerald-50", trend: nil %>
   <%= render "admin/dashboard/kpi_card", icon: "📝", label: t("kpi.responses"), value: @responses_count, color: "bg-amber-50", trend: nil %>
 </div>
@@ -78,8 +76,8 @@
     <% if @recent_ai_jobs.any? %>
       <div class="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200 rounded-[10px] p-[18px]">
         <div class="flex items-center gap-2 mb-3">
-          <span class="text-[15px]">🤖</span>
           <span class="text-[13px] font-bold text-slate-900"><%= t("dashboard.ai_insights") %></span>
+          <span class="text-[15px]">✨</span>
           <span class="bg-violet-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-auto">New</span>
         </div>
         <% @recent_ai_jobs.each do |job| %>
@@ -88,7 +86,7 @@
             <span class="text-slate-500 ml-1"><%= job.completed_at&.strftime("%b %d") %></span>
           </div>
         <% end %>
-        <div class="text-[10px] text-violet-600 mt-2">Powered by Claude AI</div>
+        <div class="text-[10px] text-violet-600 mt-2">Powered by AI</div>
       </div>
     <% end %>
 

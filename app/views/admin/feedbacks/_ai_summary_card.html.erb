@@ -1,0 +1,90 @@
+<%# Renders a persisted AiAnalysisResult as a rich summary card %>
+<% result    = summary.output %>
+<% sentiment = result["sentiment"] || {} %>
+<% themes    = result["themes"]    || [] %>
+<% issues    = result["priority_issues"]    || [] %>
+<% recs      = result["recommendations"] || [] %>
+
+<div class="rounded-[12px] border overflow-hidden" style="border-color:rgba(139,92,246,0.2); background:rgba(245,243,255,0.6);">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between px-5 py-3" style="background:rgba(139,92,246,0.08); border-bottom:1px solid rgba(139,92,246,0.15);">
+    <div class="flex items-center gap-2">
+      <span class="text-[13px] font-bold text-violet-700"><%= t("feedback_boards.feedbacks_page.ai_summary_header") %></span>
+      <span class="text-[10px] text-slate-400"><%= t("feedback_boards.feedbacks_page.ai_summary_generated", time: I18n.l(summary.created_at, format: :short)) %></span>
+    </div>
+    <button onclick="aiSummarize()"
+      class="text-[11px] font-semibold text-violet-600 hover:text-violet-800 px-2.5 py-1 rounded-lg hover:bg-violet-100 transition-colors border-0 bg-transparent cursor-pointer">
+      ↺ <%= t("feedback_boards.feedbacks_page.ai_summary_regenerate") %>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="p-5 space-y-4">
+
+    <!-- Summary text -->
+    <% if result["summary"].present? %>
+      <p class="text-[13px] text-slate-800 leading-relaxed"><%= result["summary"] %></p>
+    <% end %>
+
+    <!-- Sentiment -->
+    <% if sentiment.any? %>
+      <div class="flex gap-2 flex-wrap">
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide self-center mr-1"><%= t("feedback_boards.feedbacks_page.ai_summary_sentiment") %>:</span>
+        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">
+          ▲ <%= t("feedback_boards.feedbacks_page.ai_summary_positive") %>: <%= sentiment["positive"] || "–" %>
+        </span>
+        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+          ● <%= t("feedback_boards.feedbacks_page.ai_summary_neutral") %>: <%= sentiment["neutral"] || "–" %>
+        </span>
+        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-50 text-red-600">
+          ▼ <%= t("feedback_boards.feedbacks_page.ai_summary_negative") %>: <%= sentiment["negative"] || "–" %>
+        </span>
+      </div>
+    <% end %>
+
+    <!-- Themes -->
+    <% if themes.any? %>
+      <div>
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2"><%= t("feedback_boards.feedbacks_page.ai_summary_themes") %></div>
+        <div class="flex gap-2 flex-wrap">
+          <% themes.each do |theme| %>
+            <% badge_class = theme["sentiment"] == "positive" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : theme["sentiment"] == "negative" ? "bg-red-50 text-red-600 border-red-200" : "bg-slate-50 text-slate-600 border-slate-200" %>
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border <%= badge_class %>">
+              <%= theme["name"] %> <span class="opacity-60">(<%= theme["count"] %>)</span>
+            </span>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Priority issues -->
+    <% if issues.any? %>
+      <div>
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2"><%= t("feedback_boards.feedbacks_page.ai_summary_issues") %></div>
+        <ul class="space-y-1">
+          <% issues.each do |issue| %>
+            <li class="flex gap-2 text-[12px] text-slate-700">
+              <span class="text-red-400 flex-shrink-0">•</span><%= issue %>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <!-- Recommendations -->
+    <% if recs.any? %>
+      <div>
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2"><%= t("feedback_boards.feedbacks_page.ai_summary_recommendations") %></div>
+        <ul class="space-y-1">
+          <% recs.each do |rec| %>
+            <li class="flex gap-2 text-[12px] text-slate-700">
+              <span class="text-indigo-400 flex-shrink-0">→</span><%= rec %>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+  </div>
+</div>

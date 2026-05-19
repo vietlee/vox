@@ -1,0 +1,67 @@
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-[21px] font-extrabold text-slate-900">📢 <%= t("super_admin.broadcasts.title") %></h1>
+    <p class="text-[13px] text-slate-500 mt-0.5"><%= t("super_admin.broadcasts.subtitle") %></p>
+  </div>
+  <%= link_to new_super_admin_broadcast_path, class: "px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700" do %>
+    + <%= t("super_admin.broadcasts.new_btn") %>
+  <% end %>
+</div>
+
+<!-- Stats row -->
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
+    <div class="text-[26px] font-extrabold text-indigo-600"><%= @broadcasts.length %></div>
+    <div class="text-[11px] text-slate-500 mt-0.5 uppercase tracking-wide"><%= t("super_admin.broadcasts.stat_sent") %></div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
+    <div class="text-[26px] font-extrabold text-emerald-600"><%= @sent_count %></div>
+    <div class="text-[11px] text-slate-500 mt-0.5 uppercase tracking-wide"><%= t("super_admin.broadcasts.stat_workspaces_reached") %></div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
+    <div class="text-[26px] font-extrabold text-slate-700"><%= @workspaces_count %></div>
+    <div class="text-[11px] text-slate-500 mt-0.5 uppercase tracking-wide"><%= t("super_admin.broadcasts.stat_total_workspaces") %></div>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+  <% if @broadcasts.any? %>
+    <% grouped = @broadcasts.group_by { |n| [n.title, n.body, n.created_at.beginning_of_minute] } %>
+    <% deduped = grouped.map { |(_t, _b, _at), notifs| notifs.first.tap { |n| n.define_singleton_method(:workspace_count) { notifs.map(&:workspace_id).uniq.count } } } %>
+    <table class="w-full border-collapse">
+      <thead>
+        <tr class="bg-slate-50 border-b border-slate-200">
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("super_admin.broadcasts.col_title") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("super_admin.broadcasts.col_workspaces") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("super_admin.broadcasts.col_sent_at") %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% deduped.each do |notif| %>
+          <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="px-4 py-3">
+              <div class="text-[13px] font-semibold text-slate-900"><%= notif.title %></div>
+              <% if notif.body.present? %>
+                <div class="text-[12px] text-slate-500 mt-0.5 truncate max-w-md"><%= notif.body %></div>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 text-[13px] text-slate-600">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full text-[11px] font-semibold">
+                🏢 <%= notif.workspace_count %>
+              </span>
+            </td>
+            <td class="px-4 py-3 text-[12px] text-slate-500"><%= I18n.l(notif.created_at, format: :short) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <div class="text-center py-16">
+      <div class="text-4xl mb-3">📢</div>
+      <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("super_admin.broadcasts.empty") %></h3>
+      <p class="text-[13px] text-slate-400 mb-4"><%= t("super_admin.broadcasts.empty_desc") %></p>
+      <%= link_to t("super_admin.broadcasts.new_btn"), new_super_admin_broadcast_path,
+            class: "inline-flex px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700" %>
+    </div>
+  <% end %>
+</div>

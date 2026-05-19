@@ -8,6 +8,12 @@ class Admin::FeedbacksController < Admin::BaseController
     feedbacks = feedbacks.where(moderation_status: params[:moderation]) if params[:moderation].present?
     feedbacks = feedbacks.where("content ILIKE ?", "%#{params[:q]}%") if params[:q].present?
     @pagy, @feedbacks = pagy(feedbacks)
+    @ai_summary = AiAnalysisResult.where(
+      workspace: current_workspace,
+      resource_type: "FeedbackBoard",
+      resource_id: @board.id,
+      result_type: "themes"
+    ).order(created_at: :desc).first
   end
 
   def show

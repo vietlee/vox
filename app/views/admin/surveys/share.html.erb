@@ -1,22 +1,20 @@
-<% content_for :title, "Share — #{@survey.title}" %>
+<% content_for :title, t("surveys.share.title") %>
 <div class="max-w-[600px]">
-  <h1 class="text-[19px] font-extrabold text-slate-900 mb-5">🔗 Share Survey</h1>
+  <h1 class="text-[19px] font-extrabold text-slate-900 mb-5">🔗 <%= t("surveys.share.title") %></h1>
   <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6 space-y-5">
 
-    <!-- Survey Link -->
     <div>
-      <label class="block text-[12px] font-semibold text-slate-500 mb-1.5">Survey Link</label>
+      <label class="block text-[12px] font-semibold text-slate-500 mb-1.5"><%= t("surveys.share.link_label") %></label>
       <div class="flex gap-2">
         <input id="survey-link" readonly value="<%= request.base_url + participate_survey_path(@survey.slug) %>"
           class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-[12px] bg-slate-50 font-mono">
-        <button onclick="navigator.clipboard.writeText(document.getElementById('survey-link').value); this.textContent='Copied!'; setTimeout(()=>this.textContent='Copy',2000)"
-          class="px-3 py-2 bg-indigo-50 rounded-lg text-[12px] text-indigo-700 hover:bg-indigo-100 font-semibold">Copy</button>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('survey-link').value); this.textContent='<%= j t("surveys.share.copied") %>'; setTimeout(()=>this.textContent='<%= j t("surveys.share.copy") %>',2000)"
+          class="px-3 py-2 bg-indigo-50 rounded-lg text-[12px] text-indigo-700 hover:bg-indigo-100 font-semibold"><%= t("surveys.share.copy") %></button>
       </div>
     </div>
 
-    <!-- QR Code -->
     <div class="text-center">
-      <p class="text-[12px] font-semibold text-slate-500 mb-3">QR Code</p>
+      <p class="text-[12px] font-semibold text-slate-500 mb-3"><%= t("surveys.share.qr_code") %></p>
       <% if @survey.qr_code %>
         <div class="inline-block bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <img src="<%= qr_image_path(@survey.qr_code.token) %>"
@@ -24,28 +22,27 @@
                class="w-44 h-44 block"
                id="qr-img">
         </div>
-        <p class="text-[11px] text-slate-400 mt-2 mb-3"><%= @survey.qr_code.scan_count %> scans</p>
+        <p class="text-[11px] text-slate-400 mt-2 mb-3"><%= t("surveys.qr_scans", count: @survey.qr_code.scan_count) %></p>
         <div class="flex justify-center gap-2">
           <a href="<%= qr_image_path(@survey.qr_code.token) %>"
              download="qrcode-<%= @survey.slug %>.svg"
              class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-[12px] font-semibold rounded-lg hover:bg-indigo-700">
-            ↓ Download SVG
+            <%= t("surveys.share.download_svg") %>
           </a>
           <button onclick="downloadQrPng()"
             class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 text-[12px] font-semibold rounded-lg hover:bg-slate-200">
-            ↓ Download PNG
+            <%= t("surveys.share.download_png") %>
           </button>
         </div>
       <% else %>
         <div class="w-44 h-44 mx-auto bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 text-[12px]">
-          Không có QR Code
+          <%= t("surveys.share.no_qr") %>
         </div>
       <% end %>
     </div>
 
-    <!-- Embed Code -->
     <div>
-      <label class="block text-[12px] font-semibold text-slate-500 mb-1.5">Embed Code</label>
+      <label class="block text-[12px] font-semibold text-slate-500 mb-1.5"><%= t("surveys.share.embed_code") %></label>
       <textarea readonly rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[11px] bg-slate-50 font-mono resize-none"><iframe src="<%= request.base_url + participate_survey_path(@survey.slug) %>" width="100%" height="600" frameborder="0"></iframe></textarea>
     </div>
 
@@ -57,8 +54,7 @@
 function downloadQrPng() {
   const img = document.getElementById('qr-img');
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
+  canvas.width = 512; canvas.height = 512;
   const ctx = canvas.getContext('2d');
   const svgImg = new Image();
   svgImg.onload = function() {

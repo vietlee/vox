@@ -11,17 +11,17 @@ module ApplicationHelper
 
   def question_type_label(type)
     {
-      "multiple_choice" => "Multiple Choice",
-      "checkbox"        => "Checkbox",
-      "rating"          => "Rating ⭐",
-      "short_text"      => "Short Text",
-      "long_text"       => "Long Text",
-      "dropdown"        => "Dropdown",
-      "linear_scale"    => "Linear Scale",
-      "matrix"          => "Matrix",
-      "date_time"       => "Date/Time",
-      "file_upload"     => "File Upload",
-      "nps"             => "NPS Score"
+      "single_choice"   => t("surveys.question_types.single_choice"),
+      "multiple_choice" => t("surveys.question_types.multiple_choice"),
+      "rating"          => t("surveys.question_types.rating"),
+      "short_text"      => t("surveys.question_types.short_text"),
+      "long_text"       => t("surveys.question_types.long_text"),
+      "dropdown"        => t("surveys.question_types.dropdown"),
+      "linear_scale"    => t("surveys.question_types.linear_scale"),
+      "matrix"          => t("surveys.question_types.matrix"),
+      "date_time"       => t("surveys.question_types.date_time"),
+      "file_upload"     => t("surveys.question_types.file_upload"),
+      "nps"             => t("surveys.question_types.nps")
     }[type.to_s] || type.to_s.humanize
   end
 

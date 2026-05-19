@@ -5,7 +5,7 @@ class Notification < ApplicationRecord
   TYPES = %w[
     workspace_created supporter_invited survey_new feedback_new_pending
     subscription_expiring payment_success survey_submitted ai_job_done
-    ai_credits_low monthly_digest anomaly_detected
+    ai_credits_low monthly_digest anomaly_detected system_broadcast
   ].freeze
 
   validates :notification_type, inclusion: { in: TYPES }
@@ -15,6 +15,18 @@ class Notification < ApplicationRecord
   scope :recent,  -> { order(created_at: :desc) }
 
   after_create_commit :broadcast_to_user
+
+  def self.broadcast_to_workspace(workspace:, title:, body: nil)
+    workspace.users.where(role: :admin).each do |admin|
+      create!(
+        workspace:         workspace,
+        user:              admin,
+        notification_type: "system_broadcast",
+        title:             title,
+        body:              body
+      )
+    end
+  end
 
   def self.notify(user:, type:, title:, body: nil, resource: nil, metadata: {})
     create!(

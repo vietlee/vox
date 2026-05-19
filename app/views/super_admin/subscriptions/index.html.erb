@@ -1,14 +1,23 @@
 <div class="flex justify-between items-center mb-5">
-  <h1 class="text-[21px] font-extrabold text-slate-900">Subscriptions</h1>
+  <h1 class="text-[21px] font-extrabold text-slate-900"><%= t("super_admin.subscriptions.title") %></h1>
   <div class="flex gap-2">
     <%= form_with url: super_admin_subscriptions_path, method: :get, local: true, class: "flex gap-2 items-center" do |f| %>
-      <%= f.select :plan, [["All plans", ""], ["Free", "free"], ["Pro", "pro"], ["Enterprise", "enterprise"]],
+      <%= f.select :plan,
+            [[t("super_admin.subscriptions.filter_all_plans"), ""],
+             [t("super_admin.subscriptions.filter_free"), "free"],
+             [t("super_admin.subscriptions.filter_pro"), "pro"],
+             [t("super_admin.subscriptions.filter_enterprise"), "enterprise"]],
             { selected: params[:plan] },
             class: "text-[12px] border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700" %>
-      <%= f.select :status, [["All status", ""], ["Active", "active"], ["Expired", "expired"], ["Cancelled", "cancelled"], ["Trialing", "trialing"]],
+      <%= f.select :status,
+            [[t("super_admin.subscriptions.filter_all_status"), ""],
+             [t("super_admin.subscriptions.filter_active"), "active"],
+             [t("super_admin.subscriptions.filter_expired"), "expired"],
+             [t("super_admin.subscriptions.filter_cancelled"), "cancelled"],
+             [t("super_admin.subscriptions.filter_trialing"), "trialing"]],
             { selected: params[:status] },
             class: "text-[12px] border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700" %>
-      <%= f.submit "Filter", class: "px-3 py-1.5 bg-slate-800 text-white text-[12px] font-semibold rounded-lg cursor-pointer" %>
+      <%= f.submit t("super_admin.subscriptions.filter_btn"), class: "px-3 py-1.5 bg-slate-800 text-white text-[12px] font-semibold rounded-lg cursor-pointer" %>
     <% end %>
   </div>
 </div>
@@ -17,11 +26,11 @@
   <table class="w-full border-collapse">
     <thead>
       <tr class="bg-slate-50 border-b border-slate-200">
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Workspace</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Plan</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Status</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Expires</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Price</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("super_admin.subscriptions.col_workspace") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("super_admin.subscriptions.col_plan") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("super_admin.subscriptions.col_status") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("super_admin.subscriptions.col_expires") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("super_admin.subscriptions.col_price") %></th>
         <th class="px-4 py-2.5"></th>
       </tr>
     </thead>
@@ -59,19 +68,19 @@
             <% if sub.price_cents.to_i > 0 %>
               <%= number_with_delimiter(sub.price_cents) %> ₫/<%= sub.billing_cycle %>
             <% else %>
-              <span class="text-slate-300">Free</span>
+              <span class="text-slate-300"><%= t("super_admin.subscriptions.price_free") %></span>
             <% end %>
           </td>
           <td class="px-4 py-3">
             <div class="flex gap-1.5 justify-end">
-              <%= link_to super_admin_subscription_path(sub), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded text-slate-600 hover:bg-slate-200" do %>View<% end %>
-              <%= link_to edit_super_admin_subscription_path(sub), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded text-indigo-600 hover:bg-indigo-100" do %>Edit<% end %>
+              <%= link_to super_admin_subscription_path(sub), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded text-slate-600 hover:bg-slate-200" do %><%= t("super_admin.subscriptions.action_view") %><% end %>
+              <%= link_to edit_super_admin_subscription_path(sub), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded text-indigo-600 hover:bg-indigo-100" do %><%= t("super_admin.subscriptions.action_edit") %><% end %>
             </div>
           </td>
         </tr>
       <% end %>
       <% if @subscriptions.empty? %>
-        <tr><td colspan="6" class="px-4 py-8 text-center text-[13px] text-slate-400">Không có subscription nào.</td></tr>
+        <tr><td colspan="6" class="px-4 py-8 text-center text-[13px] text-slate-400"><%= t("super_admin.subscriptions.empty") %></td></tr>
       <% end %>
     </tbody>
   </table>

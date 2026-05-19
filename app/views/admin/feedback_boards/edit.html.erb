@@ -1,7 +1,7 @@
 <% content_for :title, @board.title %>
 <div class="flex gap-6 items-start">
   <div class="flex-1 max-w-[600px]">
-    <h1 class="text-[19px] font-extrabold text-slate-900 mb-5">Edit: <%= @board.title %></h1>
+    <h1 class="text-[19px] font-extrabold text-slate-900 mb-5"><%= t("feedback_boards.edit_heading", title: @board.title) %></h1>
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6">
       <%= render "form" %>
     </div>
@@ -10,25 +10,25 @@
   <!-- Share & QR panel -->
   <div class="w-[240px] flex-shrink-0 mt-10">
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-2">Chia sẻ</h2>
-      <p class="text-[11px] text-slate-400 mb-2">Link công khai</p>
+      <h2 class="text-[13px] font-bold text-slate-700 mb-2"><%= t("feedback_boards.show.share") %></h2>
+      <p class="text-[11px] text-slate-400 mb-2"><%= t("feedback_boards.show.public_link") %></p>
       <div class="flex gap-1 mb-4">
         <input id="feedback-link" readonly value="<%= participate_feedback_url(@board.slug) %>"
           class="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] font-mono text-slate-600 min-w-0">
-        <button onclick="navigator.clipboard.writeText(document.getElementById('feedback-link').value);this.textContent='✓';setTimeout(()=>this.textContent='Copy',2000)"
-          class="px-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-semibold rounded hover:bg-indigo-100 border-0 cursor-pointer flex-shrink-0">Copy</button>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('feedback-link').value);this.textContent='✓';setTimeout(()=>this.textContent='<%= j t("feedback_boards.show.copy") %>',2000)"
+          class="px-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-semibold rounded hover:bg-indigo-100 border-0 cursor-pointer flex-shrink-0"><%= t("feedback_boards.show.copy") %></button>
       </div>
       <% if @board.qr_code %>
-        <p class="text-[11px] text-slate-400 mb-2">QR Code — Scan để mở form</p>
+        <p class="text-[11px] text-slate-400 mb-2"><%= t("feedback_boards.show.qr_scan") %></p>
         <div class="flex justify-center mb-2">
           <div class="inline-block p-2 bg-white border border-slate-200 rounded-xl shadow-sm">
             <img src="<%= qr_image_path(@board.qr_code.token) %>" alt="QR Code" class="w-36 h-36">
           </div>
         </div>
-        <p class="text-[10px] text-slate-400 text-center mb-2"><%= @board.qr_code.scan_count %> lượt scan</p>
+        <p class="text-[10px] text-slate-400 text-center mb-2"><%= t("feedback_boards.show.scan_count", count: @board.qr_code.scan_count) %></p>
         <a href="<%= qr_image_path(@board.qr_code.token) %>" download="qr-<%= @board.slug %>.svg"
           class="flex items-center justify-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-lg hover:bg-slate-200 text-center">
-          ↓ Tải QR Code
+          <%= t("feedback_boards.show.download_qr") %>
         </a>
       <% end %>
     </div>

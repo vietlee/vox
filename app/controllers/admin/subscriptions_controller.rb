@@ -3,7 +3,7 @@ class Admin::SubscriptionsController < Admin::BaseController
 
   def show
     @subscription    = current_workspace.active_subscription || current_workspace.subscriptions.order(created_at: :desc).first
-    @payments        = current_workspace.payments.order(created_at: :desc).limit(10)
+    @payments        = current_workspace.payments.includes(:addon_config, :subscription).order(created_at: :desc).limit(10)
     @addon_resources = AddonConfig.active.resource_pack
     @addon_credits   = AddonConfig.active.ai_credits
   end
@@ -24,7 +24,7 @@ class Admin::SubscriptionsController < Admin::BaseController
   end
 
   def invoices
-    @payments = current_workspace.payments.completed.order(created_at: :desc)
+    @payments = current_workspace.payments.completed.includes(:addon_config, :subscription).order(created_at: :desc)
   end
 
   # POST /subscription/checkout — creates PayOS payment link and redirects
@@ -33,7 +33,7 @@ class Admin::SubscriptionsController < Admin::BaseController
     price = PlanConfig.price_for(plan).to_i
 
     unless %w[free pro enterprise].include?(plan) && price > 0
-      redirect_to billing_subscription_path, alert: "Gói không hợp lệ." and return
+      redirect_to billing_subscription_path, alert: t("subscription_errors.invalid_plan") and return
     end
 
     free_limits = PlanConfig.limits_for("free").transform_values { |v| v || 0 }
@@ -48,6 +48,9 @@ class Admin::SubscriptionsController < Admin::BaseController
 
     order_code = Time.current.to_i + current_workspace.id
 
+    # Save original plan before tentative change so cancel can restore it
+    original_plan = sub.plan.to_s
+
     payment = sub.payments.create!(
       workspace:        current_workspace,
       amount_cents:     price,
@@ -55,7 +58,8 @@ class Admin::SubscriptionsController < Admin::BaseController
       status:           :pending,
       gateway:          :payos,
       payos_order_code: order_code,
-      invoice_number:   "INV-#{order_code}"
+      invoice_number:   "INV-#{order_code}",
+      gateway_response: { "original_plan" => original_plan }
     )
 
     # Tentatively set the plan so webhook knows what to activate
@@ -76,8 +80,8 @@ class Admin::SubscriptionsController < Admin::BaseController
       redirect_to result["checkoutUrl"], allow_other_host: true
     else
       payment.update_columns(status: Payment.statuses[:failed])
-      sub.update_column(:plan, Subscription.plans["free"])
-      redirect_to billing_subscription_path, alert: "Không thể kết nối PayOS. Vui lòng thử lại."
+      sub.update_column(:plan, Subscription.plans[original_plan])
+      redirect_to billing_subscription_path, alert: t("subscription_errors.payos_error")
     end
   end
 
@@ -85,12 +89,12 @@ class Admin::SubscriptionsController < Admin::BaseController
   def checkout_addon
     addon = AddonConfig.active.find_by(id: params[:addon_config_id])
     unless addon
-      redirect_to billing_subscription_path, alert: "Gói add-on không tồn tại." and return
+      redirect_to billing_subscription_path, alert: t("subscription_errors.addon_not_found") and return
     end
 
     sub = current_workspace.active_subscription
     unless sub
-      redirect_to billing_subscription_path, alert: "Bạn cần có gói active để mua add-on." and return
+      redirect_to billing_subscription_path, alert: t("subscription_errors.need_active_sub") and return
     end
 
     order_code = Time.current.to_i * 10 + current_workspace.id % 10
@@ -121,7 +125,7 @@ class Admin::SubscriptionsController < Admin::BaseController
       redirect_to result["checkoutUrl"], allow_other_host: true
     else
       payment.update_columns(status: Payment.statuses[:failed])
-      redirect_to billing_subscription_path, alert: "Không thể kết nối PayOS. Vui lòng thử lại."
+      redirect_to billing_subscription_path, alert: t("subscription_errors.payos_error")
     end
   end
 
@@ -130,9 +134,9 @@ class Admin::SubscriptionsController < Admin::BaseController
     @payment = current_workspace.payments.find_by(id: params[:payment_id])
     if @payment&.completed?
       msg = if @payment.addon_config_id?
-        "Mua thêm thành công! #{@payment.addon_config&.bonus_summary} đã được cộng vào tài khoản."
+        t("subscription.addon_purchase_success", bonus: @payment.addon_config&.bonus_summary)
       else
-        "Thanh toán thành công! Gói #{@payment.subscription&.plan&.upcase} đã được kích hoạt."
+        t("subscription.plan_activated", plan: @payment.subscription&.plan&.upcase)
       end
       redirect_to subscription_path, notice: msg
     else
@@ -158,10 +162,12 @@ class Admin::SubscriptionsController < Admin::BaseController
     if payment
       payment.update_column(:status, Payment.statuses[:failed])
       unless payment.addon_config_id?
-        payment.subscription&.update_column(:plan, Subscription.plans["free"])
+        # Restore the plan that was active before the tentative checkout change
+        original_plan = payment.gateway_response&.dig("original_plan").presence || "free"
+        payment.subscription&.update_column(:plan, Subscription.plans[original_plan])
       end
     end
-    redirect_to billing_subscription_path, alert: "Bạn đã huỷ thanh toán."
+    redirect_to billing_subscription_path, alert: t("subscription_errors.payment_cancelled")
   end
 
   def update

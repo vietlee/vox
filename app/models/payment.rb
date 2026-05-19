@@ -20,6 +20,16 @@ class Payment < ApplicationRecord
     GATEWAY_LABELS[gateway] || gateway&.upcase || "—"
   end
 
+  def description_label
+    if addon_config.present?
+      addon_config.name
+    elsif subscription.present?
+      "#{I18n.t('subscription.plan_label')} #{subscription.plan&.upcase}"
+    else
+      "—"
+    end
+  end
+
   def amount_formatted
     if currency == "VND"
       "#{amount_cents.to_s.reverse.gsub(/\d{3}(?=.)/, '\0.').reverse} ₫"

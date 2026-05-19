@@ -60,6 +60,8 @@ class Webhooks::PayosController < ActionController::Base
 
     if addon.ai_credits_bonus.to_i > 0
       updates[:credit_balance] = sub.credit_balance.to_i + addon.ai_credits_bonus.to_i
+      # Also raise the cap so display shows correct ratio (skip if unlimited = nil)
+      updates[:max_ai_credits] = sub.max_ai_credits.to_i + addon.ai_credits_bonus.to_i if sub.max_ai_credits
     end
 
     sub.update_columns(updates) if updates.any?

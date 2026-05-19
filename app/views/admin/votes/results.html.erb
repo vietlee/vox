@@ -1,15 +1,15 @@
-<% content_for :title, "Results — #{@vote.title}" %>
+<% content_for :title, t("votes.results.page_title", title: @vote.title) %>
 <div class="flex items-start justify-between mb-6">
   <div>
     <h1 class="text-[19px] font-extrabold text-slate-900"><%= @vote.title %></h1>
-    <p class="text-[12px] text-slate-500 mt-0.5"><%= @vote.participant_count %> total votes</p>
+    <p class="text-[12px] text-slate-500 mt-0.5"><%= t("votes.results.total_votes", count: @vote.participant_count) %></p>
   </div>
-  <%= link_to present_vote_path(@vote), class: "px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700", target: "_blank" do %>Present<% end %>
+  <%= link_to present_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors", target: "_blank" do %><%= t("votes.results.present") %><% end %>
 </div>
 
 <div class="grid grid-cols-[1fr_300px] gap-5">
   <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6">
-    <h2 class="text-[14px] font-bold text-slate-900 mb-5">Results</h2>
+    <h2 class="text-[14px] font-bold text-slate-900 mb-5"><%= t("votes.results.results_section") %></h2>
     <% @results.each do |result| %>
       <div class="mb-4">
         <div class="flex justify-between mb-1.5 text-[13px]">
@@ -26,12 +26,12 @@
   <div class="space-y-4">
     <% if @ai_insight %>
       <div class="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200 rounded-[10px] p-4">
-        <div class="text-[11px] font-bold text-violet-600 uppercase tracking-wide mb-2">🤖 AI Insight</div>
+        <div class="text-[11px] font-bold text-violet-600 uppercase tracking-wide mb-2"><%= t("votes.results.ai_insight") %> ✨</div>
         <p class="text-[13px] text-slate-700 leading-relaxed"><%= @ai_insight["insight"] %></p>
       </div>
     <% end %>
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4">
-      <h3 class="text-[13px] font-bold text-slate-900 mb-3">Share</h3>
+      <h3 class="text-[13px] font-bold text-slate-900 mb-3"><%= t("votes.results.share") %></h3>
       <%= render "admin/shared/qr_section", resource: @vote %>
     </div>
   </div>

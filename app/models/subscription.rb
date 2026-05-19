@@ -29,13 +29,18 @@ class Subscription < ApplicationRecord
   }.freeze
 
   def deduct_credits!(amount)
-    return true if enterprise?
+    # Enterprise: deduct for display but never block (unlimited)
+    if enterprise?
+      new_balance = [credit_balance - amount, 0].max
+      update_columns(credit_balance: new_balance, credit_used: credit_used + amount)
+      return true
+    end
     raise "Insufficient AI credits" if credit_balance < amount
     update!(credit_balance: credit_balance - amount, credit_used: credit_used + amount)
   end
 
   def credit_percentage
-    return 100 if max_ai_credits.nil? || max_ai_credits == 0
+    return 0 if max_ai_credits.nil? || max_ai_credits == 0
     ((credit_balance.to_f / max_ai_credits) * 100).round
   end
 
@@ -50,6 +55,14 @@ class Subscription < ApplicationRecord
   def within_vote_limit?
     max_votes.nil? || workspace.votes.count < max_votes
   end
+
+  def surveys_used = workspace.surveys.count
+  def surveys_remaining = max_surveys.nil? ? nil : [max_surveys - surveys_used, 0].max
+  def surveys_pct = max_surveys.nil? ? 0 : [(surveys_used * 100.0 / max_surveys).round, 100].min
+
+  def votes_used = workspace.votes.count
+  def votes_remaining = max_votes.nil? ? nil : [max_votes - votes_used, 0].max
+  def votes_pct = max_votes.nil? ? 0 : [(votes_used * 100.0 / max_votes).round, 100].min
 
   def expires_soon?
     ends_at.present? && ends_at <= 7.days.from_now

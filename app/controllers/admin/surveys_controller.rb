@@ -1,10 +1,14 @@
+require "csv"
+
 class Admin::SurveysController < Admin::BaseController
   before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :archive, :results, :export, :ai_analyze, :ai_report, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
-    surveys = current_workspace.surveys.order(created_at: :desc)
-    surveys = surveys.where(status: params[:status]) if params[:status].present?
+    direction = params[:sort] == "asc" ? :asc : :desc
+    @sort     = params[:sort] == "asc" ? "asc" : "desc"
+    surveys   = current_workspace.surveys.order(created_at: direction)
+    surveys   = surveys.where(status: params[:status]) if params[:status].present?
     @pagy, @surveys = pagy(surveys, items: 15)
   end
 
@@ -20,8 +24,11 @@ class Admin::SurveysController < Admin::BaseController
     @survey = current_workspace.surveys.build(survey_params)
     @survey.user = current_user
 
+    ai_data = params[:ai_data].present? ? (JSON.parse(params[:ai_data]) rescue {}) : nil
+
     if @survey.save
       audit_log("survey.create", resource: @survey)
+      build_ai_questions(@survey, ai_data) if ai_data.present?
       redirect_to edit_survey_path(@survey), notice: t("surveys.created")
     else
       render :new, status: :unprocessable_entity
@@ -121,28 +128,61 @@ class Admin::SurveysController < Admin::BaseController
     audit_log("survey.clone", resource: copy)
     respond_to do |format|
       format.json { render json: { ok: true, redirect: edit_survey_path(copy) } }
-      format.html { redirect_to edit_survey_path(copy), notice: "Survey đã được nhân bản." }
+      format.html { redirect_to edit_survey_path(copy), notice: t("surveys_errors.cloned") }
     end
   end
 
   def export
-    format = params[:format_type] || "csv"
-    # Export logic handled by background job for large datasets
-    ExportSurveyJob.perform_later(@survey.id, format, current_user.id)
-    redirect_to results_survey_path(@survey), notice: t("surveys.export_queued")
+    responses = @survey.responses.completed.includes(:answers, answers: :question_option)
+    questions = @survey.questions.order(:position)
+
+    csv_data = CSV.generate(headers: true) do |csv|
+      header = ["#", t("surveys.results.col_time"), t("surveys.results.col_email")]
+      header += questions.map { |q| q.title.truncate(60) }
+      csv << header
+
+      responses.each_with_index do |resp, idx|
+        ans_map = resp.answers.index_by(&:question_id)
+        row = [idx + 1, resp.completed_at&.strftime("%d/%m/%Y %H:%M"), resp.respondent_email.presence || resp.respondent_token&.last(8)]
+        questions.each do |q|
+          ans = ans_map[q.id]
+          row << if ans.nil?
+            ""
+          elsif ans.text_value.present?
+            ans.text_value
+          elsif ans.numeric_value.present?
+            ans.numeric_value.to_s
+          elsif ans.option_ids.present?
+            option_labels = q.question_options.each_with_object({}) { |o, h| h[o.id.to_s] = o.label }
+            ans.option_ids.map { |id| option_labels[id.to_s] || id }.join(", ")
+          elsif ans.date_value.present?
+            ans.date_value.to_s
+          else
+            ""
+          end
+        end
+        csv << row
+      end
+    end
+
+    filename = "#{@survey.title.parameterize}-#{Date.today}.csv"
+    send_data "\xEF\xBB\xBF#{csv_data}", filename: filename, type: "text/csv; charset=utf-8", disposition: "attachment"
   end
 
   def ai_analyze
-    require_ai_feature!(:ai_analysis)
-    require_credits!(5)
+    return unless require_ai_feature!(:ai_analysis)
+    return unless require_credits!(5)
 
+    language = params[:language].presence_in(%w[vi en]) || current_workspace.language || "vi"
+    current_workspace.active_subscription&.deduct_credits!(5)
     job = AiJob.create!(
       workspace: current_workspace,
       user: current_user,
       job_type: "survey_analysis",
       resource_type: "Survey",
       resource_id: @survey.id,
-      credits_cost: 5
+      credits_cost: 5,
+      input_data: { language: language }
     )
     AiSurveyAnalysisJob.perform_later(job.id)
 
@@ -153,9 +193,10 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   def ai_report
-    require_ai_feature!(:ai_executive_report)
-    require_credits!(15)
+    return unless require_ai_feature!(:ai_executive_report)
+    return unless require_credits!(15)
 
+    current_workspace.active_subscription&.deduct_credits!(15)
     job = AiJob.create!(
       workspace: current_workspace,
       user: current_user,
@@ -178,8 +219,8 @@ class Admin::SurveysController < Admin::BaseController
   def prevent_edit_if_closed
     if @survey.closed? || @survey.archived?
       respond_to do |format|
-        format.json { render json: { error: "Survey đã đóng, không thể chỉnh sửa." }, status: :forbidden }
-        format.html { redirect_to results_survey_path(@survey), alert: "Survey đã đóng, không thể chỉnh sửa." }
+        format.json { render json: { error: t("surveys_errors.closed_no_edit") }, status: :forbidden }
+        format.html { redirect_to results_survey_path(@survey), alert: t("surveys_errors.closed_no_edit") }
       end
     end
   end
@@ -191,5 +232,40 @@ class Admin::SurveysController < Admin::BaseController
       :max_per_user, :show_progress, :show_results, :allow_edit,
       :thank_you_message, :redirect_url, :scoring_enabled
     )
+  end
+
+  VALID_QUESTION_TYPES = Question.question_types.keys.freeze
+
+  def build_ai_questions(survey, ai_data)
+    questions = ai_data["questions"]
+    return if questions.blank?
+
+    questions.each_with_index do |q, idx|
+      q_type = q["question_type"].to_s
+      q_type = "short_text" unless VALID_QUESTION_TYPES.include?(q_type)
+
+      question = survey.questions.create!(
+        title:         q["title"].to_s.truncate(500),
+        question_type: q_type,
+        required:      q["required"] != false,
+        description:   q["description"].presence,
+        position:      idx,
+        settings:      q["settings"].is_a?(Hash) ? q["settings"] : {}
+      )
+
+      # Create options for choice-type questions
+      if question.choice_type? && q["options"].is_a?(Array)
+        q["options"].each_with_index do |opt, i|
+          question.question_options.create!(label: opt.to_s.truncate(200), position: i)
+        end
+      end
+
+      # Set scale bounds for linear_scale from settings if provided
+      if question.linear_scale? && q["settings"].is_a?(Hash)
+        question.update_columns(settings: q["settings"])
+      end
+    end
+  rescue => e
+    Rails.logger.error "build_ai_questions failed: #{e.message}"
   end
 end

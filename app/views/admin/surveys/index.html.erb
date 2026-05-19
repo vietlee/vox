@@ -1,38 +1,58 @@
 <% content_for :title, t("surveys.title") %>
 
+<% sub = current_workspace.active_subscription %>
 <div class="flex items-start justify-between mb-6">
   <div>
     <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight">📋 <%= t("surveys.title") %></h1>
-    <p class="text-[13px] text-slate-500 mt-0.5"><%= @surveys.total_count rescue @surveys.count %> surveys</p>
+    <div class="flex items-center gap-3 mt-0.5">
+      <p class="text-[13px] text-slate-500"><%= @surveys.total_count rescue @surveys.count %> <%= t("surveys.subtitle") %></p>
+      <% if sub&.max_surveys %>
+        <% pct = sub.surveys_pct %>
+        <div class="flex items-center gap-1.5">
+          <div class="w-20 h-1.5 rounded-full overflow-hidden bg-slate-200">
+            <div class="h-1.5 rounded-full" style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
+          </div>
+          <span class="text-[11px] font-semibold <%= pct >= 100 ? 'text-amber-600' : 'text-slate-500' %>">
+            <%= sub.surveys_used %> / <%= sub.max_surveys %>
+          </span>
+        </div>
+      <% end %>
+    </div>
   </div>
   <div class="flex gap-2">
     <button onclick="document.getElementById('ai-builder-modal').classList.remove('hidden')"
-      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:opacity-90 transition">
-      🤖 AI Create
+      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-violet-50 hover:text-violet-700 hover:border-violet-300 text-slate-700 transition-colors">
+      <%= t("surveys.ai_create") %> ✨
     </button>
-    <%= link_to new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition" do %>
-      + New Survey
+    <% if sub && !sub.within_survey_limit? %>
+      <%= link_to billing_subscription_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-amber-300 hover:bg-amber-50 hover:border-amber-400 text-amber-700 transition-colors" do %>
+        ⚠️ <%= t("subscription.limit_reached_short") %> · <%= t("subscription.upgrade") %>
+      <% end %>
+    <% else %>
+      <%= link_to new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-slate-700 transition-colors" do %>
+        + <%= t("surveys.new") %>
+      <% end %>
     <% end %>
   </div>
 </div>
 
 <!-- Search + Filter row -->
 <div class="flex gap-3 mb-5">
-  <div class="relative flex-1">
+  <div class="relative w-72">
     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
     </svg>
-    <input id="survey-search" type="text" placeholder="Tìm theo tên survey..."
+    <input id="survey-search" type="text" placeholder="<%= t("surveys.search_placeholder") %>"
       class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white"
       oninput="filterSurveys()">
   </div>
   <select id="survey-status-filter" onchange="filterSurveys()"
     class="px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white text-slate-600 cursor-pointer">
-    <option value="">Tất cả trạng thái</option>
-    <option value="draft">Draft</option>
-    <option value="active">Active</option>
-    <option value="closed">Closed</option>
-    <option value="archived">Archived</option>
+    <option value=""><%= t("surveys.all_statuses") %></option>
+    <option value="draft"><%= t("status.draft") %></option>
+    <option value="active"><%= t("status.active") %></option>
+    <option value="closed"><%= t("status.closed") %></option>
+    <option value="archived"><%= t("status.archived") %></option>
   </select>
 </div>
 
@@ -41,16 +61,23 @@
     <table class="w-full border-collapse">
       <thead>
         <tr class="bg-slate-50 border-b border-slate-200">
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Survey</th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Trạng thái</th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Phản hồi</th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Ngày tạo</th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_survey") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_status") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_responses") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">
+            <% next_sort = @sort == "desc" ? "asc" : "desc" %>
+            <%= link_to surveys_path(sort: next_sort, status: params[:status]),
+                class: "inline-flex items-center gap-1 hover:text-indigo-600 transition-colors" do %>
+              <%= t("surveys.col_created") %>
+              <span class="text-[10px]"><%= @sort == "desc" ? "↓" : "↑" %></span>
+            <% end %>
+          </th>
           <th class="px-4 py-2.5"></th>
         </tr>
       </thead>
       <tbody>
         <tr id="no-results-row" class="hidden">
-          <td colspan="5" class="px-4 py-10 text-center text-[13px] text-slate-400">Không tìm thấy survey nào phù hợp.</td>
+          <td colspan="5" class="px-4 py-10 text-center text-[13px] text-slate-400"><%= t("surveys.not_found") %></td>
         </tr>
         <% @surveys.each do |survey| %>
           <tr class="survey-row border-b border-slate-100 hover:bg-slate-50" id="survey-row-<%= survey.id %>"
@@ -60,12 +87,12 @@
               <% title_path = (survey.closed? || survey.archived?) ? results_survey_path(survey) : edit_survey_path(survey) %>
               <%= link_to title_path, class: "group block" do %>
                 <div class="text-[13px] font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors"><%= survey.title %></div>
-                <div class="text-[11px] text-slate-400"><%= survey.questions.count %> câu hỏi · <%= survey.identity_mode.humanize %></div>
+                <div class="text-[11px] text-slate-400"><%= t("surveys.questions_count", count: survey.questions.count) %> · <%= survey.identity_mode.humanize %></div>
               <% end %>
             </td>
             <td class="px-4 py-3">
               <span id="survey-badge-<%= survey.id %>" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold <%= survey_status_class(survey.status) %>">
-                <%= survey.status.capitalize %>
+                <%= t("status.#{survey.status}", default: survey.status.capitalize) %>
               </span>
             </td>
             <td class="px-4 py-3 text-[13px] text-slate-700"><%= survey.response_count %></td>
@@ -92,16 +119,16 @@
       <div class="flex items-center justify-between px-4 py-3 border-t border-slate-100">
         <p class="text-[12px] text-slate-500">
           <% from = (@pagy.page - 1) * @pagy.items + 1; to = [@pagy.page * @pagy.items, @pagy.count].min %>
-          Hiển thị <%= from %>–<%= to %> / <%= @pagy.count %> surveys
+          <%= t("surveys.showing_range", from: from, to: to, count: @pagy.count) %>
         </p>
         <div class="flex gap-1">
           <% if @pagy.page > 1 %>
             <%= link_to surveys_path(page: @pagy.page - 1, status: params[:status], q: params[:q]),
-              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>← Trước<% end %>
+              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %><%= t("surveys.prev") %><% end %>
           <% end %>
           <% if @pagy.page < @pagy.pages %>
             <%= link_to surveys_path(page: @pagy.page + 1, status: params[:status], q: params[:q]),
-              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>Tiếp →<% end %>
+              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %><%= t("surveys.next") %><% end %>
           <% end %>
         </div>
       </div>
@@ -110,15 +137,16 @@
   <% else %>
     <div class="text-center py-16">
       <div class="text-4xl mb-3">📋</div>
-      <h3 class="text-[15px] font-semibold text-slate-700 mb-1">Chưa có survey nào</h3>
-      <p class="text-[13px] text-slate-400 mb-4">Tạo survey đầu tiên để bắt đầu thu thập phản hồi</p>
-      <%= link_to "Tạo Survey", new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700" %>
+      <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("surveys.empty") %></h3>
+      <p class="text-[13px] text-slate-400 mb-4"><%= t("surveys.empty_desc") %></p>
+      <%= link_to t("surveys.new"), new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-slate-700 transition-colors" %>
     </div>
   <% end %>
 </div>
 
 <!-- Confirm Modal -->
-<div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+<div id="confirm-modal" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 w-full h-full flex items-center justify-center bg-black/40 backdrop-blur-sm">
   <div class="bg-white rounded-2xl shadow-2xl w-[400px] max-w-full mx-4 p-6">
     <div id="confirm-icon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"></div>
     <h3 id="confirm-title" class="text-[17px] font-bold text-slate-900 text-center mb-2"></h3>
@@ -126,46 +154,99 @@
     <div class="flex gap-3">
       <button onclick="closeConfirm()"
         class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 border-0 cursor-pointer">
-        Huỷ
+        <%= t("surveys.confirm_cancel") %>
       </button>
       <button id="confirm-btn" onclick="submitConfirm()"
         class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white border-0 cursor-pointer">
-        Xác nhận
+        <%= t("surveys.confirm_action") %>
       </button>
     </div>
   </div>
+  </div><!-- /flex wrapper -->
 </div>
 <!-- AI Survey Builder Modal -->
-<div id="ai-builder-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+<div id="ai-builder-modal" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 w-full h-full flex items-center justify-center bg-black/50">
   <div class="bg-white rounded-xl shadow-2xl w-[520px] max-w-full mx-4 p-6">
     <div class="flex items-center gap-3 mb-4">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-[18px]">🤖</div>
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-[18px]">✨</div>
       <div>
         <h2 class="text-[16px] font-bold text-slate-900">AI Survey Builder</h2>
-        <p class="text-[12px] text-slate-500">5 AI credits · Powered by Claude</p>
+        <p class="text-[12px] text-slate-500">5 AI credits</p>
       </div>
       <button onclick="document.getElementById('ai-builder-modal').classList.add('hidden')" class="ml-auto text-slate-400 hover:text-slate-600 text-xl">✕</button>
     </div>
     <div id="ai-builder-form">
-      <label class="block text-[12px] font-semibold text-slate-700 mb-2">Mô tả mục tiêu survey của bạn</label>
-      <textarea id="ai-prompt" rows="4" placeholder="VD: Tôi muốn đo lường mức độ hài lòng của nhân viên sau khi chuyển văn phòng Q1..."
+      <label class="block text-[12px] font-semibold text-slate-700 mb-2"><%= t("surveys.ai_builder_label") %></label>
+      <textarea id="ai-prompt" rows="4" placeholder="<%= j t("surveys.ai_builder_placeholder") %>"
         class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-none outline-none"></textarea>
       <div class="flex gap-2 mt-4">
-        <button onclick="generateAiSurvey()" class="flex-1 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-[13px] font-semibold rounded-lg hover:opacity-90">
-          Tạo Survey ✨
+        <button onclick="generateAiSurvey()" class="flex-1 py-2 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-[13px] font-semibold rounded-lg hover:from-indigo-600 hover:to-violet-600 transition-all">
+          <%= t("surveys.ai_builder_create") %>
         </button>
-        <button onclick="document.getElementById('ai-builder-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200">Huỷ</button>
+        <button onclick="document.getElementById('ai-builder-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200"><%= t("surveys.ai_builder_cancel") %></button>
       </div>
     </div>
-    <div id="ai-builder-loading" class="hidden text-center py-8">
-      <div class="text-3xl mb-3 animate-spin inline-block">⟳</div>
-      <p class="text-[13px] text-slate-600">Đang tạo survey với Claude AI...</p>
+    <div id="ai-builder-loading" class="hidden text-center py-6">
+      <!-- SVG progress ring -->
+      <div class="relative inline-flex items-center justify-center mb-4">
+        <svg width="96" height="96" class="-rotate-90">
+          <!-- track -->
+          <circle cx="48" cy="48" r="40" fill="none" stroke="#e2e8f0" stroke-width="7"/>
+          <!-- progress arc -->
+          <circle id="ai-progress-ring" cx="48" cy="48" r="40" fill="none"
+            stroke="url(#ai-grad)" stroke-width="7"
+            stroke-linecap="round"
+            stroke-dasharray="251.2"
+            stroke-dashoffset="251.2"
+            style="transition: stroke-dashoffset 0.6s ease"/>
+          <defs>
+            <linearGradient id="ai-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stop-color="#8b5cf6"/>
+              <stop offset="100%" stop-color="#6366f1"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <!-- percentage label centred in the ring -->
+        <span id="ai-progress-pct"
+          class="absolute text-[20px] font-extrabold bg-gradient-to-r from-violet-500 to-indigo-500 bg-clip-text text-transparent">
+          0%
+        </span>
+      </div>
+
+      <!-- phase label that cycles through steps -->
+      <p id="ai-progress-label" class="text-[13px] font-semibold text-slate-700 mb-1"></p>
+      <p class="text-[11px] text-slate-400"><%= t("surveys.ai_builder_loading") %></p>
     </div>
   </div>
+  </div><!-- /flex wrapper -->
 </div>
 
 <script>
+(function() {
 const CSRF = document.querySelector('meta[name=csrf-token]')?.content;
+
+// i18n constants
+const I18N = {
+  edit:         "<%= j t('surveys.edit') %>",
+  results:      "<%= j t('surveys.results_btn') %>",
+  clone:        "<%= j t('surveys.clone') %>",
+  publish:      "<%= j t('surveys.publish') %>",
+  close_action: "<%= j t('surveys.close_action') %>",
+  archive:      "<%= j t('surveys.archive') %>",
+  delete:       "<%= j t('surveys.delete') %>",
+  edit_disabled_title: "<%= j t('surveys.edit_disabled_title') %>",
+  close_title:  "<%= j t('surveys.close_title') %>",
+  close_body:   "<%= j t('surveys.close_body') %>",
+  archive_title:"<%= j t('surveys.archive_title') %>",
+  archive_body: "<%= j t('surveys.archive_body') %>",
+  delete_title: "<%= j t('surveys.delete_title') %>",
+  delete_body:  "<%= j t('surveys.delete_body') %>",
+  status_draft:    "<%= j t('status.draft') %>",
+  status_active:   "<%= j t('status.active') %>",
+  status_closed:   "<%= j t('status.closed') %>",
+  status_archived: "<%= j t('status.archived') %>"
+};
 
 // ── Live filter ───────────────────────────────────────────────────────────────
 function filterSurveys() {
@@ -183,10 +264,10 @@ function filterSurveys() {
 
 // ── AJAX survey actions ───────────────────────────────────────────────────────
 const STATUS_BADGE = {
-  draft:    { cls: 'bg-slate-100 text-slate-600',   label: 'Draft' },
-  active:   { cls: 'bg-emerald-50 text-emerald-700', label: 'Active' },
-  closed:   { cls: 'bg-amber-50 text-amber-700',     label: 'Closed' },
-  archived: { cls: 'bg-slate-100 text-slate-400',    label: 'Archived' }
+  draft:    { cls: 'bg-slate-100 text-slate-600',    label: I18N.status_draft },
+  active:   { cls: 'bg-emerald-50 text-emerald-700', label: I18N.status_active },
+  closed:   { cls: 'bg-amber-50 text-amber-700',     label: I18N.status_closed },
+  archived: { cls: 'bg-slate-100 text-slate-400',    label: I18N.status_archived }
 };
 
 function updateRowStatus(id, newStatus) {
@@ -211,19 +292,19 @@ function updateRowStatus(id, newStatus) {
 
   const canEdit = newStatus !== 'closed' && newStatus !== 'archived';
   let html = canEdit
-    ? `<a href="${u.editUrl}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200">Chỉnh sửa</a>`
-    : `<span class="px-2.5 py-1 text-[11px] bg-slate-50 rounded-md text-slate-300 cursor-not-allowed" title="Survey đã đóng">Chỉnh sửa</span>`;
-  html += `<a href="${u.resultsUrl}" class="px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100">Kết quả</a>`
-        + btn('Nhân bản', `cloneSurvey(${id})`, 'bg-violet-50 text-violet-700 hover:bg-violet-100');
+    ? `<a href="${u.editUrl}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200">${I18N.edit}</a>`
+    : `<span class="px-2.5 py-1 text-[11px] bg-slate-50 rounded-md text-slate-300 cursor-not-allowed" title="${I18N.edit_disabled_title}">${I18N.edit}</span>`;
+  html += `<a href="${u.resultsUrl}" class="px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100">${I18N.results}</a>`
+        + btn(I18N.clone, `cloneSurvey(${id})`, 'bg-violet-50 text-violet-700 hover:bg-violet-100');
 
   if (newStatus === 'draft')
-    html += btn('Publish', `surveyAction('publish',${id})`, 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100');
+    html += btn(I18N.publish, `surveyAction('publish',${id})`, 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100');
   if (newStatus === 'active')
-    html += btn('Đóng', `showConfirm('close',${id},'Đóng survey?','Người dùng sẽ không thể gửi câu trả lời nữa.')`, 'bg-amber-50 text-amber-700 hover:bg-amber-100');
+    html += btn(I18N.close_action, `showConfirm('close',${id})`, 'bg-amber-50 text-amber-700 hover:bg-amber-100');
   if (newStatus !== 'archived')
-    html += btn('Archive', `showConfirm('archive',${id},'Archive survey?','Survey sẽ không nhận phản hồi mới.')`, 'bg-slate-100 text-slate-500 hover:bg-slate-200');
+    html += btn(I18N.archive, `showConfirm('archive',${id})`, 'bg-slate-100 text-slate-500 hover:bg-slate-200');
 
-  html += btn('Xoá', `showConfirm('delete',${id},'Xoá survey?','Tất cả câu hỏi và phản hồi sẽ bị xoá vĩnh viễn.')`, 'bg-red-50 text-red-500 hover:bg-red-100');
+  html += btn(I18N.delete, `showConfirm('delete',${id})`, 'bg-red-50 text-red-500 hover:bg-red-100');
   actionsDiv.innerHTML = html;
 }
 
@@ -252,11 +333,18 @@ const CONFIRM_CONFIG = {
 };
 let _confirmState = {};
 
-function showConfirm(type, id, title, body) {
+const CONFIRM_MESSAGES = {
+  close:   { title: () => I18N.close_title,   body: () => I18N.close_body },
+  archive: { title: () => I18N.archive_title, body: () => I18N.archive_body },
+  delete:  { title: () => I18N.delete_title,  body: () => I18N.delete_body }
+};
+
+function showConfirm(type, id) {
   const cfg = CONFIRM_CONFIG[type] || {};
+  const msg = CONFIRM_MESSAGES[type] || {};
   _confirmState = { type, id };
-  document.getElementById('confirm-title').textContent = title;
-  document.getElementById('confirm-body').textContent = body;
+  document.getElementById('confirm-title').textContent = msg.title ? msg.title() : '';
+  document.getElementById('confirm-body').textContent = msg.body ? msg.body() : '';
   const icon = document.getElementById('confirm-icon');
   icon.style.background = cfg.iconBg || '#f1f5f9';
   icon.textContent = cfg.icon || '❓';
@@ -296,7 +384,53 @@ async function submitConfirm() {
   }
 }
 
-document.getElementById('confirm-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeConfirm(); });
+document.getElementById('confirm-modal')?.addEventListener('click', e => { if (e.target === e.currentTarget) closeConfirm(); });
+
+// ── AI progress ring ──────────────────────────────────────────────────────────
+const AI_STEPS = [
+  { pct: 8,  label: "<%= j t('surveys.ai_progress.analyzing') %>" },
+  { pct: 22, label: "<%= j t('surveys.ai_progress.designing') %>" },
+  { pct: 40, label: "<%= j t('surveys.ai_progress.writing') %>" },
+  { pct: 58, label: "<%= j t('surveys.ai_progress.refining') %>" },
+  { pct: 74, label: "<%= j t('surveys.ai_progress.validating') %>" },
+  { pct: 88, label: "<%= j t('surveys.ai_progress.finalizing') %>" }
+];
+const RING_CIRCUMFERENCE = 251.2; // 2π × r (r=40)
+let _progressTimer = null;
+let _currentStep   = 0;
+
+function setProgress(pct, label) {
+  const ring = document.getElementById('ai-progress-ring');
+  const txt  = document.getElementById('ai-progress-pct');
+  const lbl  = document.getElementById('ai-progress-label');
+  if (!ring) return;
+  const offset = RING_CIRCUMFERENCE * (1 - pct / 100);
+  ring.style.strokeDashoffset = offset;
+  if (txt) txt.textContent = Math.round(pct) + '%';
+  if (lbl && label !== undefined) lbl.textContent = label;
+}
+
+function startProgress() {
+  _currentStep = 0;
+  setProgress(0, AI_STEPS[0].label);
+  _progressTimer = setInterval(() => {
+    if (_currentStep >= AI_STEPS.length - 1) return;
+    _currentStep++;
+    const step = AI_STEPS[_currentStep];
+    setProgress(step.pct, step.label);
+  }, 2800);
+}
+
+function finishProgress(onDone) {
+  clearInterval(_progressTimer);
+  setProgress(100, "<%= j t('surveys.ai_progress.done') %>");
+  setTimeout(onDone, 600); // brief pause so user sees 100%
+}
+
+function stopProgress() {
+  clearInterval(_progressTimer);
+  setProgress(0);
+}
 
 // ── AI builder ────────────────────────────────────────────────────────────────
 async function generateAiSurvey() {
@@ -304,22 +438,50 @@ async function generateAiSurvey() {
   if (!prompt.trim()) return;
   document.getElementById('ai-builder-form').classList.add('hidden');
   document.getElementById('ai-builder-loading').classList.remove('hidden');
+  startProgress();
 
-  const resp = await fetch('<%= ai_generate_survey_path %>', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content },
-    body: JSON.stringify({ prompt })
-  });
-  const { job_id } = await resp.json();
+  let data;
+  try {
+    const resp = await fetch('<%= ai_generate_survey_path %>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content },
+      body: JSON.stringify({ prompt })
+    });
+    data = await resp.json();
+  } catch(e) {
+    stopProgress(); resetAiBuilder('<%= j t("surveys.ai_builder_error") %>'); return;
+  }
 
-  pollJobStatus(job_id, (result) => {
+  if (!data.job_id) {
+    stopProgress(); resetAiBuilder(data.error || '<%= j t("surveys.ai_builder_error") %>'); return;
+  }
+
+  pollJobStatus(data.job_id, (result) => {
+    finishProgress(() => {
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '<%= surveys_path %>';
-    form.innerHTML = `<input name="authenticity_token" value="${document.querySelector('meta[name=csrf-token]').content}"><input name="survey[title]" value="${result.title}"><input name="ai_generated" value="true"><input name="ai_data" value='${JSON.stringify(result)}'>`;
+
+    const addField = (name, value) => {
+      const inp = document.createElement('input');
+      inp.type  = 'hidden';
+      inp.name  = name;
+      inp.value = value ?? '';
+      form.appendChild(inp);
+    };
+
+    addField('authenticity_token', document.querySelector('meta[name=csrf-token]').content);
+    addField('survey[title]',             result.title);
+    addField('survey[description]',       result.description);
+    addField('survey[thank_you_message]', result.thank_you_message);
+    addField('ai_generated', 'true');
+    addField('ai_data',      JSON.stringify(result));
+
     document.body.appendChild(form);
     form.submit();
-  });
+      window.deductDisplayCredits?.(5); // deduct AI survey builder cost
+    }); // end finishProgress
+  });   // end pollJobStatus
 }
 
 // ── Clone survey ──────────────────────────────────────────────────────────────
@@ -337,10 +499,38 @@ async function cloneSurvey(id) {
 }
 
 async function pollJobStatus(jobId, onDone) {
-  const resp = await fetch(`<%= ai_job_status_path("__ID__") %>`.replace('__ID__', jobId));
-  const data = await resp.json();
-  if (data.status === 'done') { onDone(data.output); }
-  else if (data.status === 'failed') { alert('AI generation failed: ' + data.error); }
-  else { setTimeout(() => pollJobStatus(jobId, onDone), 2000); }
+  try {
+    const resp = await fetch(`<%= ai_job_status_path("__ID__") %>`.replace('__ID__', jobId));
+    const data = await resp.json();
+    if (data.status === 'done') {
+      onDone(data.output);
+    } else if (data.status === 'failed') {
+      stopProgress(); resetAiBuilder('<%= j t("surveys.ai_builder_error") %>: ' + (data.error || ''));
+    } else {
+      setTimeout(() => pollJobStatus(jobId, onDone), 2000);
+    }
+  } catch(e) {
+    stopProgress(); resetAiBuilder('<%= j t("surveys.ai_builder_error") %>');
+  }
 }
+
+function resetAiBuilder(msg) {
+  stopProgress();
+  document.getElementById('ai-builder-loading').classList.add('hidden');
+  document.getElementById('ai-builder-form').classList.remove('hidden');
+  if (msg) alert(msg);
+}
+
+// ── Expose to window so onclick= attributes work after Turbo navigation ───────
+Object.assign(window, {
+  filterSurveys,
+  surveyAction,
+  showConfirm,
+  closeConfirm,
+  submitConfirm,
+  cloneSurvey,
+  generateAiSurvey,
+  resetAiBuilder
+});
+})(); // end IIFE
 </script>

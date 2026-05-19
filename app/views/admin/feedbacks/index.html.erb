@@ -2,135 +2,327 @@
 <div class="flex items-start justify-between mb-5">
   <div>
     <h1 class="text-[19px] font-extrabold text-slate-900"><%= @board.title %></h1>
-    <p class="text-[12px] text-slate-500 mt-0.5"><%= @board.feedbacks.count %> total · <%= @board.feedbacks.where(status: :pending).count %> pending review</p>
+    <p class="text-[12px] text-slate-500 mt-0.5"><%= t("feedback_boards.feedbacks_page.total", total: @board.feedbacks.count, pending: @board.feedbacks.where(status: :pending).count) %></p>
   </div>
   <div class="flex gap-2">
-    <button onclick="aiSummarize()" class="px-3 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-[12px] font-semibold rounded-lg hover:opacity-90">🤖 AI Summarize</button>
-    <%= link_to participate_feedback_path(@board.slug), class: "px-3 py-2 bg-white border border-slate-200 text-slate-600 text-[12px] font-semibold rounded-lg hover:bg-slate-50", target: "_blank" do %>View Public<% end %>
+    <%= link_to participate_feedback_path(@board.slug), class: "px-3 py-2 bg-white border border-slate-200 text-slate-600 text-[12px] font-semibold rounded-lg hover:bg-slate-50", target: "_blank" do %><%= t("feedback_boards.feedbacks_page.view_public") %><% end %>
   </div>
 </div>
 
-<!-- Search + Filter -->
-<div class="flex items-center gap-3 mb-4">
-  <%= form_with url: feedback_board_feedbacks_path(@board), method: :get, local: true, class: "flex-1" do |f| %>
-    <%= f.hidden_field :status, value: params[:status] %>
-    <div class="relative">
-      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[13px]">🔍</span>
-      <%= f.text_field :q, value: params[:q], placeholder: "Tìm trong feedback...",
-          class: "w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none bg-white" %>
+<!-- Tabs -->
+<div class="flex items-center gap-0 mb-5 border-b border-slate-200">
+  <button id="tab-btn-feedbacks"
+    onclick="switchTab('feedbacks')"
+    class="px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors border-indigo-600 text-indigo-600">
+    <%= t("feedback_boards.feedbacks_page.tab_feedbacks") %>
+  </button>
+  <button id="tab-btn-ai"
+    onclick="switchTab('ai')"
+    class="px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors border-transparent text-slate-400 hover:text-slate-600 flex items-center gap-1.5">
+    <%= t("feedback_boards.feedbacks_page.tab_ai_summary") %>
+    <% if @ai_summary %>
+      <span id="ai-tab-dot" class="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block"></span>
+    <% else %>
+      <span id="ai-tab-dot" class="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block hidden"></span>
+    <% end %>
+  </button>
+</div>
+
+<!-- Tab: Feedbacks -->
+<div id="tab-panel-feedbacks">
+
+  <% unless @ai_summary %>
+    <!-- AI summary CTA banner -->
+    <div class="mb-4 rounded-[10px] border border-violet-200 bg-gradient-to-r from-violet-50 to-indigo-50 px-4 py-3 flex items-center gap-3">
+      <span class="text-[22px]">✨</span>
+      <div class="flex-1 min-w-0">
+        <p class="text-[12px] font-semibold text-violet-800"><%= t("feedback_boards.feedbacks_page.ai_cta_title", default: "Tóm tắt góp ý bằng AI") %></p>
+        <p class="text-[11px] text-slate-500 mt-0.5"><%= t("feedback_boards.feedbacks_page.ai_cta_desc", default: "Phân tích tất cả góp ý và trích xuất chủ đề, cảm xúc, gợi ý hành động.") %></p>
+      </div>
+      <button onclick="switchTab('ai')"
+        class="flex-shrink-0 px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-[12px] font-semibold rounded-lg hover:from-indigo-600 hover:to-violet-600 whitespace-nowrap">
+        <%= t("feedback_boards.feedbacks_page.ai_summarize") %> →
+      </button>
     </div>
   <% end %>
-  <% if params[:q].present? %>
-    <%= link_to feedback_board_feedbacks_path(@board, status: params[:status]), class: "text-[12px] text-slate-400 hover:text-slate-600 flex-shrink-0" do %>✕ Xoá<% end %>
-  <% end %>
-</div>
 
-<div class="flex gap-1 mb-4">
-  <% ["", "pending", "approved", "hidden", "rejected"].each do |s| %>
-    <%= link_to feedback_board_feedbacks_path(@board, status: s.presence, q: params[:q]), class: "px-3 py-1.5 rounded-full text-[12px] font-semibold #{params[:status].to_s == s ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" do %>
-      <%= s.blank? ? "All" : s.capitalize %>
+  <!-- Search + Filter -->
+  <div class="flex items-center gap-3 mb-4">
+    <%= form_with url: feedback_board_feedbacks_path(@board), method: :get, local: true, class: "flex-1" do |f| %>
+      <%= f.hidden_field :status, value: params[:status] %>
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[13px]">🔍</span>
+        <%= f.text_field :q, value: params[:q], placeholder: t("feedback_boards.feedbacks_page.search_placeholder"),
+            class: "w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none bg-white" %>
+      </div>
     <% end %>
-  <% end %>
-</div>
+    <% if params[:q].present? %>
+      <%= link_to feedback_board_feedbacks_path(@board, status: params[:status]), class: "text-[12px] text-slate-400 hover:text-slate-600 flex-shrink-0" do %><%= t("feedback_boards.feedbacks_page.clear") %><% end %>
+    <% end %>
+  </div>
 
-<div class="space-y-3" id="feedbacks-list">
-  <% @feedbacks.each do |fb| %>
-    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4 transition-all duration-200" id="feedback-<%= fb.id %>">
-      <div class="flex gap-3">
-        <div class="flex-1">
-          <div class="flex items-center gap-2 mb-2">
-            <% if fb.pinned? %>
-              <span class="pin-badge-<%= fb.id %> text-[10px] font-bold text-amber-600">📌 Pinned</span>
+  <div class="flex gap-1 mb-4">
+    <% ["", "pending", "approved", "hidden", "rejected"].each do |s| %>
+      <%= link_to feedback_board_feedbacks_path(@board, status: s.presence, q: params[:q]), class: "px-3 py-1.5 rounded-full text-[12px] font-semibold #{params[:status].to_s == s ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" do %>
+        <%= s.blank? ? t("feedback_boards.feedbacks_page.all") : t("status.#{s}") %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="space-y-3" id="feedbacks-list">
+    <% @feedbacks.each do |fb| %>
+      <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4 transition-all duration-200" id="feedback-<%= fb.id %>">
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-2">
+              <% if fb.pinned? %>
+                <span class="pin-badge-<%= fb.id %> text-[10px] font-bold text-amber-600"><%= t("feedback_boards.feedbacks_page.pinned") %></span>
+              <% else %>
+                <span class="pin-badge-<%= fb.id %> hidden text-[10px] font-bold text-amber-600"><%= t("feedback_boards.feedbacks_page.pinned") %></span>
+              <% end %>
+              <span class="status-badge-<%= fb.id %> text-[10px] px-2 py-0.5 rounded-full <%= fb.safe? ? 'bg-emerald-50 text-emerald-700' : fb.flagged? ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500' %>">
+                <%= t("feedbacks.#{fb.moderation_status}") %>
+              </span>
+              <span class="text-[10px] text-slate-400 ml-auto"><%= I18n.l(fb.created_at, format: :short) %></span>
+            </div>
+            <p class="text-[13px] text-slate-800 leading-relaxed mb-2"><%= fb.content %></p>
+            <div class="text-[11px] text-slate-400">
+              <%= fb.anonymous? ? t("feedback_boards.feedbacks_page.anonymous") : (fb.author_name.presence || fb.author_email) %>
+              · 👍 <%= fb.upvotes_count %> <%= t("feedback_boards.feedbacks_page.upvotes") %>
+            </div>
+          </div>
+          <div class="flex flex-col gap-1.5 flex-shrink-0">
+            <% if fb.hidden? %>
+              <button id="approve-btn-<%= fb.id %>"
+                onclick="feedbackAction(<%= fb.id %>, '<%= unhide_feedback_board_feedback_path(@board, fb) %>', 'PATCH', 'unhide')"
+                class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded text-emerald-700 hover:bg-emerald-100">
+                <%= t("feedback_boards.feedbacks_page.restore") %>
+              </button>
             <% else %>
-              <span class="pin-badge-<%= fb.id %> hidden text-[10px] font-bold text-amber-600">📌 Pinned</span>
+              <button id="approve-btn-<%= fb.id %>"
+                onclick="feedbackAction(<%= fb.id %>, '<%= approve_feedback_board_feedback_path(@board, fb) %>', 'PATCH', 'approve')"
+                class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded text-emerald-700 hover:bg-emerald-100 <%= fb.approved? ? 'hidden' : '' %>">
+                <%= t("feedback_boards.feedbacks_page.approve") %>
+              </button>
+              <button id="hide-btn-<%= fb.id %>"
+                onclick="feedbackAction(<%= fb.id %>, '<%= hide_feedback_board_feedback_path(@board, fb) %>', 'PATCH', 'hide')"
+                class="px-2.5 py-1 text-[11px] bg-slate-100 rounded text-slate-600 hover:bg-slate-200">
+                <%= t("feedback_boards.feedbacks_page.hide") %>
+              </button>
             <% end %>
-            <span class="status-badge-<%= fb.id %> text-[10px] px-2 py-0.5 rounded-full <%= fb.safe? ? 'bg-emerald-50 text-emerald-700' : fb.flagged? ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500' %>">
-              <%= fb.moderation_status.humanize %>
-            </span>
-            <span class="text-[10px] text-slate-400 ml-auto"><%= fb.created_at.strftime("%b %d, %H:%M") %></span>
+            <button id="pin-btn-<%= fb.id %>"
+              onclick="togglePin(<%= fb.id %>, '<%= pin_feedback_board_feedback_path(@board, fb) %>', '<%= unpin_feedback_board_feedback_path(@board, fb) %>')"
+              data-pinned="<%= fb.pinned? ? '1' : '0' %>"
+              class="px-2.5 py-1 text-[11px] bg-amber-50 rounded text-amber-700 hover:bg-amber-100">
+              <%= fb.pinned? ? t("feedback_boards.feedbacks_page.unpin") : t("feedback_boards.feedbacks_page.pin") %>
+            </button>
+            <button onclick="deleteFeedback(<%= fb.id %>, '<%= feedback_board_feedback_path(@board, fb) %>')"
+              class="px-2.5 py-1 text-[11px] bg-red-50 rounded text-red-600 hover:bg-red-100">
+              <%= t("feedback_boards.feedbacks_page.delete") %>
+            </button>
           </div>
-          <p class="text-[13px] text-slate-800 leading-relaxed mb-2"><%= fb.content %></p>
-          <div class="text-[11px] text-slate-400">
-            <%= fb.anonymous? ? "Anonymous" : (fb.author_name.presence || fb.author_email) %>
-            · 👍 <%= fb.upvotes_count %> upvotes
-          </div>
-        </div>
-        <div class="flex flex-col gap-1.5 flex-shrink-0">
-          <% if fb.hidden? %>
-            <%# Hidden tab: show "Restore" to bring back, no "Hide" button %>
-            <button id="approve-btn-<%= fb.id %>"
-              onclick="feedbackAction(<%= fb.id %>, '<%= unhide_feedback_board_feedback_path(@board, fb) %>', 'PATCH', 'unhide')"
-              class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded text-emerald-700 hover:bg-emerald-100">
-              ↩ Restore
-            </button>
-          <% else %>
-            <%# Other tabs: show "Approve" if not yet approved, "Hide" if not hidden %>
-            <button id="approve-btn-<%= fb.id %>"
-              onclick="feedbackAction(<%= fb.id %>, '<%= approve_feedback_board_feedback_path(@board, fb) %>', 'PATCH', 'approve')"
-              class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded text-emerald-700 hover:bg-emerald-100 <%= fb.approved? ? 'hidden' : '' %>">
-              ✓ Approve
-            </button>
-            <button id="hide-btn-<%= fb.id %>"
-              onclick="feedbackAction(<%= fb.id %>, '<%= hide_feedback_board_feedback_path(@board, fb) %>', 'PATCH', 'hide')"
-              class="px-2.5 py-1 text-[11px] bg-slate-100 rounded text-slate-600 hover:bg-slate-200">
-              Hide
-            </button>
-          <% end %>
-          <button id="pin-btn-<%= fb.id %>"
-            onclick="togglePin(<%= fb.id %>, '<%= pin_feedback_board_feedback_path(@board, fb) %>', '<%= unpin_feedback_board_feedback_path(@board, fb) %>')"
-            data-pinned="<%= fb.pinned? ? '1' : '0' %>"
-            class="px-2.5 py-1 text-[11px] bg-amber-50 rounded text-amber-700 hover:bg-amber-100">
-            <%= fb.pinned? ? "Unpin" : "📌 Pin" %>
-          </button>
-          <button onclick="deleteFeedback(<%= fb.id %>, '<%= feedback_board_feedback_path(@board, fb) %>')"
-            class="px-2.5 py-1 text-[11px] bg-red-50 rounded text-red-600 hover:bg-red-100">
-            Delete
-          </button>
         </div>
       </div>
-    </div>
-  <% end %>
+    <% end %>
 
-  <% if @feedbacks.empty? %>
-    <div class="text-center py-12 text-slate-400">
-      <div class="text-3xl mb-2">💬</div>
-      <p class="text-[13px]">No feedbacks yet</p>
-    </div>
-  <% end %>
-</div>
+    <% if @feedbacks.empty? %>
+      <div class="text-center py-12 text-slate-400">
+        <div class="text-3xl mb-2">💬</div>
+        <p class="text-[13px]"><%= t("feedback_boards.feedbacks_page.no_feedbacks") %></p>
+      </div>
+    <% end %>
+  </div>
 
-<div id="ai-summary-result" class="mt-4"></div>
+</div><!-- /tab-panel-feedbacks -->
+
+<!-- Tab: AI Summary -->
+<div id="tab-panel-ai" class="hidden">
+
+  <!-- AI Summarize controls -->
+  <div class="flex items-center justify-between mb-4">
+    <p class="text-[12px] text-slate-500"><%= t("feedback_boards.feedbacks_page.ai_summary_header") %></p>
+    <div class="flex items-center gap-2">
+      <!-- Language selector -->
+      <div class="relative">
+        <select id="ai-lang-select"
+          class="appearance-none pl-3 pr-7 py-1.5 text-[12px] font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 hover:border-indigo-300 focus:outline-none focus:border-indigo-400 cursor-pointer">
+          <option value="vi" <%= current_workspace.language == "vi" ? "selected" : "" %>><%= t("feedback_boards.feedbacks_page.lang_vi") %></option>
+          <option value="en" <%= current_workspace.language == "en" ? "selected" : "" %>><%= t("feedback_boards.feedbacks_page.lang_en") %></option>
+        </select>
+        <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▾</span>
+      </div>
+      <button onclick="aiSummarize()"
+        id="ai-summarize-btn"
+        class="px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-[12px] font-semibold rounded-lg hover:from-indigo-600 hover:to-violet-600 flex items-center gap-1.5">
+        <span id="ai-btn-spinner" class="hidden w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+        <%= t("feedback_boards.feedbacks_page.ai_summarize") %>
+      </button>
+    </div>
+  </div>
+
+  <!-- AI Summary content -->
+  <div id="ai-summary-panel">
+    <% if @ai_summary %>
+      <%= render "admin/feedbacks/ai_summary_card", summary: @ai_summary %>
+    <% else %>
+      <div id="ai-summary-empty" class="text-center py-16 text-slate-400">
+        <div class="text-4xl mb-3">✨</div>
+        <p class="text-[13px]"><%= t("feedback_boards.feedbacks_page.ai_summary_empty") %></p>
+      </div>
+    <% end %>
+  </div>
+
+</div><!-- /tab-panel-ai -->
 
 <script>
-const CSRF = document.querySelector('meta[name=csrf-token]').content;
+(function() {
+const CSRF       = document.querySelector('meta[name=csrf-token]').content;
+const STATUS_URL = "<%= ai_job_status_path("__ID__") %>";
+const SUMMARIZE_URL = "<%= ai_summarize_feedback_board_path(@board) %>";
+const HAS_SUMMARY = <%= @ai_summary ? 'true' : 'false' %>;
+const I18N = {
+  approved:            "<%= j t('status.approved') %>",
+  unpin:               "<%= j t('feedback_boards.feedbacks_page.unpin') %>",
+  pin:                 "<%= j t('feedback_boards.feedbacks_page.pin') %>",
+  delete_confirm:      "<%= j t('feedback_boards.feedbacks_page.delete_confirm') %>",
+  analyzing:           "<%= j t('feedback_boards.feedbacks_page.analyzing') %>",
+  ai_summary_header:   "<%= j t('feedback_boards.feedbacks_page.ai_summary_header') %>",
+  ai_summary_generated:"<%= j t('feedback_boards.feedbacks_page.ai_summary_generated', time: '') %>",
+  ai_summary_sentiment:"<%= j t('feedback_boards.feedbacks_page.ai_summary_sentiment') %>",
+  ai_summary_themes:   "<%= j t('feedback_boards.feedbacks_page.ai_summary_themes') %>",
+  ai_summary_issues:   "<%= j t('feedback_boards.feedbacks_page.ai_summary_issues') %>",
+  ai_summary_recs:     "<%= j t('feedback_boards.feedbacks_page.ai_summary_recommendations') %>",
+  ai_summary_positive: "<%= j t('feedback_boards.feedbacks_page.ai_summary_positive') %>",
+  ai_summary_neutral:  "<%= j t('feedback_boards.feedbacks_page.ai_summary_neutral') %>",
+  ai_summary_negative: "<%= j t('feedback_boards.feedbacks_page.ai_summary_negative') %>",
+  ai_summary_error:    "<%= j t('feedback_boards.feedbacks_page.ai_summary_error') %>",
+  ai_summary_no_data:  "<%= j t('feedback_boards.feedbacks_page.ai_summary_no_data') %>",
+  regenerate:          "<%= j t('feedback_boards.feedbacks_page.ai_summary_regenerate') %>"
+};
 
-async function feedbackAction(id, url, method, action) {
-  const res = await fetch(url, {
-    method,
-    headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }
+// ── Progress ring ────────────────────────────────────────────────────────────
+const RING_CIRCUMFERENCE = 251.2; // 2π × 40
+const AI_STEPS = [
+  { pct:  8, label: "<%= j t('feedback_boards.feedbacks_page.ai_progress.reading') %>" },
+  { pct: 22, label: "<%= j t('feedback_boards.feedbacks_page.ai_progress.processing') %>" },
+  { pct: 42, label: "<%= j t('feedback_boards.feedbacks_page.ai_progress.sentiment') %>" },
+  { pct: 62, label: "<%= j t('feedback_boards.feedbacks_page.ai_progress.themes') %>" },
+  { pct: 82, label: "<%= j t('feedback_boards.feedbacks_page.ai_progress.generating') %>" }
+];
+let _progressTimer = null;
+let _currentStep   = 0;
+
+function setProgress(pct, label) {
+  const ring = document.getElementById('fb-progress-ring');
+  const txt  = document.getElementById('fb-progress-pct');
+  const lbl  = document.getElementById('fb-progress-label');
+  if (!ring) return;
+  ring.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct / 100);
+  if (txt) txt.textContent = Math.round(pct) + '%';
+  if (lbl && label !== undefined) lbl.textContent = label;
+}
+
+function startProgress() {
+  _currentStep = 0;
+  setProgress(AI_STEPS[0].pct, AI_STEPS[0].label);
+  _progressTimer = setInterval(() => {
+    if (_currentStep >= AI_STEPS.length - 1) return;
+    _currentStep++;
+    const s = AI_STEPS[_currentStep];
+    setProgress(s.pct, s.label);
+  }, 3000);
+}
+
+function finishProgress(onDone) {
+  clearInterval(_progressTimer);
+  setProgress(100, "<%= j t('feedback_boards.feedbacks_page.ai_progress.done') %>");
+  setTimeout(onDone, 500);
+}
+
+function stopProgress() {
+  clearInterval(_progressTimer);
+}
+
+function progressLoadingHtml() {
+  return `
+    <div class="rounded-[12px] border border-violet-200 bg-violet-50 px-5 py-10 text-center">
+      <div class="relative inline-flex items-center justify-center mb-5">
+        <svg width="96" height="96" class="-rotate-90">
+          <circle cx="48" cy="48" r="40" fill="none" stroke="#e2e8f0" stroke-width="7"/>
+          <circle id="fb-progress-ring" cx="48" cy="48" r="40" fill="none"
+            stroke="url(#fb-ai-grad)" stroke-width="7" stroke-linecap="round"
+            stroke-dasharray="${RING_CIRCUMFERENCE}" stroke-dashoffset="${RING_CIRCUMFERENCE}"
+            style="transition:stroke-dashoffset 0.7s ease"/>
+          <defs>
+            <linearGradient id="fb-ai-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stop-color="#8b5cf6"/>
+              <stop offset="100%" stop-color="#6366f1"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span id="fb-progress-pct"
+          class="absolute text-[20px] font-extrabold"
+          style="background:linear-gradient(135deg,#8b5cf6,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+          0%
+        </span>
+      </div>
+      <p id="fb-progress-label" class="text-[13px] font-semibold text-slate-700 mb-1"></p>
+      <p class="text-[11px] text-slate-400">${I18N.analyzing}</p>
+    </div>`;
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(name) {
+  const panels = { feedbacks: 'tab-panel-feedbacks', ai: 'tab-panel-ai' };
+  const buttons = { feedbacks: 'tab-btn-feedbacks', ai: 'tab-btn-ai' };
+
+  Object.entries(panels).forEach(([key, id]) => {
+    const panel = document.getElementById(id);
+    const btn   = document.getElementById(buttons[key]);
+    if (key === name) {
+      panel.classList.remove('hidden');
+      btn.classList.remove('border-transparent', 'text-slate-400', 'hover:text-slate-600');
+      btn.classList.add('border-indigo-600', 'text-indigo-600');
+    } else {
+      panel.classList.add('hidden');
+      btn.classList.add('border-transparent', 'text-slate-400', 'hover:text-slate-600');
+      btn.classList.remove('border-indigo-600', 'text-indigo-600');
+    }
   });
+  // Persist tab in URL hash so language switcher reloads restore it
+  history.replaceState(null, '', location.pathname + location.search + '#' + name);
+}
+
+// Restore tab from URL hash on load
+(function() {
+  const hash = location.hash.replace('#', '');
+  if (hash === 'ai') {
+    switchTab('ai');
+  }
+  // Update language switcher links to carry current hash through reloads
+  document.querySelectorAll('a[href*="?locale="]').forEach(function(link) {
+    link.addEventListener('click', function() {
+      this.href = this.href.split('#')[0] + location.hash;
+    });
+  });
+})();
+
+// ── Feedback actions ────────────────────────────────────────────────────────
+async function feedbackAction(id, url, method, action) {
+  const res = await fetch(url, { method, headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' } });
   if (!res.ok) return;
 
   const card       = document.getElementById(`feedback-${id}`);
   const approveBtn = document.getElementById(`approve-btn-${id}`);
-  const hideBtn    = document.getElementById(`hide-btn-${id}`);
   const badge      = document.querySelector(`.status-badge-${id}`);
 
   if (action === 'approve') {
     if (approveBtn) approveBtn.classList.add('hidden');
     if (badge) {
-      badge.textContent = 'Approved';
+      badge.textContent = I18N.approved;
       badge.className = `status-badge-${id} text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700`;
     }
-  } else if (action === 'hide') {
-    // Remove card from current view (non-hidden tabs)
-    if (card) {
-      card.style.opacity = '0';
-      card.style.transform = 'translateX(10px)';
-      setTimeout(() => card.remove(), 200);
-    }
-  } else if (action === 'unhide') {
-    // On hidden tab: remove card since it no longer belongs here
+  } else if (action === 'hide' || action === 'unhide') {
     if (card) {
       card.style.opacity = '0';
       card.style.transform = 'translateX(10px)';
@@ -142,31 +334,23 @@ async function feedbackAction(id, url, method, action) {
 async function togglePin(id, pinUrl, unpinUrl) {
   const btn    = document.getElementById(`pin-btn-${id}`);
   const pinned = btn.dataset.pinned === '1';
-  const url    = pinned ? unpinUrl : pinUrl;
-
-  const res = await fetch(url, {
-    method: 'PATCH',
-    headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }
-  });
+  const res = await fetch(pinned ? unpinUrl : pinUrl, { method: 'PATCH', headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' } });
   if (!res.ok) return;
   const data = await res.json();
 
-  // Update button + badge
   const badge = document.querySelector(`.pin-badge-${id}`);
   if (data.pinned) {
     btn.dataset.pinned = '1';
-    btn.textContent = 'Unpin';
+    btn.textContent = I18N.unpin;
     if (badge) badge.classList.remove('hidden');
   } else {
     btn.dataset.pinned = '0';
-    btn.textContent = '📌 Pin';
+    btn.textContent = I18N.pin;
     if (badge) badge.classList.add('hidden');
   }
 
-  // Reorder DOM by server-sorted IDs
   const list = document.getElementById('feedbacks-list');
   list.style.opacity = '0.4';
-  list.style.transition = 'opacity 0.15s';
   setTimeout(() => {
     data.order.forEach(fid => {
       const card = document.getElementById(`feedback-${fid}`);
@@ -177,11 +361,8 @@ async function togglePin(id, pinUrl, unpinUrl) {
 }
 
 async function deleteFeedback(id, url) {
-  if (!confirm('Xoá feedback này?')) return;
-  const res = await fetch(url, {
-    method: 'DELETE',
-    headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }
-  });
+  if (!confirm(I18N.delete_confirm)) return;
+  const res = await fetch(url, { method: 'DELETE', headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' } });
   if (!res.ok) return;
   const card = document.getElementById(`feedback-${id}`);
   if (card) {
@@ -191,25 +372,141 @@ async function deleteFeedback(id, url) {
   }
 }
 
-async function aiSummarize() {
-  const resp = await fetch('<%= ai_summarize_feedback_board_path(@board) %>', {
-    method: 'POST',
-    headers: { 'X-CSRF-Token': CSRF }
-  });
-  const { job_id } = await resp.json();
-  const box = document.getElementById('ai-summary-result');
-  box.innerHTML = '<div class="bg-violet-50 border border-violet-200 rounded-xl p-4 text-[13px] text-slate-600">🤖 Analyzing feedback with Claude AI...</div>';
-  pollJob(job_id, (result) => {
-    box.innerHTML = `<div class="bg-violet-50 border border-violet-200 rounded-xl p-4">
-      <div class="text-[11px] font-bold text-violet-600 mb-2">AI SUMMARY</div>
-      <p class="text-[13px] text-slate-800">${result.summary}</p>
+// ── AI Summary ──────────────────────────────────────────────────────────────
+function renderSummaryCard(result, generatedAt) {
+  const now = generatedAt || new Date().toLocaleString();
+  const sentiment = result.sentiment || {};
+  const themes    = result.themes    || [];
+  const issues    = result.priority_issues    || [];
+  const recs      = result.recommendations || [];
+
+  const sentimentHtml = `
+    <div class="flex gap-3 flex-wrap">
+      <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">
+        ▲ ${I18N.ai_summary_positive}: ${sentiment.positive || '–'}
+      </span>
+      <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+        ● ${I18N.ai_summary_neutral}: ${sentiment.neutral || '–'}
+      </span>
+      <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-50 text-red-600">
+        ▼ ${I18N.ai_summary_negative}: ${sentiment.negative || '–'}
+      </span>
     </div>`;
-  });
+
+  const themesHtml = themes.length ? `
+    <div>
+      <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">${I18N.ai_summary_themes}</div>
+      <div class="flex gap-2 flex-wrap">
+        ${themes.map(t => `<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border ${t.sentiment === 'positive' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : t.sentiment === 'negative' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-50 text-slate-600 border-slate-200'}">${t.name} <span class="opacity-60">(${t.count})</span></span>`).join('')}
+      </div>
+    </div>` : '';
+
+  const issuesHtml = issues.length ? `
+    <div>
+      <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">${I18N.ai_summary_issues}</div>
+      <ul class="space-y-1">
+        ${issues.map(i => `<li class="flex gap-2 text-[12px] text-slate-700"><span class="text-red-400 flex-shrink-0">•</span>${i}</li>`).join('')}
+      </ul>
+    </div>` : '';
+
+  const recsHtml = recs.length ? `
+    <div>
+      <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">${I18N.ai_summary_recs}</div>
+      <ul class="space-y-1">
+        ${recs.map(r => `<li class="flex gap-2 text-[12px] text-slate-700"><span class="text-indigo-400 flex-shrink-0">→</span>${r}</li>`).join('')}
+      </ul>
+    </div>` : '';
+
+  return `
+    <div class="rounded-[12px] border overflow-hidden" style="border-color:rgba(139,92,246,0.2); background:rgba(245,243,255,0.6);">
+      <div class="flex items-center justify-between px-5 py-3" style="background:rgba(139,92,246,0.08); border-bottom:1px solid rgba(139,92,246,0.15);">
+        <div class="flex items-center gap-2">
+          <span class="text-[13px] font-bold text-violet-700">${I18N.ai_summary_header}</span>
+          <span class="text-[10px] text-slate-400">${now}</span>
+        </div>
+        <button onclick="aiSummarize()"
+          class="text-[11px] font-semibold text-violet-600 hover:text-violet-800 px-2.5 py-1 rounded-lg hover:bg-violet-100 transition-colors border-0 bg-transparent cursor-pointer">
+          ↺ ${I18N.regenerate}
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <p class="text-[13px] text-slate-800 leading-relaxed">${result.summary || ''}</p>
+        ${sentimentHtml}
+        ${themesHtml}
+        ${issuesHtml}
+        ${recsHtml}
+      </div>
+    </div>`;
 }
-async function pollJob(jobId, onDone) {
-  const resp = await fetch('<%= ai_job_status_path("__ID__") %>'.replace('__ID__', jobId));
+
+async function aiSummarize() {
+  const lang  = document.getElementById('ai-lang-select')?.value || 'vi';
+  const panel = document.getElementById('ai-summary-panel');
+  const btn   = document.getElementById('ai-summarize-btn');
+  const spinner = document.getElementById('ai-btn-spinner');
+
+  // Switch to AI tab first
+  switchTab('ai');
+
+  // Show progress ring loading state
+  if (btn) btn.disabled = true;
+  if (spinner) spinner.classList.remove('hidden');
+  panel.innerHTML = progressLoadingHtml();
+  // Kick off animated ring after the DOM is rendered
+  requestAnimationFrame(() => startProgress());
+
+  const resetBtn = () => {
+    if (btn) btn.disabled = false;
+    if (spinner) spinner.classList.add('hidden');
+  };
+
+  try {
+    const resp = await fetch(SUMMARIZE_URL, {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ language: lang })
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      stopProgress();
+      resetBtn();
+      panel.innerHTML = `<div class="rounded-[12px] border border-red-200 bg-red-50 px-5 py-4 text-[13px] text-red-600">❌ ${data.error || I18N.ai_summary_error}</div>`;
+      return;
+    }
+
+    pollJob(data.job_id, (result) => {
+      finishProgress(() => {
+        resetBtn();
+        panel.innerHTML = renderSummaryCard(result, new Date().toLocaleString());
+        const dot = document.getElementById('ai-tab-dot');
+        if (dot) dot.classList.remove('hidden');
+        window.deductDisplayCredits?.(3);
+      });
+    }, () => {
+      stopProgress();
+      resetBtn();
+      panel.innerHTML = `<div class="rounded-[12px] border border-red-200 bg-red-50 px-5 py-4 text-[13px] text-red-600">❌ ${I18N.ai_summary_error}</div>`;
+    });
+  } catch(e) {
+    stopProgress();
+    resetBtn();
+    panel.innerHTML = `<div class="rounded-[12px] border border-red-200 bg-red-50 px-5 py-4 text-[13px] text-red-600">❌ ${I18N.ai_summary_error}</div>`;
+  }
+}
+
+async function pollJob(jobId, onDone, onFail) {
+  const resp = await fetch(STATUS_URL.replace('__ID__', jobId));
   const data = await resp.json();
-  if (data.status === 'done') onDone(data.output);
-  else if (data.status !== 'failed') setTimeout(() => pollJob(jobId, onDone), 2000);
+  if (data.status === 'done') {
+    onDone(data.output);
+  } else if (data.status === 'failed') {
+    if (onFail) onFail(data.error);
+  } else {
+    setTimeout(() => pollJob(jobId, onDone, onFail), 2000);
+  }
 }
+
+Object.assign(window, { feedbackAction, togglePin, deleteFeedback, aiSummarize, switchTab });
+})();
 </script>

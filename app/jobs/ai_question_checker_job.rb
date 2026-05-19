@@ -7,8 +7,13 @@ class AiQuestionCheckerJob < ApplicationJob
 
     question_text = job.input_data["question_text"]
     language      = job.input_data["language"] || "vi"
+    lang_name     = language == "vi" ? "Vietnamese" : "English"
 
-    system_prompt = "You are a survey methodology expert. Analyze survey questions for quality issues."
+    system_prompt = <<~PROMPT
+      You are a survey methodology expert. Analyze survey questions for quality issues.
+      Always respond with "explanation" and "suggestion" written in #{lang_name}.
+      Only the JSON values for "explanation" and "suggestion" must be in #{lang_name} — keep JSON keys in English.
+    PROMPT
 
     user_prompt = <<~PROMPT
       Analyze this survey question for quality issues: "#{question_text}"
@@ -19,12 +24,12 @@ class AiQuestionCheckerJob < ApplicationJob
       3. Ambiguous language
       4. Loaded language
 
-      Return JSON:
+      Return ONLY valid JSON (no markdown, no code fences):
       {
         "issues": ["issue1", "issue2"],
         "severity": "none|warning|error",
-        "suggestion": "Improved version if needed",
-        "explanation": "Brief explanation"
+        "suggestion": "Improved version in #{lang_name} if needed, otherwise null",
+        "explanation": "Brief explanation in #{lang_name}"
       }
     PROMPT
 

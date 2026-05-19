@@ -1,14 +1,14 @@
 <!-- Header -->
 <div class="flex items-center gap-3 mb-6">
-  <%= link_to super_admin_workspaces_path, class: "text-[13px] text-slate-500 hover:text-slate-700" do %>← Back<% end %>
+  <%= link_to super_admin_workspaces_path, class: "text-[13px] text-slate-500 hover:text-slate-700" do %><%= t("super_admin.workspaces.back") %><% end %>
   <h1 class="text-[21px] font-extrabold text-slate-900"><%= @workspace.name %></h1>
   <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full <%= @workspace.active? ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' %>"><%= @workspace.status.capitalize %></span>
   <div class="ml-auto flex gap-2">
-    <%= link_to edit_super_admin_workspace_path(@workspace), class: "px-3 py-1.5 text-[12px] bg-slate-100 text-slate-700 rounded-lg font-semibold hover:bg-slate-200" do %>Edit<% end %>
+    <%= link_to edit_super_admin_workspace_path(@workspace), class: "px-3 py-1.5 text-[12px] bg-slate-100 text-slate-700 rounded-lg font-semibold hover:bg-slate-200" do %><%= t("super_admin.workspaces.action_edit") %><% end %>
     <% if @workspace.active? %>
-      <%= button_to suspend_super_admin_workspace_path(@workspace), method: :patch, class: "px-3 py-1.5 text-[12px] bg-amber-50 text-amber-700 rounded-lg font-semibold hover:bg-amber-100" do %>Suspend<% end %>
+      <%= button_to suspend_super_admin_workspace_path(@workspace), method: :patch, class: "px-3 py-1.5 text-[12px] bg-amber-50 text-amber-700 rounded-lg font-semibold hover:bg-amber-100" do %><%= t("super_admin.workspaces.action_suspend") %><% end %>
     <% else %>
-      <%= button_to activate_super_admin_workspace_path(@workspace), method: :patch, class: "px-3 py-1.5 text-[12px] bg-emerald-50 text-emerald-700 rounded-lg font-semibold hover:bg-emerald-100" do %>Activate<% end %>
+      <%= button_to activate_super_admin_workspace_path(@workspace), method: :patch, class: "px-3 py-1.5 text-[12px] bg-emerald-50 text-emerald-700 rounded-lg font-semibold hover:bg-emerald-100" do %><%= t("super_admin.workspaces.action_activate") %><% end %>
     <% end %>
   </div>
 </div>
@@ -17,66 +17,66 @@
 <div class="grid grid-cols-6 gap-3 mb-5">
   <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
     <div class="text-[24px] font-extrabold text-indigo-600"><%= @workspace.surveys.count %></div>
-    <div class="text-[11px] text-slate-500 mt-0.5">Surveys</div>
+    <div class="text-[11px] text-slate-500 mt-0.5"><%= t("super_admin.workspaces.stat_surveys") %></div>
   </div>
   <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
     <div class="text-[24px] font-extrabold text-violet-600"><%= @workspace.votes.count %></div>
-    <div class="text-[11px] text-slate-500 mt-0.5">Votes</div>
+    <div class="text-[11px] text-slate-500 mt-0.5"><%= t("super_admin.workspaces.stat_votes") %></div>
   </div>
   <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
     <div class="text-[24px] font-extrabold text-sky-600"><%= @workspace.feedback_boards.count %></div>
-    <div class="text-[11px] text-slate-500 mt-0.5">Feedback Boards</div>
+    <div class="text-[11px] text-slate-500 mt-0.5"><%= t("super_admin.workspaces.stat_feedback_boards") %></div>
   </div>
   <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
     <div class="text-[24px] font-extrabold text-emerald-600"><%= @workspace.workspace_memberships.active.count %></div>
-    <div class="text-[11px] text-slate-500 mt-0.5">Members</div>
+    <div class="text-[11px] text-slate-500 mt-0.5"><%= t("super_admin.workspaces.stat_members") %></div>
   </div>
   <% sub = @workspace.active_subscription %>
   <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
     <div class="text-[24px] font-extrabold text-rose-600"><%= sub&.credit_balance || 0 %></div>
-    <div class="text-[11px] text-slate-500 mt-0.5">AI Credits left</div>
+    <div class="text-[11px] text-slate-500 mt-0.5"><%= t("super_admin.workspaces.stat_ai_credits") %></div>
   </div>
   <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
     <div class="text-[15px] font-extrabold text-slate-700 mt-1"><%= sub&.plan&.upcase || "FREE" %></div>
-    <div class="text-[11px] text-slate-500 mt-0.5"><%= sub&.ends_at ? sub.ends_at.strftime("%d/%m/%Y") : "No expiry" %></div>
+    <div class="text-[11px] text-slate-500 mt-0.5"><%= sub&.ends_at ? sub.ends_at.strftime("%d/%m/%Y") : t("super_admin.workspaces.no_expiry") %></div>
   </div>
 </div>
 
 <div class="grid grid-cols-3 gap-4 mb-4">
   <!-- Workspace details -->
   <div class="bg-white rounded-xl border border-slate-200 p-5">
-    <h2 class="text-[13px] font-bold text-slate-700 mb-3">Workspace Details</h2>
+    <h2 class="text-[13px] font-bold text-slate-700 mb-3"><%= t("super_admin.workspaces.detail_title") %></h2>
     <dl class="space-y-2.5 text-[13px]">
-      <div class="flex justify-between"><dt class="text-slate-500">Slug</dt><dd class="font-medium text-slate-900"><%= @workspace.slug %></dd></div>
-      <div class="flex justify-between"><dt class="text-slate-500">Language</dt><dd class="font-medium text-slate-900"><%= @workspace.language&.upcase || "—" %></dd></div>
-      <div class="flex justify-between"><dt class="text-slate-500">Timezone</dt><dd class="font-medium text-slate-900 text-right max-w-[140px] truncate"><%= @workspace.timezone || "—" %></dd></div>
-      <div class="flex justify-between"><dt class="text-slate-500">Created</dt><dd class="font-medium text-slate-900"><%= @workspace.created_at.strftime("%b %d, %Y") %></dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.detail_slug") %></dt><dd class="font-medium text-slate-900"><%= @workspace.slug %></dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.detail_language") %></dt><dd class="font-medium text-slate-900"><%= @workspace.language&.upcase || "—" %></dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.detail_timezone") %></dt><dd class="font-medium text-slate-900 text-right max-w-[140px] truncate"><%= @workspace.timezone || "—" %></dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.detail_created") %></dt><dd class="font-medium text-slate-900"><%= @workspace.created_at.strftime("%b %d, %Y") %></dd></div>
     </dl>
   </div>
 
   <!-- Subscription -->
   <div class="bg-white rounded-xl border border-slate-200 p-5">
-    <h2 class="text-[13px] font-bold text-slate-700 mb-3">Subscription</h2>
+    <h2 class="text-[13px] font-bold text-slate-700 mb-3"><%= t("super_admin.workspaces.subscription_title") %></h2>
     <% if sub %>
       <dl class="space-y-2.5 text-[13px]">
-        <div class="flex justify-between"><dt class="text-slate-500">Plan</dt><dd class="font-semibold text-indigo-600"><%= sub.plan&.upcase %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-500">Status</dt><dd class="font-medium text-slate-900"><%= sub.status&.capitalize %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-500">AI Credits</dt><dd class="font-medium text-slate-900"><%= sub.credit_balance %> / <%= sub.max_ai_credits || "∞" %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-500">Max Supporters</dt><dd class="font-medium text-slate-900"><%= sub.max_supporters || "∞" %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-500">Max Surveys</dt><dd class="font-medium text-slate-900"><%= sub.max_surveys || "∞" %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-500">Expires</dt><dd class="font-medium text-slate-900"><%= sub.ends_at&.strftime("%b %d, %Y") || "Never" %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_plan") %></dt><dd class="font-semibold text-indigo-600"><%= sub.plan&.upcase %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_status") %></dt><dd class="font-medium text-slate-900"><%= sub.status&.capitalize %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_ai_credits") %></dt><dd class="font-medium text-slate-900"><%= sub.credit_balance %> / <%= sub.max_ai_credits || "∞" %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_max_supporters") %></dt><dd class="font-medium text-slate-900"><%= sub.max_supporters || "∞" %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_max_surveys") %></dt><dd class="font-medium text-slate-900"><%= sub.max_surveys || "∞" %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_expires") %></dt><dd class="font-medium text-slate-900"><%= sub.ends_at&.strftime("%b %d, %Y") || t("super_admin.workspaces.sub_never") %></dd></div>
       </dl>
     <% else %>
-      <p class="text-[13px] text-slate-400">No active subscription.</p>
+      <p class="text-[13px] text-slate-400"><%= t("super_admin.workspaces.subscription_none") %></p>
     <% end %>
     <div class="mt-4">
-      <%= link_to super_admin_subscriptions_path, class: "text-[12px] text-indigo-600 hover:underline" do %>Manage subscriptions →<% end %>
+      <%= link_to super_admin_subscriptions_path, class: "text-[12px] text-indigo-600 hover:underline" do %><%= t("super_admin.workspaces.subscription_manage") %><% end %>
     </div>
   </div>
 
   <!-- Admin user panel -->
   <div class="bg-white rounded-xl border border-slate-200 p-5">
-    <h2 class="text-[13px] font-bold text-slate-700 mb-3">Admin User</h2>
+    <h2 class="text-[13px] font-bold text-slate-700 mb-3"><%= t("super_admin.workspaces.admin_title") %></h2>
     <% admin = @workspace.admin_users.first %>
     <% if admin %>
       <div class="flex items-center gap-3 mb-4">
@@ -89,17 +89,17 @@
         </div>
       </div>
       <dl class="space-y-2 text-[13px] mb-4">
-        <div class="flex justify-between"><dt class="text-slate-500">Status</dt>
+        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.admin_status") %></dt>
           <dd><span class="px-1.5 py-0.5 rounded text-[10px] font-semibold <%= admin.active? ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' %>"><%= admin.status&.capitalize %></span></dd>
         </div>
-        <div class="flex justify-between"><dt class="text-slate-500">Last sign in</dt><dd class="font-medium text-slate-900"><%= admin.last_sign_in_at ? admin.last_sign_in_at.strftime("%b %d, %Y") : "Never" %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.admin_last_signin") %></dt><dd class="font-medium text-slate-900"><%= admin.last_sign_in_at ? admin.last_sign_in_at.strftime("%b %d, %Y") : t("super_admin.workspaces.admin_never") %></dd></div>
       </dl>
       <%= button_to reset_admin_password_super_admin_workspace_path(@workspace), method: :patch,
             class: "w-full py-2 text-[12px] bg-amber-50 text-amber-700 rounded-lg font-semibold hover:bg-amber-100" do %>
-        Reset Admin Password
+        <%= t("super_admin.workspaces.action_reset_password") %>
       <% end %>
     <% else %>
-      <p class="text-[13px] text-slate-400">No admin user found.</p>
+      <p class="text-[13px] text-slate-400"><%= t("super_admin.workspaces.admin_none") %></p>
     <% end %>
   </div>
 </div>
@@ -107,15 +107,15 @@
 <!-- Members table -->
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-4">
   <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
-    <h2 class="text-[13px] font-bold text-slate-700">Members (<%= @workspace.workspace_memberships.active.count %>)</h2>
+    <h2 class="text-[13px] font-bold text-slate-700"><%= t("super_admin.workspaces.members_title") %> (<%= @workspace.workspace_memberships.active.count %>)</h2>
   </div>
   <table class="w-full">
     <thead><tr class="bg-slate-50 border-b border-slate-100">
-      <th class="text-left text-[11px] font-semibold text-slate-400 uppercase px-5 py-2.5">Name</th>
+      <th class="text-left text-[11px] font-semibold text-slate-400 uppercase px-5 py-2.5"><%= t("super_admin.dashboard.col_name") %></th>
       <th class="text-left text-[11px] font-semibold text-slate-400 uppercase px-5 py-2.5">Email</th>
-      <th class="text-left text-[11px] font-semibold text-slate-400 uppercase px-5 py-2.5">Role</th>
-      <th class="text-left text-[11px] font-semibold text-slate-400 uppercase px-5 py-2.5">Joined</th>
-      <th class="text-left text-[11px] font-semibold text-slate-400 uppercase px-5 py-2.5">Status</th>
+      <th class="text-left text-[11px] font-semibold text-slate-400 uppercase px-5 py-2.5"><%= t("roles.admin") %></th>
+      <th class="text-left text-[11px] font-semibold text-slate-400 uppercase px-5 py-2.5"><%= t("super_admin.workspaces.detail_created") %></th>
+      <th class="text-left text-[11px] font-semibold text-slate-400 uppercase px-5 py-2.5"><%= t("super_admin.workspaces.col_status") %></th>
     </tr></thead>
     <tbody>
       <% @workspace.workspace_memberships.includes(:user).order(created_at: :asc).each do |m| %>
@@ -138,7 +138,7 @@
 <!-- Recent activity -->
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
   <div class="px-5 py-3.5 border-b border-slate-100">
-    <h2 class="text-[13px] font-bold text-slate-700">Recent Activity</h2>
+    <h2 class="text-[13px] font-bold text-slate-700"><%= t("super_admin.workspaces.activity_title") %></h2>
   </div>
   <% logs = @workspace.audit_logs.order(created_at: :desc).limit(15) %>
   <% if logs.any? %>
@@ -159,6 +159,6 @@
       <% end %>
     </div>
   <% else %>
-    <p class="px-5 py-4 text-[13px] text-slate-400">No activity recorded yet.</p>
+    <p class="px-5 py-4 text-[13px] text-slate-400"><%= t("super_admin.workspaces.activity_none") %></p>
   <% end %>
 </div>

@@ -3,12 +3,14 @@ class ClaudeService
   SONNET_MODEL = "claude-sonnet-4-6"
   API_URL      = "https://api.anthropic.com/v1/messages"
 
-  def initialize(model: HAIKU_MODEL)
-    @model = model
+  def initialize(model: HAIKU_MODEL, timeout: 90)
+    @model   = model
     @api_key = ENV["ANTHROPIC_API_KEY"]
+    @timeout = timeout
   end
 
-  def call(system_prompt:, user_prompt:, max_tokens: 2048)
+  def call(system_prompt:, user_prompt: nil, messages: nil, max_tokens: 2048)
+    actual_messages = messages || [{ role: "user", content: user_prompt }]
     response = HTTParty.post(API_URL,
       headers: {
         "x-api-key"         => @api_key,
@@ -19,9 +21,9 @@ class ClaudeService
         model: @model,
         max_tokens: max_tokens,
         system: system_prompt,
-        messages: [{ role: "user", content: user_prompt }]
+        messages: actual_messages
       }.to_json,
-      timeout: 60
+      timeout: @timeout
     )
 
     raise "Claude API error: #{response.body}" unless response.success?
@@ -32,6 +34,7 @@ class ClaudeService
     raise
   end
 
-  def self.haiku  = new(model: HAIKU_MODEL)
-  def self.sonnet = new(model: SONNET_MODEL)
+  def self.haiku     = new(model: HAIKU_MODEL)
+  def self.sonnet    = new(model: SONNET_MODEL, timeout: 90)
+  def self.sonnet_long = new(model: SONNET_MODEL, timeout: 180)
 end

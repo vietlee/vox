@@ -1,6 +1,6 @@
 <div class="flex items-center gap-3 mb-6">
-  <%= link_to super_admin_subscription_path(@subscription), class: "text-[13px] text-slate-500 hover:text-slate-700" do %>← Back<% end %>
-  <h1 class="text-[21px] font-extrabold text-slate-900">Edit Subscription — <%= @subscription.workspace&.name %></h1>
+  <%= link_to super_admin_subscription_path(@subscription), class: "text-[13px] text-slate-500 hover:text-slate-700" do %><%= t("super_admin.subscriptions.back") %><% end %>
+  <h1 class="text-[21px] font-extrabold text-slate-900"><%= t("super_admin.subscriptions.edit_title") %> — <%= @subscription.workspace&.name %></h1>
 </div>
 
 <%= form_with model: [:super_admin, @subscription], local: true, class: "space-y-5" do |f| %>
@@ -8,32 +8,40 @@
 
     <!-- Plan & Status -->
     <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-4">Plan & Status</h2>
+      <h2 class="text-[13px] font-bold text-slate-700 mb-4"><%= t("super_admin.subscriptions.edit_plan_status") %></h2>
       <div class="space-y-4">
         <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Plan</label>
-          <%= f.select :plan, [["Free", "free"], ["Pro", "pro"], ["Enterprise", "enterprise"]],
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.col_plan") %></label>
+          <%= f.select :plan,
+                [[t("super_admin.subscriptions.filter_free"), "free"],
+                 [t("super_admin.subscriptions.filter_pro"), "pro"],
+                 [t("super_admin.subscriptions.filter_enterprise"), "enterprise"]],
                 { selected: @subscription.plan },
                 class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
-          <p class="text-[11px] text-slate-400 mt-1">Thay đổi plan sẽ tự áp dụng limits mặc định.</p>
+          <p class="text-[11px] text-slate-400 mt-1"><%= t("super_admin.subscriptions.plan_change_note") %></p>
         </div>
         <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Status</label>
-          <%= f.select :status, [["Active", "active"], ["Expired", "expired"], ["Cancelled", "cancelled"], ["Trialing", "trialing"]],
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.col_status") %></label>
+          <%= f.select :status,
+                [[t("super_admin.subscriptions.filter_active"), "active"],
+                 [t("super_admin.subscriptions.filter_expired"), "expired"],
+                 [t("super_admin.subscriptions.filter_cancelled"), "cancelled"],
+                 [t("super_admin.subscriptions.filter_trialing"), "trialing"]],
                 { selected: @subscription.status },
                 class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
         </div>
         <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Billing Cycle</label>
-          <%= f.select :billing_cycle, [["Monthly", "monthly"], ["Yearly", "yearly"]],
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.stat_billing") %></label>
+          <%= f.select :billing_cycle,
+                [["Monthly", "monthly"], ["Yearly", "yearly"]],
                 { selected: @subscription.billing_cycle },
                 class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
         </div>
         <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Auto-renew</label>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.detail_auto_renew") %></label>
           <div class="flex items-center gap-2 mt-1">
             <%= f.check_box :auto_renew, class: "w-4 h-4 accent-indigo-600" %>
-            <span class="text-[13px] text-slate-600">Bật tự động gia hạn</span>
+            <span class="text-[13px] text-slate-600"><%= t("super_admin.subscriptions.auto_renew_label") %></span>
           </div>
         </div>
       </div>
@@ -41,20 +49,20 @@
 
     <!-- Dates & Price -->
     <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-4">Dates & Pricing</h2>
+      <h2 class="text-[13px] font-bold text-slate-700 mb-4"><%= t("super_admin.subscriptions.dates_pricing") %></h2>
       <div class="space-y-4">
         <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Starts At</label>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.starts_at_label") %></label>
           <%= f.datetime_local_field :starts_at, value: @subscription.starts_at&.strftime("%Y-%m-%dT%H:%M"),
                 class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
         </div>
         <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Expires At</label>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.expires_at_label") %></label>
           <%= f.datetime_local_field :ends_at, value: @subscription.ends_at&.strftime("%Y-%m-%dT%H:%M"),
                 class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
         </div>
         <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Price (VND / cycle)</label>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.price_label") %></label>
           <%= f.number_field :price_cents, value: @subscription.price_cents,
                 class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800",
                 placeholder: "0" %>
@@ -65,15 +73,15 @@
     <!-- Limits -->
     <div class="bg-white rounded-xl border border-slate-200 p-5">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-[13px] font-bold text-slate-700">Usage Limits <span class="font-normal text-slate-400 text-[11px]">(để trống = không giới hạn)</span></h2>
-        <button type="button" onclick="resetToDefaults()" class="text-[11px] text-indigo-600 hover:text-indigo-700 font-semibold">↺ Reset về plan defaults</button>
+        <h2 class="text-[13px] font-bold text-slate-700"><%= t("super_admin.subscriptions.usage_limits") %> <span class="font-normal text-slate-400 text-[11px]"><%= t("super_admin.subscriptions.unlimited_note") %></span></h2>
+        <button type="button" onclick="resetToDefaults()" class="text-[11px] text-indigo-600 hover:text-indigo-700 font-semibold"><%= t("super_admin.subscriptions.reset_defaults") %></button>
       </div>
       <div class="space-y-3">
         <% [
-          [:max_surveys,    "Max Surveys"],
-          [:max_votes,      "Max Votes"],
-          [:max_feedbacks,  "Max Feedbacks"],
-          [:max_supporters, "Max Supporters"]
+          [:max_surveys,    t("super_admin.subscriptions.limit_max_surveys")],
+          [:max_votes,      t("super_admin.subscriptions.limit_max_votes")],
+          [:max_feedbacks,  t("super_admin.subscriptions.limit_max_feedbacks")],
+          [:max_supporters, t("super_admin.subscriptions.limit_max_supporters")]
         ].each do |field, label| %>
           <div>
             <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= label %></label>
@@ -87,29 +95,29 @@
 
     <!-- AI Credits -->
     <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-4">AI Credits</h2>
+      <h2 class="text-[13px] font-bold text-slate-700 mb-4"><%= t("super_admin.subscriptions.ai_credits_title") %></h2>
       <div class="space-y-3">
         <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Max AI Credits / cycle</label>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.ai_credits_max") %></label>
           <%= f.number_field :max_ai_credits, value: @subscription.max_ai_credits,
                 class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800",
                 placeholder: "∞" %>
         </div>
         <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Current Credit Balance</label>
+          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.ai_credits_balance") %></label>
           <%= f.number_field :credit_balance, value: @subscription.credit_balance,
                 class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
         </div>
         <div class="pt-2 p-3 bg-amber-50 rounded-lg border border-amber-100">
-          <p class="text-[11px] text-amber-700">Thay đổi Max AI Credits sẽ không tự reset credit balance. Điều chỉnh Credit Balance thủ công nếu cần.</p>
+          <p class="text-[11px] text-amber-700"><%= t("super_admin.subscriptions.ai_credits_note") %></p>
         </div>
       </div>
     </div>
   </div>
 
   <div class="flex gap-3">
-    <%= f.submit "Lưu thay đổi", class: "px-6 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg cursor-pointer hover:bg-indigo-700" %>
-    <%= link_to "Huỷ", super_admin_subscription_path(@subscription), class: "px-6 py-2.5 bg-slate-100 text-slate-700 text-[13px] font-semibold rounded-lg hover:bg-slate-200" %>
+    <%= f.submit t("super_admin.subscriptions.save_btn"), class: "px-6 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg cursor-pointer hover:bg-indigo-700" %>
+    <%= link_to t("super_admin.subscriptions.cancel_btn"), super_admin_subscription_path(@subscription), class: "px-6 py-2.5 bg-slate-100 text-slate-700 text-[13px] font-semibold rounded-lg hover:bg-slate-200" %>
   </div>
 <% end %>
 

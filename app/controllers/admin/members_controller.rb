@@ -20,7 +20,7 @@ class Admin::MembersController < Admin::BaseController
     existing_user = User.find_by(email: email)
     if existing_user && current_workspace.workspace_memberships.active.exists?(user: existing_user)
       @member = User.new(email: email, name: name)
-      @member.errors.add(:email, "đã là thành viên của workspace này")
+      @member.errors.add(:email, t("members.already_member"))
       return render :new, status: :unprocessable_entity
     end
 
@@ -67,5 +67,18 @@ class Admin::MembersController < Admin::BaseController
     membership = current_workspace.workspace_memberships.find_by!(user_id: params[:id])
     membership.update!(status: membership.active? ? :inactive : :active)
     redirect_to members_path
+  end
+
+  def reset_password
+    member = current_workspace.users.find(params[:id])
+    new_password = SecureRandom.hex(8)
+    member.update!(
+      password:              new_password,
+      password_confirmation: new_password,
+      must_change_password:  true
+    )
+    MemberMailer.password_reset(member, new_password).deliver_later
+    audit_log("member.reset_password", resource: member)
+    redirect_to members_path, notice: t("members.password_reset_sent", email: member.email)
   end
 end

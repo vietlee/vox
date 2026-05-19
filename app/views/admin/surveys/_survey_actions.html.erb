@@ -1,22 +1,22 @@
 <% if survey.closed? || survey.archived? %>
-  <span class="px-2.5 py-1 text-[11px] bg-slate-50 rounded-md text-slate-300 cursor-not-allowed" title="Survey đã đóng">Chỉnh sửa</span>
+  <span class="px-2.5 py-1 text-[11px] bg-slate-50 rounded-md text-slate-300 cursor-not-allowed" title="<%= t("surveys.edit_disabled_title") %>"><%= t("surveys.edit") %></span>
 <% else %>
-  <%= link_to edit_survey_path(survey), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %>Chỉnh sửa<% end %>
+  <%= link_to edit_survey_path(survey), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %><%= t("surveys.edit") %><% end %>
 <% end %>
-<%= link_to results_survey_path(survey), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100" do %>Kết quả<% end %>
+<%= link_to results_survey_path(survey), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100" do %><%= t("surveys.results_btn") %><% end %>
 <button onclick="cloneSurvey(<%= survey.id %>)"
-  class="px-2.5 py-1 text-[11px] bg-violet-50 rounded-md text-violet-700 hover:bg-violet-100 border-0 cursor-pointer">Nhân bản</button>
+  class="px-2.5 py-1 text-[11px] bg-violet-50 rounded-md text-violet-700 hover:bg-violet-100 border-0 cursor-pointer"><%= t("surveys.clone") %></button>
 <% if survey.draft? %>
   <button onclick="surveyAction('publish', <%= survey.id %>)"
-    class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 border-0 cursor-pointer">Publish</button>
+    class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 border-0 cursor-pointer"><%= t("surveys.publish") %></button>
 <% end %>
 <% if survey.active? %>
-  <button onclick="showConfirm('close', <%= survey.id %>, 'Đóng survey?', 'Người dùng sẽ không thể gửi câu trả lời nữa.')"
-    class="px-2.5 py-1 text-[11px] bg-amber-50 rounded-md text-amber-700 hover:bg-amber-100 border-0 cursor-pointer">Đóng</button>
+  <button onclick="showConfirm('close', <%= survey.id %>)"
+    class="px-2.5 py-1 text-[11px] bg-amber-50 rounded-md text-amber-700 hover:bg-amber-100 border-0 cursor-pointer"><%= t("surveys.close_action") %></button>
 <% end %>
 <% unless survey.archived? %>
-  <button onclick="showConfirm('archive', <%= survey.id %>, 'Archive survey?', 'Survey sẽ không nhận phản hồi mới.')"
-    class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-500 hover:bg-slate-200 border-0 cursor-pointer">Archive</button>
+  <button onclick="showConfirm('archive', <%= survey.id %>)"
+    class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-500 hover:bg-slate-200 border-0 cursor-pointer"><%= t("surveys.archive") %></button>
 <% end %>
-<button onclick="showConfirm('delete', <%= survey.id %>, 'Xoá survey?', 'Tất cả câu hỏi và phản hồi sẽ bị xoá vĩnh viễn.')"
-  class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 border-0 cursor-pointer">Xoá</button>
+<button onclick="showConfirm('delete', <%= survey.id %>)"
+  class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 border-0 cursor-pointer"><%= t("surveys.delete") %></button>

@@ -1,5 +1,24 @@
-<div class="bg-white border border-slate-200 rounded-[10px] px-5 py-[18px] shadow-sm">
+<% max ||= nil; used ||= nil; pct ||= nil %>
+<% at_limit = max && used && used >= max %>
+<div class="bg-white border <%= at_limit ? 'border-amber-200' : 'border-slate-200' %> rounded-[10px] px-5 py-[18px] shadow-sm">
   <div class="w-9 h-9 rounded-lg <%= color %> flex items-center justify-center text-[17px] mb-3"><%= icon %></div>
   <div class="text-[11px] text-slate-500 font-medium uppercase tracking-[0.4px]"><%= label %></div>
-  <div class="text-[26px] font-extrabold text-slate-900 tracking-tight mt-0.5 leading-none"><%= value.to_s %></div>
+  <% if max %>
+    <div class="flex items-end gap-1.5 mt-0.5">
+      <span class="text-[26px] font-extrabold <%= at_limit ? 'text-amber-600' : 'text-slate-900' %> tracking-tight leading-none"><%= used %></span>
+      <span class="text-[13px] text-slate-400 font-medium mb-0.5">/ <%= max %></span>
+    </div>
+    <div class="mt-2 h-1.5 rounded-full overflow-hidden" style="background:#f1f5f9;">
+      <div class="h-1.5 rounded-full transition-all"
+           style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
+    </div>
+    <% if at_limit %>
+      <p class="text-[10px] text-amber-600 font-semibold mt-1.5"><%= t("subscription.limit_reached_short") %> · <%= link_to t("subscription.upgrade"), billing_subscription_path, class: "underline" %></p>
+    <% else %>
+      <p class="text-[10px] text-slate-400 mt-1.5"><%= t("subscription.remaining_count", count: max - used) %></p>
+    <% end %>
+  <% else %>
+    <div class="text-[26px] font-extrabold text-slate-900 tracking-tight mt-0.5 leading-none"><%= value.to_s %></div>
+    <p class="text-[10px] text-slate-400 mt-1.5">∞ <%= t("subscription.unlimited") %></p>
+  <% end %>
 </div>

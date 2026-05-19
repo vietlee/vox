@@ -2,7 +2,7 @@
 <% prev_answer ||= nil %>
 <% prev_option_ids = prev_answer&.option_ids&.map(&:to_s) || [] %>
 <% case question.question_type.to_sym
-   when :multiple_choice, :dropdown %>
+   when :single_choice, :dropdown %>
   <div class="space-y-2">
     <% question.question_options.each do |opt| %>
       <label class="opt-label">
@@ -12,7 +12,7 @@
       </label>
     <% end %>
   </div>
-<% when :checkbox %>
+<% when :multiple_choice %>
   <div class="space-y-2">
     <% question.question_options.each do |opt| %>
       <label class="opt-label">
@@ -32,9 +32,11 @@
     class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-[14px] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none bg-white/80 resize-none transition-colors"
     placeholder="Nhập câu trả lời của bạn..."><%= prev_answer&.text_value %></textarea>
 <% when :rating %>
-  <% max = question.settings["max_value"]&.to_i || 5 %>
-  <% prev_num = prev_answer&.numeric_value&.to_i %>
-  <div class="flex gap-2 flex-wrap">
+  <% max = question.settings["max_value"]&.to_i || 5
+     min_label = question.settings["min_label"]
+     max_label = question.settings["max_label"]
+     prev_num = prev_answer&.numeric_value&.to_i %>
+  <div class="flex justify-center gap-2 flex-wrap">
     <% (1..max).each do |i| %>
       <label class="cursor-pointer">
         <input type="radio" name="<%= field_name %>[value]" value="<%= i %>" class="sr-only peer" <%= "required" if question.required? %> <%= "checked" if prev_num == i %>>
@@ -44,9 +46,16 @@
       </label>
     <% end %>
   </div>
+  <% if min_label.present? || max_label.present? %>
+    <div class="flex justify-between text-[11px] text-slate-400 mt-2 px-1">
+      <span><%= min_label %></span><span><%= max_label %></span>
+    </div>
+  <% end %>
 <% when :nps, :nps_score %>
-  <% prev_num = prev_answer&.numeric_value&.to_i %>
-  <div class="flex gap-1.5 flex-wrap">
+  <% prev_num = prev_answer&.numeric_value&.to_i
+     nps_min_label = question.settings["min_label"].presence || t("participate.survey.nps_low")
+     nps_max_label = question.settings["max_label"].presence || t("participate.survey.nps_high") %>
+  <div class="flex justify-center gap-1.5 flex-wrap">
     <% (0..10).each do |i| %>
       <label class="cursor-pointer">
         <input type="radio" name="<%= field_name %>[value]" value="<%= i %>" class="sr-only peer" <%= "required" if question.required? %> <%= "checked" if prev_answer && prev_num == i %>>
@@ -58,7 +67,7 @@
     <% end %>
   </div>
   <div class="flex justify-between text-[11px] text-slate-400 mt-2">
-    <span>Rất không có khả năng</span><span>Rất có khả năng</span>
+    <span><%= nps_min_label %></span><span><%= nps_max_label %></span>
   </div>
 <% when :linear_scale %>
   <% min = question.settings["min_value"]&.to_i || 1
@@ -66,16 +75,19 @@
      min_label = question.settings["min_label"]
      max_label = question.settings["max_label"]
      prev_num = prev_answer&.numeric_value&.to_i %>
-  <div class="flex items-center gap-2 flex-wrap">
-    <% if min_label.present? %><span class="text-[12px] text-slate-500 flex-shrink-0"><%= min_label %></span><% end %>
+  <div class="flex justify-center gap-2 flex-wrap">
     <% (min..max).each do |i| %>
       <label class="cursor-pointer">
         <input type="radio" name="<%= field_name %>[value]" value="<%= i %>" class="sr-only peer" <%= "required" if question.required? %> <%= "checked" if prev_num == i %>>
         <div class="w-10 h-10 rounded-xl border-2 border-slate-200 flex items-center justify-center text-[13px] font-bold text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-500 peer-checked:text-white hover:border-indigo-300 hover:bg-indigo-50 transition-all"><%= i %></div>
       </label>
     <% end %>
-    <% if max_label.present? %><span class="text-[12px] text-slate-500 flex-shrink-0"><%= max_label %></span><% end %>
   </div>
+  <% if min_label.present? || max_label.present? %>
+    <div class="flex justify-between text-[11px] text-slate-400 mt-2 px-1">
+      <span><%= min_label %></span><span><%= max_label %></span>
+    </div>
+  <% end %>
 <% when :date_time %>
   <input type="datetime-local" name="<%= field_name %>[date]" <%= "required" if question.required? %>
     class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-[14px] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none bg-white/80 transition-colors">

@@ -4,8 +4,8 @@ class Question < ApplicationRecord
   has_many   :answers, dependent: :destroy
 
   enum :question_type, {
-    multiple_choice: 0,
-    checkbox:        1,
+    single_choice:   0,
+    multiple_choice: 1,
     rating:          2,
     short_text:      3,
     long_text:       4,
@@ -21,7 +21,7 @@ class Question < ApplicationRecord
   validates :position, presence: true, numericality: { greater_than_or_equal_to: 0 }
 
   def choice_type?
-    multiple_choice? || checkbox? || dropdown?
+    single_choice? || multiple_choice? || dropdown?
   end
 
   def text_type?

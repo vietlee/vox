@@ -132,9 +132,9 @@ class Participate::SurveysController < Participate::BaseController
       case question.question_type.to_sym
       when :short_text, :long_text
         answer.text_value = answer_data[:text]
-      when :multiple_choice, :dropdown
+      when :single_choice, :dropdown
         answer.option_ids = [answer_data[:option_id]].compact
-      when :checkbox
+      when :multiple_choice
         answer.option_ids = Array(answer_data[:option_ids])
       when :rating, :linear_scale, :nps
         answer.numeric_value = answer_data[:value].to_f

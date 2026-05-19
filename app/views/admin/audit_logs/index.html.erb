@@ -1,24 +1,70 @@
-<% content_for :title, "Audit Log" %>
-<h1 class="text-[21px] font-extrabold text-slate-900 mb-5">📜 Audit Log</h1>
+<% content_for :title, t("audit_log.title") %>
+<h1 class="text-[21px] font-extrabold text-slate-900 mb-5">📜 <%= t("audit_log.title") %></h1>
+
 <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm overflow-hidden">
   <table class="w-full border-collapse">
     <thead>
       <tr class="bg-slate-50 border-b border-slate-200">
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Time</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">User</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Action</th>
-        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">Resource</th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("audit_log.col_time") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("audit_log.col_user") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("audit_log.col_action") %></th>
+        <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("audit_log.col_resource") %></th>
       </tr>
     </thead>
     <tbody>
-      <% @logs.each do |log| %>
-        <tr class="border-b border-slate-100 hover:bg-slate-50">
-          <td class="px-4 py-2.5 text-[11px] text-slate-500"><%= log.created_at.strftime("%b %d, %H:%M") %></td>
-          <td class="px-4 py-2.5 text-[12px] text-slate-700"><%= log.user&.name || "System" %></td>
-          <td class="px-4 py-2.5 text-[12px] font-mono text-slate-700"><%= log.action %></td>
-          <td class="px-4 py-2.5 text-[12px] text-slate-500"><%= log.resource_type %> #<%= log.resource_id %></td>
+      <% if @logs.any? %>
+        <% tz = current_workspace.timezone.presence || "Asia/Ho_Chi_Minh" %>
+        <% @logs.each do |log| %>
+          <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="px-4 py-2.5 text-[11px] text-slate-500 whitespace-nowrap">
+              <%= I18n.l(log.created_at.in_time_zone(tz), format: :short) %>
+            </td>
+            <td class="px-4 py-2.5 text-[12px] text-slate-700"><%= log.user&.name || t("audit_log.system") %></td>
+            <td class="px-4 py-2.5 text-[12px] font-mono text-slate-700"><%= log.action %></td>
+            <td class="px-4 py-2.5 text-[12px] text-slate-500"><%= log.resource_type %> #<%= log.resource_id %></td>
+          </tr>
+        <% end %>
+      <% else %>
+        <tr>
+          <td colspan="4" class="px-4 py-12 text-center text-[13px] text-slate-400"><%= t("audit_log.empty") %></td>
         </tr>
       <% end %>
     </tbody>
   </table>
+
+  <% if @pagy && @pagy.pages > 1 %>
+    <div class="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+      <p class="text-[12px] text-slate-500">
+        <% from = (@pagy.page - 1) * @pagy.items + 1
+           to   = [@pagy.page * @pagy.items, @pagy.count].min %>
+        <%= t("audit_log.showing") %> <%= from %>–<%= to %> <%= t("audit_log.of") %> <%= @pagy.count %>
+      </p>
+      <div class="flex gap-1">
+        <% if @pagy.page > 1 %>
+          <%= link_to audit_log_path(page: @pagy.page - 1),
+                class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>
+            <%= t("audit_log.prev") %>
+          <% end %>
+        <% end %>
+
+        <%# Page number pills — show up to 5 around current page %>
+        <% window_start = [1, @pagy.page - 2].max
+           window_end   = [window_start + 4, @pagy.pages].min
+           window_start = [window_end - 4, 1].max %>
+        <% (window_start..window_end).each do |p| %>
+          <%= link_to audit_log_path(page: p),
+                class: "px-3 py-1.5 text-[12px] border rounded-md #{p == @pagy.page ? 'bg-indigo-600 border-indigo-600 text-white font-semibold' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}" do %>
+            <%= p %>
+          <% end %>
+        <% end %>
+
+        <% if @pagy.page < @pagy.pages %>
+          <%= link_to audit_log_path(page: @pagy.page + 1),
+                class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>
+            <%= t("audit_log.next") %>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
 </div>

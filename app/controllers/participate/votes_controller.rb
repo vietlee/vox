@@ -18,7 +18,7 @@ class Participate::VotesController < Participate::BaseController
     end
 
     if @vote.email_required? && params[:respondent_email].blank?
-      render json: { error: "email_required", message: "Vui lòng nhập email trước khi bình chọn." }, status: :unprocessable_entity
+      render json: { error: "email_required", message: t("participate.vote.email_required_msg") }, status: :unprocessable_entity
       return
     end
 
@@ -34,9 +34,9 @@ class Participate::VotesController < Participate::BaseController
     if vote_response.save
       render json: { success: true, results: @vote.reload.results_by_option }
     elsif vote_response.errors.where(:base, :already_voted).any?
-      render json: { error: "already_voted", message: "Bạn đã vote rồi, không thể vote lại." }, status: :unprocessable_entity
+      render json: { error: "already_voted", message: t("participate.vote.already_voted_msg") }, status: :unprocessable_entity
     else
-      render json: { error: "failed", message: "Không thể gửi vote." }, status: :unprocessable_entity
+      render json: { error: "failed", message: t("participate.vote.submit_failed") }, status: :unprocessable_entity
     end
   end
 

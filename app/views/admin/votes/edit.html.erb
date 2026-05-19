@@ -7,15 +7,15 @@
       <h1 class="text-[19px] font-extrabold text-slate-900"><%= @vote.title %></h1>
       <p class="text-[12px] text-slate-500 mt-0.5">
         <% status_badge = { "draft" => "bg-slate-100 text-slate-500", "active" => "bg-emerald-100 text-emerald-700", "closed" => "bg-red-100 text-red-600" } %>
-        <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold <%= status_badge[@vote.status] %>"><%= @vote.status.upcase %></span>
+        <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold <%= status_badge[@vote.status] %>"><%= t("status.#{@vote.status}").upcase %></span>
       </p>
     </div>
     <div class="ml-auto flex gap-2">
       <% if @vote.active? %>
-        <%= link_to present_vote_path(@vote), target: "_blank", class: "px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700" do %>🖥 Trình chiếu<% end %>
-        <%= button_to close_vote_path(@vote), method: :patch, class: "px-4 py-2 bg-red-500 text-white text-[13px] font-semibold rounded-lg hover:bg-red-600 border-0 cursor-pointer" do %>■ Đóng vote<% end %>
+        <%= link_to present_vote_path(@vote), target: "_blank", class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors" do %><%= t("votes.edit.present") %><% end %>
+        <%= button_to close_vote_path(@vote), method: :patch, class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors cursor-pointer" do %><%= t("votes.edit.close_vote") %><% end %>
       <% elsif @vote.draft? %>
-        <button onclick="openVote()" class="px-4 py-2 bg-emerald-600 text-white text-[13px] font-semibold rounded-lg hover:bg-emerald-700 border-0 cursor-pointer">▶ Mở vote</button>
+        <button onclick="openVote()" class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors cursor-pointer"><%= t("votes.edit.open_vote") %></button>
         <script>
         async function openVote() {
           const res = await fetch('<%= open_vote_path(@vote) %>', {
@@ -35,7 +35,7 @@
   <% unless editable %>
     <div class="mb-4 flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-[13px] text-amber-700 font-medium">
       <span>⚠</span>
-      <span>Chỉ có thể chỉnh sửa vote ở trạng thái <strong>Draft</strong>. Vote đang ở trạng thái <strong><%= @vote.status.upcase %></strong> nên tất cả trường đã bị khoá.</span>
+      <span><%= t("votes.edit.draft_only", status: @vote.status.upcase) %></span>
     </div>
   <% end %>
 
@@ -43,11 +43,11 @@
 
     <!-- Vote Settings -->
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6 <%= 'opacity-70' unless editable %>">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-4">Cài đặt</h2>
+      <h2 class="text-[13px] font-bold text-slate-700 mb-4"><%= t("votes.edit.settings") %></h2>
       <%= form_with model: @vote, url: vote_path(@vote), method: :patch, local: true do |f| %>
         <div class="space-y-4">
           <div>
-            <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">Câu hỏi</label>
+            <label class="block text-[12px] font-semibold text-slate-600 mb-1.5"><%= t("votes.edit.question_label") %></label>
             <%= f.text_field :title,
                   class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-500 outline-none #{'bg-slate-50 text-slate-400 cursor-not-allowed' unless editable}",
                   disabled: !editable %>
@@ -55,17 +55,17 @@
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">Loại vote</label>
+              <label class="block text-[12px] font-semibold text-slate-600 mb-1.5"><%= t("votes.edit.type_label") %></label>
               <%= f.select :vote_type,
-                    [["Một lựa chọn", "single_choice"], ["Nhiều lựa chọn", "multiple_choice"], ["Word Cloud", "word_cloud"], ["Trả lời tự do", "open_ended"], ["Xếp hạng", "ranking"], ["Q&A Upvote", "qa_upvote"]],
+                    Vote.vote_types.keys.map { |k| [t("votes.type.#{k}"), k] },
                     { selected: @vote.vote_type },
                     class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none #{'bg-slate-50 text-slate-400 cursor-not-allowed' unless editable}",
                     disabled: !editable %>
             </div>
             <div>
-              <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">Danh tính</label>
+              <label class="block text-[12px] font-semibold text-slate-600 mb-1.5"><%= t("votes.edit.identity_label") %></label>
               <%= f.select :identity_mode,
-                    [["Ẩn danh", "anonymous"], ["Yêu cầu email", "email_required"]],
+                    Vote.identity_modes.keys.map { |k| [t("votes.identity.#{k}"), k] },
                     { selected: @vote.identity_mode },
                     class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none #{'bg-slate-50 text-slate-400 cursor-not-allowed' unless editable}",
                     disabled: !editable %>
@@ -74,29 +74,29 @@
 
           <div class="grid grid-cols-3 gap-4">
             <div>
-              <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">Đếm ngược (giây)</label>
+              <label class="block text-[12px] font-semibold text-slate-600 mb-1.5"><%= t("votes.edit.countdown_label") %></label>
               <%= f.number_field :countdown_seconds, min: 0,
                     class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none #{'bg-slate-50 text-slate-400 cursor-not-allowed' unless editable}",
-                    placeholder: "0 = tắt",
+                    placeholder: t("votes.edit.countdown_placeholder"),
                     disabled: !editable %>
             </div>
             <div class="flex flex-col justify-end pb-0.5">
               <label class="flex items-center gap-2 <%= editable ? 'cursor-pointer' : 'cursor-not-allowed opacity-60' %>">
                 <%= f.check_box :show_results_live, class: "w-4 h-4 accent-indigo-600", disabled: !editable %>
-                <span class="text-[12px] font-semibold text-slate-600">Hiển thị kết quả live</span>
+                <span class="text-[12px] font-semibold text-slate-600"><%= t("votes.edit.show_results_live") %></span>
               </label>
             </div>
             <div class="flex flex-col justify-end pb-0.5">
               <label class="flex items-center gap-2 <%= editable ? 'cursor-pointer' : 'cursor-not-allowed opacity-60' %>">
                 <%= f.check_box :allow_multiple_votes, class: "w-4 h-4 accent-indigo-600", disabled: !editable %>
-                <span class="text-[12px] font-semibold text-slate-600">Cho phép vote nhiều lần</span>
+                <span class="text-[12px] font-semibold text-slate-600"><%= t("votes.edit.allow_multiple") %></span>
               </label>
             </div>
           </div>
 
           <% if editable %>
             <div class="pt-2">
-              <%= f.submit "Lưu cài đặt", class: "px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700 cursor-pointer border-0" %>
+              <%= f.submit t("votes.edit.save_settings"), class: "px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700 cursor-pointer border-0" %>
             </div>
           <% end %>
         </div>
@@ -106,11 +106,11 @@
     <!-- Vote Options -->
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6 <%= 'opacity-70' unless editable %>">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-[13px] font-bold text-slate-700">Các lựa chọn</h2>
+        <h2 class="text-[13px] font-bold text-slate-700"><%= t("votes.edit.options") %></h2>
         <% if editable %>
-          <span class="text-[11px] text-slate-400"><%= @vote.vote_options.count %> lựa chọn</span>
+          <span class="text-[11px] text-slate-400"><%= t("votes.edit.options_count", count: @vote.vote_options.count) %></span>
         <% else %>
-          <span class="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">🔒 Không thể chỉnh sửa</span>
+          <span class="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg"><%= t("votes.edit.locked") %></span>
         <% end %>
       </div>
 
@@ -132,10 +132,10 @@
 
       <% if editable %>
         <div class="flex gap-2">
-          <input type="text" id="new-option-input" placeholder="Thêm lựa chọn mới..."
+          <input type="text" id="new-option-input" placeholder="<%= j t("votes.edit.add_option_placeholder") %>"
             class="flex-1 px-3 py-2 border border-dashed border-slate-300 rounded-lg text-[13px] focus:border-indigo-400 outline-none"
             onkeydown="if(event.key==='Enter'){addOption();}">
-          <button onclick="addOption()" class="px-4 py-2 bg-slate-800 text-white text-[12px] font-semibold rounded-lg hover:bg-slate-700">+ Thêm</button>
+          <button onclick="addOption()" class="px-4 py-2 bg-slate-800 text-white text-[12px] font-semibold rounded-lg hover:bg-slate-700"><%= t("votes.edit.add_btn") %></button>
         </div>
       <% end %>
     </div>
@@ -147,6 +147,7 @@
 <script>
 const voteId = <%= @vote.id %>;
 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+const DELETE_OPTION_CONFIRM = "<%= j t('votes.edit.delete_option_confirm') %>";
 
 async function addOption() {
   const input = document.getElementById('new-option-input');
@@ -188,11 +189,8 @@ async function updateOption(id, label) {
 }
 
 async function deleteOption(id, btn) {
-  if (!confirm('Xoá lựa chọn này?')) return;
-  const res = await fetch(`/vote_options/${id}`, {
-    method: 'DELETE',
-    headers: { 'X-CSRF-Token': csrfToken }
-  });
+  if (!confirm(DELETE_OPTION_CONFIRM)) return;
+  const res = await fetch(`/vote_options/${id}`, { method: 'DELETE', headers: { 'X-CSRF-Token': csrfToken } });
   if (res.ok) btn.closest('.option-row').remove();
 }
 

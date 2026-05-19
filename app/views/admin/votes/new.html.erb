@@ -1,54 +1,65 @@
-<% content_for :title, "New Vote" %>
+<% content_for :title, t("votes.new") %>
+
 <div class="max-w-[680px]">
-  <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight mb-6">🗳️ New Live Vote</h1>
+  <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight mb-6">🗳️ <%= t("votes.new") %></h1>
   <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6">
     <%= form_with model: @vote, url: votes_path, local: true do |f| %>
+      <% if @vote.errors.any? %>
+        <div class="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700">
+          <% @vote.errors.full_messages.each do |msg| %>
+            <div>• <%= msg %></div>
+          <% end %>
+        </div>
+      <% end %>
+
       <div class="space-y-4">
         <div>
-          <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">Question *</label>
-          <%= f.text_field :title, required: true, placeholder: "What would you like to ask?",
+          <label class="block text-[12px] font-semibold text-slate-700 mb-1.5"><%= t("votes.form.question") %> *</label>
+          <%= f.text_field :title, required: true, placeholder: t("votes.form.question_placeholder"),
             class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none" %>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">Loại vote</label>
-            <%= f.select :vote_type, [["Single choice", "single_choice"], ["Multiple choice", "multiple_choice"], ["Ranking", "ranking"]], {},
+            <label class="block text-[12px] font-semibold text-slate-700 mb-1.5"><%= t("votes.form.vote_type") %></label>
+            <%= f.select :vote_type,
+              Vote.vote_types.keys.map { |k| [t("votes.type.#{k}"), k] }, {},
               class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none",
               onchange: "onTypeChange(this.value)" %>
           </div>
           <div>
-            <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">Danh tính</label>
-            <%= f.select :identity_mode, Vote.identity_modes.keys.map { |k| [k.humanize, k] }, {},
+            <label class="block text-[12px] font-semibold text-slate-700 mb-1.5"><%= t("votes.form.identity") %></label>
+            <%= f.select :identity_mode,
+              Vote.identity_modes.keys.map { |k| [t("votes.identity.#{k}"), k] }, {},
               class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none" %>
           </div>
         </div>
 
         <!-- Type description card -->
         <div id="type-hint" class="rounded-lg px-4 py-3 text-[12px] leading-relaxed" style="background:#f8faff; border:1px solid #e0e7ff;">
-          <span id="type-icon" class="font-bold mr-1">☑️</span>
-          <span id="type-desc">Người tham gia chọn <strong>một</strong> trong các đáp án có sẵn. Phù hợp cho câu hỏi Yes/No hoặc lựa chọn đơn.</span>
+          <span id="type-icon" class="font-bold mr-1"></span>
+          <span id="type-desc"></span>
         </div>
 
-        <!-- Options (ẩn với word_cloud, open_ended, qa_upvote) -->
+        <!-- Options (hidden for word_cloud, open_ended, qa_upvote) -->
         <div id="options-wrap">
-          <label class="block text-[12px] font-semibold text-slate-700 mb-2">Các lựa chọn</label>
+          <label class="block text-[12px] font-semibold text-slate-700 mb-2"><%= t("votes.form.options") %></label>
           <div id="options-list" class="space-y-2">
             <% 2.times do |i| %>
-              <div class="flex gap-2">
+              <div class="flex gap-2 option-row">
                 <input type="text" name="vote[vote_options_attributes][<%= i %>][label]"
-                  placeholder="Lựa chọn <%= i + 1 %>"
+                  placeholder="<%= t("votes.form.option_placeholder", n: i + 1) %>"
                   class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none">
               </div>
             <% end %>
           </div>
           <button type="button" onclick="addOption()"
-            class="mt-2 text-[12px] text-indigo-600 hover:text-indigo-700 font-medium">+ Thêm lựa chọn</button>
+            class="mt-2 text-[12px] text-indigo-600 hover:text-indigo-700 font-medium"><%= t("votes.form.add_option") %></button>
         </div>
 
         <div class="flex gap-2 pt-4 border-t border-slate-100">
-          <%= f.submit "Tạo vote", class: "px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700 cursor-pointer" %>
-          <%= link_to "Huỷ", votes_path, class: "px-5 py-2.5 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200" %>
+          <%= f.submit t("votes.create_vote"), class: "px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700 cursor-pointer" %>
+          <%= link_to t("votes.cancel"), votes_path, class: "px-5 py-2.5 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200" %>
         </div>
       </div>
     <% end %>
@@ -57,10 +68,15 @@
 
 <script>
 const TYPE_INFO = {
-  single_choice:  { icon: '☑️', desc: 'Người tham gia chọn <strong>một</strong> trong các đáp án có sẵn. Phù hợp cho câu hỏi Yes/No hoặc lựa chọn đơn.', hasOptions: true },
-  multiple_choice: { icon: '✅', desc: 'Người tham gia có thể chọn <strong>nhiều đáp án</strong> cùng lúc. Phù hợp khi muốn biết tất cả lựa chọn của họ.', hasOptions: true },
-  ranking:        { icon: '🏆', desc: 'Người tham gia <strong>xếp hạng thứ tự</strong> các lựa chọn bằng cách kéo thả. Xem lựa chọn nào được ưu tiên nhất.', hasOptions: true },
+  single_choice:   { icon: '☑️',  desc: '<%= j t("votes.type_desc.single_choice") %>',   hasOptions: true  },
+  multiple_choice: { icon: '✅',  desc: '<%= j t("votes.type_desc.multiple_choice") %>', hasOptions: true  },
+  ranking:         { icon: '🏆',  desc: '<%= j t("votes.type_desc.ranking") %>',         hasOptions: true  },
+  word_cloud:      { icon: '☁️',  desc: '<%= j t("votes.type_desc.word_cloud") %>',      hasOptions: false },
+  open_ended:      { icon: '📝',  desc: '<%= j t("votes.type_desc.open_ended") %>',      hasOptions: false },
+  qa_upvote:       { icon: '🙋',  desc: '<%= j t("votes.type_desc.qa_upvote") %>',       hasOptions: false },
 };
+
+let optionIdx = 2;
 
 function onTypeChange(val) {
   const info = TYPE_INFO[val] || TYPE_INFO['single_choice'];
@@ -69,12 +85,16 @@ function onTypeChange(val) {
   document.getElementById('options-wrap').style.display = info.hasOptions ? '' : 'none';
 }
 
-let optionIdx = 2;
 function addOption() {
   const list = document.getElementById('options-list');
   const div = document.createElement('div');
-  div.className = 'flex gap-2';
-  div.innerHTML = `<input type="text" name="vote[vote_options_attributes][${optionIdx++}][label]" placeholder="Lựa chọn ${optionIdx}" class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none">`;
+  div.className = 'flex gap-2 option-row';
+  optionIdx++;
+  const placeholder = "<%= j t("votes.form.option_placeholder", n: "IDX") %>".replace('IDX', optionIdx);
+  div.innerHTML = `<input type="text" name="vote[vote_options_attributes][${optionIdx}][label]" placeholder="${placeholder}" class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none">`;
   list.appendChild(div);
 }
+
+// Init description on page load
+onTypeChange(document.querySelector('select[name="vote[vote_type]"]')?.value || 'single_choice');
 </script>
