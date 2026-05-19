@@ -31,47 +31,59 @@
 <!-- Tab: Feedbacks -->
 <div id="tab-panel-feedbacks">
 
-  <% unless @ai_summary %>
-    <!-- AI summary CTA banner -->
-    <div class="mb-4 rounded-[10px] border border-violet-200 bg-gradient-to-r from-violet-50 to-indigo-50 px-4 py-3 flex items-center gap-3">
-      <span class="text-[22px]">✨</span>
-      <div class="flex-1 min-w-0">
-        <p class="text-[12px] font-semibold text-violet-800"><%= t("feedback_boards.feedbacks_page.ai_cta_title", default: "Tóm tắt góp ý bằng AI") %></p>
-        <p class="text-[11px] text-slate-500 mt-0.5"><%= t("feedback_boards.feedbacks_page.ai_cta_desc", default: "Phân tích tất cả góp ý và trích xuất chủ đề, cảm xúc, gợi ý hành động.") %></p>
-      </div>
-      <button onclick="switchTab('ai')"
-        class="flex-shrink-0 px-3 py-1.5 bg-violet-600 text-white text-[12px] font-semibold rounded-lg hover:bg-violet-700 whitespace-nowrap">
-        <%= t("feedback_boards.feedbacks_page.ai_summarize") %> →
-      </button>
+  <!-- Pending / Flagged warning banners -->
+  <div id="banners-wrap" class="<%= (@pending_count > 0 || @flagged_count > 0) ? 'mb-4 flex gap-2 flex-wrap' : 'hidden' %>">
+    <div id="pending-banner" class="<%= @pending_count > 0 ? '' : 'hidden' %> flex-1 min-w-0 flex items-center gap-2.5 px-4 py-2.5 rounded-[10px] border border-amber-200 bg-amber-50">
+      <span class="text-[14px] flex-shrink-0">⏳</span>
+      <p class="flex-1 min-w-0 text-[12px] font-semibold text-amber-800 truncate">
+        <span id="pending-count-text"></span>
+      </p>
+      <%= link_to t("feedback_boards.feedbacks_page.review_now"),
+            feedback_board_feedbacks_path(@board, status: "pending"),
+            class: "text-[11px] font-bold text-amber-700 hover:text-amber-900 underline underline-offset-2 flex-shrink-0" %>
     </div>
-  <% end %>
+    <div id="flagged-banner" class="<%= @flagged_count > 0 ? '' : 'hidden' %> flex-1 min-w-0 flex items-center gap-2.5 px-4 py-2.5 rounded-[10px] border border-red-200 bg-red-50">
+      <span class="text-[14px] flex-shrink-0">🚩</span>
+      <p class="flex-1 min-w-0 text-[12px] font-semibold text-red-800 truncate">
+        <span id="flagged-count-text"></span>
+      </p>
+      <%= link_to t("feedback_boards.feedbacks_page.review_now"),
+            feedback_board_feedbacks_path(@board, moderation: "flagged"),
+            class: "text-[11px] font-bold text-red-700 hover:text-red-900 underline underline-offset-2 flex-shrink-0" %>
+    </div>
+  </div>
 
   <!-- Search + Filter -->
   <div class="flex items-center gap-3 mb-4">
-    <%= form_with url: feedback_board_feedbacks_path(@board), method: :get, local: true, class: "flex-1" do |f| %>
-      <%= f.hidden_field :status, value: params[:status] %>
-      <div class="relative">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[13px]">🔍</span>
-        <%= f.text_field :q, value: params[:q], placeholder: t("feedback_boards.feedbacks_page.search_placeholder"),
-            class: "w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none bg-white" %>
-      </div>
-    <% end %>
-    <% if params[:q].present? %>
-      <%= link_to feedback_board_feedbacks_path(@board, status: params[:status]), class: "text-[12px] text-slate-400 hover:text-slate-600 flex-shrink-0" do %><%= t("feedback_boards.feedbacks_page.clear") %><% end %>
-    <% end %>
+    <div class="flex-1 relative">
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[13px] pointer-events-none">🔍</span>
+      <input id="feedback-search" type="text" value="<%= params[:q] %>"
+        placeholder="<%= t('feedback_boards.feedbacks_page.search_placeholder') %>"
+        class="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none bg-white"
+        autocomplete="off">
+      <button id="search-clear-btn" onclick="clearSearch()"
+        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[14px] leading-none <%= params[:q].present? ? '' : 'hidden' %>">✕</button>
+    </div>
   </div>
 
-  <div class="flex gap-1 mb-4">
+  <div class="flex gap-1 mb-4 flex-wrap">
     <% ["", "pending", "approved", "hidden", "rejected"].each do |s| %>
-      <%= link_to feedback_board_feedbacks_path(@board, status: s.presence, q: params[:q]), class: "px-3 py-1.5 rounded-full text-[12px] font-semibold #{params[:status].to_s == s ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" do %>
+      <% active = params[:status].to_s == s && params[:moderation].blank? %>
+      <%= link_to feedback_board_feedbacks_path(@board, status: s.presence, q: params[:q]), class: "px-3 py-1.5 rounded-full text-[12px] font-semibold #{active ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" do %>
         <%= s.blank? ? t("feedback_boards.feedbacks_page.all") : t("status.#{s}") %>
       <% end %>
+    <% end %>
+    <% flagged_active = params[:moderation] == "flagged" %>
+    <%= link_to feedback_board_feedbacks_path(@board, moderation: "flagged", q: params[:q]),
+          class: "px-3 py-1.5 rounded-full text-[12px] font-semibold #{flagged_active ? 'bg-red-500 text-white' : 'bg-red-50 text-red-600 hover:bg-red-100'}" do %>
+      <%= t("feedback_boards.feedbacks_page.flagged_filter") %>
+      <span id="flagged-tab-badge" class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold <%= flagged_active ? 'bg-white text-red-500' : 'bg-red-500 text-white' %> <%= @flagged_count > 0 ? '' : 'hidden' %>"><%= @flagged_count %></span>
     <% end %>
   </div>
 
   <div class="space-y-3" id="feedbacks-list">
     <% @feedbacks.each do |fb| %>
-      <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4 transition-all duration-200" id="feedback-<%= fb.id %>">
+      <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4 transition-all duration-200" id="feedback-<%= fb.id %>" data-status="<%= fb.status %>" data-moderation="<%= fb.moderation_status %>">
         <div class="flex gap-3">
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-2">
@@ -92,7 +104,13 @@
             </div>
           </div>
           <div class="flex flex-col gap-1.5 flex-shrink-0">
-            <% if fb.hidden? %>
+            <% if fb.flagged? %>
+              <button id="mark-safe-btn-<%= fb.id %>"
+                onclick="feedbackAction(<%= fb.id %>, '<%= mark_safe_feedback_board_feedback_path(@board, fb) %>', 'PATCH', 'mark_safe')"
+                class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded text-emerald-700 hover:bg-emerald-100">
+                <%= t("feedback_boards.feedbacks_page.mark_safe") %>
+              </button>
+            <% elsif fb.hidden? %>
               <button id="approve-btn-<%= fb.id %>"
                 onclick="feedbackAction(<%= fb.id %>, '<%= unhide_feedback_board_feedback_path(@board, fb) %>', 'PATCH', 'unhide')"
                 class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded text-emerald-700 hover:bg-emerald-100">
@@ -200,8 +218,68 @@ const I18N = {
   ai_summary_negative: "<%= j t('feedback_boards.feedbacks_page.ai_summary_negative') %>",
   ai_summary_error:    "<%= j t('feedback_boards.feedbacks_page.ai_summary_error') %>",
   ai_summary_no_data:  "<%= j t('feedback_boards.feedbacks_page.ai_summary_no_data') %>",
-  regenerate:          "<%= j t('feedback_boards.feedbacks_page.ai_summary_regenerate') %>"
+  regenerate:          "<%= j t('feedback_boards.feedbacks_page.ai_summary_regenerate') %>",
+  pending_banner:      "<%= j t('feedback_boards.feedbacks_page.pending_banner', count: '__N__') %>",
+  flagged_banner:      "<%= j t('feedback_boards.feedbacks_page.flagged_banner', count: '__N__') %>"
 };
+
+// ── Live counters ─────────────────────────────────────────────────────────────
+let pendingCount = <%= @pending_count %>;
+let flaggedCount = <%= @flagged_count %>;
+
+function renderPendingText(n) { return I18N.pending_banner.replace('__N__', n); }
+function renderFlaggedText(n) { return I18N.flagged_banner.replace('__N__', n); }
+
+function updatePendingBanner(delta) {
+  pendingCount += delta;
+  const banner = document.getElementById('pending-banner');
+  const text   = document.getElementById('pending-count-text');
+  if (!banner) return;
+  if (pendingCount <= 0) {
+    banner.classList.add('hidden');
+  } else {
+    banner.classList.remove('hidden');
+    text.textContent = renderPendingText(pendingCount);
+  }
+  syncBannersWrap();
+}
+
+function updateFlaggedBanner(delta) {
+  flaggedCount += delta;
+  const banner = document.getElementById('flagged-banner');
+  const text   = document.getElementById('flagged-count-text');
+  const badge  = document.getElementById('flagged-tab-badge');
+  if (!banner) return;
+  if (flaggedCount <= 0) {
+    banner.classList.add('hidden');
+    if (badge) badge.classList.add('hidden');
+  } else {
+    banner.classList.remove('hidden');
+    text.textContent = renderFlaggedText(flaggedCount);
+    if (badge) { badge.textContent = flaggedCount; badge.classList.remove('hidden'); }
+  }
+  syncBannersWrap();
+}
+
+function syncBannersWrap() {
+  const wrap = document.getElementById('banners-wrap');
+  if (!wrap) return;
+  const hasPending = !document.getElementById('pending-banner')?.classList.contains('hidden');
+  const hasFlagged = !document.getElementById('flagged-banner')?.classList.contains('hidden');
+  if (hasPending || hasFlagged) {
+    wrap.className = 'mb-4 flex gap-2 flex-wrap';
+  } else {
+    wrap.className = 'hidden';
+  }
+}
+
+// Initialize text on load
+(function() {
+  const pt = document.getElementById('pending-count-text');
+  const ft = document.getElementById('flagged-count-text');
+  if (pt) pt.textContent = renderPendingText(pendingCount);
+  if (ft) ft.textContent = renderFlaggedText(flaggedCount);
+})();
 
 // ── Progress ring ────────────────────────────────────────────────────────────
 const RING_CIRCUMFERENCE = 251.2; // 2π × 40
@@ -318,6 +396,8 @@ async function feedbackAction(id, url, method, action) {
   const card       = document.getElementById(`feedback-${id}`);
   const approveBtn = document.getElementById(`approve-btn-${id}`);
   const badge      = document.querySelector(`.status-badge-${id}`);
+  const wasPending    = card?.dataset.status === 'pending';
+  const wasFlagged    = card?.dataset.moderation === 'flagged';
 
   if (action === 'approve') {
     if (approveBtn) approveBtn.classList.add('hidden');
@@ -325,6 +405,15 @@ async function feedbackAction(id, url, method, action) {
       badge.textContent = I18N.approved;
       badge.className = `status-badge-${id} text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700`;
     }
+    if (wasPending) updatePendingBanner(-1);
+  } else if (action === 'mark_safe') {
+    if (card) {
+      card.style.opacity = '0';
+      card.style.transform = 'translateX(10px)';
+      setTimeout(() => card.remove(), 200);
+    }
+    if (wasFlagged) updateFlaggedBanner(-1);
+    if (wasPending) updatePendingBanner(-1);
   } else if (action === 'hide' || action === 'unhide') {
     if (card) {
       card.style.opacity = '0';
@@ -513,6 +602,59 @@ async function pollJob(jobId, onDone, onFail) {
   }
 }
 
-Object.assign(window, { feedbackAction, togglePin, deleteFeedback, aiSummarize, switchTab });
+// ── Live search ───────────────────────────────────────────────────────────────
+const BASE_URL   = "<%= feedback_board_feedbacks_path(@board) %>";
+const CURRENT_STATUS    = "<%= params[:status] %>";
+const CURRENT_MODERATION = "<%= params[:moderation] %>";
+let searchTimer = null;
+
+function buildSearchUrl(q) {
+  const url = new URL(BASE_URL, location.origin);
+  if (CURRENT_STATUS)    url.searchParams.set('status', CURRENT_STATUS);
+  if (CURRENT_MODERATION) url.searchParams.set('moderation', CURRENT_MODERATION);
+  if (q) url.searchParams.set('q', q);
+  return url.toString();
+}
+
+async function liveSearch(q) {
+  const list = document.getElementById('feedbacks-list');
+  if (list) list.style.opacity = '0.5';
+
+  try {
+    const res  = await fetch(buildSearchUrl(q), { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } });
+    const html = await res.text();
+    const doc  = new DOMParser().parseFromString(html, 'text/html');
+    const newList = doc.getElementById('feedbacks-list');
+    if (list && newList) {
+      list.innerHTML = newList.innerHTML;
+      list.style.opacity = '1';
+    }
+  } catch(e) {
+    if (list) list.style.opacity = '1';
+  }
+}
+
+function clearSearch() {
+  const input = document.getElementById('feedback-search');
+  const clearBtn = document.getElementById('search-clear-btn');
+  if (input) input.value = '';
+  if (clearBtn) clearBtn.classList.add('hidden');
+  liveSearch('');
+}
+
+(function() {
+  const input    = document.getElementById('feedback-search');
+  const clearBtn = document.getElementById('search-clear-btn');
+  if (!input) return;
+
+  input.addEventListener('input', function() {
+    const q = this.value.trim();
+    if (clearBtn) clearBtn.classList.toggle('hidden', q === '');
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => liveSearch(q), 300);
+  });
+})();
+
+Object.assign(window, { feedbackAction, togglePin, deleteFeedback, aiSummarize, switchTab, clearSearch });
 })();
 </script>

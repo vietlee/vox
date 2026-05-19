@@ -23,7 +23,7 @@
       <% if @board.description.present? %>
         <p class="text-[14px] text-slate-500 mb-2"><%= @board.description %></p>
       <% end %>
-      <span class="text-[12px] text-slate-400"><%= @feedbacks.size %> <%= t("participate.feedback.feedbacks_count") %></span>
+      <span class="text-[12px] text-slate-400"><%= @board.feedbacks.visible.count %> <%= t("participate.feedback.feedbacks_count") %></span>
     </div>
 
     <!-- Flash -->
@@ -38,157 +38,154 @@
       </div>
     <% end %>
 
+    <!-- Flash toast (AJAX) -->
+    <div id="feedback-toast" class="hidden mb-4 px-4 py-3 rounded-xl text-[13px] font-semibold fade-in" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); color:#065f46;"></div>
+
     <!-- Submit form -->
     <div class="rounded-2xl p-5 mb-5" style="background:#ffffff; border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 24px rgba(99,102,241,0.08);">
       <p class="text-[13px] font-bold text-slate-700 mb-3"><%= t("participate.feedback.submit_title") %></p>
-      <%= form_with url: submit_feedback_path(@board.slug), method: :post, local: true do |f| %>
-        <div class="space-y-3">
-          <textarea name="feedback[content]" rows="3" required maxlength="1000"
-            placeholder="<%= t("participate.feedback.content_placeholder") %>"
-            class="w-full px-4 py-3 rounded-xl text-[14px] text-slate-800 outline-none resize-none"
-            style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
-            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+      <form id="feedback-form" class="space-y-3">
+        <textarea id="fb-content" name="feedback[content]" rows="3" required maxlength="1000"
+          placeholder="<%= t("participate.feedback.content_placeholder") %>"
+          class="w-full px-4 py-3 rounded-xl text-[14px] text-slate-800 outline-none resize-none"
+          style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
+          onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
 
-          <% if @board.public_identity? || @board.user_choice? %>
-            <div class="grid grid-cols-2 gap-3">
-              <input type="text" id="feedback-author-name" name="feedback[author_name]"
-                placeholder="<%= t("participate.feedback.name_placeholder") %>"
-                required
-                class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
-                style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
-                onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
-              <input type="email" name="feedback[author_email]" placeholder="<%= t("participate.feedback.email_placeholder") %>"
-                class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
-                style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
-                onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+        <% if @board.public_identity? || @board.user_choice? %>
+          <div class="grid grid-cols-2 gap-3">
+            <input type="text" id="feedback-author-name" name="feedback[author_name]"
+              placeholder="<%= t("participate.feedback.name_placeholder") %>"
+              <% if @board.public_identity? %>required<% end %>
+              class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
+              style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
+              onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+            <input type="email" id="fb-email" name="feedback[author_email]" placeholder="<%= t("participate.feedback.email_placeholder") %>"
+              class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
+              style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
+              onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
+        <% end %>
+
+        <% if @board.user_choice? %>
+          <label class="flex items-center gap-2 cursor-pointer text-[13px] text-slate-500">
+            <input type="checkbox" name="feedback[anonymous]" value="1" id="feedback-anonymous"
+              class="w-4 h-4 accent-indigo-600" onchange="toggleAnonymous(this.checked)">
+            <%= t("participate.feedback.anonymous_label") %>
+          </label>
+        <% end %>
+
+        <button type="submit" id="fb-submit-btn"
+          class="w-full py-3 text-[14px] font-bold text-white rounded-lg transition-all hover:opacity-90"
+          style="background:#4F46E5;">
+          <%= t("participate.feedback.submit_btn") %>
+        </button>
+      </form>
+    </div>
+
+    <!-- Feedbacks list -->
+    <% if @feedbacks.any? || @has_more %>
+      <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1"><%= t("participate.feedback.all_feedbacks") %></p>
+    <% end %>
+
+    <div id="feedbacks-list" class="space-y-3">
+      <% @feedbacks.each do |fb| %>
+        <div id="feedback-card-<%= fb.id %>" class="rounded-2xl overflow-hidden fade-in" style="background:#ffffff; border:1.5px solid <%= fb.pinned? ? '#fbbf24' : 'rgba(226,232,240,0.8)' %>; box-shadow:0 2px 12px rgba(0,0,0,0.04);">
+          <% if fb.pinned? %>
+            <div class="px-4 py-1.5 flex items-center gap-1.5" style="background:rgba(251,191,36,0.12);">
+              <span class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">📌 <%= t("participate.feedback.pinned") %></span>
             </div>
           <% end %>
-
-          <% if @board.user_choice? %>
-            <label class="flex items-center gap-2 cursor-pointer text-[13px] text-slate-500">
-              <input type="checkbox" name="feedback[anonymous]" value="1" id="feedback-anonymous"
-                class="w-4 h-4 accent-indigo-600" onchange="toggleAnonymous(this.checked)">
-              <%= t("participate.feedback.anonymous_label") %>
-            </label>
+          <div class="p-4 flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0 text-white mt-0.5"
+              style="background:linear-gradient(135deg,#6366f1,#a855f7);">
+              <%= fb.anonymous? || fb.author_name.blank? ? "?" : fb.author_name.first.upcase %>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[14px] text-slate-800 leading-relaxed mb-2"><%= fb.content %></p>
+              <div class="flex items-center gap-3 flex-wrap">
+                <span class="text-[12px] font-semibold text-slate-500">
+                  <%= fb.anonymous? || fb.author_name.blank? ? t("participate.feedback.anonymous") : fb.author_name %>
+                </span>
+                <span class="text-[11px] text-slate-300"><%= I18n.l(fb.created_at, format: :short) %></span>
+                <% if fb.implemented? %>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-700" style="background:rgba(16,185,129,0.1);"><%= t("participate.feedback.implemented") %></span>
+                <% end %>
+                <% if @board.allow_replies? %>
+                  <button onclick="toggleReplyForm(<%= fb.id %>)"
+                    class="ml-auto text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 border-0 bg-transparent p-0">
+                    💬 <%= fb.feedback_replies.count > 0 ? "#{fb.feedback_replies.count} #{t("participate.feedback.reply_count")}" : t("participate.feedback.reply_label") %>
+                  </button>
+                <% end %>
+              </div>
+            </div>
+            <% if @board.allow_upvotes? %>
+              <% upvoted = @upvoted_ids.include?(fb.id) %>
+              <button data-feedback-id="<%= fb.id %>" onclick="toggleUpvote(this, <%= fb.id %>)"
+                class="flex flex-col items-center gap-0.5 px-2.5 py-2 rounded-xl border transition-all cursor-pointer flex-shrink-0 upvote-btn"
+                style="<%= upvoted ? 'background:rgba(99,102,241,0.08);border-color:#6366f1;color:#6366f1;' : 'background:white;border-color:#e2e8f0;color:#64748b;' %>">
+                <span class="text-[15px] leading-none"><%= upvoted ? '▲' : '△' %></span>
+                <span class="text-[12px] font-bold upvote-count"><%= fb.upvotes_count %></span>
+              </button>
+            <% end %>
+          </div>
+          <% if @board.allow_replies? %>
+            <div id="replies-<%= fb.id %>" class="hidden border-t reply-section" style="border-color:rgba(226,232,240,0.6);">
+              <div id="replies-list-<%= fb.id %>" class="px-4 pt-3 space-y-2">
+                <% fb.feedback_replies.order(:created_at).each do |r| %>
+                  <div class="flex gap-2">
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 mt-0.5" style="background:linear-gradient(135deg,#94a3b8,#64748b);">
+                      <%= r.anonymous? ? "?" : r.author_name.to_s.first.upcase %>
+                    </div>
+                    <div class="flex-1 rounded-xl px-3 py-2" style="background:rgba(248,250,252,0.9);">
+                      <div class="flex items-baseline gap-2 mb-0.5">
+                        <span class="text-[11px] font-semibold text-slate-600"><%= r.anonymous? ? t("participate.feedback.anonymous") : r.author_name %></span>
+                        <span class="text-[10px] text-slate-300"><%= I18n.l(r.created_at, format: :short) %></span>
+                      </div>
+                      <p class="text-[13px] text-slate-700"><%= r.content %></p>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+              <div class="px-4 py-3">
+                <div class="flex gap-2 items-end">
+                  <div class="flex-1 space-y-2">
+                    <input type="text" id="reply-name-<%= fb.id %>" placeholder="<%= t("participate.feedback.reply_name_placeholder") %>"
+                      class="w-full px-3 py-1.5 rounded-lg text-[12px] outline-none"
+                      style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
+                      onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+                    <textarea id="reply-content-<%= fb.id %>" rows="2" maxlength="500"
+                      placeholder="<%= t("participate.feedback.reply_content_placeholder") %>"
+                      class="w-full px-3 py-1.5 rounded-lg text-[13px] text-slate-800 outline-none resize-none"
+                      style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
+                      onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                  </div>
+                  <button onclick="submitReply(<%= fb.id %>)"
+                    class="px-4 py-2 text-white text-[12px] font-bold rounded-lg self-end flex-shrink-0 border-0"
+                    style="background:#4F46E5;">
+                    <%= t("participate.feedback.reply_submit") %>
+                  </button>
+                </div>
+              </div>
+            </div>
           <% end %>
-
-          <button type="submit"
-            class="w-full py-3 text-[14px] font-bold text-white rounded-lg transition-all hover:opacity-90 hover:-translate-y-0.5"
-            style="background:#4F46E5;">
-            <%= t("participate.feedback.submit_btn") %>
-          </button>
         </div>
       <% end %>
     </div>
 
-    <!-- Feedbacks list -->
-    <% if @feedbacks.any? %>
-      <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1"><%= t("participate.feedback.all_feedbacks") %></p>
-      <div class="space-y-3">
-        <% @feedbacks.each do |fb| %>
-          <div id="feedback-card-<%= fb.id %>" class="rounded-2xl overflow-hidden fade-in" style="background:rgba(255,255,255,0.85); border:1.5px solid <%= fb.pinned? ? '#fbbf24' : 'rgba(226,232,240,0.8)' %>; box-shadow:0 2px 12px rgba(0,0,0,0.04); ">
+    <!-- Empty state (hidden when there are feedbacks) -->
+    <div id="empty-state" class="<%= @feedbacks.any? ? 'hidden' : '' %> text-center py-16 fade-in">
+      <div class="text-[48px] mb-3">💭</div>
+      <p class="text-[15px] font-semibold text-slate-500"><%= t("participate.feedback.empty_title") %></p>
+      <p class="text-[13px] text-slate-400 mt-1"><%= t("participate.feedback.empty_desc") %></p>
+    </div>
 
-            <% if fb.pinned? %>
-              <div class="px-4 py-1.5 flex items-center gap-1.5" style="background:rgba(251,191,36,0.12);">
-                <span class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">📌 <%= t("participate.feedback.pinned") %></span>
-              </div>
-            <% end %>
-
-            <div class="p-4 flex items-start gap-3">
-              <!-- Avatar -->
-              <div class="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0 text-white mt-0.5"
-                style="background:linear-gradient(135deg,#6366f1,#a855f7);">
-                <%= fb.anonymous? || fb.author_name.blank? ? "?" : fb.author_name.first.upcase %>
-              </div>
-
-              <div class="flex-1 min-w-0">
-                <p class="text-[14px] text-slate-800 leading-relaxed mb-2"><%= fb.content %></p>
-                <div class="flex items-center gap-3 flex-wrap">
-                  <span class="text-[12px] font-semibold text-slate-500">
-                    <%= fb.anonymous? || fb.author_name.blank? ? t("participate.feedback.anonymous") : fb.author_name %>
-                  </span>
-                  <span class="text-[11px] text-slate-300"><%= I18n.l(fb.created_at, format: :short) %></span>
-                  <% if fb.implemented? %>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-700" style="background:rgba(16,185,129,0.1);"><%= t("participate.feedback.implemented") %></span>
-                  <% end %>
-                  <% if @board.allow_replies? %>
-                    <button onclick="toggleReplyForm(<%= fb.id %>)"
-                      class="ml-auto text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 border-0 bg-transparent p-0">
-                      💬 <%= fb.feedback_replies.count > 0 ? "#{fb.feedback_replies.count} #{t("participate.feedback.reply_count")}" : t("participate.feedback.reply_label") %>
-                    </button>
-                  <% end %>
-                </div>
-              </div>
-
-              <!-- Upvote button -->
-              <% if @board.allow_upvotes? %>
-                <% upvoted = @upvoted_ids.include?(fb.id) %>
-                <button data-feedback-id="<%= fb.id %>" onclick="toggleUpvote(this, <%= fb.id %>)"
-                  class="flex flex-col items-center gap-0.5 px-2.5 py-2 rounded-xl border transition-all cursor-pointer flex-shrink-0 upvote-btn"
-                  style="<%= upvoted ? 'background:rgba(99,102,241,0.08);border-color:#6366f1;color:#6366f1;' : 'background:white;border-color:#e2e8f0;color:#64748b;' %>">
-                  <span class="text-[15px] leading-none"><%= upvoted ? '▲' : '△' %></span>
-                  <span class="text-[12px] font-bold upvote-count"><%= fb.upvotes_count %></span>
-                </button>
-              <% end %>
-            </div>
-
-            <!-- Replies -->
-            <% if @board.allow_replies? %>
-              <div id="replies-<%= fb.id %>" class="hidden border-t reply-section" style="border-color:rgba(226,232,240,0.6);">
-                <% if fb.feedback_replies.any? %>
-                  <div id="replies-list-<%= fb.id %>" class="px-4 pt-3 space-y-2">
-                    <% fb.feedback_replies.order(:created_at).each do |r| %>
-                      <div class="flex gap-2">
-                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 mt-0.5"
-                          style="background:linear-gradient(135deg,#94a3b8,#64748b);">
-                          <%= r.anonymous? ? "?" : r.author_name.to_s.first.upcase %>
-                        </div>
-                        <div class="flex-1 rounded-xl px-3 py-2" style="background:rgba(248,250,252,0.9);">
-                          <div class="flex items-baseline gap-2 mb-0.5">
-                            <span class="text-[11px] font-semibold text-slate-600"><%= r.anonymous? ? t("participate.feedback.anonymous") : r.author_name %></span>
-                            <span class="text-[10px] text-slate-300"><%= I18n.l(r.created_at, format: :short) %></span>
-                          </div>
-                          <p class="text-[13px] text-slate-700"><%= r.content %></p>
-                        </div>
-                      </div>
-                    <% end %>
-                  </div>
-                <% else %>
-                  <div id="replies-list-<%= fb.id %>" class="px-4 pt-3 space-y-2"></div>
-                <% end %>
-
-                <div class="px-4 py-3">
-                  <div class="flex gap-2 items-end">
-                    <div class="flex-1 space-y-2">
-                      <input type="text" id="reply-name-<%= fb.id %>" placeholder="<%= t("participate.feedback.reply_name_placeholder") %>"
-                        class="w-full px-3 py-1.5 rounded-lg text-[12px] outline-none"
-                        style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
-                        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
-                      <textarea id="reply-content-<%= fb.id %>" rows="2" maxlength="500"
-                        placeholder="<%= t("participate.feedback.reply_content_placeholder") %>"
-                        class="w-full px-3 py-1.5 rounded-lg text-[13px] text-slate-800 outline-none resize-none"
-                        style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
-                        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
-                    </div>
-                    <button onclick="submitReply(<%= fb.id %>)"
-                      class="px-4 py-2 text-white text-[12px] font-bold rounded-lg self-end flex-shrink-0 border-0"
-                      style="background:#4F46E5;">
-                      <%= t("participate.feedback.reply_submit") %>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% else %>
-      <div class="text-center py-16 fade-in">
-        <div class="text-[48px] mb-3">💭</div>
-        <p class="text-[15px] font-semibold text-slate-500"><%= t("participate.feedback.empty_title") %></p>
-        <p class="text-[13px] text-slate-400 mt-1"><%= t("participate.feedback.empty_desc") %></p>
-      </div>
-    <% end %>
+    <!-- Load more -->
+    <div id="load-more-wrap" class="<%= @has_more ? '' : 'hidden' %> text-center mt-4 mb-2">
+      <button id="load-more-btn" onclick="loadMore()"
+        class="px-6 py-2.5 text-[13px] font-semibold text-indigo-600 rounded-xl border border-indigo-200 hover:bg-indigo-50 transition-colors bg-white">
+        <%= I18n.locale.to_s == 'vi' ? 'Xem thêm góp ý' : 'Load more' %>
+      </button>
+    </div>
   </div>
 
   <!-- Footer -->
@@ -199,6 +196,190 @@
 </div>
 
 <script>
+const SUBMIT_URL   = "<%= submit_feedback_path(@board.slug) %>";
+const LIST_URL     = "<%= list_feedbacks_path(@board.slug) %>";
+const UPVOTE_URL   = "<%= upvote_feedback_path(@board.slug) %>";
+const REPLY_URL    = "<%= reply_feedback_path(@board.slug) %>";
+const CSRF         = document.querySelector('meta[name="csrf-token"]')?.content;
+const ALLOW_UPVOTES  = <%= @board.allow_upvotes? ? 'true' : 'false' %>;
+const ALLOW_REPLIES  = <%= @board.allow_replies? ? 'true' : 'false' %>;
+const ANONYMOUS_LABEL = "<%= j t('participate.feedback.anonymous') %>";
+const REPLY_LABEL     = "<%= j t('participate.feedback.reply_label') %>";
+const REPLY_COUNT_LABEL = "<%= j t('participate.feedback.reply_count') %>";
+const IMPLEMENTED_LABEL = "<%= j t('participate.feedback.implemented') %>";
+const PINNED_LABEL    = "<%= j t('participate.feedback.pinned') %>";
+const REPLY_NAME_PH   = "<%= j t('participate.feedback.reply_name_placeholder') %>";
+const REPLY_CONTENT_PH = "<%= j t('participate.feedback.reply_content_placeholder') %>";
+const REPLY_SUBMIT_LABEL = "<%= j t('participate.feedback.reply_submit') %>";
+
+let currentOffset = <%= @feedbacks.size %>;
+
+function showToast(message, isError = false) {
+  const toast = document.getElementById('feedback-toast');
+  toast.textContent = message;
+  toast.style.background  = isError ? 'rgba(239,68,68,0.08)'       : 'rgba(16,185,129,0.1)';
+  toast.style.border      = isError ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(16,185,129,0.2)';
+  toast.style.color       = isError ? '#991b1b'                     : '#065f46';
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 4000);
+}
+
+function renderFeedbackCard(fb) {
+  const initial = fb.anonymous || !fb.author_name ? '?' : fb.author_name.charAt(0).toUpperCase();
+  const authorLabel = fb.anonymous || !fb.author_name ? ANONYMOUS_LABEL : fb.author_name;
+  const borderColor = fb.pinned ? '#fbbf24' : 'rgba(226,232,240,0.8)';
+
+  const pinnedBanner = fb.pinned
+    ? `<div class="px-4 py-1.5 flex items-center gap-1.5" style="background:rgba(251,191,36,0.12);">
+         <span class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">📌 ${PINNED_LABEL}</span>
+       </div>`
+    : '';
+
+  const implementedBadge = fb.implemented
+    ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-700" style="background:rgba(16,185,129,0.1);">${IMPLEMENTED_LABEL}</span>`
+    : '';
+
+  const replyBtn = ALLOW_REPLIES
+    ? `<button onclick="toggleReplyForm(${fb.id})"
+         class="ml-auto text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 border-0 bg-transparent p-0">
+         💬 ${fb.replies_count > 0 ? fb.replies_count + ' ' + REPLY_COUNT_LABEL : REPLY_LABEL}
+       </button>`
+    : '';
+
+  const upvoteBtn = ALLOW_UPVOTES
+    ? `<button data-feedback-id="${fb.id}" onclick="toggleUpvote(this, ${fb.id})"
+         class="flex flex-col items-center gap-0.5 px-2.5 py-2 rounded-xl border transition-all cursor-pointer flex-shrink-0 upvote-btn"
+         style="${fb.upvoted ? 'background:rgba(99,102,241,0.08);border-color:#6366f1;color:#6366f1;' : 'background:white;border-color:#e2e8f0;color:#64748b;'}">
+         <span class="text-[15px] leading-none">${fb.upvoted ? '▲' : '△'}</span>
+         <span class="text-[12px] font-bold upvote-count">${fb.upvotes_count}</span>
+       </button>`
+    : '';
+
+  const repliesSection = ALLOW_REPLIES
+    ? `<div id="replies-${fb.id}" class="hidden border-t reply-section" style="border-color:rgba(226,232,240,0.6);">
+         <div id="replies-list-${fb.id}" class="px-4 pt-3 space-y-2"></div>
+         <div class="px-4 py-3">
+           <div class="flex gap-2 items-end">
+             <div class="flex-1 space-y-2">
+               <input type="text" id="reply-name-${fb.id}" placeholder="${REPLY_NAME_PH}"
+                 class="w-full px-3 py-1.5 rounded-lg text-[12px] outline-none"
+                 style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
+                 onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+               <textarea id="reply-content-${fb.id}" rows="2" maxlength="500"
+                 placeholder="${REPLY_CONTENT_PH}"
+                 class="w-full px-3 py-1.5 rounded-lg text-[13px] text-slate-800 outline-none resize-none"
+                 style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
+                 onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+             </div>
+             <button onclick="submitReply(${fb.id})"
+               class="px-4 py-2 text-white text-[12px] font-bold rounded-lg self-end flex-shrink-0 border-0"
+               style="background:#4F46E5;">
+               ${REPLY_SUBMIT_LABEL}
+             </button>
+           </div>
+         </div>
+       </div>`
+    : '';
+
+  const card = document.createElement('div');
+  card.id = `feedback-card-${fb.id}`;
+  card.className = 'rounded-2xl overflow-hidden fade-in';
+  card.style.cssText = `background:#ffffff; border:1.5px solid ${borderColor}; box-shadow:0 2px 12px rgba(0,0,0,0.04);`;
+  card.innerHTML = `
+    ${pinnedBanner}
+    <div class="p-4 flex items-start gap-3">
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0 text-white mt-0.5"
+        style="background:linear-gradient(135deg,#6366f1,#a855f7);">${initial}</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-[14px] text-slate-800 leading-relaxed mb-2">${fb.content}</p>
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-[12px] font-semibold text-slate-500">${authorLabel}</span>
+          <span class="text-[11px] text-slate-300">${fb.created_at}</span>
+          ${implementedBadge}
+          ${replyBtn}
+        </div>
+      </div>
+      ${upvoteBtn}
+    </div>
+    ${repliesSection}`;
+  return card;
+}
+
+document.getElementById('feedback-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('fb-submit-btn');
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+
+  const formData = new FormData(this);
+  const body = { feedback: {} };
+  for (const [key, val] of formData.entries()) {
+    const m = key.match(/^feedback\[(\w+)\]$/);
+    if (m) body.feedback[m[1]] = val;
+  }
+  if (!body.feedback.anonymous) body.feedback.anonymous = '0';
+
+  try {
+    const res = await fetch(SUBMIT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF, 'Accept': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Error', true);
+      return;
+    }
+
+    showToast(data.message);
+    this.reset();
+    const nameField = document.getElementById('feedback-author-name');
+    if (nameField) { nameField.disabled = false; nameField.style.opacity = '1'; }
+
+    if (data.status === 'submitted' && data.feedback) {
+      const list = document.getElementById('feedbacks-list');
+      const emptyState = document.getElementById('empty-state');
+      const card = renderFeedbackCard(data.feedback);
+      list.insertBefore(card, list.firstChild);
+      emptyState.classList.add('hidden');
+      currentOffset += 1;
+    }
+  } catch(err) {
+    showToast('Network error', true);
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+});
+
+async function loadMore() {
+  const btn = document.getElementById('load-more-btn');
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  try {
+    const res = await fetch(`${LIST_URL}?offset=${currentOffset}`, {
+      headers: { 'Accept': 'application/json', 'X-CSRF-Token': CSRF }
+    });
+    const data = await res.json();
+    const list = document.getElementById('feedbacks-list');
+
+    data.feedbacks.forEach(fb => {
+      list.appendChild(renderFeedbackCard(fb));
+    });
+
+    currentOffset += data.feedbacks.length;
+
+    if (!data.has_more) {
+      document.getElementById('load-more-wrap').classList.add('hidden');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "<%= I18n.locale.to_s == 'vi' ? 'Xem thêm góp ý' : 'Load more' %>";
+  }
+}
+
 function toggleAnonymous(checked) {
   const nameField = document.getElementById('feedback-author-name');
   if (!nameField) return;
@@ -213,11 +394,6 @@ function toggleAnonymous(checked) {
     nameField.style.opacity = '1';
   }
 }
-
-const UPVOTE_URL = "<%= upvote_feedback_path(@board.slug) %>";
-const REPLY_URL  = "<%= reply_feedback_path(@board.slug) %>";
-const CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
-const ANONYMOUS_LABEL = "<%= j t('participate.feedback.anonymous') %>";
 
 function toggleReplyForm(id) {
   const section = document.getElementById(`replies-${id}`);
@@ -268,6 +444,7 @@ async function toggleUpvote(btn, feedbackId) {
       headers: { "Content-Type": "application/json", "X-CSRF-Token": CSRF, "Accept": "application/json" },
       body: JSON.stringify({ feedback_id: feedbackId })
     });
+    if (!res.ok) return;
     const data = await res.json();
     btn.querySelector(".upvote-count").textContent = data.count;
     const arrow = btn.querySelector("span:first-child");

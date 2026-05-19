@@ -11,7 +11,7 @@ class Feedback < ApplicationRecord
   validates :content, presence: true, length: { maximum: 1000 }
   validate :require_name_for_public_identity
 
-  scope :visible,      -> { where(status: :approved) }
+  scope :visible,      -> { where(status: :approved).where.not(moderation_status: :flagged) }
   scope :pinned_first, -> { order(pinned: :desc, created_at: :desc) }
 
   after_create :enqueue_ai_moderation

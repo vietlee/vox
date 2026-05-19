@@ -31,6 +31,6 @@ module ApplicationHelper
     when "closed" then "bg-slate-100 text-slate-500"
     else "bg-amber-50 text-amber-700"
     end
-    content_tag(:span, vote.status.capitalize, class: "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold #{classes}")
+    content_tag(:span, I18n.t("status.#{vote.status}"), class: "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold #{classes}")
   end
 end

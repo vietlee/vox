@@ -26,6 +26,7 @@ Rails.application.routes.draw do
   post "/f/:slug/submit",  to: "participate/feedbacks#submit", as: :submit_feedback
   post "/f/:slug/upvote",  to: "participate/feedbacks#upvote", as: :upvote_feedback
   post "/f/:slug/reply",   to: "participate/feedbacks#reply",  as: :reply_feedback
+  get  "/f/:slug/list",   to: "participate/feedbacks#list",   as: :list_feedbacks
 
   # Super Admin
   namespace :super_admin do
@@ -105,6 +106,7 @@ Rails.application.routes.draw do
           patch :pin
           patch :unpin
           patch :update_admin_status
+          patch :mark_safe
         end
       end
     end

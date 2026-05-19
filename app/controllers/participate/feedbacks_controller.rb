@@ -1,35 +1,52 @@
 class Participate::FeedbacksController < Participate::BaseController
   before_action :set_board
 
+  PER_PAGE = 10
+
   def show
     unless @board.active?
       render :closed and return
     end
-    @feedbacks   = @board.feedbacks.visible.pinned_first.includes(:feedback_replies).limit(50)
+    @feedbacks   = @board.feedbacks.visible.pinned_first.includes(:feedback_replies).limit(PER_PAGE)
     @feedback    = @board.feedbacks.build
     @upvoted_ids = FeedbackUpvote.where(feedback: @feedbacks, voter_token: respondent_token).pluck(:feedback_id).to_set
+    @has_more    = @board.feedbacks.visible.count > PER_PAGE
+  end
+
+  def list
+    offset   = params[:offset].to_i
+    feedbacks = @board.feedbacks.visible.pinned_first.includes(:feedback_replies).offset(offset).limit(PER_PAGE)
+    total     = @board.feedbacks.visible.count
+    token     = respondent_token
+    upvoted   = FeedbackUpvote.where(feedback: feedbacks, voter_token: token).pluck(:feedback_id).to_set
+
+    render json: {
+      feedbacks: feedbacks.map { |fb| serialize_feedback(fb, upvoted) },
+      has_more:  total > offset + PER_PAGE,
+      total:     total
+    }
   end
 
   def submit
     @feedback = @board.feedbacks.build(
       workspace: @board.workspace,
-      content: params[:feedback][:content],
+      content:   params[:feedback][:content],
       author_name: params[:feedback][:author_name],
       author_email: params[:feedback][:author_email],
       anonymous: params[:feedback][:anonymous] == "1"
     )
 
     if @feedback.save
-      if @board.manual_approval?
-        flash[:notice] = t("feedbacks.pending_approval")
-      else
-        @feedback.approve! unless @board.auto_moderation?
-        flash[:notice] = t("feedbacks.submitted")
-      end
-      redirect_to participate_feedback_path(@board.slug)
+      pending = @board.manual_approval?
+      @feedback.approve! unless pending
+
+      render json: {
+        status:  pending ? "pending" : "submitted",
+        message: pending ? t("feedbacks.pending_approval") : t("feedbacks.submitted"),
+        feedback: pending ? nil : serialize_feedback(@feedback, Set.new)
+      }
     else
-      @feedbacks = @board.feedbacks.visible.pinned_first.limit(50)
-      render :show, status: :unprocessable_entity
+      render json: { error: @feedback.errors.full_messages.join(", ") }, status: :unprocessable_entity
     end
   end
 
@@ -67,6 +84,22 @@ class Participate::FeedbacksController < Participate::BaseController
   end
 
   private
+
+  def serialize_feedback(fb, upvoted_ids)
+    {
+      id:            fb.id,
+      content:       fb.content,
+      author_name:   fb.anonymous? || fb.author_name.blank? ? nil : fb.author_name,
+      anonymous:     fb.anonymous? || fb.author_name.blank?,
+      upvotes_count: fb.upvotes_count,
+      upvoted:       upvoted_ids.include?(fb.id),
+      pinned:        fb.pinned?,
+      implemented:   fb.implemented?,
+      allow_replies: @board.allow_replies?,
+      replies_count: fb.feedback_replies.size,
+      created_at:    I18n.l(fb.created_at, format: :short)
+    }
+  end
 
   def set_board
     @board = FeedbackBoard.find_by!(slug: params[:slug])

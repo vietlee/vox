@@ -1,6 +1,6 @@
 class Admin::FeedbacksController < Admin::BaseController
   before_action :set_board
-  before_action :set_feedback, only: [:show, :update, :destroy, :approve, :hide, :unhide, :pin, :unpin, :update_admin_status]
+  before_action :set_feedback, only: [:show, :update, :destroy, :approve, :hide, :unhide, :pin, :unpin, :update_admin_status, :mark_safe]
 
   def index
     feedbacks = @board.feedbacks.order(pinned: :desc, created_at: :desc)
@@ -8,6 +8,8 @@ class Admin::FeedbacksController < Admin::BaseController
     feedbacks = feedbacks.where(moderation_status: params[:moderation]) if params[:moderation].present?
     feedbacks = feedbacks.where("content ILIKE ?", "%#{params[:q]}%") if params[:q].present?
     @pagy, @feedbacks = pagy(feedbacks)
+    @pending_count = @board.feedbacks.where(status: :pending).count
+    @flagged_count = @board.feedbacks.where(moderation_status: :flagged).count
     @ai_summary = AiAnalysisResult.where(
       workspace: current_workspace,
       resource_type: "FeedbackBoard",
@@ -74,6 +76,14 @@ class Admin::FeedbacksController < Admin::BaseController
 
   def update_admin_status
     @feedback.update!(admin_status: params[:admin_status])
+    respond_to do |format|
+      format.json { render json: { ok: true } }
+      format.html { redirect_back(fallback_location: feedback_board_feedbacks_path(@board)) }
+    end
+  end
+
+  def mark_safe
+    @feedback.update!(moderation_status: :safe, status: :approved)
     respond_to do |format|
       format.json { render json: { ok: true } }
       format.html { redirect_back(fallback_location: feedback_board_feedbacks_path(@board)) }
