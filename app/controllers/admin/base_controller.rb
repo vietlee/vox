@@ -6,7 +6,7 @@ class Admin::BaseController < ApplicationController
   private
 
   def require_workspace_member!
-    unless current_user&.admin? || current_user&.supporter?
+    unless current_workspace_role.present?
       redirect_to new_user_session_path, alert: t("errors.access_denied")
     end
   end
@@ -31,7 +31,7 @@ class Admin::BaseController < ApplicationController
   end
 
   def require_admin!
-    unless current_user&.admin?
+    unless current_workspace_admin?
       redirect_to dashboard_path, alert: t("errors.admin_only")
     end
   end
