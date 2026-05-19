@@ -21,6 +21,15 @@
     30%  { box-shadow: 0 0 24px 4px var(--glow-color); }
     100% { box-shadow: none; }
   }
+  @keyframes timeUpSlide {
+    from { opacity: 0; transform: translateY(-20px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+    70%  { box-shadow: 0 0 0 20px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  }
   .plus-one {
     position: absolute;
     right: 10px;
@@ -67,7 +76,7 @@
      style="background: radial-gradient(ellipse at 20% 20%, #1e1b4b 0%, #0f172a 50%, #0a0f1e 100%);">
 
   <!-- Header -->
-  <div class="flex items-center justify-between mb-10">
+  <div class="flex items-center justify-between mb-6">
     <%= link_to root_path do %><img src="/vox_logo.svg" alt="VOX" class="h-7 w-auto"><% end %>
     <div class="flex items-center gap-4">
       <div class="flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-semibold text-emerald-300" style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25);">
@@ -80,8 +89,25 @@
     </div>
   </div>
 
+  <!-- Time's up banner (hidden until countdown hits 0) -->
+  <div id="time-up-banner" class="hidden mb-6">
+    <div class="flex items-center justify-center gap-4 px-8 py-4 rounded-2xl mx-auto max-w-2xl"
+         style="background:linear-gradient(135deg,rgba(220,38,38,0.22),rgba(185,28,28,0.16)); border:1.5px solid rgba(239,68,68,0.45);">
+      <div class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+           style="background:rgba(239,68,68,0.25); animation: pulse-ring 1.5s ease-out infinite;">
+        <svg class="w-6 h-6 text-red-400" fill="currentColor" viewBox="0 0 24 24">
+          <rect x="6" y="6" width="12" height="12" rx="2"/>
+        </svg>
+      </div>
+      <div class="text-left">
+        <p class="text-[20px] font-black text-white tracking-tight"><%= I18n.locale.to_s == 'vi' ? 'Hết thời gian bầu chọn' : 'Voting session ended' %></p>
+        <p class="text-[13px] text-red-300 mt-0.5"><%= I18n.locale.to_s == 'vi' ? 'Phiên bầu chọn đã dừng · Kết quả bên dưới' : 'The voting session has closed · Results below' %></p>
+      </div>
+    </div>
+  </div>
+
   <!-- Question -->
-  <div class="text-center mb-12">
+  <div class="text-center mb-8">
     <h1 class="text-[40px] font-extrabold leading-tight tracking-tight text-white" style="text-shadow:0 2px 32px rgba(129,140,248,0.25);"><%= @vote.title %></h1>
     <% if @vote.seconds_remaining %>
       <div class="mt-4 flex justify-center">
@@ -148,20 +174,38 @@
     <% end %>
   </div>
 
+  <!-- AI Insight (auto-shown after vote closes) -->
+  <div id="ai-insight-box" class="hidden mt-8 max-w-3xl mx-auto w-full rounded-2xl overflow-hidden"
+       style="background:linear-gradient(135deg,rgba(109,40,217,0.25),rgba(67,56,202,0.2)); border:1px solid rgba(167,139,250,0.3);">
+    <div class="px-6 py-4 flex items-center gap-3" style="border-bottom:1px solid rgba(167,139,250,0.15);">
+      <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+           style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+      </div>
+      <span class="text-[13px] font-bold tracking-widest uppercase text-violet-300">AI Insight</span>
+      <div id="ai-insight-loading" class="ml-auto flex items-center gap-2 text-[12px] text-violet-400">
+        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+        </svg>
+        <%= I18n.locale.to_s == 'vi' ? 'Đang phân tích...' : 'Analyzing...' %>
+      </div>
+    </div>
+    <div class="px-6 py-5">
+      <p id="ai-insight-text" class="text-[16px] text-slate-200 leading-relaxed text-center"></p>
+    </div>
+  </div>
+
   <!-- QR Code -->
-  <div class="text-center mt-10">
+  <div class="text-center mt-8">
     <% if @vote.qr_code&.token %>
       <div class="inline-block bg-white p-3 rounded-2xl" style="box-shadow:0 0 32px rgba(129,140,248,0.2);">
         <img src="/qr/<%= @vote.qr_code.token %>/image" alt="QR" class="w-28 h-28">
       </div>
+      <p class="text-[12px] text-slate-500 mt-3 tracking-wide uppercase">Scan to vote</p>
     <% end %>
-    <p class="text-[12px] text-slate-500 mt-3 tracking-wide uppercase">Scan to vote</p>
-  </div>
-
-  <!-- AI Insight -->
-  <div id="ai-insight-box" class="hidden mt-8 rounded-2xl p-6 text-center max-w-2xl mx-auto" style="background:linear-gradient(135deg,rgba(109,40,217,0.2),rgba(67,56,202,0.2)); border:1px solid rgba(167,139,250,0.25); backdrop-filter:blur(12px);">
-    <div class="text-[12px] font-bold tracking-widest uppercase text-violet-400 mb-3">AI Insight</div>
-    <p id="ai-insight-text" class="text-[16px] text-slate-200 leading-relaxed"></p>
   </div>
 </div>
 
@@ -184,9 +228,11 @@ consumer.subscriptions.create({ channel: "VoteChannel", vote_id: voteId }, {
     if (data.type === 'new_vote') {
       updateResults(data.options, data.participant_count);
     } else if (data.type === 'ai_insight') {
-      showInsight(data.insight);
+      showInsight({ insight: data.insight, highlight: data.highlight });
     } else if (data.type === 'status_change' && data.status === 'closed') {
       document.getElementById('close-btn')?.remove();
+      showTimeUpBanner();
+      startInsightPolling();
     }
   }
 });
@@ -261,10 +307,45 @@ function updateResults(options, count) {
   });
 }
 
-function showInsight(text) {
-  const box = document.getElementById('ai-insight-box');
-  document.getElementById('ai-insight-text').textContent = text;
+function showInsight(data) {
+  const box     = document.getElementById('ai-insight-box');
+  const textEl  = document.getElementById('ai-insight-text');
+  const loading = document.getElementById('ai-insight-loading');
   box.classList.remove('hidden');
+  // data may be a string (from WebSocket) or object {insight, highlight} (from polling)
+  const insightText   = typeof data === 'object' ? (data.insight   || '') : (data || '');
+  const highlightText = typeof data === 'object' ? (data.highlight || '') : '';
+  if (insightText) {
+    textEl.textContent = insightText;
+    if (loading) loading.remove();
+    if (highlightText) {
+      const existing = document.getElementById('ai-highlight-row');
+      if (!existing) {
+        const row = document.createElement('div');
+        row.id = 'ai-highlight-row';
+        row.style.cssText = 'margin-top:12px; padding-top:12px; border-top:1px solid rgba(167,139,250,0.2); display:flex; align-items:flex-start; gap:8px;';
+        row.innerHTML = `<span style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0;margin-top:2px;">Key finding</span><p style="font-size:14px;font-weight:600;color:#e2e8f0;margin:0;">${highlightText}</p>`;
+        textEl.parentNode.appendChild(row);
+      }
+    }
+  }
+}
+
+let insightPolling = null;
+function startInsightPolling() {
+  showInsight(''); // show box with spinner immediately
+  insightPolling = setInterval(async () => {
+    try {
+      const res  = await fetch(`/v/${voteSlug}/results.json`, { headers: { Accept: 'application/json' } });
+      const data = await res.json();
+      if (data.ai_insight) {
+        showInsight(data.ai_insight);
+        clearInterval(insightPolling);
+      }
+    } catch(e) {}
+  }, 2000);
+  // Stop polling after 3 minutes
+  setTimeout(() => clearInterval(insightPolling), 180000);
 }
 
 async function closeVote() {
@@ -277,10 +358,30 @@ async function closeVote() {
 
 document.getElementById('close-btn')?.addEventListener('click', closeVote);
 
+function showTimeUpBanner() {
+  const banner = document.getElementById('time-up-banner');
+  if (!banner) return;
+  banner.classList.remove('hidden');
+  banner.style.animation = 'timeUpSlide 0.5s ease forwards';
+  // Grey out the countdown ring
+  const arcEl = document.getElementById('countdown-arc');
+  if (arcEl) arcEl.style.stroke = 'rgba(255,255,255,0.15)';
+  const textEl = document.getElementById('countdown-text');
+  if (textEl) textEl.style.color = 'rgba(255,255,255,0.3)';
+}
+
 // ── Countdown ──────────────────────────────────────────────────────────────
 (function() {
   const totalSeconds = <%= @vote.countdown_seconds.to_i %>;
   if (totalSeconds <= 0) return;
+
+  const voteIsActive = <%= @vote.active? ? 'true' : 'false' %>;
+
+  // Page opened before PATCH completed (vote still draft) — wait and reload
+  if (!voteIsActive) {
+    setTimeout(() => location.reload(), 900);
+    return;
+  }
 
   let remaining = <%= @vote.seconds_remaining || 0 %>;
   const textEl = document.getElementById('countdown-text');
@@ -304,6 +405,7 @@ document.getElementById('close-btn')?.addEventListener('click', closeVote);
   }
 
   updateRing();
+  if (remaining <= 0) { if (voteIsActive) { showTimeUpBanner(); startInsightPolling(); } return; }
 
   const timer = setInterval(() => {
     remaining--;
@@ -311,7 +413,9 @@ document.getElementById('close-btn')?.addEventListener('click', closeVote);
       remaining = 0;
       updateRing();
       clearInterval(timer);
+      showTimeUpBanner();
       closeVote();
+      startInsightPolling();
     } else {
       updateRing();
     }

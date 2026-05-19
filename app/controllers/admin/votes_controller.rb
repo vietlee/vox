@@ -63,6 +63,13 @@ class Admin::VotesController < Admin::BaseController
   end
 
   def open
+    if @vote.closed?
+      respond_to do |format|
+        format.html { redirect_to edit_vote_path(@vote), alert: t("votes_errors.cannot_reopen_closed") }
+        format.json { render json: { error: t("votes_errors.cannot_reopen_closed") }, status: :forbidden }
+      end
+      return
+    end
     @vote.open!
     audit_log("vote.open", resource: @vote)
     respond_to do |format|

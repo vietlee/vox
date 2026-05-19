@@ -86,7 +86,9 @@ Rails.application.routes.draw do
         get   :share
         post  :ai_insight
       end
-      resources :vote_options, only: [:create, :update, :destroy], shallow: true
+      resources :vote_options, only: [:create, :update, :destroy], shallow: true do
+        collection { patch :reorder }
+      end
     end
 
     resources :feedback_boards do

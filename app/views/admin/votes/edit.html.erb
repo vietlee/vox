@@ -1,6 +1,11 @@
 <% content_for :title, @vote.title %>
 <% editable = @vote.draft? %>
 
+<style>
+  .option-row.drag-over { border-top: 2px solid #6366f1; }
+  .option-row { border-top: 2px solid transparent; transition: border-color 0.1s; }
+</style>
+
 <div class="max-w-[720px]">
   <div class="flex items-center gap-3 mb-5">
     <div>
@@ -17,17 +22,20 @@
       <% elsif @vote.draft? %>
         <button onclick="openVote()" class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors cursor-pointer"><%= t("votes.edit.open_vote") %></button>
         <script>
-        async function openVote() {
-          const res = await fetch('<%= open_vote_path(@vote) %>', {
+        function openVote() {
+          window.open('<%= present_vote_path(@vote) %>', '_blank');
+          fetch('<%= open_vote_path(@vote) %>', {
             method: 'PATCH',
             headers: { 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' }
+          }).then(res => {
+            if (res.ok) window.location.href = '<%= vote_path(@vote) %>';
           });
-          if (res.ok) {
-            window.open('<%= present_vote_path(@vote) %>', '_blank');
-            location.reload();
-          }
         }
         </script>
+      <% elsif @vote.closed? %>
+        <span class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-400 text-[13px] font-semibold rounded-lg cursor-not-allowed select-none" title="<%= t('votes_errors.cannot_reopen_closed') %>">
+          🔒 <%= t("status.closed").upcase %>
+        </span>
       <% end %>
     </div>
   </div>
@@ -116,8 +124,8 @@
 
       <div id="options-list" class="space-y-2 mb-4">
         <% @vote.vote_options.each do |opt| %>
-          <div class="option-row flex items-center gap-2" data-id="<%= opt.id %>">
-            <div class="w-5 text-center text-slate-300 text-[13px] select-none">≡</div>
+          <div class="option-row flex items-center gap-2" data-id="<%= opt.id %>" draggable="true" style="cursor:grab;">
+            <div class="w-5 text-center text-slate-300 text-[13px] select-none" style="cursor:grab;">≡</div>
             <input type="text" value="<%= opt.label %>"
               class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none <%= 'bg-slate-50 text-slate-400 cursor-not-allowed' unless editable %>"
               <%= "readonly disabled" unless editable %>
@@ -148,6 +156,56 @@
 const voteId = <%= @vote.id %>;
 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 const DELETE_OPTION_CONFIRM = "<%= j t('votes.edit.delete_option_confirm') %>";
+const REORDER_URL = "<%= reorder_vote_vote_options_path(@vote) %>";
+
+// ── Drag-and-drop reorder ──────────────────────────────────────────────────
+(function initDragDrop() {
+  const list = document.getElementById('options-list');
+  let dragged = null;
+
+  list.addEventListener('dragstart', e => {
+    const row = e.target.closest('.option-row');
+    if (!row) return;
+    dragged = row;
+    setTimeout(() => row.style.opacity = '0.4', 0);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  list.addEventListener('dragend', () => {
+    if (dragged) dragged.style.opacity = '1';
+    list.querySelectorAll('.option-row').forEach(r => r.classList.remove('drag-over'));
+    dragged = null;
+    saveOrder();
+  });
+
+  list.addEventListener('dragover', e => {
+    e.preventDefault();
+    const row = e.target.closest('.option-row');
+    if (row && row !== dragged) {
+      list.querySelectorAll('.option-row').forEach(r => r.classList.remove('drag-over'));
+      row.classList.add('drag-over');
+      const rect = row.getBoundingClientRect();
+      const after = e.clientY > rect.top + rect.height / 2;
+      list.insertBefore(dragged, after ? row.nextSibling : row);
+    }
+  });
+
+  list.addEventListener('dragleave', e => {
+    const row = e.target.closest('.option-row');
+    if (row) row.classList.remove('drag-over');
+  });
+
+  list.addEventListener('drop', e => e.preventDefault());
+
+  function saveOrder() {
+    const ids = [...list.querySelectorAll('.option-row')].map(r => r.dataset.id);
+    fetch(REORDER_URL, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      body: JSON.stringify({ ids })
+    });
+  }
+})();
 
 async function addOption() {
   const input = document.getElementById('new-option-input');
@@ -165,6 +223,8 @@ async function addOption() {
   const row = document.createElement('div');
   row.className = 'option-row flex items-center gap-2';
   row.dataset.id = opt.id;
+  row.draggable = true;
+  row.style.cursor = 'grab';
   row.innerHTML = `
     <div class="w-5 text-center text-slate-300 text-[13px] select-none">≡</div>
     <input type="text" value="${escHtml(opt.label)}"

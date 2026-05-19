@@ -16,6 +16,7 @@ class Vote < ApplicationRecord
   after_create  :generate_qr_code
 
   def open!
+    raise "Cannot reopen a closed vote" if closed?
     update!(status: :active, opened_at: Time.current)
     broadcast_status_change
   end

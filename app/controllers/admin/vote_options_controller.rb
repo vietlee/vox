@@ -34,6 +34,17 @@ class Admin::VoteOptionsController < Admin::BaseController
     head :no_content
   end
 
+  def reorder
+    ids = Array(params[:ids]).map(&:to_i)
+    ids.each_with_index do |id, idx|
+      VoteOption.joins(:vote)
+                .where(votes: { workspace_id: current_workspace.id })
+                .where(id: id)
+                .update_all(position: idx)
+    end
+    head :ok
+  end
+
   private
 
   def set_vote

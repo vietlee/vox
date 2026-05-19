@@ -45,7 +45,7 @@ class Participate::VotesController < Participate::BaseController
     @ai_insight = AiJob.done.where(job_type: "post_vote_insight", resource_type: "Vote", resource_id: @vote.id).last&.output_data
     respond_to do |format|
       format.html
-      format.json { render json: { results: @results, participant_count: @vote.participant_count } }
+      format.json { render json: { results: @results, participant_count: @vote.participant_count, ai_insight: @ai_insight } }
     end
   end
 
