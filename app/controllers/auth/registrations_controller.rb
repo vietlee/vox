@@ -31,7 +31,7 @@ class Auth::RegistrationsController < Devise::RegistrationsController
         status:         :active,
         starts_at:      Time.current,
         ends_at:        nil,
-        credit_balance: 0,
+        credit_balance: free_limits[:max_ai_credits].to_i,
         features:       PlanConfig.features_for("free"),
         **free_limits
       )
