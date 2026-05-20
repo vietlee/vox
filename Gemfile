@@ -12,6 +12,9 @@ gem "tailwindcss-rails"
 # Redis — cache, sessions, ActionCable pub/sub
 gem "redis", ">= 4.0.1"
 
+# File storage — DigitalOcean Spaces (S3-compatible)
+gem "aws-sdk-s3", "~> 1.170", require: false
+
 # Authentication & Authorization
 gem "devise"
 gem "devise-two-factor"

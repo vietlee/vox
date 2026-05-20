@@ -142,6 +142,9 @@ class Participate::SurveysController < Participate::BaseController
         answer.matrix_values = answer_data[:matrix] || {}
       when :date_time
         answer.date_value = answer_data[:date]
+      when :file_upload
+        file = params.dig(:answers, question.id.to_s, :file)
+        answer.uploaded_file.attach(file) if file.present?
       end
       answer.save!
     end
