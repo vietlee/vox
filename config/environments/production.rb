@@ -94,9 +94,9 @@ Rails.application.configure do
   config.action_mailer.delivery_method = :smtp
 
   config.action_mailer.smtp_settings = {
-    address:              'smtp.gmail.com',
-    port:                 587,
-    domain:               ENV.fetch('SMTP_DOMAIN', 'localhost'),
+    address:              ENV.fetch('SMTP_HOST',     'smtp-relay.brevo.com'),
+    port:                 ENV.fetch('SMTP_PORT',     '2525').to_i,
+    domain:               ENV.fetch('SMTP_DOMAIN',   'vox.czin.net'),
     user_name:            ENV['SMTP_USERNAME'],
     password:             ENV['SMTP_PASSWORD'],
     authentication:       'plain',
