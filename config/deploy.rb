@@ -59,10 +59,11 @@ namespace :deploy do
     end
   end
 
-  after :publishing,  :restart
-  after :restart,     :clear_cache do
-    on roles(:web), in: :groups, limit: 3, wait: 10 do
-      # Clear Rails cache after deploy
+  after :publishing, :restart
+
+  after :finishing, :restart_sidekiq do
+    on roles(:app) do
+      execute :sudo, "systemctl restart sidekiq-vox"
     end
   end
 end
