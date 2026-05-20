@@ -1,4 +1,7 @@
 module Paginatable
   extend ActiveSupport::Concern
-  include Pagy::Backend
+
+  included do
+    include Pagy::Backend
+  end
 end
