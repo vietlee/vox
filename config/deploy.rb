@@ -8,7 +8,7 @@ set :branch,      ENV.fetch("BRANCH", "main")
 
 # rbenv
 set :rbenv_type,       :user
-set :rbenv_ruby,       File.read(".ruby-version").strip
+set :rbenv_ruby,       File.read(".ruby-version").strip.sub(/^ruby-/, "")
 set :rbenv_prefix,     "RBENV_ROOT=$HOME/.rbenv RBENV_VERSION=#{fetch(:rbenv_ruby)} $HOME/.rbenv/bin/rbenv exec"
 set :rbenv_path,       "$HOME/.rbenv"
 
