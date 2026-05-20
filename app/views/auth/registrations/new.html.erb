@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Đăng ký — VOX</title>
+  <title><%= I18n.locale == :vi ? "Đăng ký" : "Sign Up" %> — VOX</title>
   <%= csrf_meta_tags %>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
@@ -12,6 +12,9 @@
     input:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important; outline: none; }
     .auth-card-wrap { width: 480px; margin: 0 auto; }
     @media (max-width: 768px) { .auth-card-wrap { width: 100%; } }
+    .field-error { display:none; font-size:12px; color:#f87171; margin-top:5px; }
+    .field-error.visible { display:block; }
+    input.invalid { border-color: rgba(239,68,68,0.6) !important; }
   </style>
 </head>
 <body>
@@ -37,7 +40,9 @@
           </svg>
         </div>
         <div style="font-family:system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif; font-size:38px; font-weight:800; letter-spacing:10px; color:#1A6BFF; line-height:1; padding-left:10px; margin-bottom:8px;">VOX</div>
-        <p style="font-size:13px; color:#64748b; margin-top:0;">Tạo workspace và bắt đầu ngay — miễn phí</p>
+        <p style="font-size:13px; color:#64748b; margin-top:0;">
+          <%= I18n.locale == :vi ? "Tạo workspace và bắt đầu ngay — miễn phí" : "Create your workspace and get started — free" %>
+        </p>
       </div>
 
       <!-- Card -->
@@ -49,82 +54,162 @@
           </div>
         <% end %>
 
-        <%= form_with url: user_registration_path, method: :post, local: true, data: { turbo: false } do |f| %>
+        <%= form_with url: user_registration_path, method: :post, local: true, data: { turbo: false }, html: { novalidate: true, id: "signup-form" } do |f| %>
 
           <!-- Workspace name -->
           <div style="margin-bottom:16px;">
             <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">
-              Tên Workspace *
+              <%= I18n.locale == :vi ? "Tên Workspace *" : "Workspace Name *" %>
             </label>
-            <input type="text" name="workspace_name" value="<%= params[:workspace_name] %>"
-              placeholder="Công ty / Tổ chức của bạn"
-              required
+            <input type="text" name="workspace_name" id="f_workspace" value="<%= params[:workspace_name] %>"
+              placeholder="<%= I18n.locale == :vi ? 'Công ty / Tổ chức của bạn' : 'Your company / organization' %>"
               style="display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:16px; color:#f1f5f9; font-family:'Inter',sans-serif;">
-            <p style="font-size:11px; color:#475569; margin-top:6px;">Workspace là nơi bạn tạo survey, vote, feedback.</p>
+            <div class="field-error" id="err_workspace"></div>
+            <p style="font-size:11px; color:#475569; margin-top:6px;">
+              <%= I18n.locale == :vi ? "Workspace là nơi bạn tạo survey, vote, feedback." : "Your workspace is where you create surveys, votes, and feedback boards." %>
+            </p>
           </div>
 
           <div style="height:1px; background:rgba(255,255,255,0.05); margin:20px 0;"></div>
 
           <!-- Name -->
           <div style="margin-bottom:16px;">
-            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Họ tên *</label>
-            <input type="text" name="name" value="<%= @user&.name %>"
-              placeholder="Nguyễn Văn A"
-              required
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">
+              <%= I18n.locale == :vi ? "Họ tên *" : "Full name *" %>
+            </label>
+            <input type="text" name="name" id="f_name" value="<%= @user&.name %>"
+              placeholder="<%= I18n.locale == :vi ? 'Nguyễn Văn A' : 'John Doe' %>"
               style="display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:16px; color:#f1f5f9; font-family:'Inter',sans-serif;">
+            <div class="field-error" id="err_name"></div>
           </div>
 
           <!-- Email -->
           <div style="margin-bottom:16px;">
             <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Email *</label>
-            <input type="email" name="email" value="<%= @user&.email %>"
-              placeholder="ban@congty.com"
-              required
+            <input type="email" name="email" id="f_email" value="<%= @user&.email %>"
+              placeholder="<%= I18n.locale == :vi ? 'ban@congty.com' : 'you@company.com' %>"
               style="display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:16px; color:#f1f5f9; font-family:'Inter',sans-serif;">
+            <div class="field-error" id="err_email"></div>
           </div>
 
           <!-- Password -->
           <div style="margin-bottom:16px;">
-            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Mật khẩu *</label>
-            <input type="password" name="password"
-              placeholder="Tối thiểu 8 ký tự"
-              required minlength="8"
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">
+              <%= I18n.locale == :vi ? "Mật khẩu *" : "Password *" %>
+            </label>
+            <input type="password" name="password" id="f_password"
+              placeholder="<%= I18n.locale == :vi ? 'Tối thiểu 8 ký tự' : 'At least 8 characters' %>"
               style="display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:16px; color:#f1f5f9; font-family:'Inter',sans-serif;">
+            <div class="field-error" id="err_password"></div>
           </div>
 
           <!-- Password confirmation -->
           <div style="margin-bottom:24px;">
-            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Xác nhận mật khẩu *</label>
-            <input type="password" name="password_confirmation"
-              placeholder="Nhập lại mật khẩu"
-              required
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">
+              <%= I18n.locale == :vi ? "Xác nhận mật khẩu *" : "Confirm password *" %>
+            </label>
+            <input type="password" name="password_confirmation" id="f_password_conf"
+              placeholder="<%= I18n.locale == :vi ? 'Nhập lại mật khẩu' : 'Re-enter password' %>"
               style="display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:16px; color:#f1f5f9; font-family:'Inter',sans-serif;">
+            <div class="field-error" id="err_password_conf"></div>
           </div>
 
           <!-- Free plan badge -->
           <div style="margin-bottom:20px; padding:12px 14px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.2); border-radius:12px; display:flex; align-items:center; gap:10px;">
             <span style="font-size:18px;">🎁</span>
             <div>
-              <div style="font-size:12px; font-weight:700; color:#a5b4fc;">Gói Free — Miễn phí mãi mãi</div>
+              <div style="font-size:12px; font-weight:700; color:#a5b4fc;">
+                <%= I18n.locale == :vi ? "Gói Free — Miễn phí mãi mãi" : "Free Plan — Forever free" %>
+              </div>
               <div style="font-size:11px; color:#475569; margin-top:2px;">3 surveys · 3 votes · 10 feedback boards</div>
             </div>
           </div>
 
           <button type="submit"
             style="display:block; width:100%; padding:14px; background:#4F46E5; color:#fff; font-size:15px; font-weight:700; border:none; border-radius:8px; cursor:pointer; font-family:'Inter',sans-serif;">
-            Tạo workspace →
+            <%= I18n.locale == :vi ? "Tạo workspace →" : "Create workspace →" %>
           </button>
 
         <% end %>
       </div>
 
       <p style="text-align:center; font-size:13px; color:#475569; margin-top:18px;">
-        Đã có tài khoản?
-        <%= link_to "Đăng nhập", new_user_session_path, style: "color:#818cf8; font-weight:600; text-decoration:none;" %>
+        <%= I18n.locale == :vi ? "Đã có tài khoản?" : "Already have an account?" %>
+        <%= link_to (I18n.locale == :vi ? "Đăng nhập" : "Sign in"), new_user_session_path, style: "color:#818cf8; font-weight:600; text-decoration:none;" %>
       </p>
 
     </div>
   </div>
+
+  <script>
+    (function() {
+      var vi = document.documentElement.lang === 'vi';
+      var msgs = {
+        required:  vi ? 'Vui lòng điền thông tin này.' : 'Please fill out this field.',
+        email:     vi ? 'Vui lòng nhập địa chỉ email hợp lệ.' : 'Please enter a valid email address.',
+        minpass:   vi ? 'Mật khẩu phải có ít nhất 8 ký tự.' : 'Password must be at least 8 characters.',
+        passconf:  vi ? 'Mật khẩu xác nhận không khớp.' : 'Passwords do not match.'
+      };
+
+      function showError(inputId, errId, msg) {
+        var input = document.getElementById(inputId);
+        var err   = document.getElementById(errId);
+        input.classList.add('invalid');
+        err.textContent = msg;
+        err.classList.add('visible');
+      }
+
+      function clearError(inputId, errId) {
+        var input = document.getElementById(inputId);
+        var err   = document.getElementById(errId);
+        input.classList.remove('invalid');
+        err.classList.remove('visible');
+      }
+
+      ['f_workspace','f_name','f_email','f_password','f_password_conf'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', function() { clearError(id, id.replace('f_','err_')); });
+      });
+
+      document.getElementById('signup-form').addEventListener('submit', function(e) {
+        var valid = true;
+
+        var workspace = document.getElementById('f_workspace');
+        if (!workspace.value.trim()) {
+          showError('f_workspace', 'err_workspace', msgs.required); valid = false;
+        }
+
+        var name = document.getElementById('f_name');
+        if (!name.value.trim()) {
+          showError('f_name', 'err_name', msgs.required); valid = false;
+        }
+
+        var email = document.getElementById('f_email');
+        var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email.value.trim()) {
+          showError('f_email', 'err_email', msgs.required); valid = false;
+        } else if (!emailRe.test(email.value.trim())) {
+          showError('f_email', 'err_email', msgs.email); valid = false;
+        }
+
+        var pw = document.getElementById('f_password');
+        if (!pw.value) {
+          showError('f_password', 'err_password', msgs.required); valid = false;
+        } else if (pw.value.length < 8) {
+          showError('f_password', 'err_password', msgs.minpass); valid = false;
+        }
+
+        var pwc = document.getElementById('f_password_conf');
+        if (!pwc.value) {
+          showError('f_password_conf', 'err_password_conf', msgs.required); valid = false;
+        } else if (pwc.value !== pw.value) {
+          showError('f_password_conf', 'err_password_conf', msgs.passconf); valid = false;
+        }
+
+        if (!valid) e.preventDefault();
+      });
+    })();
+  </script>
 
 </body>
 </html>
