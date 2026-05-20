@@ -81,4 +81,6 @@ group :development do
   gem "capistrano-rbenv",    "~> 2.2",  require: false
   gem "capistrano3-puma",    "~> 6.0",  require: false
   gem "capistrano-sidekiq",  "~> 2.3",  require: false
+  gem "ed25519",             "~> 1.3",  require: false
+  gem "bcrypt_pbkdf",        "~> 1.1",  require: false
 end
