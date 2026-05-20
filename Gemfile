@@ -74,4 +74,11 @@ end
 group :development do
   gem "web-console"
   gem "letter_opener"
+
+  # Deployment
+  gem "capistrano",          "~> 3.18", require: false
+  gem "capistrano-rails",    "~> 1.6",  require: false
+  gem "capistrano-rbenv",    "~> 2.2",  require: false
+  gem "capistrano3-puma",    "~> 6.0",  require: false
+  gem "capistrano-sidekiq",  "~> 2.3",  require: false
 end

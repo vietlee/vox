@@ -61,12 +61,11 @@ Rails.application.configure do
   # want to log everything, set the level to "debug".
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
-  # Use a different cache store in production.
-  # config.cache_store = :mem_cache_store
+  # Redis cache store
+  config.cache_store = :redis_cache_store, { url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0") }
 
-  # Use a real queuing backend for Active Job (and separate queues per environment).
-  # config.active_job.queue_adapter = :resque
-  # config.active_job.queue_name_prefix = "vox_production"
+  # Sidekiq for background jobs
+  config.active_job.queue_adapter = :sidekiq
 
   # Disable caching for Action Mailer templates even if Action Controller
   # caching is enabled.
@@ -100,11 +99,9 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
 
-  # Enable DNS rebinding protection and other `Host` header attacks.
-  # config.hosts = [
-  #   "example.com",     # Allow requests from example.com
-  #   /.*\.example\.com/ # Allow requests from subdomains like `www.example.com`
-  # ]
-  # Skip DNS rebinding protection for the default health check endpoint.
-  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  # Host allowlist — block DNS rebinding attacks
+  config.hosts = [
+    "vox.czin.net",
+    /.*\.czin\.net/
+  ]
 end
