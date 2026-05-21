@@ -50,7 +50,7 @@ gem "groupdate"
 gem "pagy"
 
 # File uploads
-gem "image_processing", "~> 1.2"
+gem "image_processing", "~> 2.0"
 
 # Multi-tenancy helpers
 gem "acts_as_tenant"
