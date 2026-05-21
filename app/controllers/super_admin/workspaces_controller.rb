@@ -48,8 +48,13 @@ class SuperAdmin::WorkspacesController < SuperAdmin::BaseController
   end
 
   def destroy
-    @workspace.update!(status: :inactive)
-    redirect_to super_admin_workspaces_path
+    name = @workspace.name
+    @workspace.purge!
+    redirect_to super_admin_workspaces_path,
+      notice: "Workspace \"#{name}\" đã được xóa vĩnh viễn."
+  rescue => e
+    Rails.logger.error "[WorkspacePurge] #{e.message}"
+    redirect_to super_admin_workspaces_path, alert: "Lỗi khi xóa: #{e.message}"
   end
 
   def activate

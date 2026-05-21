@@ -6,6 +6,11 @@ class Admin::BaseController < ApplicationController
   private
 
   def require_workspace_member!
+    # Participant users cannot access admin dashboard
+    if current_user&.participant?
+      redirect_to my_participations_path, alert: t("errors.access_denied")
+      return
+    end
     unless current_workspace_role.present?
       redirect_to new_user_session_path, alert: t("errors.access_denied")
     end

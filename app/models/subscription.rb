@@ -71,6 +71,10 @@ class Subscription < ApplicationRecord
   def votes_remaining = max_votes.nil? ? nil : [max_votes - votes_used, 0].max
   def votes_pct = max_votes.nil? ? 0 : [(votes_used * 100.0 / max_votes).round, 100].min
 
+  def feedbacks_used = workspace.feedback_boards.count
+  def feedbacks_remaining = max_feedbacks.nil? ? nil : [max_feedbacks - feedbacks_used, 0].max
+  def feedbacks_pct = max_feedbacks.nil? ? 0 : [(feedbacks_used * 100.0 / max_feedbacks).round, 100].min
+
   def expires_soon?
     ends_at.present? && ends_at <= 7.days.from_now
   end

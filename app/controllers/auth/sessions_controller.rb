@@ -15,6 +15,8 @@ class Auth::SessionsController < Devise::SessionsController
       return_to
     elsif resource.super_admin?
       super_admin_root_path
+    elsif resource.participant?
+      my_participations_path
     else
       dashboard_path
     end

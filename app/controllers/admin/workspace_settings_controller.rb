@@ -15,6 +15,21 @@ class Admin::WorkspaceSettingsController < Admin::BaseController
     end
   end
 
+  def destroy
+    workspace = current_workspace
+    name = workspace.name
+    workspace.purge!
+    sign_out current_user
+    redirect_to new_user_session_path,
+      notice: I18n.locale == :vi ?
+        "Workspace \"#{name}\" đã được xóa vĩnh viễn." :
+        "Workspace \"#{name}\" has been permanently deleted."
+  rescue => e
+    Rails.logger.error "[WorkspacePurge] #{e.message}"
+    redirect_to workspace_settings_path,
+      alert: I18n.locale == :vi ? "Có lỗi khi xóa workspace. Vui lòng thử lại." : "Failed to delete workspace. Please try again."
+  end
+
   private
 
   def workspace_params

@@ -76,7 +76,8 @@
                     Vote.identity_modes.keys.map { |k| [t("votes.identity.#{k}"), k] },
                     { selected: @vote.identity_mode },
                     class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none #{'bg-slate-50 text-slate-400 cursor-not-allowed' unless editable}",
-                    disabled: !editable %>
+                    disabled: !editable,
+                    onchange: editable ? "onIdentityChange(this.value)" : nil %>
             </div>
           </div>
 
@@ -101,6 +102,31 @@
               </label>
             </div>
           </div>
+
+          <!-- SSO provider picker — shown only when identity_mode = sso_required -->
+          <div id="sso-providers-wrap" style="<%= @vote.sso_required? ? '' : 'display:none;' %>" class="px-4 py-3 rounded-xl border border-indigo-100 bg-indigo-50/60">
+            <label class="block text-[11px] font-semibold text-slate-500 mb-2">
+              <%= I18n.locale == :vi ? "Cho phép đăng nhập với" : "Allow sign in with" %>
+            </label>
+            <div class="flex gap-4">
+              <% [["google", "🔵 Google"], ["microsoft", "🟦 Microsoft"], ["both", I18n.locale == :vi ? "✅ Cả hai" : "✅ Both"]].each do |val, lbl| %>
+                <label class="flex items-center gap-1.5 text-[12px] font-semibold text-slate-600 <%= editable ? 'cursor-pointer' : 'cursor-not-allowed' %>">
+                  <%= f.radio_button :login_providers, val,
+                        disabled: !editable,
+                        checked: @vote.login_providers == val || (@vote.login_providers.blank? && val == "both"),
+                        class: "accent-indigo-600" %>
+                  <%= lbl %>
+                </label>
+              <% end %>
+            </div>
+          </div>
+          <% if editable %>
+          <script>
+            function onIdentityChange(val) {
+              document.getElementById('sso-providers-wrap').style.display = val === 'sso_required' ? '' : 'none';
+            }
+          </script>
+          <% end %>
 
           <% if editable %>
             <div class="pt-2">

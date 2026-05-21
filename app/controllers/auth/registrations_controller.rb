@@ -4,6 +4,7 @@ class Auth::RegistrationsController < Devise::RegistrationsController
 
   def new
     @user = User.new
+    @free_limits = PlanConfig.limits_for("free")
   end
 
   def create
@@ -47,6 +48,9 @@ class Auth::RegistrationsController < Devise::RegistrationsController
   private
 
   def user_params
-    params.permit(:name, :email, :password, :password_confirmation)
+    p = params.permit(:name, :email, :password, :password_confirmation)
+    # If name not provided, use email prefix as name
+    p[:name] = p[:email].to_s.split("@").first if p[:name].blank?
+    p
   end
 end

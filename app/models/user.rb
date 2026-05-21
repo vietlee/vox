@@ -1,9 +1,10 @@
 class User < ApplicationRecord
   devise :database_authenticatable, :registerable, :recoverable,
          :rememberable, :trackable, :confirmable, :lockable,
-         :timeoutable, :two_factor_authenticatable,
+         :timeoutable, :two_factor_authenticatable, :omniauthable,
          timeout_in: 60.days,
-         otp_secret_encryption_key: ENV.fetch("OTP_ENCRYPTION_KEY", "a" * 32)
+         otp_secret_encryption_key: ENV.fetch("OTP_ENCRYPTION_KEY", "a" * 32),
+         omniauth_providers: [:google_oauth2, :entra_id]
 
   belongs_to :workspace, optional: true
   has_many :workspace_memberships, dependent: :destroy
@@ -15,14 +16,46 @@ class User < ApplicationRecord
   has_many :audit_logs, dependent: :nullify
   has_many :notifications, dependent: :destroy
 
-  enum :role,   { super_admin: 0, admin: 1, supporter: 2 }
+  enum :role,   { super_admin: 0, admin: 1, supporter: 2, participant: 3 }
   enum :status, { active: 0, inactive: 1 }
 
-  validates :name, presence: true, length: { maximum: 100 }
+  validates :name,  presence: true, length: { maximum: 100 }
   validates :email, presence: true
   validates :role,  presence: true
+  validates :uid,   uniqueness: { scope: :provider }, allow_nil: true
+
+  # Skip password validation for OAuth users
+  def password_required?
+    super && provider.blank?
+  end
 
   scope :workspace_members, -> { where.not(role: :super_admin) }
+
+  # ── OmniAuth ──────────────────────────────────────────────────────────────
+  def self.from_omniauth(auth)
+    # Find by provider+uid first (returning user)
+    user = find_by(provider: auth.provider, uid: auth.uid)
+    # Fall back to email match (existing account, linking provider)
+    user ||= find_by(email: auth.info.email)
+
+    if user
+      # Link provider if not already linked
+      user.update_columns(provider: auth.provider, uid: auth.uid) if user.uid.blank?
+      # Auto-confirm: Google/Microsoft already verified the email
+      user.update_column(:confirmed_at, Time.current) if user.confirmed_at.nil?
+      return user
+    end
+
+    # New user — caller decides role/workspace
+    new(
+      provider:     auth.provider,
+      uid:          auth.uid,
+      email:        auth.info.email,
+      name:         auth.info.name.presence || auth.info.email.split("@").first,
+      password:     Devise.friendly_token[0, 20],
+      confirmed_at: Time.current
+    )
+  end
 
   def super_admin?
     role == "super_admin"
@@ -34,6 +67,15 @@ class User < ApplicationRecord
 
   def supporter?
     role == "supporter"
+  end
+
+  def participant?
+    role == "participant"
+  end
+
+  # Can access the admin dashboard
+  def workspace_member?
+    admin? || supporter? || super_admin?
   end
 
   def can_access_ai?

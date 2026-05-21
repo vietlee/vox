@@ -1,13 +1,13 @@
 class Participate::VotesController < Participate::BaseController
   before_action :set_vote
+  before_action :enforce_login_required!, only: [:show, :submit]
 
   def show
     unless @vote.active?
       render :closed and return
     end
     @options = @vote.vote_options
-    @already_voted = !@vote.allow_multiple_votes? &&
-                     @vote.vote_responses.exists?(respondent_token: respondent_token)
+    @already_voted = !@vote.allow_multiple_votes? && already_voted?
     @seconds_remaining = @vote.seconds_remaining
   end
 
@@ -23,12 +23,13 @@ class Participate::VotesController < Participate::BaseController
     end
 
     vote_response = @vote.vote_responses.build(
-      workspace: @vote.workspace,
-      respondent_token: respondent_token,
-      respondent_email: params[:respondent_email].presence,
+      workspace:           @vote.workspace,
+      respondent_token:    respondent_token,
+      respondent_email:    current_user&.email || params[:respondent_email].presence,
+      user_id:             current_user&.id,
       selected_option_ids: Array(params[:option_ids]).map(&:to_i),
-      text_value: params[:text_value],
-      ranking_order: params[:ranking_order] || []
+      text_value:          params[:text_value],
+      ranking_order:       params[:ranking_order] || []
     )
 
     if vote_response.save
@@ -41,7 +42,7 @@ class Participate::VotesController < Participate::BaseController
   end
 
   def results
-    @results   = @vote.results_by_option
+    @results    = @vote.results_by_option
     @ai_insight = AiJob.done.where(job_type: "post_vote_insight", resource_type: "Vote", resource_id: @vote.id).last&.output_data
     respond_to do |format|
       format.html
@@ -57,7 +58,42 @@ class Participate::VotesController < Participate::BaseController
   private
 
   def set_vote
-    @vote = Vote.find_by!(slug: params[:slug])
+    @vote      = Vote.find_by!(slug: params[:slug])
     @workspace = @vote.workspace
+  end
+
+  def enforce_login_required!
+    return unless @vote.login_required?
+    # Workspace members (admin/supporter/super_admin) always bypass — they're already verified
+    return if current_user&.workspace_member?
+    # Check that the logged-in user's SSO provider matches what the vote requires
+    return if sso_provider_satisfied?
+
+    session[:omniauth_return_to] = request.url
+    session["user_return_to"]    = request.url
+    render :login_required, status: :ok
+  end
+
+  # Returns true if current_user is logged in via an SSO provider
+  # that satisfies the vote's login_providers requirement.
+  def already_voted?
+    # Logged-in user: check by user_id (covers all devices/browsers)
+    if current_user.present?
+      return @vote.vote_responses.exists?(user_id: current_user.id)
+    end
+    # Anonymous: check by cookie token
+    respondent_token.present? && @vote.vote_responses.exists?(respondent_token: respondent_token)
+  end
+
+  def sso_provider_satisfied?
+    return false unless current_user.present?
+    return false if current_user.provider.blank?   # email/password user — must re-auth via SSO
+
+    case @vote.effective_login_providers
+    when "google"    then current_user.provider == "google_oauth2"
+    when "microsoft" then current_user.provider == "entra_id"
+    when "both"      then current_user.provider.in?(%w[google_oauth2 entra_id])
+    else false
+    end
   end
 end

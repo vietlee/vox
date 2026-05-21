@@ -22,7 +22,8 @@ class Participate::BaseController < ActionController::Base
 
   def require_login!(return_to: request.url)
     unless current_user
-      session["user_return_to"] = return_to
+      session["user_return_to"]      = return_to  # Devise stored location
+      session[:omniauth_return_to]   = return_to  # SSO participant context detection
       redirect_to new_user_session_path, alert: t("errors.login_required")
     end
   end

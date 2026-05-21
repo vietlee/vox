@@ -8,9 +8,29 @@ class Vote < ApplicationRecord
 
   enum :vote_type,     { single_choice: 0, multiple_choice: 1, word_cloud: 2, open_ended: 3, ranking: 4, qa_upvote: 5 }
   enum :status,        { draft: 0, active: 1, closed: 2 }
-  enum :identity_mode, { anonymous: 0, email_required: 1 }
+  enum :identity_mode, { anonymous: 0, email_required: 1, sso_required: 2 }
 
-  validates :title, presence: true, length: { maximum: 300 }
+  # login_providers: "google", "microsoft", "both"
+  LOGIN_PROVIDERS = %w[google microsoft both].freeze
+
+  validates :title,           presence: true, length: { maximum: 300 }
+  validates :login_providers, inclusion: { in: LOGIN_PROVIDERS }, allow_nil: true
+
+  def login_required?
+    sso_required?
+  end
+
+  def effective_login_providers
+    login_providers.presence || "both"
+  end
+
+  def requires_google?
+    sso_required? && effective_login_providers.in?(%w[google both])
+  end
+
+  def requires_microsoft?
+    sso_required? && effective_login_providers.in?(%w[microsoft both])
+  end
 
   before_create :generate_slug
   after_create  :generate_qr_code

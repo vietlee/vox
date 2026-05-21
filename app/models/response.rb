@@ -33,9 +33,12 @@ class Response < ApplicationRecord
     return unless survey.max_per_user.to_i > 0
 
     completed = survey.responses.completed
+    # Check by user_id first (covers all devices/browsers for logged-in users)
+    if user_id.present? && completed.exists?(user_id: user_id)
+      errors.add(:base, :already_responded) and return
+    end
     if respondent_token.present? && completed.exists?(respondent_token: respondent_token)
-      errors.add(:base, :already_responded)
-      return
+      errors.add(:base, :already_responded) and return
     end
     if respondent_email.present? && completed.exists?(respondent_email: respondent_email)
       errors.add(:base, :already_responded)

@@ -106,7 +106,13 @@
       "Bash(ssh -o StrictHostKeyChecking=no deploy@188.166.189.119 \"tail -50 /var/www/vox/shared/log/production.log\")",
       "Bash(ssh -o StrictHostKeyChecking=no deploy@188.166.189.119 \"ls /var/www/vox/shared/log/ && tail -80 /var/www/vox/shared/log/puma.log\")",
       "Bash(ssh -o StrictHostKeyChecking=no root@188.166.189.119 \"tail -30 /var/www/vox/shared/log/sidekiq.log\")",
-      "Bash(ssh -o StrictHostKeyChecking=no root@188.166.189.119 \"tail -15 /var/www/vox/shared/log/sidekiq.log\")"
+      "Bash(ssh -o StrictHostKeyChecking=no root@188.166.189.119 \"tail -15 /var/www/vox/shared/log/sidekiq.log\")",
+      "Bash(ssh deploy@188.166.189.119 \"journalctl --user -u vox_puma_production -n 100 --no-pager | grep -i -A5 'mail\\\\|smtp\\\\|deliver\\\\|password\\\\|error\\\\|Error'\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -200 /var/www/vox/shared/log/sidekiq.log | grep -i -A5 'mail\\\\|smtp\\\\|deliver\\\\|error\\\\|Error'\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -f /var/www/vox/shared/log/sidekiq.log\")",
+      "Bash(kill %1)",
+      "Bash(wait %1)",
+      "Bash(git revert *)"
     ]
   }
 }

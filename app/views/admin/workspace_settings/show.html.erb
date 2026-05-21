@@ -15,4 +15,71 @@
       </div>
     </div>
   <% end %>
+
+  <%# ── Danger Zone ──────────────────────────────────────────────────────── %>
+  <div class="mt-10 bg-white rounded-[10px] border border-red-200 shadow-sm p-5">
+    <h2 class="text-[14px] font-bold text-red-600 mb-1">
+      ⚠️ <%= I18n.locale == :vi ? "Vùng nguy hiểm" : "Danger Zone" %>
+    </h2>
+    <p class="text-[12px] text-slate-500 mb-4">
+      <%= I18n.locale == :vi ?
+        "Xóa workspace sẽ xóa vĩnh viễn toàn bộ dữ liệu: surveys, votes, feedback, thành viên và tài khoản của bạn. Hành động này không thể hoàn tác." :
+        "Deleting your workspace permanently removes all data: surveys, votes, feedback, members and your account. This action cannot be undone." %>
+    </p>
+    <button type="button" onclick="document.getElementById('delete-workspace-modal').style.display='flex'"
+      class="px-4 py-2 bg-red-600 text-white text-[13px] font-semibold rounded-lg hover:bg-red-700">
+      🗑 <%= I18n.locale == :vi ? "Xóa workspace này" : "Delete this workspace" %>
+    </button>
+  </div>
 </div>
+
+<%# ── Confirmation Modal ────────────────────────────────────────────────── %>
+<div id="delete-workspace-modal" style="display:none; position:fixed; inset:0; z-index:50; align-items:center; justify-content:center; background:rgba(0,0,0,0.5);">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+    <h3 class="text-[17px] font-extrabold text-slate-900 mb-2">
+      <%= I18n.locale == :vi ? "Xác nhận xóa workspace" : "Confirm workspace deletion" %>
+    </h3>
+    <p class="text-[13px] text-slate-500 mb-4">
+      <%= I18n.locale == :vi ?
+        "Nhập tên workspace để xác nhận. Tất cả dữ liệu sẽ bị xóa vĩnh viễn." :
+        "Type the workspace name to confirm. All data will be permanently deleted." %>
+    </p>
+    <p class="text-[12px] font-bold text-slate-700 mb-2">
+      <%= I18n.locale == :vi ? "Tên workspace:" : "Workspace name:" %>
+      <span class="text-red-600"><%= @workspace.name %></span>
+    </p>
+    <input type="text" id="confirm-workspace-name"
+      placeholder="<%= @workspace.name %>"
+      class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-[13px] mb-4 focus:border-red-400 outline-none">
+
+    <%# Hidden form for DELETE — JS submits it when name matches %>
+    <%= form_with url: workspace_settings_path, method: :delete, id: "delete-workspace-form", data: { turbo: false } do %>
+    <% end %>
+    <button type="button" id="confirm-delete-btn"
+      onclick="document.getElementById('delete-workspace-form').submit()"
+      style="opacity:0.4; cursor:not-allowed; pointer-events:none;"
+      class="w-full py-2.5 bg-red-600 text-white text-[13px] font-bold rounded-lg border-0">
+      🗑 <%= I18n.locale == :vi ? "Xóa vĩnh viễn" : "Delete permanently" %>
+    </button>
+
+    <button type="button" onclick="document.getElementById('delete-workspace-modal').style.display='none'"
+      class="w-full mt-2 py-2.5 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200">
+      <%= I18n.locale == :vi ? "Hủy" : "Cancel" %>
+    </button>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var input = document.getElementById('confirm-workspace-name');
+    var btn   = document.getElementById('confirm-delete-btn');
+    var name  = <%= raw @workspace.name.to_json %>;
+    if (!input || !btn) return;
+    input.addEventListener('input', function(){
+      var match = this.value.trim() === name;
+      btn.style.opacity        = match ? '1'            : '0.4';
+      btn.style.cursor         = match ? 'pointer'      : 'not-allowed';
+      btn.style.pointerEvents  = match ? 'auto'         : 'none';
+    });
+  })();
+</script>

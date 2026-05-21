@@ -19,6 +19,9 @@ gem "aws-sdk-s3", "~> 1.170", require: false
 # Authentication & Authorization
 gem "devise"
 gem "devise-two-factor"
+gem "omniauth-google-oauth2"
+gem "omniauth-entra-id"
+gem "omniauth-rails_csrf_protection"
 gem "pundit"
 
 # Background jobs

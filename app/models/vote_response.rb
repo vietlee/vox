@@ -11,6 +11,15 @@ class VoteResponse < ApplicationRecord
 
   def prevent_duplicate_response
     return if vote.nil? || vote.allow_multiple_votes?
+
+    # Check by user_id first (strongest identity — SSO / logged-in users)
+    if user_id.present?
+      if vote.vote_responses.where(user_id: user_id).exists?
+        errors.add(:base, :already_voted) and return
+      end
+    end
+
+    # Fallback: check by cookie token (anonymous users)
     return if respondent_token.blank?
     if vote.vote_responses.exists?(respondent_token: respondent_token)
       errors.add(:base, :already_voted)

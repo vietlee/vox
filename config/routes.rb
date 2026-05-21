@@ -3,10 +3,14 @@ Rails.application.routes.draw do
 
   # Devise auth
   devise_for :users, controllers: {
-    sessions:      "auth/sessions",
-    registrations: "auth/registrations",
-    passwords:     "auth/passwords"
+    sessions:           "auth/sessions",
+    registrations:      "auth/registrations",
+    passwords:          "auth/passwords",
+    omniauth_callbacks: "auth/omniauth_callbacks"
   }
+
+  # SSO workspace setup (after OAuth, new user needs to create workspace)
+  resource :sso_workspace, only: [:new, :create], controller: "auth/sso_workspaces"
 
   # QR code scan redirect + image
   get "/qr/:token",       to: "qr_codes#scan",  as: :qr_scan
@@ -27,6 +31,11 @@ Rails.application.routes.draw do
   post "/f/:slug/upvote",  to: "participate/feedbacks#upvote", as: :upvote_feedback
   post "/f/:slug/reply",   to: "participate/feedbacks#reply",  as: :reply_feedback
   get  "/f/:slug/list",   to: "participate/feedbacks#list",   as: :list_feedbacks
+
+  # Participant — history of their votes/surveys/feedback
+  namespace :my do
+    resources :participations, only: [:index]
+  end
 
   # Super Admin
   namespace :super_admin do
@@ -112,7 +121,7 @@ Rails.application.routes.draw do
     end
 
     resource  :profile, only: [:show, :update]
-    resource  :workspace_settings, only: [:show, :update], path: "settings"
+    resource  :workspace_settings, only: [:show, :update, :destroy], path: "settings"
     resources :members, only: [:index, :new, :create, :destroy] do
       member do
         patch :toggle_status

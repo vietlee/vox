@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= I18n.locale == :vi ? "Hoạt động của tôi" : "My Participations" %> — VOX</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; background: #0F172A; font-family: 'Inter', sans-serif; min-height: 100vh; color: #f1f5f9; }
+    * { box-sizing: border-box; }
+    .card { background: #1E293B; border-radius: 16px; border: 1px solid rgba(255,255,255,0.07); padding: 20px 24px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; transition: border-color 0.15s; }
+    .card:hover { border-color: rgba(99,102,241,0.4); }
+    .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .badge-vote     { background: rgba(99,102,241,0.15); color: #818cf8; }
+    .badge-survey   { background: rgba(16,185,129,0.15); color: #34d399; }
+  </style>
+</head>
+<body>
+  <div style="max-width:640px; margin:0 auto; padding:48px 16px;">
+
+    <!-- Header -->
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:32px;">
+      <div>
+        <div style="font-size:24px; font-weight:800; color:#f1f5f9;">
+          <%= I18n.locale == :vi ? "Hoạt động của tôi" : "My Participations" %>
+        </div>
+        <div style="font-size:13px; color:#64748b; margin-top:4px;">
+          <%= current_user.email %>
+        </div>
+      </div>
+      <%= link_to new_user_session_path, data: { turbo_method: :delete },
+            style: "font-size:13px; color:#64748b; text-decoration:none; font-weight:600;" do %>
+        <%= I18n.locale == :vi ? "Đăng xuất" : "Sign out" %>
+      <% end %>
+    </div>
+
+    <% if @vote_responses.empty? && @survey_responses.empty? %>
+      <div style="text-align:center; padding:60px 0; color:#475569;">
+        <div style="font-size:40px; margin-bottom:12px;">📋</div>
+        <div style="font-size:15px; font-weight:600;">
+          <%= I18n.locale == :vi ? "Bạn chưa tham gia hoạt động nào." : "You haven't participated in anything yet." %>
+        </div>
+        <div style="font-size:13px; margin-top:6px;">
+          <%= I18n.locale == :vi ? "Hãy mở link vote hoặc survey từ người tổ chức." : "Open a vote or survey link from an organizer." %>
+        </div>
+      </div>
+    <% else %>
+
+      <% if @vote_responses.any? %>
+        <div style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px;">
+          <%= I18n.locale == :vi ? "Votes đã tham gia" : "Votes" %>
+        </div>
+        <% @vote_responses.each do |vr| %>
+          <% next unless vr.vote %>
+          <%= link_to participate_vote_path(vr.vote.slug), class: "card" do %>
+            <div style="width:40px; height:40px; background:rgba(99,102,241,0.15); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">🗳️</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= vr.vote.title %></div>
+              <div style="font-size:12px; color:#64748b; margin-top:2px;"><%= vr.created_at.strftime("%d/%m/%Y %H:%M") %></div>
+            </div>
+            <span class="badge badge-vote">Vote</span>
+          <% end %>
+        <% end %>
+      <% end %>
+
+      <% if @survey_responses.any? %>
+        <div style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px; margin-top:24px;">
+          <%= I18n.locale == :vi ? "Surveys đã tham gia" : "Surveys" %>
+        </div>
+        <% @survey_responses.each do |r| %>
+          <% next unless r.survey %>
+          <%= link_to participate_survey_path(r.survey.slug), class: "card" do %>
+            <div style="width:40px; height:40px; background:rgba(16,185,129,0.15); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">📝</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= r.survey.title %></div>
+              <div style="font-size:12px; color:#64748b; margin-top:2px;"><%= r.created_at.strftime("%d/%m/%Y %H:%M") %></div>
+            </div>
+            <span class="badge badge-survey">Survey</span>
+          <% end %>
+        <% end %>
+      <% end %>
+
+    <% end %>
+  </div>
+</body>
+</html>

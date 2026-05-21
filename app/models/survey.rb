@@ -10,8 +10,27 @@ class Survey < ApplicationRecord
   enum :status,        { draft: 0, active: 1, closed: 2, archived: 3 }
   enum :identity_mode, { anonymous: 0, email_required: 1, login_required: 2 }
 
-  validates :title, presence: true, length: { maximum: 200 }
-  validates :slug,  uniqueness: true, allow_blank: true
+  LOGIN_PROVIDERS = %w[google microsoft both].freeze
+
+  validates :title,           presence: true, length: { maximum: 200 }
+  validates :slug,            uniqueness: true, allow_blank: true
+  validates :login_providers, inclusion: { in: LOGIN_PROVIDERS }, allow_nil: true
+
+  def effective_login_providers
+    login_providers.presence || "both"
+  end
+
+  def requires_google?
+    login_required? && effective_login_providers.in?(%w[google both])
+  end
+
+  def requires_microsoft?
+    login_required? && effective_login_providers.in?(%w[microsoft both])
+  end
+
+  def sso_required?
+    login_required?
+  end
 
   before_create :generate_slug
   after_create  :generate_qr_code

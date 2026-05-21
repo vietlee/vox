@@ -312,7 +312,7 @@ class Admin::SurveysController < Admin::BaseController
   def survey_params
     params.require(:survey).permit(
       :title, :description, :banner_image, :status,
-      :identity_mode, :starts_at, :ends_at, :max_responses,
+      :identity_mode, :login_providers, :starts_at, :ends_at, :max_responses,
       :max_per_user, :show_progress, :show_results, :allow_edit,
       :thank_you_message, :redirect_url, :scoring_enabled
     )

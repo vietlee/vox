@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_05_20_010024) do
+ActiveRecord::Schema[7.2].define(version: 2026_05_21_060000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -312,9 +312,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_20_010024) do
     t.jsonb "metadata", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["respondent_email"], name: "index_responses_on_respondent_email"
     t.index ["status"], name: "index_responses_on_status"
     t.index ["survey_id"], name: "index_responses_on_survey_id"
+    t.index ["user_id"], name: "index_responses_on_user_id"
     t.index ["workspace_id"], name: "index_responses_on_workspace_id"
   end
 
@@ -367,6 +369,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_20_010024) do
     t.boolean "ai_generated", default: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "login_providers", default: "both"
     t.index ["slug"], name: "index_surveys_on_slug", unique: true
     t.index ["status"], name: "index_surveys_on_status"
     t.index ["user_id"], name: "index_surveys_on_user_id"
@@ -403,8 +406,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_20_010024) do
     t.string "otp_backup_codes", array: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "provider"
+    t.string "uid"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["email"], name: "index_users_on_email"
+    t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "(provider IS NOT NULL)"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["role"], name: "index_users_on_role"
     t.index ["unlock_token"], name: "index_users_on_unlock_token", unique: true
@@ -434,6 +440,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_20_010024) do
     t.integer "upvote_target_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["user_id"], name: "index_vote_responses_on_user_id"
     t.index ["vote_id"], name: "index_vote_responses_on_vote_id"
     t.index ["workspace_id"], name: "index_vote_responses_on_workspace_id"
   end
@@ -454,6 +462,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_20_010024) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.datetime "opened_at"
+    t.boolean "login_required", default: false, null: false
+    t.string "login_providers", default: "both"
     t.index ["slug"], name: "index_votes_on_slug", unique: true
     t.index ["status"], name: "index_votes_on_status"
     t.index ["user_id"], name: "index_votes_on_user_id"
@@ -515,12 +525,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_20_010024) do
   add_foreign_key "question_options", "questions"
   add_foreign_key "questions", "surveys"
   add_foreign_key "responses", "surveys"
+  add_foreign_key "responses", "users", on_delete: :nullify
   add_foreign_key "responses", "workspaces"
   add_foreign_key "subscriptions", "workspaces"
   add_foreign_key "surveys", "users"
   add_foreign_key "surveys", "workspaces"
   add_foreign_key "users", "workspaces"
   add_foreign_key "vote_options", "votes"
+  add_foreign_key "vote_responses", "users", on_delete: :nullify
   add_foreign_key "vote_responses", "votes"
   add_foreign_key "vote_responses", "workspaces"
   add_foreign_key "votes", "users"

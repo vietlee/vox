@@ -1,16 +1,11 @@
 class Participate::SurveysController < Participate::BaseController
   before_action :set_survey
+  before_action :enforce_login_required!, only: [:show, :submit]
 
   def show
     @questions = @survey.questions.includes(:question_options)
     unless @survey.accepting_responses?
       render :closed and return
-    end
-    if @survey.login_required?
-      unless current_user
-        require_login!
-        return
-      end
     end
 
     if @survey.allow_edit? && (prev = find_previous_response)
@@ -27,12 +22,6 @@ class Participate::SurveysController < Participate::BaseController
     unless @survey.accepting_responses?
       redirect_to participate_survey_path(@survey.slug), alert: "Survey is closed."
       return
-    end
-    if @survey.login_required?
-      unless current_user
-        require_login!
-        return
-      end
     end
 
     # Allow edit: update existing response instead of creating new
@@ -63,10 +52,11 @@ class Participate::SurveysController < Participate::BaseController
     end
 
     @response = @survey.responses.build(
-      workspace: @survey.workspace,
+      workspace:        @survey.workspace,
       respondent_token: respondent_token,
       respondent_email: respondent_email,
-      source: params[:source] || "link"
+      user_id:          current_user&.id,
+      source:           params[:source] || "link"
     )
 
     if @response.save
@@ -92,16 +82,47 @@ class Participate::SurveysController < Participate::BaseController
     @workspace = @survey.workspace
   end
 
+  def enforce_login_required!
+    return unless @survey.login_required?
+    # Workspace members always bypass
+    return if current_user&.workspace_member?
+    # Check SSO provider match
+    return if sso_provider_satisfied?
+
+    session[:omniauth_return_to] = request.url
+    session["user_return_to"]    = request.url
+    render :login_required, status: :ok
+  end
+
+  def sso_provider_satisfied?
+    return false unless current_user.present?
+    return false if current_user.provider.blank?
+
+    case @survey.effective_login_providers
+    when "google"    then current_user.provider == "google_oauth2"
+    when "microsoft" then current_user.provider == "entra_id"
+    when "both"      then current_user.provider.in?(%w[google_oauth2 entra_id])
+    else false
+    end
+  end
+
   def find_previous_response
-    @survey.responses.completed.find_by(respondent_token: respondent_token)
+    if current_user.present?
+      @survey.responses.completed.find_by(user_id: current_user.id) ||
+        @survey.responses.completed.find_by(respondent_token: respondent_token)
+    else
+      @survey.responses.completed.find_by(respondent_token: respondent_token)
+    end
   end
 
   def already_responded?
     return false unless @survey.max_per_user.to_i > 0
     completed = @survey.responses.completed
+    # Check by user_id first (strongest identity)
+    return true if current_user.present? && completed.exists?(user_id: current_user.id)
     return true if completed.exists?(respondent_token: respondent_token)
-    if @survey.email_required?
-      email = params.dig(:response, :respondent_email).presence
+    if @survey.email_required? || @survey.login_required?
+      email = current_user&.email || params.dig(:response, :respondent_email).presence
       return true if email && completed.exists?(respondent_email: email)
     end
     false
