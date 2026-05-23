@@ -53,6 +53,7 @@ class Auth::SsoWorkspacesController < ApplicationController
 
     session.delete(:omniauth_user)
     sign_in(:user, user)
+    WorkspaceMailer.new_workspace_alert(workspace, user).deliver_later
     redirect_to dashboard_path, notice: I18n.locale == :vi ?
       "Chào mừng! Workspace \"#{workspace_name}\" đã được tạo." :
       "Welcome! Workspace \"#{workspace_name}\" has been created."

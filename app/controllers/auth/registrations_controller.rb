@@ -39,6 +39,7 @@ class Auth::RegistrationsController < Devise::RegistrationsController
     end
 
     sign_in(:user, @user)
+    WorkspaceMailer.new_workspace_alert(workspace, @user).deliver_later
     redirect_to dashboard_path, notice: "Chào mừng! Workspace \"#{workspace.name}\" đã được tạo."
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = e.record.errors.full_messages.first
