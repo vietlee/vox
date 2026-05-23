@@ -1,6 +1,11 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
+  # Custom error pages (used by config.exceptions_app = routes)
+  match "/404", to: "errors#not_found",    via: :all
+  match "/422", to: "errors#unprocessable", via: :all
+  match "/500", to: "errors#server_error", via: :all
+
   # Public landing page
   root to: "pages#home"
   get "home", to: "pages#home", as: :home_page

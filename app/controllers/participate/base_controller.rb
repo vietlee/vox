@@ -2,7 +2,20 @@ class Participate::BaseController < ActionController::Base
   layout "participate"
   before_action :set_locale_from_workspace
 
+  rescue_from ActiveRecord::RecordNotFound,    with: :render_not_found
+  rescue_from ActionController::RoutingError,  with: :render_not_found
+
   private
+
+  def render_not_found(exception = nil)
+    Rails.logger.warn "[Participate] 404 — #{exception&.message} (#{request.path})"
+    render "participate/errors/not_found", status: :not_found, layout: "participate"
+  end
+
+  def render_server_error(exception = nil)
+    Rails.logger.error "[Participate] 500 — #{exception&.message}\n#{exception&.backtrace&.first(5)&.join("\n")}"
+    render "participate/errors/server_error", status: :internal_server_error, layout: "participate"
+  end
 
   def set_locale_from_workspace
     if params[:locale].present? && %w[vi en].include?(params[:locale])

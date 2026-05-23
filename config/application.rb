@@ -40,6 +40,9 @@ module Vox
     # Don't generate system test files.
     config.generators.system_tests = nil
 
+    # Custom error pages via ErrorsController
+    config.exceptions_app = routes
+
     config.active_job.queue_adapter = :sidekiq
 
     # i18n
