@@ -133,8 +133,8 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   def export
-    responses = @survey.responses.completed.includes(:answers, answers: :question_option)
-    questions = @survey.questions.order(:position)
+    responses = @survey.responses.completed.includes(:answers)
+    questions = @survey.questions.includes(:question_options).order(:position)
 
     csv_data = CSV.generate(headers: true) do |csv|
       header = ["#", t("surveys.results.col_time"), t("surveys.results.col_email")]
