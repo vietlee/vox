@@ -25,7 +25,12 @@
       <a href="#how-it-works" class="hover:text-indigo-600 transition-colors"><%= vi ? "Cách hoạt động" : "How it works" %></a>
       <a href="#pricing" class="hover:text-indigo-600 transition-colors"><%= vi ? "Giá" : "Pricing" %></a>
     </div>
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2">
+      <!-- Language switcher -->
+      <div class="flex items-center rounded-full overflow-hidden text-[12px] font-bold mr-1" style="border:1px solid rgba(99,102,241,0.2); background:rgba(255,255,255,0.7);">
+        <a href="?locale=vi" class="transition-colors px-3 py-1.5 <%= I18n.locale.to_s == 'vi' ? 'text-white' : 'text-slate-500 hover:text-slate-700' %>" style="<%= I18n.locale.to_s == 'vi' ? 'background:#4F46E5;' : '' %>">VI</a>
+        <a href="?locale=en" class="transition-colors px-3 py-1.5 <%= I18n.locale.to_s == 'en' ? 'text-white' : 'text-slate-500 hover:text-slate-700' %>" style="<%= I18n.locale.to_s == 'en' ? 'background:#4F46E5;' : '' %>">EN</a>
+      </div>
       <%= link_to new_user_session_path, class: "text-[13px] font-semibold text-slate-600 hover:text-indigo-600 transition-colors px-3 py-2" do %>
         <%= vi ? "Đăng nhập" : "Sign in" %>
       <% end %>
@@ -211,41 +216,127 @@
       </p>
     </div>
 
-    <div class="grid sm:grid-cols-3 gap-6">
-      <%
-        plans = [
-          { name: "Free",   price: vi ? "0₫" : "$0",   period: vi ? "/tháng" : "/mo",
-            highlight: false, cta: vi ? "Bắt đầu miễn phí" : "Get started",
-            features: vi ? ["3 khảo sát", "1 bình chọn trực tiếp", "50 phản hồi/tháng", "Xuất CSV", "QR code"] : ["3 surveys", "1 live vote", "50 responses/mo", "CSV export", "QR code"] },
-          { name: "Pro",    price: vi ? "299.000₫" : "$12", period: vi ? "/tháng" : "/mo",
-            highlight: true,  cta: vi ? "Dùng thử 14 ngày" : "Start 14-day trial",
-            features: vi ? ["Không giới hạn khảo sát", "Bình chọn không giới hạn", "1.000 phản hồi/tháng", "AI phân tích", "Branding tùy chỉnh", "Xuất Excel & PDF"] : ["Unlimited surveys", "Unlimited votes", "1,000 responses/mo", "AI analysis", "Custom branding", "Excel & PDF export"] },
-          { name: "Business", price: vi ? "Liên hệ" : "Contact", period: "",
-            highlight: false, cta: vi ? "Liên hệ tư vấn" : "Contact sales",
-            features: vi ? ["Mọi tính năng Pro", "Không giới hạn phản hồi", "SSO / Entra ID", "Quản lý nhiều workspace", "Hỗ trợ ưu tiên", "SLA đảm bảo"] : ["Everything in Pro", "Unlimited responses", "SSO / Entra ID", "Multi-workspace", "Priority support", "SLA guarantee"] },
-        ]
-      %>
+    <%
+      ai_label   = vi ? "TÍNH NĂNG AI" : "AI FEATURES"
+      limit_label = vi ? "GIỚI HẠN" : "LIMITS"
+      inf = "∞"
+      plans = [
+        {
+          key: "FREE", highlight: false,
+          price: vi ? "Miễn phí" : "Free", period: nil,
+          cta: vi ? "Bắt đầu miễn phí" : "Get started",
+          limits: [
+            [vi ? "Survey tối đa" : "Max surveys",        "3"],
+            [vi ? "Vote tối đa" : "Max votes",            "3"],
+            [vi ? "Feedback board tối đa" : "Max feedback boards", "10"],
+            [vi ? "Supporter tối đa" : "Max supporters",  "0"],
+            [vi ? "AI Credits / tháng" : "AI Credits / mo", "20"],
+          ],
+          ai: [
+            [vi ? "AI Survey Builder" : "AI Survey Builder",   false],
+            [vi ? "AI Phân tích" : "AI Analysis",              false],
+            [vi ? "Tạo báo cáo từ AI" : "AI Report Builder",  false],
+            [vi ? "AI Chat với dữ liệu" : "AI Chat",          false],
+            [vi ? "AI Kiểm duyệt nội dung" : "AI Moderation", false],
+          ]
+        },
+        {
+          key: "PRO", highlight: true,
+          price: "290.000 ₫", period: vi ? "/tháng" : "/month",
+          cta: vi ? "Dùng thử miễn phí" : "Start free trial",
+          limits: [
+            [vi ? "Survey tối đa" : "Max surveys",        "20"],
+            [vi ? "Vote tối đa" : "Max votes",            "20"],
+            [vi ? "Feedback board tối đa" : "Max feedback boards", "20"],
+            [vi ? "Supporter tối đa" : "Max supporters",  "10"],
+            [vi ? "AI Credits / tháng" : "AI Credits / mo", "500"],
+          ],
+          ai: [
+            [vi ? "AI Survey Builder" : "AI Survey Builder",   true],
+            [vi ? "AI Phân tích" : "AI Analysis",              true],
+            [vi ? "Tạo báo cáo từ AI" : "AI Report Builder",  true],
+            [vi ? "AI Chat với dữ liệu" : "AI Chat",          false],
+            [vi ? "AI Kiểm duyệt nội dung" : "AI Moderation", true],
+          ]
+        },
+        {
+          key: "ENTERPRISE", highlight: false,
+          price: "490.000 ₫", period: vi ? "/tháng" : "/month",
+          cta: vi ? "Liên hệ tư vấn" : "Contact sales",
+          limits: [
+            [vi ? "Survey tối đa" : "Max surveys",        inf],
+            [vi ? "Vote tối đa" : "Max votes",            inf],
+            [vi ? "Feedback board tối đa" : "Max feedback boards", inf],
+            [vi ? "Supporter tối đa" : "Max supporters",  inf],
+            [vi ? "AI Credits / tháng" : "AI Credits / mo", "1000"],
+          ],
+          ai: [
+            [vi ? "AI Survey Builder" : "AI Survey Builder",   true],
+            [vi ? "AI Phân tích" : "AI Analysis",              true],
+            [vi ? "Tạo báo cáo từ AI" : "AI Report Builder",  true],
+            [vi ? "AI Chat với dữ liệu" : "AI Chat",          true],
+            [vi ? "AI Kiểm duyệt nội dung" : "AI Moderation", true],
+          ]
+        },
+      ]
+      badge_colors = { "FREE" => "#6366f1", "PRO" => "#7C3AED", "ENTERPRISE" => "#9333ea" }
+      badge_bgs    = { "FREE" => "#eef2ff", "PRO" => "#f5f3ff", "ENTERPRISE" => "#faf5ff" }
+    %>
+
+    <div class="grid sm:grid-cols-3 gap-5 items-start">
       <% plans.each do |plan| %>
-        <div class="rounded-2xl p-6 border <%= plan[:highlight] ? 'border-indigo-300 shadow-xl relative' : 'border-slate-200' %>" style="<%= plan[:highlight] ? 'background:linear-gradient(135deg,#f5f3ff,#eef2ff);' : 'background:#FAFAFA;' %>">
-          <% if plan[:highlight] %>
-            <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-bold text-white" style="background:linear-gradient(135deg,#4F46E5,#7C3AED);"><%= vi ? "Phổ biến nhất" : "Most popular" %></div>
-          <% end %>
+        <%
+          border_style = plan[:highlight] ? "border:2px solid #6366f1;" : "border:1px solid #e2e8f0;"
+          bg_style     = plan[:highlight] ? "background:#ffffff;" : "background:#fafafa;"
+        %>
+        <div class="rounded-2xl p-6 <%= plan[:highlight] ? 'shadow-xl' : '' %>" style="<%= border_style %><%= bg_style %>">
+          <!-- Badge + price -->
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-[11px] font-black px-2.5 py-1 rounded-md tracking-wider" style="color:<%= badge_colors[plan[:key]] %>; background:<%= badge_bgs[plan[:key]] %>;"><%= plan[:key] %></span>
+            <% if plan[:highlight] %>
+              <span class="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full"><%= vi ? "Phổ biến" : "Popular" %></span>
+            <% end %>
+          </div>
           <div class="mb-5">
-            <div class="text-[13px] font-bold text-slate-500 mb-1"><%= plan[:name] %></div>
-            <div class="flex items-end gap-1">
-              <span class="text-[32px] font-black text-slate-900"><%= plan[:price] %></span>
-              <span class="text-[13px] text-slate-400 pb-1.5"><%= plan[:period] %></span>
+            <div class="text-[30px] font-black text-slate-900 leading-none"><%= plan[:price] %></div>
+            <% if plan[:period] %>
+              <div class="text-[13px] text-slate-400 mt-1"><%= plan[:period] %></div>
+            <% end %>
+          </div>
+
+          <!-- Limits -->
+          <div class="mb-5">
+            <div class="text-[10px] font-black text-slate-400 tracking-widest mb-2"><%= limit_label %></div>
+            <div class="space-y-1.5">
+              <% plan[:limits].each do |label, val| %>
+                <div class="flex items-center justify-between text-[13px]">
+                  <span class="text-slate-500"><%= label %></span>
+                  <span class="font-bold text-slate-800"><%= val %></span>
+                </div>
+              <% end %>
             </div>
           </div>
-          <ul class="space-y-2.5 mb-6">
-            <% plan[:features].each do |feat| %>
-              <li class="flex items-center gap-2.5 text-[13px] text-slate-600">
-                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                <%= feat %>
-              </li>
-            <% end %>
-          </ul>
-          <%= link_to new_user_registration_path, class: "block text-center py-2.5 px-4 rounded-xl text-[14px] font-bold transition-all #{plan[:highlight] ? 'text-white hover:opacity-90' : 'text-indigo-700 border border-indigo-200 bg-white hover:bg-indigo-50'}", style: plan[:highlight] ? 'background:linear-gradient(135deg,#4F46E5,#7C3AED);' : '' do %>
+
+          <!-- AI Features -->
+          <div class="mb-6">
+            <div class="text-[10px] font-black text-slate-400 tracking-widest mb-2"><%= ai_label %></div>
+            <div class="space-y-1.5">
+              <% plan[:ai].each do |label, enabled| %>
+                <div class="flex items-center gap-2 text-[13px] <%= enabled ? 'text-slate-800' : 'text-slate-350' %>">
+                  <% if enabled %>
+                    <svg class="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  <% else %>
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" style="color:#cbd5e1;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  <% end %>
+                  <span style="<%= enabled ? '' : 'color:#94a3b8;' %>"><%= label %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <%= link_to new_user_registration_path,
+                class: "block text-center py-2.5 px-4 rounded-xl text-[13px] font-bold transition-all #{plan[:highlight] ? 'text-white hover:opacity-90' : 'text-indigo-700 border border-indigo-200 bg-white hover:bg-indigo-50'}",
+                style: plan[:highlight] ? 'background:linear-gradient(135deg,#4F46E5,#7C3AED);' : '' do %>
             <%= plan[:cta] %>
           <% end %>
         </div>
@@ -271,18 +362,9 @@
 </section>
 
 <!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
-<footer class="py-10 border-t border-slate-100 bg-white">
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-    <div class="flex items-center gap-3">
-      <img src="/vox_logo.svg" alt="VOX" class="h-5 w-auto opacity-70">
-      <span class="text-[12px] text-slate-400">© <%= Date.today.year %> VOX · <%= vi ? "Nền tảng Khảo sát & Bình chọn" : "Survey & Voting Platform" %></span>
-    </div>
-    <div class="flex items-center gap-5 text-[12px] text-slate-400">
-      <%= link_to new_user_session_path, class: "hover:text-indigo-600 transition-colors" do %><%= vi ? "Đăng nhập" : "Sign in" %><% end %>
-      <%= link_to new_user_registration_path, class: "hover:text-indigo-600 transition-colors" do %><%= vi ? "Đăng ký" : "Sign up" %><% end %>
-      <!-- Language toggle -->
-      <a href="?locale=vi" class="<%= I18n.locale.to_s == 'vi' ? 'text-indigo-600 font-semibold' : '' %>">VI</a>
-      <a href="?locale=en" class="<%= I18n.locale.to_s == 'en' ? 'text-indigo-600 font-semibold' : '' %>">EN</a>
-    </div>
+<footer class="py-8 border-t border-slate-100 bg-white">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-center gap-3">
+    <img src="/vox_logo.svg" alt="VOX" class="h-5 w-auto opacity-60">
+    <span class="text-[12px] text-slate-400">© <%= Date.today.year %> VOX · <%= vi ? "Nền tảng Khảo sát & Bình chọn" : "Survey & Voting Platform" %></span>
   </div>
 </footer>
