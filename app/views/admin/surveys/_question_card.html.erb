@@ -1,8 +1,13 @@
 <%
-  has_options = %w[single_choice multiple_choice dropdown ranking].include?(question.question_type)
-  survey_id   = question.survey_id
-  q_url       = survey_question_path(survey_id, question)
-  opts_url    = survey_question_question_options_path(survey_id, question)
+  has_options  = %w[single_choice multiple_choice dropdown ranking].include?(question.question_type)
+  survey_id    = question.survey_id
+  q_url        = survey_question_path(survey_id, question)
+  opts_url     = survey_question_question_options_path(survey_id, question)
+  cond         = question.conditional_logic.presence || {}
+  cond_source  = cond['source_question_id'].to_s
+  cond_op      = cond['operator'].presence || 'equals'
+  cond_value   = cond['value'].to_s
+  has_condition = cond_source.present?
 %>
 
 <div class="question-card bg-white rounded-[10px] border border-slate-200 shadow-sm group" data-question-id="<%= question.id %>">
@@ -92,6 +97,57 @@
         </div>
       </div>
     <% end %>
+
+    <!-- Skip Logic -->
+    <div class="border-t border-slate-100 pt-3 mt-1">
+      <div class="flex items-center justify-between mb-1.5">
+        <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">⚡ <%= t("surveys.skip_logic.section_label") %></span>
+        <button type="button" onclick="toggleCondition(<%= question.id %>)"
+          id="cond-toggle-<%= question.id %>"
+          class="text-[11px] text-indigo-500 hover:text-indigo-700 font-semibold border-0 bg-transparent cursor-pointer">
+          <%= has_condition ? t("surveys.skip_logic.edit") : t("surveys.skip_logic.add") %>
+        </button>
+      </div>
+      <% if has_condition %>
+        <p id="cond-active-<%= question.id %>" class="text-[11px] text-indigo-600 mb-1.5"><%= t("surveys.skip_logic.active") %></p>
+      <% else %>
+        <p id="cond-active-<%= question.id %>" class="text-[11px] text-indigo-600 mb-1.5 hidden"><%= t("surveys.skip_logic.active") %></p>
+      <% end %>
+      <div id="cond-panel-<%= question.id %>" class="<%= has_condition ? '' : 'hidden' %> space-y-2">
+        <p class="text-[11px] text-slate-500"><%= t("surveys.skip_logic.show_if") %></p>
+        <select id="cond-source-<%= question.id %>"
+          class="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-400 outline-none bg-white"
+          onchange="onCondSourceChange(<%= question.id %>)"
+          data-current="<%= cond_source %>">
+          <option value="">— <%= t("surveys.skip_logic.select_question") %> —</option>
+        </select>
+        <div class="flex gap-2">
+          <select id="cond-op-<%= question.id %>"
+            onchange="onCondOpChange(<%= question.id %>)"
+            class="px-2 py-1.5 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-400 outline-none bg-white">
+            <option value="equals"       <%= 'selected' if cond_op == 'equals' %>><%= t("surveys.skip_logic.op_equals") %></option>
+            <option value="not_equals"   <%= 'selected' if cond_op == 'not_equals' %>><%= t("surveys.skip_logic.op_not_equals") %></option>
+            <option value="answered"     <%= 'selected' if cond_op == 'answered' %>><%= t("surveys.skip_logic.op_answered") %></option>
+            <option value="not_answered" <%= 'selected' if cond_op == 'not_answered' %>><%= t("surveys.skip_logic.op_not_answered") %></option>
+          </select>
+          <input type="text" id="cond-value-<%= question.id %>"
+            value="<%= cond_value %>"
+            placeholder="<%= j t("surveys.skip_logic.value_placeholder") %>"
+            class="flex-1 px-2 py-1.5 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-400 outline-none bg-white"
+            style="<%= %w[answered not_answered].include?(cond_op) ? 'display:none' : '' %>">
+        </div>
+        <div class="flex gap-2">
+          <button onclick="saveCondition(<%= question.id %>, '<%= q_url %>')"
+            class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold rounded-lg border-0 cursor-pointer">
+            <%= t("surveys.skip_logic.save") %>
+          </button>
+          <button onclick="clearCondition(<%= question.id %>, '<%= q_url %>')"
+            class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold rounded-lg border-0 cursor-pointer">
+            <%= t("surveys.skip_logic.clear") %>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div class="flex justify-end pt-1">
       <button onclick="toggleEdit(<%= question.id %>)"
@@ -251,7 +307,124 @@ async function deleteOption(qId, optId, btn, url) {
   updateOptionsPreview(qId);
 }
 
+// ── Skip Logic ────────────────────────────────────────────────────────────────
+const I18N_SKIP = {
+  no_question: "<%= j t('surveys.skip_logic.no_question_alert') %>",
+  saved_ok:    "<%= j t('surveys.skip_logic.saved_ok') %>",
+  active:      "<%= j t('surveys.skip_logic.active') %>",
+  add:         "<%= j t('surveys.skip_logic.add') %>",
+  edit:        "<%= j t('surveys.skip_logic.edit') %>"
+};
+
+function toggleCondition(id) {
+  const panel = document.getElementById('cond-panel-' + id);
+  if (!panel) return;
+  panel.classList.toggle('hidden');
+  if (!panel.classList.contains('hidden')) {
+    populateSourceQuestions(id);
+  }
+}
+
+function populateSourceQuestions(id) {
+  const select = document.getElementById('cond-source-' + id);
+  if (!select) return;
+  const current = select.dataset.current || '';
+  // Save first option placeholder text
+  const placeholder = select.options[0]?.text || '';
+  select.innerHTML = '';
+  const blank = document.createElement('option');
+  blank.value = '';
+  blank.textContent = placeholder;
+  select.appendChild(blank);
+
+  let found = 0;
+  document.querySelectorAll('.question-card[data-question-id]').forEach(card => {
+    const qId = card.dataset.questionId;
+    if (String(qId) === String(id)) return; // skip self
+    const title = card.querySelector('.question-summary-title')?.textContent?.trim() || ('Q' + qId);
+    const opt = document.createElement('option');
+    opt.value = qId;
+    opt.textContent = title.length > 55 ? title.substring(0, 52) + '…' : title;
+    if (String(qId) === String(current)) opt.selected = true;
+    select.appendChild(opt);
+    found++;
+  });
+  if (found === 0) {
+    const noOpt = document.createElement('option');
+    noOpt.value = '';
+    noOpt.disabled = true;
+    noOpt.textContent = '<%= I18n.locale == :vi ? "(Cần ít nhất 2 câu hỏi)" : "(Need at least 2 questions)" %>';
+    select.appendChild(noOpt);
+  }
+}
+
+function onCondSourceChange(id) {
+  const select = document.getElementById('cond-source-' + id);
+  if (select) select.dataset.current = select.value;
+}
+
+function onCondOpChange(id) {
+  const op    = document.getElementById('cond-op-' + id)?.value;
+  const input = document.getElementById('cond-value-' + id);
+  if (!input) return;
+  const hide = (op === 'answered' || op === 'not_answered');
+  input.style.display = hide ? 'none' : '';
+}
+
+async function saveCondition(id, url) {
+  const sourceId = document.getElementById('cond-source-' + id)?.value;
+  const operator = document.getElementById('cond-op-' + id)?.value || 'equals';
+  const value    = document.getElementById('cond-value-' + id)?.value?.trim() || '';
+
+  if (!sourceId) { alert(I18N_SKIP.no_question); return; }
+
+  const logic = { source_question_id: String(sourceId), operator, value };
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content },
+    body: JSON.stringify({ question: { conditional_logic: logic } })
+  });
+  if (!res.ok) return;
+
+  // Update toggle button & active badge
+  const toggle = document.getElementById('cond-toggle-' + id);
+  if (toggle) toggle.textContent = I18N_SKIP.edit;
+  const badge = document.getElementById('cond-active-' + id);
+  if (badge) badge.classList.remove('hidden');
+  // Remember current source for next repopulate
+  const sel = document.getElementById('cond-source-' + id);
+  if (sel) sel.dataset.current = sourceId;
+}
+
+async function clearCondition(id, url) {
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content },
+    body: JSON.stringify({ question: { conditional_logic: {} } })
+  });
+  if (!res.ok) return;
+
+  const sel = document.getElementById('cond-source-' + id);
+  if (sel) { sel.value = ''; sel.dataset.current = ''; }
+  const valInput = document.getElementById('cond-value-' + id);
+  if (valInput) valInput.value = '';
+  document.getElementById('cond-panel-' + id)?.classList.add('hidden');
+  const toggle = document.getElementById('cond-toggle-' + id);
+  if (toggle) toggle.textContent = I18N_SKIP.add;
+  const badge = document.getElementById('cond-active-' + id);
+  if (badge) badge.classList.add('hidden');
+}
+
+// Auto-populate condition panel if it starts visible (has_condition == true)
+if (!document.getElementById('cond-panel-<%= question.id %>')?.classList.contains('hidden')) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => populateSourceQuestions(<%= question.id %>));
+  } else {
+    setTimeout(() => populateSourceQuestions(<%= question.id %>), 0);
+  }
+}
+
 // Expose functions called from onclick= attributes
-Object.assign(window, { toggleEdit, saveQuestion, addOption, saveOption, deleteQuestion, deleteOption, updateOptionsPreview });
+Object.assign(window, { toggleEdit, saveQuestion, addOption, saveOption, deleteQuestion, deleteOption, updateOptionsPreview, toggleCondition, onCondSourceChange, onCondOpChange, saveCondition, clearCondition, populateSourceQuestions });
 })(); // end IIFE
 </script>

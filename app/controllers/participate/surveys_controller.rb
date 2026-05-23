@@ -42,7 +42,7 @@ class Participate::SurveysController < Participate::BaseController
     end
 
     if already_responded?
-      redirect_to participate_survey_path(@survey.slug) and return
+      redirect_to participate_survey_path(@survey.slug), alert: t("participate.survey.already_answered") and return
     end
 
     respondent_email = if @survey.login_required?
@@ -56,6 +56,7 @@ class Participate::SurveysController < Participate::BaseController
       respondent_token: respondent_token,
       respondent_email: respondent_email,
       user_id:          current_user&.id,
+      respondent_ip:    request.remote_ip,
       source:           params[:source] || "link"
     )
 
@@ -67,7 +68,7 @@ class Participate::SurveysController < Participate::BaseController
       render :thank_you
     else
       if @response.errors.where(:base, :already_responded).any?
-        redirect_to participate_survey_path(@survey.slug)
+        redirect_to participate_survey_path(@survey.slug), alert: t("participate.survey.already_answered")
       else
         @questions = @survey.questions.includes(:question_options)
         render :show, status: :unprocessable_entity
@@ -118,12 +119,22 @@ class Participate::SurveysController < Participate::BaseController
   def already_responded?
     return false unless @survey.max_per_user.to_i > 0
     completed = @survey.responses.completed
-    # Check by user_id first (strongest identity)
     return true if current_user.present? && completed.exists?(user_id: current_user.id)
     return true if completed.exists?(respondent_token: respondent_token)
     if @survey.email_required? || @survey.login_required?
-      email = current_user&.email || params.dig(:response, :respondent_email).presence
+      # For login_required: use account email.
+      # For email_required: use form email first (matches what gets stored in respondent_email),
+      # fall back to account email so logged-in users are also protected.
+      email = if @survey.login_required?
+        current_user&.email
+      else
+        params.dig(:response, :respondent_email).presence || current_user&.email
+      end
       return true if email && completed.exists?(respondent_email: email)
+    end
+    # IP check for anonymous surveys
+    if @survey.anonymous?
+      return true if completed.where.not(respondent_ip: nil).exists?(respondent_ip: request.remote_ip)
     end
     false
   end

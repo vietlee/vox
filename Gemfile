@@ -23,6 +23,7 @@ gem "omniauth-google-oauth2"
 gem "omniauth-entra-id"
 gem "omniauth-rails_csrf_protection"
 gem "pundit"
+gem "rack-attack"
 
 # Background jobs
 gem "sidekiq"

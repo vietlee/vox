@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_05_21_060000) do
+ActiveRecord::Schema[7.2].define(version: 2026_05_22_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -313,8 +313,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_21_060000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.string "respondent_ip"
     t.index ["respondent_email"], name: "index_responses_on_respondent_email"
     t.index ["status"], name: "index_responses_on_status"
+    t.index ["survey_id", "respondent_ip"], name: "index_responses_on_survey_id_and_respondent_ip"
     t.index ["survey_id"], name: "index_responses_on_survey_id"
     t.index ["user_id"], name: "index_responses_on_user_id"
     t.index ["workspace_id"], name: "index_responses_on_workspace_id"

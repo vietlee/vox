@@ -39,6 +39,7 @@ class Vote < ApplicationRecord
     raise "Cannot reopen a closed vote" if closed?
     update!(status: :active, opened_at: Time.current)
     broadcast_status_change
+    schedule_auto_close if countdown_seconds.to_i > 0
   end
 
   def seconds_remaining
@@ -71,6 +72,10 @@ class Vote < ApplicationRecord
 
   def generate_qr_code
     QrCode.create!(workspace: workspace, resource: self, token: SecureRandom.urlsafe_base64(12))
+  end
+
+  def schedule_auto_close
+    AutoCloseVoteJob.set(wait: countdown_seconds.seconds).perform_later(id, opened_at.to_i)
   end
 
   def broadcast_status_change

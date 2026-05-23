@@ -18,5 +18,23 @@ class Admin::DashboardController < Admin::BaseController
 
     # AI credits
     @ai_credit_pct = @subscription&.credit_percentage || 0
+
+    # Onboarding checklist — shown to new workspaces
+    @onboarding = build_onboarding_checklist
+  end
+
+  private
+
+  def build_onboarding_checklist
+    w = @workspace
+    items = [
+      { key: :workspace_created,  done: true,                                   label: "onboarding.steps.workspace_created",  url: nil },
+      { key: :create_survey,      done: w.surveys.exists?,                       label: "onboarding.steps.create_survey",      url: Rails.application.routes.url_helpers.new_survey_path },
+      { key: :create_vote,        done: w.votes.exists?,                         label: "onboarding.steps.create_vote",        url: Rails.application.routes.url_helpers.new_vote_path },
+      { key: :create_feedback,    done: w.feedback_boards.exists?,               label: "onboarding.steps.create_feedback",    url: Rails.application.routes.url_helpers.new_feedback_board_path },
+      { key: :invite_member,      done: w.workspace_memberships.exists?,          label: "onboarding.steps.invite_member",      url: Rails.application.routes.url_helpers.new_member_path },
+    ]
+    done_count = items.count { |i| i[:done] }
+    { items: items, done: done_count, total: items.size, complete: done_count == items.size }
   end
 end

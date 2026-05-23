@@ -25,7 +25,7 @@
   <!-- Progress — fixed to avoid Chrome mobile stacking context issues -->
   <div class="px-4 sm:px-6 py-2" style="position:fixed; top:47px; left:0; right:0; z-index:9998; transform:translateZ(0); -webkit-transform:translateZ(0); background:linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%);">
     <div class="max-w-[680px] mx-auto">
-      <div class="flex justify-between text-[11px] text-slate-500 mb-1.5">
+      <div class="flex justify-between text-[11px] text-slate-500 mb-1.5 mt-2">
         <span id="progress-label"><%= t("participate.survey.progress", answered: 0, total: @questions.count) %></span>
       </div>
       <div class="h-1.5 bg-white/60 rounded-full overflow-hidden" style="border:1px solid rgba(99,102,241,0.15);">
@@ -49,7 +49,7 @@
         <% end %>
       </div>
 
-      <% if @already_responded %>
+      <% if @already_responded || flash[:alert].present? %>
         <div class="fade-in text-center">
           <div class="rounded-2xl py-10 px-8" style="background:#ffffff; border:1px solid rgba(99,102,241,0.15); box-shadow:0 8px 32px rgba(99,102,241,0.08);">
             <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
@@ -82,7 +82,9 @@
         <% end %>
 
         <% @questions.each_with_index do |question, idx| %>
+          <% cond = question.conditional_logic.presence || {} %>
           <div class="q-card rounded-2xl p-5" data-qid="<%= question.id %>" data-required="<%= question.required? %>"
+               data-condition="<%= cond.to_json %>"
                style="background:#ffffff; border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 16px rgba(99,102,241,0.06);">
             <div class="flex items-start gap-3 mb-4">
               <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-black text-white flex-shrink-0 mt-0.5"
@@ -122,31 +124,104 @@
 
 <script>
 (function() {
-  const totalQ    = <%= @questions.count %>;
   const PROG_TPL  = "<%= j t('participate.survey.progress', answered: '__N__', total: @questions.count) %>";
   const ERR_MSG   = "<%= I18n.locale.to_s == 'vi' ? 'Vui lòng trả lời câu hỏi này' : 'Please answer this question' %>";
-  const hasRequired = document.querySelectorAll('.q-card[data-required="true"]').length > 0;
 
+  // ── Skip Logic ──────────────────────────────────────────────────────────────
+  // Build condition map from data-condition attributes
+  const COND_MAP = {};
+  document.querySelectorAll('.q-card[data-condition]').forEach(card => {
+    try {
+      const cond = JSON.parse(card.dataset.condition || '{}');
+      if (cond.source_question_id) COND_MAP[card.dataset.qid] = cond;
+    } catch(e) {}
+  });
+
+  function getCardAnswerText(card) {
+    // Radio (single choice)
+    const checkedRadio = card.querySelector('input[type=radio]:checked');
+    if (checkedRadio) {
+      const lbl = card.querySelector(`label[for="${checkedRadio.id}"]`) || checkedRadio.closest('label');
+      return (lbl?.textContent?.trim() || checkedRadio.value).toLowerCase();
+    }
+    // Checkbox (multiple choice) — return joined labels
+    const checkedBoxes = [...card.querySelectorAll('input[type=checkbox]:checked')];
+    if (checkedBoxes.length > 0) {
+      return checkedBoxes.map(cb => {
+        const lbl = card.querySelector(`label[for="${cb.id}"]`) || cb.closest('label');
+        return (lbl?.textContent?.trim() || cb.value).toLowerCase();
+      }).join(',');
+    }
+    // Select / dropdown
+    const sel = card.querySelector('select');
+    if (sel && sel.value) return (sel.options[sel.selectedIndex]?.text || sel.value).toLowerCase();
+    // Text inputs
+    const txt = card.querySelector('input[type=text], input[type=number], textarea');
+    if (txt && txt.value.trim()) return txt.value.trim().toLowerCase();
+    return '';
+  }
+
+  function checkCondition(sourceCard, cond) {
+    const op    = cond.operator || 'equals';
+    const val   = (cond.value || '').toLowerCase();
+    const answered = isCardAnswered(sourceCard);
+
+    if (op === 'answered')     return answered;
+    if (op === 'not_answered') return !answered;
+
+    const answerText = getCardAnswerText(sourceCard);
+    if (op === 'equals')     return answerText === val;
+    if (op === 'not_equals') return answerText !== val;
+    if (op === 'contains')   return answerText.includes(val);
+    return true;
+  }
+
+  function evaluateConditions() {
+    Object.entries(COND_MAP).forEach(([qid, cond]) => {
+      const card = document.querySelector(`.q-card[data-qid="${qid}"]`);
+      if (!card) return;
+      const sourceCard = document.querySelector(`.q-card[data-qid="${cond.source_question_id}"]`);
+      if (!sourceCard) return;
+
+      const show = checkCondition(sourceCard, cond);
+      if (show) {
+        card.style.display = '';
+        card.dataset.condHidden = 'false';
+      } else {
+        card.style.display = 'none';
+        card.dataset.condHidden = 'true';
+        // Clear error styling if hidden
+        card.style.removeProperty('border');
+        card.querySelector('.q-validation-error')?.remove();
+      }
+    });
+  }
+
+  // ── Answered check ──────────────────────────────────────────────────────────
   function isCardAnswered(card) {
-    const radios    = card.querySelectorAll('input[type=radio]');
-    const checks    = card.querySelectorAll('input[type=checkbox]');
-    const texts     = card.querySelectorAll('input[type=text], input[type=email], input[type=number], textarea');
-    const files     = card.querySelectorAll('input[type=file]');
-    const dtInputs  = card.querySelectorAll('input[type=datetime-local]');
-    if ([...radios].some(i => i.checked))   return true;
-    if ([...checks].some(i => i.checked))   return true;
-    if ([...texts].some(i => i.value.trim())) return true;
+    const radios   = card.querySelectorAll('input[type=radio]');
+    const checks   = card.querySelectorAll('input[type=checkbox]');
+    const texts    = card.querySelectorAll('input[type=text], input[type=email], input[type=number], textarea');
+    const files    = card.querySelectorAll('input[type=file]');
+    const dtInputs = card.querySelectorAll('input[type=datetime-local]');
+    if ([...radios].some(i => i.checked))      return true;
+    if ([...checks].some(i => i.checked))      return true;
+    if ([...texts].some(i => i.value.trim()))  return true;
     if ([...files].some(i => i.files && i.files.length)) return true;
-    if ([...dtInputs].some(i => i.value))   return true;
+    if ([...dtInputs].some(i => i.value))      return true;
     return false;
   }
 
+  // ── Progress ────────────────────────────────────────────────────────────────
   function updateProgress() {
-    let answered = 0;
+    evaluateConditions();
+    let answered = 0, visibleTotal = 0;
     document.querySelectorAll('.q-card[data-qid]').forEach(card => {
+      if (card.dataset.condHidden === 'true') return;
+      visibleTotal++;
       if (isCardAnswered(card)) answered++;
     });
-    const pct   = totalQ > 0 ? Math.round(answered / totalQ * 100) : 0;
+    const pct   = visibleTotal > 0 ? Math.round(answered / visibleTotal * 100) : 0;
     const bar   = document.getElementById('progress-bar');
     const label = document.getElementById('progress-label');
     if (bar)   bar.style.width = pct + '%';
@@ -157,22 +232,24 @@
   function updateSubmitBtn() {
     const btn = document.getElementById('survey-submit-btn');
     if (!btn) return;
-    const requiredCards  = document.querySelectorAll('.q-card[data-required="true"]');
-    const allDone = [...requiredCards].every(isCardAnswered);
-    btn.disabled       = !allDone;
-    btn.style.opacity  = allDone ? '1'           : '0.45';
-    btn.style.cursor   = allDone ? 'pointer'     : 'not-allowed';
+    const required = [...document.querySelectorAll('.q-card[data-required="true"]')]
+      .filter(c => c.dataset.condHidden !== 'true');
+    const allDone = required.every(isCardAnswered);
+    btn.disabled      = !allDone;
+    btn.style.opacity = allDone ? '1'       : '0.45';
+    btn.style.cursor  = allDone ? 'pointer' : 'not-allowed';
   }
 
   function showErrors() {
-    // Clear previous errors
     document.querySelectorAll('.q-validation-error').forEach(el => el.remove());
     document.querySelectorAll('.q-card[data-required="true"]').forEach(card => {
       card.style.removeProperty('border');
     });
 
     const failed = [];
-    document.querySelectorAll('.q-card[data-required="true"]').forEach(card => {
+    const required = [...document.querySelectorAll('.q-card[data-required="true"]')]
+      .filter(c => c.dataset.condHidden !== 'true');
+    required.forEach(card => {
       if (!isCardAnswered(card)) {
         failed.push(card);
         card.style.border = '2px solid #f87171';
@@ -185,7 +262,6 @@
     });
 
     if (failed.length > 0) {
-      // Scroll to first error, accounting for fixed headers
       const offset = failed[0].getBoundingClientRect().top + window.scrollY - 120;
       window.scrollTo({ top: offset, behavior: 'smooth' });
       return false;
@@ -193,24 +269,25 @@
     return true;
   }
 
-  // Clear error styling when user answers a card
   function clearCardError(card) {
     if (isCardAnswered(card)) {
       card.style.removeProperty('border');
-      const err = card.querySelector('.q-validation-error');
-      if (err) err.remove();
+      card.querySelector('.q-validation-error')?.remove();
     }
   }
 
-  // Form submit — run validation (handles cases where button was bypassed)
+  // On submit: disable inputs in condition-hidden cards so they're not posted
   const form = document.getElementById('survey-form');
   if (form) {
     form.addEventListener('submit', function(e) {
-      if (!showErrors()) e.preventDefault();
+      if (!showErrors()) { e.preventDefault(); return; }
+      // Disable hidden-by-condition inputs so they're excluded from POST
+      document.querySelectorAll('.q-card[data-cond-hidden="true"]').forEach(card => {
+        card.querySelectorAll('input, textarea, select').forEach(el => el.disabled = true);
+      });
     });
   }
 
-  // Event listeners — document-level for reliable mobile support
   document.addEventListener('change', function(e) {
     updateProgress();
     const card = e.target.closest('.q-card[data-required="true"]');
@@ -226,6 +303,7 @@
   }, { passive: true });
 
   // Init
+  evaluateConditions();
   updateSubmitBtn();
 })();
 </script>

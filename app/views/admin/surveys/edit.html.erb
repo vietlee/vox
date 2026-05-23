@@ -202,8 +202,10 @@ async function addQuestion(type) {
   card.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
   container.appendChild(card);
 
-  // innerHTML does not execute <script> tags — run them manually
-  card.querySelectorAll('script').forEach(oldScript => {
+  // innerHTML does not execute <script> tags — run them manually.
+  // Search in `tmp` (not just `card`) because the partial's <script> is a
+  // sibling of the card div, not a descendant.
+  tmp.querySelectorAll('script').forEach(oldScript => {
     const s = document.createElement('script');
     s.textContent = oldScript.textContent;
     document.head.appendChild(s);

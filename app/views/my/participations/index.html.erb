@@ -28,9 +28,12 @@
           <%= current_user.email %>
         </div>
       </div>
-      <%= link_to new_user_session_path, data: { turbo_method: :delete },
-            style: "font-size:13px; color:#64748b; text-decoration:none; font-weight:600;" do %>
-        <%= I18n.locale == :vi ? "Đăng xuất" : "Sign out" %>
+      <%= form_with url: destroy_user_session_path, method: :delete, local: true, style: "margin:0;" do %>
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+        <button type="submit"
+          style="font-size:13px; color:#64748b; background:none; border:none; cursor:pointer; font-weight:600; padding:0; font-family:inherit;">
+          <%= I18n.locale == :vi ? "Đăng xuất" : "Sign out" %>
+        </button>
       <% end %>
     </div>
 

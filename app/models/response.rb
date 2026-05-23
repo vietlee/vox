@@ -33,14 +33,24 @@ class Response < ApplicationRecord
     return unless survey.max_per_user.to_i > 0
 
     completed = survey.responses.completed
-    # Check by user_id first (covers all devices/browsers for logged-in users)
+
+    # 1. Strongest: user_id (logged-in, cross-device)
     if user_id.present? && completed.exists?(user_id: user_id)
       errors.add(:base, :already_responded) and return
     end
+
+    # 2. Cookie token (anonymous, same browser)
     if respondent_token.present? && completed.exists?(respondent_token: respondent_token)
       errors.add(:base, :already_responded) and return
     end
+
+    # 3. Email match
     if respondent_email.present? && completed.exists?(respondent_email: respondent_email)
+      errors.add(:base, :already_responded) and return
+    end
+
+    # 4. IP-based (anonymous users who cleared cookies) — only for anonymous surveys
+    if respondent_ip.present? && survey.anonymous? && completed.where.not(respondent_ip: nil).exists?(respondent_ip: respondent_ip)
       errors.add(:base, :already_responded)
     end
   end
