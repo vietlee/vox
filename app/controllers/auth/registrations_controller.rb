@@ -43,6 +43,7 @@ class Auth::RegistrationsController < Devise::RegistrationsController
     redirect_to dashboard_path, notice: "Chào mừng! Workspace \"#{workspace.name}\" đã được tạo."
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = e.record.errors.full_messages.first
+    @free_limits = PlanConfig.limits_for("free")
     render :new, status: :unprocessable_entity
   end
 

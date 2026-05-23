@@ -61,6 +61,7 @@ class Auth::SsoWorkspacesController < ApplicationController
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = e.record.errors.full_messages.first
     @omniauth_user = session[:omniauth_user]
+    @free_limits   = PlanConfig.limits_for("free")
     render :new, status: :unprocessable_entity
   end
 
