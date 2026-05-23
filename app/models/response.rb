@@ -13,11 +13,11 @@ class Response < ApplicationRecord
 
   after_create :increment_survey_counter
 
-  def complete!
+  def complete!(time_seconds = nil)
     update!(
       status: :completed,
       completed_at: Time.current,
-      completion_time_seconds: (Time.current - created_at).to_i
+      completion_time_seconds: time_seconds.present? ? time_seconds.to_i : (Time.current - created_at).to_i
     )
     survey.increment!(:response_count)
   end

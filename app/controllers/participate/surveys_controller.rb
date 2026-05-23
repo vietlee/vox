@@ -15,6 +15,9 @@ class Participate::SurveysController < Participate::BaseController
       render :closed and return
     end
 
+    # Track when user opened the form for avg completion time calculation
+    session["survey_start_#{@survey.id}"] = Time.current.to_i
+
     if @survey.allow_edit? && (prev = find_previous_response)
       @previous_answers = prev.answers.index_by(&:question_id)
       @previous_email   = prev.respondent_email
@@ -66,7 +69,9 @@ class Participate::SurveysController < Participate::BaseController
 
     if @response.save
       save_answers(@response)
-      @response.complete!
+      started_at = session.delete("survey_start_#{@survey.id}")
+      completion_secs = started_at ? (Time.current.to_i - started_at.to_i) : nil
+      @response.complete!(completion_secs)
       session[:survey_last_response_id] = @response.id
       redirect_to survey_done_path(@survey.slug)
     else
