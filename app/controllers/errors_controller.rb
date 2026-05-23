@@ -20,6 +20,10 @@ class ErrorsController < ActionController::Base
   private
 
   def set_locale
+    if params[:locale].present? && %w[vi en].include?(params[:locale])
+      cookies[:participate_locale] = { value: params[:locale], expires: 1.year.from_now }
+      session[:locale] = params[:locale]
+    end
     locale = cookies[:participate_locale].presence || session[:locale].presence || "vi"
     I18n.locale = locale.to_sym
   rescue
