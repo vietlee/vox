@@ -56,16 +56,16 @@ class Subscription < ApplicationRecord
   end
 
   def within_survey_limit?
-    max_surveys.nil? || workspace.surveys.count < max_surveys
+    max_surveys.nil? || workspace.surveys.active.count < max_surveys
   end
 
   def within_vote_limit?
-    max_votes.nil? || workspace.votes.count < max_votes
+    max_votes.nil? || workspace.votes.where(status: :active).count < max_votes
   end
 
-  def surveys_used = workspace.surveys.count
+  def surveys_used      = workspace.surveys.active.count
   def surveys_remaining = max_surveys.nil? ? nil : [max_surveys - surveys_used, 0].max
-  def surveys_pct = max_surveys.nil? ? 0 : [(surveys_used * 100.0 / max_surveys).round, 100].min
+  def surveys_pct       = max_surveys.nil? ? 0 : [(surveys_used * 100.0 / max_surveys).round, 100].min
 
   def votes_used = workspace.votes.count
   def votes_remaining = max_votes.nil? ? nil : [max_votes - votes_used, 0].max
