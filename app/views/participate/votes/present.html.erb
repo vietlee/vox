@@ -31,9 +31,9 @@
     100% { box-shadow:0 0 0 0 rgba(239,68,68,0); }
   }
   .plus-one {
-    position:absolute; right:10px; bottom:6px;
-    font-size:14px; font-weight:900; color:#fff;
-    text-shadow:0 0 12px rgba(255,255,255,0.9);
+    position:absolute; right:4px; bottom:50%;
+    font-size: clamp(22px, 5vw, 36px); font-weight:900; color:#fff;
+    text-shadow:0 0 20px rgba(255,255,255,0.95), 0 2px 12px rgba(0,0,0,0.5);
     pointer-events:none; z-index:50;
     animation:floatUp 3s ease-out forwards;
   }
@@ -160,8 +160,8 @@
   <% sorted    = @vote.results_by_option.sort_by { |r| -r[:count] }
      max_count = [sorted.first&.dig(:count).to_i, 1].max %>
 
-  <div id="vote-results" class="flex-1 max-w-4xl mx-auto w-full flex flex-col justify-center"
-       style="gap: clamp(10px, 2.5vw, 20px);">
+  <div id="vote-results" class="max-w-4xl mx-auto w-full flex flex-col sm:flex-1 sm:justify-center"
+       style="gap: clamp(12px, 3vw, 24px);">
     <% @vote.results_by_option.each_with_index do |result, i| %>
       <% color     = option_colors[i % option_colors.size]
          is_leading = result[:count] == max_count && result[:count] > 0 %>
@@ -188,29 +188,32 @@
         <!-- Label + stats row -->
         <div class="flex items-center gap-2 sm:gap-4 pb-2">
           <span class="font-bold text-slate-200 flex-1 leading-tight"
-                style="font-size:clamp(13px,3vw,16px);"><%= result[:label] %></span>
+                style="font-size:clamp(14px,3.5vw,18px);"><%= result[:label] %></span>
           <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-            <span class="text-slate-500 option-count-label tabular-nums"
-                  style="font-size:clamp(10px,2vw,13px);"><%= result[:count] %> votes</span>
+            <span class="text-slate-400 option-count-label tabular-nums"
+                  style="font-size:clamp(12px,2.5vw,14px);"><%= result[:count] %> votes</span>
             <span class="font-black tabular-nums option-pct"
-                  style="font-size:clamp(16px,4vw,24px); color:<%= color[:shadow] %>; min-width:clamp(3rem,8vw,4.5rem); text-align:right;">
+                  style="font-size:clamp(22px,5vw,30px); color:<%= color[:shadow] %>; min-width:clamp(3.5rem,9vw,5rem); text-align:right;">
               <%= result[:percentage] %>%
             </span>
           </div>
         </div>
 
         <!-- Bar track -->
-        <div class="relative" style="height:clamp(7px,1.5vw,10px); background:rgba(255,255,255,0.06); border-radius:99px;">
+        <div class="relative" style="height:clamp(14px,3vw,18px); background:rgba(255,255,255,0.06); border-radius:99px;">
           <div class="option-bar absolute inset-y-0 left-0 rounded-full"
                style="width:<%= [result[:percentage].to_f, result[:percentage].to_f > 0 ? 2 : 0].max %>%;
                       background:linear-gradient(90deg, <%= color[:shadow] %>cc, <%= color[:shadow] %>);
-                      box-shadow:0 0 12px 1px <%= color[:glow] %>;"></div>
-          <div class="option-count absolute top-1/2 -translate-y-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full font-black text-white"
+                      box-shadow:0 0 14px 2px <%= color[:glow] %>;"></div>
+          <div class="option-count absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full font-black text-white"
                style="left:<%= [result[:percentage].to_f, result[:percentage].to_f > 0 ? 2 : 0].max %>%;
-                      font-size:clamp(8px,1.8vw,10px);
+                      font-size:clamp(12px,2.5vw,16px);
+                      min-width:clamp(24px,5vw,32px);
+                      height:clamp(24px,5vw,32px);
+                      display:<%= result[:count] > 0 ? 'flex' : 'none' %>;
+                      align-items:center; justify-content:center;
                       background:<%= color[:shadow] %>;
-                      box-shadow:0 2px 8px <%= color[:glow] %>;
-                      display:<%= result[:count] > 0 ? 'block' : 'none' %>;">
+                      box-shadow:0 2px 12px <%= color[:glow] %>;">
             <%= result[:count] %>
           </div>
         </div>
@@ -317,7 +320,7 @@ function updateResults(options, count) {
 
     const countEl = row.querySelector('.option-count');
     countEl.textContent   = newCnt;
-    countEl.style.display = newCnt > 0 ? 'block' : 'none';
+    countEl.style.display = newCnt > 0 ? 'flex' : 'none';
 
     const w   = Math.max(pct, pct > 0 ? 2 : 0) + '%';
     const bar = row.querySelector('.option-bar');
