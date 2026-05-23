@@ -20,6 +20,7 @@ class Auth::SsoWorkspacesController < ApplicationController
     omniauth_data = session[:omniauth_user]
     user = User.find_by(provider: omniauth_data["provider"], uid: omniauth_data["uid"])
     user ||= User.find_by(email: omniauth_data["email"])
+    workspace = nil
 
     ActiveRecord::Base.transaction do
       unless user
@@ -53,7 +54,7 @@ class Auth::SsoWorkspacesController < ApplicationController
 
     session.delete(:omniauth_user)
     sign_in(:user, user)
-    WorkspaceMailer.new_workspace_alert(workspace, user).deliver_later
+    WorkspaceMailer.new_workspace_alert(workspace, user).deliver_later if workspace
     redirect_to dashboard_path, notice: I18n.locale == :vi ?
       "Chào mừng! Workspace \"#{workspace_name}\" đã được tạo." :
       "Welcome! Workspace \"#{workspace_name}\" has been created."
