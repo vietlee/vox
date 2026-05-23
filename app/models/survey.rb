@@ -53,6 +53,19 @@ class Survey < ApplicationRecord
     (responses.where(status: :completed).count.to_f / responses.count * 100).round(1)
   end
 
+  def avg_completion_time
+    vals = responses.completed.where("completion_time_seconds > 0").pluck(:completion_time_seconds)
+    return nil if vals.empty?
+    avg = vals.sum.to_f / vals.size
+    if avg < 60
+      "#{avg.round}s"
+    elsif avg < 3600
+      "#{(avg / 60).round(1)} phút"
+    else
+      "#{(avg / 3600).round(1)} giờ"
+    end
+  end
+
   def latest_ai_analysis
     ai_analysis_results.order(created_at: :desc).first
   end
