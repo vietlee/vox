@@ -1,5 +1,5 @@
 class Admin::VotesController < Admin::BaseController
-  before_action :set_vote, only: [:show, :edit, :update, :destroy, :open, :close, :results, :present, :share, :ai_insight]
+  before_action :set_vote, only: [:show, :edit, :update, :destroy, :open, :close, :results, :export, :present, :share, :ai_insight]
 
   def index
     direction = params[:sort] == "asc" ? :asc : :desc
@@ -103,6 +103,30 @@ class Admin::VotesController < Admin::BaseController
   end
 
   def share
+  end
+
+  def export
+    require "csv"
+    responses  = @vote.vote_responses.order(:created_at)
+    option_map = @vote.vote_options.each_with_object({}) { |o, h| h[o.id.to_s] = o.label }
+
+    csv_data = CSV.generate(headers: true) do |csv|
+      csv << ["#", t("votes.results.col_time"), t("votes.results.col_identity"), t("votes.results.col_choice")]
+      responses.each_with_index do |resp, idx|
+        identity = resp.respondent_email.presence || resp.respondent_token&.last(8) || "—"
+        choices  = if resp.text_value.present?
+          resp.text_value
+        elsif resp.selected_option_ids.present?
+          Array(resp.selected_option_ids).map { |id| option_map[id.to_s] || id }.join(", ")
+        else
+          "—"
+        end
+        csv << [idx + 1, resp.created_at.strftime("%d/%m/%Y %H:%M"), identity, choices]
+      end
+    end
+
+    filename = "#{@vote.title.parameterize}-#{Date.today}.csv"
+    send_data "\xEF\xBB\xBF#{csv_data}", filename: filename, type: "text/csv; charset=utf-8", disposition: "attachment"
   end
 
   def ai_insight

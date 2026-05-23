@@ -1,6 +1,10 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
+  # Public landing page
+  root to: "pages#home"
+  get "home", to: "pages#home", as: :home_page
+
   # Devise auth
   devise_for :users, controllers: {
     sessions:           "auth/sessions",
@@ -55,7 +59,6 @@ Rails.application.routes.draw do
 
   # Authenticated workspace admin/supporter area
   scope module: "admin" do
-    root to: "dashboard#index"
     get "dashboard", to: "dashboard#index", as: :dashboard
     post "switch_workspace/:workspace_id", to: "workspace_switcher#switch", as: :switch_workspace
 
@@ -92,6 +95,7 @@ Rails.application.routes.draw do
         patch :open
         patch :close
         get   :results
+        get   :export
         get   :present
         get   :share
         post  :ai_insight

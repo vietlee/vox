@@ -4,7 +4,10 @@
     <h1 class="text-[19px] font-extrabold text-slate-900"><%= @vote.title %></h1>
     <p class="text-[12px] text-slate-500 mt-0.5"><%= t("votes.results.total_votes", count: @vote.participant_count) %></p>
   </div>
-  <%= link_to present_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors", target: "_blank" do %><%= t("votes.results.present") %><% end %>
+  <div class="flex gap-2">
+    <%= link_to export_vote_path(@vote), data: { turbo: false }, class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors" do %>⬇ CSV<% end %>
+    <%= link_to present_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors", target: "_blank" do %><%= t("votes.results.present") %><% end %>
+  </div>
 </div>
 
 <div class="grid grid-cols-[1fr_300px] gap-5">
