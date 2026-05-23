@@ -43,7 +43,8 @@ class AuditLog < ApplicationRecord
   end
 
   def human_action
-    I18n.t("audit_log.actions.#{action}", default: action.to_s)
+    category, verb = action.to_s.split(".", 2)
+    I18n.t("audit_log.actions.#{category}.#{verb}", default: action.to_s)
   end
 
   def resource_name
