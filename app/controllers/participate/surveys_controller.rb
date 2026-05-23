@@ -2,6 +2,13 @@ class Participate::SurveysController < Participate::BaseController
   before_action :set_survey
   before_action :enforce_login_required!, only: [:show, :submit]
 
+  def done
+    @questions = @survey.questions.includes(:question_options)
+    response_id = session.delete(:survey_last_response_id)
+    @response = @survey.responses.find_by(id: response_id)
+    @stats = build_results_stats if @survey.show_results?
+  end
+
   def show
     @questions = @survey.questions.includes(:question_options)
     unless @survey.accepting_responses?
@@ -34,11 +41,8 @@ class Participate::SurveysController < Participate::BaseController
       existing.update_column(:respondent_email, new_email) if new_email
       existing.answers.destroy_all
       save_answers(existing)
-      @response = existing
-      @questions = @survey.questions.includes(:question_options, :answers)
-      @stats = build_results_stats if @survey.show_results?
-      render :thank_you
-      return
+      session[:survey_last_response_id] = existing.id
+      redirect_to survey_done_path(@survey.slug) and return
     end
 
     if already_responded?
@@ -63,9 +67,8 @@ class Participate::SurveysController < Participate::BaseController
     if @response.save
       save_answers(@response)
       @response.complete!
-      @questions = @survey.questions.includes(:question_options, :answers)
-      @stats = build_results_stats if @survey.show_results?
-      render :thank_you
+      session[:survey_last_response_id] = @response.id
+      redirect_to survey_done_path(@survey.slug)
     else
       if @response.errors.where(:base, :already_responded).any?
         redirect_to participate_survey_path(@survey.slug), alert: t("participate.survey.already_answered")

@@ -31,6 +31,7 @@ Rails.application.routes.draw do
   # Public participation (End User — no login required)
   get  "/s/:slug",         to: "participate/surveys#show",    as: :participate_survey
   post "/s/:slug/submit",  to: "participate/surveys#submit",  as: :submit_survey
+  get  "/s/:slug/done",    to: "participate/surveys#done",    as: :survey_done
   get  "/v/:slug",         to: "participate/votes#show",      as: :participate_vote
   post "/v/:slug/submit",  to: "participate/votes#submit",    as: :submit_vote
   get  "/v/:slug/results", to: "participate/votes#results",   as: :vote_results

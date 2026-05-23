@@ -110,7 +110,7 @@
 ════════════════════════════════════════════════════════════════════════════ -->
 <nav style="position:sticky; top:0; z-index:100; background:rgba(8,11,26,0.85); border-bottom:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);">
   <div class="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between" style="height:64px;">
-    <img src="/vox_logo.svg" alt="VOX" style="height:22px; filter:brightness(0) invert(1) opacity(0.9);">
+    <img src="/vox_logo.svg" alt="VOX" style="height:22px;">
 
     <div class="hidden sm:flex items-center gap-7" style="font-size:14px; font-weight:500; color:rgba(255,255,255,0.6);">
       <a href="#features"    style="transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'"><%= vi ? "Tính năng" : "Features" %></a>
@@ -239,18 +239,21 @@
      STATS BAR
 ════════════════════════════════════════════════════════════════════════════ -->
 <div style="background:#fff; border-bottom:1px solid #f1f5f9;">
-  <div class="max-w-5xl mx-auto px-4 sm:px-6" style="padding-top:32px; padding-bottom:32px;">
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:24px; text-align:center;">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6" style="padding-top:44px; padding-bottom:44px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:32px; text-align:center;">
       <% [
-        [vi ? "Loại câu hỏi" : "Question types", "10+"],
-        [vi ? "Bình chọn thời gian thực" : "Real-time voting", "✓"],
-        [vi ? "Tích hợp AI" : "AI-powered", "✓"],
-        [vi ? "Bảo mật SSO" : "SSO security", "✓"],
-        [vi ? "Xuất CSV / PDF" : "CSV / PDF export", "✓"],
-      ].each do |label, val| %>
-        <div>
-          <div style="font-size:26px; font-weight:900; color:#1e1b4b; line-height:1;"><%= val %></div>
-          <div style="font-size:12px; color:#94a3b8; margin-top:4px; font-weight:500;"><%= label %></div>
+        { val: "10+",  label: vi ? "Loại câu hỏi" : "Question types",      icon: "📋", color: "#4F46E5" },
+        { val: "Live", label: vi ? "Cập nhật tức thì" : "Instant results",  icon: "⚡", color: "#7C3AED" },
+        { val: "AI",   label: vi ? "Tích hợp AI" : "AI-powered",            icon: "✨", color: "#D97706" },
+        { val: "SSO",  label: vi ? "Google & Microsoft" : "Google & Microsoft", icon: "🔒", color: "#059669" },
+        { val: "CSV",  label: vi ? "Xuất dữ liệu" : "Data export",         icon: "📥", color: "#0EA5E9" },
+      ].each do |s| %>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+          <div style="width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; background:linear-gradient(135deg,<%= s[:color] %>22,<%= s[:color] %>11);">
+            <%= s[:icon] %>
+          </div>
+          <div style="font-size:22px; font-weight:900; color:<%= s[:color] %>; line-height:1; letter-spacing:-0.02em;"><%= s[:val] %></div>
+          <div style="font-size:12px; color:#94a3b8; font-weight:500; line-height:1.4;"><%= s[:label] %></div>
         </div>
       <% end %>
     </div>
@@ -308,31 +311,51 @@
 <!-- ═══════════════════════════════════════════════════════════════════════════
      HOW IT WORKS
 ════════════════════════════════════════════════════════════════════════════ -->
-<section id="how-it-works" style="padding:96px 0; background:#fff;">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6">
-    <div style="text-align:center; margin-bottom:56px;">
-      <div style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.1em; color:#6366f1; text-transform:uppercase; margin-bottom:12px;"><%= vi ? "Cách dùng" : "How it works" %></div>
-      <h2 style="font-size:clamp(28px,5vw,44px); font-weight:900; color:#0f172a; letter-spacing:-0.02em; line-height:1.15;">
+<section id="how-it-works" style="padding:96px 0; background:#080B1A; position:relative; overflow:hidden;">
+  <div class="aurora" style="width:400px; height:400px; background:radial-gradient(circle,#4338ca,transparent 70%); top:-100px; right:5%; opacity:0.25;"></div>
+  <div class="grid-overlay"></div>
+  <div class="max-w-5xl mx-auto px-4 sm:px-6" style="position:relative; z-index:1;">
+    <div style="text-align:center; margin-bottom:64px;">
+      <div style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.1em; color:#818cf8; text-transform:uppercase; margin-bottom:12px;"><%= vi ? "Cách dùng" : "How it works" %></div>
+      <h2 style="font-size:clamp(28px,5vw,48px); font-weight:900; color:#fff; letter-spacing:-0.02em; line-height:1.15; margin:0;">
         <%= vi ? "Bắt đầu trong 3 bước" : "Up and running in 3 steps" %>
       </h2>
     </div>
 
-    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:32px; position:relative;">
-      <!-- connector lines -->
-      <div style="position:absolute; top:28px; left:calc(33% - 8px); width:calc(34% + 16px); height:2px; background:linear-gradient(90deg,#6366f1,#a855f7); opacity:0.25; border-radius:2px;"></div>
-      <div style="position:absolute; top:28px; left:calc(66% - 8px); width:calc(34% + 8px); height:2px; background:linear-gradient(90deg,#a855f7,#ec4899); opacity:0.25; border-radius:2px;"></div>
-
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:24px;">
       <% [
-        { n: "1", emoji: "🎉", title: vi ? "Tạo tài khoản" : "Create account",       desc: vi ? "Đăng ký miễn phí trong 30 giây, không cần thẻ tín dụng." : "Sign up free in 30 seconds. No credit card required." },
-        { n: "2", emoji: "⚡", title: vi ? "Xây dựng nội dung" : "Build your content", desc: vi ? "Dùng trình tạo trực quan hoặc để AI tạo khảo sát/bình chọn giúp bạn." : "Use the visual builder or let AI generate surveys and polls for you." },
-        { n: "3", emoji: "📡", title: vi ? "Chia sẻ & thu thập" : "Share & collect",  desc: vi ? "Gửi link hoặc quét QR — kết quả hiển thị ngay theo thời gian thực." : "Share a link or scan QR — results appear instantly in real-time." },
+        { n: "01", grad: "linear-gradient(135deg,#4F46E5,#6366f1)",
+          title: vi ? "Tạo tài khoản" : "Create account",
+          desc:  vi ? "Đăng ký miễn phí trong 30 giây. Không cần thẻ tín dụng, không cam kết." : "Sign up free in 30 seconds. No credit card, no commitment.",
+          detail: vi ? "✓ Miễn phí mãi mãi  ✓ Bắt đầu ngay" : "✓ Free forever  ✓ Start instantly" },
+        { n: "02", grad: "linear-gradient(135deg,#7C3AED,#a855f7)",
+          title: vi ? "Xây dựng nội dung" : "Build your content",
+          desc:  vi ? "Tạo khảo sát, bình chọn hoặc bảng phản hồi bằng trình kéo-thả trực quan hoặc để AI tạo giúp bạn." : "Create surveys, polls, or feedback boards with the drag-and-drop builder or let AI generate them for you.",
+          detail: vi ? "✓ 10+ loại câu hỏi  ✓ AI tạo tự động" : "✓ 10+ question types  ✓ AI generation" },
+        { n: "03", grad: "linear-gradient(135deg,#0EA5E9,#06b6d4)",
+          title: vi ? "Chia sẻ & thu thập" : "Share & collect",
+          desc:  vi ? "Gửi link hoặc để người tham gia quét QR. Kết quả hiển thị ngay lập tức theo thời gian thực trên màn hình của bạn." : "Share a link or let participants scan a QR code. Results appear instantly in real-time on your screen.",
+          detail: vi ? "✓ QR code  ✓ Kết quả thời gian thực" : "✓ QR code  ✓ Live results" },
       ].each do |s| %>
-        <div style="text-align:center; position:relative;">
-          <div style="width:56px; height:56px; border-radius:16px; background:linear-gradient(135deg,#4F46E5,#7C3AED); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:900; color:#fff; margin:0 auto 20px; box-shadow:0 8px 24px rgba(99,102,241,0.35);"><%= s[:emoji] %></div>
-          <div style="font-size:11px; font-weight:700; color:#6366f1; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;"><%= vi ? "Bước" : "Step" %> <%= s[:n] %></div>
-          <h3 style="font-size:16px; font-weight:700; color:#0f172a; margin-bottom:8px;"><%= s[:title] %></h3>
-          <p style="font-size:13px; color:#64748b; line-height:1.7; margin:0;"><%= s[:desc] %></p>
+        <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:32px; position:relative; overflow:hidden; transition:border-color 0.2s, background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.07)'; this.style.borderColor='rgba(129,140,248,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.08)'">
+          <!-- Step number watermark -->
+          <div style="position:absolute; top:-10px; right:20px; font-size:80px; font-weight:900; color:rgba(255,255,255,0.03); line-height:1; pointer-events:none; user-select:none;"><%= s[:n] %></div>
+          <!-- Number badge -->
+          <div style="display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:12px; background:<%= s[:grad] %>; font-size:14px; font-weight:900; color:#fff; margin-bottom:20px; box-shadow:0 6px 20px rgba(0,0,0,0.3);">
+            <%= s[:n] %>
+          </div>
+          <h3 style="font-size:20px; font-weight:800; color:#fff; margin-bottom:10px; letter-spacing:-0.01em;"><%= s[:title] %></h3>
+          <p style="font-size:14px; color:rgba(255,255,255,0.55); line-height:1.75; margin-bottom:16px;"><%= s[:desc] %></p>
+          <div style="font-size:12px; color:rgba(129,140,248,0.8); font-weight:600;"><%= s[:detail] %></div>
         </div>
+      <% end %>
+    </div>
+
+    <!-- Bottom CTA inside section -->
+    <div style="text-align:center; margin-top:52px;">
+      <%= link_to new_user_registration_path, style: "display:inline-flex; align-items:center; gap:8px; padding:13px 28px; font-size:14px; font-weight:700; color:#fff; border-radius:10px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); text-decoration:none; transition:all 0.2s;", onmouseover: "this.style.background='rgba(255,255,255,0.16)'", onmouseout: "this.style.background='rgba(255,255,255,0.1)'" do %>
+        <%= vi ? "Bắt đầu ngay — miễn phí" : "Get started — it's free" %>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
       <% end %>
     </div>
   </div>
