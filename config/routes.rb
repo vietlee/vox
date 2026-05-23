@@ -157,4 +157,7 @@ Rails.application.routes.draw do
 
     get "audit_log", to: "audit_logs#index", as: :audit_log
   end
+
+  # Catch-all: phải đặt cuối cùng — bắt mọi URL không khớp
+  match "*unmatched_path", to: "errors#not_found", via: :all
 end
