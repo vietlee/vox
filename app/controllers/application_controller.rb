@@ -90,10 +90,12 @@ class ApplicationController < ActionController::Base
   # when a user visits /templates, then comes back days later to sign up normally).
   def consume_pending_template_id
     raw = session.delete(:pending_template)
-    # Legacy key (old format) — also clear to avoid confusion
-    session.delete(:pending_template_id)
+    session.delete(:pending_template_id)  # clear legacy key too
     return nil unless raw.is_a?(Hash)
-    return nil if raw[:at].nil? || (Time.current.to_i - raw[:at].to_i) > 1800  # 30 min TTL
-    raw[:id].presence
+    # JSON session serializer converts symbol keys to strings; support both
+    stored_at = raw[:at] || raw["at"]
+    id        = raw[:id] || raw["id"]
+    return nil if stored_at.nil? || (Time.current.to_i - stored_at.to_i) > 1800  # 30 min TTL
+    id.presence
   end
 end

@@ -51,18 +51,16 @@
 
     <!-- Actions: two equal-width buttons side by side -->
     <div class="flex gap-2 mt-auto pt-1">
-      <%# "Xem trước" — plain link, flex-1 so it takes half the space %>
       <%= link_to template_path(tpl),
-        class: "flex-1 text-center text-[12px] font-semibold text-slate-600 border border-slate-200 rounded-lg py-2 hover:border-slate-300 hover:bg-slate-50 transition-all leading-none flex items-center justify-center" do %>
+        class: "flex-1 min-w-0 text-center text-[12px] font-semibold text-slate-600 border border-slate-200 rounded-lg px-3 py-2 hover:border-slate-300 hover:bg-slate-50 transition-all flex items-center justify-center whitespace-nowrap" do %>
         <%= I18n.locale == :vi ? "Xem trước" : "Preview" %>
       <% end %>
 
-      <%# "Dùng mẫu này" — button_to creates a <form>; give flex-1 to the form,
-          w-full to the button inside so it fills that space properly %>
+      <%# form gets flex-1 + min-w-0; button fills it with w-full + explicit px %>
       <%= button_to use_template_path(tpl),
         method:  :post,
-        form:    { data: { turbo: false }, class: "flex-1" },
-        class:   "w-full text-[12px] font-bold text-white rounded-lg py-2 leading-none cursor-pointer border-0 transition-opacity hover:opacity-90",
+        form:    { data: { turbo: false }, class: "flex-1 min-w-0" },
+        class:   "w-full text-[12px] font-bold text-white rounded-lg px-3 py-2 cursor-pointer border-0 transition-opacity hover:opacity-90 whitespace-nowrap",
         style:   "background:linear-gradient(135deg,#4F46E5,#7C3AED);" do %>
         <%= I18n.locale == :vi ? "Dùng mẫu này" : "Use template" %>
       <% end %>
