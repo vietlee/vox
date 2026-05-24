@@ -41,13 +41,15 @@ class Auth::RegistrationsController < Devise::RegistrationsController
     sign_in(:user, @user)
     WorkspaceMailer.new_workspace_alert(workspace, @user).deliver_later
 
-    pending_template_id = session.delete(:pending_template_id)
-    if pending_template_id.present?
-      redirect_to use_template_path(pending_template_id),
-        notice: I18n.locale == :vi ? "Chào mừng! Workspace \"#{workspace.name}\" đã được tạo." : "Welcome! Workspace \"#{workspace.name}\" has been created."
+    welcome_msg = I18n.locale == :vi ?
+      "Chào mừng! Workspace \"#{workspace.name}\" đã được tạo." :
+      "Welcome! Workspace \"#{workspace.name}\" has been created."
+
+    pending_id = consume_pending_template_id
+    if pending_id
+      redirect_to use_template_path(pending_id), notice: welcome_msg
     else
-      redirect_to dashboard_path,
-        notice: I18n.locale == :vi ? "Chào mừng! Workspace \"#{workspace.name}\" đã được tạo." : "Welcome! Workspace \"#{workspace.name}\" has been created."
+      redirect_to dashboard_path, notice: welcome_msg
     end
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = e.record.errors.full_messages.first

@@ -23,7 +23,8 @@ class TemplatesController < ApplicationController
     @template = SurveyTemplate.active.find(params[:id])
 
     unless user_signed_in?
-      session[:pending_template_id] = @template.id
+      # Store with timestamp so it expires if user doesn't complete sign-up quickly
+      session[:pending_template] = { id: @template.id, at: Time.current.to_i }
       redirect_to new_user_registration_path and return
     end
 

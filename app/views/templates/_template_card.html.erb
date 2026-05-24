@@ -10,7 +10,7 @@
      style="transition:all 0.2s ease;">
 
   <!-- Color stripe header -->
-  <div class="rounded-t-2xl h-2" style="background:<%= tpl.color %>;"></div>
+  <div class="rounded-t-2xl h-1.5" style="background:<%= tpl.color %>;"></div>
 
   <div class="p-5 flex flex-col flex-1">
     <!-- Icon + Type badge -->
@@ -19,12 +19,10 @@
            style="background:<%= tc[:bg] %>; border:1px solid <%= tc[:border] %>;">
         <%= tpl.icon %>
       </div>
-      <div class="flex items-center gap-1.5">
-        <span class="text-[11px] font-semibold rounded-full px-2.5 py-0.5"
-              style="background:<%= tc[:bg] %>; color:<%= tc[:text] %>; border:1px solid <%= tc[:border] %>;">
-          <%= tpl.type_label %>
-        </span>
-      </div>
+      <span class="text-[11px] font-semibold rounded-full px-2.5 py-0.5 mt-0.5"
+            style="background:<%= tc[:bg] %>; color:<%= tc[:text] %>; border:1px solid <%= tc[:border] %>;">
+        <%= tpl.type_label %>
+      </span>
     </div>
 
     <!-- Title + description -->
@@ -36,7 +34,7 @@
     </p>
 
     <!-- Meta row -->
-    <div class="flex items-center gap-3 text-[11px] text-slate-400 mb-4">
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 mb-3">
       <% if tpl.template_type == "survey" && tpl.question_count > 0 %>
         <span>📝 <%= tpl.question_count %> <%= I18n.locale == :vi ? "câu hỏi" : "questions" %></span>
       <% elsif tpl.template_type == "vote" && tpl.question_count > 0 %>
@@ -44,28 +42,28 @@
       <% end %>
       <span>⏱ ~<%= tpl.estimated_minutes %> <%= I18n.locale == :vi ? "phút" : "min" %></span>
       <% if tpl.use_count > 0 %>
-        <span>👥 <%= tpl.use_count %> <%= I18n.locale == :vi ? "đã dùng" : "uses" %></span>
+        <span>👥 <%= tpl.use_count %></span>
       <% end %>
-    </div>
-
-    <!-- Category label -->
-    <div class="mb-4">
-      <span class="text-[11px] text-slate-500 rounded-full px-2.5 py-0.5 bg-slate-100">
+      <span class="rounded-full px-2 py-0.5 bg-slate-100 text-slate-500">
         <%= tpl.category_icon %> <%= tpl.category_label %>
       </span>
     </div>
 
-    <!-- Actions -->
-    <div class="flex gap-2 mt-auto">
+    <!-- Actions: two equal-width buttons side by side -->
+    <div class="flex gap-2 mt-auto pt-1">
+      <%# "Xem trước" — plain link, flex-1 so it takes half the space %>
       <%= link_to template_path(tpl),
-        class: "flex-1 text-center text-[12px] font-semibold text-slate-600 border border-slate-200 rounded-lg py-2 hover:border-slate-300 hover:bg-slate-50 transition-all" do %>
+        class: "flex-1 text-center text-[12px] font-semibold text-slate-600 border border-slate-200 rounded-lg py-2 hover:border-slate-300 hover:bg-slate-50 transition-all leading-none flex items-center justify-center" do %>
         <%= I18n.locale == :vi ? "Xem trước" : "Preview" %>
       <% end %>
+
+      <%# "Dùng mẫu này" — button_to creates a <form>; give flex-1 to the form,
+          w-full to the button inside so it fills that space properly %>
       <%= button_to use_template_path(tpl),
-        method: :post,
-        form: { data: { turbo: false } },
-        class: "flex-1 text-[12px] font-bold text-white rounded-lg py-2 hover:opacity-90 transition-all",
-        style: "background:linear-gradient(135deg,#4F46E5,#7C3AED);" do %>
+        method:  :post,
+        form:    { data: { turbo: false }, class: "flex-1" },
+        class:   "w-full text-[12px] font-bold text-white rounded-lg py-2 leading-none cursor-pointer border-0 transition-opacity hover:opacity-90",
+        style:   "background:linear-gradient(135deg,#4F46E5,#7C3AED);" do %>
         <%= I18n.locale == :vi ? "Dùng mẫu này" : "Use template" %>
       <% end %>
     </div>

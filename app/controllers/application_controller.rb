@@ -84,4 +84,16 @@ class ApplicationController < ActionController::Base
     end
     true
   end
+
+  # Returns template_id from session if it was stored within the last 30 minutes,
+  # and clears it. Returns nil if absent or expired (prevents stale redirects
+  # when a user visits /templates, then comes back days later to sign up normally).
+  def consume_pending_template_id
+    raw = session.delete(:pending_template)
+    # Legacy key (old format) — also clear to avoid confusion
+    session.delete(:pending_template_id)
+    return nil unless raw.is_a?(Hash)
+    return nil if raw[:at].nil? || (Time.current.to_i - raw[:at].to_i) > 1800  # 30 min TTL
+    raw[:id].presence
+  end
 end

@@ -12,7 +12,10 @@ Rails.application.routes.draw do
 
   # Public template library
   resources :templates, only: [:index, :show] do
-    member { post :use }
+    member do
+      post :use  # direct button click from template card/show page
+      get  :use  # GET redirect after login/signup (pending_template_id flow)
+    end
   end
 
   # Devise auth
