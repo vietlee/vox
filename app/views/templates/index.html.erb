@@ -1,0 +1,133 @@
+<% content_for :title do %><%= I18n.locale == :vi ? "Thư viện mẫu — VOX" : "Template Library — VOX" %><% end %>
+
+<!-- ── NAV ──────────────────────────────────────────────────────────────────── -->
+<nav style="position:sticky; top:0; z-index:50; background:rgba(255,255,255,0.95); backdrop-filter:blur(12px); border-bottom:1px solid rgba(226,232,240,0.8);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
+    <%= link_to root_path do %>
+      <img src="/vox_logo.svg" alt="VOX" class="h-5 w-auto">
+    <% end %>
+    <div class="flex items-center gap-3">
+      <% if user_signed_in? %>
+        <%= link_to dashboard_path, class: "text-[13px] font-semibold text-slate-700 hover:text-indigo-600 transition-colors" do %>
+          <%= I18n.locale == :vi ? "Dashboard" : "Dashboard" %>
+        <% end %>
+      <% else %>
+        <%= link_to new_user_session_path, class: "text-[13px] font-medium text-slate-600 hover:text-slate-900 transition-colors" do %>
+          <%= I18n.locale == :vi ? "Đăng nhập" : "Sign in" %>
+        <% end %>
+        <%= link_to new_user_registration_path,
+          class: "text-[13px] font-semibold text-white rounded-full px-4 py-1.5 transition-all hover:opacity-90",
+          style: "background:linear-gradient(135deg,#4F46E5,#7C3AED);" do %>
+          <%= I18n.locale == :vi ? "Dùng miễn phí" : "Get started free" %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────────────────────────────── -->
+<div style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%); border-bottom:1px solid #e2e8f0;">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 text-center">
+    <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold text-indigo-700 mb-4"
+         style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.2);">
+      ✨ <%= @total_count %> <%= I18n.locale == :vi ? "mẫu sẵn sàng dùng ngay" : "ready-to-use templates" %>
+    </div>
+    <h1 class="text-3xl lg:text-4xl font-extrabold text-slate-900 mb-3">
+      <%= I18n.locale == :vi ? "Thư viện mẫu" : "Template Library" %>
+    </h1>
+    <p class="text-slate-500 text-[15px] max-w-xl mx-auto mb-8">
+      <%= I18n.locale == :vi ?
+        "Chọn mẫu phù hợp, tùy chỉnh theo nhu cầu rồi phát hành — chỉ trong vài phút." :
+        "Pick a template, customize it to your needs, then publish — in minutes." %>
+    </p>
+
+    <!-- Type filter pills -->
+    <div class="flex flex-wrap justify-center gap-2">
+      <%= link_to templates_path(category: @category),
+        class: "px-4 py-1.5 rounded-full text-[12px] font-semibold transition-all #{@type.nil? ? 'text-white shadow-sm' : 'text-slate-600 bg-white border border-slate-200 hover:border-indigo-300'}",
+        style: @type.nil? ? "background:linear-gradient(135deg,#4F46E5,#7C3AED);" : "" do %>
+        <%= I18n.locale == :vi ? "Tất cả" : "All" %>
+      <% end %>
+      <% SurveyTemplate::TYPE_META.each do |type, meta| %>
+        <%= link_to templates_path(type: type, category: @category),
+          class: "px-4 py-1.5 rounded-full text-[12px] font-semibold transition-all #{@type == type ? 'text-white shadow-sm' : 'text-slate-600 bg-white border border-slate-200 hover:border-indigo-300'}",
+          style: @type == type ? "background:linear-gradient(135deg,#4F46E5,#7C3AED);" : "" do %>
+          <%= meta[:icon] %> <%= I18n.locale == :vi ? meta[:vi] : meta[:en] %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ──────────────────────────────────────────────────────────────────── -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <div class="flex gap-8">
+
+    <!-- Sidebar: category filter -->
+    <aside class="hidden lg:block w-52 flex-shrink-0">
+      <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">
+        <%= I18n.locale == :vi ? "Danh mục" : "Category" %>
+      </p>
+      <nav class="space-y-0.5">
+        <%= link_to templates_path(type: @type),
+          class: "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold transition-colors #{@category.nil? ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}" do %>
+          <span>🗂️</span>
+          <span><%= I18n.locale == :vi ? "Tất cả danh mục" : "All categories" %></span>
+        <% end %>
+        <% SurveyTemplate::CATEGORY_META.each do |cat, meta| %>
+          <% count = SurveyTemplate.active.where(category: cat).then { |s| @type.present? ? s.where(template_type: @type) : s }.count %>
+          <% next if count == 0 %>
+          <%= link_to templates_path(type: @type, category: cat),
+            class: "flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium transition-colors #{@category == cat ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}" do %>
+            <span class="flex items-center gap-2">
+              <span><%= meta[:icon] %></span>
+              <span><%= I18n.locale == :vi ? meta[:vi] : meta[:en] %></span>
+            </span>
+            <span class="text-[11px] font-bold text-slate-400 tabular-nums"><%= count %></span>
+          <% end %>
+        <% end %>
+      </nav>
+    </aside>
+
+    <!-- Grid -->
+    <div class="flex-1 min-w-0">
+      <% if @templates.empty? %>
+        <div class="text-center py-20 text-slate-400">
+          <div class="text-4xl mb-3">🔍</div>
+          <p class="text-[14px]"><%= I18n.locale == :vi ? "Chưa có mẫu nào trong danh mục này." : "No templates in this category yet." %></p>
+        </div>
+      <% else %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          <% @templates.each do |tpl| %>
+            <%= render "templates/template_card", tpl: tpl %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- ── BOTTOM CTA ─────────────────────────────────────────────────────────────── -->
+<div style="background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);" class="py-14 text-center">
+  <h2 class="text-2xl font-extrabold text-white mb-2">
+    <%= I18n.locale == :vi ? "Không tìm thấy mẫu phù hợp?" : "Can't find what you need?" %>
+  </h2>
+  <p class="text-indigo-200 text-[14px] mb-6">
+    <%= I18n.locale == :vi ?
+      "Tạo khảo sát / bình chọn / góp ý từ đầu chỉ trong vài phút. Miễn phí." :
+      "Build a survey, vote, or feedback board from scratch in minutes. Free." %>
+  </p>
+  <%= link_to new_user_registration_path,
+    class: "inline-flex items-center gap-2 bg-white font-bold rounded-full px-6 py-3 text-[14px] text-indigo-600 hover:shadow-lg transition-all hover:-translate-y-0.5",
+    style: "transform:translateY(0); transition:all 0.2s ease;" do %>
+    🚀 <%= I18n.locale == :vi ? "Bắt đầu miễn phí" : "Start for free" %>
+  <% end %>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────────── -->
+<footer class="py-6 text-center text-[12px] text-slate-400 border-t border-slate-100">
+  <%= link_to root_path do %>
+    <img src="/vox_logo.svg" alt="VOX" class="h-4 w-auto mx-auto mb-2 opacity-60">
+  <% end %>
+  <p>© <%= Date.current.year %> VOX. <%= I18n.locale == :vi ? "Nền tảng khảo sát & bình chọn." : "Survey & voting platform." %></p>
+</footer>

@@ -281,18 +281,20 @@ async function pollJobStatus(jobId, onDone) {
 }
 
 // ── Drag-and-drop reorder ─────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+function _initSortable() {
   const container = document.getElementById('questions-container');
   if (!container || typeof Sortable === 'undefined') return;
+  // Guard against double-init (turbo:load fires after DOMContentLoaded too)
+  if (container.dataset.sortableReady) return;
+  container.dataset.sortableReady = '1';
 
   Sortable.create(container, {
     handle:     '.drag-handle',
     animation:  150,
-    ghostClass: 'sq-ghost',    // single token → defined in <style> below
-    chosenClass:'sq-chosen',   // single token → defined in <style> below
+    ghostClass: 'sq-ghost',
+    chosenClass:'sq-chosen',
 
     onEnd() {
-      // Collect the new order from the DOM
       const order = Array.from(
         container.querySelectorAll('[data-question-id]')
       ).map(el => el.dataset.questionId);
@@ -307,7 +309,13 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   });
-});
+}
+
+// turbo:load fires on both initial load and Turbo navigations
+document.addEventListener('turbo:load', _initSortable);
+// Fallback for non-Turbo environments
+if (document.readyState !== 'loading') { _initSortable(); }
+else { document.addEventListener('DOMContentLoaded', _initSortable); }
 
 // ── Expose onclick functions ──────────────────────────────────────────────────
 Object.assign(window, { addQuestion, checkQuestion });

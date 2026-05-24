@@ -10,6 +10,10 @@ class Auth::SessionsController < Devise::SessionsController
   private
 
   def after_sign_in_path_for(resource)
+    # Auto-use template if user clicked "Dùng mẫu này" before logging in
+    pending_template_id = session.delete(:pending_template_id)
+    return use_template_path(pending_template_id) if pending_template_id.present?
+
     return_to = session.delete(:user_return_to)
     if return_to.present?
       return_to

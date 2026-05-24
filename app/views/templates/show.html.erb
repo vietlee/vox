@@ -1,0 +1,210 @@
+<% content_for :title do %><%= @template.title %> — VOX<% end %>
+
+<%
+  type_colors = {
+    "survey"   => { bg: "#EEF2FF", text: "#4F46E5", border: "#C7D2FE" },
+    "vote"     => { bg: "#F5F3FF", text: "#7C3AED", border: "#DDD6FE" },
+    "feedback" => { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0" },
+  }
+  tc = type_colors[@template.template_type] || type_colors["survey"]
+
+  qtype_labels = {
+    "single_choice"   => { vi: "Một lựa chọn",     en: "Single choice",    icon: "🔘" },
+    "multiple_choice" => { vi: "Nhiều lựa chọn",    en: "Multiple choice",  icon: "☑️" },
+    "rating"          => { vi: "Đánh giá sao",      en: "Star rating",      icon: "⭐" },
+    "short_text"      => { vi: "Trả lời ngắn",      en: "Short answer",     icon: "✏️" },
+    "long_text"       => { vi: "Trả lời dài",       en: "Long answer",      icon: "📝" },
+    "nps"             => { vi: "NPS (0–10)",         en: "NPS (0–10)",       icon: "📊" },
+    "linear_scale"    => { vi: "Thang điểm",        en: "Linear scale",     icon: "📏" },
+    "dropdown"        => { vi: "Dropdown",           en: "Dropdown",         icon: "🔽" },
+    "matrix"          => { vi: "Ma trận",            en: "Matrix",           icon: "🔲" },
+    "date_time"       => { vi: "Ngày/giờ",           en: "Date/time",        icon: "📅" },
+  }
+%>
+
+<!-- NAV -->
+<nav style="position:sticky; top:0; z-index:50; background:rgba(255,255,255,0.95); backdrop-filter:blur(12px); border-bottom:1px solid rgba(226,232,240,0.8);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
+    <div class="flex items-center gap-3">
+      <%= link_to root_path do %>
+        <img src="/vox_logo.svg" alt="VOX" class="h-5 w-auto">
+      <% end %>
+      <span class="text-slate-300">/</span>
+      <%= link_to templates_path, class: "text-[13px] text-slate-500 hover:text-slate-900 transition-colors" do %>
+        <%= I18n.locale == :vi ? "Thư viện mẫu" : "Templates" %>
+      <% end %>
+    </div>
+    <div class="flex items-center gap-3">
+      <% if user_signed_in? %>
+        <%= link_to dashboard_path, class: "text-[13px] font-semibold text-slate-700 hover:text-indigo-600 transition-colors" do %>Dashboard<% end %>
+      <% else %>
+        <%= link_to new_user_session_path, class: "text-[13px] font-medium text-slate-600 hover:text-slate-900" do %>
+          <%= I18n.locale == :vi ? "Đăng nhập" : "Sign in" %>
+        <% end %>
+        <%= link_to new_user_registration_path,
+          class: "text-[13px] font-semibold text-white rounded-full px-4 py-1.5",
+          style: "background:linear-gradient(135deg,#4F46E5,#7C3AED);" do %>
+          <%= I18n.locale == :vi ? "Dùng miễn phí" : "Get started free" %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</nav>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <!-- Back -->
+  <%= link_to templates_path, class: "inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-800 transition-colors mb-6" do %>
+    ← <%= I18n.locale == :vi ? "Quay lại thư viện" : "Back to templates" %>
+  <% end %>
+
+  <div class="grid lg:grid-cols-3 gap-8">
+    <!-- LEFT: Template details -->
+    <div class="lg:col-span-2">
+      <!-- Header card -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div class="h-1.5 w-full" style="background:<%= @template.color %>;"></div>
+        <div class="p-6">
+          <div class="flex items-start gap-4 mb-4">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+                 style="background:<%= tc[:bg] %>; border:1px solid <%= tc[:border] %>;">
+              <%= @template.icon %>
+            </div>
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-[11px] font-semibold rounded-full px-2.5 py-0.5"
+                      style="background:<%= tc[:bg] %>; color:<%= tc[:text] %>; border:1px solid <%= tc[:border] %>;">
+                  <%= @template.type_label %>
+                </span>
+                <span class="text-[11px] text-slate-400 rounded-full px-2.5 py-0.5 bg-slate-100">
+                  <%= @template.category_icon %> <%= @template.category_label %>
+                </span>
+              </div>
+              <h1 class="text-xl font-extrabold text-slate-900"><%= @template.title %></h1>
+            </div>
+          </div>
+          <p class="text-[14px] text-slate-600 leading-relaxed"><%= @template.description %></p>
+
+          <!-- Stats row -->
+          <div class="flex items-center gap-5 mt-4 pt-4 border-t border-slate-100 text-[12px] text-slate-500">
+            <% if @template.template_type == "survey" %>
+              <span>📝 <%= @template.question_count %> <%= I18n.locale == :vi ? "câu hỏi" : "questions" %></span>
+            <% elsif @template.template_type == "vote" %>
+              <span>🗳️ <%= @template.question_count %> <%= I18n.locale == :vi ? "lựa chọn" : "options" %></span>
+            <% end %>
+            <span>⏱ ~<%= @template.estimated_minutes %> <%= I18n.locale == :vi ? "phút" : "min" %></span>
+            <% if @template.use_count > 0 %>
+              <span>👥 <%= @template.use_count %> <%= I18n.locale == :vi ? "người đã dùng" : "uses" %></span>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Questions/Options preview -->
+      <% if @template.template_type == "survey" && @template.questions_data.any? %>
+        <h2 class="text-[13px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+          <%= I18n.locale == :vi ? "Nội dung câu hỏi" : "Questions" %>
+        </h2>
+        <div class="space-y-3">
+          <% @template.questions_data.each_with_index do |q, idx| %>
+            <div class="bg-white rounded-xl border border-slate-200 p-4">
+              <div class="flex items-start gap-3">
+                <span class="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <%= idx + 1 %>
+                </span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-[13px] font-semibold text-slate-800 mb-1.5">
+                    <%= q["title"] %>
+                    <% if q["required"] %>
+                      <span class="text-red-400 ml-0.5">*</span>
+                    <% end %>
+                  </p>
+                  <% qmeta = qtype_labels[q["question_type"]] || {} %>
+                  <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
+                    <%= qmeta[:icon] %> <%= I18n.locale == :vi ? (qmeta[:vi] || q["question_type"]) : (qmeta[:en] || q["question_type"]) %>
+                  </span>
+                  <% if q["options"]&.any? %>
+                    <div class="mt-2 flex flex-wrap gap-1.5">
+                      <% q["options"].each do |opt| %>
+                        <span class="text-[11px] bg-slate-50 border border-slate-200 rounded-full px-2.5 py-0.5 text-slate-600"><%= opt %></span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+      <% elsif @template.template_type == "vote" && @template.options_data.any? %>
+        <h2 class="text-[13px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+          <%= I18n.locale == :vi ? "Các lựa chọn" : "Options" %>
+        </h2>
+        <div class="space-y-2">
+          <% @template.options_data.each do |opt| %>
+            <div class="bg-white rounded-xl border border-slate-200 p-3.5 flex items-center gap-3">
+              <div class="w-4 h-4 rounded-full border-2 border-violet-300 flex-shrink-0"></div>
+              <span class="text-[13px] font-medium text-slate-800"><%= opt %></span>
+            </div>
+          <% end %>
+        </div>
+
+      <% elsif @template.template_type == "feedback" %>
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 text-center">
+          <div class="text-3xl mb-2">💬</div>
+          <p class="text-[13px] font-semibold text-emerald-800">
+            <%= I18n.locale == :vi ?
+              "Bảng góp ý — Người dùng có thể gửi phản hồi và vote cho nhau." :
+              "Feedback board — users submit ideas and vote on them." %>
+          </p>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- RIGHT: Sticky CTA panel -->
+    <div class="lg:col-span-1">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sticky top-20">
+        <p class="text-[13px] font-semibold text-slate-700 mb-4 text-center">
+          <%= I18n.locale == :vi ? "Dùng mẫu này ngay" : "Use this template now" %>
+        </p>
+
+        <%= button_to use_template_path(@template),
+          method: :post,
+          form: { data: { turbo: false } },
+          class: "w-full text-[14px] font-bold text-white rounded-xl py-3 hover:opacity-90 transition-all mb-3",
+          style: "background:linear-gradient(135deg,#4F46E5,#7C3AED);" do %>
+          🚀 <%= I18n.locale == :vi ? "Dùng mẫu này" : "Use this template" %>
+        <% end %>
+
+        <p class="text-center text-[11px] text-slate-400 mb-4">
+          <%= I18n.locale == :vi ?
+            "Tạo bản sao trong workspace của bạn, tùy chỉnh rồi phát hành." :
+            "Creates a copy in your workspace. Customize, then publish." %>
+        </p>
+
+        <div class="border-t border-slate-100 pt-4 space-y-2.5 text-[12px] text-slate-600">
+          <div class="flex items-center gap-2">
+            <span class="text-emerald-500">✓</span>
+            <%= I18n.locale == :vi ? "Chỉnh sửa thoải mái trước khi phát hành" : "Full editing before publishing" %>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-emerald-500">✓</span>
+            <%= I18n.locale == :vi ? "Thêm / xóa / sắp xếp lại câu hỏi" : "Add, remove, reorder questions" %>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-emerald-500">✓</span>
+            <%= I18n.locale == :vi ? "Miễn phí để bắt đầu" : "Free to get started" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="py-6 text-center text-[12px] text-slate-400 border-t border-slate-100 mt-8">
+  <%= link_to root_path do %>
+    <img src="/vox_logo.svg" alt="VOX" class="h-4 w-auto mx-auto mb-2 opacity-60">
+  <% end %>
+  <p>© <%= Date.current.year %> VOX.</p>
+</footer>

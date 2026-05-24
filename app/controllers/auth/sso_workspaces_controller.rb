@@ -55,9 +55,16 @@ class Auth::SsoWorkspacesController < ApplicationController
     session.delete(:omniauth_user)
     sign_in(:user, user)
     WorkspaceMailer.new_workspace_alert(workspace, user).deliver_later if workspace
-    redirect_to dashboard_path, notice: I18n.locale == :vi ?
+
+    pending_template_id = session.delete(:pending_template_id)
+    notice_msg = I18n.locale == :vi ?
       "Chào mừng! Workspace \"#{workspace_name}\" đã được tạo." :
       "Welcome! Workspace \"#{workspace_name}\" has been created."
+    if pending_template_id.present?
+      redirect_to use_template_path(pending_template_id), notice: notice_msg
+    else
+      redirect_to dashboard_path, notice: notice_msg
+    end
 
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = e.record.errors.full_messages.first

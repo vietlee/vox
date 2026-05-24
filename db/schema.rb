@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_05_22_010000) do
+ActiveRecord::Schema[7.2].define(version: 2026_05_24_035500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -345,6 +345,25 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_22_010000) do
     t.index ["plan"], name: "index_subscriptions_on_plan"
     t.index ["status"], name: "index_subscriptions_on_status"
     t.index ["workspace_id"], name: "index_subscriptions_on_workspace_id"
+  end
+
+  create_table "survey_templates", force: :cascade do |t|
+    t.string "title", null: false
+    t.text "description"
+    t.string "category", default: "general", null: false
+    t.string "template_type", default: "survey", null: false
+    t.string "icon", default: "📋"
+    t.string "color", default: "#4F46E5"
+    t.integer "estimated_minutes", default: 3
+    t.integer "use_count", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.integer "position", default: 0, null: false
+    t.jsonb "structure", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_survey_templates_on_active"
+    t.index ["position"], name: "index_survey_templates_on_position"
+    t.index ["template_type"], name: "index_survey_templates_on_template_type"
   end
 
   create_table "surveys", force: :cascade do |t|

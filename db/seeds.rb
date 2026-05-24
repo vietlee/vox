@@ -228,4 +228,6 @@ unless Rails.env.production?
   puts "  Supporter:        supporter@demo.vox.vn / supporter123"
 end
 
+load Rails.root.join("db/seeds/survey_templates.rb")
+
 puts "\n✅ Seed complete!"

@@ -10,6 +10,11 @@ Rails.application.routes.draw do
   root to: "pages#home"
   get "home", to: "pages#home", as: :home_page
 
+  # Public template library
+  resources :templates, only: [:index, :show] do
+    member { post :use }
+  end
+
   # Devise auth
   devise_for :users, controllers: {
     sessions:           "auth/sessions",
