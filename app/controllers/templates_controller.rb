@@ -65,7 +65,7 @@ class TemplatesController < ApplicationController
           settings:      q["settings"] || {}
         )
         (q["options"] || []).each_with_index do |opt, oidx|
-          question.question_options.create!(text: opt, position: oidx)
+          question.question_options.create!(label: opt, position: oidx)
         end
       end
       survey
@@ -79,7 +79,7 @@ class TemplatesController < ApplicationController
         status:      :draft
       )
       (s["options"] || []).each_with_index do |opt, idx|
-        vote.vote_options.create!(text: opt, position: idx)
+        vote.vote_options.create!(label: opt, position: idx)
       end
       vote
 
