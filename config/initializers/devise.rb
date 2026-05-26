@@ -281,7 +281,8 @@ Devise.setup do |config|
   config.omniauth :entra_id,
     client_id:     ENV.fetch("MICROSOFT_CLIENT_ID", ""),
     client_secret: ENV.fetch("MICROSOFT_CLIENT_SECRET", ""),
-    tenant_id:     "common"
+    tenant_id:     "common",
+    scope:         "openid profile email"   # no offline_access — avoids admin-consent requirement
 
   # ==> Warden configuration
   # If you want to use other strategies, that are not supported by Devise, or
