@@ -184,7 +184,13 @@ class Participate::SurveysController < Participate::BaseController
         answer.date_value = answer_data[:date]
       when :file_upload
         file = params.dig(:answers, question.id.to_s, :file)
-        answer.uploaded_file.attach(file) if file.present?
+        if file.present?
+          begin
+            answer.uploaded_file.attach(file)
+          rescue => e
+            Rails.logger.error("[file_upload] attach failed for question #{question.id}: #{e.class} — #{e.message}")
+          end
+        end
       end
       answer.save!
     end
