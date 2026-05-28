@@ -80,6 +80,7 @@ Rails.application.routes.draw do
       member do
         patch :publish
         patch :close
+        patch :reopen
         patch :archive
         get   :results
         get   :export

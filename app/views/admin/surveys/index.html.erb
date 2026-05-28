@@ -101,6 +101,7 @@
               <div id="survey-actions-<%= survey.id %>" class="flex gap-1.5 justify-end flex-wrap"
                    data-publish-url="<%= publish_survey_path(survey) %>"
                    data-close-url="<%= close_survey_path(survey) %>"
+                   data-reopen-url="<%= reopen_survey_path(survey) %>"
                    data-archive-url="<%= archive_survey_path(survey) %>"
                    data-delete-url="<%= survey_path(survey) %>"
                    data-edit-url="<%= edit_survey_path(survey) %>"
@@ -233,6 +234,7 @@ const I18N = {
   clone:        "<%= j t('surveys.clone') %>",
   publish:      "<%= j t('surveys.publish') %>",
   close_action: "<%= j t('surveys.close_action') %>",
+  reopen:       "<%= j t('surveys.reopen') %>",
   archive:      "<%= j t('surveys.archive') %>",
   delete:       "<%= j t('surveys.delete') %>",
   edit_disabled_title: "<%= j t('surveys.edit_disabled_title') %>",
@@ -301,6 +303,8 @@ function updateRowStatus(id, newStatus) {
     html += btn(I18N.publish, `surveyAction('publish',${id})`, 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100');
   if (newStatus === 'active')
     html += btn(I18N.close_action, `showConfirm('close',${id})`, 'bg-amber-50 text-amber-700 hover:bg-amber-100');
+  if (newStatus === 'closed')
+    html += btn(I18N.reopen, `surveyAction('reopen',${id})`, 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100');
   if (newStatus !== 'archived')
     html += btn(I18N.archive, `showConfirm('archive',${id})`, 'bg-slate-100 text-slate-500 hover:bg-slate-200');
 
@@ -311,7 +315,12 @@ function updateRowStatus(id, newStatus) {
 async function surveyAction(type, id) {
   const actionsDiv = document.getElementById('survey-actions-' + id);
   if (!actionsDiv) return;
-  const urlMap = { publish: actionsDiv.dataset.publishUrl, close: actionsDiv.dataset.closeUrl, archive: actionsDiv.dataset.archiveUrl };
+  const urlMap = {
+    publish: actionsDiv.dataset.publishUrl,
+    close:   actionsDiv.dataset.closeUrl,
+    reopen:  actionsDiv.dataset.reopenUrl,
+    archive: actionsDiv.dataset.archiveUrl
+  };
   const url = urlMap[type];
   if (!url) return;
 
@@ -321,7 +330,7 @@ async function surveyAction(type, id) {
   });
   if (!res.ok) return;
 
-  const newStatus = { publish: 'active', close: 'closed', archive: 'archived' }[type];
+  const newStatus = { publish: 'active', close: 'closed', reopen: 'active', archive: 'archived' }[type];
   updateRowStatus(id, newStatus);
 }
 

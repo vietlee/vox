@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_05_24_035500) do
+ActiveRecord::Schema[7.2].define(version: 2026_05_28_133729) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -518,6 +518,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_24_035500) do
     t.integer "session_timeout_days", default: 60
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "surveys_created_count", default: 0, null: false
+    t.integer "votes_created_count", default: 0, null: false
+    t.integer "feedbacks_created_count", default: 0, null: false
     t.index ["slug"], name: "index_workspaces_on_slug", unique: true
     t.index ["status"], name: "index_workspaces_on_status"
   end

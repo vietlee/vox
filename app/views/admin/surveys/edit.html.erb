@@ -11,6 +11,10 @@
         <%= button_to publish_survey_path(@survey), method: :patch, class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 transition-colors whitespace-nowrap" do %>
           🚀 <%= t("surveys.publish") %>
         <% end %>
+      <% elsif @survey.closed? %>
+        <%= button_to reopen_survey_path(@survey), method: :patch, class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 text-emerald-600 transition-colors whitespace-nowrap" do %>
+          ▶ <%= t("surveys.reopen") %>
+        <% end %>
       <% end %>
       <%= link_to results_survey_path(@survey), class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 transition-colors whitespace-nowrap" do %>
         📊 <%= t("surveys.results_btn") %>

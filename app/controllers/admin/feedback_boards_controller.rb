@@ -16,10 +16,17 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   end
 
   def create
+    subscription = current_workspace.active_subscription
+    unless subscription&.within_feedback_limit?
+      redirect_to feedback_boards_path, alert: t("feedback_boards.limit_reached")
+      return
+    end
+
     @board = current_workspace.feedback_boards.build(board_params)
     @board.user = current_user
     if @board.save
       audit_log("feedback_board.create", resource: @board)
+      current_workspace.increment!(:feedbacks_created_count)
       redirect_to feedback_board_path(@board), notice: t("feedback_boards.created")
     else
       render :new, status: :unprocessable_entity

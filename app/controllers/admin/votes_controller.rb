@@ -26,6 +26,7 @@ class Admin::VotesController < Admin::BaseController
     if @vote.save
       build_vote_options
       audit_log("vote.create", resource: @vote)
+      current_workspace.increment!(:votes_created_count)
       redirect_to edit_vote_path(@vote), notice: t("votes.created")
     else
       render :new, status: :unprocessable_entity

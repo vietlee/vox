@@ -1,7 +1,7 @@
 require "csv"
 
 class Admin::SurveysController < Admin::BaseController
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :archive, :results, :export, :export_report, :ai_analyze, :ai_report, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :export, :export_report, :ai_analyze, :ai_report, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
@@ -28,6 +28,7 @@ class Admin::SurveysController < Admin::BaseController
 
     if @survey.save
       audit_log("survey.create", resource: @survey)
+      current_workspace.increment!(:surveys_created_count)
       build_ai_questions(@survey, ai_data) if ai_data.present?
       redirect_to edit_survey_path(@survey), notice: t("surveys.created")
     else
@@ -81,6 +82,15 @@ class Admin::SurveysController < Admin::BaseController
     respond_to do |format|
       format.json { render json: { ok: true, status: "closed" } }
       format.html { redirect_to results_survey_path(@survey), notice: t("surveys.closed") }
+    end
+  end
+
+  def reopen
+    @survey.update!(status: :active)
+    audit_log("survey.reopen", resource: @survey)
+    respond_to do |format|
+      format.json { render json: { ok: true, status: "active" } }
+      format.html { redirect_to results_survey_path(@survey), notice: t("surveys.reopened") }
     end
   end
 
