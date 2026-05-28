@@ -46,7 +46,7 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   def close
     @board.update!(status: :closed)
     audit_log("feedback_board.close", resource: @board)
-    redirect_to feedback_boards_path
+    redirect_to feedback_board_path(@board), notice: t("feedback_boards.closed")
   end
 
   def reopen
