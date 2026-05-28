@@ -169,5 +169,7 @@ Rails.application.routes.draw do
   end
 
   # Catch-all: phải đặt cuối cùng — bắt mọi URL không khớp
-  match "*unmatched_path", to: "errors#not_found", via: :all
+  # Loại trừ /rails/... để ActiveStorage & các engine nội bộ hoạt động đúng
+  match "*unmatched_path", to: "errors#not_found", via: :all,
+        constraints: ->(req) { !req.path.start_with?("/rails/") }
 end
