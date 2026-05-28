@@ -312,6 +312,19 @@ function updateRowStatus(id, newStatus) {
   actionsDiv.innerHTML = html;
 }
 
+function submitPatchForm(url) {
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.action = url;
+  const m = document.createElement('input');
+  m.type = 'hidden'; m.name = '_method'; m.value = 'patch';
+  const t = document.createElement('input');
+  t.type = 'hidden'; t.name = 'authenticity_token'; t.value = CSRF;
+  form.appendChild(m); form.appendChild(t);
+  document.body.appendChild(form);
+  form.submit();
+}
+
 async function surveyAction(type, id) {
   const actionsDiv = document.getElementById('survey-actions-' + id);
   if (!actionsDiv) return;
@@ -324,17 +337,17 @@ async function surveyAction(type, id) {
   const url = urlMap[type];
   if (!url) return;
 
+  // Close and reopen: submit real HTML form so server can set flash + redirect
+  if (type === 'close' || type === 'reopen') {
+    submitPatchForm(url);
+    return;
+  }
+
   const res = await fetch(url, {
     method: 'PATCH',
     headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json', 'Content-Type': 'application/json' }
   });
   if (!res.ok) return;
-
-  // Close and reopen navigate to the detail (results) page
-  if (type === 'close' || type === 'reopen') {
-    window.location.href = actionsDiv.dataset.resultsUrl;
-    return;
-  }
 
   const newStatus = { publish: 'active', archive: 'archived' }[type];
   updateRowStatus(id, newStatus);
