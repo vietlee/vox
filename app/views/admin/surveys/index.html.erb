@@ -330,7 +330,13 @@ async function surveyAction(type, id) {
   });
   if (!res.ok) return;
 
-  const newStatus = { publish: 'active', close: 'closed', reopen: 'active', archive: 'archived' }[type];
+  // Close and reopen navigate to the detail (results) page
+  if (type === 'close' || type === 'reopen') {
+    window.location.href = actionsDiv.dataset.resultsUrl;
+    return;
+  }
+
+  const newStatus = { publish: 'active', archive: 'archived' }[type];
   updateRowStatus(id, newStatus);
 }
 
