@@ -19,6 +19,7 @@ class Admin::FeedbackBoardsController < Admin::BaseController
     @board = current_workspace.feedback_boards.build(board_params)
     @board.user = current_user
     if @board.save
+      audit_log("feedback_board.create", resource: @board)
       redirect_to feedback_board_path(@board), notice: t("feedback_boards.created")
     else
       render :new, status: :unprocessable_entity
@@ -30,6 +31,7 @@ class Admin::FeedbackBoardsController < Admin::BaseController
 
   def update
     if @board.update(board_params)
+      audit_log("feedback_board.update", resource: @board)
       redirect_to edit_feedback_board_path(@board), notice: t("feedback_boards.updated")
     else
       render :edit, status: :unprocessable_entity
@@ -43,6 +45,7 @@ class Admin::FeedbackBoardsController < Admin::BaseController
 
   def close
     @board.update!(status: :closed)
+    audit_log("feedback_board.close", resource: @board)
     redirect_to feedback_boards_path
   end
 
