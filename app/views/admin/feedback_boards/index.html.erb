@@ -100,11 +100,11 @@
                     <%= t("feedback_boards.reopen", default: "Mở lại") %>
                   <% end %>
                 <% end %>
-                <%= button_to feedback_board_path(board), method: :delete,
-                      data: { confirm: t("feedback_boards.delete_confirm", default: "Xoá bảng góp ý này? Hành động không thể hoàn tác.") },
-                      class: "px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 font-medium border-0 cursor-pointer" do %>
+                <button type="button"
+                        onclick="showFbDeleteConfirm('<%= feedback_board_path(board) %>', '<%= j board.title %>')"
+                        class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 font-medium border-0 cursor-pointer">
                   <%= t("surveys.delete") %>
-                <% end %>
+                </button>
               </div>
             </td>
           </tr>
@@ -152,3 +152,42 @@
     </div>
   <% end %>
 </div>
+
+<!-- Delete confirm modal -->
+<div id="fb-delete-modal" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 w-full h-full flex items-center justify-center bg-black/40 backdrop-blur-sm"
+       onclick="closeFbDeleteConfirm()">
+    <div class="bg-white rounded-2xl shadow-2xl w-[400px] max-w-full mx-4 p-6" onclick="event.stopPropagation()">
+      <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl" style="background:#fee2e2;">🗑️</div>
+      <h3 class="text-[17px] font-bold text-slate-900 text-center mb-2"><%= t("feedback_boards.delete_title", default: "Xoá bảng góp ý?") %></h3>
+      <p id="fb-delete-body" class="text-[13px] text-slate-500 text-center leading-relaxed mb-6"></p>
+      <div class="flex gap-3">
+        <button onclick="closeFbDeleteConfirm()"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 border-0 cursor-pointer">
+          <%= t("feedback_boards.form.cancel") %>
+        </button>
+        <form id="fb-delete-form" method="post" class="flex-1">
+          <input type="hidden" name="_method" value="delete">
+          <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+          <button type="submit"
+            class="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white border-0 cursor-pointer"
+            style="background:#ef4444;">
+            <%= t("surveys.delete") %>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showFbDeleteConfirm(url, title) {
+  document.getElementById('fb-delete-form').action = url;
+  document.getElementById('fb-delete-body').textContent =
+    "Bảng \"" + title + "\" sẽ bị xoá vĩnh viễn cùng toàn bộ góp ý bên trong. Hành động không thể hoàn tác.";
+  document.getElementById('fb-delete-modal').classList.remove('hidden');
+}
+function closeFbDeleteConfirm() {
+  document.getElementById('fb-delete-modal').classList.add('hidden');
+}
+</script>
