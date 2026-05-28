@@ -35,8 +35,10 @@
         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-slate-700 transition-colors">
         ⏹ <%= t("surveys.close_action") %>
       </button>
-      <%= button_to close_survey_path(@survey), method: :patch, id: "survey-close-form",
-          class: "hidden" %>
+      <form id="survey-close-form" action="<%= close_survey_path(@survey) %>" method="post" class="hidden">
+        <%= hidden_field_tag :_method, :patch %>
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+      </form>
     <% elsif @survey.closed? %>
       <%= button_to reopen_survey_path(@survey), method: :patch,
           class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 text-emerald-600 transition-colors" do %>
@@ -803,7 +805,7 @@ function hideSurveyCloseConfirm() {
           class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer border-0">
           <%= t("surveys.cancel") %>
         </button>
-        <button onclick="document.getElementById('survey-close-form').click()"
+        <button onclick="document.getElementById('survey-close-form').requestSubmit()"
           class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer border-0">
           <%= t("surveys.close_action") %>
         </button>
