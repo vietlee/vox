@@ -31,11 +31,12 @@
   </div>
   <div class="flex gap-2">
     <% if @survey.active? %>
-      <%= button_to close_survey_path(@survey), method: :patch,
-          class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-slate-700 transition-colors",
-          data: { turbo_confirm: t("surveys.close_confirm", default: "Đóng khảo sát này?") } do %>
+      <button onclick="showSurveyCloseConfirm()"
+        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-slate-700 transition-colors">
         ⏹ <%= t("surveys.close_action") %>
-      <% end %>
+      </button>
+      <%= button_to close_survey_path(@survey), method: :patch, id: "survey-close-form",
+          class: "hidden" %>
     <% elsif @survey.closed? %>
       <%= button_to reopen_survey_path(@survey), method: :patch,
           class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 text-emerald-600 transition-colors" do %>
@@ -779,6 +780,34 @@ function startPdfExport(e) {
   return true;
 }
 
-Object.assign(window, { switchTab, toggleRow, requestAiAnalysis, requestReport, toggleReport, checkReport, startPdfExport });
+Object.assign(window, { switchTab, toggleRow, requestAiAnalysis, requestReport, toggleReport, checkReport, startPdfExport, showSurveyCloseConfirm, hideSurveyCloseConfirm });
 })();
+
+function showSurveyCloseConfirm() {
+  document.getElementById('survey-close-modal').classList.remove('hidden');
+}
+function hideSurveyCloseConfirm() {
+  document.getElementById('survey-close-modal').classList.add('hidden');
+}
 </script>
+
+<!-- Close Survey Confirm Modal -->
+<div id="survey-close-modal" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-[380px] max-w-full p-6">
+      <div class="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4 text-2xl">🔒</div>
+      <h3 class="text-[17px] font-bold text-slate-900 text-center mb-2"><%= t("surveys.close_modal_title", default: "Đóng khảo sát?") %></h3>
+      <p class="text-[13px] text-slate-500 text-center leading-relaxed mb-6"><%= t("surveys.close_modal_body", default: "Khảo sát sẽ ngừng nhận phản hồi. Bạn có thể mở lại bất cứ lúc nào.") %></p>
+      <div class="flex gap-3">
+        <button onclick="hideSurveyCloseConfirm()"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer border-0">
+          <%= t("surveys.cancel") %>
+        </button>
+        <button onclick="document.getElementById('survey-close-form').click()"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer border-0">
+          <%= t("surveys.close_action") %>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
