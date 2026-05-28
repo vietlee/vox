@@ -135,6 +135,7 @@ class Admin::SurveysController < Admin::BaseController
       end
     end
 
+    current_workspace.increment!(:surveys_created_count)
     audit_log("survey.clone", resource: copy)
     respond_to do |format|
       format.json { render json: { ok: true, redirect: edit_survey_path(copy) } }

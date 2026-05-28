@@ -527,17 +527,18 @@ async function generateAiSurvey() {
 }
 
 // ── Clone survey ──────────────────────────────────────────────────────────────
-async function cloneSurvey(id) {
+function cloneSurvey(id) {
   const actionsDiv = document.getElementById('survey-actions-' + id);
   const url = actionsDiv?.dataset.cloneUrl;
   if (!url) return;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json', 'Content-Type': 'application/json' }
-  });
-  if (!res.ok) return;
-  const data = await res.json();
-  if (data.redirect) window.location.href = data.redirect;
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.action = url;
+  const t = document.createElement('input');
+  t.type = 'hidden'; t.name = 'authenticity_token'; t.value = CSRF;
+  form.appendChild(t);
+  document.body.appendChild(form);
+  form.submit();
 }
 
 async function pollJobStatus(jobId, onDone) {
