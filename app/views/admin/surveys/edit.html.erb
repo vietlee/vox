@@ -21,8 +21,15 @@
       <%= link_to results_survey_path(@survey) + "#report", class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-700 transition-colors whitespace-nowrap" do %>
         📄 <%= t("surveys.results.tab_report").gsub(/\A📄\s*/, '') %>
       <% end %>
-      <%= link_to share_survey_path(@survey), class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 transition-colors whitespace-nowrap" do %>
-        🔗 <%= t("surveys.share_btn") %>
+      <% if @survey.active? || @survey.closed? %>
+        <%= link_to share_survey_path(@survey), class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 transition-colors whitespace-nowrap" do %>
+          🔗 <%= t("surveys.share_btn") %>
+        <% end %>
+      <% else %>
+        <span title="<%= I18n.locale == :vi ? 'Phát hành khảo sát trước khi chia sẻ' : 'Publish the survey before sharing' %>"
+              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-slate-50 border border-slate-200 text-slate-300 cursor-not-allowed whitespace-nowrap select-none">
+          🔗 <%= t("surveys.share_btn") %>
+        </span>
       <% end %>
     </div>
   </div>
