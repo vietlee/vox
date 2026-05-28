@@ -52,7 +52,7 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   def reopen
     @board.update!(status: :active)
     audit_log("feedback_board.reopen", resource: @board)
-    redirect_to feedback_boards_path, notice: t("feedback_boards.reopened")
+    redirect_to feedback_board_path(@board), notice: t("feedback_boards.reopened")
   end
 
   def export
