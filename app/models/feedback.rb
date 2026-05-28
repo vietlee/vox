@@ -30,7 +30,7 @@ class Feedback < ApplicationRecord
     if feedback_board&.public_identity?
       errors.add(:author_name, :blank) if author_name.blank?
     elsif feedback_board&.user_choice? && !anonymous? && author_name.blank?
-      errors.add(:author_name, :blank)
+      errors.add(:base, :must_choose_anonymous_or_name)
     end
   end
 

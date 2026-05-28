@@ -19,7 +19,7 @@ class Admin::FeedbackBoardsController < Admin::BaseController
     @board = current_workspace.feedback_boards.build(board_params)
     @board.user = current_user
     if @board.save
-      redirect_to feedback_board_feedbacks_path(@board), notice: t("feedback_boards.created")
+      redirect_to feedback_board_path(@board), notice: t("feedback_boards.created")
     else
       render :new, status: :unprocessable_entity
     end
