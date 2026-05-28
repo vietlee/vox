@@ -1,5 +1,5 @@
 class Admin::FeedbackBoardsController < Admin::BaseController
-  before_action :set_board, only: [:show, :edit, :update, :destroy, :close, :export, :ai_summarize]
+  before_action :set_board, only: [:show, :edit, :update, :destroy, :close, :reopen, :export, :ai_summarize]
 
   def index
     @q = params[:q].to_s.strip
@@ -47,6 +47,12 @@ class Admin::FeedbackBoardsController < Admin::BaseController
     @board.update!(status: :closed)
     audit_log("feedback_board.close", resource: @board)
     redirect_to feedback_boards_path
+  end
+
+  def reopen
+    @board.update!(status: :active)
+    audit_log("feedback_board.reopen", resource: @board)
+    redirect_to feedback_boards_path, notice: t("feedback_boards.reopened")
   end
 
   def export

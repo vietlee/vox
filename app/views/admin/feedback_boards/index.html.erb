@@ -94,6 +94,11 @@
                         class: "px-2.5 py-1 text-[11px] bg-amber-50 rounded-md text-amber-700 hover:bg-amber-100 font-medium border-0 cursor-pointer" do %>
                     <%= t("feedback_boards.show.close_board") %>
                   <% end %>
+                <% elsif board.closed? %>
+                  <%= button_to reopen_feedback_board_path(board), method: :patch,
+                        class: "px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 font-medium border-0 cursor-pointer" do %>
+                    <%= t("feedback_boards.reopen", default: "Mở lại") %>
+                  <% end %>
                 <% end %>
                 <%= button_to feedback_board_path(board), method: :delete,
                       data: { confirm: t("feedback_boards.delete_confirm", default: "Xoá bảng góp ý này? Hành động không thể hoàn tác.") },

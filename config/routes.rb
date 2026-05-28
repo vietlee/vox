@@ -122,6 +122,7 @@ Rails.application.routes.draw do
     resources :feedback_boards do
       member do
         patch :close
+        patch :reopen
         get   :export
         post  :ai_summarize
       end

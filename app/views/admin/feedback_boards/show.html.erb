@@ -22,6 +22,8 @@
       <%= link_to edit_feedback_board_path(@board), class: "inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors whitespace-nowrap" do %><%= t("feedback_boards.edit") %><% end %>
       <% if @board.active? %>
         <%= button_to close_feedback_board_path(@board), method: :patch, class: "inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors whitespace-nowrap" do %><%= t("feedback_boards.show.close_board") %><% end %>
+      <% elsif @board.closed? %>
+        <%= button_to reopen_feedback_board_path(@board), method: :patch, class: "inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 text-emerald-700 text-[13px] font-semibold rounded-lg transition-colors whitespace-nowrap" do %><%= t("feedback_boards.reopen", default: "Mở lại") %><% end %>
       <% end %>
     </div>
   </div>
