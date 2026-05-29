@@ -85,6 +85,10 @@ class Subscription < ApplicationRecord
   def feedbacks_remaining = max_feedbacks.nil? ? nil : [max_feedbacks - feedbacks_used, 0].max
   def feedbacks_pct = max_feedbacks.nil? ? 0 : [(feedbacks_used * 100.0 / max_feedbacks).round, 100].min
 
+  def supporters_used = workspace.workspace_memberships.active.where(role: :supporter).count
+  def supporters_remaining = max_supporters.nil? ? nil : [max_supporters - supporters_used, 0].max
+  def supporters_pct = max_supporters.nil? ? 0 : max_supporters == 0 ? 0 : [(supporters_used * 100.0 / max_supporters).round, 100].min
+
   def expires_soon?
     ends_at.present? && ends_at <= 7.days.from_now
   end

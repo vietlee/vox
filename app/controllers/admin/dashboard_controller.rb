@@ -9,6 +9,7 @@ class Admin::DashboardController < Admin::BaseController
     @votes_count      = @workspace.votes.count
     @feedbacks_count  = @workspace.feedback_boards.map { |b| b.feedbacks.count }.sum
     @responses_count  = Response.joins(:survey).where(surveys: { workspace_id: @workspace.id }).count
+    @supporters_count = @workspace.workspace_memberships.active.where(role: :supporter).count
 
     # Recent activity
     @active_surveys   = @workspace.surveys.active.order(created_at: :desc).limit(5)
