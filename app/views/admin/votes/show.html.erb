@@ -29,6 +29,11 @@
         <%= t("votes.show.present") %>
       <% end %>
     <% end %>
+    <% if @vote.closed? %>
+      <%= link_to results_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 text-[13px] font-semibold rounded-lg transition-colors" do %>
+        <%= t("votes.show.view_results") %>
+      <% end %>
+    <% end %>
     <%= link_to edit_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors" do %>
       <%= t("votes.show.edit") %>
     <% end %>
@@ -100,13 +105,6 @@
   </div>
 </div>
 
-<% if @vote.closed? %>
-  <div class="mt-4">
-    <%= link_to results_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 text-indigo-700 text-[13px] font-semibold rounded-lg hover:bg-indigo-100" do %>
-      <%= t("votes.show.view_results") %>
-    <% end %>
-  </div>
-<% end %>
 
 <% if @responses.any? %>
   <div class="mt-5 bg-white rounded-xl border border-slate-200 overflow-hidden">
