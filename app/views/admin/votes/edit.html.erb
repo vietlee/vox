@@ -441,20 +441,12 @@ async function deleteOption(id, btn) {
 async function uploadOptionImage(id, input) {
   const file = input.files[0];
   if (!file) return;
-  const fd = new FormData();
-  fd.append('image', file);
-  const res = await fetch(`/vote_options/${id}/update_image`, {
-    method: 'PATCH',
-    headers: { 'X-CSRF-Token': csrfToken },
-    body: fd
-  });
-  if (!res.ok) return;
-  const { url } = await res.json();
 
   const row = input.closest('.option-row');
   const labelRow = row.querySelector('.flex.items-center.gap-2');
 
-  // Update or insert thumbnail preview next to drag handle
+  // ── Show local preview instantly (no waiting for server) ──
+  const localUrl = URL.createObjectURL(file);
   let thumb = row.querySelector('.opt-img-thumb');
   if (!thumb) {
     thumb = document.createElement('img');
@@ -462,13 +454,13 @@ async function uploadOptionImage(id, input) {
     const handle = labelRow.querySelector('.w-5');
     handle.after(thumb);
   }
-  thumb.src = url;
+  thumb.src = localUrl;
 
-  // Update camera button style → green (has image)
+  // Turn camera button green immediately
   const camBtn = labelRow.querySelector('.img-upload-btn');
   if (camBtn) { camBtn.className = camBtn.className.replace('bg-transparent text-slate-300 hover:text-slate-500 hover:bg-slate-100', 'bg-emerald-100 text-emerald-600'); }
 
-  // Add remove button if not there
+  // Add remove button immediately if not there
   if (!labelRow.querySelector('.img-remove-btn')) {
     const rmBtn = document.createElement('button');
     rmBtn.type = 'button';
@@ -477,6 +469,25 @@ async function uploadOptionImage(id, input) {
     rmBtn.textContent = '✕';
     rmBtn.onclick = () => removeOptionImage(id, rmBtn);
     camBtn?.after(rmBtn);
+  }
+
+  // ── Upload in background, swap to server URL when done ──
+  const fd = new FormData();
+  fd.append('image', file);
+  const res = await fetch(`/vote_options/${id}/update_image`, {
+    method: 'PATCH',
+    headers: { 'X-CSRF-Token': csrfToken },
+    body: fd
+  });
+  URL.revokeObjectURL(localUrl); // free memory
+  if (res.ok) {
+    const { url } = await res.json();
+    thumb.src = url; // swap to permanent server URL
+  } else {
+    // Upload failed — revert UI
+    thumb.remove();
+    if (camBtn) { camBtn.className = camBtn.className.replace('bg-emerald-100 text-emerald-600', 'bg-transparent text-slate-300 hover:text-slate-500 hover:bg-slate-100'); }
+    labelRow.querySelector('.img-remove-btn')?.remove();
   }
   input.value = '';
 }
