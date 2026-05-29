@@ -99,6 +99,19 @@
 
       <!-- Already voted state -->
       <div id="already-voted" class="<%= @already_voted ? '' : 'hidden' %> fade-in">
+        <%# Banner: only shown when revisiting after having voted (server-side flag) %>
+        <% if @already_voted %>
+          <div class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl mb-3"
+               style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25);">
+            <svg class="w-4 h-4 flex-shrink-0" style="color:#d97706;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-[12px] font-semibold" style="color:#92400e;">
+              <%= I18n.locale == :vi ? "Bạn đã bình chọn trước đó rồi." : "You have already submitted a response." %>
+            </p>
+          </div>
+        <% end %>
+
         <div class="text-center py-10 px-6 rounded-2xl mb-4" style="background:#ffffff; border:1px solid rgba(99,102,241,0.15); box-shadow:0 8px 32px rgba(99,102,241,0.08);">
           <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:linear-gradient(135deg,#6366f1,#a855f7);">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
