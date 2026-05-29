@@ -1,7 +1,7 @@
 class Admin::VoteOptionsController < Admin::BaseController
   before_action :require_admin!
   before_action :set_vote, only: [:create]
-  before_action :set_option, only: [:update, :destroy]
+  before_action :set_option, only: [:update, :destroy, :update_image, :destroy_image]
 
   def create
     return head :forbidden if @vote.active?
@@ -36,6 +36,19 @@ class Admin::VoteOptionsController < Admin::BaseController
   def destroy
     return head :forbidden if @option.vote.active?
     @option.destroy
+    head :no_content
+  end
+
+  def update_image
+    return head :forbidden if @option.vote.active?
+    return render json: { error: "No image" }, status: :unprocessable_entity unless params[:image].present?
+    @option.image.attach(params[:image])
+    render json: { url: rails_blob_path(@option.image, only_path: true) }
+  end
+
+  def destroy_image
+    return head :forbidden if @option.vote.active?
+    @option.image.purge
     head :no_content
   end
 

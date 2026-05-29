@@ -57,20 +57,23 @@
           <span id="type-desc"></span>
         </div>
 
-        <!-- Options (hidden for word_cloud, open_ended, qa_upvote) -->
-        <div id="options-wrap">
-          <label class="block text-[12px] font-semibold text-slate-700 mb-2"><%= t("votes.form.options") %></label>
-          <div id="options-list" class="space-y-2">
-            <% 2.times do |i| %>
-              <div class="flex gap-2 option-row">
-                <input type="text" name="vote[vote_options_attributes][<%= i %>][label]"
-                  placeholder="<%= t("votes.form.option_placeholder", n: i + 1) %>"
-                  class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none">
-              </div>
-            <% end %>
+        <!-- Next-step hint: options are added in the edit screen -->
+        <div id="options-next-step-hint" class="rounded-xl px-4 py-3.5 flex items-start gap-3"
+             style="background:linear-gradient(135deg,#eef2ff,#f5f3ff); border:1px solid #c7d2fe;">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+               style="background:#6366f1;">
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
           </div>
-          <button type="button" onclick="addOption()"
-            class="mt-2 text-[12px] text-indigo-600 hover:text-indigo-700 font-medium"><%= t("votes.form.add_option") %></button>
+          <div>
+            <p class="text-[12px] font-bold text-indigo-700 mb-0.5">
+              <%= I18n.locale == :vi ? "Các lựa chọn sẽ được thêm ở bước tiếp theo" : "Options will be added in the next step" %>
+            </p>
+            <p class="text-[11px] text-indigo-500 leading-relaxed">
+              <%= I18n.locale == :vi ? "Sau khi tạo vote, bạn sẽ được chuyển đến màn hình chỉnh sửa để thêm, sắp xếp và tuỳ chỉnh từng lựa chọn." : "After creating the vote, you'll be taken to the edit screen to add and customize each option." %>
+            </p>
+          </div>
         </div>
 
         <div class="flex gap-2 pt-4 border-t border-slate-100">
@@ -84,38 +87,36 @@
 
 <script>
 const TYPE_INFO = {
-  single_choice:   { icon: '☑️',  desc: '<%= j t("votes.type_desc.single_choice") %>',   hasOptions: true  },
-  multiple_choice: { icon: '✅',  desc: '<%= j t("votes.type_desc.multiple_choice") %>', hasOptions: true  },
-  ranking:         { icon: '🏆',  desc: '<%= j t("votes.type_desc.ranking") %>',         hasOptions: true  },
-  word_cloud:      { icon: '☁️',  desc: '<%= j t("votes.type_desc.word_cloud") %>',      hasOptions: false },
-  open_ended:      { icon: '📝',  desc: '<%= j t("votes.type_desc.open_ended") %>',      hasOptions: false },
-  qa_upvote:       { icon: '🙋',  desc: '<%= j t("votes.type_desc.qa_upvote") %>',       hasOptions: false },
+  single_choice:   { icon: '☑️',  desc: '<%= j t("votes.type_desc.single_choice") %>'   },
+  multiple_choice: { icon: '✅',  desc: '<%= j t("votes.type_desc.multiple_choice") %>' },
+  ranking:         { icon: '🏆',  desc: '<%= j t("votes.type_desc.ranking") %>'         },
+  word_cloud:      { icon: '☁️',  desc: '<%= j t("votes.type_desc.word_cloud") %>'      },
+  open_ended:      { icon: '📝',  desc: '<%= j t("votes.type_desc.open_ended") %>'      },
+  qa_upvote:       { icon: '🙋',  desc: '<%= j t("votes.type_desc.qa_upvote") %>'       },
 };
-
-let optionIdx = 2;
 
 function onTypeChange(val) {
   const info = TYPE_INFO[val] || TYPE_INFO['single_choice'];
   document.getElementById('type-icon').textContent = info.icon + ' ';
   document.getElementById('type-desc').innerHTML = info.desc;
-  document.getElementById('options-wrap').style.display = info.hasOptions ? '' : 'none';
-}
-
-function addOption() {
-  const list = document.getElementById('options-list');
-  const div = document.createElement('div');
-  div.className = 'flex gap-2 option-row';
-  optionIdx++;
-  const placeholder = "<%= j t("votes.form.option_placeholder", n: "IDX") %>".replace('IDX', optionIdx);
-  div.innerHTML = `<input type="text" name="vote[vote_options_attributes][${optionIdx}][label]" placeholder="${placeholder}" class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none">`;
-  list.appendChild(div);
 }
 
 function onIdentityChange(val) {
   document.getElementById('sso-providers-wrap').style.display = val === 'sso_required' ? '' : 'none';
 }
 
-// Init on page load
-onTypeChange(document.querySelector('select[name="vote[vote_type]"]')?.value || 'single_choice');
-onIdentityChange(document.querySelector('select[name="vote[identity_mode]"]')?.value || 'anonymous');
+// Init on page load — use turbo:load so it fires on both Turbo navigation and hard refresh
+function initNewVotePage() {
+  const typeSelect = document.querySelector('select[name="vote[vote_type]"]');
+  if (!typeSelect) return;
+  onTypeChange(typeSelect.value || 'single_choice');
+  onIdentityChange(document.querySelector('select[name="vote[identity_mode]"]')?.value || 'anonymous');
+}
+document.addEventListener('turbo:load', initNewVotePage);
+// Fallback for non-Turbo environments
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initNewVotePage);
+} else {
+  initNewVotePage();
+}
 </script>

@@ -54,8 +54,10 @@ class Vote < ApplicationRecord
   end
 
   def results_by_option
-    vote_options.map do |opt|
-      { id: opt.id, label: opt.label, description: opt.description.to_s, count: opt.votes_count, percentage: total_votes > 0 ? (opt.votes_count.to_f / total_votes * 100).round(1) : 0 }
+    vote_options.includes(:image_attachment, :image_blob).map do |opt|
+      { id: opt.id, label: opt.label, description: opt.description.to_s,
+        image_url: opt.image_path,
+        count: opt.votes_count, percentage: total_votes > 0 ? (opt.votes_count.to_f / total_votes * 100).round(1) : 0 }
     end
   end
 

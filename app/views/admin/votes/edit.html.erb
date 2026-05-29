@@ -183,17 +183,35 @@
       </div>
 
       <div id="options-list" class="space-y-2 mb-4">
-        <% @vote.vote_options.each do |opt| %>
+        <% @vote.vote_options.includes(:image_attachment, :image_blob).each do |opt| %>
           <div class="option-row rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden" data-id="<%= opt.id %>" draggable="<%= editable %>" style="<%= editable ? 'cursor:grab;' : '' %>">
             <!-- Label row -->
             <div class="flex items-center gap-2 px-2 py-1.5">
               <div class="w-5 text-center text-slate-300 text-[13px] select-none flex-shrink-0" style="<%= editable ? 'cursor:grab;' : '' %>">≡</div>
+              <% if opt.image.attached? %>
+                <img src="<%= url_for(opt.image) %>" class="w-7 h-7 rounded-lg object-cover flex-shrink-0 border border-slate-200">
+              <% end %>
               <input type="text" value="<%= opt.label %>"
                 class="flex-1 px-2 py-1.5 bg-transparent border-0 text-[13px] font-medium text-slate-800 focus:outline-none focus:bg-white focus:rounded-lg <%= 'text-slate-400 cursor-not-allowed' unless editable %>"
                 <%= "readonly disabled" unless editable %>
                 onblur="<%= editable ? "updateOptionLabel(#{opt.id}, this.value)" : "" %>"
                 onkeydown="if(event.key==='Enter'){this.blur();}">
               <% if editable %>
+                <%# Image upload button %>
+                <button type="button" onclick="document.getElementById('img-input-<%= opt.id %>').click()"
+                  data-opt-id="<%= opt.id %>"
+                  title="<%= opt.image.attached? ? 'Đổi ảnh' : 'Thêm ảnh' %>"
+                  class="img-upload-btn w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-colors border-0 cursor-pointer overflow-hidden <%= opt.image.attached? ? 'bg-emerald-100 text-emerald-600' : 'bg-transparent text-slate-300 hover:text-slate-500 hover:bg-slate-100' %>">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </button>
+                <input type="file" accept="image/*" style="display:none" id="img-input-<%= opt.id %>"
+                       onchange="uploadOptionImage(<%= opt.id %>, this)">
+                <% if opt.image.attached? %>
+                  <button type="button" onclick="removeOptionImage(<%= opt.id %>, this)"
+                    title="Xóa ảnh"
+                    class="w-5 h-5 flex-shrink-0 flex items-center justify-center text-slate-300 hover:text-red-400 rounded transition-colors border-0 bg-transparent cursor-pointer text-[13px] font-bold">✕</button>
+                <% end %>
+                <%# Description toggle %>
                 <button type="button" onclick="toggleDesc(this)"
                   title="<%= opt.description.present? ? 'Đang có mô tả' : 'Thêm mô tả' %>"
                   class="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg text-[11px] font-bold transition-colors border-0 cursor-pointer <%= opt.description.present? ? 'bg-indigo-100 text-indigo-600' : 'bg-transparent text-slate-300 hover:text-slate-500 hover:bg-slate-100' %>">
@@ -207,7 +225,7 @@
               <div class="desc-wrap <%= opt.description.present? ? '' : 'hidden' %> px-3 pb-3">
                 <div class="rounded-lg border border-slate-200 overflow-hidden bg-white quill-wrap"
                      data-opt-id="<%= opt.id %>"
-                     data-content="<%= CGI.escapeHTML(opt.description.to_s) %>">
+                     data-content="<%= opt.description.to_s %>">
                   <%# Quill mounts here via JS %>
                 </div>
               </div>
@@ -225,9 +243,10 @@
         <div class="flex gap-2">
           <input type="text" id="new-option-input" placeholder="<%= j t("votes.edit.add_option_placeholder") %>"
             class="flex-1 px-3 py-2 border border-dashed border-slate-300 rounded-lg text-[13px] focus:border-indigo-400 outline-none"
-            onkeydown="if(event.key==='Enter'){addOption();}">
-          <button type="button" onclick="addOption()" class="px-4 py-2 bg-slate-800 text-white text-[12px] font-semibold rounded-lg hover:bg-slate-700"><%= t("votes.edit.add_btn") %></button>
+            onkeydown="if(event.key==='Enter' && !event.isComposing){addOption();}">
+          <button type="button" onclick="addOption()" class="px-4 py-2 bg-slate-800 text-white text-[12px] font-semibold rounded-lg hover:bg-slate-700">Lưu</button>
         </div>
+        <button type="button" onclick="addOption()" class="mt-2 text-[12px] text-indigo-600 hover:text-indigo-700 font-medium">+ Thêm lựa chọn</button>
       <% end %>
     </div>
 
@@ -372,6 +391,13 @@ async function addOption() {
         class="flex-1 px-2 py-1.5 bg-transparent border-0 text-[13px] font-medium text-slate-800 focus:outline-none focus:bg-white focus:rounded-lg"
         onblur="updateOptionLabel(${opt.id}, this.value)"
         onkeydown="if(event.key==='Enter'){this.blur();}">
+      <button type="button" onclick="document.getElementById('img-input-${opt.id}').click()"
+        data-opt-id="${opt.id}" title="Thêm ảnh"
+        class="img-upload-btn w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-colors border-0 cursor-pointer bg-transparent text-slate-300 hover:text-slate-500 hover:bg-slate-100">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </button>
+      <input type="file" accept="image/*" style="display:none" id="img-input-${opt.id}"
+             onchange="uploadOptionImage(${opt.id}, this)">
       <button type="button" onclick="toggleDesc(this)" title="Thêm mô tả"
         class="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg text-[11px] font-bold transition-colors border-0 cursor-pointer bg-transparent text-slate-300 hover:text-slate-500 hover:bg-slate-100">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h7"/></svg>
@@ -410,6 +436,68 @@ async function deleteOption(id, btn) {
   if (!confirm(DELETE_OPTION_CONFIRM)) return;
   const res = await fetch(`/vote_options/${id}`, { method: 'DELETE', headers: { 'X-CSRF-Token': csrfToken } });
   if (res.ok) btn.closest('.option-row').remove();
+}
+
+async function uploadOptionImage(id, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('image', file);
+  const res = await fetch(`/vote_options/${id}/update_image`, {
+    method: 'PATCH',
+    headers: { 'X-CSRF-Token': csrfToken },
+    body: fd
+  });
+  if (!res.ok) return;
+  const { url } = await res.json();
+
+  const row = input.closest('.option-row');
+  const labelRow = row.querySelector('.flex.items-center.gap-2');
+
+  // Update or insert thumbnail preview next to drag handle
+  let thumb = row.querySelector('.opt-img-thumb');
+  if (!thumb) {
+    thumb = document.createElement('img');
+    thumb.className = 'opt-img-thumb w-7 h-7 rounded-lg object-cover flex-shrink-0 border border-slate-200';
+    const handle = labelRow.querySelector('.w-5');
+    handle.after(thumb);
+  }
+  thumb.src = url;
+
+  // Update camera button style → green (has image)
+  const camBtn = labelRow.querySelector('.img-upload-btn');
+  if (camBtn) { camBtn.className = camBtn.className.replace('bg-transparent text-slate-300 hover:text-slate-500 hover:bg-slate-100', 'bg-emerald-100 text-emerald-600'); }
+
+  // Add remove button if not there
+  if (!labelRow.querySelector('.img-remove-btn')) {
+    const rmBtn = document.createElement('button');
+    rmBtn.type = 'button';
+    rmBtn.className = 'img-remove-btn w-5 h-5 flex-shrink-0 flex items-center justify-center text-slate-300 hover:text-red-400 rounded transition-colors border-0 bg-transparent cursor-pointer text-[13px] font-bold';
+    rmBtn.title = 'Xóa ảnh';
+    rmBtn.textContent = '✕';
+    rmBtn.onclick = () => removeOptionImage(id, rmBtn);
+    camBtn?.after(rmBtn);
+  }
+  input.value = '';
+}
+
+async function removeOptionImage(id, btn) {
+  const res = await fetch(`/vote_options/${id}/destroy_image`, {
+    method: 'DELETE',
+    headers: { 'X-CSRF-Token': csrfToken }
+  });
+  if (!res.ok) return;
+
+  const row = btn.closest('.option-row');
+  const labelRow = row.querySelector('.flex.items-center.gap-2');
+
+  // Remove thumbnail
+  row.querySelector('.opt-img-thumb')?.remove();
+  // Remove remove-button
+  btn.remove();
+  // Reset camera button style
+  const camBtn = labelRow.querySelector('.img-upload-btn');
+  if (camBtn) { camBtn.className = camBtn.className.replace('bg-emerald-100 text-emerald-600', 'bg-transparent text-slate-300 hover:text-slate-500 hover:bg-slate-100'); }
 }
 
 function escHtml(str) {

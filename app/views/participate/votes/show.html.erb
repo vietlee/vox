@@ -133,13 +133,14 @@
           <div class="space-y-3" id="options-list">
             <% @options.each do |option| %>
               <% _desc = render_vote_desc(option.description) %>
+              <% _has_img = option.image.attached? %>
               <div data-id="<%= option.id %>"
                 class="option-btn rounded-2xl border-2 cursor-pointer"
                 style="background:#ffffff; border-color:#e2e8f0; box-shadow:0 2px 12px rgba(0,0,0,0.04);"
                 onclick="selectOption(this)">
 
                 <%# ── Radio / label row ── %>
-                <div class="flex items-center gap-4 px-5 pt-4 <%= _desc ? 'pb-2' : 'pb-4' %>">
+                <div class="flex items-center gap-3 px-4 pt-4 <%= (_desc || _has_img) ? 'pb-2' : 'pb-4' %>">
                   <% if @vote.multiple_choice? %>
                     <span class="radio-dot flex-shrink-0 w-5 h-5 rounded-md border-2 border-slate-300 flex items-center justify-center transition-all">
                       <span class="text-white text-[11px] font-black opacity-0 transition-opacity duration-150">✓</span>
@@ -152,16 +153,26 @@
                   <span class="text-[15px] font-semibold text-slate-800 leading-snug"><%= option.label %></span>
                 </div>
 
-                <%# ── Description row (outside label, inside card) ── %>
-                <% if _desc %>
-                  <div class="px-5 pb-3 border-t border-slate-100 pt-2.5" onclick="event.stopPropagation()">
-                    <div class="option-desc-html desc-collapsed"><%= _desc %></div>
-                    <button type="button" class="desc-toggle-btn" onclick="toggleDesc(this)">
-                      <span class="desc-label"><%= I18n.locale == :vi ? "Xem thêm" : "Show more" %></span>
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="2,4 6,8 10,4"/>
-                      </svg>
-                    </button>
+                <%# ── Image + Description row ── %>
+                <% if _has_img || _desc %>
+                  <div class="flex items-start gap-3 px-4 pb-4 border-t border-slate-100 pt-3" onclick="event.stopPropagation()">
+                    <% if _has_img %>
+                      <img src="<%= url_for(option.image) %>"
+                        class="flex-shrink-0 rounded-xl object-contain bg-slate-50"
+                        style="width:clamp(48px,12vw,80px); height:clamp(48px,12vw,80px);"
+                        alt="">
+                    <% end %>
+                    <% if _desc %>
+                      <div class="flex-1 min-w-0">
+                        <div class="option-desc-html desc-collapsed"><%= _desc %></div>
+                        <button type="button" class="desc-toggle-btn" onclick="toggleDesc(this)">
+                          <span class="desc-label"><%= I18n.locale == :vi ? "Xem thêm" : "Show more" %></span>
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="2,4 6,8 10,4"/>
+                          </svg>
+                        </button>
+                      </div>
+                    <% end %>
                   </div>
                 <% end %>
               </div>

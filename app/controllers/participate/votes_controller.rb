@@ -6,7 +6,7 @@ class Participate::VotesController < Participate::BaseController
     unless @vote.active?
       render :closed and return
     end
-    @options = @vote.vote_options
+    @options = @vote.vote_options.includes(:image_attachment, :image_blob)
     @already_voted = !@vote.allow_multiple_votes? && already_voted?
     @seconds_remaining = @vote.seconds_remaining
   end

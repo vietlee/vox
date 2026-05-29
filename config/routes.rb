@@ -117,6 +117,10 @@ Rails.application.routes.draw do
       end
       resources :vote_options, only: [:create, :update, :destroy], shallow: true do
         collection { patch :reorder }
+        member do
+          patch  :update_image
+          delete :destroy_image
+        end
       end
     end
 
