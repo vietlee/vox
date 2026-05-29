@@ -16,6 +16,14 @@ class Admin::MembersController < Admin::BaseController
     email = params[:user][:email].to_s.strip.downcase
     name  = params[:user][:name].to_s.strip
 
+    # Check supporter limit against subscription
+    sub = current_workspace.current_subscription
+    if sub && !sub.within_supporter_limit?
+      @member = User.new(email: email, name: name)
+      @member.errors.add(:base, t("members.supporter_limit_reached"))
+      return render :new, status: :unprocessable_entity
+    end
+
     # Check if already an ACTIVE member of this workspace
     existing_user = User.find_by(email: email)
     if existing_user && current_workspace.workspace_memberships.active.exists?(user: existing_user)

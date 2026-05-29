@@ -67,6 +67,12 @@ class Subscription < ApplicationRecord
     max_feedbacks.nil? || workspace.feedbacks_created_count < max_feedbacks
   end
 
+  def within_supporter_limit?
+    return true if max_supporters.nil?
+    current_count = workspace.workspace_memberships.active.where(role: :supporter).count
+    current_count < max_supporters
+  end
+
   def surveys_used      = workspace.surveys_created_count
   def surveys_remaining = max_surveys.nil? ? nil : [max_surveys - surveys_used, 0].max
   def surveys_pct       = max_surveys.nil? ? 0 : [(surveys_used * 100.0 / max_surveys).round, 100].min
