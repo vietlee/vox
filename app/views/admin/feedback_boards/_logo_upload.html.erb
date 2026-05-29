@@ -1,0 +1,210 @@
+<%# Cropper.js CSS (loaded once — guarded by a flag) %>
+<% unless content_for?(:logo_cropper_loaded) %>
+  <% content_for :logo_cropper_loaded, true %>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" crossorigin="anonymous">
+<% end %>
+
+<div id="logo-upload-section">
+  <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">
+    <%= t("feedback_boards.form.logo", default: "Logo") %>
+  </label>
+
+  <%# Current logo / live preview %>
+  <div id="logo-preview-wrap" class="<%= @board.logo.attached? ? '' : 'hidden' %> mb-3">
+    <img id="logo-preview-img"
+         src="<%= @board.logo.attached? ? url_for(@board.logo) : '' %>"
+         alt="Logo"
+         class="rounded-xl object-contain border border-slate-200 bg-slate-50 p-1.5"
+         style="max-height:80px; max-width:220px; display:block;">
+  </div>
+
+  <%# Remove checkbox (only meaningful when a logo is already saved) %>
+  <% if @board.logo.attached? %>
+    <label class="flex items-center gap-1.5 text-[11px] text-red-500 cursor-pointer mb-2" id="remove-logo-label">
+      <input type="checkbox" name="feedback_board[remove_logo]" value="1" id="remove-logo-cb"
+             class="w-3.5 h-3.5 accent-red-500"
+             onchange="logoUpload.toggleRemove(this.checked)">
+      <%= t("feedback_boards.form.remove_logo", default: "Xoá logo") %>
+    </label>
+  <% end %>
+
+  <%# File input (clicking this triggers crop modal for raster images) %>
+  <input type="file" id="logo-file-input" name="feedback_board[logo]" accept="image/*"
+         class="w-full text-[12px] text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[12px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+         onchange="logoUpload.onFileChange(this)">
+  <p class="text-[11px] text-slate-400 mt-1">
+    <%= t("feedback_boards.form.logo_hint", default: "PNG, JPG, SVG — tối đa 2MB. SVG được tải lên nguyên bản.") %>
+  </p>
+</div>
+
+<%# ── Crop Modal ── %>
+<div id="logo-crop-modal"
+     class="fixed inset-0 z-50 items-center justify-center"
+     style="display:none; background:rgba(15,23,42,0.55); backdrop-filter:blur(4px);"
+     onclick="if(event.target===this) logoUpload.cancelCrop()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full mx-4" style="max-width:400px;">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
+      <h3 class="text-[14px] font-bold text-slate-800">
+        <%= t("feedback_boards.form.crop_title", default: "Chỉnh sửa logo") %>
+      </h3>
+      <button type="button" onclick="logoUpload.cancelCrop()"
+              class="w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors border-0 bg-transparent cursor-pointer text-[16px]">✕</button>
+    </div>
+
+    <!-- Cropper area -->
+    <div class="px-5 pt-4">
+      <div class="rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center" style="height:260px;">
+        <img id="logo-crop-image" src="" alt="" style="max-width:100%; display:block; max-height:260px;">
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex items-center justify-center gap-2 px-5 pt-3">
+      <button type="button" onclick="logoUpload.cropper?.zoom(0.1)"
+              title="Phóng to"
+              class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[15px] cursor-pointer bg-white">＋</button>
+      <button type="button" onclick="logoUpload.cropper?.zoom(-0.1)"
+              title="Thu nhỏ"
+              class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[15px] cursor-pointer bg-white">－</button>
+      <div class="w-px h-5 bg-slate-200 mx-1"></div>
+      <button type="button" onclick="logoUpload.cropper?.rotate(-90)"
+              title="Xoay trái"
+              class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[17px] cursor-pointer bg-white">↺</button>
+      <button type="button" onclick="logoUpload.cropper?.rotate(90)"
+              title="Xoay phải"
+              class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[17px] cursor-pointer bg-white">↻</button>
+      <div class="w-px h-5 bg-slate-200 mx-1"></div>
+      <button type="button" onclick="logoUpload.cropper?.reset()"
+              title="Đặt lại"
+              class="text-[11px] px-2 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer bg-white font-medium">Reset</button>
+    </div>
+
+    <!-- Aspect ratio hints -->
+    <div class="flex items-center gap-1.5 px-5 pt-2 pb-1">
+      <span class="text-[10px] text-slate-400 font-medium uppercase tracking-wide mr-1">Tỉ lệ:</span>
+      <% [["Tự do", "NaN"], ["1:1", "1"], ["4:3", "1.333"], ["16:9", "1.778"], ["3:1", "3"]].each do |label, ratio| %>
+        <button type="button" onclick="logoUpload.setAspect(<%= ratio %>)"
+                class="px-2 py-0.5 text-[10px] rounded border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 cursor-pointer bg-white transition-colors font-medium">
+          <%= label %>
+        </button>
+      <% end %>
+    </div>
+
+    <!-- Footer buttons -->
+    <div class="flex gap-2 px-5 pt-3 pb-5">
+      <button type="button" onclick="logoUpload.cancelCrop()"
+              class="flex-1 py-2 rounded-lg text-[13px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer border-0">
+        <%= t("feedback_boards.form.cancel", default: "Huỷ") %>
+      </button>
+      <button type="button" onclick="logoUpload.applyCrop()"
+              class="flex-1 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer border-0">
+        <%= t("feedback_boards.form.apply_crop", default: "Áp dụng") %>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js" crossorigin="anonymous"></script>
+<script>
+const logoUpload = (() => {
+  let cropper = null;
+  let originalFile = null;
+
+  function onFileChange(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    originalFile = file;
+
+    // SVG: skip cropper — show preview directly
+    if (file.type === 'image/svg+xml') {
+      const url = URL.createObjectURL(file);
+      _showPreview(url);
+      return;
+    }
+
+    // Raster image: open cropper
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = document.getElementById('logo-crop-image');
+      img.src = e.target.result;
+      document.getElementById('logo-crop-modal').style.display = 'flex';
+
+      if (cropper) { cropper.destroy(); cropper = null; }
+      // Delay so modal is painted before Cropper initialises
+      setTimeout(() => {
+        cropper = new Cropper(img, {
+          viewMode: 1,
+          autoCropArea: 0.9,
+          movable: true,
+          zoomable: true,
+          scalable: true,
+          rotatable: true,
+          background: true,
+        });
+      }, 60);
+    };
+    reader.readAsDataURL(file);
+    // Clear the native input value — we'll replace with canvas blob
+    input.value = '';
+  }
+
+  function cancelCrop() {
+    document.getElementById('logo-crop-modal').style.display = 'none';
+    if (cropper) { cropper.destroy(); cropper = null; }
+  }
+
+  function applyCrop() {
+    if (!cropper) return;
+    const canvas = cropper.getCroppedCanvas({ maxWidth: 1200, maxHeight: 1200, imageSmoothingQuality: 'high' });
+    const mimeType = originalFile.type === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+    const quality  = mimeType === 'image/jpeg' ? 0.92 : undefined;
+
+    canvas.toBlob((blob) => {
+      const ext  = mimeType === 'image/jpeg' ? '.jpg' : '.png';
+      const name = originalFile.name.replace(/\.[^.]+$/, '') + ext;
+      const file = new File([blob], name, { type: mimeType });
+
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      document.getElementById('logo-file-input').files = dt.files;
+
+      _showPreview(canvas.toDataURL(mimeType, quality));
+      cancelCrop();
+    }, mimeType, quality);
+  }
+
+  function setAspect(ratio) {
+    if (!cropper) return;
+    const val = parseFloat(ratio);
+    cropper.setAspectRatio(isNaN(val) ? NaN : val);
+  }
+
+  function toggleRemove(checked) {
+    const wrap  = document.getElementById('logo-preview-wrap');
+    const input = document.getElementById('logo-file-input');
+    if (checked) {
+      wrap?.classList.add('hidden');
+      if (input) input.disabled = true;
+    } else {
+      wrap?.classList.remove('hidden');
+      if (input) input.disabled = false;
+    }
+  }
+
+  function _showPreview(src) {
+    const wrap = document.getElementById('logo-preview-wrap');
+    const img  = document.getElementById('logo-preview-img');
+    if (img) img.src = src;
+    wrap?.classList.remove('hidden');
+
+    // If "remove" was checked, uncheck it since user picked a new logo
+    const cb = document.getElementById('remove-logo-cb');
+    if (cb) cb.checked = false;
+    const input = document.getElementById('logo-file-input');
+    if (input) input.disabled = false;
+  }
+
+  return { onFileChange, cancelCrop, applyCrop, setAspect, toggleRemove, get cropper() { return cropper; } };
+})();
+</script>

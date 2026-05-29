@@ -24,6 +24,13 @@ class Admin::FeedbackBoardsController < Admin::BaseController
 
     @board = current_workspace.feedback_boards.build(board_params)
     @board.user = current_user
+
+    # Default to workspace's most recently uploaded logo if none provided
+    unless @board.logo.attached?
+      last_logo_board = current_workspace.feedback_boards.joins(:logo_attachment).order("active_storage_attachments.created_at DESC").first
+      @board.logo.attach(last_logo_board.logo.blob) if last_logo_board&.logo&.attached?
+    end
+
     if @board.save
       audit_log("feedback_board.create", resource: @board)
       current_workspace.increment!(:feedbacks_created_count)
@@ -37,7 +44,9 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   end
 
   def update
+    remove_logo = params.dig(:feedback_board, :remove_logo) == "1"
     if @board.update(board_params)
+      @board.logo.purge if remove_logo && @board.logo.attached?
       audit_log("feedback_board.update", resource: @board)
       redirect_to edit_feedback_board_path(@board), notice: t("feedback_boards.updated")
     else
@@ -102,6 +111,6 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   end
 
   def board_params
-    params.require(:feedback_board).permit(:title, :description, :identity_mode, :auto_moderation, :manual_approval, :allow_replies, :allow_upvotes)
+    params.require(:feedback_board).permit(:title, :description, :identity_mode, :auto_moderation, :manual_approval, :allow_replies, :allow_upvotes, :logo)
   end
 end

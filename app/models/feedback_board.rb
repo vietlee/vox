@@ -4,6 +4,7 @@ class FeedbackBoard < ApplicationRecord
   belongs_to :user
   has_many   :feedbacks,  dependent: :destroy
   has_one    :qr_code,    as: :resource, dependent: :destroy
+  has_one_attached :logo
 
   enum :status,        { active: 0, closed: 1, archived: 2 }
   enum :identity_mode, { anonymous: 0, public_identity: 1, user_choice: 2 }

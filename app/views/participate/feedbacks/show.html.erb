@@ -18,7 +18,13 @@
   <!-- Board header -->
   <div class="max-w-2xl mx-auto w-full px-4 pt-5 pb-5 fade-in">
     <div class="text-center mb-6">
-      <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-[28px] mx-auto mb-3" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 8px 24px rgba(99,102,241,0.3);">💬</div>
+      <% if @board.logo.attached? %>
+        <img src="<%= url_for(@board.logo) %>" alt="<%= @board.title %>"
+             class="object-contain mx-auto mb-3 rounded-xl"
+             style="max-height:80px; max-width:260px; box-shadow:0 4px 16px rgba(99,102,241,0.15);">
+      <% else %>
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-[28px] mx-auto mb-3" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 8px 24px rgba(99,102,241,0.3);">💬</div>
+      <% end %>
       <h1 class="text-[26px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @board.title %></h1>
       <% if @board.description.present? %>
         <p class="text-[14px] text-slate-500 mb-2"><%= @board.description %></p>
