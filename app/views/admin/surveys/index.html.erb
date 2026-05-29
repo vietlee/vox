@@ -20,7 +20,7 @@
     </div>
   </div>
   <div class="flex gap-2">
-    <button onclick="document.getElementById('ai-builder-modal').classList.remove('hidden')"
+    <button onclick="document.getElementById('ai-builder-modal').classList.remove('hidden'); var p=document.getElementById('ai-prompt'); p.value=''; document.getElementById('ai-submit-btn').disabled=true;"
       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-violet-50 hover:text-violet-700 hover:border-violet-300 text-slate-700 transition-colors">
       <%= t("surveys.ai_create") %> ✨
     </button>
@@ -180,9 +180,14 @@
     <div id="ai-builder-form">
       <label class="block text-[12px] font-semibold text-slate-700 mb-2"><%= t("surveys.ai_builder_label") %></label>
       <textarea id="ai-prompt" rows="4" placeholder="<%= j t("surveys.ai_builder_placeholder") %>"
+        oninput="document.getElementById('ai-submit-btn').disabled = !this.value.trim()"
         class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-none outline-none"></textarea>
       <div class="flex gap-2 mt-4">
-        <button onclick="generateAiSurvey()" class="flex-1 py-2 bg-violet-600 text-white text-[13px] font-semibold rounded-lg hover:bg-violet-700 transition-all">
+        <button id="ai-submit-btn" onclick="generateAiSurvey()" disabled
+          class="flex-1 py-2 text-white text-[13px] font-semibold rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          style="background:#7c3aed;"
+          onmouseenter="if(!this.disabled) this.style.background='#6d28d9'"
+          onmouseleave="this.style.background='#7c3aed'">
           <%= t("surveys.ai_builder_create") %>
         </button>
         <button onclick="document.getElementById('ai-builder-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200"><%= t("surveys.ai_builder_cancel") %></button>
