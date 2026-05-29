@@ -127,8 +127,11 @@
     </div>
   </div>
 
+  <!-- ── Centered main content ────────────────────────────────────────── -->
+  <div class="flex-1 flex flex-col justify-center" style="gap: clamp(16px, 4vw, 32px);">
+
   <!-- ── Title + desktop countdown ring ────────────────────────────────── -->
-  <div class="text-center mb-5 sm:mb-8">
+  <div class="text-center">
     <h1 class="font-extrabold leading-tight tracking-tight text-white"
         style="font-size:clamp(20px,5vw,44px); text-shadow:0 2px 32px rgba(129,140,248,0.25);">
       <%= @vote.title %>
@@ -160,11 +163,14 @@
   <% sorted    = @vote.results_by_option.sort_by { |r| -r[:count] }
      max_count = [sorted.first&.dig(:count).to_i, 1].max %>
 
-  <div id="vote-results" class="max-w-4xl mx-auto w-full flex flex-col sm:flex-1 sm:justify-center"
+  <div id="vote-results" class="max-w-4xl mx-auto w-full flex flex-col"
        style="gap: clamp(12px, 3vw, 24px);">
     <% @vote.results_by_option.each_with_index do |result, i| %>
-      <% color     = option_colors[i % option_colors.size]
-         is_leading = result[:count] == max_count && result[:count] > 0 %>
+      <% color      = option_colors[i % option_colors.size]
+         is_leading = result[:count] == max_count && result[:count] > 0
+         bar_pct    = [result[:percentage].to_f, result[:percentage].to_f > 0 ? 2 : 0].max
+         # Cap bubble position so it never overflows the right edge
+         bubble_left = bar_pct >= 96 ? "calc(100% - clamp(14px,3vw,18px))" : "#{bar_pct}%" %>
 
       <div class="vote-option-row"
            data-option-id="<%= result[:id] %>"
@@ -199,14 +205,14 @@
           </div>
         </div>
 
-        <!-- Bar track -->
-        <div class="relative" style="height:clamp(14px,3vw,18px); background:rgba(255,255,255,0.06); border-radius:99px;">
+        <!-- Bar track — right padding prevents bubble from touching edge -->
+        <div class="relative" style="height:clamp(14px,3vw,18px); background:rgba(255,255,255,0.06); border-radius:99px; padding-right: clamp(14px,3vw,18px);">
           <div class="option-bar absolute inset-y-0 left-0 rounded-full"
-               style="width:<%= [result[:percentage].to_f, result[:percentage].to_f > 0 ? 2 : 0].max %>%;
+               style="width:<%= bar_pct %>%;
                       background:linear-gradient(90deg, <%= color[:shadow] %>cc, <%= color[:shadow] %>);
                       box-shadow:0 0 14px 2px <%= color[:glow] %>;"></div>
           <div class="option-count absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full font-black text-white"
-               style="left:<%= [result[:percentage].to_f, result[:percentage].to_f > 0 ? 2 : 0].max %>%;
+               style="left:<%= bubble_left %>;
                       font-size:clamp(12px,2.5vw,16px);
                       min-width:clamp(24px,5vw,32px);
                       height:clamp(24px,5vw,32px);
@@ -222,7 +228,7 @@
   </div>
 
   <!-- ── AI Insight ─────────────────────────────────────────────────────── -->
-  <div id="ai-insight-box" class="hidden mt-6 max-w-3xl mx-auto w-full rounded-2xl overflow-hidden"
+  <div id="ai-insight-box" class="hidden max-w-3xl mx-auto w-full rounded-2xl overflow-hidden"
        style="background:linear-gradient(135deg,rgba(109,40,217,0.25),rgba(67,56,202,0.2)); border:1px solid rgba(167,139,250,0.3);">
     <div class="px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3"
          style="border-bottom:1px solid rgba(167,139,250,0.15);">
@@ -248,7 +254,7 @@
 
   <!-- ── QR Code — centered ─────────────────────────────────────────────── -->
   <% if @vote.qr_code&.token %>
-    <div class="text-center mt-6 sm:mt-8">
+    <div class="text-center">
       <div class="inline-block bg-white rounded-2xl"
            style="padding:clamp(8px,2vw,12px); box-shadow:0 0 32px rgba(129,140,248,0.2);">
         <img src="/qr/<%= @vote.qr_code.token %>/image" alt="QR"
@@ -258,6 +264,8 @@
          style="font-size:clamp(9px,2vw,12px);">Scan to vote</p>
     </div>
   <% end %>
+
+  </div><!-- /centered main content -->
 
 </div>
 
@@ -325,7 +333,8 @@ function updateResults(options, count) {
     const w   = Math.max(pct, pct > 0 ? 2 : 0) + '%';
     const bar = row.querySelector('.option-bar');
     bar.style.width    = w;
-    countEl.style.left = w;
+    // Cap bubble so it never overflows the right edge
+    countEl.style.left = pct >= 96 ? 'calc(100% - clamp(14px,3vw,18px))' : w;
 
     if (gained > 0) {
       const badge = document.createElement('span');
