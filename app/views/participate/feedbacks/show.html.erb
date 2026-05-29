@@ -64,14 +64,14 @@
               <% if @board.public_identity? %>required<% end %>
               class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
               style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
-              onfocus="this.style.borderColor='#6366f1';document.getElementById('name-error')?.classList.add('hidden')" onblur="this.style.borderColor='#e2e8f0'">
+              onfocus="this.style.borderColor='#6366f1';const ne=document.getElementById('name-error');if(ne)ne.style.display='none';" onblur="this.style.borderColor='#e2e8f0'">
             <input type="email" id="fb-email" name="feedback[author_email]" placeholder="<%= t("participate.feedback.email_placeholder") %>"
               class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
               style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
               onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
           <% if @board.user_choice? %>
-            <p id="name-error" class="hidden text-[12px] font-medium" style="color:#dc2626;">
+            <p id="name-error" style="display:none; color:#dc2626; font-size:12px; font-weight:500; margin-top:2px;">
               <%= t("participate.feedback.name_or_anonymous_required", default: "Vui lòng nhập tên hoặc chọn gửi ẩn danh") %>
             </p>
           <% end %>
@@ -329,7 +329,7 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
     if (!anonCb?.checked && !nameField?.value.trim()) {
       nameField.style.borderColor = '#ef4444';
       nameField.style.background  = 'rgba(239,68,68,0.04)';
-      nameError?.classList.remove('hidden');
+      if (nameError) nameError.style.display = 'block';
       nameField.focus();
       // Shake animation
       nameField.animate([
@@ -377,7 +377,7 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
       nameField.style.borderColor = '#e2e8f0';
       nameField.style.background  = 'rgba(255,255,255,0.9)';
     }
-    document.getElementById('name-error')?.classList.add('hidden');
+    const ne = document.getElementById('name-error'); if (ne) ne.style.display = 'none';
 
     if (data.status === 'submitted' && data.feedback) {
       const list = document.getElementById('feedbacks-list');
