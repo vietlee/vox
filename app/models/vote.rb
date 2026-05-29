@@ -55,7 +55,7 @@ class Vote < ApplicationRecord
 
   def results_by_option
     vote_options.map do |opt|
-      { id: opt.id, label: opt.label, count: opt.votes_count, percentage: total_votes > 0 ? (opt.votes_count.to_f / total_votes * 100).round(1) : 0 }
+      { id: opt.id, label: opt.label, description: opt.description.to_s, count: opt.votes_count, percentage: total_votes > 0 ? (opt.votes_count.to_f / total_votes * 100).round(1) : 0 }
     end
   end
 

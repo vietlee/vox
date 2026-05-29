@@ -7,12 +7,13 @@ class Admin::VoteOptionsController < Admin::BaseController
     return head :forbidden if @vote.active?
 
     @option = @vote.vote_options.build(
-      label:    params[:label].to_s.strip,
-      position: @vote.vote_options.maximum(:position).to_i + 1
+      label:       params[:label].to_s.strip,
+      description: params[:description].to_s.strip.presence,
+      position:    @vote.vote_options.maximum(:position).to_i + 1
     )
 
     if @option.label.present? && @option.save
-      render json: { id: @option.id, label: @option.label, position: @option.position }
+      render json: { id: @option.id, label: @option.label, description: @option.description.to_s, position: @option.position }
     else
       render json: { error: "Không hợp lệ" }, status: :unprocessable_entity
     end
@@ -21,8 +22,12 @@ class Admin::VoteOptionsController < Admin::BaseController
   def update
     return head :forbidden if @option.vote.active?
 
-    if @option.update(label: params[:label].to_s.strip)
-      render json: { id: @option.id, label: @option.label }
+    attrs = {}
+    attrs[:label]       = params[:label].to_s.strip        if params.key?(:label)
+    attrs[:description] = params[:description].to_s.strip  if params.key?(:description)
+    return render json: { error: "Label required" }, status: :unprocessable_entity if attrs[:label] == ""
+    if attrs.any? && @option.update(attrs)
+      render json: { id: @option.id, label: @option.label, description: @option.description.to_s }
     else
       render json: { error: "Không hợp lệ" }, status: :unprocessable_entity
     end

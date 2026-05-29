@@ -1,9 +1,43 @@
 <% content_for :title, @vote.title %>
 <% editable = @vote.draft? %>
 
+<%# Quill rich text editor (only loaded on this page) %>
+<% if editable %>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" rel="stylesheet">
+<% end %>
+
 <style>
-  .option-row.drag-over { border-top: 2px solid #6366f1; }
-  .option-row { border-top: 2px solid transparent; transition: border-color 0.1s; }
+  .option-row { transition: border-color 0.1s; }
+
+  /* ── Quill editor inside option rows ── */
+  .desc-wrap .ql-toolbar.ql-snow {
+    padding: 3px 6px;
+    border: none;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 8px 8px 0 0;
+  }
+  .desc-wrap .ql-container.ql-snow {
+    border: none;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .desc-wrap .ql-editor {
+    padding: 6px 10px;
+    min-height: 56px;
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.5;
+  }
+  .desc-wrap .ql-editor.ql-blank::before {
+    font-style: normal;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+  .desc-wrap .ql-toolbar .ql-formats { margin-right: 6px; }
+  .desc-wrap .ql-snow .ql-picker { font-size: 11px; }
+  .desc-wrap .ql-snow.ql-toolbar button,
+  .desc-wrap .ql-snow .ql-toolbar button { width: 22px; height: 22px; padding: 2px; }
 </style>
 
 <div class="max-w-[720px]">
@@ -150,15 +184,38 @@
 
       <div id="options-list" class="space-y-2 mb-4">
         <% @vote.vote_options.each do |opt| %>
-          <div class="option-row flex items-center gap-2" data-id="<%= opt.id %>" draggable="true" style="cursor:grab;">
-            <div class="w-5 text-center text-slate-300 text-[13px] select-none" style="cursor:grab;">≡</div>
-            <input type="text" value="<%= opt.label %>"
-              class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none <%= 'bg-slate-50 text-slate-400 cursor-not-allowed' unless editable %>"
-              <%= "readonly disabled" unless editable %>
-              onblur="<%= editable ? "updateOption(#{opt.id}, this.value)" : "" %>"
-              onkeydown="if(event.key==='Enter'){this.blur();}">
+          <div class="option-row rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden" data-id="<%= opt.id %>" draggable="<%= editable %>" style="<%= editable ? 'cursor:grab;' : '' %>">
+            <!-- Label row -->
+            <div class="flex items-center gap-2 px-2 py-1.5">
+              <div class="w-5 text-center text-slate-300 text-[13px] select-none flex-shrink-0" style="<%= editable ? 'cursor:grab;' : '' %>">≡</div>
+              <input type="text" value="<%= opt.label %>"
+                class="flex-1 px-2 py-1.5 bg-transparent border-0 text-[13px] font-medium text-slate-800 focus:outline-none focus:bg-white focus:rounded-lg <%= 'text-slate-400 cursor-not-allowed' unless editable %>"
+                <%= "readonly disabled" unless editable %>
+                onblur="<%= editable ? "updateOptionLabel(#{opt.id}, this.value)" : "" %>"
+                onkeydown="if(event.key==='Enter'){this.blur();}">
+              <% if editable %>
+                <button type="button" onclick="toggleDesc(this)"
+                  title="<%= opt.description.present? ? 'Đang có mô tả' : 'Thêm mô tả' %>"
+                  class="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg text-[11px] font-bold transition-colors border-0 cursor-pointer <%= opt.description.present? ? 'bg-indigo-100 text-indigo-600' : 'bg-transparent text-slate-300 hover:text-slate-500 hover:bg-slate-100' %>">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h7"/></svg>
+                </button>
+                <button type="button" onclick="deleteOption(<%= opt.id %>, this)" class="w-7 h-7 flex-shrink-0 flex items-center justify-center text-slate-300 hover:text-red-500 rounded-lg transition-colors border-0 bg-transparent cursor-pointer text-[18px]">×</button>
+              <% end %>
+            </div>
+            <!-- Description row (collapsible, Quill editor) -->
             <% if editable %>
-              <button onclick="deleteOption(<%= opt.id %>, this)" class="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-500 rounded transition-colors text-[16px]">×</button>
+              <div class="desc-wrap <%= opt.description.present? ? '' : 'hidden' %> px-3 pb-3">
+                <div class="rounded-lg border border-slate-200 overflow-hidden bg-white quill-wrap"
+                     data-opt-id="<%= opt.id %>"
+                     data-content="<%= CGI.escapeHTML(opt.description.to_s) %>">
+                  <%# Quill mounts here via JS %>
+                </div>
+              </div>
+            <% elsif opt.description.present? %>
+              <% _desc = render_vote_desc(opt.description) %>
+              <% if _desc %>
+                <div class="px-9 pb-2 option-desc-html text-[12px] text-slate-400"><%= _desc %></div>
+              <% end %>
             <% end %>
           </div>
         <% end %>
@@ -169,7 +226,7 @@
           <input type="text" id="new-option-input" placeholder="<%= j t("votes.edit.add_option_placeholder") %>"
             class="flex-1 px-3 py-2 border border-dashed border-slate-300 rounded-lg text-[13px] focus:border-indigo-400 outline-none"
             onkeydown="if(event.key==='Enter'){addOption();}">
-          <button onclick="addOption()" class="px-4 py-2 bg-slate-800 text-white text-[12px] font-semibold rounded-lg hover:bg-slate-700"><%= t("votes.edit.add_btn") %></button>
+          <button type="button" onclick="addOption()" class="px-4 py-2 bg-slate-800 text-white text-[12px] font-semibold rounded-lg hover:bg-slate-700"><%= t("votes.edit.add_btn") %></button>
         </div>
       <% end %>
     </div>
@@ -178,11 +235,50 @@
 </div>
 
 <% if editable %>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
 <script>
 const voteId = <%= @vote.id %>;
 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 const DELETE_OPTION_CONFIRM = "<%= j t('votes.edit.delete_option_confirm') %>";
 const REORDER_URL = "<%= reorder_vote_vote_options_path(@vote) %>";
+
+// ── Quill instances map ──────────────────────────────────────────────────────
+const quillInstances = {};
+const TOOLBAR = [
+  ['bold', 'italic', 'underline'],
+  [{ list: 'ordered' }, { list: 'bullet' }],
+  [{ color: [] }],
+  ['clean']
+];
+
+function initQuill(wrap, optId) {
+  if (quillInstances[optId]) return quillInstances[optId];
+  const q = new Quill(wrap, {
+    theme: 'snow',
+    placeholder: 'Mô tả thêm cho lựa chọn này…',
+    modules: { toolbar: TOOLBAR }
+  });
+  const savedContent = wrap.dataset.content || '';
+  if (savedContent) q.root.innerHTML = savedContent;
+
+  let timer;
+  q.on('text-change', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const html = q.root.innerHTML;
+      updateOptionDesc(optId, html === '<p><br></p>' ? '' : html);
+    }, 700);
+  });
+  quillInstances[optId] = q;
+  return q;
+}
+
+// Init Quill for any already-visible description panels on load
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.desc-wrap:not(.hidden) .quill-wrap').forEach(wrap => {
+    initQuill(wrap, wrap.dataset.optId);
+  });
+});
 
 // ── Drag-and-drop reorder ──────────────────────────────────────────────────
 (function initDragDrop() {
@@ -199,7 +295,7 @@ const REORDER_URL = "<%= reorder_vote_vote_options_path(@vote) %>";
 
   list.addEventListener('dragend', () => {
     if (dragged) dragged.style.opacity = '1';
-    list.querySelectorAll('.option-row').forEach(r => r.classList.remove('drag-over'));
+    list.querySelectorAll('.option-row').forEach(r => r.style.borderColor = '');
     dragged = null;
     saveOrder();
   });
@@ -208,8 +304,8 @@ const REORDER_URL = "<%= reorder_vote_vote_options_path(@vote) %>";
     e.preventDefault();
     const row = e.target.closest('.option-row');
     if (row && row !== dragged) {
-      list.querySelectorAll('.option-row').forEach(r => r.classList.remove('drag-over'));
-      row.classList.add('drag-over');
+      list.querySelectorAll('.option-row').forEach(r => r.style.borderColor = '');
+      row.style.borderColor = '#6366f1';
       const rect = row.getBoundingClientRect();
       const after = e.clientY > rect.top + rect.height / 2;
       list.insertBefore(dragged, after ? row.nextSibling : row);
@@ -218,7 +314,7 @@ const REORDER_URL = "<%= reorder_vote_vote_options_path(@vote) %>";
 
   list.addEventListener('dragleave', e => {
     const row = e.target.closest('.option-row');
-    if (row) row.classList.remove('drag-over');
+    if (row) row.style.borderColor = '';
   });
 
   list.addEventListener('drop', e => e.preventDefault());
@@ -232,6 +328,24 @@ const REORDER_URL = "<%= reorder_vote_vote_options_path(@vote) %>";
     });
   }
 })();
+
+function toggleDesc(btn) {
+  const row  = btn.closest('.option-row');
+  const wrap = row.querySelector('.desc-wrap');
+  if (!wrap) return;
+  const hidden = wrap.classList.toggle('hidden');
+  btn.classList.toggle('bg-indigo-100', !hidden);
+  btn.classList.toggle('text-indigo-600', !hidden);
+  btn.classList.toggle('text-slate-300', hidden);
+  if (!hidden) {
+    const optId = row.dataset.id;
+    const qWrap = wrap.querySelector('.quill-wrap');
+    if (qWrap) {
+      const q = initQuill(qWrap, optId);
+      setTimeout(() => q.focus(), 50);
+    }
+  }
+}
 
 async function addOption() {
   const input = document.getElementById('new-option-input');
@@ -247,30 +361,48 @@ async function addOption() {
   const opt = await res.json();
 
   const row = document.createElement('div');
-  row.className = 'option-row flex items-center gap-2';
+  row.className = 'option-row rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden';
   row.dataset.id = opt.id;
   row.draggable = true;
   row.style.cursor = 'grab';
   row.innerHTML = `
-    <div class="w-5 text-center text-slate-300 text-[13px] select-none">≡</div>
-    <input type="text" value="${escHtml(opt.label)}"
-      class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none"
-      onblur="updateOption(${opt.id}, this.value)"
-      onkeydown="if(event.key==='Enter'){this.blur();}">
-    <button onclick="deleteOption(${opt.id}, this)" class="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-500 rounded transition-colors text-[16px]">×</button>
+    <div class="flex items-center gap-2 px-2 py-1.5">
+      <div class="w-5 text-center text-slate-300 text-[13px] select-none flex-shrink-0" style="cursor:grab;">≡</div>
+      <input type="text" value="${escHtml(opt.label)}"
+        class="flex-1 px-2 py-1.5 bg-transparent border-0 text-[13px] font-medium text-slate-800 focus:outline-none focus:bg-white focus:rounded-lg"
+        onblur="updateOptionLabel(${opt.id}, this.value)"
+        onkeydown="if(event.key==='Enter'){this.blur();}">
+      <button type="button" onclick="toggleDesc(this)" title="Thêm mô tả"
+        class="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg text-[11px] font-bold transition-colors border-0 cursor-pointer bg-transparent text-slate-300 hover:text-slate-500 hover:bg-slate-100">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h7"/></svg>
+      </button>
+      <button type="button" onclick="deleteOption(${opt.id}, this)" class="w-7 h-7 flex-shrink-0 flex items-center justify-center text-slate-300 hover:text-red-500 rounded-lg transition-colors border-0 bg-transparent cursor-pointer text-[18px]">×</button>
+    </div>
+    <div class="desc-wrap hidden px-3 pb-3">
+      <div class="rounded-lg border border-slate-200 overflow-hidden bg-white quill-wrap"
+           data-opt-id="${opt.id}" data-content=""></div>
+    </div>
   `;
   document.getElementById('options-list').appendChild(row);
   input.value = '';
   input.focus();
 }
 
-async function updateOption(id, label) {
+async function updateOptionLabel(id, label) {
   label = label.trim();
   if (!label) return;
   await fetch(`/vote_options/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
     body: JSON.stringify({ label })
+  });
+}
+
+async function updateOptionDesc(id, description) {
+  await fetch(`/vote_options/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+    body: JSON.stringify({ description })
   });
 }
 

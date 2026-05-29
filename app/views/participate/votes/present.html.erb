@@ -49,6 +49,51 @@
     background:linear-gradient(180deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0) 60%);
     pointer-events:none;
   }
+
+  /* ── Rich description on dark presenter background ── */
+  .present-desc-html {
+    font-size: clamp(10px, 2vw, 12px);
+    color: rgba(148, 163, 184, 0.85);
+    line-height: 1.5;
+    margin-top: 3px;
+  }
+  .present-desc-html p { margin: 0; }
+  .present-desc-html ul, .present-desc-html ol { padding-left: 0; margin: 1px 0; list-style: none; }
+  .present-desc-html ul li::before { content: '·'; margin-right: 5px; opacity: 0.5; }
+  .present-desc-html ol { counter-reset: pdesc-ol; }
+  .present-desc-html ol li { counter-increment: pdesc-ol; }
+  .present-desc-html ol li::before { content: counter(pdesc-ol) '.'; margin-right: 5px; opacity: 0.5; }
+  .present-desc-html li { margin: 0; }
+  .present-desc-html strong { color: rgba(203, 213, 225, 0.9); font-weight: 700; }
+  .present-desc-html em { font-style: italic; }
+  /* Strip all inline colors — dark bg makes them unreadable */
+  .present-desc-html span { color: inherit !important; background: none !important; }
+
+  /* ── Collapsible description (present page) ── */
+  .pdesc-collapsed {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .pdesc-expanded { display: block; }
+  .pdesc-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 4px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: clamp(9px, 1.6vw, 11px);
+    font-weight: 600;
+    color: rgba(148, 163, 184, 0.6);
+    line-height: 1;
+  }
+  .pdesc-toggle:hover { color: rgba(148, 163, 184, 1); }
+  .pdesc-toggle svg { transition: transform 0.2s; }
+  .pdesc-toggle.expanded svg { transform: rotate(180deg); }
 </style>
 
 <%
@@ -192,10 +237,24 @@
         </div>
 
         <!-- Label + stats row -->
-        <div class="flex items-center gap-2 sm:gap-4 pb-2">
-          <span class="font-bold text-slate-200 flex-1 leading-tight"
-                style="font-size:clamp(14px,3.5vw,18px);"><%= result[:label] %></span>
-          <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+        <div class="flex items-start gap-2 sm:gap-4 pb-2">
+          <span class="flex-1 leading-tight min-w-0">
+            <span class="block font-bold text-slate-200"
+                  style="font-size:clamp(14px,3.5vw,18px);"><%= result[:label] %></span>
+            <% if result[:description].present? %>
+              <% _desc = render_vote_desc(result[:description]) %>
+              <% if _desc %>
+                <div class="present-desc-html pdesc-collapsed"><%= _desc %></div>
+                <button type="button" class="pdesc-toggle" onclick="togglePDesc(this)">
+                  <span class="pdesc-label"><%= I18n.locale == :vi ? "Xem thêm" : "Show more" %></span>
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="2,4 6,8 10,4"/>
+                  </svg>
+                </button>
+              <% end %>
+            <% end %>
+          </span>
+          <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0 pt-0.5">
             <span class="text-slate-400 option-count-label tabular-nums"
                   style="font-size:clamp(12px,2.5vw,14px);"><%= result[:count] %> votes</span>
             <span class="font-black tabular-nums option-pct"
@@ -449,4 +508,33 @@ function showTimeUpBanner() {
     } else { updateRing(); }
   }, 1000);
 })();
+
+</script>
+
+<script>
+window.togglePDesc = function(btn) {
+  const wrap = btn.previousElementSibling; // .present-desc-html
+  const isExpanded = btn.classList.contains('expanded');
+  if (isExpanded) {
+    wrap.classList.remove('pdesc-expanded');
+    wrap.classList.add('pdesc-collapsed');
+    btn.classList.remove('expanded');
+    btn.querySelector('.pdesc-label').textContent = '<%= I18n.locale == :vi ? "Xem thêm" : "Show more" %>';
+  } else {
+    wrap.classList.remove('pdesc-collapsed');
+    wrap.classList.add('pdesc-expanded');
+    btn.classList.add('expanded');
+    btn.querySelector('.pdesc-label').textContent = '<%= I18n.locale == :vi ? "Thu gọn" : "Show less" %>';
+  }
+}
+
+// Hide toggle if description fits without clamping (use RAF to ensure CSS is computed)
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.querySelectorAll('.pdesc-collapsed').forEach(el => {
+    if (el.scrollHeight <= el.clientHeight + 2) {
+      const btn = el.nextElementSibling;
+      if (btn && btn.classList.contains('pdesc-toggle')) btn.style.display = 'none';
+    }
+  });
+}));
 </script>

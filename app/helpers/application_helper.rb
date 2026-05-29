@@ -25,6 +25,21 @@ module ApplicationHelper
     }[type.to_s] || type.to_s.humanize
   end
 
+  # Render sanitized rich-text HTML from Quill, stripping leading/trailing empty paragraphs.
+  EMPTY_P = /\A(\s*<p[^>]*>\s*(<br\s*\/?>)?\s*<\/p>\s*)+/i
+  EMPTY_P_TAIL = /(\s*<p[^>]*>\s*(<br\s*\/?>)?\s*<\/p>\s*)+\z/i
+  VOTE_OPTION_TAGS  = %w[p b br ul ol li strong em i u span].freeze
+  VOTE_OPTION_ATTRS = %w[style].freeze
+
+  def render_vote_desc(html, sanitize_opts: {})
+    return nil if html.blank?
+    cleaned = html.gsub(EMPTY_P, '').gsub(EMPTY_P_TAIL, '').strip
+    return nil if cleaned.blank?
+    raw sanitize(cleaned,
+                 tags:       sanitize_opts[:tags]       || VOTE_OPTION_TAGS,
+                 attributes: sanitize_opts[:attributes] || VOTE_OPTION_ATTRS)
+  end
+
   def vote_status_badge(vote)
     classes = case vote.status
     when "active" then "bg-emerald-50 text-emerald-700"
