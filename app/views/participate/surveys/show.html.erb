@@ -37,11 +37,10 @@
   <div style="height:44px;"></div>
   <% end %>
 
-  <!-- Sticky survey header
-       top = navbar height (47px mobile / 57px desktop)
-             + progress bar height (44px) when shown -->
-  <div class="sticky z-[100] w-full <%= @survey.show_progress? ? 'top-[91px] sm:top-[101px]' : 'top-[47px] sm:top-[57px]' %>"
-       style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
+  <!-- Fixed survey header — same layer as navbar, immune to mobile Chrome viewport shifts -->
+  <div id="survey-fixed-header"
+       style="position:fixed; left:0; right:0; z-index:9997;
+              background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
               border-bottom:1px solid rgba(226,232,240,0.7);
               box-shadow:0 2px 12px rgba(99,102,241,0.06);
               transform:translateZ(0); -webkit-transform:translateZ(0);">
@@ -58,6 +57,23 @@
       <span class="text-[11px] text-slate-400"><%= @questions.count %> <%= t("participate.survey.questions_count") %></span>
     </div>
   </div>
+  <!-- Spacer — height set by JS -->
+  <div id="survey-header-spacer"></div>
+  <script>
+    (function() {
+      var showProgress = <%= @survey.show_progress? ? 'true' : 'false' %>;
+      var navH = window.innerWidth >= 640 ? 57 : 47;
+      var progH = showProgress ? 44 : 0;
+      var hdr = document.getElementById('survey-fixed-header');
+      function sync() {
+        navH  = window.innerWidth >= 640 ? 57 : 47;
+        hdr.style.top = (navH + progH) + 'px';
+        document.getElementById('survey-header-spacer').style.height = hdr.offsetHeight + 'px';
+      }
+      sync();
+      window.addEventListener('resize', sync);
+    })();
+  </script>
 
   <!-- Content -->
   <div class="flex-1 flex flex-col px-4 py-4">

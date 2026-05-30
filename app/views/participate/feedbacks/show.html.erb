@@ -30,9 +30,10 @@
 
 <div class="min-h-screen flex flex-col" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
 
-  <!-- Sticky board header (top offset = participate navbar height: 47px mobile / 57px desktop) -->
-  <div class="sticky z-[100] w-full top-[47px] sm:top-[57px]"
-       style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
+  <!-- Fixed board header — same positioning layer as navbar, immune to mobile Chrome viewport shifts -->
+  <div id="board-fixed-header"
+       style="position:fixed; left:0; right:0; z-index:9998;
+              background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
               border-bottom:1px solid rgba(226,232,240,0.7);
               box-shadow:0 2px 12px rgba(99,102,241,0.06);
               transform:translateZ(0); -webkit-transform:translateZ(0);">
@@ -54,6 +55,22 @@
       </span>
     </div>
   </div>
+  <!-- Spacer — height = board header height, set by JS so content isn't hidden behind fixed header -->
+  <div id="board-header-spacer"></div>
+  <script>
+    (function() {
+      var navH = window.innerWidth >= 640 ? 57 : 47;
+      var hdr  = document.getElementById('board-fixed-header');
+      hdr.style.top = navH + 'px';
+      function sync() {
+        navH = window.innerWidth >= 640 ? 57 : 47;
+        hdr.style.top = navH + 'px';
+        document.getElementById('board-header-spacer').style.height = hdr.offsetHeight + 'px';
+      }
+      sync();
+      window.addEventListener('resize', sync);
+    })();
+  </script>
 
   <!-- Scrollable content -->
   <div class="max-w-2xl mx-auto w-full px-4 pt-4 pb-5 fade-in">
