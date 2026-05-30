@@ -1,4 +1,45 @@
 <% content_for :title, @board.title %>
+
+<!-- Delete feedback confirm modal -->
+<div id="delete-feedback-modal" class="fixed inset-0 z-50 items-center justify-center p-4" style="display:none; background:rgba(15,23,42,0.45); backdrop-filter:blur(2px);">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4" onclick="event.stopPropagation()">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </div>
+      <div>
+        <h3 class="text-[15px] font-bold text-slate-900"><%= t("feedback_boards.feedbacks_page.delete_confirm_title", default: "Xoá góp ý") %></h3>
+        <p class="text-[12px] text-slate-500 mt-0.5"><%= t("feedback_boards.feedbacks_page.delete_confirm_body", default: "Hành động này không thể hoàn tác.") %></p>
+      </div>
+    </div>
+    <div class="flex gap-2 pt-1">
+      <button type="button" onclick="closeDeleteFeedbackModal()" class="flex-1 px-4 py-2 rounded-lg text-[13px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">
+        <%= t("common.cancel") %>
+      </button>
+      <button id="delete-feedback-confirm-btn" type="button" class="flex-1 px-4 py-2 rounded-lg text-[13px] font-semibold bg-red-600 text-white hover:bg-red-700">
+        <%= t("feedback_boards.feedbacks_page.delete") %>
+      </button>
+    </div>
+  </div>
+</div>
+<script>
+  function openDeleteFeedbackModal(id, url) {
+    const btn = document.getElementById('delete-feedback-confirm-btn');
+    btn.onclick = async () => {
+      closeDeleteFeedbackModal();
+      const CSRF = document.querySelector('meta[name=csrf-token]').content;
+      const res = await fetch(url, { method: 'DELETE', headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' } });
+      if (!res.ok) return;
+      const card = document.getElementById(`feedback-${id}`);
+      if (card) { card.style.opacity = '0'; card.style.transform = 'translateX(10px)'; setTimeout(() => card.remove(), 200); }
+    };
+    document.getElementById('delete-feedback-modal').style.display = 'flex';
+  }
+  function closeDeleteFeedbackModal() {
+    document.getElementById('delete-feedback-modal').style.display = 'none';
+  }
+  document.getElementById('delete-feedback-modal').addEventListener('click', closeDeleteFeedbackModal);
+</script>
 <div class="flex items-start justify-between mb-5">
   <div>
     <h1 class="text-[19px] font-extrabold text-slate-900"><%= @board.title %></h1>
@@ -143,7 +184,7 @@
               class="px-2.5 py-1 text-[11px] bg-amber-50 rounded text-amber-700 hover:bg-amber-100">
               <%= fb.pinned? ? t("feedback_boards.feedbacks_page.unpin") : t("feedback_boards.feedbacks_page.pin") %>
             </button>
-            <button onclick="deleteFeedback(<%= fb.id %>, '<%= feedback_board_feedback_path(@board, fb) %>')"
+            <button onclick="openDeleteFeedbackModal(<%= fb.id %>, '<%= feedback_board_feedback_path(@board, fb) %>')"
               class="px-2.5 py-1 text-[11px] bg-red-50 rounded text-red-600 hover:bg-red-100">
               <%= t("feedback_boards.feedbacks_page.delete") %>
             </button>
@@ -494,16 +535,8 @@ async function togglePin(id, pinUrl, unpinUrl) {
   }, 150);
 }
 
-async function deleteFeedback(id, url) {
-  if (!confirm(I18N.delete_confirm)) return;
-  const res = await fetch(url, { method: 'DELETE', headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' } });
-  if (!res.ok) return;
-  const card = document.getElementById(`feedback-${id}`);
-  if (card) {
-    card.style.opacity = '0';
-    card.style.transform = 'translateX(10px)';
-    setTimeout(() => card.remove(), 200);
-  }
+function deleteFeedback(id, url) {
+  openDeleteFeedbackModal(id, url);
 }
 
 // ── AI Summary ──────────────────────────────────────────────────────────────
@@ -697,6 +730,6 @@ function clearSearch() {
   });
 })();
 
-Object.assign(window, { feedbackAction, togglePin, deleteFeedback, aiSummarize, switchTab, clearSearch });
+Object.assign(window, { feedbackAction, togglePin, deleteFeedback, aiSummarize, switchTab, clearSearch, openDeleteFeedbackModal, closeDeleteFeedbackModal });
 })();
 </script>
