@@ -40,6 +40,9 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   def update
+    remove_logo = params.dig(:survey, :remove_logo) == "1"
+    @survey.logo.purge if remove_logo && @survey.logo.attached?
+
     if @survey.update(survey_params)
       audit_log("survey.update", resource: @survey)
       respond_to do |format|
@@ -322,7 +325,7 @@ class Admin::SurveysController < Admin::BaseController
 
   def survey_params
     params.require(:survey).permit(
-      :title, :description, :banner_image, :status,
+      :title, :description, :banner_image, :status, :logo,
       :identity_mode, :login_providers, :starts_at, :ends_at, :max_responses,
       :max_per_user, :show_progress, :show_results, :allow_edit,
       :thank_you_message, :redirect_url, :scoring_enabled

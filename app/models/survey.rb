@@ -6,6 +6,7 @@ class Survey < ApplicationRecord
   has_many   :responses,         dependent: :destroy
   has_many   :ai_analysis_results, as: :resource, dependent: :destroy
   has_one    :qr_code,           as: :resource, dependent: :destroy
+  has_one_attached :logo
 
   enum :status,        { draft: 0, active: 1, closed: 2, archived: 3 }
   enum :identity_mode, { anonymous: 0, email_required: 1, login_required: 2 }
