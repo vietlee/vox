@@ -28,47 +28,33 @@
   </div>
 <% end %>
 
-<!-- Compact sticky header -->
-<div id="sticky-board-header"
-     style="display:none; position:fixed; top:0; left:0; right:0; z-index:200;
-            background:rgba(255,255,255,0.88); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
-            border-bottom:1px solid rgba(226,232,240,0.7);
-            box-shadow:0 2px 12px rgba(99,102,241,0.07);
-            transform:translateY(-100%); transition:transform 0.22s ease, opacity 0.22s ease; opacity:0;">
-  <div class="max-w-2xl mx-auto px-4 py-2.5 flex items-center gap-3">
-    <% if @board.logo.attached? %>
-      <img src="<%= url_for(@board.logo) %>" alt="<%= @board.title %>"
-           class="rounded-lg object-contain flex-shrink-0"
-           style="height:28px; max-width:72px;">
-    <% else %>
-      <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[13px] flex-shrink-0"
-           style="background:linear-gradient(135deg,#6366f1,#a855f7);">💬</div>
-    <% end %>
-    <span class="text-[14px] font-bold text-slate-900 truncate flex-1 min-w-0"><%= @board.title %></span>
-    <span id="sticky-feedback-count" class="text-[12px] text-slate-400 flex-shrink-0 whitespace-nowrap">
-      <%= @board.feedbacks.visible.count %> <%= t("participate.feedback.feedbacks_count") %>
-    </span>
-  </div>
-</div>
-
 <div class="min-h-screen flex flex-col" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
 
-  <!-- Board header -->
-  <div class="max-w-2xl mx-auto w-full px-4 pt-5 pb-5 fade-in">
-    <div id="board-header-section" class="text-center mb-6">
+  <!-- Sticky board header -->
+  <div class="sticky top-0 z-50 w-full"
+       style="background:rgba(250,251,255,0.96); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+              border-bottom:1px solid rgba(226,232,240,0.65); box-shadow:0 1px 12px rgba(99,102,241,0.06);">
+    <div id="board-header-section" class="max-w-2xl mx-auto px-4 py-3 text-center">
       <% if @board.logo.attached? %>
         <img src="<%= url_for(@board.logo) %>" alt="<%= @board.title %>"
-             class="object-contain mx-auto mb-3 rounded-xl"
-             style="max-height:80px; max-width:260px; box-shadow:0 4px 16px rgba(99,102,241,0.15);">
+             class="object-contain mx-auto mb-1.5 rounded-xl"
+             style="max-height:48px; max-width:180px;">
       <% else %>
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-[28px] mx-auto mb-3" style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 8px 24px rgba(99,102,241,0.3);">💬</div>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-[22px] mx-auto mb-1.5"
+             style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 4px 12px rgba(99,102,241,0.3);">💬</div>
       <% end %>
-      <h1 class="text-[26px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @board.title %></h1>
+      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-0.5"><%= @board.title %></h1>
       <% if @board.description.present? %>
-        <p class="text-[14px] text-slate-500 mb-2"><%= @board.description %></p>
+        <p class="text-[12px] text-slate-500 mb-0.5" style="overflow:hidden; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;"><%= @board.description %></p>
       <% end %>
-      <span class="text-[12px] text-slate-400"><%= @board.feedbacks.visible.count %> <%= t("participate.feedback.feedbacks_count") %></span>
+      <span id="sticky-feedback-count" class="text-[11px] text-slate-400">
+        <%= @board.feedbacks.visible.count %> <%= t("participate.feedback.feedbacks_count") %>
+      </span>
     </div>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="max-w-2xl mx-auto w-full px-4 pt-4 pb-5 fade-in">
 
     <!-- Flash -->
     <% if notice %>
@@ -574,6 +560,12 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
       list.insertBefore(card, list.firstChild);
       emptyState.classList.add('hidden');
       currentOffset += 1;
+      // update sticky count
+      const countEl = document.getElementById('sticky-feedback-count');
+      if (countEl) {
+        const cur = parseInt(countEl.textContent) || 0;
+        countEl.textContent = `${cur + 1} ${countEl.textContent.replace(/^\d+\s*/, '')}`;
+      }
     }
   } catch(err) {
     showToast('Network error', true);
@@ -742,37 +734,6 @@ document.addEventListener('turbo:before-cache', () => {
   const modal = document.getElementById('gallery-modal');
   if (modal) modal.style.display = 'none';
 });
-
-// ── Sticky header ─────────────────────────────────────────────────────────────
-(function() {
-  const sentinel = document.getElementById('board-header-section');
-  const bar      = document.getElementById('sticky-board-header');
-  if (!sentinel || !bar) return;
-
-  let visible = false;
-  const show = () => {
-    if (visible) return; visible = true;
-    bar.style.display = 'block';
-    // trigger animation on next frame
-    requestAnimationFrame(() => {
-      bar.style.transform = 'translateY(0)';
-      bar.style.opacity   = '1';
-    });
-  };
-  const hide = () => {
-    if (!visible) return; visible = false;
-    bar.style.transform = 'translateY(-100%)';
-    bar.style.opacity   = '0';
-    // hide after transition ends so it doesn't block clicks
-    setTimeout(() => { if (!visible) bar.style.display = 'none'; }, 230);
-  };
-
-  const observer = new IntersectionObserver(
-    ([entry]) => entry.isIntersecting ? hide() : show(),
-    { threshold: 0, rootMargin: '-20px 0px 0px 0px' }
-  );
-  observer.observe(sentinel);
-})();
 
 async function toggleUpvote(btn, feedbackId) {
   btn.disabled = true;
