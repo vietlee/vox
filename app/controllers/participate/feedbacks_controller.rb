@@ -28,21 +28,23 @@ class Participate::FeedbacksController < Participate::BaseController
   end
 
   def submit
+    fb_params = params[:feedback] || {}
     @feedback = @board.feedbacks.build(
-      workspace: @board.workspace,
-      content:   params[:feedback][:content],
-      author_name: params[:feedback][:author_name],
-      author_email: params[:feedback][:author_email],
-      anonymous: params[:feedback][:anonymous] == "1"
+      workspace:    @board.workspace,
+      content:      fb_params[:content],
+      author_name:  fb_params[:author_name],
+      author_email: fb_params[:email] || fb_params[:author_email],
+      anonymous:    fb_params[:anonymous] == "1"
     )
+    @feedback.image.attach(fb_params[:image]) if fb_params[:image].present?
 
     if @feedback.save
       pending = @board.manual_approval?
       @feedback.approve! unless pending
 
       render json: {
-        status:  pending ? "pending" : "submitted",
-        message: pending ? t("feedbacks.pending_approval") : t("feedbacks.submitted"),
+        status:   pending ? "pending" : "submitted",
+        message:  pending ? t("feedbacks.pending_approval") : t("feedbacks.submitted"),
         feedback: pending ? nil : serialize_feedback(@feedback, Set.new)
       }
     else
@@ -97,7 +99,8 @@ class Participate::FeedbacksController < Participate::BaseController
       implemented:   fb.implemented?,
       allow_replies: @board.allow_replies?,
       replies_count: fb.feedback_replies.size,
-      created_at:    I18n.l(fb.created_at, format: :short)
+      created_at:    I18n.l(fb.created_at, format: :short),
+      image_url:     fb.image.attached? ? url_for(fb.image) : nil
     }
   end
 

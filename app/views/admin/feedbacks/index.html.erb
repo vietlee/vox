@@ -98,6 +98,11 @@
               <span class="text-[10px] text-slate-400 ml-auto"><%= I18n.l(fb.created_at, format: :short) %></span>
             </div>
             <p class="text-[13px] text-slate-800 leading-relaxed mb-2"><%= fb.content %></p>
+            <% if fb.image.attached? %>
+              <img src="<%= url_for(fb.image) %>" alt=""
+                   class="rounded-lg object-cover mb-2"
+                   style="max-height:120px; max-width:100%; border:1px solid #e2e8f0;">
+            <% end %>
             <div class="text-[11px] text-slate-400">
               <%= fb.anonymous? ? t("feedback_boards.feedbacks_page.anonymous") : (fb.author_name.presence || fb.author_email) %>
               · 👍 <%= fb.upvotes_count %> <%= t("feedback_boards.feedbacks_page.upvotes") %>
