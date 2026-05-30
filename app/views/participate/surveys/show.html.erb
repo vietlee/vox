@@ -37,31 +37,40 @@
   <div style="height:44px;"></div>
   <% end %>
 
-  <!-- Sticky survey header
-       top = navbar height (47px mobile / 57px desktop)
-             + progress bar height (44px) when shown -->
+  <!-- Sticky compact header — one row only: logo + title + question count -->
   <div class="sticky z-[100] w-full <%= @survey.show_progress? ? 'top-[91px] sm:top-[101px]' : 'top-[47px] sm:top-[57px]' %>"
        style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
               border-bottom:1px solid rgba(226,232,240,0.7);
               box-shadow:0 2px 12px rgba(99,102,241,0.06);
               transform:translateZ(0); -webkit-transform:translateZ(0);">
-    <div class="max-w-[680px] mx-auto px-4 py-3 text-center">
+    <div class="max-w-[680px] mx-auto px-4 py-2.5 flex items-center justify-center gap-2 min-w-0">
       <% if @survey.logo.attached? %>
-        <img src="<%= url_for(@survey.logo) %>" alt="<%= @survey.title %>"
-             class="object-contain mx-auto mb-1.5 rounded-xl"
-             style="max-height:48px; max-width:180px;">
+        <img src="<%= url_for(@survey.logo) %>" alt=""
+             class="object-contain rounded-lg flex-shrink-0"
+             style="height:22px; width:auto; max-width:80px;">
       <% end %>
-      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-0.5"><%= @survey.title %></h1>
-      <% if @survey.description.present? %>
-        <p class="text-[12px] text-slate-500 mb-0.5"><%= @survey.description %></p>
-      <% end %>
-      <span class="text-[11px] text-slate-400"><%= @questions.count %> <%= t("participate.survey.questions_count") %></span>
+      <span class="text-[14px] font-extrabold text-slate-900 truncate min-w-0"><%= @survey.title %></span>
+      <span class="text-[11px] text-slate-400 flex-shrink-0 whitespace-nowrap">·&ensp;<%= @questions.count %>&ensp;<%= t("participate.survey.questions_count") %></span>
     </div>
   </div>
 
   <!-- Content -->
   <div class="flex-1 flex flex-col px-4 py-4">
     <div class="max-w-[680px] mx-auto w-full flex-1 flex flex-col">
+
+      <!-- Full survey header (scrolls with content) -->
+      <div class="text-center mb-6">
+        <% if @survey.logo.attached? %>
+          <img src="<%= url_for(@survey.logo) %>" alt="<%= @survey.title %>"
+               class="object-contain mx-auto mb-2 rounded-xl"
+               style="max-height:72px; max-width:220px;">
+        <% end %>
+        <h1 class="text-[20px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @survey.title %></h1>
+        <% if @survey.description.present? %>
+          <p class="text-[13px] text-slate-500 mb-2 max-w-lg mx-auto leading-relaxed"><%= @survey.description %></p>
+        <% end %>
+        <span class="text-[12px] text-slate-400"><%= @questions.count %> <%= t("participate.survey.questions_count") %></span>
+      </div>
 
       <% if @already_responded || flash[:alert].present? %>
         <div class="fade-in text-center">
