@@ -145,15 +145,12 @@
               <% if @board.public_identity? %>required<% end %>
               class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
               style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
-              onfocus="this.style.borderColor='#6366f1';const ne=document.getElementById('name-error');if(ne)ne.style.display='none';" onblur="this.style.borderColor='#e2e8f0'">
+              onfocus="this.style.borderColor='#6366f1';this.style.background='';const se=document.getElementById('fb-submit-error');if(se)se.style.display='none';" onblur="this.style.borderColor='#e2e8f0'">
             <input type="email" id="fb-email" name="feedback[author_email]" placeholder="<%= t("participate.feedback.email_placeholder") %>"
               class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
               style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
               onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
-          <p id="name-error" style="display:none; color:#dc2626; font-size:12px; font-weight:500; margin-top:2px;">
-            <%= t("participate.feedback.name_or_anonymous_required", default: "Vui lòng nhập tên hoặc chọn gửi ẩn danh") %>
-          </p>
         <% end %>
 
         <% if @board.user_choice? %>
@@ -176,6 +173,8 @@
             <%= t("participate.feedback.add_image", default: "Thêm ảnh") %>
           </button>
         </div>
+
+        <div id="fb-submit-error" style="display:none; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:600; color:#991b1b; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2);"></div>
 
         <button type="submit" id="fb-submit-btn"
           class="w-full py-3 text-[14px] font-bold text-white rounded-lg transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-70"
@@ -560,19 +559,14 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
     if (nameField && !anonCb?.checked && !nameField.value.trim()) {
       nameField.style.borderColor = '#ef4444';
       nameField.style.background  = 'rgba(239,68,68,0.04)';
-      showToast("<%= j t('participate.feedback.name_or_anonymous_required', default: 'Vui lòng nhập tên hoặc chọn gửi ẩn danh') %>", true);
-      const nameError = document.getElementById('name-error');
-      if (nameError) nameError.style.display = 'block';
-      // Scroll the form into view so the error is visible (accounts for sticky header)
-      const formEl = document.getElementById('feedback-form');
-      if (formEl) {
-        const rect = formEl.getBoundingClientRect();
-        if (rect.top < 80 || rect.top > window.innerHeight * 0.6) {
-          const scrollTarget = window.scrollY + rect.top - 80;
-          window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
-        }
+      // Show error right above submit button
+      const submitErr = document.getElementById('fb-submit-error');
+      if (submitErr) {
+        submitErr.textContent = "<%= j t('participate.feedback.name_or_anonymous_required', default: 'Vui lòng nhập tên hoặc chọn gửi ẩn danh') %>";
+        submitErr.style.display = 'block';
+        // Scroll error into view
+        submitErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      nameField.focus();
       nameField.animate([
         { transform: 'translateX(0)' },
         { transform: 'translateX(-6px)' },
@@ -676,6 +670,10 @@ function toggleAnonymous(checked) {
     nameField.disabled = true;
     nameField.value = '';
     nameField.style.opacity = '0.4';
+    nameField.style.borderColor = '#e2e8f0';
+    nameField.style.background = '';
+    const se = document.getElementById('fb-submit-error');
+    if (se) se.style.display = 'none';
   } else {
     nameField.required = true;
     nameField.disabled = false;
