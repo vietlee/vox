@@ -30,44 +30,33 @@
 
 <div class="min-h-screen flex flex-col" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
 
-  <!-- Sticky compact header — only title + count, always one row, never tall -->
+  <!-- Sticky board header (top offset = participate navbar height: 47px mobile / 57px desktop) -->
   <div class="sticky z-[100] w-full top-[47px] sm:top-[57px]"
        style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
               border-bottom:1px solid rgba(226,232,240,0.7);
               box-shadow:0 2px 12px rgba(99,102,241,0.06);
               transform:translateZ(0); -webkit-transform:translateZ(0);">
-    <div class="max-w-2xl mx-auto px-4 py-2.5 flex items-center justify-center gap-2 min-w-0">
+    <div id="board-header-section" class="max-w-2xl mx-auto px-4 py-3 text-center">
       <% if @board.logo.attached? %>
-        <img src="<%= url_for(@board.logo) %>" alt=""
-             class="object-contain rounded-lg flex-shrink-0"
-             style="height:22px; width:auto; max-width:80px;">
+        <img src="<%= url_for(@board.logo) %>" alt="<%= @board.title %>"
+             class="object-contain mx-auto mb-1.5 rounded-xl"
+             style="max-height:48px; max-width:180px;">
       <% else %>
-        <span class="flex-shrink-0 text-[16px]">💬</span>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-[22px] mx-auto mb-1.5"
+             style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 4px 12px rgba(99,102,241,0.3);">💬</div>
       <% end %>
-      <span class="text-[14px] font-extrabold text-slate-900 truncate min-w-0"><%= @board.title %></span>
-      <span class="text-[11px] text-slate-400 flex-shrink-0 whitespace-nowrap">·&ensp;<span id="sticky-feedback-count"><%= @board.feedbacks.visible.count %></span>&ensp;<%= t("participate.feedback.feedbacks_count") %></span>
+      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-0.5"><%= @board.title %></h1>
+      <% if @board.description.present? %>
+        <p class="text-[12px] text-slate-500 mb-0.5"><%= @board.description %></p>
+      <% end %>
+      <span id="sticky-feedback-count" class="text-[11px] text-slate-400">
+        <%= @board.feedbacks.visible.count %> <%= t("participate.feedback.feedbacks_count") %>
+      </span>
     </div>
   </div>
 
   <!-- Scrollable content -->
-  <div class="max-w-2xl mx-auto w-full px-4 pt-5 pb-5 fade-in">
-
-    <!-- Full board header (scrolls with content) -->
-    <div class="text-center mb-6">
-      <% if @board.logo.attached? %>
-        <img src="<%= url_for(@board.logo) %>" alt="<%= @board.title %>"
-             class="object-contain mx-auto mb-2 rounded-xl"
-             style="max-height:72px; max-width:220px;">
-      <% else %>
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-[26px] mx-auto mb-2"
-             style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 4px 12px rgba(99,102,241,0.3);">💬</div>
-      <% end %>
-      <h1 class="text-[20px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @board.title %></h1>
-      <% if @board.description.present? %>
-        <p class="text-[13px] text-slate-500 mb-2 max-w-lg mx-auto leading-relaxed"><%= @board.description %></p>
-      <% end %>
-      <span class="text-[12px] text-slate-400"><%= @board.feedbacks.visible.count %> <%= t("participate.feedback.feedbacks_count") %></span>
-    </div>
+  <div class="max-w-2xl mx-auto w-full px-4 pt-4 pb-5 fade-in">
 
     <!-- Flash -->
     <% if notice %>
