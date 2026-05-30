@@ -78,6 +78,9 @@
       }
       sync();
       window.addEventListener('resize', sync);
+      // Re-sync after images finish loading (logo may not be loaded yet on first run)
+      window.addEventListener('load', sync);
+      requestAnimationFrame(function() { requestAnimationFrame(sync); });
 
       // Show "Xem thêm" button only when text is actually clamped
       var desc = document.getElementById('board-desc-text');
