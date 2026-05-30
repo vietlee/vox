@@ -92,4 +92,18 @@ class Subscription < ApplicationRecord
   def expires_soon?
     ends_at.present? && ends_at <= 7.days.from_now
   end
+
+  # For free plan: date when counts will next be reset (1st of next month)
+  def next_reset_at
+    return nil unless free?
+    today = Date.current
+    Date.new(today.year, today.month, 1).next_month.beginning_of_day
+  end
+
+  def next_reset_date_formatted(locale = I18n.locale)
+    return nil unless (date = next_reset_at)
+    I18n.l(date.to_date, format: :long, locale: locale)
+  rescue
+    date.strftime("%d/%m/%Y")
+  end
 end

@@ -65,9 +65,10 @@ class Admin::SurveysController < Admin::BaseController
   def publish
     subscription = current_workspace.active_subscription
     unless subscription&.within_survey_limit?
+      msg = subscription&.free? ? t("surveys.limit_reached_free", date: subscription.next_reset_date_formatted) : t("surveys.limit_reached")
       respond_to do |format|
-        format.json { render json: { error: t("surveys.limit_reached") }, status: :forbidden }
-        format.html { redirect_to surveys_path, alert: t("surveys.limit_reached") }
+        format.json { render json: { error: msg }, status: :forbidden }
+        format.html { redirect_to surveys_path, alert: msg }
       end
       return
     end

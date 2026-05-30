@@ -18,7 +18,8 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   def create
     subscription = current_workspace.active_subscription
     unless subscription&.within_feedback_limit?
-      redirect_to feedback_boards_path, alert: t("feedback_boards.limit_reached")
+      msg = subscription&.free? ? t("feedback_boards.limit_reached_free", date: subscription.next_reset_date_formatted) : t("feedback_boards.limit_reached")
+      redirect_to feedback_boards_path, alert: msg
       return
     end
 

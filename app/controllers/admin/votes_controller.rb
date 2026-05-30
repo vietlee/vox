@@ -20,6 +20,13 @@ class Admin::VotesController < Admin::BaseController
   end
 
   def create
+    subscription = current_workspace.active_subscription
+    unless subscription&.within_vote_limit?
+      msg = subscription&.free? ? t("votes.limit_reached_free", date: subscription.next_reset_date_formatted) : t("votes.limit_reached")
+      redirect_to votes_path, alert: msg
+      return
+    end
+
     @vote = current_workspace.votes.build(vote_params)
     @vote.user = current_user
 
