@@ -48,7 +48,16 @@
       <% end %>
       <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-0.5"><%= @board.title %></h1>
       <% if @board.description.present? %>
-        <p class="text-[12px] text-slate-500 mb-0.5"><%= @board.description %></p>
+        <div id="board-desc-wrap" class="mb-0.5">
+          <p id="board-desc-text" class="text-[12px] text-slate-500"
+             style="overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;"><%= @board.description %></p>
+          <button id="board-desc-toggle" type="button"
+                  onclick="toggleBoardDesc()"
+                  class="text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 border-0 bg-transparent p-0 cursor-pointer mt-0.5"
+                  style="display:none;">
+            <%= t("participate.feedback.show_more", default: "Xem thêm") %>
+          </button>
+        </div>
       <% end %>
       <span id="sticky-feedback-count" class="text-[11px] text-slate-400">
         <%= @board.feedbacks.visible.count %> <%= t("participate.feedback.feedbacks_count") %>
@@ -69,7 +78,33 @@
       }
       sync();
       window.addEventListener('resize', sync);
+
+      // Show "Xem thêm" button only when text is actually clamped
+      var desc = document.getElementById('board-desc-text');
+      var btn  = document.getElementById('board-desc-toggle');
+      if (desc && btn && desc.scrollHeight > desc.clientHeight + 2) {
+        btn.style.display = 'inline';
+      }
     })();
+
+    var _boardDescExpanded = false;
+    function toggleBoardDesc() {
+      _boardDescExpanded = !_boardDescExpanded;
+      var desc = document.getElementById('board-desc-text');
+      var btn  = document.getElementById('board-desc-toggle');
+      if (_boardDescExpanded) {
+        desc.style.webkitLineClamp = 'unset';
+        desc.style.display = 'block';
+        btn.textContent = '<%= j t("participate.feedback.show_less", default: "Rút gọn") %>';
+      } else {
+        desc.style.webkitLineClamp = '2';
+        desc.style.display = '-webkit-box';
+        btn.textContent = '<%= j t("participate.feedback.show_more", default: "Xem thêm") %>';
+      }
+      // re-sync spacer after height change
+      var hdr = document.getElementById('board-fixed-header');
+      document.getElementById('board-header-spacer').style.height = hdr.offsetHeight + 'px';
+    }
   </script>
 
   <!-- Scrollable content -->
