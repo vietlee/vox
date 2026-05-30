@@ -13,13 +13,14 @@
 
 <!-- KPI Cards -->
 <% sub = @subscription %>
+<% free_reset_date = sub&.free? ? sub.next_reset_date_formatted : nil %>
 <div class="grid grid-cols-5 gap-4 mb-6">
   <%= render "admin/dashboard/kpi_card", icon: "📋", label: t("kpi.surveys"), value: @surveys_count, color: "bg-indigo-50",
-      used: sub&.surveys_used, max: sub&.max_surveys, pct: sub&.surveys_pct %>
+      used: sub&.surveys_used, max: sub&.max_surveys, pct: sub&.surveys_pct, reset_date: free_reset_date %>
   <%= render "admin/dashboard/kpi_card", icon: "🗳️", label: t("kpi.votes"), value: @votes_count, color: "bg-violet-50",
-      used: sub&.votes_used, max: sub&.max_votes, pct: sub&.votes_pct %>
+      used: sub&.votes_used, max: sub&.max_votes, pct: sub&.votes_pct, reset_date: free_reset_date %>
   <%= render "admin/dashboard/kpi_card", icon: "💬", label: t("kpi.feedback"), value: @feedbacks_count, color: "bg-emerald-50",
-      used: sub&.feedbacks_used, max: sub&.max_feedbacks, pct: sub&.feedbacks_pct %>
+      used: sub&.feedbacks_used, max: sub&.max_feedbacks, pct: sub&.feedbacks_pct, reset_date: free_reset_date %>
   <%= render "admin/dashboard/kpi_card", icon: "👥", label: t("kpi.supporters"), value: @supporters_count, color: "bg-sky-50",
       used: sub&.supporters_used, max: sub&.max_supporters, pct: sub&.supporters_pct %>
   <%= render "admin/dashboard/kpi_card", icon: "📝", label: t("kpi.responses"), value: @responses_count, color: "bg-amber-50", trend: nil %>

@@ -1,4 +1,4 @@
-<% max ||= nil; used ||= nil; pct ||= nil %>
+<% max ||= nil; used ||= nil; pct ||= nil; reset_date ||= nil %>
 <% at_limit = max && used && used >= max %>
 <div class="bg-white border <%= at_limit ? 'border-amber-200' : 'border-slate-200' %> rounded-[10px] px-5 py-[18px] shadow-sm">
   <div class="w-9 h-9 rounded-lg <%= color %> flex items-center justify-center text-[17px] mb-3"><%= icon %></div>
@@ -13,7 +13,13 @@
            style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
     </div>
     <% if at_limit %>
-      <p class="text-[10px] text-amber-600 font-semibold mt-1.5"><%= t("subscription.limit_reached_short") %> · <%= link_to t("subscription.upgrade"), billing_subscription_path, class: "underline" %></p>
+      <p class="text-[10px] text-amber-600 font-semibold mt-1.5">
+        <%= t("subscription.limit_reached_short") %> ·
+        <%= link_to t("subscription.upgrade"), billing_subscription_path, class: "underline" %>
+        <% if reset_date %>
+          <span class="font-normal text-amber-500"> · <%= t("subscription.resets_on", date: reset_date) %></span>
+        <% end %>
+      </p>
     <% else %>
       <p class="text-[10px] text-slate-400 mt-1.5"><%= t("subscription.remaining_count", count: max - used) %></p>
     <% end %>
