@@ -343,25 +343,12 @@ const csrf     = document.querySelector('meta[name="csrf-token"]')?.content;
 const GLOW_COLORS = <%= raw option_colors.map { |c| c[:shadow] }.to_json %>;
 
 const consumer = createConsumer();
-consumer.subscriptions.create({ channel: "VoteChannel", vote_id: voteId }, {
-  connected()    {},
-  disconnected() {},
-  received(data) {
-    if (data.type === 'new_vote') {
-      updateResults(data.options, data.participant_count);
-    } else if (data.type === 'ai_insight') {
-      showInsight({ insight: data.insight, highlight: data.highlight });
-    } else if (data.type === 'status_change' && data.status === 'closed') {
-      document.getElementById('close-btn')?.remove();
-      showTimeUpBanner();
-      startInsightPolling();
-    }
-  }
-});
 
 let lastCount = <%= @vote.participant_count %>;
+let _cableConnected = false;
 
-async function pollResults() {
+// Fetch latest results once (used on reconnect as catch-up, not as a recurring poll)
+async function fetchLatestOnce() {
   try {
     const res = await fetch(`/v/${voteSlug}/results.json`, { headers: { Accept: 'application/json' } });
     if (!res.ok) return;
@@ -372,7 +359,27 @@ async function pollResults() {
     }
   } catch(e) {}
 }
-setInterval(pollResults, 1500);
+
+consumer.subscriptions.create({ channel: "VoteChannel", vote_id: voteId }, {
+  connected() {
+    // On (re)connect, fetch once to catch any updates missed while disconnected
+    if (_cableConnected) fetchLatestOnce();
+    _cableConnected = true;
+  },
+  disconnected() {},
+  received(data) {
+    if (data.type === 'new_vote') {
+      lastCount = data.participant_count;
+      updateResults(data.options, data.participant_count);
+    } else if (data.type === 'ai_insight') {
+      showInsight({ insight: data.insight, highlight: data.highlight });
+    } else if (data.type === 'status_change' && data.status === 'closed') {
+      document.getElementById('close-btn')?.remove();
+      showTimeUpBanner();
+      startInsightPolling();
+    }
+  }
+});
 
 function updateResults(options, count) {
   document.getElementById('participant-count').textContent = count;
