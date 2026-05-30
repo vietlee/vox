@@ -37,22 +37,30 @@
   <div style="height:44px;"></div>
   <% end %>
 
-  <!-- Content -->
-  <div class="flex-1 flex flex-col px-4 py-6">
-    <div class="max-w-[680px] mx-auto w-full flex-1 flex flex-col">
+  <!-- Sticky survey header
+       top = navbar height (47px mobile / 57px desktop)
+             + progress bar height (44px) when shown -->
+  <div class="sticky z-[100] w-full <%= @survey.show_progress? ? 'top-[91px] sm:top-[101px]' : 'top-[47px] sm:top-[57px]' %>"
+       style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
+              border-bottom:1px solid rgba(226,232,240,0.7);
+              box-shadow:0 2px 12px rgba(99,102,241,0.06);">
+    <div class="max-w-[680px] mx-auto px-4 py-3 text-center">
+      <% if @survey.logo.attached? %>
+        <img src="<%= url_for(@survey.logo) %>" alt="<%= @survey.title %>"
+             class="object-contain mx-auto mb-1.5 rounded-xl"
+             style="max-height:48px; max-width:180px;">
+      <% end %>
+      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-0.5"><%= @survey.title %></h1>
+      <% if @survey.description.present? %>
+        <p class="text-[12px] text-slate-500 mb-0.5" style="overflow:hidden; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;"><%= @survey.description %></p>
+      <% end %>
+      <span class="text-[11px] text-slate-400"><%= @questions.count %> <%= t("participate.survey.questions_count") %></span>
+    </div>
+  </div>
 
-      <!-- Survey header -->
-      <div class="text-center mb-7 fade-in">
-        <% if @survey.logo.attached? %>
-          <img src="<%= url_for(@survey.logo) %>" alt="<%= @survey.title %>"
-               class="object-contain mx-auto mb-3 rounded-xl"
-               style="max-height:80px; max-width:260px; box-shadow:0 4px 16px rgba(99,102,241,0.15);">
-        <% end %>
-        <h1 class="text-[26px] font-extrabold text-slate-900 tracking-tight leading-snug mb-2"><%= @survey.title %></h1>
-        <% if @survey.description.present? %>
-          <p class="text-[14px] text-slate-500 leading-relaxed"><%= @survey.description %></p>
-        <% end %>
-      </div>
+  <!-- Content -->
+  <div class="flex-1 flex flex-col px-4 py-4">
+    <div class="max-w-[680px] mx-auto w-full flex-1 flex flex-col">
 
       <% if @already_responded || flash[:alert].present? %>
         <div class="fade-in text-center">
