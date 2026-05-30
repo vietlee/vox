@@ -57,18 +57,20 @@ class Participate::FeedbacksController < Participate::BaseController
       render json: { error: "Replies not allowed" }, status: :forbidden and return
     end
     feedback = @board.feedbacks.visible.find(params[:feedback_id])
-    anonymous = params[:reply][:author_name].blank?
+    anonymous = params.dig(:reply, :author_name).blank?
     reply = feedback.feedback_replies.create!(
-      content:     params[:reply][:content],
-      author_name: anonymous ? nil : params[:reply][:author_name],
+      content:     params.dig(:reply, :content),
+      author_name: anonymous ? nil : params.dig(:reply, :author_name),
       anonymous:   anonymous
     )
+    reply.image.attach(params.dig(:reply, :image)) if params.dig(:reply, :image).present?
     render json: {
       id:          reply.id,
       content:     reply.content,
       author_name: reply.author_name,
       anonymous:   reply.anonymous?,
-      created_at:  reply.created_at.strftime("%d/%m/%Y %H:%M")
+      created_at:  reply.created_at.strftime("%d/%m/%Y %H:%M"),
+      image_url:   reply.image.attached? ? url_for(reply.image) : nil
     }
   end
 

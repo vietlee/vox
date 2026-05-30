@@ -176,6 +176,11 @@
                         <span class="text-[10px] text-slate-300"><%= I18n.l(r.created_at, format: :short) %></span>
                       </div>
                       <p class="text-[13px] text-slate-700"><%= r.content %></p>
+                      <% if r.image.attached? %>
+                        <img src="<%= url_for(r.image) %>" alt=""
+                             class="rounded-lg object-cover mt-1.5"
+                             style="max-height:120px; max-width:100%; border:1px solid #e2e8f0;">
+                      <% end %>
                     </div>
                   </div>
                 <% end %>
@@ -187,11 +192,28 @@
                       class="w-full px-3 py-1.5 rounded-lg text-[12px] outline-none"
                       style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
                       onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
-                    <textarea id="reply-content-<%= fb.id %>" rows="2" maxlength="500"
-                      placeholder="<%= t("participate.feedback.reply_content_placeholder") %>"
-                      class="w-full px-3 py-1.5 rounded-lg text-[13px] text-slate-800 outline-none resize-none"
-                      style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
-                      onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                    <div class="relative">
+                      <textarea id="reply-content-<%= fb.id %>" rows="2" maxlength="500"
+                        placeholder="<%= t("participate.feedback.reply_content_placeholder") %>"
+                        class="w-full px-3 py-1.5 pr-9 rounded-lg text-[13px] text-slate-800 outline-none resize-none"
+                        style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
+                        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                      <button type="button" onclick="document.getElementById('reply-image-input-<%= fb.id %>').click()"
+                        class="absolute bottom-2 right-2 w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                        style="border:1px solid #e2e8f0; background:white;">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                      </button>
+                    </div>
+                    <input type="file" id="reply-image-input-<%= fb.id %>" accept="image/*" class="hidden"
+                           onchange="handleReplyImage(this, <%= fb.id %>)">
+                    <div id="reply-image-preview-<%= fb.id %>" class="hidden relative inline-block">
+                      <img id="reply-image-thumb-<%= fb.id %>" src="" alt=""
+                           class="rounded-lg object-cover"
+                           style="max-height:80px; max-width:100%; border:1px solid #e2e8f0;">
+                      <button type="button" onclick="removeReplyImage(<%= fb.id %>)"
+                              class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center"
+                              style="font-size:9px; line-height:1;">✕</button>
+                    </div>
                   </div>
                   <button onclick="submitReply(<%= fb.id %>)"
                     class="px-4 py-2 text-white text-[12px] font-bold rounded-lg self-end flex-shrink-0 border-0"
@@ -300,11 +322,28 @@ function renderFeedbackCard(fb) {
                  class="w-full px-3 py-1.5 rounded-lg text-[12px] outline-none"
                  style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
                  onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
-               <textarea id="reply-content-${fb.id}" rows="2" maxlength="500"
-                 placeholder="${REPLY_CONTENT_PH}"
-                 class="w-full px-3 py-1.5 rounded-lg text-[13px] text-slate-800 outline-none resize-none"
-                 style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
-                 onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+               <div class="relative">
+                 <textarea id="reply-content-${fb.id}" rows="2" maxlength="500"
+                   placeholder="${REPLY_CONTENT_PH}"
+                   class="w-full px-3 py-1.5 pr-9 rounded-lg text-[13px] text-slate-800 outline-none resize-none"
+                   style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
+                   onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                 <button type="button" onclick="document.getElementById('reply-image-input-${fb.id}').click()"
+                   class="absolute bottom-2 right-2 w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                   style="border:1px solid #e2e8f0; background:white;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                 </button>
+               </div>
+               <input type="file" id="reply-image-input-${fb.id}" accept="image/*" class="hidden"
+                      onchange="handleReplyImage(this, ${fb.id})">
+               <div id="reply-image-preview-${fb.id}" style="display:none;" class="relative inline-block">
+                 <img id="reply-image-thumb-${fb.id}" src="" alt=""
+                      class="rounded-lg object-cover"
+                      style="max-height:80px; max-width:100%; border:1px solid #e2e8f0;">
+                 <button type="button" onclick="removeReplyImage(${fb.id})"
+                         class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center"
+                         style="font-size:9px; line-height:1;">✕</button>
+               </div>
              </div>
              <button onclick="submitReply(${fb.id})"
                class="px-4 py-2 text-white text-[12px] font-bold rounded-lg self-end flex-shrink-0 border-0"
@@ -489,16 +528,44 @@ function toggleReplyForm(id) {
   }
 }
 
+function handleReplyImage(input, feedbackId) {
+  const file = input.files[0];
+  if (!file) return;
+  const thumb   = document.getElementById(`reply-image-thumb-${feedbackId}`);
+  const preview = document.getElementById(`reply-image-preview-${feedbackId}`);
+  thumb.src = URL.createObjectURL(file);
+  preview.style.display = 'inline-block';
+}
+
+function removeReplyImage(feedbackId) {
+  const input   = document.getElementById(`reply-image-input-${feedbackId}`);
+  const thumb   = document.getElementById(`reply-image-thumb-${feedbackId}`);
+  const preview = document.getElementById(`reply-image-preview-${feedbackId}`);
+  if (thumb && thumb.src.startsWith('blob:')) URL.revokeObjectURL(thumb.src);
+  if (input) input.value = '';
+  if (thumb) thumb.src = '';
+  if (preview) preview.style.display = 'none';
+}
+
 async function submitReply(feedbackId) {
   const nameEl    = document.getElementById(`reply-name-${feedbackId}`);
   const contentEl = document.getElementById(`reply-content-${feedbackId}`);
+  const imageInput = document.getElementById(`reply-image-input-${feedbackId}`);
   const content   = contentEl.value.trim();
   if (!content) { contentEl.focus(); return; }
 
+  const formData = new FormData();
+  formData.append('feedback_id', feedbackId);
+  formData.append('reply[content]', content);
+  formData.append('reply[author_name]', nameEl.value.trim());
+  if (imageInput && imageInput.files[0]) {
+    formData.append('reply[image]', imageInput.files[0]);
+  }
+
   const res = await fetch(REPLY_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-CSRF-Token": CSRF, "Accept": "application/json" },
-    body: JSON.stringify({ feedback_id: feedbackId, reply: { content, author_name: nameEl.value.trim() } })
+    headers: { "X-CSRF-Token": CSRF, "Accept": "application/json" },
+    body: formData
   });
   if (!res.ok) return;
   const data = await res.json();
@@ -506,6 +573,9 @@ async function submitReply(feedbackId) {
   const list = document.getElementById(`replies-list-${feedbackId}`);
   const initial = data.anonymous ? "?" : (data.author_name || "?").charAt(0).toUpperCase();
   const authorLabel = data.anonymous ? ANONYMOUS_LABEL : data.author_name;
+  const imageHtml = data.image_url
+    ? `<img src="${data.image_url}" alt="" class="rounded-lg object-cover mt-1.5" style="max-height:120px; max-width:100%; border:1px solid #e2e8f0;">`
+    : '';
   const div = document.createElement('div');
   div.className = 'flex gap-2';
   div.innerHTML = `
@@ -516,10 +586,12 @@ async function submitReply(feedbackId) {
         <span class="text-[10px] text-slate-300">${data.created_at}</span>
       </div>
       <p class="text-[13px] text-slate-700">${data.content}</p>
+      ${imageHtml}
     </div>`;
   list.appendChild(div);
   contentEl.value = '';
   nameEl.value = '';
+  removeReplyImage(feedbackId);
 }
 
 async function toggleUpvote(btn, feedbackId) {
