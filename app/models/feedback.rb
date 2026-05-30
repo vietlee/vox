@@ -3,7 +3,7 @@ class Feedback < ApplicationRecord
   belongs_to :workspace
   has_many   :feedback_upvotes, dependent: :destroy
   has_many   :feedback_replies, dependent: :destroy
-  has_one_attached :image
+  has_many_attached :images
 
   enum :status,            { pending: 0, approved: 1, hidden: 2, rejected: 3 }
   enum :admin_status,      { new_feedback: 0, under_review: 1, implemented: 2, declined: 3 }

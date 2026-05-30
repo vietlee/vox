@@ -36,7 +36,7 @@ class Participate::FeedbacksController < Participate::BaseController
       author_email: fb_params[:email] || fb_params[:author_email],
       anonymous:    fb_params[:anonymous] == "1"
     )
-    @feedback.image.attach(fb_params[:image]) if fb_params[:image].present?
+    @feedback.images.attach(fb_params[:images]) if fb_params[:images].present?
 
     if @feedback.save
       pending = @board.manual_approval?
@@ -63,14 +63,14 @@ class Participate::FeedbacksController < Participate::BaseController
       author_name: anonymous ? nil : params.dig(:reply, :author_name),
       anonymous:   anonymous
     )
-    reply.image.attach(params.dig(:reply, :image)) if params.dig(:reply, :image).present?
+    reply.images.attach(params.dig(:reply, :images)) if params.dig(:reply, :images).present?
     render json: {
       id:          reply.id,
       content:     reply.content,
       author_name: reply.author_name,
       anonymous:   reply.anonymous?,
       created_at:  reply.created_at.strftime("%d/%m/%Y %H:%M"),
-      image_url:   reply.image.attached? ? url_for(reply.image) : nil
+      image_urls:  reply.images.attached? ? reply.images.map { |img| url_for(img) } : []
     }
   end
 
@@ -102,7 +102,7 @@ class Participate::FeedbacksController < Participate::BaseController
       allow_replies: @board.allow_replies?,
       replies_count: fb.feedback_replies.size,
       created_at:    I18n.l(fb.created_at, format: :short),
-      image_url:     fb.image.attached? ? url_for(fb.image) : nil
+      image_urls:    fb.images.attached? ? fb.images.map { |img| url_for(img) } : []
     }
   end
 

@@ -1,5 +1,19 @@
 <% content_for :title, @board.title %>
 
+<!-- Image Gallery Lightbox -->
+<div id="gallery-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.92); flex-direction:column; align-items:center; justify-content:center;"
+     onclick="closeGallery()">
+  <button onclick="closeGallery()" style="position:absolute; top:16px; right:16px; width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.15); border:none; color:white; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+  <button id="gallery-prev" onclick="event.stopPropagation(); galleryNav(-1)" style="position:absolute; left:16px; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.15); border:none; color:white; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+  <img id="gallery-img" src="" alt="" onclick="event.stopPropagation()"
+       style="max-height:80vh; max-width:90vw; object-fit:contain; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+  <div id="gallery-counter" style="color:rgba(255,255,255,0.7); margin-top:14px; font-size:13px; font-weight:600;"></div>
+  <!-- Thumbnails -->
+  <div id="gallery-thumbs" onclick="event.stopPropagation()"
+       style="display:flex; gap:8px; margin-top:12px; max-width:90vw; overflow-x:auto; padding:4px 0;"></div>
+  <button id="gallery-next" onclick="event.stopPropagation(); galleryNav(1)" style="position:absolute; right:16px; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.15); border:none; color:white; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+</div>
+
 <style>
   html, body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100%; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
@@ -83,19 +97,12 @@
           </label>
         <% end %>
 
-        <!-- Image upload -->
+        <!-- Image upload (multiple) -->
         <div>
-          <input type="file" id="fb-image-input" name="feedback[image]" accept="image/*" class="hidden"
+          <input type="file" id="fb-image-input" accept="image/*" multiple class="hidden"
                  onchange="handleFbImageSelect(this)">
-          <div id="fb-image-preview" class="hidden mb-2 relative inline-block">
-            <img id="fb-image-thumb" src="" alt="" class="rounded-xl object-cover"
-                 style="max-height:160px; max-width:100%; border:1.5px solid #e2e8f0;">
-            <button type="button" onclick="removeFbImage()"
-                    class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-[12px] flex items-center justify-center shadow-md"
-                    style="line-height:1;">✕</button>
-          </div>
+          <div id="fb-image-previews" style="display:none; flex-wrap:wrap; gap:8px; margin-bottom:8px;"></div>
           <button type="button" onclick="document.getElementById('fb-image-input').click()"
-                  id="fb-image-btn"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                   style="border:1.5px dashed #cbd5e1;">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -131,10 +138,21 @@
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-[14px] text-slate-800 leading-relaxed mb-2"><%= fb.content %></p>
-              <% if fb.image.attached? %>
-                <img src="<%= url_for(fb.image) %>" alt=""
-                     class="rounded-xl object-cover mb-2"
-                     style="max-height:200px; max-width:100%; border:1px solid rgba(226,232,240,0.8);">
+              <% if fb.images.attached? %>
+                <% img_urls = fb.images.map { |img| url_for(img) } %>
+                <div class="relative cursor-pointer mb-2 inline-block"
+                     onclick='openGallery(<%= img_urls.to_json %>, 0)'
+                     style="max-width:100%;">
+                  <img src="<%= img_urls.first %>" alt=""
+                       class="rounded-xl object-cover block"
+                       style="max-height:200px; max-width:100%; border:1px solid rgba(226,232,240,0.8);">
+                  <% if img_urls.size > 1 %>
+                    <div class="absolute inset-0 rounded-xl flex items-center justify-center"
+                         style="background:rgba(0,0,0,0.45);">
+                      <span class="text-white font-extrabold" style="font-size:22px; text-shadow:0 1px 4px rgba(0,0,0,0.5);">+<%= img_urls.size - 1 %></span>
+                    </div>
+                  <% end %>
+                </div>
               <% end %>
               <div class="flex items-center gap-3 flex-wrap">
                 <span class="text-[12px] font-semibold text-slate-500">
@@ -176,10 +194,20 @@
                         <span class="text-[10px] text-slate-300"><%= I18n.l(r.created_at, format: :short) %></span>
                       </div>
                       <p class="text-[13px] text-slate-700"><%= r.content %></p>
-                      <% if r.image.attached? %>
-                        <img src="<%= url_for(r.image) %>" alt=""
-                             class="rounded-lg object-cover mt-1.5"
-                             style="max-height:120px; max-width:100%; border:1px solid #e2e8f0;">
+                      <% if r.images.attached? %>
+                        <% r_urls = r.images.map { |img| url_for(img) } %>
+                        <div class="relative cursor-pointer mt-1.5 inline-block"
+                             onclick='openGallery(<%= r_urls.to_json %>, 0)'>
+                          <img src="<%= r_urls.first %>" alt=""
+                               class="rounded-lg object-cover block"
+                               style="max-height:120px; max-width:100%; border:1px solid #e2e8f0;">
+                          <% if r_urls.size > 1 %>
+                            <div class="absolute inset-0 rounded-lg flex items-center justify-center"
+                                 style="background:rgba(0,0,0,0.45);">
+                              <span class="text-white font-bold" style="font-size:16px;">+<%= r_urls.size - 1 %></span>
+                            </div>
+                          <% end %>
+                        </div>
                       <% end %>
                     </div>
                   </div>
@@ -204,16 +232,9 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                       </button>
                     </div>
-                    <input type="file" id="reply-image-input-<%= fb.id %>" accept="image/*" class="hidden"
+                    <input type="file" id="reply-image-input-<%= fb.id %>" accept="image/*" multiple class="hidden"
                            onchange="handleReplyImage(this, <%= fb.id %>)">
-                    <div id="reply-image-preview-<%= fb.id %>" class="hidden relative inline-block">
-                      <img id="reply-image-thumb-<%= fb.id %>" src="" alt=""
-                           class="rounded-lg object-cover"
-                           style="max-height:80px; max-width:100%; border:1px solid #e2e8f0;">
-                      <button type="button" onclick="removeReplyImage(<%= fb.id %>)"
-                              class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center"
-                              style="font-size:9px; line-height:1;">✕</button>
-                    </div>
+                    <div id="reply-image-previews-<%= fb.id %>" style="display:none; flex-wrap:wrap; gap:6px; margin-top:4px;"></div>
                   </div>
                   <button onclick="submitReply(<%= fb.id %>)"
                     class="px-4 py-2 text-white text-[12px] font-bold rounded-lg self-end flex-shrink-0 border-0"
@@ -334,16 +355,9 @@ function renderFeedbackCard(fb) {
                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                  </button>
                </div>
-               <input type="file" id="reply-image-input-${fb.id}" accept="image/*" class="hidden"
+               <input type="file" id="reply-image-input-${fb.id}" accept="image/*" multiple class="hidden"
                       onchange="handleReplyImage(this, ${fb.id})">
-               <div id="reply-image-preview-${fb.id}" style="display:none;" class="relative inline-block">
-                 <img id="reply-image-thumb-${fb.id}" src="" alt=""
-                      class="rounded-lg object-cover"
-                      style="max-height:80px; max-width:100%; border:1px solid #e2e8f0;">
-                 <button type="button" onclick="removeReplyImage(${fb.id})"
-                         class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center"
-                         style="font-size:9px; line-height:1;">✕</button>
-               </div>
+               <div id="reply-image-previews-${fb.id}" style="display:none;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
              </div>
              <button onclick="submitReply(${fb.id})"
                class="px-4 py-2 text-white text-[12px] font-bold rounded-lg self-end flex-shrink-0 border-0"
@@ -366,7 +380,14 @@ function renderFeedbackCard(fb) {
         style="background:linear-gradient(135deg,#6366f1,#a855f7);">${initial}</div>
       <div class="flex-1 min-w-0">
         <p class="text-[14px] text-slate-800 leading-relaxed mb-2">${fb.content}</p>
-        ${fb.image_url ? `<img src="${fb.image_url}" alt="" class="rounded-xl object-cover mb-2" style="max-height:200px; max-width:100%; border:1px solid rgba(226,232,240,0.8);">` : ''}
+        ${fb.image_urls && fb.image_urls.length > 0 ? `
+          <div class="relative cursor-pointer mb-2 inline-block" style="max-width:100%;"
+               onclick='openGallery(${JSON.stringify(fb.image_urls)}, 0)'>
+            <img src="${fb.image_urls[0]}" alt="" class="rounded-xl object-cover block"
+                 style="max-height:200px;max-width:100%;border:1px solid rgba(226,232,240,0.8);">
+            ${fb.image_urls.length > 1 ? `<div class="absolute inset-0 rounded-xl flex items-center justify-center" style="background:rgba(0,0,0,0.45);">
+              <span style="color:white;font-size:22px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,0.5);">+${fb.image_urls.length - 1}</span></div>` : ''}
+          </div>` : ''}
         <div class="flex items-center gap-3 flex-wrap">
           <span class="text-[12px] font-semibold text-slate-500">${authorLabel}</span>
           <span class="text-[11px] text-slate-300">${fb.created_at}</span>
@@ -380,27 +401,81 @@ function renderFeedbackCard(fb) {
   return card;
 }
 
-function handleFbImageSelect(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const thumb = document.getElementById('fb-image-thumb');
-  const preview = document.getElementById('fb-image-preview');
-  const btn = document.getElementById('fb-image-btn');
-  thumb.src = URL.createObjectURL(file);
-  preview.classList.remove('hidden');
-  btn.style.display = 'none';
+// ── Gallery / Lightbox ───────────────────────────────────────────────────────
+let _gallery = [], _gIdx = 0;
+
+function openGallery(urls, startIdx) {
+  _gallery = Array.isArray(urls) ? urls : [urls];
+  _gIdx = startIdx || 0;
+  _renderGallery();
+  document.getElementById('gallery-modal').style.display = 'flex';
 }
 
-function removeFbImage() {
-  const input = document.getElementById('fb-image-input');
-  const thumb = document.getElementById('fb-image-thumb');
-  const preview = document.getElementById('fb-image-preview');
-  const btn = document.getElementById('fb-image-btn');
-  if (thumb.src.startsWith('blob:')) URL.revokeObjectURL(thumb.src);
+function closeGallery() {
+  document.getElementById('gallery-modal').style.display = 'none';
+}
+
+function galleryNav(dir) {
+  _gIdx = Math.max(0, Math.min(_gallery.length - 1, _gIdx + dir));
+  _renderGallery();
+}
+
+function _renderGallery() {
+  document.getElementById('gallery-img').src = _gallery[_gIdx];
+  document.getElementById('gallery-counter').textContent = `${_gIdx + 1} / ${_gallery.length}`;
+  document.getElementById('gallery-prev').style.display = _gIdx > 0 ? 'flex' : 'none';
+  document.getElementById('gallery-next').style.display = _gIdx < _gallery.length - 1 ? 'flex' : 'none';
+  const thumbs = document.getElementById('gallery-thumbs');
+  thumbs.innerHTML = _gallery.map((url, i) =>
+    `<img src="${url}" onclick="event.stopPropagation();_gIdx=${i};_renderGallery()"
+          style="width:52px;height:52px;object-fit:cover;border-radius:8px;cursor:pointer;flex-shrink:0;
+                 border:2px solid ${i===_gIdx?'#6366f1':'rgba(255,255,255,0.3)'};
+                 opacity:${i===_gIdx?1:0.6};transition:all 0.15s;">`
+  ).join('');
+}
+
+document.addEventListener('keydown', e => {
+  const modal = document.getElementById('gallery-modal');
+  if (modal.style.display === 'none') return;
+  if (e.key === 'ArrowLeft') galleryNav(-1);
+  if (e.key === 'ArrowRight') galleryNav(1);
+  if (e.key === 'Escape') closeGallery();
+});
+
+// ── Feedback form multi-image upload ─────────────────────────────────────────
+let fbFiles = [];
+
+function handleFbImageSelect(input) {
+  Array.from(input.files).forEach(f => fbFiles.push(f));
   input.value = '';
-  thumb.src = '';
-  preview.classList.add('hidden');
-  btn.style.display = '';
+  _renderFbPreviews();
+}
+
+function _removeFbFile(idx) {
+  const f = fbFiles[idx];
+  if (f._blobUrl) URL.revokeObjectURL(f._blobUrl);
+  fbFiles.splice(idx, 1);
+  _renderFbPreviews();
+}
+
+function _renderFbPreviews() {
+  const container = document.getElementById('fb-image-previews');
+  if (fbFiles.length === 0) { container.style.display = 'none'; container.innerHTML = ''; return; }
+  container.style.display = 'flex';
+  container.innerHTML = fbFiles.map((f, i) => {
+    if (!f._blobUrl) f._blobUrl = URL.createObjectURL(f);
+    return `<div style="position:relative;flex-shrink:0;">
+      <img src="${f._blobUrl}" style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1.5px solid #e2e8f0;display:block;">
+      <button type="button" onclick="_removeFbFile(${i})"
+        style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#ef4444;border:none;color:white;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function _clearFbFiles() {
+  fbFiles.forEach(f => { if (f._blobUrl) URL.revokeObjectURL(f._blobUrl); });
+  fbFiles = [];
+  _renderFbPreviews();
 }
 
 document.getElementById('feedback-form').addEventListener('submit', async function(e) {
@@ -433,9 +508,10 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
   btn.disabled = true;
   btn.style.opacity = '0.7';
 
-  // Use FormData directly to support file upload
+  // Use FormData with manually managed files
   const formData = new FormData(this);
   if (!formData.get('feedback[anonymous]')) formData.set('feedback[anonymous]', '0');
+  fbFiles.forEach(f => formData.append('feedback[images][]', f));
 
   try {
     const res = await fetch(SUBMIT_URL, {
@@ -452,7 +528,7 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
 
     showToast(data.message);
     this.reset();
-    removeFbImage();
+    _clearFbFiles();
     const nameField = document.getElementById('feedback-author-name');
     if (nameField) {
       nameField.disabled = false;
@@ -528,29 +604,48 @@ function toggleReplyForm(id) {
   }
 }
 
+// ── Reply multi-image upload ──────────────────────────────────────────────────
+const replyFiles = {}; // { feedbackId: [File, ...] }
+
 function handleReplyImage(input, feedbackId) {
-  const file = input.files[0];
-  if (!file) return;
-  const thumb   = document.getElementById(`reply-image-thumb-${feedbackId}`);
-  const preview = document.getElementById(`reply-image-preview-${feedbackId}`);
-  thumb.src = URL.createObjectURL(file);
-  preview.style.display = 'inline-block';
+  if (!replyFiles[feedbackId]) replyFiles[feedbackId] = [];
+  Array.from(input.files).forEach(f => replyFiles[feedbackId].push(f));
+  input.value = '';
+  _renderReplyPreviews(feedbackId);
 }
 
-function removeReplyImage(feedbackId) {
-  const input   = document.getElementById(`reply-image-input-${feedbackId}`);
-  const thumb   = document.getElementById(`reply-image-thumb-${feedbackId}`);
-  const preview = document.getElementById(`reply-image-preview-${feedbackId}`);
-  if (thumb && thumb.src.startsWith('blob:')) URL.revokeObjectURL(thumb.src);
-  if (input) input.value = '';
-  if (thumb) thumb.src = '';
-  if (preview) preview.style.display = 'none';
+function _removeReplyFile(feedbackId, idx) {
+  const f = replyFiles[feedbackId][idx];
+  if (f && f._blobUrl) URL.revokeObjectURL(f._blobUrl);
+  replyFiles[feedbackId].splice(idx, 1);
+  _renderReplyPreviews(feedbackId);
+}
+
+function _renderReplyPreviews(feedbackId) {
+  const container = document.getElementById(`reply-image-previews-${feedbackId}`);
+  if (!container) return;
+  const files = replyFiles[feedbackId] || [];
+  if (files.length === 0) { container.style.display = 'none'; container.innerHTML = ''; return; }
+  container.style.display = 'flex';
+  container.innerHTML = files.map((f, i) => {
+    if (!f._blobUrl) f._blobUrl = URL.createObjectURL(f);
+    return `<div style="position:relative;flex-shrink:0;">
+      <img src="${f._blobUrl}" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1.5px solid #e2e8f0;display:block;">
+      <button type="button" onclick="_removeReplyFile(${feedbackId},${i})"
+        style="position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:#ef4444;border:none;color:white;font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function _clearReplyFiles(feedbackId) {
+  (replyFiles[feedbackId] || []).forEach(f => { if (f._blobUrl) URL.revokeObjectURL(f._blobUrl); });
+  replyFiles[feedbackId] = [];
+  _renderReplyPreviews(feedbackId);
 }
 
 async function submitReply(feedbackId) {
   const nameEl    = document.getElementById(`reply-name-${feedbackId}`);
   const contentEl = document.getElementById(`reply-content-${feedbackId}`);
-  const imageInput = document.getElementById(`reply-image-input-${feedbackId}`);
   const content   = contentEl.value.trim();
   if (!content) { contentEl.focus(); return; }
 
@@ -558,9 +653,7 @@ async function submitReply(feedbackId) {
   formData.append('feedback_id', feedbackId);
   formData.append('reply[content]', content);
   formData.append('reply[author_name]', nameEl.value.trim());
-  if (imageInput && imageInput.files[0]) {
-    formData.append('reply[image]', imageInput.files[0]);
-  }
+  (replyFiles[feedbackId] || []).forEach(f => formData.append('reply[images][]', f));
 
   const res = await fetch(REPLY_URL, {
     method: "POST",
@@ -573,9 +666,15 @@ async function submitReply(feedbackId) {
   const list = document.getElementById(`replies-list-${feedbackId}`);
   const initial = data.anonymous ? "?" : (data.author_name || "?").charAt(0).toUpperCase();
   const authorLabel = data.anonymous ? ANONYMOUS_LABEL : data.author_name;
-  const imageHtml = data.image_url
-    ? `<img src="${data.image_url}" alt="" class="rounded-lg object-cover mt-1.5" style="max-height:120px; max-width:100%; border:1px solid #e2e8f0;">`
+  const imageHtml = data.image_urls && data.image_urls.length > 0
+    ? `<div class="relative cursor-pointer mt-1.5 inline-block"
+            onclick='openGallery(${JSON.stringify(data.image_urls)}, 0)'>
+         <img src="${data.image_urls[0]}" style="max-height:120px;max-width:100%;border-radius:8px;object-fit:cover;border:1px solid #e2e8f0;display:block;">
+         ${data.image_urls.length > 1 ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+           <span style="color:white;font-size:16px;font-weight:700;">+${data.image_urls.length - 1}</span></div>` : ''}
+       </div>`
     : '';
+
   const div = document.createElement('div');
   div.className = 'flex gap-2';
   div.innerHTML = `
@@ -591,7 +690,7 @@ async function submitReply(feedbackId) {
   list.appendChild(div);
   contentEl.value = '';
   nameEl.value = '';
-  removeReplyImage(feedbackId);
+  _clearReplyFiles(feedbackId);
 }
 
 async function toggleUpvote(btn, feedbackId) {
