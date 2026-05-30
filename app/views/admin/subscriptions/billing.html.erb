@@ -21,8 +21,10 @@
 <% end %>
 
 <!-- Plan cards -->
-<% pro_config = PlanConfig.find_for("pro") %>
-<% pro_price  = PlanConfig.price_for("pro") %>
+<% pro_config  = PlanConfig.find_for("pro") %>
+<% pro_price   = PlanConfig.price_for("pro") %>
+<% pro_limits  = PlanConfig.limits_for("pro") %>
+<% pro_features = PlanConfig.features_for("pro") %>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 max-w-2xl">
 
   <!-- Pro -->
@@ -39,10 +41,22 @@
       <%= t("subscription.billing.per_workspace") %>
     </div>
     <ul class="space-y-2 mb-6 text-[13px] text-slate-700">
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span> <%= t("subscription.billing.feature_unlimited") %></li>
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span> <%= t("subscription.billing.feature_supporters_10") %></li>
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span> <%= t("subscription.billing.feature_ai_credits_500") %></li>
+      <li class="flex gap-2"><span class="text-indigo-500">✓</span>
+        <% max_sv = pro_limits[:max_surveys] %>
+        <%= max_sv.nil? ? t("subscription.billing.feature_unlimited") : t("subscription.billing.feature_surveys_votes_feedbacks_max", count: max_sv) %>
+      </li>
+      <li class="flex gap-2"><span class="text-indigo-500">✓</span>
+        <% max_sup = pro_limits[:max_supporters] %>
+        <%= max_sup.nil? ? t("subscription.billing.feature_supporters_unlimited") : t("subscription.billing.feature_supporters_max", count: max_sup) %>
+      </li>
+      <li class="flex gap-2"><span class="text-indigo-500">✓</span>
+        <% max_cr = pro_limits[:max_ai_credits] %>
+        <%= max_cr.nil? ? t("subscription.billing.feature_ai_credits_unlimited") : t("subscription.billing.feature_ai_credits_monthly", count: max_cr) %>
+      </li>
       <li class="flex gap-2"><span class="text-indigo-500">✓</span> <%= t("subscription.billing.feature_ai_analysis") %></li>
+      <% if pro_features[:ai_chat] %>
+      <li class="flex gap-2"><span class="text-indigo-500">✓</span> <%= t("subscription.billing.feature_ai_chat") %></li>
+      <% end %>
       <li class="flex gap-2"><span class="text-indigo-500">✓</span> <%= t("subscription.billing.feature_export") %></li>
     </ul>
     <% if @subscription&.pro? %>
