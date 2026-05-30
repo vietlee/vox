@@ -24,7 +24,20 @@ class SuperAdmin::WorkspacesController < SuperAdmin::BaseController
         password_confirmation: password,
         must_change_password: true
       )
-      subscription = @workspace.subscriptions.create!(plan: params[:plan] || :free, status: :active, credit_balance: Subscription::PLAN_LIMITS[params[:plan] || "free"][:max_ai_credits].to_i)
+      plan_key = params[:plan].presence || "free"
+      limits   = PlanConfig.limits_for(plan_key)
+      features = PlanConfig.features_for(plan_key)
+      subscription = @workspace.subscriptions.create!(
+        plan:           plan_key,
+        status:         :active,
+        max_surveys:    limits[:max_surveys],
+        max_votes:      limits[:max_votes],
+        max_feedbacks:  limits[:max_feedbacks],
+        max_supporters: limits[:max_supporters],
+        max_ai_credits: limits[:max_ai_credits],
+        credit_balance: limits[:max_ai_credits].to_i,
+        features:       features
+      )
 
       WorkspaceMailer.welcome(admin, password, @workspace).deliver_later
       redirect_to super_admin_workspaces_path, notice: "Workspace created and admin invited."
