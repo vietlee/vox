@@ -343,33 +343,11 @@ const csrf     = document.querySelector('meta[name="csrf-token"]')?.content;
 const GLOW_COLORS = <%= raw option_colors.map { |c| c[:shadow] }.to_json %>;
 
 const consumer = createConsumer();
-
-let lastCount = <%= @vote.participant_count %>;
-let _cableConnected = false;
-
-// Fetch latest results once (used on reconnect as catch-up, not as a recurring poll)
-async function fetchLatestOnce() {
-  try {
-    const res = await fetch(`/v/${voteSlug}/results.json`, { headers: { Accept: 'application/json' } });
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data.participant_count !== lastCount) {
-      lastCount = data.participant_count;
-      updateResults(data.results, data.participant_count);
-    }
-  } catch(e) {}
-}
-
 consumer.subscriptions.create({ channel: "VoteChannel", vote_id: voteId }, {
-  connected() {
-    // On (re)connect, fetch once to catch any updates missed while disconnected
-    if (_cableConnected) fetchLatestOnce();
-    _cableConnected = true;
-  },
+  connected()    {},
   disconnected() {},
   received(data) {
     if (data.type === 'new_vote') {
-      lastCount = data.participant_count;
       updateResults(data.options, data.participant_count);
     } else if (data.type === 'ai_insight') {
       showInsight({ insight: data.insight, highlight: data.highlight });
@@ -380,6 +358,21 @@ consumer.subscriptions.create({ channel: "VoteChannel", vote_id: voteId }, {
     }
   }
 });
+
+let lastCount = <%= @vote.participant_count %>;
+
+async function pollResults() {
+  try {
+    const res = await fetch(`/v/${voteSlug}/results.json`, { headers: { Accept: 'application/json' } });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.participant_count !== lastCount) {
+      lastCount = data.participant_count;
+      updateResults(data.results, data.participant_count);
+    }
+  } catch(e) {}
+}
+setInterval(pollResults, 1500);
 
 function updateResults(options, count) {
   document.getElementById('participant-count').textContent = count;
