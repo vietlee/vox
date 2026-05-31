@@ -15,7 +15,8 @@
 </div>
 
 <style>
-  html, body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100%; }
+  html, body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100%; scrollbar-width: none; -ms-overflow-style: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes spin { to { transform: rotate(360deg); } }
   .fade-in { animation: fadeIn 0.35s ease forwards; }
@@ -131,7 +132,7 @@
     <!-- Submit form -->
     <div class="rounded-2xl p-5 mb-5" style="background:#ffffff; border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 24px rgba(99,102,241,0.08);">
       <p class="text-[13px] font-bold text-slate-700 mb-3"><%= t("participate.feedback.submit_title") %></p>
-      <form id="feedback-form" class="space-y-3">
+      <form id="feedback-form" class="space-y-3" novalidate>
 
         <!-- Unified input box (same style as reply box) -->
         <div class="rounded-2xl overflow-hidden transition-all"
@@ -618,15 +619,16 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
     const nameField = document.getElementById('feedback-author-name');
     const anonCb    = document.getElementById('feedback-anonymous');
     if (nameField && !anonCb?.checked && !nameField.value.trim()) {
+      // Blur immediately so mobile keyboard doesn't pop up
+      if (document.activeElement) document.activeElement.blur();
+
       nameField.style.borderColor = '#ef4444';
       nameField.style.background  = 'rgba(239,68,68,0.04)';
-      // Show error right above submit button
       const submitErr = document.getElementById('fb-submit-error');
       if (submitErr) {
         submitErr.textContent = "<%= j t('participate.feedback.name_or_anonymous_required', default: 'Vui lòng nhập tên hoặc chọn gửi ẩn danh') %>";
         submitErr.style.display = 'block';
-        // Scroll error into view
-        submitErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        submitErr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
       nameField.animate([
         { transform: 'translateX(0)' },
