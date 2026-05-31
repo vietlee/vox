@@ -138,15 +138,6 @@
              style="border:1.5px solid #e2e8f0; background:white;"
              onfocusin="this.style.borderColor='#6366f1'" onfocusout="this.style.borderColor='#e2e8f0'">
 
-          <% if @board.public_identity? || @board.user_choice? %>
-            <input type="text" id="feedback-author-name" name="feedback[author_name]"
-              placeholder="<%= t("participate.feedback.name_placeholder") %>"
-              <% if @board.public_identity? %>required<% end %>
-              class="w-full px-4 pt-3 pb-0 text-[13px] font-semibold text-slate-600 outline-none bg-transparent block"
-              style="border:none; font-size:13px;"
-              onfocus="const se=document.getElementById('fb-submit-error');if(se)se.style.display='none';">
-          <% end %>
-
           <textarea id="fb-content" name="feedback[content]" rows="3" required maxlength="1000"
             placeholder="<%= t("participate.feedback.content_placeholder") %>"
             class="w-full px-4 pt-3 pb-2 text-[13px] text-slate-800 outline-none resize-none bg-transparent block"
@@ -174,11 +165,20 @@
         </div>
 
         <% if @board.public_identity? || @board.user_choice? %>
-          <input type="email" id="fb-email" name="feedback[author_email]"
-            placeholder="<%= t("participate.feedback.email_placeholder") %>"
-            class="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
-            style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
-            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" id="feedback-author-name" name="feedback[author_name]"
+              placeholder="<%= t("participate.feedback.name_placeholder") %>"
+              <% if @board.public_identity? %>required<% end %>
+              class="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
+              style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
+              onfocus="this.style.borderColor='#6366f1'; const se=document.getElementById('fb-submit-error');if(se)se.style.display='none';"
+              onblur="this.style.borderColor='#e2e8f0'">
+            <input type="email" id="fb-email" name="feedback[author_email]"
+              placeholder="<%= t("participate.feedback.email_placeholder") %>"
+              class="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
+              style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
+              onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
         <% end %>
 
         <% if @board.user_choice? %>
