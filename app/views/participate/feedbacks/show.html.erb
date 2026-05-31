@@ -616,6 +616,19 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
   e.preventDefault();
   const btn = document.getElementById('fb-submit-btn');
 
+  // Validate content (required)
+  const contentField = document.getElementById('fb-content');
+  if (contentField && !contentField.value.trim()) {
+    if (document.activeElement) document.activeElement.blur();
+    const box = contentField.closest('.rounded-2xl');
+    if (box) { box.style.borderColor = '#ef4444'; setTimeout(() => { box.style.borderColor = '#e2e8f0'; }, 2000); }
+    contentField.animate([
+      { transform: 'translateX(0)' }, { transform: 'translateX(-5px)' },
+      { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }
+    ], { duration: 280, easing: 'ease-out' });
+    return;
+  }
+
   // Client-side validation: user_choice requires name OR anonymous
   if (IDENTITY_MODE === 'user_choice') {
     const nameField = document.getElementById('feedback-author-name');
