@@ -1,7 +1,8 @@
 <% content_for :title, t("dashboard.title") %>
+<% content_for :main_class, 'flex-1 overflow-hidden p-6 flex flex-col' %>
 
 <!-- Page header -->
-<div class="flex items-start justify-between mb-6">
+<div class="flex items-start justify-between mb-5 flex-shrink-0">
   <div>
     <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight"><%= t("dashboard.title") %></h1>
     <p class="text-[13px] text-slate-500 mt-0.5"><%= current_workspace.name %> · <%= Date.current.strftime("%B %Y") %></p>
@@ -9,12 +10,14 @@
 </div>
 
 <!-- Onboarding checklist (only for new workspaces) -->
-<%= render "admin/dashboard/onboarding", onboarding: @onboarding %>
+<div class="flex-shrink-0">
+  <%= render "admin/dashboard/onboarding", onboarding: @onboarding %>
+</div>
 
 <!-- KPI Cards -->
 <% sub = @subscription %>
 <% free_reset_date = sub&.free? ? sub.next_reset_date_formatted : nil %>
-<div class="grid grid-cols-5 gap-4 mb-6">
+<div class="grid grid-cols-5 gap-4 mb-5 flex-shrink-0">
   <%= render "admin/dashboard/kpi_card", icon: "📋", label: t("kpi.surveys"), value: @surveys_count, color: "bg-indigo-50",
       used: sub&.surveys_used, max: sub&.max_surveys, pct: sub&.surveys_pct, reset_date: free_reset_date %>
   <%= render "admin/dashboard/kpi_card", icon: "🗳️", label: t("kpi.votes"), value: @votes_count, color: "bg-violet-50",
@@ -26,83 +29,109 @@
   <%= render "admin/dashboard/kpi_card", icon: "📝", label: t("kpi.responses"), value: @responses_count, color: "bg-amber-50", trend: nil %>
 </div>
 
-<div class="grid grid-cols-[1fr_300px] gap-5">
+<!-- Content grid — fills remaining viewport height, each block scrolls independently -->
+<div class="flex-1 min-h-0 grid grid-cols-[1fr_300px] gap-5">
+
   <!-- Left column -->
-  <div class="space-y-5">
+  <div class="flex flex-col gap-5 min-h-0 overflow-hidden">
+
     <!-- Active surveys -->
-    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
-      <div class="flex items-center justify-between mb-4">
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5 flex flex-col flex-1 min-h-0">
+      <div class="flex items-center justify-between mb-4 flex-shrink-0">
         <h2 class="text-[14px] font-bold text-slate-900">📋 <%= t("dashboard.active_surveys") %></h2>
-        <%= link_to surveys_path, class: "text-[12px] text-indigo-600 hover:underline" do %><%= t("common.view_all") %><% end %>
+        <%= link_to surveys_path, class: "text-[12px] text-indigo-600 hover:underline" do %>
+          <%= t("common.view_all") %> →
+        <% end %>
       </div>
-      <% if @active_surveys.any? %>
-        <% @active_surveys.each do |survey| %>
-          <div class="flex items-center gap-3 py-2.5 border-b border-slate-100 last:border-0">
-            <div class="flex-1 min-w-0">
-              <div class="text-[13px] font-semibold text-slate-900 truncate"><%= survey.title %></div>
-              <div class="text-[11px] text-slate-500"><%= survey.response_count %> <%= t("kpi.responses").downcase %> · <%= survey.created_at.strftime("%b %d") %></div>
+      <div class="overflow-y-auto flex-1 -mr-2 pr-2">
+        <% if @active_surveys.any? %>
+          <% @active_surveys.each do |survey| %>
+            <div class="flex items-center gap-3 py-2.5 border-b border-slate-100 last:border-0">
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-semibold text-slate-900 truncate"><%= survey.title %></div>
+                <div class="text-[11px] text-slate-500"><%= survey.response_count %> <%= t("kpi.responses").downcase %> · <%= survey.created_at.strftime("%b %d") %></div>
+              </div>
+              <%= link_to results_survey_path(survey), class: "text-[11px] px-2.5 py-1 bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 flex-shrink-0" do %>
+                <%= t("common.results") %>
+              <% end %>
             </div>
-            <%= link_to results_survey_path(survey), class: "text-[11px] px-2.5 py-1 bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 flex-shrink-0" do %><%= t("common.results") %><% end %>
+          <% end %>
+        <% else %>
+          <div class="flex flex-col items-center justify-center h-full text-center text-[13px] text-slate-400 py-6">
+            <span class="text-3xl mb-2">📋</span>
+            <%= t("dashboard.no_active_surveys") %>
+            <%= link_to t("common.create_one"), new_survey_path, class: "text-indigo-600 block mt-1" %>
           </div>
         <% end %>
-      <% else %>
-        <div class="text-center py-8 text-[13px] text-slate-400">
-          <%= t("dashboard.no_active_surveys") %> <%= link_to t("common.create_one"), new_survey_path, class: "text-indigo-600" %>
-        </div>
-      <% end %>
+      </div>
     </div>
 
     <!-- Active votes -->
-    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
-      <div class="flex items-center justify-between mb-4">
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5 flex flex-col flex-1 min-h-0">
+      <div class="flex items-center justify-between mb-4 flex-shrink-0">
         <h2 class="text-[14px] font-bold text-slate-900">🗳️ <%= t("dashboard.active_votes") %></h2>
-        <%= link_to votes_path, class: "text-[12px] text-indigo-600 hover:underline" do %><%= t("common.view_all") %><% end %>
+        <%= link_to votes_path, class: "text-[12px] text-indigo-600 hover:underline" do %>
+          <%= t("common.view_all") %> →
+        <% end %>
       </div>
-      <% if @active_votes.any? %>
-        <% @active_votes.each do |vote| %>
-          <div class="flex items-center gap-3 py-2.5 border-b border-slate-100 last:border-0">
-            <div class="flex-1 min-w-0">
-              <div class="text-[13px] font-semibold text-slate-900 truncate"><%= vote.title %></div>
-              <div class="text-[11px] text-slate-500"><%= vote.participant_count %> votes · <%= t("votes.live") %></div>
+      <div class="overflow-y-auto flex-1 -mr-2 pr-2">
+        <% if @active_votes.any? %>
+          <% @active_votes.each do |vote| %>
+            <div class="flex items-center gap-3 py-2.5 border-b border-slate-100 last:border-0">
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-semibold text-slate-900 truncate"><%= vote.title %></div>
+                <div class="text-[11px] text-slate-500"><%= vote.participant_count %> votes · <%= t("votes.live") %></div>
+              </div>
+              <span class="flex-shrink-0 w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+              <%= link_to present_vote_path(vote), class: "text-[11px] px-2.5 py-1 bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100 flex-shrink-0" do %>
+                <%= t("common.present") %>
+              <% end %>
             </div>
-            <span class="flex-shrink-0 w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-            <%= link_to present_vote_path(vote), class: "text-[11px] px-2.5 py-1 bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100 flex-shrink-0" do %><%= t("common.present") %><% end %>
+          <% end %>
+        <% else %>
+          <div class="flex flex-col items-center justify-center h-full text-center text-[13px] text-slate-400 py-6">
+            <span class="text-3xl mb-2">🗳️</span>
+            <%= t("dashboard.no_active_votes") %>
+            <%= link_to t("common.create_one"), new_vote_path, class: "text-indigo-600 block mt-1" %>
           </div>
         <% end %>
-      <% else %>
-        <div class="text-center py-8 text-[13px] text-slate-400">
-          <%= t("dashboard.no_active_votes") %> <%= link_to t("common.create_one"), new_vote_path, class: "text-indigo-600" %>
-        </div>
-      <% end %>
+      </div>
     </div>
+
   </div>
 
-  <!-- Right column: AI panel + recent feedback -->
-  <div class="space-y-5">
+  <!-- Right column -->
+  <div class="flex flex-col gap-5 min-h-0 overflow-hidden">
+
     <!-- Recent feedback -->
-    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
-      <div class="flex items-center justify-between mb-4">
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5 flex flex-col flex-1 min-h-0">
+      <div class="flex items-center justify-between mb-4 flex-shrink-0">
         <h2 class="text-[14px] font-bold text-slate-900">💬 <%= t("dashboard.recent_feedback") %></h2>
       </div>
-      <% if @recent_feedbacks.any? %>
-        <% @recent_feedbacks.first(5).each do |fb| %>
-          <div class="py-2.5 border-b border-slate-100 last:border-0">
-            <p class="text-[12px] text-slate-700 line-clamp-2"><%= fb.content.truncate(80) %></p>
-            <div class="flex items-center gap-2 mt-1">
-              <% if fb.safe? %><span class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded"><%= t("feedbacks.safe") %></span><% end %>
-              <% if fb.flagged? %><span class="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">⚠ <%= t("feedbacks.flagged") %></span><% end %>
-              <span class="text-[10px] text-slate-400 ml-auto"><%= fb.created_at.strftime("%b %d") %></span>
+      <div class="overflow-y-auto flex-1 -mr-2 pr-2">
+        <% if @recent_feedbacks.any? %>
+          <% @recent_feedbacks.each do |fb| %>
+            <div class="py-2.5 border-b border-slate-100 last:border-0">
+              <p class="text-[12px] text-slate-700 line-clamp-2"><%= fb.content.truncate(80) %></p>
+              <div class="flex items-center gap-2 mt-1">
+                <% if fb.safe? %><span class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded"><%= t("feedbacks.safe") %></span><% end %>
+                <% if fb.flagged? %><span class="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">⚠ <%= t("feedbacks.flagged") %></span><% end %>
+                <span class="text-[10px] text-slate-400 ml-auto"><%= fb.created_at.strftime("%b %d") %></span>
+              </div>
             </div>
+          <% end %>
+        <% else %>
+          <div class="flex flex-col items-center justify-center h-full text-center text-[13px] text-slate-400 py-6">
+            <span class="text-3xl mb-2">💬</span>
+            <%= t("dashboard.no_feedback") %>
           </div>
         <% end %>
-      <% else %>
-        <div class="text-center py-6 text-[13px] text-slate-400"><%= t("dashboard.no_feedback") %></div>
-      <% end %>
+      </div>
     </div>
 
     <!-- AI Credits -->
     <% if (sub = @subscription) && !sub.nil? && !sub.free? %>
-      <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
+      <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5 flex-shrink-0">
         <h2 class="text-[14px] font-bold text-slate-900 mb-3">🎯 <%= t("dashboard.ai_credits") %></h2>
         <div class="flex justify-between text-[12px] mb-1.5">
           <span class="text-slate-500"><%= t("dashboard.ai_credits_used") %></span>
@@ -114,5 +143,6 @@
         <div class="text-[11px] text-slate-400 mt-1.5"><%= t("dashboard.ai_credits_resets") %> <%= Date.current.end_of_month.strftime("%d/%m") %></div>
       </div>
     <% end %>
+
   </div>
 </div>

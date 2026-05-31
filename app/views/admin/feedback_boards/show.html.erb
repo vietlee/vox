@@ -1,12 +1,15 @@
 <% content_for :title, @board.title %>
+<% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
 <% content_for :breadcrumb do %>
   <%= link_to t("feedback_boards.show.breadcrumb"), feedback_boards_path, class: "hover:text-slate-600" %> <span class="text-slate-300 mx-1">/</span>
   <span class="text-slate-700 font-medium"><%= @board.title %></span>
 <% end %>
 
-<div class="mb-6">
+<!-- ── Page header (fixed) ──────────────────────────────────────────────────── -->
+<div class="flex-shrink-0 px-6 pt-5 pb-3 bg-slate-100">
   <div class="flex items-start justify-between gap-3 flex-wrap">
-    <div class="min-w-0">
+    <%= render "admin/shared/back_btn" %>
+    <div class="min-w-0 flex-1">
       <h1 class="text-[21px] font-extrabold text-slate-900"><%= @board.title %></h1>
       <div class="flex items-center gap-2 mt-1">
         <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold <%= @board.active? ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' %>">
@@ -27,71 +30,113 @@
       <% end %>
     </div>
   </div>
-</div>
+</div><!-- /page header -->
 
-<div class="grid grid-cols-3 gap-4">
-  <div class="col-span-2 space-y-4">
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-3"><%= t("feedback_boards.show.recent") %></h2>
-      <% recent = @board.feedbacks.order(created_at: :desc).limit(8) %>
-      <% if recent.any? %>
-        <div class="space-y-2">
+<!-- ── Content area (fixed, no outer scroll) ─────────────────────────────────── -->
+<div class="flex-1 min-h-0 overflow-hidden px-6 pt-3 pb-5">
+  <div class="grid grid-cols-3 gap-4 h-full" style="grid-template-rows:1fr;">
+
+    <!-- Góp ý gần đây — fills height, list scrolls inside -->
+    <div class="col-span-2 bg-white rounded-xl border border-slate-200 flex flex-col min-h-0">
+      <!-- Card header -->
+      <div class="flex-shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+        <h2 class="text-[13px] font-bold text-slate-700"><%= t("feedback_boards.show.recent") %></h2>
+        <%= link_to feedback_board_feedbacks_path(@board), class: "text-[12px] text-indigo-500 hover:text-indigo-700 font-medium" do %>
+          <%= t("feedback_boards.show.view_all") %> →
+        <% end %>
+      </div>
+      <!-- Scrollable list -->
+      <div class="flex-1 min-h-0 overflow-y-auto">
+        <% recent = @board.feedbacks.order(created_at: :desc).limit(50) %>
+        <% if recent.any? %>
           <% recent.each do |fb| %>
-            <div class="py-2.5 border-b border-slate-50 last:border-0">
-              <div class="flex items-start justify-between gap-3">
-                <p class="text-[13px] text-slate-700 leading-snug"><%= fb.content.truncate(120) %></p>
-                <span class="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold <%= fb.safe? ? 'bg-emerald-50 text-emerald-700' : fb.flagged? ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500' %>">
-                  <%= t("feedbacks.#{fb.moderation_status}") %>
-                </span>
+            <div class="flex items-start justify-between gap-3 px-5 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+              <div class="min-w-0">
+                <p class="text-[13px] text-slate-700 leading-snug"><%= fb.content.truncate(140) %></p>
+                <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                  <span>👍 <%= fb.upvotes_count %></span>
+                  <span class="text-slate-300">·</span>
+                  <span><%= I18n.l(fb.created_at.in_time_zone, format: :short) %></span>
+                </div>
               </div>
-              <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
-                <span>👍 <%= fb.upvotes_count %></span>
-                <span><%= I18n.l(fb.created_at, format: :short) %></span>
+              <span class="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold mt-0.5
+                <%= fb.safe? ? 'bg-emerald-50 text-emerald-700' : fb.flagged? ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500' %>">
+                <%= t("feedbacks.#{fb.moderation_status}") %>
+              </span>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="flex flex-col items-center justify-center h-full py-16 text-slate-400">
+            <div class="text-3xl mb-2">💬</div>
+            <p class="text-[13px]"><%= t("feedback_boards.show.no_feedbacks") %></p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Right column: Cài đặt + Chia sẻ -->
+    <div class="flex flex-col gap-4 min-h-0">
+
+      <!-- Cài đặt (fixed height) -->
+      <div class="flex-shrink-0 bg-white rounded-xl border border-slate-200 p-5">
+        <h2 class="text-[13px] font-bold text-slate-700 mb-3"><%= t("feedback_boards.show.settings") %></h2>
+        <dl class="space-y-2.5 text-[12px]">
+          <div class="flex justify-between items-center">
+            <dt class="text-slate-400"><%= t("feedback_boards.show.identity") %></dt>
+            <dd class="text-slate-700 font-medium"><%= t("feedback_boards.form.identity_modes.#{@board.identity_mode}") %></dd>
+          </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-slate-400"><%= t("feedback_boards.show.auto_moderation") %></dt>
+            <dd class="font-semibold <%= @board.auto_moderation? ? 'text-emerald-600' : 'text-slate-400' %>">
+              <%= @board.auto_moderation? ? t("feedback_boards.show.on") : t("feedback_boards.show.off") %>
+            </dd>
+          </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-slate-400"><%= t("feedback_boards.show.manual_approval") %></dt>
+            <dd class="font-semibold <%= @board.manual_approval? ? 'text-emerald-600' : 'text-slate-400' %>">
+              <%= @board.manual_approval? ? t("feedback_boards.show.on") : t("feedback_boards.show.off") %>
+            </dd>
+          </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-slate-400"><%= t("feedback_boards.show.upvotes") %></dt>
+            <dd class="font-semibold <%= @board.allow_upvotes? ? 'text-emerald-600' : 'text-slate-400' %>">
+              <%= @board.allow_upvotes? ? t("feedback_boards.show.on") : t("feedback_boards.show.off") %>
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Chia sẻ (fills remaining, internal scroll) -->
+      <div class="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
+        <div class="flex-shrink-0 px-5 pt-4 pb-3 border-b border-slate-100">
+          <h2 class="text-[13px] font-bold text-slate-700"><%= t("feedback_boards.show.share") %></h2>
+        </div>
+        <div class="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+          <p class="text-[11px] text-slate-400 mb-2"><%= t("feedback_boards.show.public_link") %></p>
+          <div class="flex gap-1 mb-5">
+            <input id="feedback-link" readonly value="<%= participate_feedback_url(@board.slug) %>"
+              class="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] font-mono text-slate-600 min-w-0">
+            <button onclick="navigator.clipboard.writeText(document.getElementById('feedback-link').value);this.textContent='✓';setTimeout(()=>this.textContent='<%= j t("feedback_boards.show.copy") %>',2000)"
+              class="px-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-semibold rounded hover:bg-indigo-100 border-0 cursor-pointer flex-shrink-0"><%= t("feedback_boards.show.copy") %></button>
+          </div>
+
+          <% if @board.qr_code %>
+            <div class="text-center">
+              <p class="text-[11px] text-slate-400 mb-2"><%= t("feedback_boards.show.qr_scan") %></p>
+              <div class="inline-block p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+                <img src="<%= qr_image_path(@board.qr_code.token) %>" alt="QR Code" class="w-36 h-36">
               </div>
+              <p class="text-[10px] text-slate-400 mt-2"><%= t("feedback_boards.show.scan_count", count: @board.qr_code.scan_count) %></p>
+              <a href="<%= qr_image_path(@board.qr_code.token) %>" download="qr-<%= @board.slug %>.svg"
+                class="inline-flex items-center gap-1 mt-2 px-3 py-1.5 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-lg hover:bg-slate-200">
+                <%= t("feedback_boards.show.download_qr") %>
+              </a>
             </div>
           <% end %>
         </div>
-        <%= link_to feedback_board_feedbacks_path(@board), class: "inline-block mt-3 text-[12px] text-indigo-500 hover:underline" do %><%= t("feedback_boards.show.view_all") %><% end %>
-      <% else %>
-        <p class="text-[13px] text-slate-400"><%= t("feedback_boards.show.no_feedbacks") %></p>
-      <% end %>
-    </div>
-  </div>
-
-  <div class="space-y-4">
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-3"><%= t("feedback_boards.show.settings") %></h2>
-      <dl class="space-y-2 text-[12px]">
-        <div class="flex justify-between"><dt class="text-slate-400"><%= t("feedback_boards.show.identity") %></dt><dd class="text-slate-700"><%= t("feedback_boards.form.identity_modes.#{@board.identity_mode}") %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-400"><%= t("feedback_boards.show.auto_moderation") %></dt><dd class="text-slate-700"><%= @board.auto_moderation? ? t("feedback_boards.show.on") : t("feedback_boards.show.off") %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-400"><%= t("feedback_boards.show.manual_approval") %></dt><dd class="text-slate-700"><%= @board.manual_approval? ? t("feedback_boards.show.on") : t("feedback_boards.show.off") %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-400"><%= t("feedback_boards.show.upvotes") %></dt><dd class="text-slate-700"><%= @board.allow_upvotes? ? t("feedback_boards.show.on") : t("feedback_boards.show.off") %></dd></div>
-      </dl>
-    </div>
-
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-2"><%= t("feedback_boards.show.share") %></h2>
-      <p class="text-[11px] text-slate-400 mb-2"><%= t("feedback_boards.show.public_link") %></p>
-      <div class="flex gap-1 mb-4">
-        <input id="feedback-link" readonly value="<%= participate_feedback_url(@board.slug) %>"
-          class="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] font-mono text-slate-600 min-w-0">
-        <button onclick="navigator.clipboard.writeText(document.getElementById('feedback-link').value);this.textContent='✓';setTimeout(()=>this.textContent='<%= j t("feedback_boards.show.copy") %>',2000)"
-          class="px-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-semibold rounded hover:bg-indigo-100 border-0 cursor-pointer flex-shrink-0"><%= t("feedback_boards.show.copy") %></button>
       </div>
 
-      <% if @board.qr_code %>
-        <div class="text-center">
-          <p class="text-[11px] text-slate-400 mb-2"><%= t("feedback_boards.show.qr_scan") %></p>
-          <div class="inline-block p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
-            <img src="<%= qr_image_path(@board.qr_code.token) %>" alt="QR Code" class="w-40 h-40">
-          </div>
-          <p class="text-[10px] text-slate-400 mt-2"><%= t("feedback_boards.show.scan_count", count: @board.qr_code.scan_count) %></p>
-          <a href="<%= qr_image_path(@board.qr_code.token) %>" download="qr-<%= @board.slug %>.svg"
-            class="inline-flex items-center gap-1 mt-2 px-3 py-1.5 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-lg hover:bg-slate-200">
-            <%= t("feedback_boards.show.download_qr") %>
-          </a>
-        </div>
-      <% end %>
-    </div>
-  </div>
-</div>
+    </div><!-- /right column -->
+
+  </div><!-- /grid -->
+</div><!-- /content area -->

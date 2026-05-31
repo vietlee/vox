@@ -111,7 +111,7 @@
   </script>
 
   <!-- Scrollable content -->
-  <div class="max-w-2xl mx-auto w-full px-4 pt-4 pb-5 fade-in">
+  <div class="max-w-3xl mx-auto w-full px-4 pt-4 pb-5 fade-in">
 
     <!-- Flash -->
     <% if notice %>
@@ -132,25 +132,53 @@
     <div class="rounded-2xl p-5 mb-5" style="background:#ffffff; border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 24px rgba(99,102,241,0.08);">
       <p class="text-[13px] font-bold text-slate-700 mb-3"><%= t("participate.feedback.submit_title") %></p>
       <form id="feedback-form" class="space-y-3">
-        <textarea id="fb-content" name="feedback[content]" rows="3" required maxlength="1000"
-          placeholder="<%= t("participate.feedback.content_placeholder") %>"
-          class="w-full px-4 py-3 rounded-xl text-[14px] text-slate-800 outline-none resize-none"
-          style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
-          onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
 
-        <% if @board.public_identity? || @board.user_choice? %>
-          <div class="grid grid-cols-2 gap-3">
+        <!-- Unified input box (same style as reply box) -->
+        <div class="rounded-2xl overflow-hidden transition-all"
+             style="border:1.5px solid #e2e8f0; background:white;"
+             onfocusin="this.style.borderColor='#6366f1'" onfocusout="this.style.borderColor='#e2e8f0'">
+
+          <% if @board.public_identity? || @board.user_choice? %>
             <input type="text" id="feedback-author-name" name="feedback[author_name]"
               placeholder="<%= t("participate.feedback.name_placeholder") %>"
               <% if @board.public_identity? %>required<% end %>
-              class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
-              style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
-              onfocus="this.style.borderColor='#6366f1';this.style.background='';const se=document.getElementById('fb-submit-error');if(se)se.style.display='none';" onblur="this.style.borderColor='#e2e8f0'">
-            <input type="email" id="fb-email" name="feedback[author_email]" placeholder="<%= t("participate.feedback.email_placeholder") %>"
-              class="px-3 py-2.5 rounded-xl text-[13px] outline-none"
-              style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
-              onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+              class="w-full px-4 pt-3 pb-0 text-[13px] font-semibold text-slate-600 outline-none bg-transparent block"
+              style="border:none; font-size:13px;"
+              onfocus="const se=document.getElementById('fb-submit-error');if(se)se.style.display='none';">
+          <% end %>
+
+          <textarea id="fb-content" name="feedback[content]" rows="3" required maxlength="1000"
+            placeholder="<%= t("participate.feedback.content_placeholder") %>"
+            class="w-full px-4 pt-3 pb-2 text-[13px] text-slate-800 outline-none resize-none bg-transparent block"
+            style="border:none; font-size:15px;"></textarea>
+
+          <div id="fb-image-previews" style="display:none; flex-wrap:wrap; gap:6px; padding:0 12px 8px;"></div>
+
+          <div class="flex items-center justify-between px-3 py-2" style="border-top:1px solid #f1f5f9;">
+            <div class="flex items-center gap-1">
+              <button type="button" onclick="openFbEmojiPicker(this)"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors border-0 bg-transparent cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+              </button>
+              <button type="button" onclick="document.getElementById('fb-image-input').click()"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors border-0 bg-transparent cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </button>
+            </div>
+            <button type="submit" id="fb-submit-btn"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-indigo-500 hover:bg-indigo-50 transition-colors border-0 bg-transparent cursor-pointer disabled:opacity-40">
+              <span id="fb-submit-spinner" style="display:none; width:16px; height:16px; border:2px solid #e0e7ff; border-top-color:#6366f1; border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0;"></span>
+              <svg id="fb-submit-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
           </div>
+        </div>
+
+        <% if @board.public_identity? || @board.user_choice? %>
+          <input type="email" id="fb-email" name="feedback[author_email]"
+            placeholder="<%= t("participate.feedback.email_placeholder") %>"
+            class="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
+            style="border:1.5px solid #e2e8f0; background:rgba(255,255,255,0.9); font-size:16px;"
+            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
         <% end %>
 
         <% if @board.user_choice? %>
@@ -161,27 +189,10 @@
           </label>
         <% end %>
 
-        <!-- Image upload (multiple) -->
-        <div>
-          <input type="file" id="fb-image-input" accept="image/*" multiple class="hidden"
-                 onchange="handleFbImageSelect(this)">
-          <div id="fb-image-previews" style="display:none; flex-wrap:wrap; gap:8px; margin-bottom:8px;"></div>
-          <button type="button" onclick="document.getElementById('fb-image-input').click()"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                  style="border:1.5px dashed #cbd5e1;">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            <%= t("participate.feedback.add_image", default: "Thêm ảnh") %>
-          </button>
-        </div>
+        <input type="file" id="fb-image-input" accept="image/*" multiple class="hidden"
+               onchange="handleFbImageSelect(this)">
 
         <div id="fb-submit-error" style="display:none; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:600; color:#991b1b; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2);"></div>
-
-        <button type="submit" id="fb-submit-btn"
-          class="w-full py-3 text-[14px] font-bold text-white rounded-lg transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-70"
-          style="background:#4F46E5;">
-          <span id="fb-submit-spinner" style="display:none; width:14px; height:14px; border:2px solid rgba(255,255,255,0.4); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0;"></span>
-          <span id="fb-submit-label"><%= t("participate.feedback.submit_btn") %></span>
-        </button>
       </form>
     </div>
 
@@ -215,23 +226,50 @@
               </div>
               <p class="text-[14px] text-slate-800 leading-relaxed mb-2"><%= fb.content %></p>
               <% if fb.images.attached? %>
-                <% img_urls = fb.images.map { |img| url_for(img) } %>
-                <div class="relative cursor-pointer mb-2 inline-block"
-                     onclick='openGallery(<%= img_urls.to_json %>, 0)'
-                     style="max-width:100%;">
-                  <img src="<%= img_urls.first %>" alt=""
-                       class="rounded-xl object-cover block"
-                       style="max-height:200px; max-width:100%; border:1px solid rgba(226,232,240,0.8);">
-                  <% if img_urls.size > 1 %>
-                    <div class="absolute inset-0 rounded-xl flex items-center justify-center"
-                         style="background:rgba(0,0,0,0.45);">
-                      <span class="text-white font-extrabold" style="font-size:22px; text-shadow:0 1px 4px rgba(0,0,0,0.5);">+<%= img_urls.size - 1 %></span>
+                <% img_urls = fb.images.map { |img| url_for(img) }; max_t = 4 %>
+                <div class="flex flex-wrap gap-1.5 mb-2">
+                  <% img_urls.first(max_t).each_with_index do |url, i| %>
+                    <div class="relative flex-shrink-0 cursor-pointer"
+                         style="width:72px; height:72px;"
+                         onclick='openGallery(<%= img_urls.to_json %>, <%= i %>)'>
+                      <img src="<%= url %>" alt=""
+                           class="w-full h-full rounded-xl object-cover"
+                           style="border:1px solid rgba(226,232,240,0.8);">
+                      <% if i == max_t - 1 && img_urls.size > max_t %>
+                        <div class="absolute inset-0 rounded-xl flex items-center justify-center"
+                             style="background:rgba(0,0,0,0.5);">
+                          <span class="text-white font-bold" style="font-size:15px;">+<%= img_urls.size - max_t %></span>
+                        </div>
+                      <% end %>
                     </div>
                   <% end %>
                 </div>
               <% end %>
+              <% if fb.admin_reply.present? || fb.admin_reply_image.attached? %>
+                <div class="mt-2 pt-2 border-t border-slate-100">
+                  <div class="flex items-start gap-2">
+                    <div class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 mt-0.5"
+                         style="background:linear-gradient(135deg,#6366f1,#4f46e5);">A</div>
+                    <div class="flex-1 rounded-xl px-3 py-2" style="background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.15);">
+                      <div class="text-[10px] font-bold text-indigo-500 mb-1">↩ Admin</div>
+                      <% if fb.admin_reply.present? %>
+                        <p class="text-[13px] text-slate-700 leading-relaxed"><%= fb.admin_reply %></p>
+                      <% end %>
+                      <% if fb.admin_reply_image.attached? %>
+                        <div class="relative flex-shrink-0 cursor-pointer mt-1.5"
+                             style="width:72px; height:72px;"
+                             onclick="openGallery(['<%= j url_for(fb.admin_reply_image) %>'], 0)">
+                          <img src="<%= url_for(fb.admin_reply_image) %>" alt=""
+                               class="w-full h-full rounded-lg object-cover"
+                               style="border:1px solid rgba(99,102,241,0.15);">
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
               <% if @board.allow_replies? %>
-                <div class="flex justify-end">
+                <div class="flex justify-end mt-1">
                   <button onclick="toggleReplyForm(<%= fb.id %>)"
                     class="text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 border-0 bg-transparent p-0">
                     💬 <%= fb.feedback_replies.count > 0 ? "#{fb.feedback_replies.count} #{t("participate.feedback.reply_count")}" : t("participate.feedback.reply_label") %>
@@ -265,16 +303,21 @@
                         </div>
                         <p class="text-[13px] text-slate-700"><%= r.content %></p>
                         <% if r.images.attached? %>
-                          <% r_urls = r.images.map { |img| url_for(img) } %>
-                          <div class="relative cursor-pointer mt-1.5 inline-block"
-                               onclick='openGallery(<%= r_urls.to_json %>, 0)'>
-                            <img src="<%= r_urls.first %>" alt=""
-                                 class="rounded-lg object-cover block"
-                                 style="max-height:120px; max-width:100%; border:1px solid #e2e8f0;">
-                            <% if r_urls.size > 1 %>
-                              <div class="absolute inset-0 rounded-lg flex items-center justify-center"
-                                   style="background:rgba(0,0,0,0.45);">
-                                <span class="text-white font-bold" style="font-size:16px;">+<%= r_urls.size - 1 %></span>
+                          <% r_urls = r.images.map { |img| url_for(img) }; max_rt = 4 %>
+                          <div class="flex flex-wrap gap-1.5 mt-1.5">
+                            <% r_urls.first(max_rt).each_with_index do |url, i| %>
+                              <div class="relative flex-shrink-0 cursor-pointer"
+                                   style="width:60px; height:60px;"
+                                   onclick='openGallery(<%= r_urls.to_json %>, <%= i %>)'>
+                                <img src="<%= url %>" alt=""
+                                     class="w-full h-full rounded-lg object-cover"
+                                     style="border:1px solid #e2e8f0;">
+                                <% if i == max_rt - 1 && r_urls.size > max_rt %>
+                                  <div class="absolute inset-0 rounded-lg flex items-center justify-center"
+                                       style="background:rgba(0,0,0,0.5);">
+                                    <span class="text-white font-bold" style="font-size:13px;">+<%= r_urls.size - max_rt %></span>
+                                  </div>
+                                <% end %>
                               </div>
                             <% end %>
                           </div>
@@ -283,33 +326,39 @@
                     </div>
                   <% end %>
                 </div>
-                <div class="space-y-2">
-                  <input type="text" id="reply-name-<%= fb.id %>" placeholder="<%= t("participate.feedback.reply_name_placeholder") %>"
-                    class="w-full px-3 py-1.5 rounded-lg text-[12px] outline-none"
-                    style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
-                    onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
-                  <div class="flex gap-2 items-center">
-                    <div class="relative flex-1">
-                      <textarea id="reply-content-<%= fb.id %>" rows="2" maxlength="500"
-                        placeholder="<%= t("participate.feedback.reply_content_placeholder") %>"
-                        class="w-full px-3 py-1.5 pr-9 rounded-lg text-[13px] text-slate-800 outline-none resize-none"
-                        style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
-                        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
-                      <button type="button" onclick="document.getElementById('reply-image-input-<%= fb.id %>').click()"
-                        class="absolute top-1/2 -translate-y-1/2 right-2 w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                        style="border:1px solid #e2e8f0; background:white;">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <div>
+                  <div class="rounded-2xl overflow-hidden transition-all"
+                       style="border:1.5px solid #e2e8f0; background:white;"
+                       onfocusin="this.style.borderColor='#6366f1'" onfocusout="this.style.borderColor='#e2e8f0'">
+                    <input type="text" id="reply-name-<%= fb.id %>"
+                      value="<%= j @reply_default_name %>"
+                      placeholder="<%= t("participate.feedback.reply_name_placeholder") %>"
+                      class="w-full px-4 pt-3 pb-0 text-[13px] font-semibold text-slate-600 outline-none bg-transparent block"
+                      style="border:none; font-size:13px;">
+                    <textarea id="reply-content-<%= fb.id %>" rows="2" maxlength="500"
+                      placeholder="<%= t("participate.feedback.reply_content_placeholder") %>"
+                      class="w-full px-4 pt-2 pb-2 text-[13px] text-slate-800 outline-none resize-none bg-transparent block"
+                      style="border:none; font-size:15px;"></textarea>
+                    <div id="reply-image-previews-<%= fb.id %>" style="display:none; flex-wrap:wrap; gap:6px; padding:0 12px 8px;"></div>
+                    <div class="flex items-center justify-between px-3 py-2" style="border-top:1px solid #f1f5f9;">
+                      <div class="flex items-center gap-1">
+                        <button type="button" onclick="openEmojiPicker(<%= fb.id %>, this)"
+                          class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors border-0 bg-transparent cursor-pointer">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                        </button>
+                        <button type="button" onclick="document.getElementById('reply-image-input-<%= fb.id %>').click()"
+                          class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors border-0 bg-transparent cursor-pointer">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        </button>
+                      </div>
+                      <button id="reply-submit-btn-<%= fb.id %>" onclick="submitReply(<%= fb.id %>)"
+                        class="w-8 h-8 rounded-full flex items-center justify-center text-indigo-500 hover:bg-indigo-50 transition-colors border-0 bg-transparent cursor-pointer disabled:opacity-40">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                       </button>
                     </div>
-                    <button id="reply-submit-btn-<%= fb.id %>" onclick="submitReply(<%= fb.id %>)"
-                      class="px-4 py-2 text-white text-[12px] font-bold rounded-lg flex-shrink-0 border-0 flex items-center gap-1.5 disabled:opacity-60"
-                      style="background:#4F46E5;">
-                      <%= t("participate.feedback.reply_submit") %>
-                    </button>
                   </div>
                   <input type="file" id="reply-image-input-<%= fb.id %>" accept="image/*" multiple class="hidden"
                          onchange="handleReplyImage(this, <%= fb.id %>)">
-                  <div id="reply-image-previews-<%= fb.id %>" style="display:none; flex-wrap:wrap; gap:6px;"></div>
                 </div>
               </div>
             </div>
@@ -328,7 +377,9 @@
     <!-- Load more -->
     <div id="load-more-wrap" class="<%= @has_more ? '' : 'hidden' %> text-center mt-4 mb-2">
       <button id="load-more-btn" onclick="loadMore()"
-        class="px-6 py-2.5 text-[13px] font-semibold text-indigo-600 rounded-xl border border-indigo-200 hover:bg-indigo-50 transition-colors bg-white">
+        class="inline-flex items-center gap-2 px-6 py-2.5 text-[13px] font-semibold text-white rounded-full transition-all hover:opacity-90 disabled:opacity-60"
+        style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 4px 14px rgba(99,102,241,0.3);">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         <%= I18n.locale.to_s == 'vi' ? 'Xem thêm góp ý' : 'Load more' %>
       </button>
     </div>
@@ -355,7 +406,8 @@ const REPLY_LABEL     = "<%= j t('participate.feedback.reply_label') %>";
 const REPLY_COUNT_LABEL = "<%= j t('participate.feedback.reply_count') %>";
 const IMPLEMENTED_LABEL = "<%= j t('participate.feedback.implemented') %>";
 const PINNED_LABEL    = "<%= j t('participate.feedback.pinned') %>";
-const REPLY_NAME_PH   = "<%= j t('participate.feedback.reply_name_placeholder') %>";
+const REPLY_NAME_PH        = "<%= j t('participate.feedback.reply_name_placeholder') %>";
+const REPLY_DEFAULT_NAME   = "<%= j @reply_default_name %>";
 const REPLY_CONTENT_PH = "<%= j t('participate.feedback.reply_content_placeholder') %>";
 const REPLY_SUBMIT_LABEL = "<%= j t('participate.feedback.reply_submit') %>";
 
@@ -406,33 +458,37 @@ function renderFeedbackCard(fb) {
     ? `<div id="replies-${fb.id}" class="hidden border-t reply-section" style="border-color:rgba(226,232,240,0.6); background:rgba(248,250,252,0.5);">
          <div class="ml-11 mr-4 my-3 pl-3" style="border-left:2px solid rgba(99,102,241,0.18);">
            <div id="replies-list-${fb.id}" class="space-y-2 mb-2"></div>
-           <div class="space-y-2">
-             <input type="text" id="reply-name-${fb.id}" placeholder="${REPLY_NAME_PH}"
-               class="w-full px-3 py-1.5 rounded-lg text-[12px] outline-none"
-               style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
-               onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
-             <div class="flex gap-2 items-center">
-               <div class="relative flex-1">
-                 <textarea id="reply-content-${fb.id}" rows="2" maxlength="500"
-                   placeholder="${REPLY_CONTENT_PH}"
-                   class="w-full px-3 py-1.5 pr-9 rounded-lg text-[13px] text-slate-800 outline-none resize-none"
-                   style="border:1.5px solid #e2e8f0; background:white; font-size:16px;"
-                   onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
-                 <button type="button" onclick="document.getElementById('reply-image-input-${fb.id}').click()"
-                   class="absolute top-1/2 -translate-y-1/2 right-2 w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                   style="border:1px solid #e2e8f0; background:white;">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+           <div>
+             <div class="rounded-2xl overflow-hidden transition-all"
+                  style="border:1.5px solid #e2e8f0; background:white;"
+                  onfocusin="this.style.borderColor='#6366f1'" onfocusout="this.style.borderColor='#e2e8f0'">
+               <input type="text" id="reply-name-${fb.id}" value="${REPLY_DEFAULT_NAME}" placeholder="${REPLY_NAME_PH}"
+                 class="w-full px-4 pt-3 pb-0 text-[13px] font-semibold text-slate-600 outline-none bg-transparent block"
+                 style="border:none; font-size:13px;">
+               <textarea id="reply-content-${fb.id}" rows="2" maxlength="500"
+                 placeholder="${REPLY_CONTENT_PH}"
+                 class="w-full px-4 pt-2 pb-2 text-[13px] text-slate-800 outline-none resize-none bg-transparent block"
+                 style="border:none; font-size:15px;"></textarea>
+               <div id="reply-image-previews-${fb.id}" style="display:none;flex-wrap:wrap;gap:6px;padding:0 12px 8px;"></div>
+               <div class="flex items-center justify-between px-3 py-2" style="border-top:1px solid #f1f5f9;">
+                 <div class="flex items-center gap-1">
+                   <button type="button" onclick="openEmojiPicker(${fb.id}, this)"
+                     class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors border-0 bg-transparent cursor-pointer">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                   </button>
+                   <button type="button" onclick="document.getElementById('reply-image-input-${fb.id}').click()"
+                     class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors border-0 bg-transparent cursor-pointer">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                   </button>
+                 </div>
+                 <button id="reply-submit-btn-${fb.id}" onclick="submitReply(${fb.id})"
+                   class="w-8 h-8 rounded-full flex items-center justify-center text-indigo-500 hover:bg-indigo-50 transition-colors border-0 bg-transparent cursor-pointer disabled:opacity-40">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                  </button>
                </div>
-               <button id="reply-submit-btn-${fb.id}" onclick="submitReply(${fb.id})"
-                 class="px-4 py-2 text-white text-[12px] font-bold rounded-lg flex-shrink-0 border-0 flex items-center gap-1.5 disabled:opacity-60"
-                 style="background:#4F46E5;">
-                 ${REPLY_SUBMIT_LABEL}
-               </button>
              </div>
              <input type="file" id="reply-image-input-${fb.id}" accept="image/*" multiple class="hidden"
                     onchange="handleReplyImage(this, ${fb.id})">
-             <div id="reply-image-previews-${fb.id}" style="display:none;flex-wrap:wrap;gap:6px;"></div>
            </div>
          </div>
        </div>`
@@ -454,14 +510,19 @@ function renderFeedbackCard(fb) {
           ${implementedBadge}
         </div>
         <p class="text-[14px] text-slate-800 leading-relaxed mb-2">${fb.content}</p>
-        ${fb.image_urls && fb.image_urls.length > 0 ? `
-          <div class="relative cursor-pointer mb-2 inline-block" style="max-width:100%;"
-               onclick='openGallery(${JSON.stringify(fb.image_urls)}, 0)'>
-            <img src="${fb.image_urls[0]}" alt="" class="rounded-xl object-cover block"
-                 style="max-height:200px;max-width:100%;border:1px solid rgba(226,232,240,0.8);">
-            ${fb.image_urls.length > 1 ? `<div class="absolute inset-0 rounded-xl flex items-center justify-center" style="background:rgba(0,0,0,0.45);">
-              <span style="color:white;font-size:22px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,0.5);">+${fb.image_urls.length - 1}</span></div>` : ''}
-          </div>` : ''}
+        ${fb.image_urls && fb.image_urls.length > 0 ? (() => {
+          const MAX_T = 4;
+          const thumbs = fb.image_urls.slice(0, MAX_T).map((url, i) => {
+            const overlay = (i === MAX_T - 1 && fb.image_urls.length > MAX_T)
+              ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);border-radius:12px;display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:15px;font-weight:700;">+${fb.image_urls.length - MAX_T}</span></div>`
+              : '';
+            return `<div style="position:relative;width:72px;height:72px;flex-shrink:0;cursor:pointer;" onclick='openGallery(${JSON.stringify(fb.image_urls)}, ${i})'>
+              <img src="${url}" alt="" style="width:100%;height:100%;border-radius:12px;object-fit:cover;border:1px solid rgba(226,232,240,0.8);">
+              ${overlay}
+            </div>`;
+          }).join('');
+          return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${thumbs}</div>`;
+        })() : ''}
         ${replyBtn ? `<div class="flex justify-end">${replyBtn}</div>` : ''}
       </div>
       ${upvoteBtn}
@@ -581,7 +642,9 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
 
   btn.disabled = true;
   const spinner = document.getElementById('fb-submit-spinner');
+  const icon    = document.getElementById('fb-submit-icon');
   if (spinner) spinner.style.display = 'inline-block';
+  if (icon)    icon.style.display    = 'none';
 
   // Use FormData with manually managed files
   const formData = new FormData(this);
@@ -632,6 +695,7 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
   } finally {
     btn.disabled = false;
     if (spinner) spinner.style.display = 'none';
+    if (icon)    icon.style.display    = '';
   }
 });
 
@@ -736,9 +800,10 @@ async function submitReply(feedbackId) {
   if (!content) { contentEl.focus(); return; }
 
   // Loading state
+  const SEND_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<span style="width:12px;height:12px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;display:inline-block;animation:spin 0.7s linear infinite;"></span> ${REPLY_SUBMIT_LABEL}`;
+    btn.innerHTML = `<span style="width:16px;height:16px;border:2px solid #e0e7ff;border-top-color:#6366f1;border-radius:50%;display:inline-block;animation:spin 0.7s linear infinite;flex-shrink:0;"></span>`;
   }
 
   const formData = new FormData();
@@ -758,14 +823,20 @@ async function submitReply(feedbackId) {
   const list = document.getElementById(`replies-list-${feedbackId}`);
   const initial = data.anonymous ? "?" : (data.author_name || "?").charAt(0).toUpperCase();
   const authorLabel = data.anonymous ? ANONYMOUS_LABEL : data.author_name;
-  const imageHtml = data.image_urls && data.image_urls.length > 0
-    ? `<div class="relative cursor-pointer mt-1.5 inline-block"
-            onclick='openGallery(${JSON.stringify(data.image_urls)}, 0)'>
-         <img src="${data.image_urls[0]}" style="max-height:120px;max-width:100%;border-radius:8px;object-fit:cover;border:1px solid #e2e8f0;display:block;">
-         ${data.image_urls.length > 1 ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);border-radius:8px;display:flex;align-items:center;justify-content:center;">
-           <span style="color:white;font-size:16px;font-weight:700;">+${data.image_urls.length - 1}</span></div>` : ''}
-       </div>`
-    : '';
+  const imageHtml = (() => {
+    if (!data.image_urls || !data.image_urls.length) return '';
+    const MAX_T = 4;
+    const thumbs = data.image_urls.slice(0, MAX_T).map((url, i) => {
+      const overlay = (i === MAX_T - 1 && data.image_urls.length > MAX_T)
+        ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);border-radius:8px;display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:13px;font-weight:700;">+${data.image_urls.length - MAX_T}</span></div>`
+        : '';
+      return `<div style="position:relative;width:60px;height:60px;flex-shrink:0;cursor:pointer;" onclick='openGallery(${JSON.stringify(data.image_urls)}, ${i})'>
+        <img src="${url}" style="width:100%;height:100%;border-radius:8px;object-fit:cover;border:1px solid #e2e8f0;">
+        ${overlay}
+      </div>`;
+    }).join('');
+    return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${thumbs}</div>`;
+  })();
 
   const div = document.createElement('div');
   div.className = 'flex gap-2';
@@ -781,9 +852,9 @@ async function submitReply(feedbackId) {
     </div>`;
   list.appendChild(div);
   contentEl.value = '';
-  nameEl.value = '';
+  nameEl.value = REPLY_DEFAULT_NAME;
   _clearReplyFiles(feedbackId);
-  if (btn) { btn.disabled = false; btn.innerHTML = REPLY_SUBMIT_LABEL; }
+  if (btn) { btn.disabled = false; btn.innerHTML = SEND_SVG; }
 }
 
 // ── Turbo cache cleanup ───────────────────────────────────────────────────────
@@ -826,4 +897,87 @@ async function toggleUpvote(btn, feedbackId) {
     btn.disabled = false;
   }
 }
+
+// ── Emoji Picker ──────────────────────────────────────────────────────────────
+(function() {
+  const EMOJIS = [
+    '😀','😂','😍','😊','😢','😮','😡','😎','🥰','🤔',
+    '😅','😭','😱','🥺','🤗','😇','🥳','😤','😴','🤣',
+    '👍','👏','🙌','💪','👋','🙏','🤝','🤞','✌️','🤙',
+    '❤️','🧡','💛','💚','💙','💜','💕','🖤','🔥','⭐',
+    '✅','❌','🎉','💬','💯','🚀','💡','🎯','🌟','🎊'
+  ];
+
+  let _currentFbId = null;
+
+  function buildPicker() {
+    const el = document.createElement('div');
+    el.id = 'shared-emoji-picker';
+    el.style.cssText = [
+      'position:fixed; z-index:9999; background:white;',
+      'border:1px solid #e2e8f0; border-radius:16px; padding:10px;',
+      'display:none; box-shadow:0 8px 32px rgba(0,0,0,0.12);',
+      'width:224px;'
+    ].join('');
+    el.onclick = e => e.stopPropagation();
+
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid; grid-template-columns:repeat(5,1fr); gap:2px;';
+
+    EMOJIS.forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = emoji;
+      btn.style.cssText = 'border:none; background:transparent; cursor:pointer; font-size:22px; padding:5px; border-radius:8px; line-height:1; transition:background 0.1s;';
+      btn.onmouseenter = () => btn.style.background = '#f1f5f9';
+      btn.onmouseleave = () => btn.style.background = 'transparent';
+      btn.onclick = () => { insertEmoji(_currentFbId, emoji); };
+      grid.appendChild(btn);
+    });
+
+    el.appendChild(grid);
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function insertEmoji(feedbackId, emoji) {
+    const ta = feedbackId === '__fb__'
+      ? document.getElementById('fb-content')
+      : document.getElementById('reply-content-' + feedbackId);
+    if (!ta) return;
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    ta.value = ta.value.slice(0, s) + emoji + ta.value.slice(e);
+    ta.selectionStart = ta.selectionEnd = s + emoji.length;
+    ta.focus();
+  }
+
+  function closePicker() {
+    const p = document.getElementById('shared-emoji-picker');
+    if (p) p.style.display = 'none';
+    document.removeEventListener('click', closePicker);
+  }
+
+  window.openFbEmojiPicker = function(triggerEl) {
+    window.openEmojiPicker('__fb__', triggerEl);
+  };
+
+  window.openEmojiPicker = function(feedbackId, triggerEl) {
+    let picker = document.getElementById('shared-emoji-picker') || buildPicker();
+    _currentFbId = feedbackId;
+
+    const rect = triggerEl.getBoundingClientRect();
+    // Position above the trigger button
+    picker.style.display = 'block';
+    const ph = picker.offsetHeight;
+    let top = rect.top - ph - 8;
+    let left = rect.left;
+    // Keep within viewport
+    if (top < 8) top = rect.bottom + 8;
+    if (left + 224 > window.innerWidth - 8) left = window.innerWidth - 232;
+    picker.style.top  = top + 'px';
+    picker.style.left = left + 'px';
+
+    setTimeout(() => document.addEventListener('click', closePicker), 0);
+  };
+})();
 </script>

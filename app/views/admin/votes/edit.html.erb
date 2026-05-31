@@ -1,4 +1,5 @@
 <% content_for :title, @vote.title %>
+<% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
 <% editable = @vote.draft? %>
 
 <%# Quill rich text editor (only loaded on this page) %>
@@ -40,8 +41,10 @@
   .desc-wrap .ql-snow .ql-toolbar button { width: 22px; height: 22px; padding: 2px; }
 </style>
 
-<div class="max-w-[720px]">
-  <div class="flex items-center gap-3 mb-5">
+<!-- ── Page header (fixed) ──────────────────────────────────────────────────── -->
+<div class="flex-shrink-0 px-6 pt-5 pb-3 bg-slate-100">
+  <div class="flex items-center gap-3">
+    <%= render "admin/shared/back_btn" %>
     <div>
       <h1 class="text-[19px] font-extrabold text-slate-900"><%= @vote.title %></h1>
       <p class="text-[12px] text-slate-500 mt-0.5">
@@ -73,6 +76,10 @@
       <% end %>
     </div>
   </div>
+</div><!-- /page header -->
+
+<!-- ── Scrollable content ────────────────────────────────────────────────────── -->
+<div class="flex-1 min-h-0 overflow-y-auto px-6 pt-3 pb-6">
 
   <% unless editable %>
     <div class="mb-4 flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-[13px] text-amber-700 font-medium">
@@ -81,7 +88,7 @@
     </div>
   <% end %>
 
-  <div class="space-y-4">
+  <div class="grid grid-cols-2 gap-5 items-start">
 
     <!-- Vote Settings -->
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6 <%= 'opacity-70' unless editable %>">
@@ -251,7 +258,8 @@
     </div>
 
   </div>
-</div>
+
+</div><!-- /scrollable -->
 
 <% if editable %>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>

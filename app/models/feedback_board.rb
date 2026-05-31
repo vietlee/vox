@@ -2,7 +2,8 @@ class FeedbackBoard < ApplicationRecord
   include Sluggable
   belongs_to :workspace
   belongs_to :user
-  has_many   :feedbacks,  dependent: :destroy
+  has_many   :feedbacks,    dependent: :destroy
+  has_many   :action_items, dependent: :destroy
   has_one    :qr_code,    as: :resource, dependent: :destroy
   has_one_attached :logo
 

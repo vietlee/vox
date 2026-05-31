@@ -1,8 +1,11 @@
 <% content_for :title, @survey.title %>
+<% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
 
-<div class="mb-5">
+<!-- ── Page header (fixed) ──────────────────────────────────────────────────── -->
+<div class="flex-shrink-0 px-6 pt-5 pb-3 bg-slate-100">
   <div class="flex items-start justify-between gap-3 flex-wrap">
-    <div class="min-w-0">
+    <%= render "admin/shared/back_btn" %>
+    <div class="min-w-0 flex-1">
       <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight"><%= @survey.title %></h1>
       <p class="text-[12px] text-slate-500 mt-0.5"><%= t("surveys.builder_subtitle", count: @survey.questions.count) %></p>
     </div>
@@ -44,6 +47,8 @@
   </div>
 </div>
 
+<!-- ── Scrollable builder content ───────────────────────────────────────────── -->
+<div class="flex-1 min-h-0 overflow-y-auto px-6 pt-3 pb-6">
 <div class="grid grid-cols-[1fr_280px] gap-5">
   <!-- Builder canvas -->
   <div class="space-y-4">
@@ -181,6 +186,55 @@
     </div>
   </div>
 </div>
+</div><!-- /scrollable -->
+
+<!-- ── Delete question modal ─────────────────────────────────────────────────── -->
+<div id="q-delete-modal" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 w-full h-full flex items-center justify-center bg-black/40 backdrop-blur-sm"
+       onclick="closeDeleteQuestionModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-[400px] max-w-full mx-4 p-6" onclick="event.stopPropagation()">
+      <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl" style="background:#fee2e2;">🗑️</div>
+      <h3 class="text-[17px] font-bold text-slate-900 text-center mb-2"><%= t("surveys.delete_question_confirm") %></h3>
+      <p id="q-delete-body" class="text-[13px] text-slate-500 text-center leading-relaxed mb-6 truncate px-2"></p>
+      <div class="flex gap-3">
+        <button onclick="closeDeleteQuestionModal()"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 border-0 cursor-pointer transition-colors">
+          <%= t("surveys.cancel") %>
+        </button>
+        <button onclick="confirmDeleteQuestion()"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white border-0 cursor-pointer transition-colors"
+          style="background:#ef4444;">
+          <%= t("surveys.delete_question_confirm_btn", default: "Xoá") %>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  let _qDeleteId, _qDeleteUrl;
+
+  window.showDeleteQuestionModal = function(id, url, title) {
+    _qDeleteId  = id;
+    _qDeleteUrl = url;
+    const body = document.getElementById('q-delete-body');
+    if (body) body.textContent = title ? '"' + title + '"' : '';
+    document.getElementById('q-delete-modal').classList.remove('hidden');
+  };
+
+  window.closeDeleteQuestionModal = function() {
+    document.getElementById('q-delete-modal').classList.add('hidden');
+  };
+
+  window.confirmDeleteQuestion = async function() {
+    closeDeleteQuestionModal();
+    if (typeof deleteQuestion === 'function') {
+      deleteQuestion(_qDeleteId, _qDeleteUrl);
+    }
+  };
+})();
+</script>
 
 <style>
   .sq-ghost  { opacity: 0.35; }

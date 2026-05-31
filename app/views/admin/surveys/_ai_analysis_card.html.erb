@@ -1,104 +1,162 @@
 <%# Renders a persisted AiAnalysisResult for a survey %>
-<% result   = analysis.output %>
-<% sentiment= result["sentiment"] || {} %>
-<% themes   = result["top_themes"] || result["themes"] || [] %>
-<% anomalies= result["anomalies"] || [] %>
-<% recs     = result["recommendations"] || [] %>
-<% highlights= result["highlights"] || [] %>
+<% result     = analysis.output %>
+<% sentiment  = result["sentiment"] || {} %>
+<% themes     = result["top_themes"] || result["themes"] || [] %>
+<% anomalies  = result["anomalies"] || [] %>
+<% recs       = result["recommendations"] || [] %>
+<% highlights = result["highlights"] || [] %>
+<% q_insights = result["question_insights"] || [] %>
+<% key_metrics= result["key_metrics"] || {} %>
 
-<div class="space-y-4">
+<div class="space-y-5 text-[13px]">
 
-    <!-- Executive summary -->
-    <% if result["executive_summary"].present? %>
-      <% summary = result["executive_summary"] %>
-      <div>
-        <p class="text-[12px] text-slate-800 leading-relaxed" id="summary-text">
-          <%= summary.length > 300 ? summary.first(300) + "…" : summary %>
-        </p>
-        <% if summary.length > 300 %>
-          <div id="summary-full" class="hidden">
-            <p class="text-[12px] text-slate-800 leading-relaxed"><%= summary %></p>
-          </div>
-          <button onclick="document.getElementById('summary-full').classList.toggle('hidden'); document.getElementById('summary-text').classList.toggle('hidden'); this.textContent = this.textContent.includes('▼') ? '▲ Thu gọn' : '▼ Xem thêm'"
-            class="text-[11px] text-indigo-500 font-semibold mt-1 border-0 bg-transparent cursor-pointer p-0">▼ Xem thêm</button>
+  <!-- Executive summary -->
+  <% if result["executive_summary"].present? %>
+    <% summary = result["executive_summary"] %>
+    <div>
+      <p class="text-slate-800 leading-relaxed" id="summary-text">
+        <%= summary.length > 400 ? summary.first(400) + "…" : summary %>
+      </p>
+      <% if summary.length > 400 %>
+        <div id="summary-full" class="hidden">
+          <p class="text-slate-800 leading-relaxed whitespace-pre-line"><%= summary %></p>
+        </div>
+        <button onclick="document.getElementById('summary-full').classList.toggle('hidden'); document.getElementById('summary-text').classList.toggle('hidden'); this.textContent = this.textContent.includes('▼') ? '▲ Thu gọn' : '▼ Xem thêm'"
+          class="text-[11px] text-violet-500 font-semibold mt-1 border-0 bg-transparent cursor-pointer p-0">▼ Xem thêm</button>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Key Metrics row -->
+  <% if key_metrics.any? %>
+    <div class="grid grid-cols-2 gap-3">
+      <% if key_metrics["standout_high"].present? %>
+        <div class="rounded-lg px-3 py-2.5" style="background:rgba(16,185,129,0.07); border:1px solid rgba(16,185,129,0.2);">
+          <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-1">▲ Điểm sáng</div>
+          <p class="text-[12px] text-slate-700 leading-snug"><%= key_metrics["standout_high"] %></p>
+        </div>
+      <% end %>
+      <% if key_metrics["standout_low"].present? %>
+        <div class="rounded-lg px-3 py-2.5" style="background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.15);">
+          <div class="text-[10px] font-bold text-red-500 uppercase tracking-wide mb-1">▼ Cần cải thiện</div>
+          <p class="text-[12px] text-slate-700 leading-snug"><%= key_metrics["standout_low"] %></p>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Sentiment -->
+  <% if sentiment.any? %>
+    <div>
+      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2"><%= t("surveys.results.ai_sentiment") %></div>
+      <div class="flex gap-2 flex-wrap items-center">
+        <% pos = sentiment["positive"].to_s; neu = sentiment["neutral"].to_s; neg = sentiment["negative"].to_s %>
+        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">▲ Tích cực: <%= pos %></span>
+        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500">● Trung lập: <%= neu %></span>
+        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-50 text-red-500">▼ Tiêu cực: <%= neg %></span>
+        <% if sentiment["sentiment_note"].present? %>
+          <span class="text-[11px] text-slate-400 italic"><%= sentiment["sentiment_note"] %></span>
         <% end %>
       </div>
-    <% end %>
+    </div>
+  <% end %>
 
-    <!-- Sentiment -->
-    <% if sentiment.any? %>
-      <div>
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5"><%= t("surveys.results.ai_sentiment") %></div>
-        <div class="flex gap-1.5 flex-wrap">
-          <% pos = sentiment["positive"].to_s; neu = sentiment["neutral"].to_s; neg = sentiment["negative"].to_s %>
-          <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">▲ <%= pos %></span>
-          <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500">● <%= neu %></span>
-          <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-500">▼ <%= neg %></span>
-        </div>
-      </div>
-    <% end %>
-
-    <!-- Highlights -->
-    <% if highlights.any? %>
-      <div>
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5"><%= t("surveys.results.ai_highlights") %></div>
-        <ul class="space-y-1">
-          <% highlights.each do |h| %>
-            <li class="flex gap-1.5 text-[12px] text-slate-700"><span class="text-violet-400 flex-shrink-0">✦</span><%= h %></li>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
-
-    <!-- Themes -->
-    <% if themes.any? %>
-      <div>
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5"><%= t("surveys.results.ai_themes") %></div>
-        <div class="space-y-1">
-          <% themes.first(5).each do |t| %>
-            <% pct = t["percentage"]&.to_f || 0 %>
-            <div class="flex items-center gap-2 text-[11px]">
-              <span class="text-slate-700 min-w-[100px] flex-shrink-0"><%= t["theme"] %></span>
-              <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div class="h-full rounded-full" style="width:<%= [pct, 100].min %>%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
-              </div>
-              <span class="text-slate-400 flex-shrink-0 w-8 text-right"><%= pct.round %>%</span>
+  <!-- Per-question insights (high/medium concern only) -->
+  <% flagged = q_insights.select { |qi| %w[high medium].include?(qi["concern_level"]) } %>
+  <% if flagged.any? %>
+    <div>
+      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">NHẬN XÉT THEO CÂU HỎI</div>
+      <div class="space-y-2">
+        <% flagged.each do |qi| %>
+          <% badge_cls = qi["concern_level"] == "high" ? "bg-red-50 text-red-600 border-red-200" : "bg-amber-50 text-amber-600 border-amber-200" %>
+          <div class="flex gap-2 items-start rounded-lg px-3 py-2 bg-slate-50 border border-slate-100">
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 mt-0.5 <%= badge_cls %>">
+              <%= qi["concern_level"] == "high" ? "CAO" : "TB" %>
+            </span>
+            <div class="flex-1 min-w-0">
+              <div class="text-[11px] font-semibold text-slate-700 truncate"><%= qi["question"] %></div>
+              <div class="text-[11px] text-slate-500 mt-0.5 leading-snug"><%= qi["finding"] %></div>
             </div>
-          <% end %>
-        </div>
+          </div>
+        <% end %>
       </div>
-    <% end %>
+    </div>
+  <% end %>
 
-    <!-- Anomalies -->
-    <% if anomalies.any? %>
-      <div>
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5"><%= t("surveys.results.ai_anomalies") %></div>
-        <ul class="space-y-1">
-          <% anomalies.each do |a| %>
-            <li class="flex gap-1.5 text-[12px] text-slate-700"><span class="text-amber-400 flex-shrink-0">⚡</span><%= a %></li>
-          <% end %>
-        </ul>
+  <!-- Highlights -->
+  <% if highlights.any? %>
+    <div>
+      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2"><%= t("surveys.results.ai_highlights") %></div>
+      <ul class="space-y-1.5">
+        <% highlights.each do |h| %>
+          <li class="flex gap-2 text-[12px] text-slate-700 leading-snug">
+            <span class="text-emerald-400 flex-shrink-0 mt-0.5">✦</span><%= h %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <!-- Themes -->
+  <% if themes.any? %>
+    <div>
+      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2"><%= t("surveys.results.ai_themes") %></div>
+      <div class="space-y-2">
+        <% themes.first(6).each do |t| %>
+          <% pct = t["percentage"]&.to_f || 0 %>
+          <div class="flex items-center gap-2 text-[11px]">
+            <span class="text-slate-700 min-w-[120px] flex-shrink-0 truncate"><%= t["theme"] || t["name"] %></span>
+            <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full rounded-full" style="width:<%= [pct, 100].min %>%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
+            </div>
+            <span class="text-slate-400 flex-shrink-0 w-8 text-right"><%= pct.round %>%</span>
+          </div>
+        <% end %>
       </div>
-    <% end %>
+    </div>
+  <% end %>
 
-    <!-- Recommendations -->
-    <% if recs.any? %>
-      <div class="pt-2 border-t border-violet-100">
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5"><%= t("surveys.results.ai_recommendations") %></div>
-        <% recs.first(5).each do |rec| %>
+  <!-- Anomalies -->
+  <% if anomalies.any? %>
+    <div>
+      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2"><%= t("surveys.results.ai_anomalies") %></div>
+      <ul class="space-y-1.5">
+        <% anomalies.each do |a| %>
+          <li class="flex gap-2 text-[12px] text-slate-700 leading-snug">
+            <span class="text-amber-400 flex-shrink-0 mt-0.5">⚡</span><%= a %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <!-- Recommendations -->
+  <% if recs.any? %>
+    <div class="pt-3 border-t border-violet-100">
+      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2"><%= t("surveys.results.ai_recommendations") %></div>
+      <div class="space-y-2">
+        <% recs.first(6).each do |rec| %>
           <% pri = rec.is_a?(Hash) ? rec["priority"].to_s : "" %>
           <% pri_color = pri == "high" ? "bg-red-50 text-red-600 border-red-200" : pri == "medium" ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-slate-50 text-slate-500 border-slate-200" %>
-          <div class="flex gap-2 items-start mb-1.5">
+          <div class="flex gap-2 items-start rounded-lg px-3 py-2.5 bg-slate-50 border border-slate-100">
             <% if pri.present? %>
               <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 mt-0.5 <%= pri_color %>"><%= pri.upcase %></span>
             <% else %>
-              <span class="text-indigo-400 flex-shrink-0 mt-0.5">→</span>
+              <span class="text-violet-400 flex-shrink-0 mt-1">→</span>
             <% end %>
-            <span class="text-[12px] text-slate-700"><%= rec.is_a?(Hash) ? rec["action"] : rec %></span>
+            <div class="flex-1 min-w-0">
+              <div class="text-[12px] text-slate-800 font-medium leading-snug"><%= rec.is_a?(Hash) ? rec["action"] : rec %></div>
+              <% if rec.is_a?(Hash) && rec["rationale"].present? %>
+                <div class="text-[11px] text-slate-500 mt-0.5 leading-snug"><%= rec["rationale"] %></div>
+              <% end %>
+              <% if rec.is_a?(Hash) && rec["impact"].present? %>
+                <div class="text-[10px] text-violet-500 mt-0.5 font-medium">→ <%= rec["impact"] %></div>
+              <% end %>
+            </div>
           </div>
         <% end %>
       </div>
-    <% end %>
+    </div>
+  <% end %>
 
-    <div class="text-[10px] text-violet-300 pt-1"><%= t("surveys.results.powered_by") %></div>
 </div>

@@ -1,0 +1,538 @@
+<%# locals: action_items, workspace_members, board %>
+<% fp = "feedback_boards.feedbacks_page" %>
+<% board ||= nil %>
+<% desc_limit = 80 %>
+
+<!-- ── Delete confirm modal ──────────────────────────────────────────── -->
+<div id="ai-delete-modal" class="fixed inset-0 z-50 items-center justify-center p-4"
+     style="display:none; background:rgba(15,23,42,0.4); backdrop-filter:blur(2px);"
+     onclick="closeAiDeleteModal()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 flex flex-col gap-3" onclick="event.stopPropagation()">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-[14px] font-bold text-slate-900"><%= t("#{fp}.action_item_delete_confirm") %></p>
+        <p class="text-[11px] text-slate-500 mt-0.5"><%= t("#{fp}.action_item_delete_confirm_body") %></p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="closeAiDeleteModal()"
+              class="flex-1 px-3 py-2 rounded-lg text-[12px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">
+        <%= t("common.cancel") %>
+      </button>
+      <button id="ai-delete-confirm-btn"
+              class="flex-1 px-3 py-2 rounded-lg text-[12px] font-semibold bg-red-600 text-white hover:bg-red-700">
+        <%= t("#{fp}.delete") %>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Create modal ──────────────────────────────────────────────────── -->
+<div id="ai-create-modal" class="fixed inset-0 z-50 items-center justify-center p-4"
+     style="display:none; background:rgba(15,23,42,0.4); backdrop-filter:blur(2px);"
+     onclick="closeAiCreateModal()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4" onclick="event.stopPropagation()">
+    <h3 class="text-[15px] font-bold text-slate-900"><%= t("#{fp}.action_item_create_title") %></h3>
+
+    <div class="flex flex-col gap-3">
+      <!-- Title -->
+      <input id="ai-create-title" type="text" maxlength="200"
+             placeholder="<%= t("#{fp}.action_item_create_title_placeholder") %>"
+             class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none"
+             oninput="document.getElementById('ai-create-save').disabled = this.value.trim() === ''">
+
+      <!-- Description -->
+      <textarea id="ai-create-desc" rows="3"
+                placeholder="<%= t("#{fp}.action_item_create_desc_placeholder") %>"
+                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none resize-none leading-snug"></textarea>
+
+      <!-- Priority -->
+      <div>
+        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1">
+          <%= t("#{fp}.action_item_create_priority_label") %>
+        </label>
+        <div class="flex gap-2">
+          <% [["high", t("#{fp}.priority_high"), "bg-red-100 text-red-700 border-red-200"],
+              ["medium", t("#{fp}.priority_medium"), "bg-amber-100 text-amber-700 border-amber-200"],
+              ["low", t("#{fp}.priority_low"), "bg-slate-100 text-slate-600 border-slate-200"]].each do |val, label, cls| %>
+            <label class="flex-1 cursor-pointer">
+              <input type="radio" name="ai-create-priority" value="<%= val %>"
+                     class="sr-only peer" <%= val == "medium" ? "checked" : "" %>>
+              <span class="block text-center px-2 py-1.5 rounded-lg text-[11px] font-bold border-2 transition-all
+                           border-transparent <%= cls %>
+                           peer-checked:ring-2 peer-checked:ring-indigo-400 peer-checked:ring-offset-1">
+                <%= label %>
+              </span>
+            </label>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-2 pt-1">
+      <button onclick="closeAiCreateModal()"
+              class="flex-1 px-3 py-2 rounded-lg text-[12px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">
+        <%= t("common.cancel") %>
+      </button>
+      <button id="ai-create-save" onclick="submitCreateActionItem()"
+              disabled
+              class="flex-1 px-3 py-2 rounded-lg text-[12px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed">
+        <%= t("#{fp}.action_item_create_save") %>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit modal ────────────────────────────────────────────────────── -->
+<div id="ai-edit-modal" class="fixed inset-0 z-50 items-center justify-center p-4"
+     style="display:none; background:rgba(15,23,42,0.4); backdrop-filter:blur(2px);"
+     onclick="closeAiEditModal()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 flex flex-col gap-5" onclick="event.stopPropagation()">
+    <h3 class="text-[16px] font-bold text-slate-900"><%= t("#{fp}.action_item_edit_title") %></h3>
+
+    <div class="flex flex-col gap-4">
+      <input id="ai-edit-title" type="text" maxlength="200"
+             placeholder="<%= t("#{fp}.action_item_create_title_placeholder") %>"
+             class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-400 outline-none"
+             oninput="document.getElementById('ai-edit-save').disabled = this.value.trim() === ''">
+
+      <textarea id="ai-edit-desc" rows="6"
+                placeholder="<%= t("#{fp}.action_item_create_desc_placeholder") %>"
+                class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none resize-y leading-relaxed"></textarea>
+    </div>
+
+    <div class="flex gap-3 pt-1">
+      <button onclick="closeAiEditModal()"
+              class="flex-1 px-4 py-2.5 rounded-lg text-[13px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">
+        <%= t("common.cancel") %>
+      </button>
+      <button id="ai-edit-save" onclick="submitEditActionItem()"
+              class="flex-1 px-4 py-2.5 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed">
+        <%= t("common.save") %>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Card ─────────────────────────────────────────────────────────── -->
+<div class="rounded-[12px] border overflow-hidden flex-1 flex flex-col min-h-0" style="border-color:rgba(99,102,241,0.2); background:rgba(238,242,255,0.5);">
+
+  <!-- Header: cố định -->
+  <div class="flex-shrink-0 flex items-center gap-2 px-4 py-3" style="background:rgba(99,102,241,0.08); border-bottom:1px solid rgba(99,102,241,0.15);">
+    <span class="text-[14px]">📋</span>
+    <span class="text-[13px] font-bold text-indigo-700"><%= t("#{fp}.action_items_title") %></span>
+    <span id="ai-items-count" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600"><%= action_items.size %></span>
+    <% if board %>
+      <button onclick="openAiCreateModal()"
+              class="ml-1 px-2 py-0.5 rounded-lg text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors">
+        <%= t("#{fp}.action_item_create_btn") %>
+      </button>
+    <% end %>
+    <span class="ml-auto text-[10px] text-slate-400"
+          title="<%= t("#{fp}.action_items_assign_tooltip") %>">
+      <%= t("#{fp}.action_items_assign") %> ⓘ
+    </span>
+  </div>
+
+  <!-- Search -->
+  <div class="flex-shrink-0 px-4 py-2.5 border-b border-indigo-50">
+    <div class="relative">
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[12px] pointer-events-none">🔍</span>
+      <input id="ai-items-search" type="text"
+             placeholder="<%= t("#{fp}.action_item_search_placeholder") %>"
+             oninput="searchActionItems(this.value)"
+             class="w-full pl-8 pr-7 py-1.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none bg-white"
+             autocomplete="off">
+      <button id="ai-items-search-clear"
+              onclick="clearActionItemSearch()"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[13px] leading-none hidden">✕</button>
+    </div>
+  </div>
+
+  <!-- Status filter -->
+  <% counts = { "pending" => 0, "in_progress" => 0, "done" => 0 }.merge(action_items.group_by(&:status).transform_values(&:count)) %>
+  <% filters = [
+       ["all",         t("#{fp}.action_item_filter_all"),   action_items.size],
+       ["pending",     t("#{fp}.action_item_pending"),      counts["pending"]],
+       ["in_progress", t("#{fp}.action_item_in_progress"),  counts["in_progress"]],
+       ["done",        t("#{fp}.action_item_done"),         counts["done"]]
+     ] %>
+  <div class="flex-shrink-0 flex gap-1 px-3 py-2 border-b border-indigo-50 flex-wrap">
+    <% filters.each do |val, label, cnt| %>
+      <button onclick="filterActionItems('<%= val %>')"
+              data-filter="<%= val %>"
+              class="ai-filter-btn px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors <%= val == 'all' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200' %>">
+        <%= label %> <span class="filter-count opacity-70"><%= cnt %></span>
+      </button>
+    <% end %>
+  </div>
+
+  <!-- Items -->
+  <div id="ai-items-list" class="divide-y divide-indigo-50 flex-1 min-h-0 overflow-y-auto">
+    <% action_items.each do |item| %>
+      <% priority_class = item.high? ? "bg-red-100 text-red-700" : item.medium? ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500" %>
+      <% priority_label = item.high? ? t("#{fp}.priority_high") : item.medium? ? t("#{fp}.priority_medium") : t("#{fp}.priority_low") %>
+      <% status_title   = item.done? ? t("#{fp}.action_item_status_reopen") : item.in_progress? ? t("#{fp}.action_item_status_finish") : t("#{fp}.action_item_status_start") %>
+      <% row_bg = item.in_progress? ? "bg-amber-50/60" : "" %>
+      <% long_desc = item.description.present? && item.description.length > desc_limit %>
+
+      <div id="action-item-<%= item.id %>"
+           data-item-status="<%= item.status %>"
+           data-item-text="<%= j "#{item.title} #{item.description}".downcase %>"
+           class="px-4 py-3 flex items-start gap-2.5 hover:bg-white/60 transition-colors <%= row_bg %>">
+
+        <!-- Status toggle -->
+        <button onclick="toggleActionItemStatus(<%= item.id %>, this)"
+                data-status="<%= item.status %>"
+                class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer"
+                style="border-color: <%= item.done? ? '#6366f1' : item.in_progress? ? '#f59e0b' : '#cbd5e1' %>; background: <%= item.done? ? '#6366f1' : item.in_progress? ? '#fef3c7' : 'transparent' %>;"
+                title="<%= status_title %>">
+          <% if item.done? %>
+            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+          <% elsif item.in_progress? %>
+            <span class="w-2 h-2 rounded-sm bg-amber-500 block"></span>
+          <% end %>
+        </button>
+
+        <!-- Content -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span id="action-item-title-<%= item.id %>"
+                  class="text-[13px] font-semibold text-slate-800 <%= item.done? ? 'line-through opacity-40' : '' %>">
+              <%= item.title %>
+            </span>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold <%= priority_class %>"><%= priority_label %></span>
+            <span id="action-status-badge-<%= item.id %>"
+                  class="px-1.5 py-0.5 rounded text-[10px] font-bold <%= item.in_progress? ? 'bg-amber-100 text-amber-700' : item.done? ? 'bg-indigo-100 text-indigo-600' : 'hidden' %>">
+              <%= item.in_progress? ? t("#{fp}.action_item_in_progress") : item.done? ? t("#{fp}.action_item_done") : '' %>
+            </span>
+          </div>
+
+          <% if item.description.present? %>
+            <p id="desc-<%= item.id %>"
+               class="text-[12px] text-slate-500 mt-0.5 leading-snug <%= long_desc ? 'line-clamp-2' : '' %>">
+              <%= item.description %>
+            </p>
+            <% if long_desc %>
+              <button id="desc-toggle-<%= item.id %>"
+                      onclick="toggleDesc(<%= item.id %>)"
+                      class="text-[11px] text-indigo-500 hover:text-indigo-700 hover:underline mt-0.5">
+                <%= t("#{fp}.action_item_see_more") %>
+              </button>
+            <% end %>
+          <% end %>
+
+          <!-- Assignee -->
+          <div class="mt-1.5">
+            <select onchange="assignActionItem(<%= item.id %>, this.value)"
+                    class="text-[11px] font-semibold border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-600 cursor-pointer hover:border-indigo-300 outline-none transition-colors"
+                    style="max-width:150px;">
+              <option value=""><%= t("#{fp}.action_items_assign_placeholder") %></option>
+              <% workspace_members.each do |member| %>
+                <option value="<%= member.id %>" <%= item.assignee_id == member.id ? 'selected' : '' %>>
+                  <%= member.display_name %>
+                </option>
+              <% end %>
+            </select>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex flex-col gap-0.5 flex-shrink-0">
+          <button onclick="openAiEditModal(<%= item.id %>, <%= item.title.to_json %>, <%= item.description.to_json %>)"
+                  class="w-6 h-6 rounded flex items-center justify-center text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                  title="<%= t("#{fp}.action_item_edit_title") %>">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"/>
+            </svg>
+          </button>
+          <button onclick="openAiDeleteModal(<%= item.id %>)"
+                  class="w-6 h-6 rounded flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+                  title="<%= t("#{fp}.action_item_delete_confirm") %>">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+    <% end %>
+
+    <div id="ai-items-empty" class="px-5 py-6 text-center text-[13px] text-slate-400 <%= action_items.any? ? 'hidden' : '' %>">
+      <%= t("#{fp}.action_items_empty") %>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const CSRF = document.querySelector('meta[name=csrf-token]').content;
+
+  // i18n
+  const AI18N = {
+    start:       "<%= j t("#{fp}.action_item_status_start") %>",
+    finish:      "<%= j t("#{fp}.action_item_status_finish") %>",
+    reopen:      "<%= j t("#{fp}.action_item_status_reopen") %>",
+    in_progress: "<%= j t("#{fp}.action_item_in_progress") %>",
+    done:        "<%= j t("#{fp}.action_item_done") %>",
+    see_more:    "<%= j t("#{fp}.action_item_see_more") %>",
+    see_less:    "<%= j t("#{fp}.action_item_see_less") %>"
+  };
+
+  // ── Reload card ──────────────────────────────────────────────────────
+  async function reloadCard() {
+    try {
+      const resp = await fetch(location.pathname + '?partial=action_items',
+        { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const html = await resp.text();
+      const section = document.getElementById('action-items-section');
+      if (section && html) section.innerHTML = html;
+    } catch(e) {}
+  }
+
+  // ── Status filter + Search ───────────────────────────────────────────
+  let currentFilter = 'all';
+  let currentQuery  = '';
+
+  const PILL_ACTIVE   = ['bg-indigo-600', 'text-white'];
+  const PILL_INACTIVE = ['bg-white', 'text-slate-500', 'hover:bg-indigo-50', 'hover:text-indigo-600', 'border', 'border-slate-200'];
+
+  function updateFilterCounts() {
+    const counts = { all: 0, pending: 0, in_progress: 0, done: 0 };
+    document.querySelectorAll('#ai-items-list [data-item-status]').forEach(row => {
+      counts.all++;
+      const s = row.dataset.itemStatus;
+      if (s in counts) counts[s]++;
+    });
+    document.querySelectorAll('.ai-filter-btn').forEach(btn => {
+      const span = btn.querySelector('.filter-count');
+      if (span) span.textContent = counts[btn.dataset.filter] ?? 0;
+    });
+  }
+
+  // Core: apply both status filter and search query together
+  function applyVisible() {
+    const q = currentQuery.trim().toLowerCase();
+    let visibleCount = 0;
+    document.querySelectorAll('#ai-items-list [data-item-status]').forEach(row => {
+      const statusMatch = currentFilter === 'all' || row.dataset.itemStatus === currentFilter;
+      const textMatch   = q === '' || (row.dataset.itemText || '').includes(q);
+      const show = statusMatch && textMatch;
+      row.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
+    });
+    const empty = document.getElementById('ai-items-empty');
+    if (empty) empty.style.display = visibleCount === 0 ? '' : 'none';
+  }
+
+  function applyFilter(status) {
+    currentFilter = status;
+    // Update pill styles
+    document.querySelectorAll('.ai-filter-btn').forEach(btn => {
+      const active = btn.dataset.filter === status;
+      if (active) { btn.classList.add(...PILL_ACTIVE); btn.classList.remove(...PILL_INACTIVE); }
+      else         { btn.classList.remove(...PILL_ACTIVE); btn.classList.add(...PILL_INACTIVE); }
+    });
+    applyVisible();
+  }
+
+  window.filterActionItems = function(status) { applyFilter(status); };
+
+  // ── Search ───────────────────────────────────────────────────────────
+  window.searchActionItems = function(value) {
+    currentQuery = value;
+    const clearBtn = document.getElementById('ai-items-search-clear');
+    if (clearBtn) clearBtn.classList.toggle('hidden', value === '');
+    applyVisible();
+  };
+
+  window.clearActionItemSearch = function() {
+    const input = document.getElementById('ai-items-search');
+    if (input) input.value = '';
+    currentQuery = '';
+    const clearBtn = document.getElementById('ai-items-search-clear');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    applyVisible();
+    input?.focus();
+  };
+
+  // ── Status cycle ─────────────────────────────────────────────────────
+  const STATUS_CYCLE = { pending: 'in_progress', in_progress: 'done', done: 'pending' };
+
+  function applyStatusUI(id, btn, status) {
+    btn.dataset.status = status;
+    const row   = document.getElementById(`action-item-${id}`);
+    const title = document.getElementById(`action-item-title-${id}`);
+    const badge = document.getElementById(`action-status-badge-${id}`);
+    // Keep data-item-status in sync so filter still works after toggling
+    if (row) row.dataset.itemStatus = status;
+
+    if (status === 'done') {
+      btn.style.borderColor = '#6366f1'; btn.style.background = '#6366f1'; btn.title = AI18N.reopen;
+      btn.innerHTML = `<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
+    } else if (status === 'in_progress') {
+      btn.style.borderColor = '#f59e0b'; btn.style.background = '#fef3c7'; btn.title = AI18N.finish;
+      btn.innerHTML = `<span class="w-2 h-2 rounded-sm bg-amber-500 block"></span>`;
+    } else {
+      btn.style.borderColor = '#cbd5e1'; btn.style.background = 'transparent'; btn.title = AI18N.start;
+      btn.innerHTML = '';
+    }
+
+    if (row) {
+      row.classList.toggle('bg-amber-50/60', status === 'in_progress');
+    }
+    if (title) { title.classList.toggle('line-through', status === 'done'); title.classList.toggle('opacity-40', status === 'done'); }
+    if (badge) {
+      if (status === 'in_progress') { badge.textContent = AI18N.in_progress; badge.className = 'px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700'; }
+      else if (status === 'done')   { badge.textContent = AI18N.done;        badge.className = 'px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-600'; }
+      else                          { badge.className = 'px-1.5 py-0.5 rounded text-[10px] font-bold'; badge.textContent = ''; }
+    }
+    // Re-apply both filter + search so the row visibility is consistent
+    updateFilterCounts();
+    applyVisible();
+  }
+
+  window.toggleActionItemStatus = function(id, btn) {
+    const newStatus = STATUS_CYCLE[btn.dataset.status || 'pending'] || 'pending';
+    fetch(`/action_items/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify({ action_item: { status: newStatus } })
+    }).then(r => r.json()).then(d => { if (d.ok) applyStatusUI(id, btn, newStatus); });
+  };
+
+  window.assignActionItem = function(id, assigneeId) {
+    fetch(`/action_items/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify({ action_item: { assignee_id: assigneeId || null } })
+    });
+  };
+
+  // ── Description toggle ───────────────────────────────────────────────
+  window.toggleDesc = function(id) {
+    const p   = document.getElementById(`desc-${id}`);
+    const btn = document.getElementById(`desc-toggle-${id}`);
+    if (!p) return;
+    const expanded = !p.classList.contains('line-clamp-2');
+    p.classList.toggle('line-clamp-2', expanded);
+    if (btn) btn.textContent = expanded ? AI18N.see_more : AI18N.see_less;
+  };
+
+  // ── Delete modal ─────────────────────────────────────────────────────
+  window.openAiDeleteModal = function(id) {
+    const modal = document.getElementById('ai-delete-modal');
+    const btn   = document.getElementById('ai-delete-confirm-btn');
+    if (!modal || !btn) return;
+    btn.onclick = async () => {
+      closeAiDeleteModal();
+      const r = await fetch(`/action_items/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }
+      });
+      if (!r.ok) return;
+      const row = document.getElementById(`action-item-${id}`);
+      if (row) { row.style.opacity = '0'; row.style.transform = 'translateX(8px)'; setTimeout(() => { row.remove(); updateFilterCounts(); applyVisible(); }, 180); }
+      const badge = document.getElementById('ai-items-count');
+      if (badge) { const n = parseInt(badge.textContent) - 1; badge.textContent = Math.max(n, 0); }
+    };
+    modal.style.display = 'flex';
+  };
+
+  window.closeAiDeleteModal = function() {
+    const modal = document.getElementById('ai-delete-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  // ── Create modal ─────────────────────────────────────────────────────
+  const BOARD_ID = <%= board&.id.to_json %>;
+
+  window.openAiCreateModal = function() {
+    const modal = document.getElementById('ai-create-modal');
+    if (!modal) return;
+    document.getElementById('ai-create-title').value = '';
+    document.getElementById('ai-create-desc').value  = '';
+    document.getElementById('ai-create-save').disabled = true;
+    const radios = document.querySelectorAll('input[name="ai-create-priority"]');
+    radios.forEach(r => { r.checked = r.value === 'medium'; });
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('ai-create-title')?.focus(), 50);
+  };
+
+  window.closeAiCreateModal = function() {
+    const modal = document.getElementById('ai-create-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.submitCreateActionItem = async function() {
+    const title    = document.getElementById('ai-create-title')?.value.trim();
+    const desc     = document.getElementById('ai-create-desc')?.value.trim();
+    const priority = document.querySelector('input[name="ai-create-priority"]:checked')?.value || 'medium';
+    if (!title) return;
+
+    const saveBtn = document.getElementById('ai-create-save');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '...'; }
+
+    const r = await fetch('/action_items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify({ action_item: { title, description: desc, priority, feedback_board_id: BOARD_ID } })
+    });
+    const data = await r.json();
+    closeAiCreateModal();
+    if (data.ok) reloadCard();
+  };
+
+  // ── Edit modal ───────────────────────────────────────────────────────
+  let editingItemId = null;
+
+  window.openAiEditModal = function(id, title, desc) {
+    editingItemId = id;
+    const modal = document.getElementById('ai-edit-modal');
+    if (!modal) return;
+    document.getElementById('ai-edit-title').value = title || '';
+    document.getElementById('ai-edit-desc').value  = desc  || '';
+    document.getElementById('ai-edit-save').disabled = !(title || '').trim();
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('ai-edit-title')?.focus(), 50);
+  };
+
+  window.closeAiEditModal = function() {
+    const modal = document.getElementById('ai-edit-modal');
+    if (modal) modal.style.display = 'none';
+    editingItemId = null;
+  };
+
+  window.submitEditActionItem = async function() {
+    if (!editingItemId) return;
+    const title = document.getElementById('ai-edit-title')?.value.trim();
+    const desc  = document.getElementById('ai-edit-desc')?.value.trim();
+    if (!title) return;
+
+    const saveBtn = document.getElementById('ai-edit-save');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '...'; }
+
+    const r = await fetch(`/action_items/${editingItemId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify({ action_item: { title, description: desc } })
+    });
+    const data = await r.json();
+    closeAiEditModal();
+    if (data.ok) reloadCard();
+  };
+
+  // Close modals on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeAiDeleteModal(); closeAiCreateModal(); closeAiEditModal(); }
+  });
+})();
+</script>

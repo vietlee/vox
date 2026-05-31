@@ -16,6 +16,16 @@ class Admin::FeedbacksController < Admin::BaseController
       resource_id: @board.id,
       result_type: "themes"
     ).order(created_at: :desc).first
+    @action_items      = @board.action_items.includes(:assignee).ordered
+    @workspace_members = workspace_members_for_assignment
+    @new_feedbacks_since_analysis = @ai_summary ?
+      @board.feedbacks.approved.where("created_at > ?", @ai_summary.created_at).count : 0
+
+    if params[:partial] == "action_items" && request.xhr?
+      render partial: "admin/feedbacks/action_items_card",
+             locals: { action_items: @action_items, workspace_members: @workspace_members, board: @board }
+      return
+    end
   end
 
   def show
@@ -23,7 +33,14 @@ class Admin::FeedbacksController < Admin::BaseController
 
   def update
     @feedback.update(feedback_update_params)
-    redirect_back(fallback_location: feedback_board_feedbacks_path(@board))
+    @feedback.admin_reply_image.purge if params.dig(:feedback, :remove_admin_reply_image) == '1' && @feedback.admin_reply_image.attached?
+    respond_to do |format|
+      format.json do
+        image_url = @feedback.admin_reply_image.attached? ? url_for(@feedback.admin_reply_image) : nil
+        render json: { ok: true, admin_reply: @feedback.admin_reply, image_url: image_url }
+      end
+      format.html { redirect_back(fallback_location: feedback_board_feedbacks_path(@board)) }
+    end
   end
 
   def destroy
@@ -96,6 +113,12 @@ class Admin::FeedbacksController < Admin::BaseController
     @board = current_workspace.feedback_boards.find(params[:feedback_board_id])
   end
 
+  def workspace_members_for_assignment
+    admin = current_workspace.users.where(workspace_id: current_workspace.id).where.not(role: :super_admin)
+    supporters = current_workspace.workspace_memberships.active.includes(:user).map(&:user).compact
+    (admin + supporters).uniq(&:id)
+  end
+
   def set_feedback
     @feedback = @board.feedbacks.find(params[:id])
   end
@@ -105,6 +128,6 @@ class Admin::FeedbacksController < Admin::BaseController
   end
 
   def feedback_update_params
-    params.require(:feedback).permit(:admin_reply, :admin_status, :status, :pinned)
+    params.require(:feedback).permit(:admin_reply, :admin_reply_image, :admin_status, :status, :pinned)
   end
 end

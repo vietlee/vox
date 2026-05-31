@@ -1,156 +1,173 @@
 <% content_for :title, t("votes.title") %>
+<% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
+
 <% sub = current_workspace.active_subscription %>
-<div class="flex items-start justify-between mb-6">
-  <div>
-    <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight">🗳️ <%= t("votes.title") %></h1>
-    <div class="flex items-center gap-3 mt-0.5">
-      <p class="text-[13px] text-slate-500"><%= t("votes.subtitle") %></p>
-      <% if sub&.max_votes %>
-        <% pct = sub.votes_pct %>
-        <div class="flex items-center gap-1.5">
-          <div class="w-20 h-1.5 rounded-full overflow-hidden bg-slate-200">
-            <div class="h-1.5 rounded-full" style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
+
+<!-- ── Page header (always visible) ─────────────────────────────────────────── -->
+<div class="flex-shrink-0 px-6 pt-5 pb-0 bg-slate-100">
+  <div class="flex items-start justify-between mb-4">
+    <div>
+      <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">🗳️ <%= t("votes.title") %></h1>
+      <div class="flex items-center gap-3 mt-0.5">
+        <p class="text-[12px] text-slate-500"><%= t("votes.subtitle") %></p>
+        <% if sub&.max_votes %>
+          <% pct = sub.votes_pct %>
+          <div class="flex items-center gap-1.5">
+            <div class="w-20 h-1.5 rounded-full overflow-hidden bg-slate-200">
+              <div class="h-1.5 rounded-full" style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
+            </div>
+            <span class="text-[11px] font-semibold <%= pct >= 100 ? 'text-amber-600' : 'text-slate-500' %>">
+              <%= sub.votes_used %> / <%= sub.max_votes %>
+            </span>
           </div>
-          <span class="text-[11px] font-semibold <%= pct >= 100 ? 'text-amber-600' : 'text-slate-500' %>">
-            <%= sub.votes_used %> / <%= sub.max_votes %>
-          </span>
+        <% end %>
+      </div>
+    </div>
+    <% if sub && !sub.within_vote_limit? %>
+      <%= link_to billing_subscription_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-white border border-amber-300 hover:bg-amber-50 hover:border-amber-400 text-amber-700 transition-colors" do %>
+        ⚠️ <%= t("subscription.limit_reached_short") %> · <%= t("subscription.upgrade") %>
+      <% end %>
+    <% else %>
+      <%= link_to new_vote_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors" do %>
+        + <%= t("votes.new") %>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<!-- ── Card area (fills remaining height) ───────────────────────────────────── -->
+<div class="flex-1 min-h-0 overflow-hidden px-6 pt-3 pb-5">
+  <div class="rounded-[12px] border overflow-hidden flex flex-col h-full" style="border-color:rgba(99,102,241,0.2); background:rgba(238,242,255,0.5);">
+
+    <!-- Card header: search + filters (fixed) -->
+    <div class="flex-shrink-0 flex items-center gap-2 px-4 py-3 flex-wrap border-b" style="background:rgba(99,102,241,0.06); border-color:rgba(99,102,241,0.15);">
+      <div class="relative w-60">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+        </svg>
+        <input id="search-input" type="text" placeholder="<%= t("votes.search_placeholder") %>"
+          class="w-full pl-8 pr-3 py-1.5 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white"
+          oninput="filterVotes()">
+      </div>
+      <select id="status-filter" onchange="filterVotes()"
+        class="px-3 py-1.5 text-[12px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white text-slate-600 cursor-pointer">
+        <option value=""><%= t("votes.all_statuses") %></option>
+        <option value="draft"><%= t("status.draft") %></option>
+        <option value="active"><%= t("status.active") %></option>
+        <option value="closed"><%= t("status.closed") %></option>
+      </select>
+      <select id="type-filter" onchange="filterVotes()"
+        class="px-3 py-1.5 text-[12px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white text-slate-600 cursor-pointer">
+        <option value=""><%= t("votes.all_types") %></option>
+        <option value="single_choice"><%= t("votes.type.single_choice") %></option>
+        <option value="multiple_choice"><%= t("votes.type.multiple_choice") %></option>
+        <option value="word_cloud"><%= t("votes.type.word_cloud") %></option>
+        <option value="open_ended"><%= t("votes.type.open_ended") %></option>
+        <option value="ranking"><%= t("votes.type.ranking") %></option>
+        <option value="qa_upvote"><%= t("votes.type.qa_upvote") %></option>
+      </select>
+    </div>
+
+    <!-- Table (scrollable) -->
+    <div class="flex-1 min-h-0 overflow-y-auto">
+      <% if @votes.any? %>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200" style="position:sticky;top:0;z-index:1;background:rgba(248,250,252,0.97);">
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_vote") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_type") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_status") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_votes") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">
+                <% next_sort = @sort == "desc" ? "asc" : "desc" %>
+                <%= link_to votes_path(sort: next_sort, status: params[:status], type: params[:type]),
+                    class: "inline-flex items-center gap-1 hover:text-indigo-600 transition-colors" do %>
+                  <%= t("surveys.col_created") %>
+                  <span class="text-[10px]"><%= @sort == "desc" ? "↓" : "↑" %></span>
+                <% end %>
+              </th>
+              <th class="px-4 py-2.5"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @votes.each do |vote| %>
+              <tr class="border-b border-indigo-50 hover:bg-white/70 transition-colors vote-row" id="vote-row-<%= vote.id %>"
+                  data-title="<%= vote.title.downcase %>"
+                  data-status="<%= vote.status %>"
+                  data-type="<%= vote.vote_type %>">
+                <td class="px-4 py-3">
+                  <%= link_to vote_path(vote), class: "text-[13px] font-semibold text-slate-900 hover:text-indigo-600 transition-colors" do %>
+                    <%= vote.title.truncate(60) %>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3 text-[12px] text-slate-500"><%= t("votes.type.#{vote.vote_type}", default: vote.vote_type.humanize) %></td>
+                <td class="px-4 py-3" id="vote-status-<%= vote.id %>"><%= vote_status_badge(vote) %></td>
+                <td class="px-4 py-3 text-[13px] text-slate-700" id="vote-count-<%= vote.id %>"><%= vote.participant_count %></td>
+                <td class="px-4 py-3 text-[12px] text-slate-500"><%= vote.created_at.strftime("%d/%m/%Y") %></td>
+                <td class="px-4 py-3">
+                  <div class="flex gap-1.5 justify-end" id="vote-actions-<%= vote.id %>">
+                    <% if vote.draft? %>
+                      <button onclick="openVote(<%= vote.id %>, '<%= open_vote_path(vote) %>', '<%= present_vote_path(vote) %>')"
+                        class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 cursor-pointer border-0">
+                        <%= t("votes.open") %>
+                      </button>
+                    <% end %>
+                    <% if vote.active? %>
+                      <%= link_to present_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100", target: "_blank" do %><%= t("votes.present") %><% end %>
+                      <button onclick="closeVote(<%= vote.id %>, '<%= close_vote_path(vote) %>')"
+                        class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-700 hover:bg-red-100 cursor-pointer border-0">
+                        <%= t("votes.close") %>
+                      </button>
+                    <% end %>
+                    <%= link_to results_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %><%= t("votes.results_btn") %><% end %>
+                    <%= link_to edit_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %><%= t("votes.edit_btn") %><% end %>
+                    <% unless vote.active? %>
+                      <button onclick="confirmDelete(<%= vote.id %>, '<%= j(vote.title) %>', '<%= vote_path(vote) %>')"
+                        class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 cursor-pointer border-0">
+                        <%= t("votes.delete") %>
+                      </button>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+            <tr id="no-results-row" class="hidden">
+              <td colspan="6" class="px-4 py-12 text-center text-[13px] text-slate-400"><%= t("votes.not_found") %></td>
+            </tr>
+          </tbody>
+        </table>
+      <% else %>
+        <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div class="text-4xl mb-3">🗳️</div>
+          <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("votes.empty") %></h3>
+          <p class="text-[13px] text-slate-400 mb-4"><%= t("votes.empty_desc") %></p>
+          <%= link_to t("votes.create_vote"), new_vote_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" %>
         </div>
       <% end %>
-    </div>
-  </div>
-  <% if sub && !sub.within_vote_limit? %>
-    <%= link_to billing_subscription_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-amber-300 hover:bg-amber-50 hover:border-amber-400 text-amber-700 transition-colors" do %>
-      ⚠️ <%= t("subscription.limit_reached_short") %> · <%= t("subscription.upgrade") %>
-    <% end %>
-  <% else %>
-    <%= link_to new_vote_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-slate-700 transition-colors" do %>
-      + <%= t("votes.new") %>
-    <% end %>
-  <% end %>
-</div>
+    </div><!-- /scrollable -->
 
-<div class="flex gap-3 mb-4">
-  <div class="relative flex-1 max-w-sm">
-    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
-    <input id="search-input" type="text" placeholder="<%= t("votes.search_placeholder") %>"
-      class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white"
-      oninput="filterVotes()">
-  </div>
-  <select id="status-filter" onchange="filterVotes()"
-    class="px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white text-slate-600 cursor-pointer">
-    <option value=""><%= t("votes.all_statuses") %></option>
-    <option value="draft"><%= t("status.draft") %></option>
-    <option value="active"><%= t("status.active") %></option>
-    <option value="closed"><%= t("status.closed") %></option>
-  </select>
-  <select id="type-filter" onchange="filterVotes()"
-    class="px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white text-slate-600 cursor-pointer">
-    <option value=""><%= t("votes.all_types") %></option>
-    <option value="single_choice"><%= t("votes.type.single_choice") %></option>
-    <option value="multiple_choice"><%= t("votes.type.multiple_choice") %></option>
-    <option value="word_cloud"><%= t("votes.type.word_cloud") %></option>
-    <option value="open_ended"><%= t("votes.type.open_ended") %></option>
-    <option value="ranking"><%= t("votes.type.ranking") %></option>
-    <option value="qa_upvote"><%= t("votes.type.qa_upvote") %></option>
-  </select>
-</div>
-
-<div class="bg-white rounded-[10px] border border-slate-200 shadow-sm overflow-hidden">
-  <% if @votes.any? %>
-    <table class="w-full border-collapse">
-      <thead>
-        <tr class="bg-slate-50 border-b border-slate-200">
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_vote") %></th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_type") %></th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_status") %></th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("votes.col_votes") %></th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5">
-            <% next_sort = @sort == "desc" ? "asc" : "desc" %>
-            <%= link_to votes_path(sort: next_sort, status: params[:status], type: params[:type]),
-                class: "inline-flex items-center gap-1 hover:text-indigo-600 transition-colors" do %>
-              Ngày tạo
-              <span class="text-[10px]"><%= @sort == "desc" ? "↓" : "↑" %></span>
-            <% end %>
-          </th>
-          <th class="px-4 py-2.5"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @votes.each do |vote| %>
-          <tr class="border-b border-slate-100 hover:bg-slate-50 vote-row" id="vote-row-<%= vote.id %>"
-              data-title="<%= vote.title.downcase %>"
-              data-status="<%= vote.status %>"
-              data-type="<%= vote.vote_type %>">
-            <td class="px-4 py-3">
-              <%= link_to vote_path(vote), class: "text-[13px] font-semibold text-slate-900 hover:text-indigo-600" do %>
-                <%= vote.title.truncate(60) %>
-              <% end %>
-            </td>
-            <td class="px-4 py-3 text-[12px] text-slate-500"><%= t("votes.type.#{vote.vote_type}", default: vote.vote_type.humanize) %></td>
-            <td class="px-4 py-3" id="vote-status-<%= vote.id %>"><%= vote_status_badge(vote) %></td>
-            <td class="px-4 py-3 text-[13px] text-slate-700" id="vote-count-<%= vote.id %>"><%= vote.participant_count %></td>
-            <td class="px-4 py-3 text-[12px] text-slate-500"><%= vote.created_at.strftime("%d/%m/%Y") %></td>
-            <td class="px-4 py-3">
-              <div class="flex gap-1.5 justify-end" id="vote-actions-<%= vote.id %>">
-                <% if vote.draft? %>
-                  <button onclick="openVote(<%= vote.id %>, '<%= open_vote_path(vote) %>', '<%= present_vote_path(vote) %>')"
-                    class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 cursor-pointer border-0">
-                    <%= t("votes.open") %>
-                  </button>
-                <% end %>
-                <% if vote.active? %>
-                  <%= link_to present_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100", target: "_blank" do %><%= t("votes.present") %><% end %>
-                  <button onclick="closeVote(<%= vote.id %>, '<%= close_vote_path(vote) %>')"
-                    class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-700 hover:bg-red-100 cursor-pointer border-0">
-                    <%= t("votes.close") %>
-                  </button>
-                <% end %>
-                <%= link_to results_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %><%= t("votes.results_btn") %><% end %>
-                <%= link_to edit_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %><%= t("votes.edit_btn") %><% end %>
-                <% unless vote.active? %>
-                  <button onclick="confirmDelete(<%= vote.id %>, '<%= j(vote.title) %>', '<%= vote_path(vote) %>')"
-                    class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 cursor-pointer border-0">
-                    <%= t("votes.delete") %>
-                  </button>
-                <% end %>
-              </div>
-            </td>
-          </tr>
-        <% end %>
-        <tr id="no-results-row" class="hidden">
-          <td colspan="6" class="px-4 py-12 text-center text-[13px] text-slate-400"><%= t("votes.not_found") %></td>
-        </tr>
-      </tbody>
-    </table>
-
+    <!-- Pagination (fixed at bottom) -->
     <% if @pagy && @pagy.pages > 1 %>
-      <div class="flex items-center justify-between px-4 py-3 border-t border-slate-100">
-        <p class="text-[12px] text-slate-500">
+      <div class="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-t" style="border-color:rgba(99,102,241,0.12); background:rgba(99,102,241,0.04);">
+        <p class="text-[11px] text-slate-500">
           <% from = (@pagy.page - 1) * @pagy.items + 1; to = [@pagy.page * @pagy.items, @pagy.count].min %>
           <%= t("votes.showing") %> <%= from %>–<%= to %> <%= t("votes.of") %> <%= @pagy.count %>
         </p>
         <div class="flex gap-1">
           <% if @pagy.page > 1 %>
             <%= link_to votes_path(page: @pagy.page - 1, q: params[:q]),
-              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %><%= t("votes.prev") %><% end %>
+              class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md text-slate-600 hover:bg-white bg-white/60" do %><%= t("votes.prev") %><% end %>
           <% end %>
           <% if @pagy.page < @pagy.pages %>
             <%= link_to votes_path(page: @pagy.page + 1, q: params[:q]),
-              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %><%= t("votes.next") %><% end %>
+              class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md text-slate-600 hover:bg-white bg-white/60" do %><%= t("votes.next") %><% end %>
           <% end %>
         </div>
       </div>
     <% end %>
 
-  <% else %>
-    <div class="text-center py-16">
-      <div class="text-4xl mb-3">🗳️</div>
-      <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("votes.empty") %></h3>
-      <p class="text-[13px] text-slate-400 mb-4"><%= t("votes.empty_desc") %></p>
-      <%= link_to t("votes.create_vote"), new_vote_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-slate-700 transition-colors" %>
-    </div>
-  <% end %>
-</div>
+  </div><!-- /card -->
+</div><!-- /card area -->
 
 <!-- Delete confirm modal -->
 <div id="delete-modal" class="hidden fixed inset-0 z-50">
@@ -176,7 +193,7 @@
       </button>
     </div>
   </div>
-  </div><!-- /flex wrapper -->
+  </div>
 </div>
 
 <script>
@@ -199,7 +216,7 @@ async function deleteVote(id, url) {
 }
 
 function filterVotes() {
-  const q = document.getElementById('search-input').value.toLowerCase().trim();
+  const q      = document.getElementById('search-input').value.toLowerCase().trim();
   const status = document.getElementById('status-filter').value;
   const type   = document.getElementById('type-filter').value;
   let visible  = 0;

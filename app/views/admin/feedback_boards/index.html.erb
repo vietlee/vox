@@ -1,121 +1,133 @@
 <% content_for :title, t("feedback_boards.title") %>
+<% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
 
-<div class="flex items-start justify-between mb-6">
-  <div>
-    <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight">💬 <%= t("feedback_boards.title") %></h1>
-    <p class="text-[13px] text-slate-500 mt-0.5"><%= t("feedback_boards.subtitle") %></p>
-  </div>
-  <%= link_to new_feedback_board_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-slate-700 transition-colors" do %>
-    <%= t("feedback_boards.new_board") %>
-  <% end %>
-</div>
-
-<!-- Search bar -->
-<div class="flex gap-3 mb-5">
-  <div class="relative w-72">
-    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-    </svg>
-    <%= form_with url: feedback_boards_path, method: :get, local: true, id: "fb-search-form" do |f| %>
-      <%= f.text_field :q, value: @q,
-            placeholder: t("feedback_boards.search_placeholder"),
-            id: "fb-search-input",
-            autocomplete: "off",
-            class: "w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none bg-white" %>
-    <% end %>
-    <% if @q.present? %>
-      <%= link_to feedback_boards_path, class: "absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[16px] leading-none" do %>×<% end %>
+<!-- ── Page header (always visible) ─────────────────────────────────────────── -->
+<div class="flex-shrink-0 px-6 pt-5 pb-0 bg-slate-100">
+  <div class="flex items-start justify-between mb-4">
+    <div>
+      <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">💬 <%= t("feedback_boards.title") %></h1>
+      <p class="text-[12px] text-slate-500 mt-0.5"><%= t("feedback_boards.subtitle") %></p>
+    </div>
+    <%= link_to new_feedback_board_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors" do %>
+      + <%= t("feedback_boards.new_board") %>
     <% end %>
   </div>
 </div>
 
-<script>
-  (function() {
-    var input = document.getElementById('fb-search-input');
-    var form  = document.getElementById('fb-search-form');
-    var timer;
-    if (!input) return;
-    input.addEventListener('input', function() {
-      clearTimeout(timer);
-      timer = setTimeout(function() { form.submit(); }, 300);
-    });
-  })();
-</script>
+<!-- ── Card area (fills remaining height) ───────────────────────────────────── -->
+<div class="flex-1 min-h-0 overflow-hidden px-6 pt-3 pb-5">
+  <div class="rounded-[12px] border overflow-hidden flex flex-col h-full" style="border-color:rgba(99,102,241,0.2); background:rgba(238,242,255,0.5);">
 
-<div class="bg-white rounded-[10px] border border-slate-200 shadow-sm overflow-hidden">
-  <% if @boards.any? %>
-    <table class="w-full border-collapse">
-      <thead>
-        <tr class="bg-slate-50 border-b border-slate-200">
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("feedback_boards.title") %></th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_status") %></th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("feedback_boards.col_feedbacks").capitalize %></th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_created") %></th>
-          <th class="px-4 py-2.5"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @boards.each do |board| %>
-          <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors" id="fb-row-<%= board.id %>">
-            <td class="px-4 py-3">
-              <%= link_to feedback_board_path(board), class: "group block" do %>
-                <div class="text-[13px] font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors"><%= board.title %></div>
-                <% if board.description.present? %>
-                  <div class="text-[11px] text-slate-400 truncate max-w-xs"><%= board.description %></div>
-                <% end %>
-              <% end %>
-            </td>
-            <td class="px-4 py-3">
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold <%= board.active? ? 'bg-emerald-50 text-emerald-700' : board.closed? ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500' %>">
-                <%= t("status.#{board.status}", default: board.status.capitalize) %>
-              </span>
-            </td>
-            <td class="px-4 py-3 text-[13px] text-slate-700">
-              <%= board.feedbacks.count %>
-              <% flagged = board.feedbacks.where(moderation_status: :flagged).count %>
-              <% if flagged > 0 %>
-                <span class="ml-1 text-[11px] text-amber-600 font-semibold">· ⚠ <%= flagged %></span>
-              <% end %>
-            </td>
-            <td class="px-4 py-3 text-[12px] text-slate-500"><%= board.created_at.strftime("%d/%m/%Y") %></td>
-            <td class="px-4 py-3">
-              <div class="flex gap-1.5 justify-end flex-wrap">
-                <%= link_to feedback_board_path(board),
-                      class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100 font-medium" do %>
-                  <%= t("feedback_boards.view") %>
-                <% end %>
-                <%= link_to edit_feedback_board_path(board),
-                      class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 font-medium" do %>
-                  <%= t("feedback_boards.edit") %>
-                <% end %>
-                <% if board.active? %>
-                  <%= button_to close_feedback_board_path(board), method: :patch,
-                        data: { confirm: t("feedback_boards.close_confirm", default: "Đóng bảng góp ý này?") },
-                        class: "px-2.5 py-1 text-[11px] bg-amber-50 rounded-md text-amber-700 hover:bg-amber-100 font-medium border-0 cursor-pointer" do %>
-                    <%= t("feedback_boards.show.close_board") %>
-                  <% end %>
-                <% elsif board.closed? %>
-                  <%= button_to reopen_feedback_board_path(board), method: :patch,
-                        class: "px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 font-medium border-0 cursor-pointer" do %>
-                    <%= t("feedback_boards.reopen", default: "Mở lại") %>
-                  <% end %>
-                <% end %>
-                <button type="button"
-                        onclick="showFbDeleteConfirm('<%= feedback_board_path(board) %>', '<%= j board.title %>')"
-                        class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 font-medium border-0 cursor-pointer">
-                  <%= t("surveys.delete") %>
-                </button>
-              </div>
-            </td>
-          </tr>
+    <!-- Card header: search (fixed) -->
+    <div class="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b" style="background:rgba(99,102,241,0.06); border-color:rgba(99,102,241,0.15);">
+      <div class="relative w-72">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+        </svg>
+        <%= form_with url: feedback_boards_path, method: :get, local: true, id: "fb-search-form" do |f| %>
+          <%= f.text_field :q, value: @q,
+                placeholder: t("feedback_boards.search_placeholder"),
+                id: "fb-search-input",
+                autocomplete: "off",
+                class: "w-full pl-8 pr-8 py-1.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none bg-white" %>
         <% end %>
-      </tbody>
-    </table>
+        <% if @q.present? %>
+          <%= link_to feedback_boards_path, class: "absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[15px] leading-none" do %>✕<% end %>
+        <% end %>
+      </div>
+      <span class="text-[11px] text-slate-400 ml-auto"><%= @boards.total_count rescue @boards.count %> <%= t("feedback_boards.subtitle") %></span>
+    </div>
 
-    <!-- Pagination -->
+    <!-- Table (scrollable) -->
+    <div class="flex-1 min-h-0 overflow-y-auto">
+      <% if @boards.any? %>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200" style="position:sticky;top:0;z-index:1;background:rgba(248,250,252,0.97);">
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("feedback_boards.title") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_status") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("feedback_boards.col_feedbacks").capitalize %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_created") %></th>
+              <th class="px-4 py-2.5"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @boards.each do |board| %>
+              <tr class="border-b border-indigo-50 hover:bg-white/70 transition-colors" id="fb-row-<%= board.id %>">
+                <td class="px-4 py-3">
+                  <%= link_to feedback_board_path(board), class: "group block" do %>
+                    <div class="text-[13px] font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors"><%= board.title %></div>
+                    <% if board.description.present? %>
+                      <div class="text-[11px] text-slate-400 truncate max-w-xs"><%= board.description %></div>
+                    <% end %>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold <%= board.active? ? 'bg-emerald-50 text-emerald-700' : board.closed? ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500' %>">
+                    <%= t("status.#{board.status}", default: board.status.capitalize) %>
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-[13px] text-slate-700">
+                  <%= board.feedbacks.count %>
+                  <% flagged = board.feedbacks.where(moderation_status: :flagged).count %>
+                  <% if flagged > 0 %>
+                    <span class="ml-1 text-[11px] text-amber-600 font-semibold">· ⚠ <%= flagged %></span>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3 text-[12px] text-slate-500"><%= board.created_at.strftime("%d/%m/%Y") %></td>
+                <td class="px-4 py-3">
+                  <div class="flex gap-1.5 justify-end flex-wrap">
+                    <%= link_to feedback_board_path(board),
+                          class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100 font-medium" do %>
+                      <%= t("feedback_boards.view") %>
+                    <% end %>
+                    <%= link_to edit_feedback_board_path(board),
+                          class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 font-medium" do %>
+                      <%= t("feedback_boards.edit") %>
+                    <% end %>
+                    <% if board.active? %>
+                      <%= button_to close_feedback_board_path(board), method: :patch,
+                            data: { confirm: t("feedback_boards.close_confirm", default: "Đóng bảng góp ý này?") },
+                            class: "px-2.5 py-1 text-[11px] bg-amber-50 rounded-md text-amber-700 hover:bg-amber-100 font-medium border-0 cursor-pointer" do %>
+                        <%= t("feedback_boards.show.close_board") %>
+                      <% end %>
+                    <% elsif board.closed? %>
+                      <%= button_to reopen_feedback_board_path(board), method: :patch,
+                            class: "px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 font-medium border-0 cursor-pointer" do %>
+                        <%= t("feedback_boards.reopen", default: "Mở lại") %>
+                      <% end %>
+                    <% end %>
+                    <button type="button"
+                            onclick="showFbDeleteConfirm('<%= feedback_board_path(board) %>', '<%= j board.title %>')"
+                            class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 font-medium border-0 cursor-pointer">
+                      <%= t("surveys.delete") %>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% else %>
+        <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div class="text-4xl mb-3">💬</div>
+          <% if @q.present? %>
+            <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("feedback_boards.search_empty") %></h3>
+            <p class="text-[13px] text-slate-400"><%= t("feedback_boards.search_empty_desc", q: @q) %></p>
+          <% else %>
+            <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("feedback_boards.empty") %></h3>
+            <p class="text-[13px] text-slate-400 mb-4"><%= t("feedback_boards.empty_desc") %></p>
+            <%= link_to t("feedback_boards.create_board"), new_feedback_board_path,
+                  class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div><!-- /scrollable -->
+
+    <!-- Pagination (fixed at bottom) -->
     <% if @pagy && @pagy.pages > 1 %>
-      <div class="flex items-center justify-between px-4 py-3 border-t border-slate-100">
-        <p class="text-[12px] text-slate-500">
+      <div class="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-t" style="border-color:rgba(99,102,241,0.12); background:rgba(99,102,241,0.04);">
+        <p class="text-[11px] text-slate-500">
           <% from = (@pagy.page - 1) * @pagy.items + 1
              to   = [@pagy.page * @pagy.items, @pagy.count].min %>
           <%= t("feedback_boards.showing") %> <%= from %>–<%= to %> / <%= @pagy.count %>
@@ -123,13 +135,13 @@
         <div class="flex gap-1">
           <% if @pagy.page > 1 %>
             <%= link_to feedback_boards_path(page: @pagy.page - 1, q: @q.presence),
-                  class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>
+                  class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md text-slate-600 hover:bg-white bg-white/60" do %>
               ← <%= t("surveys.prev") %>
             <% end %>
           <% end %>
           <% if @pagy.page < @pagy.pages %>
             <%= link_to feedback_boards_path(page: @pagy.page + 1, q: @q.presence),
-                  class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %>
+                  class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md text-slate-600 hover:bg-white bg-white/60" do %>
               <%= t("surveys.next") %> →
             <% end %>
           <% end %>
@@ -137,21 +149,8 @@
       </div>
     <% end %>
 
-  <% else %>
-    <div class="text-center py-16">
-      <div class="text-4xl mb-3">💬</div>
-      <% if @q.present? %>
-        <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("feedback_boards.search_empty") %></h3>
-        <p class="text-[13px] text-slate-400"><%= t("feedback_boards.search_empty_desc", q: @q) %></p>
-      <% else %>
-        <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("feedback_boards.empty") %></h3>
-        <p class="text-[13px] text-slate-400 mb-4"><%= t("feedback_boards.empty_desc") %></p>
-        <%= link_to t("feedback_boards.create_board"), new_feedback_board_path,
-              class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-slate-700 transition-colors" %>
-      <% end %>
-    </div>
-  <% end %>
-</div>
+  </div><!-- /card -->
+</div><!-- /card area -->
 
 <!-- Delete confirm modal -->
 <div id="fb-delete-modal" class="hidden fixed inset-0 z-50">
@@ -181,13 +180,28 @@
 </div>
 
 <script>
-function showFbDeleteConfirm(url, title) {
-  document.getElementById('fb-delete-form').action = url;
-  document.getElementById('fb-delete-body').textContent =
-    "Bảng \"" + title + "\" sẽ bị xoá vĩnh viễn cùng toàn bộ góp ý bên trong. Hành động không thể hoàn tác.";
-  document.getElementById('fb-delete-modal').classList.remove('hidden');
-}
-function closeFbDeleteConfirm() {
-  document.getElementById('fb-delete-modal').classList.add('hidden');
-}
+(function() {
+  // Auto-submit search on type
+  var input = document.getElementById('fb-search-input');
+  var form  = document.getElementById('fb-search-form');
+  var timer;
+  if (input && form) {
+    input.addEventListener('input', function() {
+      clearTimeout(timer);
+      timer = setTimeout(function() { form.submit(); }, 300);
+    });
+  }
+
+  // Delete modal
+  window.showFbDeleteConfirm = function(url, title) {
+    document.getElementById('fb-delete-form').action = url;
+    document.getElementById('fb-delete-body').textContent =
+      'Bảng "' + title + '" sẽ bị xoá vĩnh viễn cùng toàn bộ góp ý bên trong. Hành động không thể hoàn tác.';
+    document.getElementById('fb-delete-modal').classList.remove('hidden');
+  };
+
+  window.closeFbDeleteConfirm = function() {
+    document.getElementById('fb-delete-modal').classList.add('hidden');
+  };
+})();
 </script>

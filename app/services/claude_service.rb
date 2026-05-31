@@ -28,7 +28,10 @@ class ClaudeService
 
     raise "Claude API error: #{response.body}" unless response.success?
 
-    JSON.parse(response.body).dig("content", 0, "text")
+    parsed = JSON.parse(response.body)
+    stop_reason = parsed["stop_reason"]
+    Rails.logger.warn "ClaudeService: stop_reason=#{stop_reason}" if stop_reason != "end_turn"
+    parsed.dig("content", 0, "text")
   rescue => e
     Rails.logger.error "ClaudeService error: #{e.message}"
     raise
@@ -36,5 +39,5 @@ class ClaudeService
 
   def self.haiku     = new(model: HAIKU_MODEL)
   def self.sonnet    = new(model: SONNET_MODEL, timeout: 90)
-  def self.sonnet_long = new(model: SONNET_MODEL, timeout: 180)
+  def self.sonnet_long = new(model: SONNET_MODEL, timeout: 240)
 end

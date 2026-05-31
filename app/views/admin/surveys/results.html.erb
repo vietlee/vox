@@ -1,4 +1,5 @@
 <% content_for :title, t("surveys.results.page_title", title: @survey.title) %>
+<% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
 
 <%
   option_labels = @questions.flat_map(&:question_options).each_with_object({}) { |o, h| h[o.id.to_s] = o.label }
@@ -24,12 +25,24 @@
   end
 %>
 
-<div class="flex items-start justify-between mb-5">
-  <div>
-    <h1 class="text-[19px] font-extrabold text-slate-900"><%= @survey.title %></h1>
-    <p class="text-[12px] text-slate-500 mt-0.5"><%= t("surveys.results.subtitle", count: @total_responses, rate: @survey.completion_rate) %></p>
+<!-- ── Page header (fixed) ──────────────────────────────────────────────────── -->
+<div class="flex-shrink-0 px-6 pt-5 pb-0 bg-slate-100">
+<div class="flex items-start justify-between mb-3">
+  <div class="flex items-start gap-3">
+    <a href="<%= survey_path(@survey) %>"
+       class="mt-1 flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+       title="<%= t("common.back") %>">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <div>
+      <h1 class="text-[19px] font-extrabold text-slate-900"><%= @survey.title %></h1>
+      <p class="text-[12px] text-slate-500 mt-0.5"><%= t("surveys.results.subtitle", count: @total_responses, rate: @survey.completion_rate) %></p>
+    </div>
   </div>
   <div class="flex gap-2">
+  
     <% if @survey.active? %>
       <button onclick="showSurveyCloseConfirm()"
         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-slate-700 transition-colors">
@@ -52,29 +65,29 @@
         <span class="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block"></span>
       <% end %>
     </button>
+    
     <button onclick="switchTab('report')"
       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-700 transition-colors">
       📄 <%= t("surveys.results.tab_report").gsub(/\A📄\s*/, '') %>
     </button>
+    <!-- Export AI report -->
+    <button onclick="openExportPicker()"
+       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 transition-colors">
+      📄 <%= t("surveys.results.export_report") %>
+    </button>
     <!-- Export CSV -->
     <a href="<%= export_survey_path(@survey) %>"
        data-turbo="false"
+       onclick="btnDownloadLoading(this)"
        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 transition-colors">
       ⬇ CSV
     </a>
-    <!-- Export AI report as PDF -->
-    <a id="export-pdf-btn"
-       href="<%= export_report_survey_path(@survey, format_type: "pdf") %>"
-       onclick="return startPdfExport(event)"
-       data-turbo="false"
-       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 transition-colors">
-      📄 <%= t("surveys.results.export_report") %>
-    </a>
+    
   </div>
 </div>
 
 <!-- Tabs -->
-<div class="flex gap-0 mb-5 border-b border-slate-200">
+<div class="flex gap-0 border-b border-slate-200">
   <button id="tab-summary" onclick="switchTab('summary')"
     class="px-4 py-2.5 text-[13px] font-semibold text-indigo-600 border-b-2 border-indigo-600 -mb-px bg-transparent transition-colors">
     <%= t("surveys.results.tab_summary") %>
@@ -103,6 +116,10 @@
     <% end %>
   </button>
 </div>
+</div><!-- /page header -->
+
+<!-- ── Scrollable tab content ────────────────────────────────────────────────── -->
+<div id="tab-content-wrap" class="flex-1 min-h-0 overflow-y-auto px-6 pt-4 pb-6">
 
 <!-- Tab: Summary -->
 <div id="panel-summary">
@@ -189,128 +206,196 @@
 </div><!-- /panel-summary -->
 
 <!-- Tab: AI Insights -->
-<div id="panel-ai" class="hidden">
+<div id="panel-ai" class="hidden flex-col flex-1 min-h-0 overflow-hidden" style="display:none;">
+  <div class="h-full flex flex-col rounded-[12px] border overflow-hidden" style="border-color:rgba(139,92,246,0.2); background:rgba(245,243,255,0.6);">
 
-  <!-- AI Analysis card -->
-  <div class="bg-white rounded-[12px] border border-slate-200 shadow-sm overflow-hidden">
-    <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-indigo-50">
-      <div>
-        <h3 class="text-[14px] font-bold text-slate-900"><%= t("surveys.results.ai_executive_summary") %> ✨</h3>
-        <p class="text-[11px] text-slate-500 mt-0.5"><%= t("surveys.results.ai_requires") %></p>
-      </div>
-      <div class="flex items-center gap-2">
-        <div class="relative">
-          <select id="ai-lang"
-            class="appearance-none pl-3 pr-7 py-1.5 text-[12px] font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 focus:outline-none focus:border-indigo-400 cursor-pointer">
-            <option value="vi" <%= current_workspace.language == "vi" ? "selected" : "" %>><%= t("surveys.results.report_lang_vi") %></option>
-            <option value="en" <%= current_workspace.language == "en" ? "selected" : "" %>><%= t("surveys.results.report_lang_en") %></option>
-          </select>
-          <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▾</span>
+    <!-- Card header: cố định -->
+    <div class="flex-shrink-0 flex items-center gap-2 px-4 py-3" style="background:rgba(139,92,246,0.08); border-bottom:1px solid rgba(139,92,246,0.15);">
+      <span class="text-[14px]">🔮</span>
+      <span class="text-[13px] font-bold text-violet-700"><%= t("surveys.results.ai_executive_summary") %></span>
+      <span id="ai-generated-time" class="text-[10px] text-slate-400 ml-1">
+        <%= @ai_analysis ? I18n.l(@ai_analysis.created_at.in_time_zone, format: :short) : "" %>
+      </span>
+      <div class="ml-auto flex flex-col items-end gap-1">
+        <div class="flex items-center gap-2">
+          <!-- Language selector -->
+          <div class="relative">
+            <select id="ai-lang"
+              class="appearance-none pl-3 pr-7 py-1.5 text-[12px] font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 hover:border-violet-300 focus:outline-none focus:border-violet-400 cursor-pointer">
+              <option value="vi" <%= current_workspace.language == "vi" ? "selected" : "" %>><%= t("surveys.results.report_lang_vi") %></option>
+              <option value="en" <%= current_workspace.language == "en" ? "selected" : "" %>><%= t("surveys.results.report_lang_en") %></option>
+            </select>
+            <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▾</span>
+          </div>
+          <span class="text-[10px] text-slate-400 font-medium"><%= t("surveys.results.ai_requires") %></span>
+          <button id="analyze-btn" onclick="requestAiAnalysis()" <%= @total_responses == 0 ? 'disabled' : '' %>
+            class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-semibold rounded-lg flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+            <span id="analyze-spinner" class="hidden w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            ✨ <%= t("surveys.results.analyze_btn") %>
+          </button>
         </div>
-        <button id="analyze-btn" onclick="requestAiAnalysis()"
-          class="px-4 py-2 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-[12px] font-semibold rounded-lg hover:from-indigo-600 hover:to-violet-600 flex items-center gap-1.5">
-          <span id="analyze-spinner" class="hidden w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-          ✨ <%= t("surveys.results.analyze_btn") %>
-        </button>
+        <% if @total_responses == 0 %>
+          <span class="text-[10px] font-semibold text-red-500 flex items-center gap-1">
+            <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <%= t("surveys.results.no_responses_to_analyze") %>
+          </span>
+        <% elsif @ai_analysis %>
+          <% if @new_responses_since_analysis > 0 %>
+            <span class="text-[10px] font-semibold text-amber-600 flex items-center gap-1">
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              <%= t("surveys.results.new_responses_since_analysis", count: @new_responses_since_analysis) %>
+            </span>
+          <% else %>
+            <span class="text-[10px] text-red-500 font-medium"><%= t("surveys.results.no_new_responses") %></span>
+          <% end %>
+        <% end %>
       </div>
     </div>
-    <div id="ai-panel" class="p-5">
+
+    <!-- Card body: scrollable -->
+    <div id="ai-panel" class="flex-1 min-h-0 overflow-y-auto p-5">
       <% if @ai_analysis %>
         <%= render "admin/surveys/ai_analysis_card", analysis: @ai_analysis %>
       <% else %>
-        <div class="text-center py-8 text-slate-400">
-          <div class="text-3xl mb-2">✨</div>
+        <div class="flex flex-col items-center justify-center h-full text-center text-slate-400 py-12">
+          <div class="text-4xl mb-3">🔮</div>
           <p class="text-[13px]"><%= t("surveys.results.get_analysis") %></p>
         </div>
       <% end %>
     </div>
-  </div>
 
+  </div>
 </div><!-- /panel-ai -->
 
 <!-- Tab: Create Report -->
 <div id="panel-report" class="hidden">
+  <% all_reports = @survey.ai_analysis_results.where(result_type: "executive_report").order(created_at: :desc) %>
 
-  <!-- Executive Report card -->
-  <div class="bg-white rounded-[12px] border border-slate-200 shadow-sm overflow-hidden">
-    <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-indigo-50">
-      <div>
-        <h3 class="text-[14px] font-bold text-slate-900">📄 <%= t("surveys.results.executive_report") %></h3>
-        <p class="text-[11px] text-slate-500 mt-0.5"><%= t("surveys.results.report_credits") %> · <%= t("surveys.results.report_desc") %></p>
+  <div class="grid grid-cols-[1fr_340px] gap-5">
+
+    <!-- Left: Create new report -->
+    <div class="bg-white rounded-[12px] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+      <!-- Header -->
+      <div class="flex-shrink-0 flex items-center gap-2 px-4 py-3" style="background:rgba(139,92,246,0.08); border-bottom:1px solid rgba(139,92,246,0.15);">
+        <span class="text-[14px]">📄</span>
+        <span class="text-[13px] font-bold text-violet-700"><%= t("surveys.results.executive_report") %></span>
+        <span class="ml-2 text-[10px] text-slate-400 font-medium">15 credits / lần</span>
       </div>
-      <div class="flex items-center gap-2">
-        <div class="relative">
-          <select id="report-lang"
-            class="appearance-none pl-3 pr-7 py-1.5 text-[12px] font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 focus:outline-none focus:border-indigo-400 cursor-pointer">
-            <option value="vi" <%= current_workspace.language == "vi" ? "selected" : "" %>><%= t("surveys.results.report_lang_vi") %></option>
-            <option value="en" <%= current_workspace.language == "en" ? "selected" : "" %>><%= t("surveys.results.report_lang_en") %></option>
-          </select>
-          <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▾</span>
+
+      <div class="p-5 flex flex-col gap-4 flex-1">
+        <!-- Status area -->
+        <div id="report-status"></div>
+
+        <!-- Context input -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+            Ngữ cảnh & Trọng tâm báo cáo
+          </label>
+          <textarea id="report-context" rows="5" maxlength="800"
+            placeholder="Mô tả mục đích báo cáo, đối tượng nhận, và định dạng bạn muốn...&#10;&#10;Ví dụ: Báo cáo cho cuộc họp ban giám đốc tháng 6. Tập trung vào vấn đề môi trường làm việc. Tạo file Word có bảng tóm tắt và biểu đồ minh hoạ."
+            class="w-full px-3 py-2.5 text-[13px] text-slate-800 rounded-lg resize-none outline-none"
+            style="border:1.5px solid #e2e8f0; font-size:13px; line-height:1.6;"
+            onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='#e2e8f0'"
+            oninput="updateReportBtn()"></textarea>
         </div>
-        <button id="report-btn" onclick="requestReport()"
-          class="px-4 py-2 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-[12px] font-semibold rounded-lg hover:from-indigo-600 hover:to-violet-600 flex items-center gap-1.5">
-          <span id="report-spinner" class="hidden w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-          ✨ <%= t("surveys.results.create_report") %>
+
+        <!-- Language -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Ngôn ngữ</label>
+          <div class="relative w-48">
+            <select id="report-lang"
+              class="w-full appearance-none pl-3 pr-7 py-2 text-[12px] font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 focus:outline-none focus:border-violet-400 cursor-pointer">
+              <option value="vi" <%= current_workspace.language == "vi" ? "selected" : "" %>>🇻🇳 Tiếng Việt</option>
+              <option value="en" <%= current_workspace.language == "en" ? "selected" : "" %>>🇬🇧 English</option>
+            </select>
+            <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▾</span>
+          </div>
+        </div>
+
+        <!-- Warning if no analysis -->
+        <% if @total_responses == 0 %>
+          <div class="flex items-start gap-2 px-3 py-2.5 rounded-lg text-[12px]" style="background:rgba(239,68,68,0.07); border:1px solid rgba(239,68,68,0.25); color:#991b1b;">
+            <span class="flex-shrink-0 mt-0.5">🚫</span>
+            <span><strong><%= t("surveys.results.no_responses_cannot_report") %></strong></span>
+          </div>
+        <% elsif !@ai_analysis %>
+          <div class="flex items-start gap-2 px-3 py-2.5 rounded-lg text-[12px]" style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); color:#92400e;">
+            <span class="flex-shrink-0 mt-0.5">⚠️</span>
+            <span>Chạy <strong>AI Insight</strong> trước để báo cáo được tạo ra chất lượng hơn.</span>
+          </div>
+        <% end %>
+
+        <!-- Generate button -->
+        <button id="report-btn" onclick="requestReport()" disabled
+          class="w-full py-2.5 text-[13px] font-bold text-white rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          style="background:linear-gradient(135deg,#7c3aed,#6366f1);">
+          <span id="report-spinner" class="hidden w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          ✨ Tạo báo cáo với AI
         </button>
       </div>
     </div>
-    <div class="p-5">
-      <div id="report-status"></div>
-      <% latest_report = @survey.ai_analysis_results.where(result_type: "executive_report").order(created_at: :desc).first %>
-      <% if latest_report %>
-        <div id="report-saved">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-[11px] text-slate-400"><%= t("surveys.results.report_generated", time: latest_report.created_at.strftime("%d/%m/%Y %H:%M")) %></span>
-            <button onclick="toggleReport()" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 bg-transparent border-0 cursor-pointer px-0">
-              <span id="report-toggle-label"><%= t("surveys.results.report_view_full") %></span>
-            </button>
-          </div>
-          <p class="text-[13px] text-slate-700 leading-relaxed mb-3"><%= latest_report.output["executive_summary"]&.truncate(300) %></p>
-          <div id="report-full" class="hidden space-y-4">
-            <% (latest_report.output["sections"] || []).each do |s| %>
-              <div class="border-l-2 border-indigo-200 pl-4">
-                <div class="text-[13px] font-bold text-indigo-700 mb-1"><%= s["heading"] %></div>
-                <p class="text-[13px] text-slate-700 leading-relaxed"><%= s["content"] %></p>
-                <% if s["key_finding"].present? %>
-                  <div class="mt-1.5 text-[12px] text-slate-500 italic">💡 <%= s["key_finding"] %></div>
-                <% end %>
-              </div>
-            <% end %>
-            <% recs = latest_report.output["recommendations"] || [] %>
-            <% if recs.any? %>
-              <div>
-                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2"><%= t("surveys.results.ai_recommendations") %></div>
-                <% recs.each do |rec| %>
-                  <% pri = rec.is_a?(Hash) ? rec["priority"].to_s : "" %>
-                  <% pri_color = pri == "high" ? "bg-red-50 text-red-600 border-red-200" : pri == "medium" ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-slate-50 text-slate-500 border-slate-200" %>
-                  <div class="flex gap-2 items-start mb-2">
-                    <% if pri.present? %>
-                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 mt-0.5 <%= pri_color %>"><%= t("surveys.results.priority_#{pri}", default: pri.upcase) %></span>
-                    <% else %>
-                      <span class="text-indigo-400 flex-shrink-0">→</span>
-                    <% end %>
-                    <span class="text-[13px] text-slate-700"><%= rec.is_a?(Hash) ? rec["action"] : rec %></span>
-                  </div>
-                <% end %>
-              </div>
-            <% end %>
-            <% if latest_report.output["conclusion"].present? %>
-              <div class="bg-slate-50 rounded-lg p-4 mt-2">
-                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1"><%= t("surveys.results.ai_conclusion") %></div>
-                <p class="text-[13px] text-slate-700"><%= latest_report.output["conclusion"] %></p>
-              </div>
-            <% end %>
-          </div>
-        </div>
-      <% else %>
-        <div class="text-center py-8 text-slate-400">
-          <div class="text-3xl mb-2">📄</div>
-          <p class="text-[13px]"><%= t("surveys.results.report_desc") %></p>
-        </div>
-      <% end %>
-    </div>
-  </div>
 
+    <!-- Right: Reports history -->
+    <div class="rounded-[12px] border overflow-hidden flex flex-col" style="border-color:rgba(139,92,246,0.2); background:rgba(245,243,255,0.4);">
+      <!-- Header -->
+      <div class="flex-shrink-0 flex items-center gap-2 px-4 py-3" style="background:rgba(139,92,246,0.08); border-bottom:1px solid rgba(139,92,246,0.15);">
+        <span class="text-[14px]">📋</span>
+        <span class="text-[13px] font-bold text-violet-700">Báo cáo đã tạo</span>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-600"><%= all_reports.count %></span>
+      </div>
+
+      <div id="reports-list" class="flex flex-col gap-3 p-4 overflow-y-auto flex-1" style="max-height:calc(100vh - 320px);">
+        <% if all_reports.any? %>
+          <% all_reports.each do |rpt| %>
+            <% rpt_meta   = rpt.output["_meta"] || {} %>
+            <% rpt_fmt    = rpt_meta["format"] || "pdf" %>
+            <% rpt_lang   = rpt_meta["language"] == "en" ? "EN" : "VI" %>
+            <% rpt_ctx    = rpt_meta["user_context"] %>
+            <% rpt_title  = rpt.output["title"].presence || @survey.title %>
+            <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4" id="report-card-<%= rpt.id %>">
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-semibold text-slate-800 truncate"><%= rpt_title %></div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold <%= rpt_fmt == 'pdf' ? 'bg-red-50 text-red-600' : rpt_fmt == 'word' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600' %>">
+                      <%= rpt_fmt == 'word' ? 'WORD' : rpt_fmt.upcase %>
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-medium"><%= rpt_lang %></span>
+                    <span class="text-[10px] text-slate-400"><%= rpt.created_at.in_time_zone.strftime("%d/%m/%Y %H:%M") %></span>
+                  </div>
+                </div>
+              </div>
+              <% if rpt_ctx.present? %>
+                <p class="text-[11px] text-slate-500 italic mb-2 line-clamp-2">"<%= rpt_ctx %>"</p>
+              <% end %>
+              <p class="text-[11px] text-slate-600 line-clamp-2 mb-3">
+                <%= rpt.output["executive_summary"]&.truncate(100) %>
+              </p>
+              <div class="flex gap-2">
+                <a href="<%= export_report_survey_path(@survey, report_id: rpt.id, format_type: rpt_fmt) %>"
+                   data-turbo="false"
+                   onclick="btnDownloadLoading(this)"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg text-white hover:opacity-90 transition-opacity"
+                   style="background:linear-gradient(135deg,#7c3aed,#6366f1);">
+                  ⬇ Tải <%= rpt_fmt == 'word' ? 'WORD' : rpt_fmt.upcase %>
+                </a>
+                <button onclick="deleteReport(<%= rpt.id %>, '<%= delete_report_survey_path(@survey, report_id: rpt.id) %>')"
+                  class="px-3 py-1.5 text-[11px] font-semibold text-red-500 hover:bg-red-50 rounded-lg border border-red-200 transition-colors">
+                  Xoá
+                </button>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div id="reports-empty" class="flex flex-col items-center justify-center py-10 text-slate-400">
+            <div class="text-3xl mb-2">📄</div>
+            <p class="text-[13px]">Chưa có báo cáo nào. Tạo báo cáo đầu tiên!</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+  </div>
 </div><!-- /panel-report -->
 
 <!-- Tab: Individual -->
@@ -343,7 +428,7 @@
                     <span class="text-slate-400 font-mono text-[11px]">···<%= resp.respondent_token&.last(6) %></span>
                   <% end %>
                 </td>
-                <td class="px-4 py-3 text-slate-500"><%= resp.completed_at&.strftime("%d/%m %H:%M") %></td>
+                <td class="px-4 py-3 text-slate-500"><%= resp.completed_at&.in_time_zone&.strftime("%d/%m %H:%M") %></td>
                 <% ans_map = response_answer_map[resp.id] || {} %>
                 <% @questions.each do |q| %>
                   <td class="px-4 py-3 text-slate-700 max-w-[180px] truncate">
@@ -382,6 +467,8 @@
   </div>
 </div>
 
+</div><!-- /scrollable -->
+
 <script>
 (function() {
 const CSRF       = document.querySelector('meta[name=csrf-token]').content;
@@ -390,8 +477,26 @@ const ANALYZE_URL= "<%= ai_analyze_survey_path(@survey) %>";
 const REPORT_URL = "<%= ai_report_survey_path(@survey) %>";
 const HAS_REPORT    = <%= @survey.ai_analysis_results.where(result_type: "executive_report").exists? ? 'true' : 'false' %>;
 const HAS_ANALYSIS  = <%= @ai_analysis.present? ? 'true' : 'false' %>;
+const HAS_RESPONSES = <%= @total_responses > 0 ? 'true' : 'false' %>;
 const NO_REPORT_MSG    = "<%= j t('surveys.results.export_report_missing') %>";
 const NO_ANALYSIS_MSG  = "<%= j t('surveys.results.report_needs_analysis') %>";
+const EXPORT_BASE_URL  = "<%= export_report_survey_path(@survey) %>";
+const ALL_REPORTS = <%= raw(begin
+  @survey.ai_analysis_results.where(result_type: "executive_report").order(created_at: :desc).map do |r|
+    meta = r.output["_meta"] || {}
+    {
+      id:      r.id,
+      title:   r.output["title"].presence || @survey.title,
+      fmt:     meta["format"] || "pdf",
+      lang:    meta["language"] == "en" ? "EN" : "VI",
+      ctx:     meta["user_context"].to_s.truncate(60),
+      date:    r.created_at.in_time_zone.strftime("%d/%m/%Y %H:%M"),
+      url:     export_report_survey_path(@survey, report_id: r.id, format_type: meta["format"] || "pdf")
+    }
+  end.to_json
+rescue
+  "[]"
+end) %>;
 
 const I18N = {
   analysis_phases: [
@@ -442,28 +547,44 @@ function makeProgressRing(containerId, phases, intervalMs) {
 
   document.getElementById(containerId).innerHTML = html;
 
-  const milestones = phases.map((_, i) => Math.round(((i + 1) / totalPhases) * 90));
+  const ring  = document.getElementById(`${containerId}-ring`);
+  const pctEl = document.getElementById(`${containerId}-pct`);
+  const phEl  = document.getElementById(`${containerId}-phase`);
+
+  function setProgress(p) {
+    const offset = 188.5 * (1 - p / 100);
+    if (ring)  ring.style.strokeDashoffset = offset;
+    if (pctEl) pctEl.textContent = Math.round(p) + '%';
+  }
+
+  // Phases advance up to 85%; after that, slow creep to 98% keeps the bar moving
+  const milestones = phases.map((_, i) => Math.round(((i + 1) / totalPhases) * 85));
 
   timer = setInterval(() => {
-    if (pct >= 90) { clearInterval(timer); return; }
-    pct = Math.min(pct + 1, milestones[phase] || 90);
-    const offset = 188.5 * (1 - pct / 100);
-    const ring = document.getElementById(`${containerId}-ring`);
-    const pctEl = document.getElementById(`${containerId}-pct`);
-    const phEl  = document.getElementById(`${containerId}-phase`);
-    if (ring)  ring.style.strokeDashoffset = offset;
-    if (pctEl) pctEl.textContent = pct + '%';
-    if (phEl && pct >= milestones[phase] && phase < totalPhases - 1) {
+    const target = milestones[phase] || 85;
+    pct = Math.min(pct + 1, target);
+    setProgress(pct);
+
+    if (phEl && pct >= (milestones[phase] || 85) && phase < totalPhases - 1) {
       phase++;
       phEl.textContent = phases[phase];
+    }
+
+    // Switch to slow-creep once all phases are done
+    if (pct >= 85 && phase >= totalPhases - 1) {
+      clearInterval(timer);
+      // Creep 0.4% every 3 s — visibly moving but slow; stops at 98%
+      timer = setInterval(() => {
+        if (pct >= 98) { clearInterval(timer); return; }
+        pct = Math.min(pct + 0.4, 98);
+        setProgress(pct);
+      }, 3000);
     }
   }, intervalMs);
 
   return {
     finish: () => {
       clearInterval(timer);
-      const ring = document.getElementById(`${containerId}-ring`);
-      const pctEl = document.getElementById(`${containerId}-pct`);
       if (ring)  ring.style.strokeDashoffset = '0';
       if (pctEl) pctEl.textContent = '100%';
     }
@@ -475,7 +596,16 @@ const VALID_TABS = ['summary', 'individual', 'ai', 'report'];
 
 function switchTab(tab) {
   VALID_TABS.forEach(t => {
-    document.getElementById('panel-' + t)?.classList.toggle('hidden', t !== tab);
+    const panel = document.getElementById('panel-' + t);
+    if (!panel) return;
+    if (t === tab) {
+      panel.classList.remove('hidden');
+      // AI panel needs flex display to fill height properly
+      if (t === 'ai') panel.style.display = 'flex';
+    } else {
+      panel.classList.add('hidden');
+      if (t === 'ai') panel.style.display = '';
+    }
     const btn = document.getElementById('tab-' + t);
     if (!btn) return;
     if (t === tab) {
@@ -486,6 +616,17 @@ function switchTab(tab) {
       btn.classList.add('text-slate-400', 'border-transparent', 'hover:text-slate-600');
     }
   });
+  // Toggle outer wrapper: AI tab fills viewport, others scroll freely
+  const wrap = document.getElementById('tab-content-wrap');
+  if (wrap) {
+    if (tab === 'ai') {
+      wrap.classList.remove('overflow-y-auto');
+      wrap.classList.add('overflow-hidden', 'flex', 'flex-col');
+    } else {
+      wrap.classList.add('overflow-y-auto');
+      wrap.classList.remove('overflow-hidden', 'flex', 'flex-col');
+    }
+  }
   // Persist active tab in URL hash so language switcher reloads restore it
   history.replaceState(null, '', location.pathname + location.search + '#' + tab);
 }
@@ -584,22 +725,34 @@ function resetReportUI(statusEl, btn, spinner, msg) {
   if (spinner) spinner.classList.add('hidden');
 }
 
+function updateReportBtn() {
+  const ctx = (document.getElementById('report-context')?.value || '').trim();
+  const btn = document.getElementById('report-btn');
+  if (btn) btn.disabled = !HAS_RESPONSES || ctx.length === 0;
+}
+
 async function requestReport() {
-  const lang     = document.getElementById('report-lang')?.value || 'vi';
-  const statusEl = document.getElementById('report-status');
-  const btn      = document.getElementById('report-btn');
-  const spinner  = document.getElementById('report-spinner');
+  const lang      = document.getElementById('report-lang')?.value    || 'vi';
+  const context   = (document.getElementById('report-context')?.value || '').trim();
+  // Detect format from context keywords; default pdf
+  const ctxLower  = context.toLowerCase();
+  const fmt       = /excel|xlsx|\bxls\b/.test(ctxLower) ? 'excel'
+                  : /word|docx|\bdoc\b/.test(ctxLower)  ? 'word'
+                  : 'pdf';
+  const statusEl  = document.getElementById('report-status');
+  const btn       = document.getElementById('report-btn');
+  const spinner   = document.getElementById('report-spinner');
 
   // Must have AI analysis first
   if (!HAS_ANALYSIS) {
-    statusEl.innerHTML = `<div class="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-[13px] text-amber-700 mb-4">
+    statusEl.innerHTML = `<div class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-[12px] text-amber-700 mb-3" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);">
       <span>⚠️</span>
       <span>${NO_ANALYSIS_MSG} <button onclick="switchTab('ai')" class="underline font-semibold ml-1 bg-transparent border-0 cursor-pointer text-amber-700">${'<%= j t("surveys.results.tab_ai") %>'} →</button></span>
     </div>`;
     return;
   }
 
-  statusEl.innerHTML = `<div class="border border-violet-100 rounded-lg bg-violet-50 mb-4" id="report-progress"></div>`;
+  statusEl.innerHTML = `<div class="border border-violet-100 rounded-lg bg-violet-50 mb-3" id="report-progress"></div>`;
   if (btn) { btn.disabled = true; }
   if (spinner) spinner.classList.remove('hidden');
   const progress = makeProgressRing('report-progress', I18N.report_phases, 600);
@@ -608,11 +761,10 @@ async function requestReport() {
     const resp = await fetch(REPORT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF, 'Accept': 'application/json' },
-      body: JSON.stringify({ language: lang })
+      body: JSON.stringify({ language: lang, format: fmt, user_context: context })
     });
     const data = await resp.json();
     if (window.handleAiUpgrade(resp, data, '<%= j t("surveys.results.create_report") %>')) {
-      // Clear progress area — upgrade modal will guide user
       progress.finish();
       resetReportUI(statusEl, btn, spinner, null);
       return;
@@ -635,8 +787,7 @@ async function pollReport(jobId, progress, statusEl, btn, spinner) {
     progress.finish();
     setTimeout(() => {
       window.deductDisplayCredits?.(15);
-      const dot = document.getElementById('report-tab-dot');
-      if (dot) dot.classList.remove('hidden');
+      sessionStorage.setItem('vox_report_created', '1');
       location.reload();
     }, 500);
   } else if (data.status === 'failed') {
@@ -646,6 +797,96 @@ async function pollReport(jobId, progress, statusEl, btn, spinner) {
   } else {
     setTimeout(() => pollReport(jobId, progress, statusEl, btn, spinner), 3000);
   }
+}
+
+// ── Export picker modal ───────────────────────────────────────────────────────
+function openExportPicker() {
+  if (!HAS_REPORT) {
+    switchTab('report');
+    let toast = document.getElementById('no-report-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'no-report-toast';
+      toast.className = 'mb-4 flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-[13px] text-amber-700';
+      toast.innerHTML = '<span>⚠️</span><span>' + NO_REPORT_MSG + '</span>';
+      document.getElementById('panel-report')?.insertBefore(toast, document.getElementById('panel-report').firstChild);
+    }
+    toast.classList.remove('hidden');
+    setTimeout(() => toast?.classList.add('hidden'), 5000);
+    return;
+  }
+
+  const modal = document.getElementById('export-picker-modal');
+  const list  = document.getElementById('export-picker-list');
+  if (!modal || !list) return;
+
+  list.innerHTML = ALL_REPORTS.map(r => {
+    const fmtCls  = r.fmt === 'pdf' ? 'bg-red-50 text-red-600' : r.fmt === 'word' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600';
+    const ctxLine = r.ctx ? `<p class="text-[11px] text-slate-400 italic mt-0.5 truncate">"${r.ctx}"</p>` : '';
+    return `<a href="${r.url}" data-turbo="false"
+      class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white hover:border-violet-300 hover:bg-violet-50 transition-colors no-underline"
+      onclick="btnDownloadLoading(this); setTimeout(closeExportPicker, 200)">
+      <div class="flex-1 min-w-0">
+        <div class="text-[13px] font-semibold text-slate-800 truncate">${r.title}</div>
+        <div class="flex items-center gap-2 mt-0.5">
+          <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${fmtCls}">${r.fmt.toUpperCase()}</span>
+          <span class="text-[10px] text-slate-400">${r.lang} · ${r.date}</span>
+        </div>
+        ${ctxLine}
+      </div>
+      <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v9M8 16l4 4 4-4"/>
+      </svg>
+    </a>`;
+  }).join('');
+
+  modal.style.display = '';
+}
+
+function closeExportPicker() {
+  document.getElementById('export-picker-modal').style.display = 'none';
+}
+
+// ── Delete report confirm modal ───────────────────────────────────────────────
+let _pendingDeleteId  = null;
+let _pendingDeleteUrl = null;
+
+function closeDeleteReportModal() {
+  document.getElementById('delete-report-modal').style.display = 'none';
+  _pendingDeleteId = _pendingDeleteUrl = null;
+}
+
+async function deleteReport(reportId, url) {
+  _pendingDeleteId  = reportId;
+  _pendingDeleteUrl = url;
+  const modal = document.getElementById('delete-report-modal');
+  const btn   = document.getElementById('delete-report-confirm-btn');
+  if (!modal || !btn) return;
+
+  btn.onclick = async () => {
+    closeDeleteReportModal();
+    const resp = await fetch(_pendingDeleteUrl || url, {
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }
+    });
+    if (resp.ok) {
+      document.getElementById('report-card-' + reportId)?.remove();
+      // Remove from ALL_REPORTS array
+      const idx = ALL_REPORTS.findIndex(r => r.id === reportId);
+      if (idx > -1) ALL_REPORTS.splice(idx, 1);
+      // Update badge count
+      const badge = document.querySelector('#export-picker-modal')?.previousElementSibling;
+      // Update header count in reports panel
+      const countEl = document.querySelector('.rounded-\\[12px\\] .text-violet-600');
+      // Show empty state if no more reports
+      const list = document.getElementById('reports-list');
+      if (list && !list.querySelector('[id^="report-card-"]')) {
+        list.innerHTML = `<div class="flex flex-col items-center justify-center py-10 text-slate-400"><div class="text-3xl mb-2">📄</div><p class="text-[13px]">Chưa có báo cáo nào. Tạo báo cáo đầu tiên!</p></div>`;
+      }
+    }
+  };
+
+  modal.style.display = '';
 }
 
 // ── Export report (PDF only) ──────────────────────────────────────────────────
@@ -782,7 +1023,36 @@ function startPdfExport(e) {
   return true;
 }
 
-Object.assign(window, { switchTab, toggleRow, requestAiAnalysis, requestReport, toggleReport, checkReport, startPdfExport, showSurveyCloseConfirm, hideSurveyCloseConfirm });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeExportPicker(); closeDeleteReportModal(); }
+});
+
+// Show success toast after report creation reload
+if (sessionStorage.getItem('vox_report_created')) {
+  sessionStorage.removeItem('vox_report_created');
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:10px;padding:12px 20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.10);font-size:14px;font-weight:600;color:#15803d;white-space:nowrap;';
+  toast.innerHTML = '✅ <%= j t("surveys.results.report_created_success", default: "Báo cáo đã được tạo thành công!") %>';
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.transition = 'opacity 0.4s'; toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3500);
+}
+
+function btnDownloadLoading(el) {
+  if (el.dataset.loading) return;
+  el.dataset.loading = '1';
+  const orig = el.innerHTML;
+  const origStyle = el.getAttribute('style') || '';
+  el.innerHTML = `<span style="display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;"></span> <%= j t('surveys.results.preparing_download', default: 'Đang tải...') %>`;
+  el.style.opacity = '0.7';
+  el.style.pointerEvents = 'none';
+  setTimeout(() => {
+    el.innerHTML = orig;
+    el.setAttribute('style', origStyle);
+    delete el.dataset.loading;
+  }, 6000);
+}
+
+Object.assign(window, { switchTab, toggleRow, requestAiAnalysis, requestReport, updateReportBtn, toggleReport, checkReport, startPdfExport, openExportPicker, closeExportPicker, closeDeleteReportModal, showSurveyCloseConfirm, hideSurveyCloseConfirm, deleteReport, btnDownloadLoading });
 })();
 
 function showSurveyCloseConfirm() {
@@ -792,6 +1062,47 @@ function hideSurveyCloseConfirm() {
   document.getElementById('survey-close-modal').classList.add('hidden');
 }
 </script>
+
+<!-- Export Report Picker Modal -->
+<div id="export-picker-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none; background:rgba(15,23,42,0.45); backdrop-filter:blur(2px);"
+     onclick="if(event.target===this) closeExportPicker()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-[15px] font-bold text-slate-900">Chọn báo cáo để tải xuống</h3>
+      <button onclick="closeExportPicker()" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">✕</button>
+    </div>
+    <div id="export-picker-list" class="flex flex-col gap-2 max-h-80 overflow-y-auto"></div>
+  </div>
+</div>
+
+<!-- Delete Report Confirm Modal -->
+<div id="delete-report-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none; background:rgba(15,23,42,0.45); backdrop-filter:blur(2px);"
+     onclick="if(event.target===this) closeDeleteReportModal()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 flex flex-col gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-[14px] font-bold text-slate-900">Xoá báo cáo này?</p>
+        <p class="text-[11px] text-slate-500 mt-0.5">Hành động này không thể hoàn tác.</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="closeDeleteReportModal()"
+              class="flex-1 px-3 py-2 rounded-lg text-[12px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">
+        Huỷ
+      </button>
+      <button id="delete-report-confirm-btn"
+              class="flex-1 px-3 py-2 rounded-lg text-[12px] font-semibold bg-red-600 text-white hover:bg-red-700">
+        Xoá
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- Close Survey Confirm Modal -->
 <div id="survey-close-modal" class="hidden fixed inset-0 z-50">

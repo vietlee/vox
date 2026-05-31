@@ -1,149 +1,162 @@
 <% content_for :title, t("surveys.title") %>
+<% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
 
 <% sub = current_workspace.active_subscription %>
-<div class="flex items-start justify-between mb-6">
-  <div>
-    <h1 class="text-[21px] font-extrabold text-slate-900 tracking-tight">📋 <%= t("surveys.title") %></h1>
-    <div class="flex items-center gap-3 mt-0.5">
-      <p class="text-[13px] text-slate-500"><%= @surveys.total_count rescue @surveys.count %> <%= t("surveys.subtitle") %></p>
-      <% if sub&.max_surveys %>
-        <% pct = sub.surveys_pct %>
-        <div class="flex items-center gap-1.5">
-          <div class="w-20 h-1.5 rounded-full overflow-hidden bg-slate-200">
-            <div class="h-1.5 rounded-full" style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
+
+<!-- ── Page header (always visible) ─────────────────────────────────────────── -->
+<div class="flex-shrink-0 px-6 pt-5 pb-0 bg-slate-100">
+  <div class="flex items-start justify-between mb-4">
+    <div>
+      <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">📋 <%= t("surveys.title") %></h1>
+      <div class="flex items-center gap-3 mt-0.5">
+        <p class="text-[12px] text-slate-500"><%= @surveys.total_count rescue @surveys.count %> <%= t("surveys.subtitle") %></p>
+        <% if sub&.max_surveys %>
+          <% pct = sub.surveys_pct %>
+          <div class="flex items-center gap-1.5">
+            <div class="w-20 h-1.5 rounded-full overflow-hidden bg-slate-200">
+              <div class="h-1.5 rounded-full" style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
+            </div>
+            <span class="text-[11px] font-semibold <%= pct >= 100 ? 'text-amber-600' : 'text-slate-500' %>">
+              <%= sub.surveys_used %> / <%= sub.max_surveys %>
+            </span>
           </div>
-          <span class="text-[11px] font-semibold <%= pct >= 100 ? 'text-amber-600' : 'text-slate-500' %>">
-            <%= sub.surveys_used %> / <%= sub.max_surveys %>
-          </span>
-        </div>
+        <% end %>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="document.getElementById('ai-builder-modal').classList.remove('hidden'); var p=document.getElementById('ai-prompt'); p.value=''; document.getElementById('ai-submit-btn').disabled=true;"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 hover:bg-violet-50 hover:text-violet-700 hover:border-violet-300 text-slate-700 transition-colors">
+        <%= t("surveys.ai_create") %> ✨
+      </button>
+      <% if sub && !sub.within_survey_limit? %>
+        <%= link_to billing_subscription_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-white border border-amber-300 hover:bg-amber-50 hover:border-amber-400 text-amber-700 transition-colors" do %>
+          ⚠️ <%= t("subscription.limit_reached_short") %> · <%= t("subscription.upgrade") %>
+        <% end %>
+      <% else %>
+        <%= link_to new_survey_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors" do %>
+          + <%= t("surveys.new") %>
+        <% end %>
       <% end %>
     </div>
   </div>
-  <div class="flex gap-2">
-    <button onclick="document.getElementById('ai-builder-modal').classList.remove('hidden'); var p=document.getElementById('ai-prompt'); p.value=''; document.getElementById('ai-submit-btn').disabled=true;"
-      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-violet-50 hover:text-violet-700 hover:border-violet-300 text-slate-700 transition-colors">
-      <%= t("surveys.ai_create") %> ✨
-    </button>
-    <% if sub && !sub.within_survey_limit? %>
-      <%= link_to billing_subscription_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-amber-300 hover:bg-amber-50 hover:border-amber-400 text-amber-700 transition-colors" do %>
-        ⚠️ <%= t("subscription.limit_reached_short") %> · <%= t("subscription.upgrade") %>
-      <% end %>
-    <% else %>
-      <%= link_to new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-slate-700 transition-colors" do %>
-        + <%= t("surveys.new") %>
-      <% end %>
-    <% end %>
-  </div>
 </div>
 
-<!-- Search + Filter row -->
-<div class="flex gap-3 mb-5">
-  <div class="relative w-72">
-    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-    </svg>
-    <input id="survey-search" type="text" placeholder="<%= t("surveys.search_placeholder") %>"
-      class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white"
-      oninput="filterSurveys()">
-  </div>
-  <select id="survey-status-filter" onchange="filterSurveys()"
-    class="px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white text-slate-600 cursor-pointer">
-    <option value=""><%= t("surveys.all_statuses") %></option>
-    <option value="draft"><%= t("status.draft") %></option>
-    <option value="active"><%= t("status.active") %></option>
-    <option value="closed"><%= t("status.closed") %></option>
-    <option value="archived"><%= t("status.archived") %></option>
-  </select>
-</div>
+<!-- ── Card area (fills remaining height) ───────────────────────────────────── -->
+<div class="flex-1 min-h-0 overflow-hidden px-6 pt-3 pb-5">
+  <div class="rounded-[12px] border overflow-hidden flex flex-col h-full" style="border-color:rgba(99,102,241,0.2); background:rgba(238,242,255,0.5);">
 
-<div class="bg-white rounded-[10px] border border-slate-200 shadow-sm overflow-hidden">
-  <% if @surveys.any? %>
-    <table class="w-full border-collapse">
-      <thead>
-        <tr class="bg-slate-50 border-b border-slate-200">
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_survey") %></th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_status") %></th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_responses") %></th>
-          <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">
-            <% next_sort = @sort == "desc" ? "asc" : "desc" %>
-            <%= link_to surveys_path(sort: next_sort, status: params[:status]),
-                class: "inline-flex items-center gap-1 hover:text-indigo-600 transition-colors" do %>
-              <%= t("surveys.col_created") %>
-              <span class="text-[10px]"><%= @sort == "desc" ? "↓" : "↑" %></span>
+    <!-- Card header: search + filter (fixed) -->
+    <div class="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b" style="background:rgba(99,102,241,0.06); border-color:rgba(99,102,241,0.15);">
+      <div class="relative flex-1 max-w-sm">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+        </svg>
+        <input id="survey-search" type="text" placeholder="<%= t("surveys.search_placeholder") %>"
+          class="w-full pl-8 pr-3 py-1.5 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white"
+          oninput="filterSurveys()">
+      </div>
+      <select id="survey-status-filter" onchange="filterSurveys()"
+        class="px-3 py-1.5 text-[12px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white text-slate-600 cursor-pointer">
+        <option value=""><%= t("surveys.all_statuses") %></option>
+        <option value="draft"><%= t("status.draft") %></option>
+        <option value="active"><%= t("status.active") %></option>
+        <option value="closed"><%= t("status.closed") %></option>
+        <option value="archived"><%= t("status.archived") %></option>
+      </select>
+      <span class="text-[11px] text-slate-400 ml-auto"><%= @surveys.total_count rescue @surveys.count %> <%= t("surveys.subtitle") %></span>
+    </div>
+
+    <!-- Table (scrollable) -->
+    <div class="flex-1 min-h-0 overflow-y-auto">
+      <% if @surveys.any? %>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200" style="position:sticky;top:0;z-index:1;background:rgba(248,250,252,0.97);">
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_survey") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_status") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("surveys.col_responses") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">
+                <% next_sort = @sort == "desc" ? "asc" : "desc" %>
+                <%= link_to surveys_path(sort: next_sort, status: params[:status]),
+                    class: "inline-flex items-center gap-1 hover:text-indigo-600 transition-colors" do %>
+                  <%= t("surveys.col_created") %>
+                  <span class="text-[10px]"><%= @sort == "desc" ? "↓" : "↑" %></span>
+                <% end %>
+              </th>
+              <th class="px-4 py-2.5"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="no-results-row" class="hidden">
+              <td colspan="5" class="px-4 py-10 text-center text-[13px] text-slate-400"><%= t("surveys.not_found") %></td>
+            </tr>
+            <% @surveys.each do |survey| %>
+              <tr class="survey-row border-b border-indigo-50 hover:bg-white/70 transition-colors" id="survey-row-<%= survey.id %>"
+                  data-title="<%= survey.title.downcase %>"
+                  data-status="<%= survey.status %>">
+                <td class="px-4 py-3">
+                  <% title_path = (survey.closed? || survey.archived?) ? results_survey_path(survey) : edit_survey_path(survey) %>
+                  <%= link_to title_path, class: "group block" do %>
+                    <div class="text-[13px] font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors"><%= survey.title %></div>
+                    <div class="text-[11px] text-slate-400"><%= t("surveys.questions_count", count: survey.questions.count) %> · <%= survey.identity_mode.humanize %></div>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3">
+                  <span id="survey-badge-<%= survey.id %>" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold <%= survey_status_class(survey.status) %>">
+                    <%= t("status.#{survey.status}", default: survey.status.capitalize) %>
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-[13px] text-slate-700"><%= survey.response_count %></td>
+                <td class="px-4 py-3 text-[12px] text-slate-500"><%= survey.created_at.strftime("%d/%m/%Y") %></td>
+                <td class="px-4 py-3">
+                  <div id="survey-actions-<%= survey.id %>" class="flex gap-1.5 justify-end flex-wrap"
+                       data-publish-url="<%= publish_survey_path(survey) %>"
+                       data-close-url="<%= close_survey_path(survey) %>"
+                       data-reopen-url="<%= reopen_survey_path(survey) %>"
+                       data-archive-url="<%= archive_survey_path(survey) %>"
+                       data-delete-url="<%= survey_path(survey) %>"
+                       data-edit-url="<%= edit_survey_path(survey) %>"
+                       data-results-url="<%= results_survey_path(survey) %>"
+                       data-clone-url="<%= clone_survey_path(survey) %>">
+                    <%= render "admin/surveys/survey_actions", survey: survey %>
+                  </div>
+                </td>
+              </tr>
             <% end %>
-          </th>
-          <th class="px-4 py-2.5"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr id="no-results-row" class="hidden">
-          <td colspan="5" class="px-4 py-10 text-center text-[13px] text-slate-400"><%= t("surveys.not_found") %></td>
-        </tr>
-        <% @surveys.each do |survey| %>
-          <tr class="survey-row border-b border-slate-100 hover:bg-slate-50" id="survey-row-<%= survey.id %>"
-              data-title="<%= survey.title.downcase %>"
-              data-status="<%= survey.status %>">
-            <td class="px-4 py-3">
-              <% title_path = (survey.closed? || survey.archived?) ? results_survey_path(survey) : edit_survey_path(survey) %>
-              <%= link_to title_path, class: "group block" do %>
-                <div class="text-[13px] font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors"><%= survey.title %></div>
-                <div class="text-[11px] text-slate-400"><%= t("surveys.questions_count", count: survey.questions.count) %> · <%= survey.identity_mode.humanize %></div>
-              <% end %>
-            </td>
-            <td class="px-4 py-3">
-              <span id="survey-badge-<%= survey.id %>" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold <%= survey_status_class(survey.status) %>">
-                <%= t("status.#{survey.status}", default: survey.status.capitalize) %>
-              </span>
-            </td>
-            <td class="px-4 py-3 text-[13px] text-slate-700"><%= survey.response_count %></td>
-            <td class="px-4 py-3 text-[12px] text-slate-500"><%= survey.created_at.strftime("%d/%m/%Y") %></td>
-            <td class="px-4 py-3">
-              <div id="survey-actions-<%= survey.id %>" class="flex gap-1.5 justify-end flex-wrap"
-                   data-publish-url="<%= publish_survey_path(survey) %>"
-                   data-close-url="<%= close_survey_path(survey) %>"
-                   data-reopen-url="<%= reopen_survey_path(survey) %>"
-                   data-archive-url="<%= archive_survey_path(survey) %>"
-                   data-delete-url="<%= survey_path(survey) %>"
-                   data-edit-url="<%= edit_survey_path(survey) %>"
-                   data-results-url="<%= results_survey_path(survey) %>"
-                   data-clone-url="<%= clone_survey_path(survey) %>">
-                <%= render "admin/surveys/survey_actions", survey: survey %>
-              </div>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
+          </tbody>
+        </table>
+      <% else %>
+        <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div class="text-4xl mb-3">📋</div>
+          <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("surveys.empty") %></h3>
+          <p class="text-[13px] text-slate-400 mb-4"><%= t("surveys.empty_desc") %></p>
+          <%= link_to t("surveys.new"), new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" %>
+        </div>
+      <% end %>
+    </div><!-- /scrollable -->
 
-    <!-- Pagination -->
+    <!-- Pagination (fixed at bottom) -->
     <% if @pagy && @pagy.pages > 1 %>
-      <div class="flex items-center justify-between px-4 py-3 border-t border-slate-100">
-        <p class="text-[12px] text-slate-500">
+      <div class="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-t" style="border-color:rgba(99,102,241,0.12); background:rgba(99,102,241,0.04);">
+        <p class="text-[11px] text-slate-500">
           <% from = (@pagy.page - 1) * @pagy.items + 1; to = [@pagy.page * @pagy.items, @pagy.count].min %>
           <%= t("surveys.showing_range", from: from, to: to, count: @pagy.count) %>
         </p>
         <div class="flex gap-1">
           <% if @pagy.page > 1 %>
             <%= link_to surveys_path(page: @pagy.page - 1, status: params[:status], q: params[:q]),
-              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %><%= t("surveys.prev") %><% end %>
+              class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md text-slate-600 hover:bg-white bg-white/60" do %><%= t("surveys.prev") %><% end %>
           <% end %>
           <% if @pagy.page < @pagy.pages %>
             <%= link_to surveys_path(page: @pagy.page + 1, status: params[:status], q: params[:q]),
-              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50" do %><%= t("surveys.next") %><% end %>
+              class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md text-slate-600 hover:bg-white bg-white/60" do %><%= t("surveys.next") %><% end %>
           <% end %>
         </div>
       </div>
     <% end %>
 
-  <% else %>
-    <div class="text-center py-16">
-      <div class="text-4xl mb-3">📋</div>
-      <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("surveys.empty") %></h3>
-      <p class="text-[13px] text-slate-400 mb-4"><%= t("surveys.empty_desc") %></p>
-      <%= link_to t("surveys.new"), new_survey_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-slate-700 transition-colors" %>
-    </div>
-  <% end %>
-</div>
+  </div><!-- /card -->
+</div><!-- /card area -->
 
 <!-- Confirm Modal -->
 <div id="confirm-modal" class="hidden fixed inset-0 z-50">
@@ -163,8 +176,9 @@
       </button>
     </div>
   </div>
-  </div><!-- /flex wrapper -->
+  </div>
 </div>
+
 <!-- AI Survey Builder Modal -->
 <div id="ai-builder-modal" class="hidden fixed inset-0 z-50">
   <div class="absolute inset-0 w-full h-full flex items-center justify-center bg-black/50">
@@ -194,17 +208,12 @@
       </div>
     </div>
     <div id="ai-builder-loading" class="hidden text-center py-6">
-      <!-- SVG progress ring -->
       <div class="relative inline-flex items-center justify-center mb-4">
         <svg width="96" height="96" class="-rotate-90">
-          <!-- track -->
           <circle cx="48" cy="48" r="40" fill="none" stroke="#e2e8f0" stroke-width="7"/>
-          <!-- progress arc -->
           <circle id="ai-progress-ring" cx="48" cy="48" r="40" fill="none"
-            stroke="url(#ai-grad)" stroke-width="7"
-            stroke-linecap="round"
-            stroke-dasharray="251.2"
-            stroke-dashoffset="251.2"
+            stroke="url(#ai-grad)" stroke-width="7" stroke-linecap="round"
+            stroke-dasharray="251.2" stroke-dashoffset="251.2"
             style="transition: stroke-dashoffset 0.6s ease"/>
           <defs>
             <linearGradient id="ai-grad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -213,26 +222,22 @@
             </linearGradient>
           </defs>
         </svg>
-        <!-- percentage label centred in the ring -->
         <span id="ai-progress-pct"
           class="absolute text-[20px] font-extrabold bg-gradient-to-r from-violet-500 to-indigo-500 bg-clip-text text-transparent">
           0%
         </span>
       </div>
-
-      <!-- phase label that cycles through steps -->
       <p id="ai-progress-label" class="text-[13px] font-semibold text-slate-700 mb-1"></p>
       <p class="text-[11px] text-slate-400"><%= t("surveys.ai_builder_loading") %></p>
     </div>
   </div>
-  </div><!-- /flex wrapper -->
+  </div>
 </div>
 
 <script>
 (function() {
 const CSRF = document.querySelector('meta[name=csrf-token]')?.content;
 
-// i18n constants
 const I18N = {
   edit:         "<%= j t('surveys.edit') %>",
   results:      "<%= j t('surveys.results_btn') %>",
@@ -255,7 +260,6 @@ const I18N = {
   status_archived: "<%= j t('status.archived') %>"
 };
 
-// ── Live filter ───────────────────────────────────────────────────────────────
 function filterSurveys() {
   const q      = document.getElementById('survey-search').value.toLowerCase().trim();
   const status = document.getElementById('survey-status-filter').value;
@@ -269,7 +273,6 @@ function filterSurveys() {
   document.getElementById('no-results-row')?.classList.toggle('hidden', visible > 0);
 }
 
-// ── AJAX survey actions ───────────────────────────────────────────────────────
 const STATUS_BADGE = {
   draft:    { cls: 'bg-slate-100 text-slate-600',    label: I18N.status_draft },
   active:   { cls: 'bg-emerald-50 text-emerald-700', label: I18N.status_active },
@@ -281,29 +284,23 @@ function updateRowStatus(id, newStatus) {
   const row = document.getElementById('survey-row-' + id);
   if (!row) return;
   row.dataset.status = newStatus;
-
-  // Update badge
   const badge = document.getElementById('survey-badge-' + id);
   if (badge) {
     const cfg = STATUS_BADGE[newStatus] || {};
     badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ' + (cfg.cls || '');
     badge.textContent = cfg.label || newStatus;
   }
-
-  // Rebuild action buttons
   const actionsDiv = document.getElementById('survey-actions-' + id);
   if (!actionsDiv) return;
   const u = actionsDiv.dataset;
   const btn = (label, onclick, cls) =>
     `<button onclick="${onclick}" class="px-2.5 py-1 text-[11px] rounded-md border-0 cursor-pointer ${cls}">${label}</button>`;
-
   const canEdit = newStatus !== 'closed' && newStatus !== 'archived';
   let html = canEdit
     ? `<a href="${u.editUrl}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200">${I18N.edit}</a>`
     : `<span class="px-2.5 py-1 text-[11px] bg-slate-50 rounded-md text-slate-300 cursor-not-allowed" title="${I18N.edit_disabled_title}">${I18N.edit}</span>`;
   html += `<a href="${u.resultsUrl}" class="px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100">${I18N.results}</a>`
         + btn(I18N.clone, `cloneSurvey(${id})`, 'bg-violet-50 text-violet-700 hover:bg-violet-100');
-
   if (newStatus === 'draft')
     html += btn(I18N.publish, `surveyAction('publish',${id})`, 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100');
   if (newStatus === 'active')
@@ -312,60 +309,36 @@ function updateRowStatus(id, newStatus) {
     html += btn(I18N.reopen, `surveyAction('reopen',${id})`, 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100');
   if (newStatus !== 'archived')
     html += btn(I18N.archive, `showConfirm('archive',${id})`, 'bg-slate-100 text-slate-500 hover:bg-slate-200');
-
   html += btn(I18N.delete, `showConfirm('delete',${id})`, 'bg-red-50 text-red-500 hover:bg-red-100');
   actionsDiv.innerHTML = html;
 }
 
 function submitPatchForm(url) {
   const form = document.createElement('form');
-  form.method = 'post';
-  form.action = url;
-  const m = document.createElement('input');
-  m.type = 'hidden'; m.name = '_method'; m.value = 'patch';
-  const t = document.createElement('input');
-  t.type = 'hidden'; t.name = 'authenticity_token'; t.value = CSRF;
-  form.appendChild(m); form.appendChild(t);
-  document.body.appendChild(form);
-  form.submit();
+  form.method = 'post'; form.action = url;
+  const m = document.createElement('input'); m.type='hidden'; m.name='_method'; m.value='patch';
+  const t = document.createElement('input'); t.type='hidden'; t.name='authenticity_token'; t.value=CSRF;
+  form.appendChild(m); form.appendChild(t); document.body.appendChild(form); form.submit();
 }
 
 async function surveyAction(type, id) {
   const actionsDiv = document.getElementById('survey-actions-' + id);
   if (!actionsDiv) return;
-  const urlMap = {
-    publish: actionsDiv.dataset.publishUrl,
-    close:   actionsDiv.dataset.closeUrl,
-    reopen:  actionsDiv.dataset.reopenUrl,
-    archive: actionsDiv.dataset.archiveUrl
-  };
+  const urlMap = { publish: actionsDiv.dataset.publishUrl, close: actionsDiv.dataset.closeUrl, reopen: actionsDiv.dataset.reopenUrl, archive: actionsDiv.dataset.archiveUrl };
   const url = urlMap[type];
   if (!url) return;
-
-  // Close and reopen: submit real HTML form so server can set flash + redirect
-  if (type === 'close' || type === 'reopen') {
-    submitPatchForm(url);
-    return;
-  }
-
-  const res = await fetch(url, {
-    method: 'PATCH',
-    headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json', 'Content-Type': 'application/json' }
-  });
+  if (type === 'close' || type === 'reopen') { submitPatchForm(url); return; }
+  const res = await fetch(url, { method:'PATCH', headers:{'X-CSRF-Token':CSRF,'Accept':'application/json','Content-Type':'application/json'} });
   if (!res.ok) return;
-
-  const newStatus = { publish: 'active', archive: 'archived' }[type];
-  updateRowStatus(id, newStatus);
+  updateRowStatus(id, { publish: 'active', archive: 'archived' }[type]);
 }
 
-// ── Confirm modal ─────────────────────────────────────────────────────────────
 const CONFIRM_CONFIG = {
   close:   { icon: '🔒', iconBg: '#fef3c7', btnColor: '#d97706' },
   archive: { icon: '📦', iconBg: '#f1f5f9', btnColor: '#64748b' },
   delete:  { icon: '🗑️', iconBg: '#fee2e2', btnColor: '#ef4444' }
 };
 let _confirmState = {};
-
 const CONFIRM_MESSAGES = {
   close:   { title: () => I18N.close_title,   body: () => I18N.close_body },
   archive: { title: () => I18N.archive_title, body: () => I18N.archive_body },
@@ -377,7 +350,7 @@ function showConfirm(type, id) {
   const msg = CONFIRM_MESSAGES[type] || {};
   _confirmState = { type, id };
   document.getElementById('confirm-title').textContent = msg.title ? msg.title() : '';
-  document.getElementById('confirm-body').textContent = msg.body ? msg.body() : '';
+  document.getElementById('confirm-body').textContent  = msg.body  ? msg.body()  : '';
   const icon = document.getElementById('confirm-icon');
   icon.style.background = cfg.iconBg || '#f1f5f9';
   icon.textContent = cfg.icon || '❓';
@@ -385,36 +358,22 @@ function showConfirm(type, id) {
   document.getElementById('confirm-modal').classList.remove('hidden');
 }
 
-function closeConfirm() {
-  document.getElementById('confirm-modal').classList.add('hidden');
-  _confirmState = {};
-}
+function closeConfirm() { document.getElementById('confirm-modal').classList.add('hidden'); _confirmState = {}; }
 
 async function submitConfirm() {
   const { type, id } = _confirmState;
   if (!type || !id) return;
   closeConfirm();
-
   if (type === 'delete') {
     const actionsDiv = document.getElementById('survey-actions-' + id);
     const url = actionsDiv?.dataset.deleteUrl;
     if (!url) return;
-    const res = await fetch(url, {
-      method: 'DELETE',
-      headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }
-    });
+    const res = await fetch(url, { method:'DELETE', headers:{'X-CSRF-Token':CSRF,'Accept':'application/json'} });
     if (res.ok) {
       const row = document.getElementById('survey-row-' + id);
-      if (row) {
-        row.style.transition = 'opacity 0.2s, transform 0.2s';
-        row.style.opacity = '0';
-        row.style.transform = 'translateX(8px)';
-        setTimeout(() => row.remove(), 220);
-      }
+      if (row) { row.style.transition='opacity 0.2s,transform 0.2s'; row.style.opacity='0'; row.style.transform='translateX(8px)'; setTimeout(() => row.remove(), 220); }
     }
-  } else {
-    await surveyAction(type, id);
-  }
+  } else { await surveyAction(type, id); }
 }
 
 document.getElementById('confirm-modal')?.addEventListener('click', e => { if (e.target === e.currentTarget) closeConfirm(); });
@@ -428,44 +387,31 @@ const AI_STEPS = [
   { pct: 74, label: "<%= j t('surveys.ai_progress.validating') %>" },
   { pct: 88, label: "<%= j t('surveys.ai_progress.finalizing') %>" }
 ];
-const RING_CIRCUMFERENCE = 251.2; // 2π × r (r=40)
-let _progressTimer = null;
-let _currentStep   = 0;
+const RING_CIRCUMFERENCE = 251.2;
+let _progressTimer = null, _currentStep = 0;
 
 function setProgress(pct, label) {
   const ring = document.getElementById('ai-progress-ring');
   const txt  = document.getElementById('ai-progress-pct');
   const lbl  = document.getElementById('ai-progress-label');
   if (!ring) return;
-  const offset = RING_CIRCUMFERENCE * (1 - pct / 100);
-  ring.style.strokeDashoffset = offset;
+  ring.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct / 100);
   if (txt) txt.textContent = Math.round(pct) + '%';
   if (lbl && label !== undefined) lbl.textContent = label;
 }
 
 function startProgress() {
-  _currentStep = 0;
-  setProgress(0, AI_STEPS[0].label);
+  _currentStep = 0; setProgress(0, AI_STEPS[0].label);
   _progressTimer = setInterval(() => {
     if (_currentStep >= AI_STEPS.length - 1) return;
-    _currentStep++;
-    const step = AI_STEPS[_currentStep];
+    const step = AI_STEPS[++_currentStep];
     setProgress(step.pct, step.label);
   }, 2800);
 }
 
-function finishProgress(onDone) {
-  clearInterval(_progressTimer);
-  setProgress(100, "<%= j t('surveys.ai_progress.done') %>");
-  setTimeout(onDone, 600); // brief pause so user sees 100%
-}
+function finishProgress(onDone) { clearInterval(_progressTimer); setProgress(100, "<%= j t('surveys.ai_progress.done') %>"); setTimeout(onDone, 600); }
+function stopProgress() { clearInterval(_progressTimer); setProgress(0); }
 
-function stopProgress() {
-  clearInterval(_progressTimer);
-  setProgress(0);
-}
-
-// ── AI builder ────────────────────────────────────────────────────────────────
 async function generateAiSurvey() {
   const prompt = document.getElementById('ai-prompt').value;
   if (!prompt.trim()) return;
@@ -478,88 +424,56 @@ async function generateAiSurvey() {
   let data, resp;
   try {
     resp = await fetch('<%= ai_generate_survey_path %>', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content },
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-Token':document.querySelector('meta[name=csrf-token]').content},
       body: JSON.stringify({ prompt })
     });
     data = await resp.json();
-  } catch(e) {
-    stopProgress(); resetAiBuilder('<%= j t("surveys.ai_builder_error") %>'); return;
-  }
+  } catch(e) { stopProgress(); resetAiBuilder('<%= j t("surveys.ai_builder_error") %>'); return; }
 
-  // 402 = feature not available OR insufficient credits → show upgrade modal
   if (resp.status === 402 || data?.upgrade_required) {
     stopProgress();
-    // Close the AI builder modal first
     document.getElementById('ai-builder-modal')?.classList.add('hidden');
-    if (window.showAiUpgradeModal) {
-      window.showAiUpgradeModal('<%= j t("surveys.ai_builder") %>', data?.insufficient_credits);
-    } else {
-      resetAiBuilder(data?.error || '<%= j t("ai.feature_not_available") %>');
-    }
+    if (window.showAiUpgradeModal) window.showAiUpgradeModal('<%= j t("surveys.ai_builder") %>', data?.insufficient_credits);
+    else resetAiBuilder(data?.error || '<%= j t("ai.feature_not_available") %>');
     return;
   }
-  if (!data.job_id) {
-    stopProgress(); resetAiBuilder(data.error || '<%= j t("surveys.ai_builder_error") %>'); return;
-  }
+  if (!data.job_id) { stopProgress(); resetAiBuilder(data.error || '<%= j t("surveys.ai_builder_error") %>'); return; }
 
   pollJobStatus(data.job_id, (result) => {
     finishProgress(() => {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '<%= surveys_path %>';
-
-    const addField = (name, value) => {
-      const inp = document.createElement('input');
-      inp.type  = 'hidden';
-      inp.name  = name;
-      inp.value = value ?? '';
-      form.appendChild(inp);
-    };
-
-    addField('authenticity_token', document.querySelector('meta[name=csrf-token]').content);
-    addField('survey[title]',             result.title);
-    addField('survey[description]',       result.description);
-    addField('survey[thank_you_message]', result.thank_you_message);
-    addField('ai_generated', 'true');
-    addField('ai_data',      JSON.stringify(result));
-
-    document.body.appendChild(form);
-    form.submit();
-      window.deductDisplayCredits?.(5); // deduct AI survey builder cost
-    }); // end finishProgress
-  });   // end pollJobStatus
+      const form = document.createElement('form');
+      form.method = 'POST'; form.action = '<%= surveys_path %>';
+      const addField = (name, value) => { const inp = document.createElement('input'); inp.type='hidden'; inp.name=name; inp.value=value??''; form.appendChild(inp); };
+      addField('authenticity_token', document.querySelector('meta[name=csrf-token]').content);
+      addField('survey[title]', result.title);
+      addField('survey[description]', result.description);
+      addField('survey[thank_you_message]', result.thank_you_message);
+      addField('ai_generated', 'true');
+      addField('ai_data', JSON.stringify(result));
+      document.body.appendChild(form); form.submit();
+      window.deductDisplayCredits?.(5);
+    });
+  });
 }
 
-// ── Clone survey ──────────────────────────────────────────────────────────────
 function cloneSurvey(id) {
   const actionsDiv = document.getElementById('survey-actions-' + id);
   const url = actionsDiv?.dataset.cloneUrl;
   if (!url) return;
-  const form = document.createElement('form');
-  form.method = 'post';
-  form.action = url;
-  const t = document.createElement('input');
-  t.type = 'hidden'; t.name = 'authenticity_token'; t.value = CSRF;
-  form.appendChild(t);
-  document.body.appendChild(form);
-  form.submit();
+  const form = document.createElement('form'); form.method='post'; form.action=url;
+  const t = document.createElement('input'); t.type='hidden'; t.name='authenticity_token'; t.value=CSRF;
+  form.appendChild(t); document.body.appendChild(form); form.submit();
 }
 
 async function pollJobStatus(jobId, onDone) {
   try {
     const resp = await fetch(`<%= ai_job_status_path("__ID__") %>`.replace('__ID__', jobId));
     const data = await resp.json();
-    if (data.status === 'done') {
-      onDone(data.output);
-    } else if (data.status === 'failed') {
-      stopProgress(); resetAiBuilder('<%= j t("surveys.ai_builder_error") %>: ' + (data.error || ''));
-    } else {
-      setTimeout(() => pollJobStatus(jobId, onDone), 2000);
-    }
-  } catch(e) {
-    stopProgress(); resetAiBuilder('<%= j t("surveys.ai_builder_error") %>');
-  }
+    if (data.status === 'done') onDone(data.output);
+    else if (data.status === 'failed') { stopProgress(); resetAiBuilder('<%= j t("surveys.ai_builder_error") %>: ' + (data.error || '')); }
+    else setTimeout(() => pollJobStatus(jobId, onDone), 2000);
+  } catch(e) { stopProgress(); resetAiBuilder('<%= j t("surveys.ai_builder_error") %>'); }
 }
 
 function resetAiBuilder(msg) {
@@ -568,27 +482,11 @@ function resetAiBuilder(msg) {
   document.getElementById('ai-builder-form').classList.remove('hidden');
   if (msg) {
     var errEl = document.getElementById('ai-builder-error');
-    if (!errEl) {
-      errEl = document.createElement('div');
-      errEl.id = 'ai-builder-error';
-      errEl.className = 'mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-[12px] text-red-600';
-      document.getElementById('ai-builder-form').appendChild(errEl);
-    }
-    errEl.textContent = msg;
-    errEl.classList.remove('hidden');
+    if (!errEl) { errEl = document.createElement('div'); errEl.id='ai-builder-error'; errEl.className='mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-[12px] text-red-600'; document.getElementById('ai-builder-form').appendChild(errEl); }
+    errEl.textContent = msg; errEl.classList.remove('hidden');
   }
 }
 
-// ── Expose to window so onclick= attributes work after Turbo navigation ───────
-Object.assign(window, {
-  filterSurveys,
-  surveyAction,
-  showConfirm,
-  closeConfirm,
-  submitConfirm,
-  cloneSurvey,
-  generateAiSurvey,
-  resetAiBuilder
-});
-})(); // end IIFE
+Object.assign(window, { filterSurveys, surveyAction, showConfirm, closeConfirm, submitConfirm, cloneSurvey, generateAiSurvey, resetAiBuilder });
+})();
 </script>

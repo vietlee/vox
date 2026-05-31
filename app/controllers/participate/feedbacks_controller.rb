@@ -11,6 +11,7 @@ class Participate::FeedbacksController < Participate::BaseController
     @feedback    = @board.feedbacks.build
     @upvoted_ids = FeedbackUpvote.where(feedback: @feedbacks, voter_token: respondent_token).pluck(:feedback_id).to_set
     @has_more    = @board.feedbacks.visible.count > PER_PAGE
+    @reply_default_name = current_user ? current_user.display_name : t("participate.feedback.anonymous")
   end
 
   def list

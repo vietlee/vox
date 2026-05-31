@@ -8,6 +8,7 @@ class Workspace < ApplicationRecord
   has_many :votes, dependent: :destroy
   has_many :feedback_boards, dependent: :destroy
   has_many :ai_jobs, dependent: :destroy
+  has_many :action_items, dependent: :destroy
   has_many :payments, dependent: :destroy
   has_many :audit_logs, dependent: :destroy
   has_many :notifications, dependent: :destroy

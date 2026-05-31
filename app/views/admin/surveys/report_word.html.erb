@@ -1,0 +1,270 @@
+<%
+  out      = report.output
+  meta     = out["_meta"] || {}
+  km       = out["key_metrics"] || {}
+  sections = out["sections"] || []
+  recs     = out["recommendations"] || []
+  pri_color = { "high" => "#dc2626", "medium" => "#d97706", "low" => "#16a34a" }
+
+  # Pull AI analysis for chart data
+  ai_analysis = survey.ai_analysis_results
+                      .where(result_type: "executive_summary")
+                      .order(created_at: :desc)
+                      .first&.output || {}
+
+  pos_pct = km["sentiment_positive"].to_s.gsub('%', '').to_f
+  neg_pct = km["sentiment_negative"].to_s.gsub('%', '').to_f
+  neu_pct = [100.0 - pos_pct - neg_pct, 0].max.round(1)
+
+  # Extract scored metrics from AI analysis question_insights
+  score_items = (ai_analysis["question_insights"] || []).filter_map do |qi|
+    next unless qi.is_a?(Hash) && qi["question"].present?
+    ds = qi["data_summary"].to_s
+    if ds =~ /(\d+(?:\.\d+)?)\s*\/\s*(\d+)/
+      { label: qi["question"].truncate(40), score: $1.to_f, max: $2.to_f }
+    end
+  end.first(7)
+
+  # SVG pie slice helper
+  def word_pie_slice(cx, cy, r, start_deg, sweep_deg, color)
+    return "" if sweep_deg <= 0.5
+    start_rad = (start_deg - 90) * Math::PI / 180
+    end_rad   = (start_deg + sweep_deg - 90) * Math::PI / 180
+    x1 = (cx + r * Math.cos(start_rad)).round(3)
+    y1 = (cy + r * Math.sin(start_rad)).round(3)
+    x2 = (cx + r * Math.cos(end_rad)).round(3)
+    y2 = (cy + r * Math.sin(end_rad)).round(3)
+    large = sweep_deg > 180 ? 1 : 0
+    "<path d='M#{cx},#{cy} L#{x1},#{y1} A#{r},#{r} 0 #{large},1 #{x2},#{y2} Z' fill='#{color}'/>"
+  end
+
+  neg_sweep = (neg_pct / 100.0 * 360).round(2)
+  pos_sweep = (pos_pct / 100.0 * 360).round(2)
+  neu_sweep = [360.0 - neg_sweep - pos_sweep, 0].max.round(2)
+%>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="UTF-8">
+  <title><%= out["title"] || survey.title %></title>
+  <!--[if gte mso 9]>
+  <xml>
+    <w:WordDocument>
+      <w:View>Print</w:View>
+      <w:Zoom>100</w:Zoom>
+      <w:DoNotOptimizeForBrowser/>
+    </w:WordDocument>
+  </xml>
+  <![endif]-->
+  <style>
+    body        { font-family: "Times New Roman", serif; font-size: 12pt; color: #1a1a2e; margin: 2.5cm 2cm; }
+    h1          { font-size: 22pt; font-weight: bold; color: #1e1b4b; margin: 0 0 6pt 0; line-height: 1.2; }
+    h2          { font-size: 13pt; font-weight: bold; color: #3730a3; border-bottom: 1.5pt solid #c7d2fe; padding-bottom: 4pt; margin: 20pt 0 8pt 0; page-break-after: avoid; }
+    h3          { font-size: 11pt; font-weight: bold; color: #4338ca; margin: 14pt 0 4pt 0; }
+    p           { line-height: 1.7; margin: 5pt 0; text-align: justify; }
+    table       { border-collapse: collapse; }
+    .subtitle   { font-size: 11pt; color: #64748b; font-style: italic; margin: 4pt 0 0 0; }
+    .divider    { border: none; border-top: 1.5pt solid #e2e8f0; margin: 16pt 0; }
+    .meta-box   { background: #f8fafc; border: 1pt solid #e2e8f0; padding: 10pt 14pt; margin: 14pt 0; }
+    .kpi-table  { width: 100%; }
+    .kpi-cell   { padding: 8pt 12pt; text-align: center; }
+    .kpi-val    { font-size: 20pt; font-weight: bold; line-height: 1; display: block; }
+    .kpi-lbl    { font-size: 9pt; color: #64748b; margin-top: 2pt; display: block; }
+    .key-finding{ background: #eff6ff; border-left: 3pt solid #3b82f6; padding: 7pt 12pt; margin: 10pt 0; font-style: italic; color: #1e40af; font-size: 11pt; }
+    .rec-item   { margin: 10pt 0; padding: 10pt 14pt; border-left: 3pt solid #6366f1; background: #f5f3ff; }
+    .rec-pri    { font-size: 9pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5pt; }
+    .rec-action { font-weight: bold; font-size: 11pt; margin: 3pt 0; }
+    .rec-detail { font-size: 10pt; color: #475569; margin-top: 3pt; }
+    .conclusion { background: #f0fdf4; border: 1pt solid #bbf7d0; padding: 12pt 16pt; margin-top: 20pt; }
+    .chart-section { margin: 16pt 0; }
+    .legend-dot { display: inline-block; width: 10pt; height: 10pt; border-radius: 2pt; vertical-align: middle; margin-right: 4pt; }
+    .top-concern { background: #fff7ed; border: 1pt solid #fed7aa; padding: 7pt 12pt; margin-top: 10pt; font-size: 10pt; color: #9a3412; }
+  </style>
+</head>
+<body>
+
+<!-- ══ COVER ══════════════════════════════════════════════════════════ -->
+<h1><%= out["title"] || survey.title %></h1>
+<% if out["subtitle"].present? %>
+  <p class="subtitle"><%= out["subtitle"] %></p>
+<% end %>
+<p class="subtitle" style="margin-top:4pt;">
+  <%= t("surveys.results.report_date", default: "Ngày tạo báo cáo") %>: <strong><%= report.created_at.strftime("%d/%m/%Y") %></strong>
+  &nbsp;·&nbsp; <%= t("surveys.results.total_responses") %>: <strong><%= report.response_count || survey.responses.completed.count %></strong>
+</p>
+
+<hr class="divider">
+
+<!-- ══ KPI METRICS ════════════════════════════════════════════════════ -->
+<div class="meta-box">
+  <table class="kpi-table">
+    <tr>
+      <td class="kpi-cell" style="border-right:1pt solid #e2e8f0;">
+        <span class="kpi-val" style="color:#3730a3;"><%= report.response_count || survey.responses.completed.count %></span>
+        <span class="kpi-lbl"><%= t("surveys.results.total_responses") %></span>
+      </td>
+      <% if pos_pct > 0 || neg_pct > 0 %>
+      <td class="kpi-cell" style="border-right:1pt solid #e2e8f0;">
+        <span class="kpi-val" style="color:#16a34a;"><%= km["sentiment_positive"] %></span>
+        <span class="kpi-lbl"><%= t("surveys.results.positive", default: "Tích cực") %></span>
+      </td>
+      <td class="kpi-cell" style="border-right:1pt solid #e2e8f0;">
+        <span class="kpi-val" style="color:#dc2626;"><%= km["sentiment_negative"] %></span>
+        <span class="kpi-lbl"><%= t("surveys.results.negative", default: "Tiêu cực") %></span>
+      </td>
+      <% end %>
+      <td class="kpi-cell">
+        <span class="kpi-val" style="color:#374151;"><%= report.created_at.strftime("%d/%m/%Y") %></span>
+        <span class="kpi-lbl"><%= t("surveys.results.report_date", default: "Ngày tạo báo cáo") %></span>
+      </td>
+    </tr>
+  </table>
+  <% if km["top_concern"].present? %>
+    <div class="top-concern">
+      <strong>⚠ <%= t("surveys.results.top_concern", default: "Vấn đề trọng tâm") %>:</strong> <%= km["top_concern"] %>
+    </div>
+  <% end %>
+</div>
+
+<!-- ══ CHARTS ════════════════════════════════════════════════════════ -->
+<% if pos_pct > 0 || neg_pct > 0 || score_items.any? %>
+<h2><%= t("surveys.results.chart_overview", default: "Biểu Đồ Tổng Quan") %></h2>
+<div class="chart-section">
+  <table width="100%" cellspacing="0" cellpadding="0">
+    <tr>
+
+      <!-- Sentiment Donut Chart -->
+      <td width="<%= score_items.any? ? '42%' : '60%' %>" valign="top" align="center" style="padding-right:16pt;">
+        <p style="font-weight:bold;font-size:11pt;margin-bottom:8pt;text-align:center;">
+          <%= t("surveys.results.sentiment_chart", default: "Phân Tích Cảm Xúc") %>
+        </p>
+        <svg width="160" height="160" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <%== word_pie_slice(100, 100, 90, 0,           neg_sweep, '#ef4444') %>
+          <%== word_pie_slice(100, 100, 90, neg_sweep,   pos_sweep, '#22c55e') %>
+          <% if neu_sweep > 0 %>
+            <%== word_pie_slice(100, 100, 90, neg_sweep + pos_sweep, neu_sweep, '#94a3b8') %>
+          <% end %>
+          <!-- Donut hole -->
+          <circle cx="100" cy="100" r="50" fill="white"/>
+          <!-- Center labels -->
+          <text x="100" y="92" text-anchor="middle" font-size="20" font-weight="bold" fill="#1e293b" font-family="Arial"><%= neg_pct.to_i %>%</text>
+          <text x="100" y="110" text-anchor="middle" font-size="10" fill="#64748b" font-family="Arial">Tiêu cực</text>
+        </svg>
+
+        <!-- Legend -->
+        <table cellspacing="0" cellpadding="3" style="margin: 8pt auto 0;">
+          <tr>
+            <td><svg width="14" height="14" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="3" fill="#22c55e"/></svg></td>
+            <td style="font-size:10pt;padding-left:5pt;"><%= t("surveys.results.positive", default: "Tích cực") %> (<%= km["sentiment_positive"] %>)</td>
+          </tr>
+          <tr>
+            <td><svg width="14" height="14" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="3" fill="#ef4444"/></svg></td>
+            <td style="font-size:10pt;padding-left:5pt;"><%= t("surveys.results.negative", default: "Tiêu cực") %> (<%= km["sentiment_negative"] %>)</td>
+          </tr>
+          <% if neu_pct > 0 %>
+          <tr>
+            <td><svg width="14" height="14" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="3" fill="#94a3b8"/></svg></td>
+            <td style="font-size:10pt;padding-left:5pt;"><%= t("surveys.results.neutral", default: "Trung lập") %> (<%= neu_pct.to_i %>%)</td>
+          </tr>
+          <% end %>
+        </table>
+      </td>
+
+      <!-- Score Bar Chart -->
+      <% if score_items.any? %>
+      <td width="58%" valign="top" style="padding-left:8pt;">
+        <p style="font-weight:bold;font-size:11pt;margin-bottom:12pt;">
+          <%= t("surveys.results.score_chart", default: "Điểm Đánh Giá Theo Tiêu Chí") %>
+        </p>
+        <svg width="320" height="<%= score_items.size * 40 + 10 %>" xmlns="http://www.w3.org/2000/svg">
+          <% score_items.each_with_index do |item, i| %>
+            <% y      = i * 40 %>
+            <% bar_w  = 200 %>
+            <% filled = [(item[:score] / item[:max] * bar_w).round, bar_w].min %>
+            <% bar_color = filled > bar_w * 0.7 ? '#22c55e' : filled > bar_w * 0.45 ? '#f59e0b' : '#ef4444' %>
+            <!-- Label -->
+            <text x="0" y="<%= y + 14 %>" font-size="9.5" fill="#374151" font-family="Arial"><%= item[:label] %></text>
+            <!-- Track -->
+            <rect x="0" y="<%= y + 18 %>" width="<%= bar_w %>" height="14" fill="#e2e8f0" rx="5"/>
+            <!-- Fill -->
+            <rect x="0" y="<%= y + 18 %>" width="<%= filled %>" height="14" fill="<%= bar_color %>" rx="5"/>
+            <!-- Value -->
+            <text x="<%= bar_w + 6 %>" y="<%= y + 30 %>" font-size="10" font-weight="bold" fill="<%= bar_color %>" font-family="Arial">
+              <%= "%.1f" % item[:score] %>/<%= item[:max].to_i %>
+            </text>
+          <% end %>
+        </svg>
+      </td>
+      <% end %>
+
+    </tr>
+  </table>
+</div>
+<% end %>
+
+<!-- ══ EXECUTIVE SUMMARY ══════════════════════════════════════════════ -->
+<h2><%= t("surveys.results.ai_executive_summary") %></h2>
+<% (out["executive_summary"] || "").split(/\n\n+/).each do |para| %>
+  <p><%= para.strip %></p>
+<% end %>
+
+<!-- ══ SECTIONS ══════════════════════════════════════════════════════ -->
+<% sections.each_with_index do |sec, idx| %>
+  <h2><%= idx + 1 %>. <%= sec["heading"] %></h2>
+  <% (sec["content"] || "").split(/\n\n+/).each do |para| %>
+    <p><%= para.strip %></p>
+  <% end %>
+  <% if sec["key_finding"].present? %>
+    <div class="key-finding">💡 <%= sec["key_finding"] %></div>
+  <% end %>
+<% end %>
+
+<!-- ══ RECOMMENDATIONS ════════════════════════════════════════════════ -->
+<% if recs.any? %>
+  <h2><%= t("surveys.results.ai_recommendations") %></h2>
+  <% recs.each_with_index do |rec, i| %>
+    <% if rec.is_a?(Hash) %>
+      <div class="rec-item">
+        <div class="rec-pri" style="color:<%= pri_color[rec["priority"].to_s] || "#6366f1" %>;">
+          <%= i + 1 %>. [<%= rec["priority"].to_s.upcase %>]
+        </div>
+        <div class="rec-action"><%= rec["action"] %></div>
+        <% if rec["rationale"].present? %>
+          <div class="rec-detail"><em><%= rec["rationale"] %></em></div>
+        <% end %>
+        <% if rec["expected_impact"].present? %>
+          <div class="rec-detail" style="color:#15803d;margin-top:4pt;">
+            <strong><%= t("surveys.results.expected_impact", default: "Tác động kỳ vọng") %>:</strong> <%= rec["expected_impact"] %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p><%= i + 1 %>. <%= rec %></p>
+    <% end %>
+  <% end %>
+<% end %>
+
+<!-- ══ CONCLUSION ════════════════════════════════════════════════════ -->
+<% if out["conclusion"].present? %>
+  <div class="conclusion">
+    <h3><%= t("surveys.results.ai_conclusion") %></h3>
+    <% out["conclusion"].split(/\n\n+/).each do |para| %>
+      <p><%= para.strip %></p>
+    <% end %>
+  </div>
+<% end %>
+
+<!-- ══ FOOTER NOTE ════════════════════════════════════════════════════ -->
+<% if meta["user_context"].present? %>
+  <p style="margin-top:20pt;font-size:9pt;color:#94a3b8;font-style:italic;border-top:1pt solid #e2e8f0;padding-top:8pt;">
+    <em><%= t("surveys.results.report_context_note", default: "Ngữ cảnh báo cáo") %>: <%= meta["user_context"] %></em>
+  </p>
+<% end %>
+<p style="font-size:9pt;color:#94a3b8;text-align:right;margin-top:8pt;">
+  <%= t("surveys.results.report_generated", time: report.created_at.strftime("%d/%m/%Y %H:%M")) %>
+  &nbsp;·&nbsp; VOX Platform
+</p>
+
+</body>
+</html>
