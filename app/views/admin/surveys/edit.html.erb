@@ -47,12 +47,12 @@
   </div>
 </div>
 
-<!-- ── Builder content: outer wrapper holds two independent scroll regions ── -->
-<div class="flex-1 min-h-0 flex gap-5 px-6 pt-3 pb-3">
-  <!-- Builder canvas: flex column so add-question bar is pinned at bottom -->
-  <div class="flex-1 min-h-0 flex flex-col gap-4">
-    <!-- Survey info card (fixed, doesn't scroll) -->
-    <div class="flex-shrink-0 bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
+<!-- ── Builder content: 3 columns 5-5-2 ──────────────────────────────────── -->
+<div class="flex-1 min-h-0 grid grid-cols-12 gap-4 px-6 pt-3 pb-3">
+
+  <!-- Col 1 (5/12): Survey info & settings form — scrolls independently -->
+  <div class="col-span-5 min-h-0 overflow-y-auto">
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
       <%= form_with model: @survey, url: survey_path(@survey), method: :patch, local: true, multipart: true, data: { turbo: false } do |f| %>
         <div class="grid grid-cols-2 gap-4">
           <div class="col-span-2">
@@ -102,14 +102,18 @@
       <% end %>
     </div>
 
-    <!-- Questions list: scrolls independently, fills available space -->
+  </div><!-- /col 1 -->
+
+  <!-- Col 2 (5/12): Questions list + add-question bar pinned at bottom -->
+  <div class="col-span-5 min-h-0 flex flex-col gap-3">
+    <!-- Questions: scrolls -->
     <div id="questions-container" class="flex-1 min-h-0 overflow-y-auto space-y-3 pr-0.5">
       <% @survey.questions.each_with_index do |question, idx| %>
         <%= render "admin/surveys/question_card", question: question, idx: idx %>
       <% end %>
     </div>
 
-    <!-- Add question buttons: pinned at bottom, never scrolls away -->
+    <!-- Add question bar: always visible at bottom of col 2 -->
     <div class="flex-shrink-0 bg-white rounded-[10px] border border-dashed border-slate-300 p-5">
       <p class="text-[12px] font-semibold text-slate-500 text-center mb-3"><%= t("surveys.add_question") %></p>
       <div class="flex flex-wrap gap-2 justify-center">
@@ -138,10 +142,10 @@
         <div id="ai-question-feedback" class="mt-2 hidden"></div>
       </div>
     </div>
-  </div><!-- /builder canvas -->
+  </div><!-- /col 2 -->
 
-  <!-- Settings panel: fixed width, scrolls independently -->
-  <div class="w-[280px] flex-shrink-0 overflow-y-auto space-y-4 pb-3">
+  <!-- Col 3 (2/12): Settings + QR — scrolls independently -->
+  <div class="col-span-2 min-h-0 overflow-y-auto space-y-4 pb-3">
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4">
       <h3 class="text-[13px] font-bold text-slate-900 mb-3">⚙️ <%= t("surveys.settings.title") %></h3>
       <%= form_with model: @survey, url: survey_path(@survey), method: :patch, local: true, data: { turbo: false } do |f| %>
@@ -183,8 +187,9 @@
         <p class="text-[11px] text-slate-400 mt-2"><%= t("surveys.qr_scans", count: @survey.qr_code.scan_count) %></p>
       <% end %>
     </div>
-  </div><!-- /settings panel -->
-</div><!-- /builder outer -->
+  </div><!-- /col 3 -->
+
+</div><!-- /builder grid -->
 
 <!-- ── Delete question modal ─────────────────────────────────────────────────── -->
 <div id="q-delete-modal" class="hidden fixed inset-0 z-50">
