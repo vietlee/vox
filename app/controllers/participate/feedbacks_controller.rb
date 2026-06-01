@@ -40,13 +40,23 @@ class Participate::FeedbacksController < Participate::BaseController
     @feedback.images.attach(fb_params[:images]) if fb_params[:images].present?
 
     if @feedback.save
-      pending = @board.manual_approval?
+      pending     = @board.manual_approval?
+      ai_moderate = @board.auto_moderation?
       @feedback.approve! unless pending
 
+      message = if pending
+        t("feedbacks.pending_approval")
+      elsif ai_moderate
+        t("feedbacks.submitted_ai_moderation")
+      else
+        t("feedbacks.submitted")
+      end
+
       render json: {
-        status:   pending ? "pending" : "submitted",
-        message:  pending ? t("feedbacks.pending_approval") : t("feedbacks.submitted"),
-        feedback: pending ? nil : serialize_feedback(@feedback, Set.new)
+        status:      pending ? "pending" : "submitted",
+        message:     message,
+        feedback:    pending ? nil : serialize_feedback(@feedback, Set.new),
+        moderation:  !pending && ai_moderate
       }
     else
       render json: { error: @feedback.errors.full_messages.join(", ") }, status: :unprocessable_entity

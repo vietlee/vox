@@ -403,6 +403,7 @@ const REPLY_URL    = "<%= reply_feedback_path(@board.slug) %>";
 const CSRF         = document.querySelector('meta[name="csrf-token"]')?.content;
 const ALLOW_UPVOTES  = <%= @board.allow_upvotes? ? 'true' : 'false' %>;
 const ALLOW_REPLIES  = <%= @board.allow_replies? ? 'true' : 'false' %>;
+const AUTO_MODERATION = <%= @board.auto_moderation? ? 'true' : 'false' %>;
 const IDENTITY_MODE  = "<%= @board.identity_mode %>";
 const ANONYMOUS_LABEL = "<%= j t('participate.feedback.anonymous') %>";
 const REPLY_LABEL     = "<%= j t('participate.feedback.reply_label') %>";
@@ -426,7 +427,7 @@ function showToast(message, isError = false) {
   setTimeout(() => { toast.style.display = 'none'; }, 4000);
 }
 
-function renderFeedbackCard(fb) {
+function renderFeedbackCard(fb, pendingModeration = false) {
   const initial = fb.anonymous || !fb.author_name ? '?' : fb.author_name.charAt(0).toUpperCase();
   const authorLabel = fb.anonymous || !fb.author_name ? ANONYMOUS_LABEL : fb.author_name;
   const borderColor = fb.pinned ? '#fbbf24' : 'rgba(226,232,240,0.8)';
@@ -439,6 +440,10 @@ function renderFeedbackCard(fb) {
 
   const implementedBadge = fb.implemented
     ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-700" style="background:rgba(16,185,129,0.1);">${IMPLEMENTED_LABEL}</span>`
+    : '';
+
+  const moderationBadge = pendingModeration
+    ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(251,191,36,0.15);color:#92400e;border:1px solid rgba(251,191,36,0.3);">🔍 <%= j t('participate.feedback.moderation_pending') %></span>`
     : '';
 
   const replyBtn = ALLOW_REPLIES
@@ -511,6 +516,7 @@ function renderFeedbackCard(fb) {
           <span class="text-[12px] font-semibold text-slate-600">${authorLabel}</span>
           <span class="text-[11px] text-slate-300">${fb.created_at}</span>
           ${implementedBadge}
+          ${moderationBadge}
         </div>
         <p class="text-[14px] text-slate-800 leading-relaxed mb-2">${fb.content}</p>
         ${fb.image_urls && fb.image_urls.length > 0 ? (() => {
@@ -696,7 +702,7 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
     if (data.status === 'submitted' && data.feedback) {
       const list = document.getElementById('feedbacks-list');
       const emptyState = document.getElementById('empty-state');
-      const card = renderFeedbackCard(data.feedback);
+      const card = renderFeedbackCard(data.feedback, !!data.moderation);
       list.insertBefore(card, list.firstChild);
       emptyState.classList.add('hidden');
       currentOffset += 1;
