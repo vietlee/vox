@@ -16,6 +16,16 @@ class Vote < ApplicationRecord
   validates :title,           presence: true, length: { maximum: 300 }
   validates :login_providers, inclusion: { in: LOGIN_PROVIDERS }, allow_nil: true
 
+  # Virtual attribute: countdown in minutes for UI (stored as seconds in DB)
+  def countdown_minutes
+    return 0 if countdown_seconds.to_i == 0
+    (countdown_seconds.to_f / 60).ceil
+  end
+
+  def countdown_minutes=(val)
+    self.countdown_seconds = val.to_i * 60
+  end
+
   def login_required?
     sso_required?
   end

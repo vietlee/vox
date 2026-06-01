@@ -154,7 +154,7 @@ class Admin::VotesController < Admin::BaseController
   end
 
   def vote_params
-    params.require(:vote).permit(:title, :vote_type, :identity_mode, :countdown_seconds, :show_results_live, :allow_multiple_votes, :login_providers)
+    params.require(:vote).permit(:title, :vote_type, :identity_mode, :countdown_seconds, :countdown_minutes, :show_results_live, :allow_multiple_votes, :login_providers)
   end
 
   def build_vote_options
