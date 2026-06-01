@@ -30,7 +30,7 @@ class Admin::TtsController < Admin::BaseController
     credits_needed = tts_credits_for(text, model)
     return unless require_credits!(credits_needed)
 
-    speed         = (params[:speed].presence      || 1.0).to_f.clamp(0.7, 1.2)
+    speed         = (params[:speed].presence      || 1.0).to_f.clamp(0.5, 2.0)
     stability     = (params[:stability].presence  || 0.5).to_f.clamp(0.0, 1.0)
     similarity    = (params[:similarity].presence || 0.75).to_f.clamp(0.0, 1.0)
     style         = (params[:style].presence      || 0.0).to_f.clamp(0.0, 1.0)
