@@ -47,6 +47,19 @@ set :puma_init_active_record, true
 # Sidekiq
 set :sidekiq_config, "#{current_path}/config/sidekiq.yml"
 
+namespace :npm do
+  desc "Run npm install in release path"
+  task :install do
+    on roles(:app) do
+      within release_path do
+        execute :npm, "install", "--prefer-offline", "--no-audit"
+      end
+    end
+  end
+end
+
+after "bundler:install", "npm:install"
+
 namespace :deploy do
   desc "Seed database (run manually: cap production deploy:seed)"
   task :seed do
