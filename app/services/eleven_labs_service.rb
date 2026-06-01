@@ -63,21 +63,19 @@ class ElevenLabsService
   end
 
   # Returns raw audio bytes (mp3). Auto-retries on 429.
+  # speed: ElevenLabs voice_settings supports 0.7–1.2 (Flash v2.5, v3, Multilingual v2)
   def text_to_speech(text:, voice_id: DEFAULT_VOICE, model: "eleven_turbo_v2_5", speed: 1.0, stability: 0.5, similarity: 0.75, style: 0.0, output_format: "mp3_44100_128")
     max_attempts = 3
 
-    # ElevenLabs voice_settings does NOT have a speed param — use SSML prosody instead.
-    # Wrap text in <speak><prosody rate="150%"> only when speed != 1.0
-    tts_text = apply_speed_ssml(text, speed.to_f)
-
     payload = {
-      text:     tts_text,
+      text:     text,
       model_id: model,
       voice_settings: {
         stability:         stability.to_f,
         similarity_boost:  similarity.to_f,
         style:             style.to_f,
-        use_speaker_boost: true
+        use_speaker_boost: true,
+        speed:             speed.to_f.clamp(0.7, 1.2)
       }
     }.to_json
 
@@ -107,15 +105,6 @@ class ElevenLabsService
   end
 
   private
-
-  # Wrap text in SSML <prosody rate> when speed != 1.0.
-  # rate="50%" = 0.5x slow | rate="200%" = 2x fast
-  def apply_speed_ssml(text, speed)
-    return text if speed.between?(0.97, 1.03) # skip SSML at ~1.0x
-    rate_pct = (speed * 100).round
-    escaped  = text.gsub("&", "&amp;").gsub("<", "&lt;").gsub(">", "&gt;")
-    %(<speak><prosody rate="#{rate_pct}%">#{escaped}</prosody></speak>)
-  end
 
   def default_headers
     {
