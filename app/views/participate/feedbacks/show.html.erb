@@ -447,28 +447,44 @@ function savePendingCard(fb) {
   } catch(e) {}
 }
 
-function loadPendingCards() {
+async function loadPendingCards() {
   try {
     const saved = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
     const fresh = saved.filter(s => Date.now() - s.savedAt < PENDING_TTL);
-    if (fresh.length !== saved.length) {
-      localStorage.setItem(PENDING_KEY, JSON.stringify(fresh));
+    if (!fresh.length) {
+      localStorage.setItem(PENDING_KEY, JSON.stringify([]));
+      return;
     }
-    if (!fresh.length) return;
+
+    // Verify with server which IDs still exist (not deleted by admin)
+    const ids = fresh.map(s => s.id);
+    let existingOnServer = new Set(ids); // fallback: assume all exist
+    try {
+      const verifyUrl = '<%= verify_pending_feedbacks_path(@board.slug) %>?ids[]=' + ids.join('&ids[]=');
+      const res = await fetch(verifyUrl, { headers: { 'Accept': 'application/json' } });
+      if (res.ok) {
+        const data = await res.json();
+        existingOnServer = new Set(data.existing);
+      }
+    } catch(e) {}
+
+    // Remove deleted IDs from localStorage
+    const verified = fresh.filter(s => existingOnServer.has(s.id));
+    localStorage.setItem(PENDING_KEY, JSON.stringify(verified));
+    if (!verified.length) return;
 
     const list = document.getElementById('feedbacks-list');
     if (!list) return;
 
     // IDs already rendered by server (already visible/approved)
-    const existingIds = new Set(
+    const renderedIds = new Set(
       Array.from(list.querySelectorAll('[id^="feedback-card-"]'))
         .map(el => parseInt(el.id.replace('feedback-card-', '')))
     );
 
     let added = 0;
-    // Insert in reverse-chronological order (most recent first)
-    [...fresh].reverse().forEach(fb => {
-      if (existingIds.has(fb.id)) return; // already visible, skip
+    [...verified].reverse().forEach(fb => {
+      if (renderedIds.has(fb.id)) return;
       const card = renderFeedbackCard(fb, true);
       list.insertBefore(card, list.firstChild);
       added++;

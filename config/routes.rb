@@ -48,7 +48,8 @@ Rails.application.routes.draw do
   post "/f/:slug/submit",  to: "participate/feedbacks#submit", as: :submit_feedback
   post "/f/:slug/upvote",  to: "participate/feedbacks#upvote", as: :upvote_feedback
   post "/f/:slug/reply",   to: "participate/feedbacks#reply",  as: :reply_feedback
-  get  "/f/:slug/list",   to: "participate/feedbacks#list",   as: :list_feedbacks
+  get  "/f/:slug/list",           to: "participate/feedbacks#list",           as: :list_feedbacks
+  get  "/f/:slug/verify_pending", to: "participate/feedbacks#verify_pending", as: :verify_pending_feedbacks
 
   # Participant — history of their votes/surveys/feedback
   namespace :my do

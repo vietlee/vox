@@ -85,6 +85,12 @@ class Participate::FeedbacksController < Participate::BaseController
     }
   end
 
+  def verify_pending
+    ids = Array(params[:ids]).map(&:to_i).uniq.first(50)
+    existing = @board.feedbacks.where(id: ids).pluck(:id).to_set
+    render json: { existing: existing.to_a }
+  end
+
   def upvote
     feedback = @board.feedbacks.visible.find(params[:feedback_id] || params[:id])
     token = respondent_token
