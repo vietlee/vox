@@ -48,25 +48,29 @@ class AuditLog < ApplicationRecord
   end
 
   def resource_name
+    # Prefer the label stored at log time (survives resource deletion)
+    return resource_label if resource_label.present?
     return nil unless resource_type.present? && resource_id.present?
     klass = resource_type.constantize rescue nil
     return nil unless klass
     record = klass.find_by(id: resource_id)
-    record&.try(:title) || record&.try(:name) || record&.try(:email) || "##{resource_id}"
+    record&.try(:title) || record&.try(:name) || record&.try(:email)
   rescue
-    "##{resource_id}"
+    nil
   end
 
   def self.record(user:, action:, workspace: nil, resource: nil, changes: {}, request: nil)
+    label = resource&.try(:title) || resource&.try(:name) || resource&.try(:email)
     create!(
-      workspace:     workspace || user&.workspace,
-      user:          user,
-      action:        action,
-      resource_type: resource&.class&.name,
-      resource_id:   resource&.id,
-      changes_data:  changes,
-      ip_address:    request&.remote_ip,
-      user_agent:    request&.user_agent
+      workspace:      workspace || user&.workspace,
+      user:           user,
+      action:         action,
+      resource_type:  resource&.class&.name,
+      resource_id:    resource&.id,
+      resource_label: label,
+      changes_data:   changes,
+      ip_address:     request&.remote_ip,
+      user_agent:     request&.user_agent
     )
   end
 end

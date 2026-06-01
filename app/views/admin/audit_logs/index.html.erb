@@ -27,21 +27,8 @@
     <div class="flex-1 min-h-0 overflow-y-auto">
       <% if @logs.any? %>
         <% tz = current_workspace.timezone.presence || "Asia/Ho_Chi_Minh" %>
-        <%
-          bg_map = { "indigo"  => "bg-indigo-50 text-indigo-700",
-                     "emerald" => "bg-emerald-50 text-emerald-700",
-                     "amber"   => "bg-amber-50 text-amber-700",
-                     "violet"  => "bg-violet-50 text-violet-700",
-                     "blue"    => "bg-blue-50 text-blue-700",
-                     "teal"    => "bg-teal-50 text-teal-700",
-                     "purple"  => "bg-purple-50 text-purple-700",
-                     "orange"  => "bg-orange-50 text-orange-700",
-                     "red"     => "bg-red-50 text-red-700",
-                     "slate"   => "bg-slate-100 text-slate-600" }
-        %>
         <div class="divide-y divide-indigo-50">
           <% @logs.each do |log| %>
-            <% badge_cls = bg_map[log.action_color] || "bg-slate-100 text-slate-600" %>
             <% rname = log.resource_name %>
             <div class="flex items-center gap-4 px-5 py-3.5 hover:bg-white/60 transition-colors">
               <!-- Icon -->
@@ -65,10 +52,6 @@
                 </div>
               </div>
 
-              <!-- Action badge -->
-              <span class="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold <%= badge_cls %>">
-                <%= log.action.to_s.humanize %>
-              </span>
             </div>
           <% end %>
         </div>
