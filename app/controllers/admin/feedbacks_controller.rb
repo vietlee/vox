@@ -8,8 +8,12 @@ class Admin::FeedbacksController < Admin::BaseController
     feedbacks = feedbacks.where(moderation_status: params[:moderation]) if params[:moderation].present?
     feedbacks = feedbacks.where("content ILIKE ?", "%#{params[:q]}%") if params[:q].present?
     @pagy, @feedbacks = pagy(feedbacks)
-    @pending_count = @board.feedbacks.where(status: :pending).count
-    @flagged_count = @board.feedbacks.where(moderation_status: :flagged).count
+    counts = @board.feedbacks.group(:status).count
+    @pending_count  = counts["pending"].to_i
+    @approved_count = counts["approved"].to_i
+    @hidden_count   = counts["hidden"].to_i
+    @rejected_count = counts["rejected"].to_i
+    @flagged_count  = @board.feedbacks.where(moderation_status: :flagged).count
     @ai_summary = AiAnalysisResult.where(
       workspace: current_workspace,
       resource_type: "FeedbackBoard",

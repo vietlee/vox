@@ -241,12 +241,17 @@
     </div>
 
     <!-- ── Status filter pills ────────────────────────────────────────── -->
+    <% status_counts = { "pending" => @pending_count, "approved" => @approved_count, "hidden" => @hidden_count, "rejected" => @rejected_count } %>
     <div class="flex-shrink-0 flex gap-1 px-4 py-2 border-b border-indigo-50 flex-wrap">
       <% ["", "pending", "approved", "hidden", "rejected"].each do |s| %>
         <% active = params[:status].to_s == s && params[:moderation].blank? %>
+        <% cnt = status_counts[s].to_i %>
         <%= link_to feedback_board_feedbacks_path(@board, status: s.presence, q: params[:q]),
-              class: "px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors #{active ? 'bg-blue-500 text-white' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}" do %>
+              class: "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors #{active ? 'bg-blue-500 text-white' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}" do %>
           <%= s.blank? ? t("feedback_boards.feedbacks_page.all") : t("status.#{s}") %>
+          <% if s.present? && cnt > 0 %>
+            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold <%= active ? 'bg-white/30 text-white' : 'bg-slate-100 text-slate-500' %>"><%= cnt %></span>
+          <% end %>
         <% end %>
       <% end %>
       <% flagged_active = params[:moderation] == "flagged" %>
