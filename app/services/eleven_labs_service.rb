@@ -49,7 +49,7 @@ class ElevenLabsService
     raise "ElevenLabs voices error: #{response.code}" unless response.success?
 
     parsed = JSON.parse(response.body)
-    parsed["voices"].map do |v|
+    parsed["voices"].reject { |v| v["category"] == "premade" }.map do |v|
       {
         id:          v["voice_id"],
         name:        v["name"],

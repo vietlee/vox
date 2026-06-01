@@ -117,41 +117,21 @@ export default class extends Controller {
       const sel = this.voiceSelectTarget
       sel.innerHTML = ""
 
-      const isVietnamese = v =>
-        /vietnamese|vietnam|việt|viet/i.test(v.name) || /vietnamese|vietnam/i.test(v.category)
-
-      const sorted = [
-        ...data.filter(v => isVietnamese(v)),
-        ...data.filter(v => !isVietnamese(v))
-      ]
-
-      const viCount = sorted.filter(v => isVietnamese(v)).length
-      sorted.forEach(v => {
+      data.forEach(v => {
         const opt           = document.createElement("option")
         opt.value           = v.id
-        opt.textContent     = `${v.name} (${v.category})`
+        opt.textContent     = v.name
         opt.dataset.preview = v.preview_url || ""
         sel.appendChild(opt)
       })
 
-      // Auto-select first Vietnamese voice, else Rachel, else first
-      if (viCount > 0) {
-        const sep = document.createElement("option")
-        sep.disabled = true
-        sep.textContent = this.element.dataset.ttsLabelOtherVoices || "── Other voices ──"
-        sel.insertBefore(sep, sel.options[viCount])
-      }
-
-      // Restore saved voice, or fall back to Vietnamese / Rachel
+      // Restore saved voice, or fall back to first available
       const savedVoice = localStorage.getItem("tts_voice")
       const savedOpt   = savedVoice && Array.from(sel.options).find(o => !o.disabled && o.value === savedVoice)
       if (savedOpt) {
         sel.value = savedVoice
-      } else {
-        const firstVi = Array.from(sel.options).find(o => !o.disabled && isVietnamese({ name: o.textContent }))
-        const rachel  = Array.from(sel.options).find(o => o.textContent.includes("Rachel"))
-        if (firstVi) sel.value = firstVi.value
-        else if (rachel) sel.value = rachel.value
+      } else if (sel.options.length > 0) {
+        sel.value = sel.options[0].value
       }
       this.voiceChanged()
     } catch (e) {
