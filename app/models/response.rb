@@ -20,9 +20,17 @@ class Response < ApplicationRecord
       completion_time_seconds: time_seconds.present? ? time_seconds.to_i : (Time.current - created_at).to_i
     )
     survey.increment!(:response_count)
+    notify_admins_of_new_response
   end
 
   private
+
+  def notify_admins_of_new_response
+    return unless workspace.notify_on_new_response?
+    workspace.admin_users.each do |admin|
+      NotificationMailer.new_response(self, admin).deliver_later
+    end
+  end
 
   def increment_survey_counter
     # response_count will be incremented on complete!

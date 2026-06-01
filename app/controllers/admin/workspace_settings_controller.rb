@@ -33,6 +33,6 @@ class Admin::WorkspaceSettingsController < Admin::BaseController
   private
 
   def workspace_params
-    params.require(:workspace).permit(:name, :logo, :brand_color, :favicon, :language, :timezone, :force_2fa, :session_timeout_days, :custom_domain)
+    params.require(:workspace).permit(:name, :logo, :brand_color, :favicon, :language, :timezone, :force_2fa, :session_timeout_days, :custom_domain, :notify_on_new_feedback, :notify_on_new_response)
   end
 end

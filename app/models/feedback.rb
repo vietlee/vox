@@ -17,6 +17,7 @@ class Feedback < ApplicationRecord
   scope :pinned_first, -> { order(pinned: :desc, created_at: :desc) }
 
   after_create :enqueue_ai_moderation
+  after_create :notify_admins_of_new_feedback
 
   def approve!
     update!(status: :approved)
@@ -39,5 +40,12 @@ class Feedback < ApplicationRecord
   def enqueue_ai_moderation
     return unless feedback_board.auto_moderation?
     AiModerationJob.perform_later(id)
+  end
+
+  def notify_admins_of_new_feedback
+    return unless workspace.notify_on_new_feedback?
+    workspace.admin_users.each do |admin|
+      NotificationMailer.new_feedback(self, admin).deliver_later
+    end
   end
 end

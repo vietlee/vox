@@ -1,0 +1,93 @@
+<% locale = @workspace.language&.to_sym || :vi %>
+
+<!-- Header -->
+<p style="margin:0 0 6px;font-size:22px;font-weight:800;color:#0f172a;">
+  💬 <%= I18n.t("notification_mailer.new_feedback.heading", locale: locale) %>
+</p>
+<p style="margin:0 0 28px;font-size:15px;color:#64748b;">
+  <%= I18n.t("notification_mailer.new_feedback.intro",
+        board: "<strong style='color:#0f172a;'>#{@board.title}</strong>",
+        workspace: "<strong>#{@workspace.name}</strong>",
+        locale: locale).html_safe %>
+</p>
+
+<!-- Feedback card -->
+<table cellpadding="0" cellspacing="0" width="100%"
+       style="background:#f8faff;border:1.5px solid #e0e7ff;border-radius:12px;margin-bottom:24px;">
+  <tr>
+    <td style="padding:20px 24px;">
+
+      <!-- Author row -->
+      <table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:14px;">
+        <tr>
+          <td>
+            <% initial = (@feedback.anonymous? || @feedback.author_name.blank?) ? "?" : @feedback.author_name.first.upcase %>
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a855f7);
+                           text-align:center;vertical-align:middle;color:white;font-size:13px;font-weight:700;">
+                  <%= initial %>
+                </td>
+                <td style="padding-left:10px;">
+                  <span style="font-size:13px;font-weight:600;color:#1e293b;">
+                    <%= @feedback.anonymous? || @feedback.author_name.blank?
+                          ? I18n.t("participate.feedback.anonymous", locale: locale)
+                          : @feedback.author_name %>
+                  </span>
+                  <% if @feedback.author_email.present? && !@feedback.anonymous? %>
+                    <span style="font-size:11px;color:#94a3b8;padding-left:6px;"><%= @feedback.author_email %></span>
+                  <% end %>
+                </td>
+                <td style="text-align:right;font-size:11px;color:#94a3b8;">
+                  <%= I18n.l(@feedback.created_at.in_time_zone(@workspace.timezone), format: :short) rescue @feedback.created_at.strftime("%d/%m/%Y %H:%M") %>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Content -->
+      <p style="margin:0;font-size:14px;color:#334155;line-height:1.65;
+                padding:14px 16px;background:white;border-radius:8px;border:1px solid #e2e8f0;">
+        <%= @feedback.content %>
+      </p>
+
+      <!-- Meta row -->
+      <% if @feedback.images.attached? %>
+        <p style="margin:10px 0 0;font-size:11px;color:#64748b;">
+          📎 <%= @feedback.images.count %> <%= I18n.t("notification_mailer.new_feedback.image_count", count: @feedback.images.count, locale: locale) %>
+        </p>
+      <% end %>
+
+    </td>
+  </tr>
+</table>
+
+<!-- Status badge -->
+<% if @feedback.feedback_board.manual_approval? %>
+  <table cellpadding="0" cellspacing="0" width="100%"
+         style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;margin-bottom:24px;">
+    <tr>
+      <td style="padding:12px 16px;font-size:13px;color:#92400e;">
+        ⏳ <%= I18n.t("notification_mailer.new_feedback.pending_approval_note", locale: locale) %>
+      </td>
+    </tr>
+  </table>
+<% end %>
+
+<!-- CTA -->
+<table cellpadding="0" cellspacing="0">
+  <tr>
+    <td style="background:#4f46e5;border-radius:8px;">
+      <a href="<%= @review_url %>"
+         style="display:inline-block;padding:12px 28px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">
+        <%= I18n.t("notification_mailer.new_feedback.cta", locale: locale) %> →
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:24px 0 0;font-size:12px;color:#94a3b8;">
+  <%= I18n.t("notification_mailer.unsubscribe_hint", locale: locale) %>
+</p>
