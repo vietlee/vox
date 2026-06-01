@@ -32,7 +32,18 @@ export default class extends Controller {
 
   connect() {
     this.loadVoices()
+    this.restoreText()
     this.countChars()
+  }
+
+  // ── localStorage persistence ──────────────────────────────────────
+  restoreText() {
+    const saved = localStorage.getItem("tts_text")
+    if (saved) this.textTarget.value = saved
+  }
+
+  saveText() {
+    localStorage.setItem("tts_text", this.textTarget.value)
   }
 
   // ── Char counter + cost estimate ──────────────────────────────────
