@@ -31,16 +31,18 @@ class ElevenLabsService
   end
 
   # Returns raw audio bytes (mp3)
-  def text_to_speech(text:, voice_id: DEFAULT_VOICE, model: "eleven_multilingual_v2", stability: 0.5, similarity: 0.75)
+  def text_to_speech(text:, voice_id: DEFAULT_VOICE, model: "eleven_multilingual_v2", stability: 0.5, similarity: 0.75, style: 0.0, output_format: "mp3_44100_192")
     response = HTTParty.post(
-      "#{BASE_URL}/v1/text-to-speech/#{voice_id}",
+      "#{BASE_URL}/v1/text-to-speech/#{voice_id}?output_format=#{output_format}",
       headers: default_headers.merge("Accept" => "audio/mpeg"),
       body: {
         text:          text,
         model_id:      model,
         voice_settings: {
-          stability:        stability,
-          similarity_boost: similarity
+          stability:        stability.to_f,
+          similarity_boost: similarity.to_f,
+          style:            style.to_f,
+          use_speaker_boost: true
         }
       }.to_json,
       timeout: 60

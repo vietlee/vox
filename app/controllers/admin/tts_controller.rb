@@ -24,8 +24,19 @@ class Admin::TtsController < Admin::BaseController
       return
     end
 
+    stability  = (params[:stability].presence  || 0.5).to_f.clamp(0.0, 1.0)
+    similarity = (params[:similarity].presence || 0.75).to_f.clamp(0.0, 1.0)
+    style      = (params[:style].presence      || 0.0).to_f.clamp(0.0, 1.0)
+
     service  = ElevenLabsService.new
-    audio    = service.text_to_speech(text: text, voice_id: voice_id, model: model)
+    audio    = service.text_to_speech(
+      text:       text,
+      voice_id:   voice_id,
+      model:      model,
+      stability:  stability,
+      similarity: similarity,
+      style:      style
+    )
 
     send_data audio,
       type:        "audio/mpeg",

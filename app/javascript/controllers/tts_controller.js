@@ -5,6 +5,9 @@ export default class extends Controller {
     "text", "charCount",
     "voiceSelect", "voicePreview", "previewPlayer",
     "modelSelect",
+    "stability", "stabilityVal",
+    "similarity", "similarityVal",
+    "style", "styleVal",
     "generateBtn", "btnLabel", "spinner",
     "result", "player", "downloadLink",
     "error"
@@ -63,11 +66,21 @@ export default class extends Controller {
     }
   }
 
+  // ── Slider display update ─────────────────────────────────────────
+  updateSliders() {
+    this.stabilityValTarget.textContent  = parseFloat(this.stabilityTarget.value).toFixed(2)
+    this.similarityValTarget.textContent = parseFloat(this.similarityTarget.value).toFixed(2)
+    this.styleValTarget.textContent      = parseFloat(this.styleTarget.value).toFixed(2)
+  }
+
   // ── Generate TTS ──────────────────────────────────────────────────
   async generate() {
-    const text    = this.textTarget.value.trim()
-    const voiceId = this.voiceSelectTarget.value
-    const model   = this.modelSelectTarget.value
+    const text       = this.textTarget.value.trim()
+    const voiceId    = this.voiceSelectTarget.value
+    const model      = this.modelSelectTarget.value
+    const stability  = this.stabilityTarget.value
+    const similarity = this.similarityTarget.value
+    const style      = this.styleTarget.value
 
     if (!text) {
       this.showError("Vui lòng nhập nội dung văn bản")
@@ -80,9 +93,12 @@ export default class extends Controller {
 
     try {
       const formData = new FormData()
-      formData.append("text",     text)
-      formData.append("voice_id", voiceId)
-      formData.append("model",    model)
+      formData.append("text",       text)
+      formData.append("voice_id",   voiceId)
+      formData.append("model",      model)
+      formData.append("stability",  stability)
+      formData.append("similarity", similarity)
+      formData.append("style",      style)
 
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
 
