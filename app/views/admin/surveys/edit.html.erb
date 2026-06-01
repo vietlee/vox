@@ -47,13 +47,12 @@
   </div>
 </div>
 
-<!-- ── Scrollable builder content ───────────────────────────────────────────── -->
-<div class="flex-1 min-h-0 overflow-y-auto px-6 pt-3 pb-6">
-<div class="grid grid-cols-[1fr_280px] gap-5">
-  <!-- Builder canvas -->
-  <div class="space-y-4">
-    <!-- Survey info card -->
-    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
+<!-- ── Builder content: outer wrapper holds two independent scroll regions ── -->
+<div class="flex-1 min-h-0 flex gap-5 px-6 pt-3 pb-3">
+  <!-- Builder canvas: flex column so add-question bar is pinned at bottom -->
+  <div class="flex-1 min-h-0 flex flex-col gap-4">
+    <!-- Survey info card (fixed, doesn't scroll) -->
+    <div class="flex-shrink-0 bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
       <%= form_with model: @survey, url: survey_path(@survey), method: :patch, local: true, multipart: true, data: { turbo: false } do |f| %>
         <div class="grid grid-cols-2 gap-4">
           <div class="col-span-2">
@@ -103,15 +102,15 @@
       <% end %>
     </div>
 
-    <!-- Questions list -->
-    <div id="questions-container" class="space-y-3">
+    <!-- Questions list: scrolls independently, fills available space -->
+    <div id="questions-container" class="flex-1 min-h-0 overflow-y-auto space-y-3 pr-0.5">
       <% @survey.questions.each_with_index do |question, idx| %>
         <%= render "admin/surveys/question_card", question: question, idx: idx %>
       <% end %>
     </div>
 
-    <!-- Add question buttons -->
-    <div class="bg-white rounded-[10px] border border-dashed border-slate-300 p-5">
+    <!-- Add question buttons: pinned at bottom, never scrolls away -->
+    <div class="flex-shrink-0 bg-white rounded-[10px] border border-dashed border-slate-300 p-5">
       <p class="text-[12px] font-semibold text-slate-500 text-center mb-3"><%= t("surveys.add_question") %></p>
       <div class="flex flex-wrap gap-2 justify-center">
         <% Question.question_types.keys.each do |type| %>
@@ -139,10 +138,10 @@
         <div id="ai-question-feedback" class="mt-2 hidden"></div>
       </div>
     </div>
-  </div>
+  </div><!-- /builder canvas -->
 
-  <!-- Settings panel -->
-  <div class="space-y-4">
+  <!-- Settings panel: fixed width, scrolls independently -->
+  <div class="w-[280px] flex-shrink-0 overflow-y-auto space-y-4 pb-3">
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4">
       <h3 class="text-[13px] font-bold text-slate-900 mb-3">⚙️ <%= t("surveys.settings.title") %></h3>
       <%= form_with model: @survey, url: survey_path(@survey), method: :patch, local: true, data: { turbo: false } do |f| %>
@@ -184,9 +183,8 @@
         <p class="text-[11px] text-slate-400 mt-2"><%= t("surveys.qr_scans", count: @survey.qr_code.scan_count) %></p>
       <% end %>
     </div>
-  </div>
-</div>
-</div><!-- /scrollable -->
+  </div><!-- /settings panel -->
+</div><!-- /builder outer -->
 
 <!-- ── Delete question modal ─────────────────────────────────────────────────── -->
 <div id="q-delete-modal" class="hidden fixed inset-0 z-50">
@@ -292,7 +290,7 @@ async function addQuestion(type) {
 
   const editPanel = card.querySelector('[id^="edit-panel-"]');
   if (editPanel) editPanel.classList.remove('hidden');
-  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
 }
 
 function setCheckLoading(on) {
