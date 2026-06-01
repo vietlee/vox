@@ -121,7 +121,7 @@ class Admin::FeedbacksController < Admin::BaseController
 
     case action
     when "approve"
-      count = feedbacks.update_all(status: :approved)
+      count = feedbacks.update_all(status: :approved, moderation_status: :safe)
     when "hide"
       count = feedbacks.update_all(status: :hidden)
     when "reject"

@@ -1169,11 +1169,20 @@ async function executeBulkAction(action, ids) {
       card.style.transform = 'translateX(10px)';
       setTimeout(() => card.remove(), 220);
     } else if (action === 'approve') {
-      card.dataset.status = 'approved';
-      const badge = card.querySelector(`[class*="status-badge-"]`);
-      if (badge) {
-        badge.textContent = I18N.approved;
-        badge.className = badge.className.replace(/bg-\w+-\d+ text-\w+-\d+/g, 'bg-emerald-50 text-emerald-700');
+      // If currently filtering by moderation (e.g. flagged view), remove card since it no longer matches
+      if (CURRENT_MODERATION) {
+        card.style.transition = 'opacity 0.2s, transform 0.2s';
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(10px)';
+        setTimeout(() => card.remove(), 220);
+      } else {
+        card.dataset.status = 'approved';
+        card.dataset.moderation = 'safe';
+        const badge = card.querySelector(`[class*="status-badge-"]`);
+        if (badge) {
+          badge.textContent = I18N.approved;
+          badge.className = badge.className.replace(/bg-\w+-\d+ text-\w+-\d+/g, 'bg-emerald-50 text-emerald-700');
+        }
       }
     } else {
       // hide / reject — remove from current filtered view
@@ -1190,6 +1199,11 @@ async function executeBulkAction(action, ids) {
       return c?.dataset?.status === 'pending';
     }).length;
     if (pendingRemoved > 0) updatePendingBanner(-pendingRemoved);
+
+    // If approving from flagged view, all visible cards were flagged
+    if (CURRENT_MODERATION === 'flagged') {
+      updateFlaggedBanner(-ids.length);
+    }
   }
 
   // Hide bulk bar
