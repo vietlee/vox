@@ -111,7 +111,11 @@
       const res = await fetch(url, { method: 'DELETE', headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' } });
       if (!res.ok) return;
       const card = document.getElementById(`feedback-${id}`);
-      if (card) { card.style.opacity = '0'; card.style.transform = 'translateX(10px)'; setTimeout(() => card.remove(), 200); }
+      if (card) {
+        const wasApproved = card.dataset.status === 'approved';
+        card.style.opacity = '0'; card.style.transform = 'translateX(10px)';
+        setTimeout(() => { card.remove(); window.recordDeleted?.(wasApproved); }, 200);
+      }
     };
     document.getElementById('delete-feedback-modal').style.display = 'flex';
   }
@@ -160,7 +164,7 @@
       <%= render "admin/shared/back_btn" %>
       <div>
         <h1 class="text-[19px] font-extrabold text-slate-900"><%= @board.title %></h1>
-        <p class="text-[12px] text-slate-500 mt-0.5"><%= t("feedback_boards.feedbacks_page.total", total: @board.feedbacks.count, pending: @board.feedbacks.where(status: :pending).count) %></p>
+        <p id="board-subtitle" class="text-[12px] text-slate-500 mt-0.5"><%= t("feedback_boards.feedbacks_page.total", total: @board.feedbacks.count, pending: @board.feedbacks.where(status: :pending).count) %></p>
       </div>
     </div>
     <div class="flex gap-2">
@@ -198,7 +202,7 @@
     <div class="flex-shrink-0 flex items-center gap-2 px-4 py-3" style="background:rgba(99,102,241,0.08); border-bottom:1px solid rgba(99,102,241,0.15);">
       <span class="text-[14px]">💬</span>
       <span class="text-[13px] font-bold text-indigo-700"><%= t("feedback_boards.feedbacks_page.tab_feedbacks") %></span>
-      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600"><%= @board.feedbacks.approved.count %></span>
+      <span id="feedbacks-card-count" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600"><%= @board.feedbacks.approved.count %></span>
     </div>
 
     <!-- ── Pending / Flagged warning banners ──────────────────────────── -->
@@ -647,8 +651,31 @@ const I18N = {
 };
 
 // ── Live counters ─────────────────────────────────────────────────────────────
-let pendingCount = <%= @pending_count %>;
-let flaggedCount = <%= @flagged_count %>;
+let pendingCount  = <%= @pending_count %>;
+let flaggedCount  = <%= @flagged_count %>;
+let totalCount    = <%= @board.feedbacks.count %>;
+let approvedCount = <%= @board.feedbacks.approved.count %>;
+const SUBTITLE_TPL = "<%= j t('feedback_boards.feedbacks_page.total', total: '__T__', pending: '__P__') %>";
+
+function updateHeaderCounts() {
+  const subtitle = document.getElementById('board-subtitle');
+  if (subtitle) subtitle.textContent = SUBTITLE_TPL.replace('__T__', totalCount).replace('__P__', pendingCount);
+  const badge = document.getElementById('feedbacks-card-count');
+  if (badge) badge.textContent = approvedCount;
+  // Show/hide empty state
+  const list = document.getElementById('feedbacks-list');
+  if (!list) return;
+  const hasCards = list.querySelectorAll('.feedback-row').length > 0;
+  let empty = list.querySelector('.feedback-empty-state');
+  if (!hasCards && !empty) {
+    empty = document.createElement('div');
+    empty.className = 'feedback-empty-state flex flex-col items-center justify-center py-16 text-slate-400';
+    empty.innerHTML = '<div class="text-4xl mb-3">💬</div><p class="text-[13px]"><%= j t("feedback_boards.feedbacks_page.no_feedbacks") %></p>';
+    list.appendChild(empty);
+  } else if (hasCards && empty) {
+    empty.remove();
+  }
+}
 
 function renderPendingText(n) { return I18N.pending_banner.replace('__N__', n); }
 function renderFlaggedText(n) { return I18N.flagged_banner.replace('__N__', n); }
@@ -1159,6 +1186,12 @@ async function executeBulkAction(action, ids) {
   if (!res.ok) return;
   const data = await res.json();
 
+  // Snapshot card statuses before removal (needed for counter updates)
+  const cardSnapshots = ids.map(id => {
+    const c = document.getElementById(`feedback-${id}`);
+    return c ? { id, status: c.dataset.status, moderation: c.dataset.moderation } : null;
+  }).filter(Boolean);
+
   // Remove or update cards in DOM
   ids.forEach(id => {
     const card = document.getElementById(`feedback-${id}`);
@@ -1167,14 +1200,14 @@ async function executeBulkAction(action, ids) {
       card.style.transition = 'opacity 0.2s, transform 0.2s';
       card.style.opacity = '0';
       card.style.transform = 'translateX(10px)';
-      setTimeout(() => card.remove(), 220);
+      setTimeout(() => { card.remove(); updateHeaderCounts(); }, 220);
     } else if (action === 'approve') {
-      // If currently filtering by moderation (e.g. flagged view), remove card since it no longer matches
-      if (CURRENT_MODERATION) {
+      // If currently filtering (status or moderation view), remove card since it may no longer match
+      if (CURRENT_MODERATION || CURRENT_STATUS) {
         card.style.transition = 'opacity 0.2s, transform 0.2s';
         card.style.opacity = '0';
         card.style.transform = 'translateX(10px)';
-        setTimeout(() => card.remove(), 220);
+        setTimeout(() => { card.remove(); updateHeaderCounts(); }, 220);
       } else {
         card.dataset.status = 'approved';
         card.dataset.moderation = 'safe';
@@ -1188,29 +1221,36 @@ async function executeBulkAction(action, ids) {
       // hide / reject — remove from current filtered view
       card.style.transition = 'opacity 0.2s';
       card.style.opacity = '0';
-      setTimeout(() => card.remove(), 220);
+      setTimeout(() => { card.remove(); updateHeaderCounts(); }, 220);
     }
   });
 
-  // Update pending/flagged counters
-  if (action === 'approve') {
-    const pendingRemoved = ids.filter(id => {
-      const c = document.getElementById(`feedback-${id}`);
-      return c?.dataset?.status === 'pending';
-    }).length;
+  // Update live counters
+  if (action === 'delete') {
+    totalCount -= cardSnapshots.length;
+    approvedCount -= cardSnapshots.filter(s => s.status === 'approved').length;
+  } else if (action === 'approve') {
+    const wasNotApproved = cardSnapshots.filter(s => s.status !== 'approved').length;
+    approvedCount += wasNotApproved;
+    const pendingRemoved = cardSnapshots.filter(s => s.status === 'pending').length;
     if (pendingRemoved > 0) updatePendingBanner(-pendingRemoved);
-
-    // If approving from flagged view, all visible cards were flagged
-    if (CURRENT_MODERATION === 'flagged') {
-      updateFlaggedBanner(-ids.length);
-    }
+    if (CURRENT_MODERATION === 'flagged') updateFlaggedBanner(-cardSnapshots.length);
   }
+
+  // Update header (subtitle + badge) immediately for non-delete actions
+  if (action !== 'delete') updateHeaderCounts();
 
   // Hide bulk bar
   toggleSelectAll(false);
 }
 
-Object.assign(window, { feedbackAction, togglePin, deleteFeedback, aiSummarize, switchTab, clearSearch, openDeleteFeedbackModal, closeDeleteFeedbackModal, doBulkAction, executeBulkAction, updateBulkBar, toggleSelectAll, bulkSelectAll, bulkDeselectAll });
+function recordDeleted(wasApproved) {
+  totalCount--;
+  if (wasApproved) approvedCount--;
+  updateHeaderCounts();
+}
+
+Object.assign(window, { feedbackAction, togglePin, deleteFeedback, aiSummarize, switchTab, clearSearch, openDeleteFeedbackModal, closeDeleteFeedbackModal, doBulkAction, executeBulkAction, updateBulkBar, toggleSelectAll, bulkSelectAll, bulkDeselectAll, recordDeleted, updateHeaderCounts });
 })();
 </script>
 
