@@ -107,6 +107,33 @@ class Admin::FeedbacksController < Admin::BaseController
     end
   end
 
+  def bulk_action
+    ids    = Array(params[:ids]).map(&:to_i).uniq
+    action = params[:bulk_action_type].to_s
+
+    allowed = %w[approve hide reject delete]
+    unless allowed.include?(action)
+      render json: { error: "Invalid action" }, status: :bad_request and return
+    end
+
+    feedbacks = @board.feedbacks.where(id: ids)
+    count = 0
+
+    case action
+    when "approve"
+      count = feedbacks.update_all(status: :approved)
+    when "hide"
+      count = feedbacks.update_all(status: :hidden)
+    when "reject"
+      count = feedbacks.update_all(status: :rejected)
+    when "delete"
+      count = feedbacks.count
+      feedbacks.destroy_all
+    end
+
+    render json: { ok: true, count: count, action: action }
+  end
+
   private
 
   def set_board

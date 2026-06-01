@@ -5,6 +5,11 @@
     0%, 100% { opacity: 1; transform: scale(1); }
     50%       { opacity: 0.4; transform: scale(0.75); }
   }
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  #bulk-bar { animation: slideUp 0.2s ease; }
 </style>
 
 <!-- Delete feedback confirm modal -->
@@ -181,6 +186,15 @@
     </div>
 
     <!-- ── Feedback list (scrollable) ─────────────────────────────────── -->
+    <!-- Select-all header row -->
+    <div class="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 border-b border-indigo-50 bg-slate-50/60">
+      <input type="checkbox" id="bulk-select-all" onchange="toggleSelectAll(this.checked)"
+             class="w-3.5 h-3.5 accent-indigo-600 cursor-pointer flex-shrink-0">
+      <label for="bulk-select-all" class="text-[11px] text-slate-400 cursor-pointer select-none">
+        <%= t("feedback_boards.feedbacks_page.bulk_select_all", default: "Chọn tất cả") %>
+      </label>
+    </div>
+
     <div id="feedbacks-list" class="flex-1 min-h-0 overflow-y-auto divide-y divide-indigo-50/70">
       <% @feedbacks.each do |fb| %>
         <% mod = fb.moderation_status.to_s
@@ -190,8 +204,13 @@
              when "auto_rejected"      then "border-left: 3px solid #dc2626;"
              else ""
            end %>
-        <div class="px-4 py-3 bg-white/60 hover:bg-white/90 transition-colors" id="feedback-<%= fb.id %>" data-status="<%= fb.status %>" data-moderation="<%= fb.moderation_status %>" style="<%= border_style %>">
+        <div class="px-4 py-3 bg-white/60 hover:bg-white/90 transition-colors feedback-row" id="feedback-<%= fb.id %>" data-status="<%= fb.status %>" data-moderation="<%= fb.moderation_status %>" style="<%= border_style %>">
           <div class="flex gap-3">
+            <!-- Bulk select checkbox -->
+            <div class="flex-shrink-0 pt-1">
+              <input type="checkbox" class="bulk-checkbox w-3.5 h-3.5 accent-indigo-600 cursor-pointer"
+                     value="<%= fb.id %>" onchange="updateBulkBar()">
+            </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1.5 flex-wrap">
                 <% if fb.pinned? %>
@@ -404,6 +423,40 @@
     <% end %>
 
   </div><!-- /card wrapper -->
+
+<!-- ── Bulk action bar (hidden until items selected) ──────────────────────── -->
+<div id="bulk-bar" style="display:none;"
+     class="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between px-6 py-3 bg-slate-900 text-white shadow-2xl">
+  <div class="flex items-center gap-3">
+    <span class="text-[13px] font-semibold">
+      <span id="bulk-count">0</span> <%= t("feedback_boards.feedbacks_page.bulk_selected", default: "đã chọn") %>
+    </span>
+    <button onclick="bulkSelectAll()" class="text-[11px] text-slate-400 hover:text-white underline underline-offset-2 border-0 bg-transparent cursor-pointer">
+      <%= t("feedback_boards.feedbacks_page.bulk_select_all", default: "Chọn tất cả") %>
+    </button>
+    <button onclick="bulkDeselectAll()" class="text-[11px] text-slate-400 hover:text-white underline underline-offset-2 border-0 bg-transparent cursor-pointer">
+      <%= t("feedback_boards.feedbacks_page.bulk_deselect", default: "Bỏ chọn") %>
+    </button>
+  </div>
+  <div class="flex items-center gap-2">
+    <button onclick="doBulkAction('approve')"
+      class="px-3 py-1.5 text-[12px] font-semibold bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg border-0 cursor-pointer transition-colors">
+      ✓ <%= t("feedback_boards.feedbacks_page.bulk_approve", default: "Duyệt") %>
+    </button>
+    <button onclick="doBulkAction('hide')"
+      class="px-3 py-1.5 text-[12px] font-semibold bg-slate-600 hover:bg-slate-500 text-white rounded-lg border-0 cursor-pointer transition-colors">
+      🙈 <%= t("feedback_boards.feedbacks_page.bulk_hide", default: "Ẩn") %>
+    </button>
+    <button onclick="doBulkAction('reject')"
+      class="px-3 py-1.5 text-[12px] font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-lg border-0 cursor-pointer transition-colors">
+      ✕ <%= t("feedback_boards.feedbacks_page.bulk_reject", default: "Từ chối") %>
+    </button>
+    <button onclick="doBulkAction('delete')"
+      class="px-3 py-1.5 text-[12px] font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg border-0 cursor-pointer transition-colors">
+      🗑 <%= t("feedback_boards.feedbacks_page.bulk_delete", default: "Xóa") %>
+    </button>
+  </div>
+</div>
 
 </div><!-- /tab-panel-feedbacks -->
 
@@ -967,7 +1020,100 @@ function clearSearch() {
   });
 })();
 
-Object.assign(window, { feedbackAction, togglePin, deleteFeedback, aiSummarize, switchTab, clearSearch, openDeleteFeedbackModal, closeDeleteFeedbackModal });
+// ── Bulk selection ───────────────────────────────────────────────────────────
+const BULK_URL = "<%= bulk_action_feedback_board_feedbacks_path(@board) %>";
+const BULK_CONFIRM = {
+  approve: "<%= j t('feedback_boards.feedbacks_page.bulk_confirm_approve', default: 'Duyệt %{n} góp ý đã chọn?') %>",
+  hide:    "<%= j t('feedback_boards.feedbacks_page.bulk_confirm_hide',    default: 'Ẩn %{n} góp ý đã chọn?') %>",
+  reject:  "<%= j t('feedback_boards.feedbacks_page.bulk_confirm_reject',  default: 'Từ chối %{n} góp ý đã chọn?') %>",
+  delete:  "<%= j t('feedback_boards.feedbacks_page.bulk_confirm_delete',  default: 'Xóa vĩnh viễn %{n} góp ý đã chọn? Không thể hoàn tác.') %>"
+};
+
+function getCheckedIds() {
+  return Array.from(document.querySelectorAll('.bulk-checkbox:checked')).map(cb => cb.value);
+}
+
+function updateBulkBar() {
+  const ids = getCheckedIds();
+  const bar = document.getElementById('bulk-bar');
+  const countEl = document.getElementById('bulk-count');
+  if (ids.length > 0) {
+    countEl.textContent = ids.length;
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
+  // Sync select-all checkbox state
+  const allCbs = document.querySelectorAll('.bulk-checkbox');
+  const selectAll = document.getElementById('bulk-select-all');
+  if (selectAll) {
+    selectAll.checked = allCbs.length > 0 && ids.length === allCbs.length;
+    selectAll.indeterminate = ids.length > 0 && ids.length < allCbs.length;
+  }
+}
+
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.bulk-checkbox').forEach(cb => cb.checked = checked);
+  updateBulkBar();
+}
+
+function bulkSelectAll()   { toggleSelectAll(true);  }
+function bulkDeselectAll() { toggleSelectAll(false); }
+
+async function doBulkAction(action) {
+  const ids = getCheckedIds();
+  if (!ids.length) return;
+
+  const msg = (BULK_CONFIRM[action] || '').replace('%{n}', ids.length);
+  if (!confirm(msg)) return;
+
+  const res = await fetch(BULK_URL, {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ ids, bulk_action_type: action })
+  });
+
+  if (!res.ok) return;
+  const data = await res.json();
+
+  // Remove or update cards in DOM
+  ids.forEach(id => {
+    const card = document.getElementById(`feedback-${id}`);
+    if (!card) return;
+    if (action === 'delete') {
+      card.style.transition = 'opacity 0.2s, transform 0.2s';
+      card.style.opacity = '0';
+      card.style.transform = 'translateX(10px)';
+      setTimeout(() => card.remove(), 220);
+    } else if (action === 'approve') {
+      card.dataset.status = 'approved';
+      const badge = card.querySelector(`[class*="status-badge-"]`);
+      if (badge) {
+        badge.textContent = I18N.approved;
+        badge.className = badge.className.replace(/bg-\w+-\d+ text-\w+-\d+/g, 'bg-emerald-50 text-emerald-700');
+      }
+    } else {
+      // hide / reject — remove from current filtered view
+      card.style.transition = 'opacity 0.2s';
+      card.style.opacity = '0';
+      setTimeout(() => card.remove(), 220);
+    }
+  });
+
+  // Update pending/flagged counters
+  if (action === 'approve') {
+    const pendingRemoved = ids.filter(id => {
+      const c = document.getElementById(`feedback-${id}`);
+      return c?.dataset?.status === 'pending';
+    }).length;
+    if (pendingRemoved > 0) updatePendingBanner(-pendingRemoved);
+  }
+
+  // Hide bulk bar
+  toggleSelectAll(false);
+}
+
+Object.assign(window, { feedbackAction, togglePin, deleteFeedback, aiSummarize, switchTab, clearSearch, openDeleteFeedbackModal, closeDeleteFeedbackModal, doBulkAction, updateBulkBar, toggleSelectAll, bulkSelectAll, bulkDeselectAll });
 })();
 </script>
 

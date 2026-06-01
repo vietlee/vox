@@ -140,6 +140,9 @@ Rails.application.routes.draw do
         post  :ai_summarize
       end
       resources :feedbacks, only: [:index, :show, :update, :destroy] do
+        collection do
+          post :bulk_action
+        end
         member do
           patch :approve
           patch :hide
