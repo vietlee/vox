@@ -30,44 +30,40 @@ class ElevenLabsService
     raise
   end
 
-  # Returns raw audio bytes (mp3). Retries on 429 rate limit.
+  # Returns raw audio bytes (mp3). Auto-retries on 429.
   def text_to_speech(text:, voice_id: DEFAULT_VOICE, model: "eleven_multilingual_v2", stability: 0.5, similarity: 0.75, style: 0.0, output_format: "mp3_44100_192")
-    retries = 0
-    max_retries = 2
+    max_attempts = 3
+    payload = {
+      text:     text,
+      model_id: model,
+      voice_settings: {
+        stability:         stability.to_f,
+        similarity_boost:  similarity.to_f,
+        style:             style.to_f,
+        use_speaker_boost: true
+      }
+    }.to_json
 
-    begin
+    max_attempts.times do |attempt|
       response = HTTParty.post(
         "#{BASE_URL}/v1/text-to-speech/#{voice_id}?output_format=#{output_format}",
         headers: default_headers.merge("Accept" => "audio/mpeg"),
-        body: {
-          text:     text,
-          model_id: model,
-          voice_settings: {
-            stability:         stability.to_f,
-            similarity_boost:  similarity.to_f,
-            style:             style.to_f,
-            use_speaker_boost: true
-          }
-        }.to_json,
+        body:    payload,
         timeout: 60
       )
 
-      if response.code == 429 && retries < max_retries
-        retries += 1
-        wait = retries * 3
-        Rails.logger.warn "ElevenLabs rate limited, retrying in #{wait}s (attempt #{retries}/#{max_retries})"
+      if response.code == 429 && attempt < max_attempts - 1
+        wait = (attempt + 1) * 3
+        Rails.logger.warn "ElevenLabs 429, retry in #{wait}s (#{attempt + 1}/#{max_attempts})"
         sleep wait
-        retry
+        next
       end
 
-      unless response.success?
-        raise friendly_error(response)
-      end
-
-      response.body
-    rescue HTTParty::Error, Timeout::Error
-      raise "Không thể kết nối ElevenLabs. Vui lòng thử lại sau."
+      raise friendly_error(response) unless response.success?
+      return response.body
     end
+  rescue HTTParty::Error, Timeout::Error
+    raise "Không thể kết nối ElevenLabs. Vui lòng thử lại sau."
   rescue => e
     Rails.logger.error "ElevenLabsService#text_to_speech error: #{e.message}"
     raise
