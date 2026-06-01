@@ -7,6 +7,34 @@ class ElevenLabsService
     raise "ELEVENLABS_API_KEY is not set" if @api_key.blank?
   end
 
+  # Returns ElevenLabs account usage: { tier:, used:, limit:, remaining:, pct: }
+  def subscription_usage
+    response = HTTParty.get(
+      "#{BASE_URL}/v1/user/subscription",
+      headers: default_headers,
+      timeout: 10
+    )
+    raise "ElevenLabs subscription error: #{response.code}" unless response.success?
+
+    data      = JSON.parse(response.body)
+    used      = data["character_count"].to_i
+    limit     = data["character_limit"].to_i
+    remaining = [limit - used, 0].max
+    pct       = limit > 0 ? (used.to_f / limit * 100).round(1) : 0
+
+    {
+      tier:      data["tier"] || "unknown",
+      used:      used,
+      limit:     limit,
+      remaining: remaining,
+      pct:       pct,
+      next_reset: data["next_character_count_reset_unix"]
+    }
+  rescue => e
+    Rails.logger.error "ElevenLabsService#subscription_usage error: #{e.message}"
+    nil
+  end
+
   # Returns an array of voice hashes: { id:, name:, preview_url:, category: }
   def voices
     response = HTTParty.get(

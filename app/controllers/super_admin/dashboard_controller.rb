@@ -41,5 +41,8 @@ class SuperAdmin::DashboardController < SuperAdmin::BaseController
                               .where.not(plan: :free)
                               .where(created_at: Time.current.beginning_of_month..Time.current.end_of_month)
                               .order(created_at: :desc)
+
+    # ElevenLabs API usage
+    @elevenlabs = ENV["ELEVENLABS_API_KEY"].present? ? ElevenLabsService.new.subscription_usage : nil
   end
 end

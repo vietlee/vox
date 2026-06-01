@@ -28,6 +28,54 @@
   </div>
 </div>
 
+<!-- ElevenLabs API Usage -->
+<% if @elevenlabs %>
+  <% el = @elevenlabs %>
+  <% bar_color = el[:pct] >= 90 ? "from-red-500 to-red-400" : el[:pct] >= 70 ? "from-amber-500 to-amber-400" : "from-emerald-500 to-teal-400" %>
+  <% text_color = el[:pct] >= 90 ? "text-red-600" : el[:pct] >= 70 ? "text-amber-600" : "text-emerald-600" %>
+  <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-2">
+        <span class="text-[15px]">🎙️</span>
+        <h2 class="text-[13px] font-bold text-slate-700">ElevenLabs API</h2>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-500"><%= el[:tier] %></span>
+      </div>
+      <% if el[:next_reset] %>
+        <span class="text-[11px] text-slate-400">
+          Reset: <%= Time.at(el[:next_reset]).strftime("%d/%m/%Y") rescue "—" %>
+        </span>
+      <% end %>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4 mb-3">
+      <div class="text-center">
+        <div class="text-[20px] font-black <%= text_color %>"><%= number_with_delimiter(el[:remaining]) %></div>
+        <div class="text-[11px] text-slate-400">Chars còn lại</div>
+      </div>
+      <div class="text-center">
+        <div class="text-[20px] font-black text-slate-700"><%= number_with_delimiter(el[:used]) %></div>
+        <div class="text-[11px] text-slate-400">Đã dùng</div>
+      </div>
+      <div class="text-center">
+        <div class="text-[20px] font-black text-slate-500"><%= number_with_delimiter(el[:limit]) %></div>
+        <div class="text-[11px] text-slate-400">Giới hạn/tháng</div>
+      </div>
+    </div>
+
+    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+      <div class="h-full bg-gradient-to-r <%= bar_color %> rounded-full transition-all" style="width: <%= el[:pct] %>%"></div>
+    </div>
+    <div class="flex justify-between mt-1">
+      <span class="text-[10px] text-slate-400"><%= el[:pct] %>% đã dùng</span>
+      <span class="text-[10px] <%= text_color %> font-semibold"><%= number_with_delimiter(el[:remaining]) %> chars còn lại</span>
+    </div>
+  </div>
+<% elsif ENV["ELEVENLABS_API_KEY"].blank? %>
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-[12px] text-amber-700 flex items-center gap-2">
+    ⚠️ <span>ELEVENLABS_API_KEY chưa được cấu hình — không thể hiển thị usage.</span>
+  </div>
+<% end %>
+
 <!-- Revenue section header + date filter -->
 <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
   <div class="flex items-center gap-2">
