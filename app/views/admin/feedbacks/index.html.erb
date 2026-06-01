@@ -12,6 +12,74 @@
   #bulk-bar { animation: slideUp 0.2s ease; }
 </style>
 
+<!-- Bulk action confirm modal -->
+<div id="bulk-confirm-modal" class="fixed inset-0 z-50 items-center justify-center p-4" style="display:none; background:rgba(15,23,42,0.45); backdrop-filter:blur(2px);">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4" onclick="event.stopPropagation()">
+    <div class="flex items-center gap-3">
+      <div id="bulk-modal-icon-wrap" class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+      </div>
+      <div>
+        <h3 id="bulk-modal-title" class="text-[15px] font-bold text-slate-900"></h3>
+        <p id="bulk-modal-body" class="text-[12px] text-slate-500 mt-0.5"></p>
+      </div>
+    </div>
+    <div class="flex gap-2 pt-1">
+      <button type="button" onclick="closeBulkConfirmModal()" class="flex-1 px-4 py-2 rounded-lg text-[13px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">
+        <%= t("common.cancel") %>
+      </button>
+      <button id="bulk-modal-confirm-btn" type="button" class="flex-1 px-4 py-2 rounded-lg text-[13px] font-semibold text-white">
+      </button>
+    </div>
+  </div>
+</div>
+<script>
+  let _bulkConfirmCallback = null;
+
+  const BULK_MODAL_CONFIG = {
+    approve: {
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+      iconBg: 'bg-emerald-50',
+      btnClass: 'bg-emerald-600 hover:bg-emerald-700',
+    },
+    hide: {
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`,
+      iconBg: 'bg-slate-100',
+      btnClass: 'bg-slate-600 hover:bg-slate-700',
+    },
+    reject: {
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+      iconBg: 'bg-amber-50',
+      btnClass: 'bg-amber-500 hover:bg-amber-600',
+    },
+    delete: {
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+      iconBg: 'bg-red-50',
+      btnClass: 'bg-red-600 hover:bg-red-700',
+    }
+  };
+
+  function openBulkConfirmModal(action, title, body, btnLabel, onConfirm) {
+    const cfg = BULK_MODAL_CONFIG[action] || BULK_MODAL_CONFIG.delete;
+    document.getElementById('bulk-modal-icon-wrap').className = `w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.iconBg}`;
+    document.getElementById('bulk-modal-icon-wrap').innerHTML = cfg.icon;
+    document.getElementById('bulk-modal-title').textContent   = title;
+    document.getElementById('bulk-modal-body').textContent    = body;
+    const btn = document.getElementById('bulk-modal-confirm-btn');
+    btn.className = `flex-1 px-4 py-2 rounded-lg text-[13px] font-semibold text-white ${cfg.btnClass}`;
+    btn.textContent = btnLabel;
+    _bulkConfirmCallback = onConfirm;
+    btn.onclick = () => { closeBulkConfirmModal(); _bulkConfirmCallback?.(); };
+    document.getElementById('bulk-confirm-modal').style.display = 'flex';
+  }
+
+  function closeBulkConfirmModal() {
+    document.getElementById('bulk-confirm-modal').style.display = 'none';
+    _bulkConfirmCallback = null;
+  }
+
+  document.getElementById('bulk-confirm-modal').addEventListener('click', closeBulkConfirmModal);
+</script>
+
 <!-- Delete feedback confirm modal -->
 <div id="delete-feedback-modal" class="fixed inset-0 z-50 items-center justify-center p-4" style="display:none; background:rgba(15,23,42,0.45); backdrop-filter:blur(2px);">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4" onclick="event.stopPropagation()">
@@ -1060,13 +1128,28 @@ function toggleSelectAll(checked) {
 function bulkSelectAll()   { toggleSelectAll(true);  }
 function bulkDeselectAll() { toggleSelectAll(false); }
 
-async function doBulkAction(action) {
+const BULK_MODAL_LABELS = {
+  approve: { title: "<%= j t('feedback_boards.feedbacks_page.bulk_approve', default: 'Duyệt') %>",      body: (n) => "<%= j t('feedback_boards.feedbacks_page.bulk_confirm_approve', default: 'Duyệt %{n} góp ý đã chọn?') %>".replace('%{n}', n) },
+  hide:    { title: "<%= j t('feedback_boards.feedbacks_page.bulk_hide',    default: 'Ẩn') %>",         body: (n) => "<%= j t('feedback_boards.feedbacks_page.bulk_confirm_hide',    default: 'Ẩn %{n} góp ý đã chọn?') %>".replace('%{n}', n) },
+  reject:  { title: "<%= j t('feedback_boards.feedbacks_page.bulk_reject',  default: 'Từ chối') %>",    body: (n) => "<%= j t('feedback_boards.feedbacks_page.bulk_confirm_reject',  default: 'Từ chối %{n} góp ý đã chọn?') %>".replace('%{n}', n) },
+  delete:  { title: "<%= j t('feedback_boards.feedbacks_page.bulk_delete',  default: 'Xóa') %>",        body: (n) => "<%= j t('feedback_boards.feedbacks_page.bulk_confirm_delete',  default: 'Xóa vĩnh viễn %{n} góp ý đã chọn? Không thể hoàn tác.') %>".replace('%{n}', n) }
+};
+
+function doBulkAction(action) {
   const ids = getCheckedIds();
   if (!ids.length) return;
 
-  const msg = (BULK_CONFIRM[action] || '').replace('%{n}', ids.length);
-  if (!confirm(msg)) return;
+  const lbl = BULK_MODAL_LABELS[action];
+  openBulkConfirmModal(
+    action,
+    lbl.title,
+    lbl.body(ids.length),
+    lbl.title,
+    () => executeBulkAction(action, ids)
+  );
+}
 
+async function executeBulkAction(action, ids) {
   const res = await fetch(BULK_URL, {
     method: 'POST',
     headers: { 'X-CSRF-Token': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -1113,7 +1196,7 @@ async function doBulkAction(action) {
   toggleSelectAll(false);
 }
 
-Object.assign(window, { feedbackAction, togglePin, deleteFeedback, aiSummarize, switchTab, clearSearch, openDeleteFeedbackModal, closeDeleteFeedbackModal, doBulkAction, updateBulkBar, toggleSelectAll, bulkSelectAll, bulkDeselectAll });
+Object.assign(window, { feedbackAction, togglePin, deleteFeedback, aiSummarize, switchTab, clearSearch, openDeleteFeedbackModal, closeDeleteFeedbackModal, doBulkAction, executeBulkAction, updateBulkBar, toggleSelectAll, bulkSelectAll, bulkDeselectAll });
 })();
 </script>
 
