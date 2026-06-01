@@ -2,10 +2,12 @@ import { Controller } from "@hotwired/stimulus"
 
 // VOX credit cost by model
 const CHARS_PER_CREDIT = {
-  "eleven_turbo_v2_5":      500,
+  "eleven_flash_v2_5":      500,
+  "eleven_turbo_v2_5":      500,  // alias for Flash v2.5
   "eleven_turbo_v2":        500,
   "eleven_multilingual_v2": 250,
   "eleven_multilingual_v3": 250,
+  "eleven_v3":              250,
   "eleven_monolingual_v1":  250,
 }
 const ttsCredits = (chars, model) => {

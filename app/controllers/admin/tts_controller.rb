@@ -64,12 +64,17 @@ class Admin::TtsController < Admin::BaseController
     end
   end
 
-  # Turbo: 1 credit/500 chars | Multilingual/others: 1 credit/250 chars
+  # Credit cost by model (chars needed per 1 credit)
+  # Flash v2.5 ($0.05/1K): 500 chars/credit
+  # Multilingual v2 ($0.10/1K): 250 chars/credit
+  # Eleven v3 ($0.10/1K): 250 chars/credit
   TTS_CHARS_PER_CREDIT = {
-    "eleven_turbo_v2_5"     => 500,
-    "eleven_turbo_v2"       => 500,
+    "eleven_flash_v2_5"      => 500,
+    "eleven_turbo_v2_5"      => 500,  # alias for Flash v2.5
+    "eleven_turbo_v2"        => 500,
     "eleven_multilingual_v2" => 250,
     "eleven_multilingual_v3" => 250,
+    "eleven_v3"              => 250,
     "eleven_monolingual_v1"  => 250,
   }.freeze
 
