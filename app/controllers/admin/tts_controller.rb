@@ -27,6 +27,9 @@ class Admin::TtsController < Admin::BaseController
       return
     end
 
+    credits_needed = tts_credits_for(text)
+    return unless require_credits!(credits_needed)
+
     stability  = (params[:stability].presence  || 0.5).to_f.clamp(0.0, 1.0)
     similarity = (params[:similarity].presence || 0.75).to_f.clamp(0.0, 1.0)
     style      = (params[:style].presence      || 0.0).to_f.clamp(0.0, 1.0)
@@ -40,6 +43,8 @@ class Admin::TtsController < Admin::BaseController
       similarity: similarity,
       style:      style
     )
+
+    current_workspace.active_subscription&.deduct_credits!(credits_needed)
 
     send_data audio,
       type:        "audio/mpeg",
@@ -55,5 +60,10 @@ class Admin::TtsController < Admin::BaseController
     unless current_workspace&.active_subscription&.has_feature?(:tts)
       render json: { error: t("tts.upgrade_required"), upgrade_required: true }, status: :payment_required
     end
+  end
+
+  # 1 credit per 500 chars, minimum 1
+  def tts_credits_for(text)
+    [(text.length / 500.0).ceil, 1].max
   end
 end

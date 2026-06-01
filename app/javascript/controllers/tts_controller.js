@@ -1,13 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
-// ElevenLabs pricing per 1K characters (USD)
-const MODEL_RATES = {
-  "eleven_turbo_v2_5":    0.05,
-  "eleven_multilingual_v2": 0.10,
-  "eleven_multilingual_v3": 0.10,
-  "eleven_monolingual_v1":  0.10,
-}
-const USD_TO_VND = 25000
+// VOX credit cost: 1 credit per 500 chars, minimum 1
+const ttsCredits = (chars) => Math.max(Math.ceil(chars / 500), 1)
 
 export default class extends Controller {
   static targets = [
@@ -43,24 +37,15 @@ export default class extends Controller {
   }
 
   updateCost() {
-    const len   = this.textTarget.value.length
-    const model = this.modelSelectTarget.value
-    const rate  = MODEL_RATES[model] ?? 0.10
+    const len = this.textTarget.value.length
 
     if (len === 0) {
       this.costEstimateTarget.textContent = "—"
       return
     }
 
-    const usd = (len / 1000) * rate
-    const vnd = Math.ceil(usd * USD_TO_VND)
-
-    if (usd < 0.001) {
-      this.costEstimateTarget.textContent = "< $0.001"
-    } else {
-      const usdStr = usd < 0.01 ? usd.toFixed(4) : usd.toFixed(3)
-      this.costEstimateTarget.textContent = `~$${usdStr} (~${vnd.toLocaleString()}₫)`
-    }
+    const credits = ttsCredits(len)
+    this.costEstimateTarget.textContent = `${credits} credit${credits > 1 ? "s" : ""}`
   }
 
   // ── Slider display ─────────────────────────────────────────────────
