@@ -65,9 +65,9 @@ class AiExecutiveReportJob < ApplicationJob
       ALL text values must be in #{lang_name}.
 
       {
-        "title": "Professional report title",
-        "subtitle": "e.g. 'Internal HR Survey — #{Date.current.strftime("%B %Y")}'",
-        "executive_summary": "3-4 paragraphs covering: overall picture, key findings, sentiment, and what leadership should know. Cite specific numbers. Use \\n\\n between paragraphs.",
+        "title": "Professional report title in #{lang_name}",
+        "subtitle": "Short subtitle in #{lang_name}, e.g. period or scope of the survey — #{Date.current.strftime("%m/%Y")}",
+        "executive_summary": "2-3 paragraphs covering: overall picture, key findings, sentiment, and what leadership should know. Cite specific numbers. Use \\n\\n between paragraphs.",
         "key_metrics": {
           "response_count": #{responses.count},
           "sentiment_positive": "X%",
@@ -93,8 +93,8 @@ class AiExecutiveReportJob < ApplicationJob
       }
 
       Requirements:
-      - 3-5 sections covering distinct survey findings themes (e.g. Work Environment, Management, Facilities, Satisfaction Scores)
-      - 3-5 recommendations ordered by priority (high first)
+      - 3-5 sections covering distinct survey findings themes (e.g. Work Environment, Management, Facilities, Satisfaction Scores). Section headings must be in #{lang_name}.
+      - 3-5 recommendations ordered by priority (high first). action, rationale, expected_impact must be in #{lang_name}.
       - Each section content: 2-3 paragraphs max, concise and data-backed
       - executive_summary: 2-3 paragraphs max
       - sections and recommendations must directly connect to the AI analysis data provided
