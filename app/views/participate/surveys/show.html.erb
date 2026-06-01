@@ -31,7 +31,7 @@
   <div class="px-4 sm:px-6 py-2" style="position:fixed; top:47px; left:0; right:0; z-index:9998; transform:translateZ(0); -webkit-transform:translateZ(0); background:linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%);">
     <div class="max-w-[680px] mx-auto">
       <div class="flex justify-between text-[11px] text-slate-500 mb-1.5 mt-2">
-        <span id="progress-label"><%= t("participate.survey.progress", answered: 0, total: @questions.count) %></span>
+        <span id="progress-label"><%= t("participate.survey.progress", answered: 0, total: 0) %></span>
       </div>
       <div class="h-1.5 bg-white/60 rounded-full overflow-hidden" style="border:1px solid rgba(99,102,241,0.15);">
         <div id="progress-bar" class="h-full rounded-full transition-all duration-500" style="width:0%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
@@ -160,7 +160,7 @@
                data-condition="<%= cond.to_json %>"
                style="background:#ffffff; border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 16px rgba(99,102,241,0.06);">
             <div class="flex items-start gap-3 mb-4">
-              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-black text-white flex-shrink-0 mt-0.5"
+              <span class="q-num inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-black text-white flex-shrink-0 mt-0.5"
                     style="background:linear-gradient(135deg,#6366f1,#a855f7);"><%= idx + 1 %></span>
               <div>
                 <p class="text-[15px] font-semibold text-slate-900 leading-snug">
@@ -197,7 +197,7 @@
 
 <script>
 (function() {
-  const PROG_TPL  = "<%= j t('participate.survey.progress', answered: '__N__', total: @questions.count) %>";
+  const PROG_TPL  = "<%= j t('participate.survey.progress', answered: '__N__', total: '__T__') %>";
   const ERR_MSG   = "<%= I18n.locale.to_s == 'vi' ? 'Vui lòng trả lời câu hỏi này' : 'Please answer this question' %>";
 
   // ── Skip Logic ──────────────────────────────────────────────────────────────
@@ -298,7 +298,17 @@
     const bar   = document.getElementById('progress-bar');
     const label = document.getElementById('progress-label');
     if (bar)   bar.style.width = pct + '%';
-    if (label) label.textContent = PROG_TPL.replace('__N__', answered);
+    if (label) label.textContent = PROG_TPL.replace('__N__', answered).replace('__T__', visibleTotal);
+
+    // Renumber visible questions sequentially (1, 2, 3…)
+    let num = 0;
+    document.querySelectorAll('.q-card[data-qid]').forEach(card => {
+      const badge = card.querySelector('.q-num');
+      if (!badge) return;
+      if (card.dataset.condHidden === 'true') return;
+      badge.textContent = ++num;
+    });
+
     updateSubmitBtn();
   }
 
