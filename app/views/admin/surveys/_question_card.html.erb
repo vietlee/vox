@@ -393,6 +393,21 @@ async function saveCondition(id, url) {
   // Remember current source for next repopulate
   const sel = document.getElementById('cond-source-' + id);
   if (sel) sel.dataset.current = sourceId;
+
+  // Flash save button to ✓ Đã lưu for 2s
+  const saveBtn = document.querySelector(`button[onclick="saveCondition(${id}, '${url}')"]`);
+  if (saveBtn) {
+    const orig = saveBtn.textContent;
+    const origCls = saveBtn.className;
+    saveBtn.textContent = '✓ ' + (I18N_SKIP.saved_ok || 'Đã lưu');
+    saveBtn.className = saveBtn.className.replace('bg-blue-500 hover:bg-blue-600', 'bg-emerald-500 hover:bg-emerald-500');
+    saveBtn.disabled = true;
+    setTimeout(() => {
+      saveBtn.textContent = orig;
+      saveBtn.className = origCls;
+      saveBtn.disabled = false;
+    }, 2000);
+  }
 }
 
 async function clearCondition(id, url) {
