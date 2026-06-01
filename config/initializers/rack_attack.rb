@@ -1,4 +1,12 @@
 class Rack::Attack
+  # Use Redis in production (via Rails cache), dedicated MemoryStore in dev/test
+  # so throttles work regardless of Rails cache_store setting
+  if Rails.env.production?
+    cache.store = Rails.cache
+  else
+    cache.store = ActiveSupport::Cache::MemoryStore.new
+  end
+
   # ── Safelist: internal health check ────────────────────────────────────────
   safelist("allow-health") { |req| req.path == "/up" }
 
