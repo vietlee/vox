@@ -92,6 +92,47 @@
   </div>
 </div>
 
+<!-- Usage this period -->
+<% if sub %>
+<div class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
+  <h2 class="text-[13px] font-bold text-slate-700 mb-4">📊 Sử dụng trong kỳ</h2>
+  <div class="grid grid-cols-5 gap-4">
+    <%
+      usage_items = [
+        { label: "Khảo sát",   used: sub.surveys_used,    max: sub.max_surveys,    pct: sub.surveys_pct,    color: "bg-indigo-500" },
+        { label: "Bình chọn",  used: sub.votes_used,      max: sub.max_votes,      pct: sub.votes_pct,      color: "bg-violet-500" },
+        { label: "Feedback",   used: sub.feedbacks_used,  max: sub.max_feedbacks,  pct: sub.feedbacks_pct,  color: "bg-sky-500"    },
+        { label: "Supporter",  used: sub.supporters_used, max: sub.max_supporters, pct: sub.supporters_pct, color: "bg-emerald-500"},
+        { label: "AI Credits", used: (sub.max_ai_credits.to_i - sub.credit_balance.to_i), max: sub.max_ai_credits, pct: sub.max_ai_credits.to_i > 0 ? (((sub.max_ai_credits.to_i - sub.credit_balance.to_i).to_f / sub.max_ai_credits) * 100).round : 0, color: "bg-rose-500" },
+      ]
+    %>
+    <% usage_items.each do |item| %>
+      <div>
+        <div class="flex justify-between items-baseline mb-1.5">
+          <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide"><%= item[:label] %></span>
+          <span class="text-[12px] font-bold text-slate-800">
+            <%= item[:used] %><span class="text-slate-400 font-normal"> / <%= item[:max] || "∞" %></span>
+          </span>
+        </div>
+        <% if item[:max] %>
+          <% bar_color = item[:pct] >= 90 ? "bg-red-500" : item[:pct] >= 70 ? "bg-amber-400" : item[:color] %>
+          <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all <%= bar_color %>" style="width:<%= item[:pct] %>%"></div>
+          </div>
+          <div class="text-[10px] mt-1 <%= item[:pct] >= 90 ? 'text-red-500 font-semibold' : 'text-slate-400' %>">
+            <% remaining = item[:max] - item[:used] %>
+            <%= remaining <= 0 ? "Đã hết giới hạn" : "Còn lại #{remaining}" %>
+          </div>
+        <% else %>
+          <div class="h-2 bg-slate-100 rounded-full"></div>
+          <div class="text-[10px] mt-1 text-slate-400">Không giới hạn</div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+<% end %>
+
 <div class="grid grid-cols-3 gap-4 mb-4">
   <!-- Workspace details -->
   <div class="bg-white rounded-xl border border-slate-200 p-5">
