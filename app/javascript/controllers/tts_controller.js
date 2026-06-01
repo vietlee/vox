@@ -84,15 +84,8 @@ export default class extends Controller {
         ...data.filter(v => !isVietnamese(v))
       ]
 
-      // Separator if there are Vietnamese voices
       const viCount = sorted.filter(v => isVietnamese(v)).length
-      sorted.forEach((v, i) => {
-        if (i === viCount && viCount > 0) {
-          const sep = document.createElement("option")
-          sep.disabled = true
-          sep.textContent = "── Other voices ──"
-          sel.appendChild(sep)
-        }
+      sorted.forEach(v => {
         const opt           = document.createElement("option")
         opt.value           = v.id
         opt.textContent     = `${v.name} (${v.category})`
@@ -101,7 +94,14 @@ export default class extends Controller {
       })
 
       // Auto-select first Vietnamese voice, else Rachel, else first
-      const firstVi = Array.from(sel.options).find(o => isVietnamese({ name: o.textContent }))
+      if (viCount > 0) {
+        const sep = document.createElement("option")
+        sep.disabled = true
+        sep.textContent = this.element.dataset.ttsLabelOtherVoices || "── Other voices ──"
+        sel.insertBefore(sep, sel.options[viCount])
+      }
+
+      const firstVi = Array.from(sel.options).find(o => !o.disabled && isVietnamese({ name: o.textContent }))
       const rachel  = Array.from(sel.options).find(o => o.textContent.includes("Rachel"))
       if (firstVi) sel.value = firstVi.value
       else if (rachel) sel.value = rachel.value
@@ -183,7 +183,9 @@ export default class extends Controller {
   setLoading(loading) {
     this.generateBtnTarget.disabled = loading
     this.spinnerTarget.classList.toggle("hidden", !loading)
-    this.btnLabelTarget.textContent = loading ? "Đang tạo..." : "🎙️ Tạo giọng nói"
+    this.btnLabelTarget.textContent = loading
+      ? (this.element.dataset.ttsLabelGenerating || "...")
+      : (this.element.dataset.ttsLabelGenerate   || "🎙️ Generate")
   }
 
   showError(msg) {

@@ -32,7 +32,10 @@
   <%# ── MAIN TTS UI ─────────────────────────────────────────────────── %>
   <div data-controller="tts"
        data-tts-voices-url="<%= tts_voices_path %>"
-       data-tts-generate-url="<%= tts_generate_path %>">
+       data-tts-generate-url="<%= tts_generate_path %>"
+       data-tts-label-generating="<%= t("tts.generating") %>"
+       data-tts-label-generate="🎙️ <%= t("tts.generate_btn") %>"
+       data-tts-label-other-voices="<%= t("tts.other_voices") %>">
 
     <% unless ENV["ELEVENLABS_API_KEY"].present? %>
       <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[13px] flex items-start gap-2">
@@ -59,7 +62,6 @@
             class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[13px] text-slate-800 placeholder-slate-400 resize-y focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 transition-colors"
           ></textarea>
 
-          <!-- Char count + cost estimate -->
           <div class="flex justify-between items-center mt-2">
             <div class="flex items-center gap-3 text-[11px]">
               <span>
@@ -68,7 +70,7 @@
               </span>
               <span class="text-slate-300">|</span>
               <span class="text-slate-400"><%= t("tts.cost_estimate") %>:
-                <span data-tts-target="costEstimate" class="font-semibold text-indigo-600"><%= t("tts.cost_free") %></span>
+                <span data-tts-target="costEstimate" class="font-semibold text-indigo-600">—</span>
               </span>
             </div>
             <div class="w-32 h-1 bg-slate-100 rounded-full overflow-hidden">
@@ -132,55 +134,45 @@
           </label>
           <select data-tts-target="modelSelect" data-action="change->tts#updateCost"
             class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-colors">
-            <option value="eleven_turbo_v2_5" selected>⚡ eleven_turbo_v2_5 — Turbo (Recommended)</option>
-            <option value="eleven_multilingual_v2">🌐 eleven_multilingual_v2 — Multilingual</option>
-            <option value="eleven_monolingual_v1">🇬🇧 eleven_monolingual_v1 — English only</option>
+            <option value="eleven_turbo_v2_5" selected>⚡ eleven_turbo_v2_5 — <%= t("tts.model_turbo") %></option>
+            <option value="eleven_multilingual_v2">🌐 eleven_multilingual_v2 — <%= t("tts.model_multilingual") %></option>
+            <option value="eleven_monolingual_v1">🇬🇧 eleven_monolingual_v1 — <%= t("tts.model_english") %></option>
           </select>
         </div>
 
         <!-- Voice Settings -->
         <div class="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
-          <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">🎛️ Voice Settings</h3>
+          <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">🎛️ <%= t("tts.voice_settings") %></h3>
           <div>
             <div class="flex justify-between mb-1">
-              <label class="text-[12px] text-slate-600 font-medium">Stability</label>
+              <label class="text-[12px] text-slate-600 font-medium"><%= t("tts.stability_label") %></label>
               <span data-tts-target="stabilityVal" class="text-[12px] font-mono text-indigo-600">0.50</span>
             </div>
             <input type="range" min="0" max="1" step="0.05" value="0.50"
               data-tts-target="stability" data-action="input->tts#updateSliders"
               class="w-full accent-indigo-600">
-            <p class="text-[10px] text-slate-400 mt-0.5">Thấp = biểu cảm hơn · Cao = ổn định hơn</p>
+            <p class="text-[10px] text-slate-400 mt-0.5"><%= t("tts.stability_hint") %></p>
           </div>
           <div>
             <div class="flex justify-between mb-1">
-              <label class="text-[12px] text-slate-600 font-medium">Similarity Boost</label>
+              <label class="text-[12px] text-slate-600 font-medium"><%= t("tts.similarity_label") %></label>
               <span data-tts-target="similarityVal" class="text-[12px] font-mono text-indigo-600">0.75</span>
             </div>
             <input type="range" min="0" max="1" step="0.05" value="0.75"
               data-tts-target="similarity" data-action="input->tts#updateSliders"
               class="w-full accent-indigo-600">
-            <p class="text-[10px] text-slate-400 mt-0.5">Cao = giống giọng gốc hơn</p>
+            <p class="text-[10px] text-slate-400 mt-0.5"><%= t("tts.similarity_hint") %></p>
           </div>
           <div>
             <div class="flex justify-between mb-1">
-              <label class="text-[12px] text-slate-600 font-medium">Style Exaggeration</label>
+              <label class="text-[12px] text-slate-600 font-medium"><%= t("tts.style_label") %></label>
               <span data-tts-target="styleVal" class="text-[12px] font-mono text-indigo-600">0.00</span>
             </div>
             <input type="range" min="0" max="1" step="0.05" value="0.00"
               data-tts-target="style" data-action="input->tts#updateSliders"
               class="w-full accent-indigo-600">
-            <p class="text-[10px] text-slate-400 mt-0.5">Cao = giọng phong phú hơn</p>
+            <p class="text-[10px] text-slate-400 mt-0.5"><%= t("tts.style_hint") %></p>
           </div>
-        </div>
-
-        <!-- Tips -->
-        <div class="bg-indigo-50 rounded-xl border border-indigo-100 p-5">
-          <h3 class="text-[12px] font-bold text-indigo-700 mb-3 uppercase tracking-wide">💡 <%= t("tts.tip_title") %></h3>
-          <ul class="space-y-2 text-[12px] text-indigo-800">
-            <li class="flex items-start gap-1.5"><span class="mt-0.5 flex-shrink-0">•</span><%= t("tts.tip_1") %></li>
-            <li class="flex items-start gap-1.5"><span class="mt-0.5 flex-shrink-0">•</span><%= t("tts.tip_2") %></li>
-            <li class="flex items-start gap-1.5"><span class="mt-0.5 flex-shrink-0">•</span><%= t("tts.tip_3") %></li>
-          </ul>
         </div>
 
       </div>
@@ -215,13 +207,13 @@
         <div class="grid grid-cols-2 gap-3 mb-6">
           <div class="rounded-xl border-2 border-indigo-500 bg-indigo-50 p-4 text-center">
             <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide mb-1">Pro</div>
-            <div class="text-xl font-extrabold text-slate-800">190.000₫<span class="text-[12px] font-normal text-slate-400">/tháng</span></div>
-            <div class="text-[11px] text-slate-500 mt-1">300 AI credits · TTS included</div>
+            <div class="text-xl font-extrabold text-slate-800">190.000₫<span class="text-[12px] font-normal text-slate-400"><%= t("tts.per_month") %></span></div>
+            <div class="text-[11px] text-slate-500 mt-1"><%= t("tts.pro_credits") %></div>
           </div>
           <div class="rounded-xl border-2 border-violet-500 bg-violet-50 p-4 text-center">
             <div class="text-[11px] font-bold text-violet-600 uppercase tracking-wide mb-1">Enterprise</div>
-            <div class="text-xl font-extrabold text-slate-800">390.000₫<span class="text-[12px] font-normal text-slate-400">/tháng</span></div>
-            <div class="text-[11px] text-slate-500 mt-1">1000 AI credits · Không giới hạn</div>
+            <div class="text-xl font-extrabold text-slate-800">390.000₫<span class="text-[12px] font-normal text-slate-400"><%= t("tts.per_month") %></span></div>
+            <div class="text-[11px] text-slate-500 mt-1"><%= t("tts.enterprise_credits") %></div>
           </div>
         </div>
 
