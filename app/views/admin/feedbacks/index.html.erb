@@ -1,5 +1,11 @@
 <% content_for :title, @board.title %>
 <% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
+<style>
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.75); }
+  }
+</style>
 
 <!-- Delete feedback confirm modal -->
 <div id="delete-feedback-modal" class="fixed inset-0 z-50 items-center justify-center p-4" style="display:none; background:rgba(15,23,42,0.45); backdrop-filter:blur(2px);">
@@ -177,7 +183,14 @@
     <!-- ── Feedback list (scrollable) ─────────────────────────────────── -->
     <div id="feedbacks-list" class="flex-1 min-h-0 overflow-y-auto divide-y divide-indigo-50/70">
       <% @feedbacks.each do |fb| %>
-        <div class="px-4 py-3 bg-white/60 hover:bg-white/90 transition-colors" id="feedback-<%= fb.id %>" data-status="<%= fb.status %>" data-moderation="<%= fb.moderation_status %>">
+        <% mod = fb.moderation_status.to_s
+           border_style = case mod
+             when "moderation_pending" then "border-left: 3px solid #f59e0b;"
+             when "flagged"            then "border-left: 3px solid #ef4444;"
+             when "auto_rejected"      then "border-left: 3px solid #dc2626;"
+             else ""
+           end %>
+        <div class="px-4 py-3 bg-white/60 hover:bg-white/90 transition-colors" id="feedback-<%= fb.id %>" data-status="<%= fb.status %>" data-moderation="<%= fb.moderation_status %>" style="<%= border_style %>">
           <div class="flex gap-3">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -186,7 +199,19 @@
                 <% else %>
                   <span class="pin-badge-<%= fb.id %> hidden text-[10px] font-bold text-amber-600">📌 <%= t("feedback_boards.feedbacks_page.pinned") %></span>
                 <% end %>
-                <span class="status-badge-<%= fb.id %> text-[10px] px-2 py-0.5 rounded-full font-semibold <%= fb.safe? ? 'bg-emerald-50 text-emerald-700' : fb.flagged? ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500' %>">
+                <% badge_cls = case mod
+                     when "safe"               then "bg-emerald-50 text-emerald-700"
+                     when "flagged"            then "bg-red-50 text-red-600"
+                     when "auto_rejected"      then "bg-red-100 text-red-700"
+                     when "moderation_pending" then "bg-amber-50 text-amber-700"
+                     else "bg-slate-100 text-slate-500"
+                   end %>
+                <span class="status-badge-<%= fb.id %> inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold <%= badge_cls %>">
+                  <% if mod == "moderation_pending" %>
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" style="animation: pulse 1.5s ease-in-out infinite;"></span>
+                  <% elsif mod == "flagged" || mod == "auto_rejected" %>
+                    <span class="flex-shrink-0">🚩</span>
+                  <% end %>
                   <%= t("feedbacks.#{fb.moderation_status}") %>
                 </span>
                 <span class="text-[10px] text-slate-400 ml-auto flex-shrink-0"><%= I18n.l(fb.created_at.in_time_zone, format: :short) %></span>
