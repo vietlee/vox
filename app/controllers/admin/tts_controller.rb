@@ -30,18 +30,24 @@ class Admin::TtsController < Admin::BaseController
     credits_needed = tts_credits_for(text, model)
     return unless require_credits!(credits_needed)
 
-    stability  = (params[:stability].presence  || 0.5).to_f.clamp(0.0, 1.0)
-    similarity = (params[:similarity].presence || 0.75).to_f.clamp(0.0, 1.0)
-    style      = (params[:style].presence      || 0.0).to_f.clamp(0.0, 1.0)
+    speed         = (params[:speed].presence      || 1.0).to_f.clamp(0.7, 1.2)
+    stability     = (params[:stability].presence  || 0.5).to_f.clamp(0.0, 1.0)
+    similarity    = (params[:similarity].presence || 0.75).to_f.clamp(0.0, 1.0)
+    style         = (params[:style].presence      || 0.0).to_f.clamp(0.0, 1.0)
+    output_format = params[:output_format].presence&.then { |f|
+      %w[mp3_44100_64 mp3_44100_128 mp3_44100_192].include?(f) ? f : "mp3_44100_128"
+    } || "mp3_44100_128"
 
     service = ElevenLabsService.new
     audio   = service.text_to_speech(
-      text:       text,
-      voice_id:   voice_id,
-      model:      model,
-      stability:  stability,
-      similarity: similarity,
-      style:      style
+      text:          text,
+      voice_id:      voice_id,
+      model:         model,
+      speed:         speed,
+      stability:     stability,
+      similarity:    similarity,
+      style:         style,
+      output_format: output_format
     )
 
     current_workspace.active_subscription&.deduct_credits!(credits_needed)

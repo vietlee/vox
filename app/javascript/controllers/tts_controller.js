@@ -20,9 +20,11 @@ export default class extends Controller {
     "text", "charCount", "charBar", "costEstimate",
     "voiceSelect", "voicePreview", "previewPlayer",
     "modelSelect",
+    "speed", "speedVal",
     "stability", "stabilityVal",
     "similarity", "similarityVal",
     "style", "styleVal",
+    "outputFormat",
     "generateBtn", "btnLabel", "spinner",
     "result", "player", "downloadLink",
     "error"
@@ -63,6 +65,7 @@ export default class extends Controller {
 
   // ── Slider display ─────────────────────────────────────────────────
   updateSliders() {
+    this.speedValTarget.textContent      = parseFloat(this.speedTarget.value).toFixed(2) + "x"
     this.stabilityValTarget.textContent  = parseFloat(this.stabilityTarget.value).toFixed(2)
     this.similarityValTarget.textContent = parseFloat(this.similarityTarget.value).toFixed(2)
     this.styleValTarget.textContent      = parseFloat(this.styleTarget.value).toFixed(2)
@@ -128,12 +131,14 @@ export default class extends Controller {
 
   // ── Generate TTS ──────────────────────────────────────────────────
   async generate() {
-    const text       = this.textTarget.value.trim()
-    const voiceId    = this.voiceSelectTarget.value
-    const model      = this.modelSelectTarget.value
-    const stability  = this.stabilityTarget.value
-    const similarity = this.similarityTarget.value
-    const style      = this.styleTarget.value
+    const text         = this.textTarget.value.trim()
+    const voiceId      = this.voiceSelectTarget.value
+    const model        = this.modelSelectTarget.value
+    const speed        = this.speedTarget.value
+    const stability    = this.stabilityTarget.value
+    const similarity   = this.similarityTarget.value
+    const style        = this.styleTarget.value
+    const outputFormat = this.outputFormatTarget.value
 
     if (!text) {
       this.showError("Vui lòng nhập nội dung văn bản")
@@ -146,12 +151,14 @@ export default class extends Controller {
 
     try {
       const formData = new FormData()
-      formData.append("text",       text)
-      formData.append("voice_id",   voiceId)
-      formData.append("model",      model)
-      formData.append("stability",  stability)
-      formData.append("similarity", similarity)
-      formData.append("style",      style)
+      formData.append("text",          text)
+      formData.append("voice_id",      voiceId)
+      formData.append("model",         model)
+      formData.append("speed",         speed)
+      formData.append("stability",     stability)
+      formData.append("similarity",    similarity)
+      formData.append("style",         style)
+      formData.append("output_format", outputFormat)
 
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
 

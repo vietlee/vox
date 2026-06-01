@@ -63,7 +63,7 @@ class ElevenLabsService
   end
 
   # Returns raw audio bytes (mp3). Auto-retries on 429.
-  def text_to_speech(text:, voice_id: DEFAULT_VOICE, model: "eleven_turbo_v2_5", stability: 0.5, similarity: 0.75, style: 0.0, output_format: "mp3_44100_192")
+  def text_to_speech(text:, voice_id: DEFAULT_VOICE, model: "eleven_turbo_v2_5", speed: 1.0, stability: 0.5, similarity: 0.75, style: 0.0, output_format: "mp3_44100_128")
     max_attempts = 3
     payload = {
       text:     text,
@@ -72,7 +72,8 @@ class ElevenLabsService
         stability:         stability.to_f,
         similarity_boost:  similarity.to_f,
         style:             style.to_f,
-        use_speaker_boost: true
+        use_speaker_boost: true,
+        speed:             speed.to_f
       }
     }.to_json
 
