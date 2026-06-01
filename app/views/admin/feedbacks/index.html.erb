@@ -1226,15 +1226,22 @@ async function executeBulkAction(action, ids) {
   });
 
   // Update live counters
+  const flaggedInSelection = cardSnapshots.filter(s => s.moderation === 'flagged').length;
+
   if (action === 'delete') {
     totalCount -= cardSnapshots.length;
     approvedCount -= cardSnapshots.filter(s => s.status === 'approved').length;
+    if (CURRENT_MODERATION === 'flagged') updateFlaggedBanner(-cardSnapshots.length);
+    else if (flaggedInSelection > 0) updateFlaggedBanner(-flaggedInSelection);
   } else if (action === 'approve') {
-    const wasNotApproved = cardSnapshots.filter(s => s.status !== 'approved').length;
-    approvedCount += wasNotApproved;
+    approvedCount += cardSnapshots.filter(s => s.status !== 'approved').length;
     const pendingRemoved = cardSnapshots.filter(s => s.status === 'pending').length;
     if (pendingRemoved > 0) updatePendingBanner(-pendingRemoved);
     if (CURRENT_MODERATION === 'flagged') updateFlaggedBanner(-cardSnapshots.length);
+    else if (flaggedInSelection > 0) updateFlaggedBanner(-flaggedInSelection);
+  } else if (action === 'hide' || action === 'reject') {
+    if (CURRENT_MODERATION === 'flagged') updateFlaggedBanner(-cardSnapshots.length);
+    else if (flaggedInSelection > 0) updateFlaggedBanner(-flaggedInSelection);
   }
 
   // Update header (subtitle + badge) immediately for non-delete actions

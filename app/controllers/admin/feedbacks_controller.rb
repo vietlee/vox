@@ -123,9 +123,9 @@ class Admin::FeedbacksController < Admin::BaseController
     when "approve"
       count = feedbacks.update_all(status: :approved, moderation_status: :safe)
     when "hide"
-      count = feedbacks.update_all(status: :hidden)
+      count = feedbacks.update_all(status: :hidden, moderation_status: :safe)
     when "reject"
-      count = feedbacks.update_all(status: :rejected)
+      count = feedbacks.update_all(status: :rejected, moderation_status: :safe)
     when "delete"
       count = feedbacks.count
       feedbacks.destroy_all
