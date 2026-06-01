@@ -33,6 +33,7 @@ export default class extends Controller {
   connect() {
     this.loadVoices()
     this.restoreText()
+    this.restoreSettings()
     this.countChars()
   }
 
@@ -44,6 +45,30 @@ export default class extends Controller {
 
   saveText() {
     localStorage.setItem("tts_text", this.textTarget.value)
+  }
+
+  restoreSettings() {
+    const s = key => localStorage.getItem(`tts_${key}`)
+
+    if (s("model"))        this.modelSelectTarget.value   = s("model")
+    if (s("speed"))        this.speedTarget.value         = s("speed")
+    if (s("stability"))    this.stabilityTarget.value     = s("stability")
+    if (s("similarity"))   this.similarityTarget.value    = s("similarity")
+    if (s("style"))        this.styleTarget.value         = s("style")
+    if (s("outputFormat")) this.outputFormatTarget.value  = s("outputFormat")
+
+    // Update displayed values after restoring
+    this.updateSliders()
+    this.updateCost()
+  }
+
+  saveSettings() {
+    localStorage.setItem("tts_model",        this.modelSelectTarget.value)
+    localStorage.setItem("tts_speed",        this.speedTarget.value)
+    localStorage.setItem("tts_stability",    this.stabilityTarget.value)
+    localStorage.setItem("tts_similarity",   this.similarityTarget.value)
+    localStorage.setItem("tts_style",        this.styleTarget.value)
+    localStorage.setItem("tts_outputFormat", this.outputFormatTarget.value)
   }
 
   // ── Char counter + cost estimate ──────────────────────────────────
@@ -117,10 +142,17 @@ export default class extends Controller {
         sel.insertBefore(sep, sel.options[viCount])
       }
 
-      const firstVi = Array.from(sel.options).find(o => !o.disabled && isVietnamese({ name: o.textContent }))
-      const rachel  = Array.from(sel.options).find(o => o.textContent.includes("Rachel"))
-      if (firstVi) sel.value = firstVi.value
-      else if (rachel) sel.value = rachel.value
+      // Restore saved voice, or fall back to Vietnamese / Rachel
+      const savedVoice = localStorage.getItem("tts_voice")
+      const savedOpt   = savedVoice && Array.from(sel.options).find(o => !o.disabled && o.value === savedVoice)
+      if (savedOpt) {
+        sel.value = savedVoice
+      } else {
+        const firstVi = Array.from(sel.options).find(o => !o.disabled && isVietnamese({ name: o.textContent }))
+        const rachel  = Array.from(sel.options).find(o => o.textContent.includes("Rachel"))
+        if (firstVi) sel.value = firstVi.value
+        else if (rachel) sel.value = rachel.value
+      }
       this.voiceChanged()
     } catch (e) {
       this.voiceSelectTarget.innerHTML = `<option value="">⚠️ ${e.message}</option>`
@@ -129,6 +161,7 @@ export default class extends Controller {
 
   // ── Voice preview ─────────────────────────────────────────────────
   voiceChanged() {
+    localStorage.setItem("tts_voice", this.voiceSelectTarget.value)
     const selected = this.voiceSelectTarget.selectedOptions[0]
     const preview  = selected?.dataset?.preview
 
