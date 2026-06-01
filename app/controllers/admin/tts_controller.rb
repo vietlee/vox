@@ -27,7 +27,7 @@ class Admin::TtsController < Admin::BaseController
       return
     end
 
-    credits_needed = tts_credits_for(text)
+    credits_needed = tts_credits_for(text, model)
     return unless require_credits!(credits_needed)
 
     stability  = (params[:stability].presence  || 0.5).to_f.clamp(0.0, 1.0)
@@ -62,8 +62,17 @@ class Admin::TtsController < Admin::BaseController
     end
   end
 
-  # 1 credit per 500 chars, minimum 1
-  def tts_credits_for(text)
-    [(text.length / 500.0).ceil, 1].max
+  # Turbo: 1 credit/500 chars | Multilingual/others: 1 credit/250 chars
+  TTS_CHARS_PER_CREDIT = {
+    "eleven_turbo_v2_5"     => 500,
+    "eleven_turbo_v2"       => 500,
+    "eleven_multilingual_v2" => 250,
+    "eleven_multilingual_v3" => 250,
+    "eleven_monolingual_v1"  => 250,
+  }.freeze
+
+  def tts_credits_for(text, model = "eleven_turbo_v2_5")
+    chars_per_credit = TTS_CHARS_PER_CREDIT[model] || 250
+    [(text.length / chars_per_credit.to_f).ceil, 1].max
   end
 end

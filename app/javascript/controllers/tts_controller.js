@@ -1,7 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 
-// VOX credit cost: 1 credit per 500 chars, minimum 1
-const ttsCredits = (chars) => Math.max(Math.ceil(chars / 500), 1)
+// VOX credit cost by model
+const CHARS_PER_CREDIT = {
+  "eleven_turbo_v2_5":      500,
+  "eleven_turbo_v2":        500,
+  "eleven_multilingual_v2": 250,
+  "eleven_multilingual_v3": 250,
+  "eleven_monolingual_v1":  250,
+}
+const ttsCredits = (chars, model) => {
+  const rate = CHARS_PER_CREDIT[model] ?? 250
+  return Math.max(Math.ceil(chars / rate), 1)
+}
 
 export default class extends Controller {
   static targets = [
@@ -37,14 +47,15 @@ export default class extends Controller {
   }
 
   updateCost() {
-    const len = this.textTarget.value.length
+    const len   = this.textTarget.value.length
+    const model = this.modelSelectTarget.value
 
     if (len === 0) {
       this.costEstimateTarget.textContent = "—"
       return
     }
 
-    const credits = ttsCredits(len)
+    const credits = ttsCredits(len, model)
     this.costEstimateTarget.textContent = `${credits} credit${credits > 1 ? "s" : ""}`
   }
 
