@@ -106,6 +106,11 @@ Rails.application.routes.draw do
     post "ai/chat",             to: "ai#chat",             as: :ai_chat
     get  "ai/job_status/:id",   to: "ai#job_status",       as: :ai_job_status
 
+    # Text-to-Speech (ElevenLabs)
+    get  "tts",          to: "tts#index",    as: :tts
+    get  "tts/voices",   to: "tts#voices",   as: :tts_voices
+    post "tts/generate", to: "tts#generate", as: :tts_generate
+
     resources :votes do
       member do
         patch :open
