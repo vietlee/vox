@@ -33,14 +33,21 @@ class VoteResponse < ApplicationRecord
   def prevent_duplicate_response
     return if vote.nil? || vote.allow_multiple_votes?
 
-    # Check by user_id first (strongest identity — SSO / logged-in users)
+    # 1. Strongest: user_id (logged-in, covers all devices/browsers)
     if user_id.present?
       if vote.vote_responses.where(user_id: user_id).exists?
         errors.add(:base, :already_voted) and return
       end
     end
 
-    # Fallback: check by cookie token (anonymous users)
+    # 2. Browser fingerprint (anonymous — works across cookie deletion/incognito/different browsers on same device)
+    if fingerprint.present?
+      if vote.vote_responses.where(fingerprint: fingerprint).exists?
+        errors.add(:base, :already_voted) and return
+      end
+    end
+
+    # 3. Cookie token fallback (weakest — still catches simple repeat submissions)
     return if respondent_token.blank?
     if vote.vote_responses.exists?(respondent_token: respondent_token)
       errors.add(:base, :already_voted)

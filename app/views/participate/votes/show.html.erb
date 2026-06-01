@@ -384,6 +384,64 @@ function rankMove(btn, dir) {
   });
 })();
 
+// ── Browser Fingerprint ───────────────────────────────────────────────────────
+async function getBrowserFingerprint() {
+  const components = [];
+
+  // 1. User agent
+  components.push(navigator.userAgent || '');
+
+  // 2. Screen
+  components.push([screen.width, screen.height, screen.colorDepth, window.devicePixelRatio || 1].join('x'));
+
+  // 3. Timezone
+  components.push(Intl.DateTimeFormat().resolvedOptions().timeZone || '');
+
+  // 4. Language
+  components.push(navigator.language || '');
+
+  // 5. Platform / hardware
+  components.push(navigator.hardwareConcurrency || 0);
+  components.push(navigator.maxTouchPoints || 0);
+
+  // 6. Canvas fingerprint — GPU renders text/shapes slightly differently per device
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 200; canvas.height = 40;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#f0f';
+    ctx.fillRect(0, 0, 10, 10);
+    ctx.fillStyle = '#0ff';
+    ctx.font = '14px Arial';
+    ctx.fillText('VOX fp 🎵', 10, 28);
+    ctx.strokeStyle = '#ff0';
+    ctx.beginPath(); ctx.arc(80, 20, 15, 0, Math.PI * 2); ctx.stroke();
+    components.push(canvas.toDataURL());
+  } catch(e) { components.push('canvas-err'); }
+
+  // 7. WebGL renderer — GPU model string
+  try {
+    const gl = document.createElement('canvas').getContext('webgl') ||
+               document.createElement('canvas').getContext('experimental-webgl');
+    if (gl) {
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      components.push(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+    } else { components.push('no-webgl'); }
+  } catch(e) { components.push('webgl-err'); }
+
+  // Hash via SubtleCrypto (SHA-256) → hex string
+  const raw = components.join('||');
+  try {
+    const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0, 64);
+  } catch(e) {
+    // Fallback: simple djb2 hash
+    let h = 5381;
+    for (let i = 0; i < raw.length; i++) h = ((h << 5) + h) ^ raw.charCodeAt(i);
+    return Math.abs(h).toString(16).padStart(8, '0');
+  }
+}
+
 async function submitVote() {
   // Email validation
   const emailRequired = <%= @vote.email_required? ? 'true' : 'false' %>;
@@ -420,6 +478,9 @@ async function submitVote() {
     if (selectedIds.length === 0) return;
     payload.option_ids = selectedIds;
   }
+
+  // Attach fingerprint
+  payload.fingerprint = await getBrowserFingerprint();
 
   // Disable all submit buttons
   document.querySelectorAll('#vote-form button[onclick="submitVote()"]').forEach(b => { b.disabled = true; b.textContent = VOTE_SUBMITTING_TEXT; });

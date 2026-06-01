@@ -27,6 +27,7 @@ class Participate::VotesController < Participate::BaseController
       respondent_token:    respondent_token,
       respondent_email:    current_user&.email || params[:respondent_email].presence,
       user_id:             current_user&.id,
+      fingerprint:         params[:fingerprint].presence&.slice(0, 64),
       selected_option_ids: Array(params[:option_ids]).map(&:to_i),
       text_value:          params[:text_value],
       ranking_order:       params[:ranking_order] || []
@@ -78,10 +79,8 @@ class Participate::VotesController < Participate::BaseController
   # that satisfies the vote's login_providers requirement.
   def already_voted?
     # Logged-in user: check by user_id (covers all devices/browsers)
-    if current_user.present?
-      return @vote.vote_responses.exists?(user_id: current_user.id)
-    end
-    # Anonymous: check by cookie token
+    return @vote.vote_responses.exists?(user_id: current_user.id) if current_user.present?
+    # Anonymous: cookie token (fingerprint checked client-side via /check_voted endpoint)
     respondent_token.present? && @vote.vote_responses.exists?(respondent_token: respondent_token)
   end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_01_095008) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_01_130036) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -479,7 +479,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_01_095008) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.string "fingerprint"
     t.index ["user_id"], name: "index_vote_responses_on_user_id"
+    t.index ["vote_id", "fingerprint"], name: "index_vote_responses_on_vote_and_fingerprint"
     t.index ["vote_id"], name: "index_vote_responses_on_vote_id"
     t.index ["workspace_id"], name: "index_vote_responses_on_workspace_id"
   end
