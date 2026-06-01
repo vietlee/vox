@@ -432,6 +432,18 @@ function showToast(message, isError = false) {
 }
 
 function showRateLimitBanner(retryAfter) {
+  // If already counting down, ignore new calls
+  if (window._fbRateLimitActive) return;
+  window._fbRateLimitActive = true;
+
+  // Disable submit button for the entire cooldown
+  const btn     = document.getElementById('fb-submit-btn');
+  const spinner = document.getElementById('fb-submit-spinner');
+  const icon    = document.getElementById('fb-submit-icon');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.45'; }
+  if (spinner) spinner.style.display = 'none';
+  if (icon)    icon.style.display    = 'inline-block';
+
   let banner = document.getElementById('fb-rate-banner');
   if (!banner) {
     banner = document.createElement('div');
@@ -439,10 +451,17 @@ function showRateLimitBanner(retryAfter) {
     banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.3);display:flex;align-items:center;gap:10px;white-space:nowrap;';
     document.body.appendChild(banner);
   }
+
   let secs = parseInt(retryAfter) || 60;
   const tick = () => {
     banner.innerHTML = `⏱ Quá nhiều yêu cầu — thử lại sau <span style="font-variant-numeric:tabular-nums;min-width:28px;display:inline-block;">${secs}s</span>`;
-    if (secs <= 0) { banner.remove(); return; }
+    if (secs <= 0) {
+      banner.remove();
+      window._fbRateLimitActive = false;
+      // Re-enable submit button
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+      return;
+    }
     secs--;
     setTimeout(tick, 1000);
   };
@@ -769,9 +788,6 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
     });
     if (res.status === 429) {
       showRateLimitBanner(res.headers.get('Retry-After') || '60');
-      btn.disabled = false;
-      if (spinner) spinner.style.display = 'none';
-      if (icon)    icon.style.display    = 'inline-block';
       return;
     }
 

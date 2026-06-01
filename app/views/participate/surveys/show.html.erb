@@ -361,17 +361,28 @@
 
   // ── Rate-limit banner ────────────────────────────────────────────────
   function showRateLimitBanner(retryAfter) {
+    if (window._surveyRateLimitActive) return;
+    window._surveyRateLimitActive = true;
+
+    const btn = document.getElementById('survey-submit-btn');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.45'; }
+
     let banner = document.getElementById('survey-rate-banner');
     if (!banner) {
       banner = document.createElement('div');
       banner.id = 'survey-rate-banner';
-      banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.3);display:flex;align-items:center;gap:10px;';
+      banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.3);display:flex;align-items:center;gap:10px;white-space:nowrap;';
       document.body.appendChild(banner);
     }
     let secs = parseInt(retryAfter) || 60;
     const tick = () => {
       banner.innerHTML = `⏱ Quá nhiều yêu cầu — thử lại sau <span style="font-variant-numeric:tabular-nums;min-width:28px;display:inline-block;">${secs}s</span>`;
-      if (secs <= 0) { banner.remove(); return; }
+      if (secs <= 0) {
+        banner.remove();
+        window._surveyRateLimitActive = false;
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+        return;
+      }
       secs--;
       setTimeout(tick, 1000);
     };

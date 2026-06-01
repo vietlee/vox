@@ -446,6 +446,28 @@ async function submitVote() {
 }
 
 function showRateLimitBanner(retryAfter, staticMsg) {
+  const btns = () => document.querySelectorAll('#vote-form button[onclick="submitVote()"]');
+
+  if (staticMsg) {
+    let banner = document.getElementById('vote-rate-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'vote-rate-banner';
+      banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.3);display:flex;align-items:center;gap:10px;white-space:nowrap;';
+      document.body.appendChild(banner);
+    }
+    banner.textContent = '⚠️ ' + staticMsg;
+    setTimeout(() => banner.remove(), 4000);
+    return;
+  }
+
+  // If already counting down, ignore
+  if (window._voteRateLimitActive) return;
+  window._voteRateLimitActive = true;
+
+  // Disable all submit buttons for the entire cooldown
+  btns().forEach(b => { b.disabled = true; b.textContent = VOTE_SUBMITTING_TEXT; });
+
   let banner = document.getElementById('vote-rate-banner');
   if (!banner) {
     banner = document.createElement('div');
@@ -453,15 +475,16 @@ function showRateLimitBanner(retryAfter, staticMsg) {
     banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.3);display:flex;align-items:center;gap:10px;white-space:nowrap;';
     document.body.appendChild(banner);
   }
-  if (staticMsg) {
-    banner.textContent = '⚠️ ' + staticMsg;
-    setTimeout(() => banner.remove(), 4000);
-    return;
-  }
+
   let secs = parseInt(retryAfter) || 60;
   const tick = () => {
     banner.innerHTML = `⏱ Quá nhiều yêu cầu — thử lại sau <span style="font-variant-numeric:tabular-nums;min-width:28px;display:inline-block;">${secs}s</span>`;
-    if (secs <= 0) { banner.remove(); return; }
+    if (secs <= 0) {
+      banner.remove();
+      window._voteRateLimitActive = false;
+      btns().forEach(b => { b.disabled = false; b.textContent = VOTE_BTN_TEXT; });
+      return;
+    }
     secs--;
     setTimeout(tick, 1000);
   };
