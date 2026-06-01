@@ -1,5 +1,8 @@
 class Admin::TtsController < Admin::BaseController
+  before_action :check_tts_feature, only: [:voices, :generate]
+
   def index
+    @has_tts = current_workspace&.active_subscription&.has_feature?(:tts)
   end
 
   def voices
@@ -12,15 +15,15 @@ class Admin::TtsController < Admin::BaseController
   def generate
     text     = params[:text].to_s.strip
     voice_id = params[:voice_id].presence || ElevenLabsService::DEFAULT_VOICE
-    model    = params[:model].presence    || "eleven_multilingual_v2"
+    model    = params[:model].presence    || "eleven_turbo_v2_5"
 
     if text.blank?
-      render json: { error: "Text cannot be blank" }, status: :unprocessable_entity
+      render json: { error: "Vui lòng nhập nội dung văn bản" }, status: :unprocessable_entity
       return
     end
 
     if text.length > 5000
-      render json: { error: "Text is too long (max 5000 characters)" }, status: :unprocessable_entity
+      render json: { error: "Văn bản quá dài (tối đa 5000 ký tự)" }, status: :unprocessable_entity
       return
     end
 
@@ -28,8 +31,8 @@ class Admin::TtsController < Admin::BaseController
     similarity = (params[:similarity].presence || 0.75).to_f.clamp(0.0, 1.0)
     style      = (params[:style].presence      || 0.0).to_f.clamp(0.0, 1.0)
 
-    service  = ElevenLabsService.new
-    audio    = service.text_to_speech(
+    service = ElevenLabsService.new
+    audio   = service.text_to_speech(
       text:       text,
       voice_id:   voice_id,
       model:      model,
@@ -44,5 +47,13 @@ class Admin::TtsController < Admin::BaseController
       filename:    "tts-#{Time.current.to_i}.mp3"
   rescue => e
     render json: { error: e.message }, status: :service_unavailable
+  end
+
+  private
+
+  def check_tts_feature
+    unless current_workspace&.active_subscription&.has_feature?(:tts)
+      render json: { error: t("tts.upgrade_required"), upgrade_required: true }, status: :payment_required
+    end
   end
 end

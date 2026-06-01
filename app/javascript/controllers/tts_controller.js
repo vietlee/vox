@@ -1,8 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 
+// ElevenLabs pricing per 1K characters (USD)
+const MODEL_RATES = {
+  "eleven_turbo_v2_5":    0.05,
+  "eleven_multilingual_v2": 0.10,
+  "eleven_multilingual_v3": 0.10,
+  "eleven_monolingual_v1":  0.10,
+}
+const USD_TO_VND = 25000
+
 export default class extends Controller {
   static targets = [
-    "text", "charCount",
+    "text", "charCount", "charBar", "costEstimate",
     "voiceSelect", "voicePreview", "previewPlayer",
     "modelSelect",
     "stability", "stabilityVal",
@@ -18,15 +27,50 @@ export default class extends Controller {
     this.countChars()
   }
 
-  // ── Char counter ──────────────────────────────────────────────────
+  // ── Char counter + cost estimate ──────────────────────────────────
   countChars() {
     const len = this.textTarget.value.length
-    this.charCountTarget.textContent = len
-    const color = len > 4800 ? "text-red-500" : len > 4000 ? "text-amber-500" : "text-slate-400"
-    this.charCountTarget.className = color
+    this.charCountTarget.textContent = len.toLocaleString()
+
+    // Progress bar
+    const pct = Math.min(len / 5000 * 100, 100)
+    this.charBarTarget.style.width = pct + "%"
+    this.charBarTarget.className = `h-full rounded-full transition-all ${
+      pct > 90 ? "bg-red-400" : pct > 70 ? "bg-amber-400" : "bg-indigo-400"
+    }`
+
+    this.updateCost()
   }
 
-  // ── Load voices from server ───────────────────────────────────────
+  updateCost() {
+    const len   = this.textTarget.value.length
+    const model = this.modelSelectTarget.value
+    const rate  = MODEL_RATES[model] ?? 0.10
+
+    if (len === 0) {
+      this.costEstimateTarget.textContent = "—"
+      return
+    }
+
+    const usd = (len / 1000) * rate
+    const vnd = Math.ceil(usd * USD_TO_VND)
+
+    if (usd < 0.001) {
+      this.costEstimateTarget.textContent = "< $0.001"
+    } else {
+      const usdStr = usd < 0.01 ? usd.toFixed(4) : usd.toFixed(3)
+      this.costEstimateTarget.textContent = `~$${usdStr} (~${vnd.toLocaleString()}₫)`
+    }
+  }
+
+  // ── Slider display ─────────────────────────────────────────────────
+  updateSliders() {
+    this.stabilityValTarget.textContent  = parseFloat(this.stabilityTarget.value).toFixed(2)
+    this.similarityValTarget.textContent = parseFloat(this.similarityTarget.value).toFixed(2)
+    this.styleValTarget.textContent      = parseFloat(this.styleTarget.value).toFixed(2)
+  }
+
+  // ── Load voices ───────────────────────────────────────────────────
   async loadVoices() {
     try {
       const res  = await fetch(this.voicesUrl, { headers: { "Accept": "application/json" } })
@@ -37,9 +81,9 @@ export default class extends Controller {
       sel.innerHTML = ""
 
       data.forEach(v => {
-        const opt       = document.createElement("option")
-        opt.value       = v.id
-        opt.textContent = `${v.name} (${v.category})`
+        const opt           = document.createElement("option")
+        opt.value           = v.id
+        opt.textContent     = `${v.name} (${v.category})`
         opt.dataset.preview = v.preview_url || ""
         sel.appendChild(opt)
       })
@@ -64,13 +108,6 @@ export default class extends Controller {
     } else {
       this.voicePreviewTarget.classList.add("hidden")
     }
-  }
-
-  // ── Slider display update ─────────────────────────────────────────
-  updateSliders() {
-    this.stabilityValTarget.textContent  = parseFloat(this.stabilityTarget.value).toFixed(2)
-    this.similarityValTarget.textContent = parseFloat(this.similarityTarget.value).toFixed(2)
-    this.styleValTarget.textContent      = parseFloat(this.styleTarget.value).toFixed(2)
   }
 
   // ── Generate TTS ──────────────────────────────────────────────────
@@ -103,12 +140,9 @@ export default class extends Controller {
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
 
       const res = await fetch(this.generateUrl, {
-        method: "POST",
-        headers: {
-          "X-CSRF-Token": csrfToken,
-          "Accept":       "audio/mpeg, application/json"
-        },
-        body: formData
+        method:  "POST",
+        headers: { "X-CSRF-Token": csrfToken, "Accept": "audio/mpeg, application/json" },
+        body:    formData
       })
 
       if (!res.ok) {
@@ -116,10 +150,10 @@ export default class extends Controller {
         throw new Error(err.error || `Server error ${res.status}`)
       }
 
-      const blob   = await res.blob()
-      const url    = URL.createObjectURL(blob)
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
 
-      this.playerTarget.src      = url
+      this.playerTarget.src        = url
       this.downloadLinkTarget.href = url
 
       this.resultTarget.classList.remove("hidden")
@@ -135,9 +169,7 @@ export default class extends Controller {
   setLoading(loading) {
     this.generateBtnTarget.disabled = loading
     this.spinnerTarget.classList.toggle("hidden", !loading)
-    this.btnLabelTarget.textContent = loading
-      ? "Đang tạo..."
-      : "🎙️ Tạo giọng nói"
+    this.btnLabelTarget.textContent = loading ? "Đang tạo..." : "🎙️ Tạo giọng nói"
   }
 
   showError(msg) {
