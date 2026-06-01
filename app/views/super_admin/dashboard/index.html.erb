@@ -70,9 +70,18 @@
       <span class="text-[10px] <%= text_color %> font-semibold"><%= number_with_delimiter(el[:remaining]) %> chars còn lại</span>
     </div>
   </div>
-<% elsif ENV["ELEVENLABS_API_KEY"].blank? %>
-  <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-[12px] text-amber-700 flex items-center gap-2">
-    ⚠️ <span>ELEVENLABS_API_KEY chưa được cấu hình — không thể hiển thị usage.</span>
+<% elsif @elevenlabs_error %>
+  <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-[15px]">🎙️</span>
+      <h2 class="text-[13px] font-bold text-slate-700">ElevenLabs API</h2>
+    </div>
+    <% if @elevenlabs_error == :no_key %>
+      <p class="text-[12px] text-amber-600">⚠️ ELEVENLABS_API_KEY chưa được cấu hình.</p>
+    <% else %>
+      <p class="text-[12px] text-red-500 mb-1">⚠️ Không thể lấy dữ liệu usage. API key thiếu quyền <strong>user_read</strong>.</p>
+      <p class="text-[11px] text-slate-400">Vào <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" class="underline text-indigo-500">ElevenLabs → API Keys</a> → tạo key mới với quyền <strong>User</strong> rồi cập nhật lại <code class="bg-slate-100 px-1 rounded">ELEVENLABS_API_KEY</code> trên server.</p>
+    <% end %>
   </div>
 <% end %>
 

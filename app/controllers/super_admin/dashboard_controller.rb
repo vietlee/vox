@@ -43,6 +43,11 @@ class SuperAdmin::DashboardController < SuperAdmin::BaseController
                               .order(created_at: :desc)
 
     # ElevenLabs API usage
-    @elevenlabs = ENV["ELEVENLABS_API_KEY"].present? ? ElevenLabsService.new.subscription_usage : nil
+    if ENV["ELEVENLABS_API_KEY"].present?
+      @elevenlabs = ElevenLabsService.new.subscription_usage
+      @elevenlabs_error = @elevenlabs.nil? ? :fetch_failed : nil
+    else
+      @elevenlabs_error = :no_key
+    end
   end
 end

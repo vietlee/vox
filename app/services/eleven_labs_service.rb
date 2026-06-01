@@ -14,7 +14,11 @@ class ElevenLabsService
       headers: default_headers,
       timeout: 10
     )
-    raise "ElevenLabs subscription error: #{response.code}" unless response.success?
+    unless response.success?
+      parsed = JSON.parse(response.body) rescue {}
+      msg = parsed.dig("detail", "message") || "HTTP #{response.code}"
+      raise "ElevenLabs subscription error: #{msg}"
+    end
 
     data      = JSON.parse(response.body)
     used      = data["character_count"].to_i
@@ -31,7 +35,7 @@ class ElevenLabsService
       next_reset: data["next_character_count_reset_unix"]
     }
   rescue => e
-    Rails.logger.error "ElevenLabsService#subscription_usage error: #{e.message}"
+    Rails.logger.error "ElevenLabsService#subscription_usage error: #{e.message} (#{e.class})"
     nil
   end
 
