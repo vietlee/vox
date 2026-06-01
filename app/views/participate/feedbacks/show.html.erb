@@ -404,6 +404,7 @@ const CSRF         = document.querySelector('meta[name="csrf-token"]')?.content;
 const ALLOW_UPVOTES  = <%= @board.allow_upvotes? ? 'true' : 'false' %>;
 const ALLOW_REPLIES  = <%= @board.allow_replies? ? 'true' : 'false' %>;
 const AUTO_MODERATION = <%= @board.auto_moderation? ? 'true' : 'false' %>;
+const BOARD_SLUG     = "<%= @board.slug %>";
 const IDENTITY_MODE  = "<%= @board.identity_mode %>";
 const ANONYMOUS_LABEL = "<%= j t('participate.feedback.anonymous') %>";
 const REPLY_LABEL     = "<%= j t('participate.feedback.reply_label') %>";
@@ -417,6 +418,9 @@ const REPLY_SUBMIT_LABEL = "<%= j t('participate.feedback.reply_submit') %>";
 
 let currentOffset = <%= @feedbacks.size %>;
 
+// Restore any pending-moderation cards from previous session on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', loadPendingCards);
+
 function showToast(message, isError = false) {
   const toast = document.getElementById('feedback-toast');
   toast.textContent = message;
@@ -425,6 +429,55 @@ function showToast(message, isError = false) {
   toast.style.color       = isError ? '#991b1b'                     : '#065f46';
   toast.style.display     = 'block';
   setTimeout(() => { toast.style.display = 'none'; }, 4000);
+}
+
+// ── Pending moderation persistence (localStorage) ─────────────────────────────
+const PENDING_KEY = `pending_moderation_${BOARD_SLUG}`;
+const PENDING_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+function savePendingCard(fb) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
+    // avoid duplicates
+    const deduped = saved.filter(s => s.id !== fb.id);
+    deduped.unshift({ ...fb, savedAt: Date.now() });
+    // keep max 20 entries, drop expired
+    const fresh = deduped.filter(s => Date.now() - s.savedAt < PENDING_TTL).slice(0, 20);
+    localStorage.setItem(PENDING_KEY, JSON.stringify(fresh));
+  } catch(e) {}
+}
+
+function loadPendingCards() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
+    const fresh = saved.filter(s => Date.now() - s.savedAt < PENDING_TTL);
+    if (fresh.length !== saved.length) {
+      localStorage.setItem(PENDING_KEY, JSON.stringify(fresh));
+    }
+    if (!fresh.length) return;
+
+    const list = document.getElementById('feedbacks-list');
+    if (!list) return;
+
+    // IDs already rendered by server (already visible/approved)
+    const existingIds = new Set(
+      Array.from(list.querySelectorAll('[id^="feedback-card-"]'))
+        .map(el => parseInt(el.id.replace('feedback-card-', '')))
+    );
+
+    let added = 0;
+    // Insert in reverse-chronological order (most recent first)
+    [...fresh].reverse().forEach(fb => {
+      if (existingIds.has(fb.id)) return; // already visible, skip
+      const card = renderFeedbackCard(fb, true);
+      list.insertBefore(card, list.firstChild);
+      added++;
+    });
+
+    if (added > 0) {
+      document.getElementById('empty-state')?.classList.add('hidden');
+    }
+  } catch(e) {}
 }
 
 function renderFeedbackCard(fb, pendingModeration = false) {
@@ -702,10 +755,16 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
     if (data.status === 'submitted' && data.feedback) {
       const list = document.getElementById('feedbacks-list');
       const emptyState = document.getElementById('empty-state');
-      const card = renderFeedbackCard(data.feedback, !!data.moderation);
+      const isPendingModeration = !!data.moderation;
+      const card = renderFeedbackCard(data.feedback, isPendingModeration);
+      // Remove stale pending-card if it was already injected by loadPendingCards
+      const existing = document.getElementById(`feedback-card-${data.feedback.id}`);
+      if (existing) existing.remove();
       list.insertBefore(card, list.firstChild);
       emptyState.classList.add('hidden');
       currentOffset += 1;
+      // Persist to localStorage so badge survives page refresh
+      if (isPendingModeration) savePendingCard(data.feedback);
       // update sticky count
       const countEl = document.getElementById('sticky-feedback-count');
       if (countEl) {
