@@ -80,7 +80,23 @@ export default class extends Controller {
       const sel = this.voiceSelectTarget
       sel.innerHTML = ""
 
-      data.forEach(v => {
+      const isVietnamese = v =>
+        /vietnamese|vietnam|việt|viet/i.test(v.name) || /vietnamese|vietnam/i.test(v.category)
+
+      const sorted = [
+        ...data.filter(v => isVietnamese(v)),
+        ...data.filter(v => !isVietnamese(v))
+      ]
+
+      // Separator if there are Vietnamese voices
+      const viCount = sorted.filter(v => isVietnamese(v)).length
+      sorted.forEach((v, i) => {
+        if (i === viCount && viCount > 0) {
+          const sep = document.createElement("option")
+          sep.disabled = true
+          sep.textContent = "── Other voices ──"
+          sel.appendChild(sep)
+        }
         const opt           = document.createElement("option")
         opt.value           = v.id
         opt.textContent     = `${v.name} (${v.category})`
@@ -88,9 +104,11 @@ export default class extends Controller {
         sel.appendChild(opt)
       })
 
-      // Auto-select Rachel if present, else first
-      const rachel = Array.from(sel.options).find(o => o.textContent.includes("Rachel"))
-      if (rachel) sel.value = rachel.value
+      // Auto-select first Vietnamese voice, else Rachel, else first
+      const firstVi = Array.from(sel.options).find(o => isVietnamese({ name: o.textContent }))
+      const rachel  = Array.from(sel.options).find(o => o.textContent.includes("Rachel"))
+      if (firstVi) sel.value = firstVi.value
+      else if (rachel) sel.value = rachel.value
       this.voiceChanged()
     } catch (e) {
       this.voiceSelectTarget.innerHTML = `<option value="">⚠️ ${e.message}</option>`
