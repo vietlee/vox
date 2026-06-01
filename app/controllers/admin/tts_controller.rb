@@ -46,6 +46,8 @@ class Admin::TtsController < Admin::BaseController
 
     current_workspace.active_subscription&.deduct_credits!(credits_needed)
 
+    response.headers["X-Credits-Used"] = credits_needed.to_s
+
     send_data audio,
       type:        "audio/mpeg",
       disposition: "inline",

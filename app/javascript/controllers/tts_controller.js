@@ -164,6 +164,7 @@ export default class extends Controller {
         throw new Error(err.error || `Server error ${res.status}`)
       }
 
+      const creditsUsed = parseInt(res.headers.get("X-Credits-Used") || "0")
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
 
@@ -172,6 +173,11 @@ export default class extends Controller {
 
       this.resultTarget.classList.remove("hidden")
       this.resultTarget.scrollIntoView({ behavior: "smooth", block: "nearest" })
+
+      // Update sidebar credit display without page reload
+      if (creditsUsed > 0 && typeof window.deductDisplayCredits === "function") {
+        window.deductDisplayCredits(creditsUsed)
+      }
     } catch (e) {
       this.showError(e.message)
     } finally {
