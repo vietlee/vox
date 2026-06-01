@@ -431,6 +431,24 @@ function showToast(message, isError = false) {
   setTimeout(() => { toast.style.display = 'none'; }, 4000);
 }
 
+function showRateLimitBanner(retryAfter) {
+  let banner = document.getElementById('fb-rate-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'fb-rate-banner';
+    banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.3);display:flex;align-items:center;gap:10px;white-space:nowrap;';
+    document.body.appendChild(banner);
+  }
+  let secs = parseInt(retryAfter) || 60;
+  const tick = () => {
+    banner.innerHTML = `⏱ Quá nhiều yêu cầu — thử lại sau <span style="font-variant-numeric:tabular-nums;min-width:28px;display:inline-block;">${secs}s</span>`;
+    if (secs <= 0) { banner.remove(); return; }
+    secs--;
+    setTimeout(tick, 1000);
+  };
+  tick();
+}
+
 // ── Pending moderation persistence (localStorage) ─────────────────────────────
 const PENDING_KEY = `pending_moderation_${BOARD_SLUG}`;
 const PENDING_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -749,10 +767,21 @@ document.getElementById('feedback-form').addEventListener('submit', async functi
       headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' },
       body: formData
     });
+    if (res.status === 429) {
+      showRateLimitBanner(res.headers.get('Retry-After') || '60');
+      btn.disabled = false;
+      if (spinner) spinner.style.display = 'none';
+      if (icon)    icon.style.display    = 'inline-block';
+      return;
+    }
+
     const data = await res.json();
 
     if (!res.ok) {
       showToast(data.error || 'Error', true);
+      btn.disabled = false;
+      if (spinner) spinner.style.display = 'none';
+      if (icon)    icon.style.display    = 'inline-block';
       return;
     }
 

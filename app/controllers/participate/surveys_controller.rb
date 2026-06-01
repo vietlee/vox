@@ -73,13 +73,24 @@ class Participate::SurveysController < Participate::BaseController
       completion_secs = started_at ? (Time.current.to_i - started_at.to_i) : nil
       @response.complete!(completion_secs)
       session[:survey_last_response_id] = @response.id
-      redirect_to survey_done_path(@survey.slug)
+      respond_to do |format|
+        format.json { render json: { ok: true, redirect: survey_done_path(@survey.slug) } }
+        format.html { redirect_to survey_done_path(@survey.slug) }
+      end
     else
       if @response.errors.where(:base, :already_responded).any?
-        redirect_to participate_survey_path(@survey.slug), alert: t("participate.survey.already_answered")
+        respond_to do |format|
+          format.json { render json: { error: t("participate.survey.already_answered") }, status: :unprocessable_entity }
+          format.html { redirect_to participate_survey_path(@survey.slug), alert: t("participate.survey.already_answered") }
+        end
       else
-        @questions = @survey.questions.includes(:question_options)
-        render :show, status: :unprocessable_entity
+        respond_to do |format|
+          format.json { render json: { error: @response.errors.full_messages.first }, status: :unprocessable_entity }
+          format.html do
+            @questions = @survey.questions.includes(:question_options)
+            render :show, status: :unprocessable_entity
+          end
+        end
       end
     end
   end

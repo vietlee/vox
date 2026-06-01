@@ -359,15 +359,81 @@
     }
   }
 
-  // On submit: disable inputs in condition-hidden cards so they're not posted
+  // ── Rate-limit banner ────────────────────────────────────────────────
+  function showRateLimitBanner(retryAfter) {
+    let banner = document.getElementById('survey-rate-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'survey-rate-banner';
+      banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.3);display:flex;align-items:center;gap:10px;';
+      document.body.appendChild(banner);
+    }
+    let secs = parseInt(retryAfter) || 60;
+    const tick = () => {
+      banner.innerHTML = `⏱ Quá nhiều yêu cầu — thử lại sau <span style="font-variant-numeric:tabular-nums;min-width:28px;display:inline-block;">${secs}s</span>`;
+      if (secs <= 0) { banner.remove(); return; }
+      secs--;
+      setTimeout(tick, 1000);
+    };
+    tick();
+  }
+
+  // On submit: intercept → AJAX
   const form = document.getElementById('survey-form');
   if (form) {
-    form.addEventListener('submit', function(e) {
-      if (!showErrors()) { e.preventDefault(); return; }
-      // Disable hidden-by-condition inputs so they're excluded from POST
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      if (!showErrors()) return;
+
+      const btn = document.getElementById('survey-submit-btn');
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
+      const origText = btn.textContent;
+      btn.textContent = '<%= I18n.locale == :vi ? "Đang gửi…" : "Sending…" %>';
+
+      // Disable hidden-by-condition inputs so they're excluded from FormData
       document.querySelectorAll('.q-card[data-cond-hidden="true"]').forEach(card => {
         card.querySelectorAll('input, textarea, select').forEach(el => el.disabled = true);
       });
+
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '', 'Accept': 'application/json' },
+          body: new FormData(form)
+        });
+
+        if (res.status === 429) {
+          const retryAfter = res.headers.get('Retry-After') || '60';
+          showRateLimitBanner(retryAfter);
+          // Re-enable hidden inputs
+          document.querySelectorAll('.q-card[data-cond-hidden="true"]').forEach(card => {
+            card.querySelectorAll('input, textarea, select').forEach(el => el.disabled = false);
+          });
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.textContent = origText;
+          return;
+        }
+
+        // Success or other error → follow redirect
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.redirect) {
+          window.location.href = data.redirect;
+        } else if (res.ok) {
+          window.location.href = '<%= survey_done_path(@survey.slug) %>';
+        } else {
+          alert(data?.error || '<%= I18n.locale == :vi ? "Có lỗi xảy ra. Vui lòng thử lại." : "An error occurred. Please try again." %>');
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.textContent = origText;
+        }
+      } catch (err) {
+        alert('<%= I18n.locale == :vi ? "Không thể kết nối. Vui lòng kiểm tra mạng." : "Connection error. Please check your network." %>');
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.textContent = origText;
+      }
     });
   }
 
