@@ -79,31 +79,41 @@ class ElevenLabsService
       }
     }.to_json
 
-    last_response = nil
+    last_error = nil
     max_attempts.times do |attempt|
-      last_response = HTTParty.post(
-        "#{BASE_URL}/v1/text-to-speech/#{voice_id}?output_format=#{output_format}",
-        headers: default_headers.merge("Accept" => "audio/mpeg"),
-        body:    payload,
-        timeout: 60
-      )
+      begin
+        last_response = HTTParty.post(
+          "#{BASE_URL}/v1/text-to-speech/#{voice_id}?output_format=#{output_format}",
+          headers: default_headers.merge("Accept" => "audio/mpeg"),
+          body:    payload,
+          timeout: 60
+        )
 
-      if last_response.success?
-        return last_response.body
+        if last_response.success?
+          return last_response.body
+        end
+
+        retryable = [429, 500, 502, 503, 504].include?(last_response.code)
+        if retryable && attempt < max_attempts - 1
+          wait = (attempt + 1) * 2
+          Rails.logger.warn "ElevenLabs #{last_response.code}, retry in #{wait}s (attempt #{attempt + 1}/#{max_attempts})"
+          sleep wait
+          next
+        end
+
+        raise friendly_error(last_response)
+
+      rescue HTTParty::Error, Timeout::Error => e
+        last_error = e
+        if attempt < max_attempts - 1
+          wait = (attempt + 1) * 2
+          Rails.logger.warn "ElevenLabs network error (#{e.class}), retry in #{wait}s (attempt #{attempt + 1}/#{max_attempts}): #{e.message}"
+          sleep wait
+          next
+        end
+        raise "Không thể kết nối ElevenLabs. Vui lòng thử lại sau."
       end
-
-      retryable = [429, 500, 502, 503, 504].include?(last_response.code)
-      if retryable && attempt < max_attempts - 1
-        wait = (attempt + 1) * 2
-        Rails.logger.warn "ElevenLabs #{last_response.code}, retry in #{wait}s (attempt #{attempt + 1}/#{max_attempts})"
-        sleep wait
-        next
-      end
-
-      raise friendly_error(last_response)
     end
-  rescue HTTParty::Error, Timeout::Error
-    raise "Không thể kết nối ElevenLabs. Vui lòng thử lại sau."
   rescue => e
     Rails.logger.error "ElevenLabsService#text_to_speech error: #{e.message}"
     raise
