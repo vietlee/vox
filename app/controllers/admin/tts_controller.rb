@@ -73,8 +73,10 @@ class Admin::TtsController < Admin::BaseController
       type:        "audio/mpeg",
       disposition: "inline",
       filename:    "tts-#{Time.current.to_i}.mp3"
+  rescue ElevenLabsService::Error => e
+    render json: { error: e.message, error_code: e.code, http_status: e.http_status }, status: :service_unavailable
   rescue => e
-    render json: { error: e.message }, status: :service_unavailable
+    render json: { error: e.message, error_code: :unknown }, status: :service_unavailable
   end
 
   private

@@ -2,6 +2,18 @@ class ElevenLabsService
   BASE_URL = "https://api.elevenlabs.io"
   DEFAULT_VOICE = "EXAVITQu4vr4xnSDxMaL" # Rachel — natural, clear English/multilingual
 
+  # Structured error so callers can branch on code without parsing strings
+  # Codes: :auth_error | :rate_limited | :invalid_data | :server_error | :network_error | :timeout
+  class Error < StandardError
+    attr_reader :code, :http_status, :detail
+    def initialize(message, code: :server_error, http_status: nil, detail: nil)
+      super(message)
+      @code        = code
+      @http_status = http_status
+      @detail      = detail
+    end
+  end
+
   def initialize
     @api_key = ENV["ELEVENLABS_API_KEY"]
     raise "ELEVENLABS_API_KEY is not set" if @api_key.blank?
@@ -79,43 +91,55 @@ class ElevenLabsService
       }
     }.to_json
 
-    last_error = nil
     max_attempts.times do |attempt|
       begin
-        last_response = HTTParty.post(
+        response = HTTParty.post(
           "#{BASE_URL}/v1/text-to-speech/#{voice_id}?output_format=#{output_format}",
           headers: default_headers.merge("Accept" => "audio/mpeg"),
           body:    payload,
           timeout: 60
         )
 
-        if last_response.success?
-          return last_response.body
+        if response.success?
+          Rails.logger.info "ElevenLabs TTS ok (attempt #{attempt + 1}), #{response.body.bytesize} bytes"
+          return response.body
         end
 
-        retryable = [429, 500, 502, 503, 504].include?(last_response.code)
+        log_http_error(response, attempt, max_attempts)
+
+        retryable = [429, 500, 502, 503, 504].include?(response.code)
         if retryable && attempt < max_attempts - 1
-          wait = (attempt + 1) * 2
-          Rails.logger.warn "ElevenLabs #{last_response.code}, retry in #{wait}s (attempt #{attempt + 1}/#{max_attempts})"
-          sleep wait
+          sleep (attempt + 1) * 2
           next
         end
 
-        raise friendly_error(last_response)
+        raise build_http_error(response)
 
-      rescue HTTParty::Error, Timeout::Error => e
-        last_error = e
-        if attempt < max_attempts - 1
-          wait = (attempt + 1) * 2
-          Rails.logger.warn "ElevenLabs network error (#{e.class}), retry in #{wait}s (attempt #{attempt + 1}/#{max_attempts}): #{e.message}"
-          sleep wait
-          next
-        end
-        raise "Không thể kết nối ElevenLabs. Vui lòng thử lại sau."
+      rescue ElevenLabsService::Error
+        raise  # already structured — don't wrap again
+
+      rescue Timeout::Error => e
+        log_network_error(e, attempt, max_attempts)
+        raise ElevenLabsService::Error.new(
+          "ElevenLabs không phản hồi (timeout sau 60s). Vui lòng thử lại.",
+          code: :timeout
+        ) if attempt >= max_attempts - 1
+        sleep (attempt + 1) * 2
+
+      rescue HTTParty::Error => e
+        log_network_error(e, attempt, max_attempts)
+        raise ElevenLabsService::Error.new(
+          "Không thể kết nối ElevenLabs (#{e.class.name.demodulize}). Vui lòng thử lại.",
+          code: :network_error
+        ) if attempt >= max_attempts - 1
+        sleep (attempt + 1) * 2
       end
     end
+  rescue ElevenLabsService::Error => e
+    Rails.logger.error "ElevenLabsService#text_to_speech failed [#{e.code}] #{e.message}"
+    raise
   rescue => e
-    Rails.logger.error "ElevenLabsService#text_to_speech error: #{e.message}"
+    Rails.logger.error "ElevenLabsService#text_to_speech unexpected error: #{e.message} (#{e.class})"
     raise
   end
 
@@ -128,15 +152,46 @@ class ElevenLabsService
     }
   end
 
-  def friendly_error(response)
+  def log_http_error(response, attempt, max_attempts)
+    body_snippet = response.body.to_s.slice(0, 300).gsub(/\s+/, " ")
+    Rails.logger.warn(
+      "ElevenLabs HTTP #{response.code} " \
+      "(attempt #{attempt + 1}/#{max_attempts}): #{body_snippet}"
+    )
+  end
+
+  def log_network_error(err, attempt, max_attempts)
+    Rails.logger.warn(
+      "ElevenLabs #{err.class.name.demodulize} " \
+      "(attempt #{attempt + 1}/#{max_attempts}): #{err.message}"
+    )
+  end
+
+  def build_http_error(response)
     parsed = JSON.parse(response.body) rescue {}
     detail = parsed.dig("detail", "message") || parsed["detail"] || parsed["message"]
 
     case response.code
-    when 401 then "API key không hợp lệ. Vui lòng kiểm tra lại ELEVENLABS_API_KEY."
-    when 429 then "ElevenLabs đang quá tải. Vui lòng thử lại sau ít phút."
-    when 422 then "Dữ liệu không hợp lệ: #{detail || 'unknown'}"
-    else "ElevenLabs lỗi #{response.code}: #{detail || 'Vui lòng thử lại.'}"
+    when 401
+      ElevenLabsService::Error.new(
+        "API key không hợp lệ. Kiểm tra lại ELEVENLABS_API_KEY.",
+        code: :auth_error, http_status: 401, detail: detail
+      )
+    when 429
+      ElevenLabsService::Error.new(
+        "ElevenLabs đang quá tải (rate limit). Vui lòng thử lại sau ít phút.",
+        code: :rate_limited, http_status: 429, detail: detail
+      )
+    when 422
+      ElevenLabsService::Error.new(
+        "Dữ liệu không hợp lệ: #{detail || 'unknown'}",
+        code: :invalid_data, http_status: 422, detail: detail
+      )
+    else
+      ElevenLabsService::Error.new(
+        "ElevenLabs lỗi #{response.code}: #{detail || 'Vui lòng thử lại.'}",
+        code: :server_error, http_status: response.code, detail: detail
+      )
     end
   end
 end

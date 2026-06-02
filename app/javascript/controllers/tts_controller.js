@@ -207,13 +207,13 @@ export default class extends Controller {
         // Retryable server errors — try again (client-side)
         if ([500, 502, 503, 504].includes(res.status) && attempt < MAX_CLIENT_RETRIES) {
           const err = await res.json().catch(() => ({ error: `Lỗi máy chủ ${res.status}` }))
-          lastError = new Error(err.error || `Lỗi máy chủ ${res.status}`)
+          lastError = { message: err.error || `Lỗi máy chủ ${res.status}`, code: err.error_code || "server_error" }
           continue
         }
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: "Unknown error" }))
-          throw new Error(err.error || `Server error ${res.status}`)
+          throw { message: err.error || `Server error ${res.status}`, code: err.error_code || "unknown" }
         }
 
         const creditsUsed = parseInt(res.headers.get("X-Credits-Used") || "0")
@@ -234,13 +234,13 @@ export default class extends Controller {
         lastError = null
         break  // success — exit retry loop
       } catch (e) {
-        lastError = e
+        lastError = typeof e === "object" && e !== null ? e : { message: String(e), code: "unknown" }
         // Non-retryable (4xx, network abort, etc.) — stop immediately
         break
       }
     }
 
-    if (lastError) this.showError(lastError.message)
+    if (lastError) this.showError(lastError.message, lastError.code)
     this.setLoading(false)
   }
 
@@ -253,9 +253,35 @@ export default class extends Controller {
       : (this.element.dataset.ttsLabelGenerate   || "🎙️ Generate")
   }
 
-  showError(msg) {
-    this.errorTarget.textContent = `⚠️ ${msg}`
+  showError(msg, code = "unknown") {
+    const icons = {
+      auth_error:    "🔑",
+      rate_limited:  "⏳",
+      invalid_data:  "📋",
+      server_error:  "🔥",
+      network_error: "🌐",
+      timeout:       "⏱️",
+      unknown:       "⚠️"
+    }
+    const icon = icons[code] || "⚠️"
+    this.errorTarget.innerHTML = `
+      <span class="font-semibold">${icon} ${this.errorCodeLabel(code)}</span>
+      <span class="block text-sm mt-0.5 opacity-80">${msg}</span>
+    `
     this.errorTarget.classList.remove("hidden")
+  }
+
+  errorCodeLabel(code) {
+    const labels = {
+      auth_error:    "Lỗi xác thực",
+      rate_limited:  "Quá giới hạn",
+      invalid_data:  "Dữ liệu không hợp lệ",
+      server_error:  "Lỗi máy chủ ElevenLabs",
+      network_error: "Lỗi kết nối mạng",
+      timeout:       "Hết thời gian chờ",
+      unknown:       "Lỗi không xác định"
+    }
+    return labels[code] || "Lỗi"
   }
 
   get voicesUrl()   { return this.element.dataset.ttsVoicesUrl   || "/tts/voices" }
