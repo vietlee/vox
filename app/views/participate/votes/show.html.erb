@@ -384,58 +384,86 @@ function rankMove(btn, dir) {
   });
 })();
 
-// ── Browser Fingerprint ───────────────────────────────────────────────────────
+// ── Device Fingerprint (browser-agnostic) ────────────────────────────────────
+// Goal: same physical device → same hash, regardless of which browser is used.
+// On iOS all browsers use WebKit so canvas/WebGL output is identical across
+// Chrome, Safari, Firefox — we exploit that instead of using userAgent.
 async function getBrowserFingerprint() {
   const components = [];
 
-  // 1. User agent
-  components.push(navigator.userAgent || '');
-
-  // 2. Screen
+  // 1. Screen — device hardware, same across all browsers on same device
   components.push([screen.width, screen.height, screen.colorDepth, window.devicePixelRatio || 1].join('x'));
 
-  // 3. Timezone
+  // 2. Timezone
   components.push(Intl.DateTimeFormat().resolvedOptions().timeZone || '');
 
-  // 4. Language
+  // 3. Language (device setting, not browser)
   components.push(navigator.language || '');
 
-  // 5. Platform / hardware
+  // 4. Hardware — CPU cores and touch capability
   components.push(navigator.hardwareConcurrency || 0);
   components.push(navigator.maxTouchPoints || 0);
 
-  // 6. Canvas fingerprint — GPU renders text/shapes slightly differently per device
+  // 5. Device memory (if available — rounds to nearest power of 2)
+  components.push(navigator.deviceMemory || 0);
+
+  // 6. Canvas fingerprint — GPU renders text/shapes uniquely per physical device.
+  //    On iOS, Chrome & Safari both use WebKit → identical output on same device.
   try {
     const canvas = document.createElement('canvas');
-    canvas.width = 200; canvas.height = 40;
+    canvas.width = 240; canvas.height = 60;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#f0f';
     ctx.fillRect(0, 0, 10, 10);
-    ctx.fillStyle = '#0ff';
-    ctx.font = '14px Arial';
-    ctx.fillText('VOX fp 🎵', 10, 28);
+    ctx.fillStyle = 'rgba(0,200,150,0.7)';
+    ctx.font = 'bold 15px Arial';
+    ctx.fillText('VOX device fp \u{1F3B5}', 12, 32);
     ctx.strokeStyle = '#ff0';
-    ctx.beginPath(); ctx.arc(80, 20, 15, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(90, 30, 18, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = 'rgba(99,102,241,0.5)';
+    ctx.font = '11px sans-serif';
+    ctx.fillText('中文 عربي', 120, 50);
     components.push(canvas.toDataURL());
   } catch(e) { components.push('canvas-err'); }
 
-  // 7. WebGL renderer — GPU model string
+  // 7. WebGL GPU renderer — hardware string, same across browsers on same device
   try {
     const gl = document.createElement('canvas').getContext('webgl') ||
                document.createElement('canvas').getContext('experimental-webgl');
     if (gl) {
       const ext = gl.getExtension('WEBGL_debug_renderer_info');
-      components.push(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+      const renderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '';
+      const vendor   = ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)   : '';
+      components.push(renderer + '|' + vendor);
     } else { components.push('no-webgl'); }
   } catch(e) { components.push('webgl-err'); }
 
-  // Hash via SubtleCrypto (SHA-256) → hex string
+  // 8. Audio context fingerprint — oscillator output varies per hardware
+  try {
+    const AudioCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx(1, 44100, 44100);
+      const osc = ctx.createOscillator();
+      const cmp = ctx.createDynamicsCompressor();
+      osc.type = 'triangle';
+      osc.frequency.value = 10000;
+      osc.connect(cmp); cmp.connect(ctx.destination);
+      osc.start(0);
+      const buf = await ctx.startRendering();
+      const data = buf.getChannelData(0);
+      let sum = 0;
+      for (let i = 0; i < 500; i++) sum += Math.abs(data[i]);
+      components.push(sum.toFixed(10));
+    }
+  } catch(e) { /* audio not available */ }
+
+  // SHA-256 → 64-char hex (browser-agnostic device ID)
   const raw = components.join('||');
   try {
-    const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0, 64);
   } catch(e) {
-    // Fallback: simple djb2 hash
     let h = 5381;
     for (let i = 0; i < raw.length; i++) h = ((h << 5) + h) ^ raw.charCodeAt(i);
     return Math.abs(h).toString(16).padStart(8, '0');
