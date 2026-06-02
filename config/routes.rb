@@ -40,10 +40,11 @@ Rails.application.routes.draw do
   get  "/s/:slug",         to: "participate/surveys#show",    as: :participate_survey
   post "/s/:slug/submit",  to: "participate/surveys#submit",  as: :submit_survey
   get  "/s/:slug/done",    to: "participate/surveys#done",    as: :survey_done
-  get  "/v/:slug",         to: "participate/votes#show",      as: :participate_vote
-  post "/v/:slug/submit",  to: "participate/votes#submit",    as: :submit_vote
-  get  "/v/:slug/results", to: "participate/votes#results",   as: :vote_results
-  get  "/v/:slug/present", to: "participate/votes#present",   as: :vote_presenter
+  get  "/v/:slug",              to: "participate/votes#show",        as: :participate_vote
+  post "/v/:slug/submit",       to: "participate/votes#submit",      as: :submit_vote
+  get  "/v/:slug/results",      to: "participate/votes#results",     as: :vote_results
+  get  "/v/:slug/present",      to: "participate/votes#present",     as: :vote_presenter
+  post "/v/:slug/check_voted",  to: "participate/votes#check_voted", as: :check_voted
   get  "/f/:slug",         to: "participate/feedbacks#show",  as: :participate_feedback
   post "/f/:slug/submit",  to: "participate/feedbacks#submit", as: :submit_feedback
   post "/f/:slug/upvote",  to: "participate/feedbacks#upvote", as: :upvote_feedback

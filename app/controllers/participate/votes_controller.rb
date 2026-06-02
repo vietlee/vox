@@ -56,6 +56,22 @@ class Participate::VotesController < Participate::BaseController
     render layout: "presenter"
   end
 
+  # POST /v/:slug/check_voted — client sends fingerprint, server replies if already voted
+  def check_voted
+    return render json: { voted: false } if @vote.allow_multiple_votes?
+
+    fp = params[:fingerprint].presence&.slice(0, 64)
+    voted = if current_user.present?
+      @vote.vote_responses.exists?(user_id: current_user.id)
+    elsif fp.present?
+      @vote.vote_responses.exists?(fingerprint: fp)
+    else
+      respondent_token.present? && @vote.vote_responses.exists?(respondent_token: respondent_token)
+    end
+
+    render json: { voted: voted }
+  end
+
   private
 
   def set_vote

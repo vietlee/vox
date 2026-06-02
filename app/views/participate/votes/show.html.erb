@@ -634,4 +634,25 @@ function showAlreadyVoted(isDuplicate = false) {
     } else { update(); }
   }, 1000);
 })();
+
+<% unless @already_voted || @vote.allow_multiple_votes? %>
+// ── Check voted on page load (fingerprint-based) ─────────────────────────────
+// Runs only when server doesn't already know the user voted (different browser/device)
+(async function checkVotedOnLoad() {
+  try {
+    const fp = await getBrowserFingerprint();
+    const res = await fetch('<%= check_voted_path(@vote.slug) %>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify({ fingerprint: fp })
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.voted) {
+      // Device already voted → show blocked screen immediately, before user interacts
+      showAlreadyVoted(true);
+    }
+  } catch(e) { /* network error — fail open, let them try */ }
+})();
+<% end %>
 </script>
