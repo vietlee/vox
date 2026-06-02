@@ -173,49 +173,75 @@ export default class extends Controller {
     this.errorTarget.classList.add("hidden")
     this.resultTarget.classList.add("hidden")
 
-    try {
-      const formData = new FormData()
-      formData.append("text",          text)
-      formData.append("voice_id",      voiceId)
-      formData.append("model",         model)
-      formData.append("speed",         speed)
-      formData.append("stability",     stability)
-      formData.append("similarity",    similarity)
-      formData.append("style",         style)
-      formData.append("output_format", outputFormat)
-
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
-
-      const res = await fetch(this.generateUrl, {
-        method:  "POST",
-        headers: { "X-CSRF-Token": csrfToken, "Accept": "audio/mpeg, application/json" },
-        body:    formData
-      })
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Unknown error" }))
-        throw new Error(err.error || `Server error ${res.status}`)
-      }
-
-      const creditsUsed = parseInt(res.headers.get("X-Credits-Used") || "0")
-      const blob = await res.blob()
-      const url  = URL.createObjectURL(blob)
-
-      this.playerTarget.src        = url
-      this.downloadLinkTarget.href = url
-
-      this.resultTarget.classList.remove("hidden")
-      this.resultTarget.scrollIntoView({ behavior: "smooth", block: "nearest" })
-
-      // Update sidebar credit display without page reload
-      if (creditsUsed > 0 && typeof window.deductDisplayCredits === "function") {
-        window.deductDisplayCredits(creditsUsed)
-      }
-    } catch (e) {
-      this.showError(e.message)
-    } finally {
-      this.setLoading(false)
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+    const buildBody = () => {
+      const fd = new FormData()
+      fd.append("text",          text)
+      fd.append("voice_id",      voiceId)
+      fd.append("model",         model)
+      fd.append("speed",         speed)
+      fd.append("stability",     stability)
+      fd.append("similarity",    similarity)
+      fd.append("style",         style)
+      fd.append("output_format", outputFormat)
+      return fd
     }
+
+    const MAX_CLIENT_RETRIES = 2
+    const RETRY_DELAY_MS     = 3000
+
+    let lastError = null
+    for (let attempt = 0; attempt <= MAX_CLIENT_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          this.btnLabelTarget.textContent = `Đang thử lại (${attempt}/${MAX_CLIENT_RETRIES})…`
+          await new Promise(r => setTimeout(r, RETRY_DELAY_MS))
+        }
+
+        const res = await fetch(this.generateUrl, {
+          method:  "POST",
+          headers: { "X-CSRF-Token": csrfToken, "Accept": "audio/mpeg, application/json" },
+          body:    buildBody()
+        })
+
+        // Retryable server errors — try again (client-side)
+        if ([500, 502, 503, 504].includes(res.status) && attempt < MAX_CLIENT_RETRIES) {
+          const err = await res.json().catch(() => ({ error: `Lỗi máy chủ ${res.status}` }))
+          lastError = new Error(err.error || `Lỗi máy chủ ${res.status}`)
+          continue
+        }
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Unknown error" }))
+          throw new Error(err.error || `Server error ${res.status}`)
+        }
+
+        const creditsUsed = parseInt(res.headers.get("X-Credits-Used") || "0")
+        const blob = await res.blob()
+        const url  = URL.createObjectURL(blob)
+
+        this.playerTarget.src        = url
+        this.downloadLinkTarget.href = url
+
+        this.resultTarget.classList.remove("hidden")
+        this.resultTarget.scrollIntoView({ behavior: "smooth", block: "nearest" })
+
+        // Update sidebar credit display without page reload
+        if (creditsUsed > 0 && typeof window.deductDisplayCredits === "function") {
+          window.deductDisplayCredits(creditsUsed)
+        }
+
+        lastError = null
+        break  // success — exit retry loop
+      } catch (e) {
+        lastError = e
+        // Non-retryable (4xx, network abort, etc.) — stop immediately
+        break
+      }
+    }
+
+    if (lastError) this.showError(lastError.message)
+    this.setLoading(false)
   }
 
   // ── Helpers ───────────────────────────────────────────────────────
