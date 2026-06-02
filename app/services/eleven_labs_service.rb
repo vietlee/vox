@@ -62,7 +62,7 @@ class ElevenLabsService
     raise
   end
 
-  # Returns raw audio bytes (mp3). Auto-retries on 429.
+  # Returns raw audio bytes (mp3). Auto-retries on 429 and 5xx (transient errors).
   # speed: ElevenLabs voice_settings supports 0.7–1.2 (Flash v2.5, v3, Multilingual v2)
   def text_to_speech(text:, voice_id: DEFAULT_VOICE, model: "eleven_turbo_v2_5", speed: 1.0, stability: 0.5, similarity: 0.75, style: 0.0, output_format: "mp3_44100_128")
     max_attempts = 3
@@ -79,23 +79,28 @@ class ElevenLabsService
       }
     }.to_json
 
+    last_response = nil
     max_attempts.times do |attempt|
-      response = HTTParty.post(
+      last_response = HTTParty.post(
         "#{BASE_URL}/v1/text-to-speech/#{voice_id}?output_format=#{output_format}",
         headers: default_headers.merge("Accept" => "audio/mpeg"),
         body:    payload,
         timeout: 60
       )
 
-      if response.code == 429 && attempt < max_attempts - 1
-        wait = (attempt + 1) * 3
-        Rails.logger.warn "ElevenLabs 429, retry in #{wait}s (#{attempt + 1}/#{max_attempts})"
+      if last_response.success?
+        return last_response.body
+      end
+
+      retryable = [429, 500, 502, 503, 504].include?(last_response.code)
+      if retryable && attempt < max_attempts - 1
+        wait = (attempt + 1) * 2
+        Rails.logger.warn "ElevenLabs #{last_response.code}, retry in #{wait}s (attempt #{attempt + 1}/#{max_attempts})"
         sleep wait
         next
       end
 
-      raise friendly_error(response) unless response.success?
-      return response.body
+      raise friendly_error(last_response)
     end
   rescue HTTParty::Error, Timeout::Error
     raise "Không thể kết nối ElevenLabs. Vui lòng thử lại sau."
