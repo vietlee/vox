@@ -21,7 +21,7 @@
       <table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:14px;">
         <tr>
           <td>
-            <% initial = (@feedback.anonymous? || @feedback.author_name.blank?) ? "?" : @feedback.author_name.first.upcase %>
+            <% initial = (@feedback.anonymous? || @feedback.author_name.blank?) ? "A" : @feedback.author_name.first.upcase %>
             <table cellpadding="0" cellspacing="0">
               <tr>
                 <td style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a855f7);
@@ -30,9 +30,11 @@
                 </td>
                 <td style="padding-left:10px;">
                   <span style="font-size:13px;font-weight:600;color:#1e293b;">
-                    <%= @feedback.anonymous? || @feedback.author_name.blank?
-                          ? I18n.t("participate.feedback.anonymous", locale: locale)
-                          : @feedback.author_name %>
+                    <% if @feedback.anonymous? || @feedback.author_name.blank? %>
+                      <%= I18n.t("participate.feedback.anonymous", locale: locale) %>
+                    <% else %>
+                      <%= @feedback.author_name %>
+                    <% end %>
                   </span>
                   <% if @feedback.author_email.present? && !@feedback.anonymous? %>
                     <span style="font-size:11px;color:#94a3b8;padding-left:6px;"><%= @feedback.author_email %></span>
