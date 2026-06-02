@@ -27,9 +27,6 @@ class Admin::TtsController < Admin::BaseController
       return
     end
 
-    credits_needed = tts_credits_for(text, model)
-    return unless require_credits!(credits_needed)
-
     speed         = (params[:speed].presence      || 1.0).to_f.clamp(0.7, 1.2)
     stability     = (params[:stability].presence  || 0.5).to_f.clamp(0.0, 1.0)
     similarity    = (params[:similarity].presence || 0.75).to_f.clamp(0.0, 1.0)
@@ -37,6 +34,22 @@ class Admin::TtsController < Admin::BaseController
     output_format = params[:output_format].presence&.then { |f|
       %w[mp3_44100_64 mp3_44100_128 mp3_44100_192].include?(f) ? f : "mp3_44100_128"
     } || "mp3_44100_128"
+
+    cache_key = tts_cache_key(text, voice_id, model, speed, stability, similarity, style, output_format)
+    cached    = Rails.cache.read(cache_key)
+
+    if cached
+      response.headers["X-Credits-Used"] = "0"
+      response.headers["X-Cache"]        = "HIT"
+      send_data cached,
+        type:        "audio/mpeg",
+        disposition: "inline",
+        filename:    "tts-#{Time.current.to_i}.mp3"
+      return
+    end
+
+    credits_needed = tts_credits_for(text, model)
+    return unless require_credits!(credits_needed)
 
     service = ElevenLabsService.new
     audio   = service.text_to_speech(
@@ -50,9 +63,11 @@ class Admin::TtsController < Admin::BaseController
       output_format: output_format
     )
 
+    Rails.cache.write(cache_key, audio, expires_in: 24.hours)
     current_workspace.active_subscription&.deduct_credits!(credits_needed)
 
     response.headers["X-Credits-Used"] = credits_needed.to_s
+    response.headers["X-Cache"]        = "MISS"
 
     send_data audio,
       type:        "audio/mpeg",
@@ -83,6 +98,11 @@ class Admin::TtsController < Admin::BaseController
     "eleven_v3"              => 250,
     "eleven_monolingual_v1"  => 250,
   }.freeze
+
+  def tts_cache_key(text, voice_id, model, speed, stability, similarity, style, output_format)
+    digest = Digest::SHA256.hexdigest([text, voice_id, model, speed, stability, similarity, style, output_format].join("|"))
+    "tts/audio/#{digest}"
+  end
 
   def tts_credits_for(text, model = "eleven_turbo_v2_5")
     chars_per_credit = TTS_CHARS_PER_CREDIT[model] || 250
