@@ -128,7 +128,8 @@ class ElevenLabsService
         ) if attempt >= max_attempts - 1
         sleep (attempt + 1) * 2
 
-      rescue HTTParty::Error, SocketError, Errno::ECONNREFUSED, Errno::ECONNRESET => e
+      rescue HTTParty::Error, SocketError, Errno::ECONNREFUSED, Errno::ECONNRESET,
+             OpenSSL::SSL::SSLError, EOFError => e
         log_network_error(e, attempt, max_attempts)
         raise ElevenLabsService::Error.new(
           "Không thể kết nối ElevenLabs (#{e.class.name.demodulize}). Vui lòng thử lại.",
