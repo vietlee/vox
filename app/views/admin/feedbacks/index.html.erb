@@ -112,9 +112,10 @@
       if (!res.ok) return;
       const card = document.getElementById(`feedback-${id}`);
       if (card) {
-        const prevStatus = card.dataset.status;
+        const prevStatus     = card.dataset.status;
+        const prevModeration = card.dataset.moderation;
         card.style.opacity = '0'; card.style.transform = 'translateX(10px)';
-        setTimeout(() => { card.remove(); window.recordDeleted?.(prevStatus === 'approved', prevStatus); }, 200);
+        setTimeout(() => { card.remove(); window.recordDeleted?.(prevStatus === 'approved', prevStatus, prevModeration); }, 200);
       }
     };
     document.getElementById('delete-feedback-modal').style.display = 'flex';
@@ -1265,8 +1266,10 @@ async function executeBulkAction(action, ids) {
     pendingCount  -= cardSnapshots.filter(s => s.status === 'pending').length;
     hiddenCount   -= cardSnapshots.filter(s => s.status === 'hidden').length;
     rejectedCount -= cardSnapshots.filter(s => s.status === 'rejected').length;
-    if (CURRENT_MODERATION === 'flagged') updateFlaggedBanner(-cardSnapshots.length);
-    else if (flaggedInSelection > 0) updateFlaggedBanner(-flaggedInSelection);
+    // Always update pending banner if any pending were deleted
+    if (cardSnapshots.some(s => s.status === 'pending')) updatePendingBanner(0);
+    // Always update flagged banner if any flagged were deleted
+    if (flaggedInSelection > 0) updateFlaggedBanner(-flaggedInSelection);
   } else if (action === 'approve') {
     const n = cardSnapshots.length;
     pendingCount  -= cardSnapshots.filter(s => s.status === 'pending').length;
@@ -1275,38 +1278,37 @@ async function executeBulkAction(action, ids) {
     approvedCount += cardSnapshots.filter(s => s.status !== 'approved').length;
     const pendingRemoved = cardSnapshots.filter(s => s.status === 'pending').length;
     if (pendingRemoved > 0) updatePendingBanner(0);
-    if (CURRENT_MODERATION === 'flagged') updateFlaggedBanner(-n);
-    else if (flaggedInSelection > 0) updateFlaggedBanner(-flaggedInSelection);
+    if (flaggedInSelection > 0) updateFlaggedBanner(-flaggedInSelection);
   } else if (action === 'hide') {
     approvedCount -= cardSnapshots.filter(s => s.status === 'approved').length;
     pendingCount  -= cardSnapshots.filter(s => s.status === 'pending').length;
     rejectedCount -= cardSnapshots.filter(s => s.status === 'rejected').length;
     hiddenCount   += cardSnapshots.length;
-    if (CURRENT_MODERATION === 'flagged') updateFlaggedBanner(-cardSnapshots.length);
-    else if (flaggedInSelection > 0) updateFlaggedBanner(-flaggedInSelection);
+    if (cardSnapshots.some(s => s.status === 'pending')) updatePendingBanner(0);
+    if (flaggedInSelection > 0) updateFlaggedBanner(-flaggedInSelection);
   } else if (action === 'reject') {
     approvedCount -= cardSnapshots.filter(s => s.status === 'approved').length;
     pendingCount  -= cardSnapshots.filter(s => s.status === 'pending').length;
     hiddenCount   -= cardSnapshots.filter(s => s.status === 'hidden').length;
     rejectedCount += cardSnapshots.length;
-    if (CURRENT_MODERATION === 'flagged') updateFlaggedBanner(-cardSnapshots.length);
-    else if (flaggedInSelection > 0) updateFlaggedBanner(-flaggedInSelection);
+    if (cardSnapshots.some(s => s.status === 'pending')) updatePendingBanner(0);
+    if (flaggedInSelection > 0) updateFlaggedBanner(-flaggedInSelection);
   }
 
   updateTabBadges();
-  // Update header (subtitle + badge) immediately for non-delete actions
-  if (action !== 'delete') updateHeaderCounts();
+  updateHeaderCounts();
 
   // Hide bulk bar
   toggleSelectAll(false);
 }
 
-function recordDeleted(wasApproved, prevStatus) {
+function recordDeleted(wasApproved, prevStatus, prevModeration) {
   totalCount--;
   if (prevStatus === 'approved')  approvedCount--;
   if (prevStatus === 'pending')   { pendingCount--; updatePendingBanner(0); }
   if (prevStatus === 'hidden')    hiddenCount--;
   if (prevStatus === 'rejected')  rejectedCount--;
+  if (prevModeration === 'flagged') updateFlaggedBanner(-1);
   updateTabBadges();
   updateHeaderCounts();
 }
