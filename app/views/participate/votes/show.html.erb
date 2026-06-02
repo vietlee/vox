@@ -526,8 +526,10 @@ async function submitVote() {
   }
 
   const data = await res.json();
-  if (res.ok || data.error === 'already_voted') {
-    showAlreadyVoted();
+  if (res.ok) {
+    showAlreadyVoted(false);
+  } else if (data.error === 'already_voted') {
+    showAlreadyVoted(true);
   } else {
     document.querySelectorAll('#vote-form button[onclick="submitVote()"]').forEach(b => { b.disabled = false; b.textContent = VOTE_BTN_TEXT; });
     showRateLimitBanner(null, data.message || VOTE_ERROR_TEXT);
@@ -580,11 +582,27 @@ function showRateLimitBanner(retryAfter, staticMsg) {
   tick();
 }
 
-function showAlreadyVoted() {
+function showAlreadyVoted(isDuplicate = false) {
   document.getElementById("vote-form").classList.add("hidden");
   const el = document.getElementById("already-voted");
   el.classList.remove("hidden");
   el.classList.add("fade-in");
+
+  if (isDuplicate) {
+    // Replace success icon with warning icon to indicate blocked duplicate
+    const iconWrap = el.querySelector('.w-16.h-16');
+    if (iconWrap) {
+      iconWrap.style.background = 'linear-gradient(135deg,#f59e0b,#ef4444)';
+      iconWrap.innerHTML = `<svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>`;
+    }
+    const title = el.querySelector('h2');
+    if (title) title.textContent = '<%= I18n.locale == :vi ? "Bạn đã bình chọn rồi" : "Already voted" %>';
+    const sub = el.querySelector('p.text-slate-500');
+    if (sub) sub.textContent = '<%= I18n.locale == :vi ? "Thiết bị này đã bình chọn cho cuộc bỏ phiếu này." : "This device has already submitted a vote." %>';
+    // Show the warning banner (hidden by default when @already_voted is false)
+    const banner = el.querySelector('[style*="rgba(245,158,11"]');
+    if (banner) banner.style.display = 'flex';
+  }
 }
 
 // ── Countdown ────────────────────────────────────────────────────────────────
