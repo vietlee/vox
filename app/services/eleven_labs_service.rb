@@ -91,13 +91,15 @@ class ElevenLabsService
       }
     }.to_json
 
+    Rails.logger.info "ElevenLabs TTS start: model=#{model} voice=#{voice_id} chars=#{text.length}"
+
     max_attempts.times do |attempt|
       begin
         response = HTTParty.post(
           "#{BASE_URL}/v1/text-to-speech/#{voice_id}?output_format=#{output_format}",
           headers: default_headers.merge("Accept" => "audio/mpeg"),
           body:    payload,
-          timeout: 60
+          timeout: 120
         )
 
         if response.success?
@@ -118,15 +120,15 @@ class ElevenLabsService
       rescue ElevenLabsService::Error
         raise  # already structured — don't wrap again
 
-      rescue Timeout::Error => e
+      rescue Timeout::Error, Net::ReadTimeout, Net::OpenTimeout => e
         log_network_error(e, attempt, max_attempts)
         raise ElevenLabsService::Error.new(
-          "ElevenLabs không phản hồi (timeout sau 60s). Vui lòng thử lại.",
+          "ElevenLabs không phản hồi (timeout). Vui lòng thử lại.",
           code: :timeout
         ) if attempt >= max_attempts - 1
         sleep (attempt + 1) * 2
 
-      rescue HTTParty::Error => e
+      rescue HTTParty::Error, SocketError, Errno::ECONNREFUSED, Errno::ECONNRESET => e
         log_network_error(e, attempt, max_attempts)
         raise ElevenLabsService::Error.new(
           "Không thể kết nối ElevenLabs (#{e.class.name.demodulize}). Vui lòng thử lại.",
