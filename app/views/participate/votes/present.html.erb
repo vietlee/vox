@@ -25,10 +25,34 @@
     from { opacity:0; transform:translateY(-20px) scale(0.96); }
     to   { opacity:1; transform:translateY(0) scale(1); }
   }
+  @keyframes rankingSlideIn {
+    from { opacity:0; transform:translateY(60px) scale(0.97); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+  }
+  @keyframes medalDrop {
+    0%   { opacity:0; transform:translateY(-40px) rotate(-8deg) scale(0.7); }
+    60%  { opacity:1; transform:translateY(6px) rotate(3deg) scale(1.1); }
+    80%  { transform:translateY(-3px) rotate(-1deg) scale(0.97); }
+    100% { opacity:1; transform:translateY(0) rotate(0) scale(1); }
+  }
+  @keyframes podiumRise {
+    from { opacity:0; transform:scaleY(0); transform-origin:bottom; }
+    to   { opacity:1; transform:scaleY(1); transform-origin:bottom; }
+  }
+  @keyframes countUp {
+    from { opacity:0; transform:scale(0.5); }
+    to   { opacity:1; transform:scale(1); }
+  }
   @keyframes pulse-ring {
     0%   { box-shadow:0 0 0 0 rgba(239,68,68,0.5); }
     70%  { box-shadow:0 0 0 16px rgba(239,68,68,0); }
     100% { box-shadow:0 0 0 0 rgba(239,68,68,0); }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes rankLoadPulse {
+    0%,100% { opacity:0.6; } 50% { opacity:1; }
   }
   .plus-one {
     position:absolute; right:4px; bottom:50%;
@@ -94,6 +118,9 @@
   .pdesc-toggle:hover { color: rgba(148, 163, 184, 1); }
   .pdesc-toggle svg { transition: transform 0.2s; }
   .pdesc-toggle.expanded svg { transform: rotate(180deg); }
+
+  /* Hide scrollbar on ranking screen while keeping scroll functionality */
+  #ranking-screen::-webkit-scrollbar { display: none; }
 </style>
 
 <%
@@ -120,7 +147,7 @@
     <% end %>
 
     <!-- Right: countdown (mobile inline) + participant count + close -->
-    <div class="flex items-center gap-2 sm:gap-3">
+    <div id="header-controls" class="flex items-center gap-2 sm:gap-3">
       <!-- Countdown badge — visible on mobile, hidden on desktop (ring shown below title) -->
       <% if @vote.seconds_remaining %>
         <div id="countdown-inline" class="sm:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full font-black tabular-nums"
@@ -291,31 +318,6 @@
     <% end %>
   </div>
 
-  <!-- ── AI Insight ─────────────────────────────────────────────────────── -->
-  <div id="ai-insight-box" class="hidden max-w-3xl mx-auto w-full rounded-2xl overflow-hidden"
-       style="background:linear-gradient(135deg,rgba(109,40,217,0.25),rgba(67,56,202,0.2)); border:1px solid rgba(167,139,250,0.3);">
-    <div class="px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3"
-         style="border-bottom:1px solid rgba(167,139,250,0.15);">
-      <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-           style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
-        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-        </svg>
-      </div>
-      <span class="text-[11px] sm:text-[13px] font-bold tracking-widest uppercase text-violet-300">AI Insight</span>
-      <div id="ai-insight-loading" class="ml-auto flex items-center gap-2 text-[11px] text-violet-400">
-        <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-        </svg>
-        <%= I18n.locale.to_s == 'vi' ? 'Đang phân tích...' : 'Analyzing...' %>
-      </div>
-    </div>
-    <div class="px-4 sm:px-6 py-4 sm:py-5">
-      <p id="ai-insight-text" class="text-[13px] sm:text-[16px] text-slate-200 leading-relaxed text-center"></p>
-    </div>
-  </div>
-
   <!-- ── QR Code — centered ─────────────────────────────────────────────── -->
   <% if @vote.qr_code&.token %>
     <div class="text-center">
@@ -333,6 +335,68 @@
 
 </div>
 
+<!-- ══════════════════════════════════════════════════════════════════════
+     RANKING SCREEN — full-screen overlay, shown after vote closes
+     Only rendered/shown when ranking_enabled? = true
+     ══════════════════════════════════════════════════════════════════════ -->
+<% if @vote.ranking_enabled? %>
+
+<!-- Loading overlay — shown immediately on close, hidden once ranking screen is ready -->
+<div id="ranking-loading"
+     style="display:none; position:fixed; inset:0; z-index:99;
+            background:radial-gradient(ellipse at 20% 20%,#1e1b4b 0%,#0f172a 50%,#0a0f1e 100%);
+            flex-direction:column; align-items:center; justify-content:center; gap:24px;">
+  <div style="width:72px; height:72px; border:5px solid rgba(129,140,248,0.18);
+              border-top-color:#818cf8; border-radius:50%;
+              animation:spin 0.85s linear infinite;"></div>
+  <div style="text-align:center;">
+    <p style="font-size:clamp(15px,3vw,20px); font-weight:800; color:#a5b4fc; margin:0 0 6px;
+              animation:rankLoadPulse 1.6s ease-in-out infinite;">
+      <%= I18n.locale.to_s == 'vi' ? '🏆 Đang tải bảng xếp hạng…' : '🏆 Loading leaderboard…' %>
+    </p>
+    <p style="font-size:clamp(12px,2vw,14px); color:rgba(148,163,184,0.55); margin:0;">
+      <%= I18n.locale.to_s == 'vi' ? 'Vui lòng đợi trong giây lát' : 'Please wait a moment' %>
+    </p>
+  </div>
+</div>
+<div id="ranking-screen"
+     class="hidden fixed inset-0 overflow-y-auto"
+     style="background:radial-gradient(ellipse at 20% 20%,#1e1b4b 0%,#0f172a 50%,#0a0f1e 100%);
+            z-index:100; padding: clamp(20px,4vw,48px);
+            scrollbar-width:none; -ms-overflow-style:none;">
+
+  <!-- Header -->
+  <div class="text-center mb-8" style="animation:rankingSlideIn 0.6s ease forwards;">
+    <div class="text-5xl mb-3">🏆</div>
+    <h2 class="font-black text-white tracking-tight"
+        style="font-size:clamp(22px,5vw,40px); text-shadow:0 2px 32px rgba(251,191,36,0.3);">
+      <%= I18n.locale.to_s == 'vi' ? 'Bảng Xếp Hạng' : 'Leaderboard' %>
+    </h2>
+    <p class="text-slate-400 mt-1" style="font-size:clamp(13px,2.5vw,16px);"><%= @vote.title %></p>
+  </div>
+
+  <!-- Podium — top N positions -->
+  <div id="ranking-podium" class="max-w-4xl mx-auto mb-10">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- Divider -->
+  <div class="max-w-4xl mx-auto mb-6" style="height:1px; background:linear-gradient(90deg,transparent,rgba(129,140,248,0.3),transparent);"></div>
+
+  <!-- All options summary -->
+  <div class="max-w-4xl mx-auto mb-8">
+    <p class="text-[11px] font-bold tracking-widest uppercase text-slate-500 mb-3">
+      <%= I18n.locale.to_s == 'vi' ? 'Tất cả lựa chọn' : 'All options' %>
+    </p>
+    <div id="ranking-summary" class="space-y-2">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+
+</div>
+<% end %>
+
 <script type="module">
 import { createConsumer } from "@rails/actioncable";
 
@@ -349,12 +413,27 @@ consumer.subscriptions.create({ channel: "VoteChannel", vote_id: voteId }, {
   received(data) {
     if (data.type === 'new_vote') {
       updateResults(data.options, data.participant_count);
-    } else if (data.type === 'ai_insight') {
-      showInsight({ insight: data.insight, highlight: data.highlight });
+    } else if (data.type === 'status_change' && data.status === 'active') {
+      // Vote just opened — inject close button if we loaded the page before it was activated
+      if (!document.getElementById('close-btn')) {
+        const controls = document.getElementById('header-controls');
+        if (controls) {
+          const btn = document.createElement('button');
+          btn.id = 'close-btn';
+          btn.style.cssText = 'font-size:clamp(11px,3vw,13px);padding:clamp(6px,2vw,8px) clamp(12px,3vw,20px);background:#dc2626;border-radius:999px;font-weight:700;border:none;color:#fff;cursor:pointer;';
+          btn.innerHTML = '<span class="sm:hidden">✕</span><span class="hidden sm:inline">Close Vote</span>';
+          btn.addEventListener('click', closeVote);
+          controls.appendChild(btn);
+        }
+      }
     } else if (data.type === 'status_change' && data.status === 'closed') {
+      freezeCountdown();
       document.getElementById('close-btn')?.remove();
       showTimeUpBanner();
-      startInsightPolling();
+      <% if @vote.ranking_enabled? %>
+      showRankingLoading();
+      setTimeout(showRankingScreen, 1800);
+      <% end %>
     }
   }
 });
@@ -413,47 +492,36 @@ function updateResults(options, count) {
   });
 }
 
-function showInsight(data) {
-  const box     = document.getElementById('ai-insight-box');
-  const textEl  = document.getElementById('ai-insight-text');
-  const loading = document.getElementById('ai-insight-loading');
-  box.classList.remove('hidden');
-  const insightText   = typeof data === 'object' ? (data.insight   || '') : (data || '');
-  const highlightText = typeof data === 'object' ? (data.highlight || '') : '';
-  if (insightText) {
-    textEl.textContent = insightText;
-    if (loading) loading.remove();
-    if (highlightText && !document.getElementById('ai-highlight-row')) {
-      const row = document.createElement('div');
-      row.id = 'ai-highlight-row';
-      row.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px solid rgba(167,139,250,0.2);display:flex;align-items:flex-start;gap:8px;';
-      row.innerHTML = `<span style="font-size:10px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0;margin-top:2px;">Key finding</span><p style="font-size:13px;font-weight:600;color:#e2e8f0;margin:0;">${highlightText}</p>`;
-      textEl.parentNode.appendChild(row);
-    }
-  }
-}
 
-let insightPolling = null;
-function startInsightPolling() {
-  showInsight('');
-  insightPolling = setInterval(async () => {
-    try {
-      const res  = await fetch(`/v/${voteSlug}/results.json`, { headers: { Accept: 'application/json' } });
-      const data = await res.json();
-      if (data.ai_insight) { showInsight(data.ai_insight); clearInterval(insightPolling); }
-    } catch(e) {}
-  }, 2000);
-  setTimeout(() => clearInterval(insightPolling), 180000);
+function freezeCountdown() {
+  if (_countdownTimer) { clearInterval(_countdownTimer); _countdownTimer = null; }
+  // Zero out the display so it doesn't show a frozen mid-count number
+  const arcEl    = document.getElementById('countdown-arc');
+  const textEl   = document.getElementById('countdown-text');
+  const mobileEl = document.getElementById('countdown-text-mobile');
+  const ringWrap = document.getElementById('countdown-ring');
+  if (arcEl)    { arcEl.style.stroke = 'rgba(255,255,255,0.08)'; arcEl.style.strokeDashoffset = String(2 * Math.PI * 48); }
+  if (textEl)   { textEl.style.color   = 'rgba(255,255,255,0.2)'; textEl.textContent   = '00:00'; }
+  if (mobileEl) { mobileEl.style.color = 'rgba(255,255,255,0.2)'; mobileEl.textContent = '00:00'; }
 }
 
 async function closeVote() {
+  freezeCountdown();
   const res = await fetch('<%= close_vote_path(@vote) %>', {
     method: 'PATCH',
     headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }
   });
-  if (res.ok) document.getElementById('close-btn')?.remove();
+  if (res.ok) {
+    document.getElementById('close-btn')?.remove();
+    showTimeUpBanner();
+    <% if @vote.ranking_enabled? %>
+    showRankingLoading();
+    setTimeout(showRankingScreen, 1800);
+    <% end %>
+  }
 }
-document.getElementById('close-btn')?.addEventListener('click', closeVote);
+// Use event delegation so it works whether button was server-rendered or injected via ActionCable
+document.addEventListener('click', e => { if (e.target.closest('#close-btn')) closeVote(); });
 
 function showTimeUpBanner() {
   const banner = document.getElementById('time-up-banner');
@@ -466,12 +534,234 @@ function showTimeUpBanner() {
     .forEach(el => { if (el) el.style.color = 'rgba(255,255,255,0.3)'; });
 }
 
+// ── Ranking Screen ────────────────────────────────────────────────────────
+<% if @vote.ranking_enabled? %>
+const RANKING_TOP   = <%= @vote.ranking_top %>;
+const MEDAL_ICONS   = ['🥇','🥈','🥉'];
+const PODIUM_COLORS = [
+  { bg:'linear-gradient(135deg,#fbbf24,#f59e0b)', shadow:'#fbbf24', text:'#451a03' },
+  { bg:'linear-gradient(135deg,#94a3b8,#64748b)', shadow:'#94a3b8', text:'#0f172a' },
+  { bg:'linear-gradient(135deg,#fb923c,#ea580c)', shadow:'#fb923c', text:'#431407' },
+];
+const RANKING_LABELS = {
+  vi: { pos:'Hạng', votes:'lượt', tie:'đồng hạng' },
+  en: { pos:'Rank', votes:'votes', tie:'tied'      }
+};
+const LANG = '<%= I18n.locale.to_s %>';
+
+// ── Assign shared ranks for equal counts (1-based, ties share the same rank)
+function assignRanks(sorted) {
+  return sorted.map((opt, _i, arr) => ({
+    ...opt,
+    rank: 1 + arr.filter(o => o.count > opt.count).length
+  }));
+}
+
+function showRankingLoading() {
+  const el = document.getElementById('ranking-loading');
+  if (el) el.style.display = 'flex';
+}
+
+async function showRankingScreen() {
+  const screen = document.getElementById('ranking-screen');
+  if (!screen) return;
+
+  // ── Fetch latest results ──────────────────────────────────────────────
+  let results = [];
+  try {
+    const res  = await fetch(`/v/${voteSlug}/results.json`, { headers: { Accept: 'application/json' } });
+    const data = await res.json();
+    results   = (data.results || []).slice().sort((a,b) => b.count - a.count);
+  } catch(e) {
+    // DOM fallback
+    document.querySelectorAll('.vote-option-row').forEach(row => {
+      results.push({
+        id:         row.dataset.optionId,
+        label:      row.querySelector('[class*="font-bold"]')?.textContent?.trim() || '',
+        count:      parseInt(row.dataset.count || '0'),
+        percentage: parseFloat(row.querySelector('.option-pct')?.textContent || '0'),
+        image_url:  row.querySelector('img')?.src || null
+      });
+    });
+    results.sort((a,b) => b.count - a.count);
+  }
+
+  const ranked     = assignRanks(results);
+  const totalVotes = results.reduce((s,r) => s + r.count, 0);
+
+  // Options that qualify for display (rank ≤ RANKING_TOP)
+  const topRanked = ranked.filter(o => o.rank <= RANKING_TOP);
+
+  // Group top options by rank
+  const rankGroups = [];
+  topRanked.forEach(o => {
+    let g = rankGroups.find(g => g.rank === o.rank);
+    if (!g) { g = { rank: o.rank, options: [] }; rankGroups.push(g); }
+    g.options.push(o);
+  });
+  rankGroups.sort((a,b) => a.rank - b.rank);
+
+  const hasTies        = rankGroups.some(g => g.options.length > 1);
+  const isVisualPodium = !hasTies && rankGroups.length >= 2;
+
+  const lbl      = RANKING_LABELS[LANG] || RANKING_LABELS.en;
+  const podiumEl = document.getElementById('ranking-podium');
+
+  // ── PODIUM: standard 2-1-3 visual (only when no ties, ≥2 unique ranks) ─
+  if (isVisualPodium) {
+    const pd       = rankGroups.map(g => g.options[0]);
+    const reord    = pd.length >= 3 ? [pd[1], pd[0], pd[2]] : [pd[1], pd[0]];
+    const heights  = pd.length >= 3 ? ['140px','180px','110px'] : ['140px','180px'];
+    const origIdxs = pd.length >= 3 ? [1, 0, 2] : [1, 0];
+
+    podiumEl.innerHTML = `
+      <div style="display:flex;align-items:flex-end;justify-content:center;
+                  gap:clamp(8px,2vw,20px);padding:0 clamp(8px,4vw,40px);">
+        ${reord.map((opt, vi) => {
+          if (!opt) return '';
+          const oi   = origIdxs[vi];
+          const clr  = PODIUM_COLORS[oi] || PODIUM_COLORS[2];
+          const pct  = totalVotes > 0 ? (opt.count/totalVotes*100).toFixed(1) : '0.0';
+          return `
+            <div style="flex:1;max-width:${oi===0?'240px':'200px'};display:flex;flex-direction:column;
+                         align-items:center;gap:8px;animation:medalDrop 0.7s ease ${vi*0.15}s both;">
+              <div style="font-size:clamp(28px,5vw,44px);line-height:1;
+                           filter:drop-shadow(0 4px 12px ${clr.shadow}88);">${MEDAL_ICONS[oi]||`#${oi+1}`}</div>
+              <div style="width:100%;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.12);
+                           border-radius:16px;padding:clamp(10px,2vw,16px);text-align:center;
+                           box-shadow:0 0 32px ${clr.shadow}44;">
+                ${opt.image_url?`<img src="${opt.image_url}" style="width:clamp(48px,8vw,72px);height:clamp(48px,8vw,72px);border-radius:12px;object-fit:cover;margin:0 auto 10px;">`:''}
+                <p style="font-size:clamp(13px,2.5vw,17px);font-weight:800;color:#f1f5f9;line-height:1.3;margin:0 0 8px;">${escHtml(opt.label)}</p>
+                <p style="font-size:clamp(22px,4vw,32px);font-weight:900;color:${clr.shadow};line-height:1;margin:0;">${pct}%</p>
+                <p style="font-size:clamp(11px,2vw,13px);color:rgba(148,163,184,0.8);margin:4px 0 0;">${opt.count} ${lbl.votes}</p>
+              </div>
+              <div style="width:100%;border-radius:10px 10px 0 0;background:${clr.bg};height:${heights[vi]};
+                           display:flex;align-items:flex-start;justify-content:center;padding-top:12px;
+                           box-shadow:0 -4px 24px ${clr.shadow}55;
+                           animation:podiumRise 0.6s ease ${vi*0.15+0.3}s both;">
+                <span style="font-size:clamp(18px,3vw,26px);font-weight:900;color:${clr.text};opacity:0.7;">${oi+1}</span>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>`;
+
+    // 4th+ positions (only possible when RANKING_TOP > 3 with no ties)
+    if (topRanked.length > 3) {
+      const restHtml = topRanked.slice(3).map(opt => {
+        const pct = totalVotes>0?(opt.count/totalVotes*100).toFixed(1):'0.0';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;
+                              background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
+          <span style="width:28px;text-align:center;font-size:14px;font-weight:800;color:rgba(148,163,184,0.7);">#${opt.rank}</span>
+          ${opt.image_url?`<img src="${opt.image_url}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;">`:''}
+          <span style="flex:1;font-size:clamp(13px,2.5vw,15px);font-weight:700;color:#e2e8f0;">${escHtml(opt.label)}</span>
+          <span style="font-size:14px;font-weight:800;color:#94a3b8;">${pct}%</span>
+          <span style="font-size:12px;color:rgba(100,116,139,0.8);">${opt.count}v</span>
+        </div>`;
+      }).join('');
+      podiumEl.insertAdjacentHTML('beforeend',`<div class="mt-4 space-y-2 max-w-2xl mx-auto">${restHtml}</div>`);
+    }
+
+  // ── PODIUM: tie-aware grouped layout ────────────────────────────────────
+  } else {
+    let html = '';
+    rankGroups.forEach((group, gi) => {
+      const { rank, options } = group;
+      const clr    = PODIUM_COLORS[rank-1] || PODIUM_COLORS[2];
+      const medal  = MEDAL_ICONS[rank-1]   || `#${rank}`;
+      const isTied = options.length > 1;
+      const tieTag = isTied
+        ? `<span style="font-size:11px;background:rgba(255,255,255,0.1);border-radius:999px;
+                         padding:2px 10px;font-weight:600;color:rgba(200,210,230,0.8);margin-left:8px;">
+             ${options.length} ${lbl.tie}
+           </span>`
+        : '';
+
+      html += `
+        <div style="margin-bottom:${gi < rankGroups.length-1 ? '28px' : '0'};
+                     animation:medalDrop 0.7s ease ${gi*0.15}s both;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;justify-content:center;">
+            <span style="font-size:clamp(22px,4vw,36px);line-height:1;">${medal}</span>
+            <span style="font-size:clamp(14px,2.5vw,18px);font-weight:800;color:${clr.shadow};">
+              ${lbl.pos} ${rank}
+            </span>
+            ${tieTag}
+          </div>
+          <div style="display:flex;justify-content:center;flex-wrap:wrap;
+                       gap:clamp(8px,2vw,16px);max-width:840px;margin:0 auto;">
+            ${options.map(opt => {
+              const pct = totalVotes>0?(opt.count/totalVotes*100).toFixed(1):'0.0';
+              const maxW = options.length===1 ? '300px' : options.length===2 ? '260px' : '220px';
+              return `
+                <div style="flex:1;min-width:140px;max-width:${maxW};
+                             background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.12);
+                             border-radius:16px;padding:clamp(12px,2vw,20px);text-align:center;
+                             box-shadow:0 0 24px ${clr.shadow}33;">
+                  ${opt.image_url?`<img src="${opt.image_url}" style="width:clamp(44px,7vw,64px);height:clamp(44px,7vw,64px);border-radius:10px;object-fit:cover;margin:0 auto 10px;">`:''}
+                  <p style="font-size:clamp(13px,2.5vw,16px);font-weight:800;color:#f1f5f9;line-height:1.3;margin:0 0 8px;">${escHtml(opt.label)}</p>
+                  <p style="font-size:clamp(20px,3.5vw,28px);font-weight:900;color:${clr.shadow};line-height:1;margin:0;">${pct}%</p>
+                  <p style="font-size:clamp(11px,1.8vw,13px);color:rgba(148,163,184,0.8);margin:4px 0 0;">${opt.count} ${lbl.votes}</p>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    });
+    podiumEl.innerHTML = html;
+  }
+
+  // ── Summary table (all options with proper tied ranks) ────────────────
+  const summaryEl = document.getElementById('ranking-summary');
+  summaryEl.innerHTML = ranked.map((opt, i) => {
+    const pct      = totalVotes>0?(opt.count/totalVotes*100).toFixed(1):'0.0';
+    const barWidth = totalVotes>0?Math.max(parseFloat(pct),pct>0?1:0):0;
+    const rowColor = GLOW_COLORS[i%GLOW_COLORS.length];
+    const tied     = ranked.filter(o => o.rank === opt.rank).length > 1;
+    const rankStr  = tied
+      ? `<span style="font-size:10px;opacity:0.65;vertical-align:middle;">=</span>${opt.rank}`
+      : String(opt.rank);
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+                  background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+        <span style="width:30px;text-align:center;font-size:12px;font-weight:700;
+                      color:rgba(148,163,184,0.6);">${rankStr}</span>
+        ${opt.image_url?`<img src="${opt.image_url}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;">`:''}
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:clamp(12px,2vw,14px);font-weight:600;color:#cbd5e1;margin:0 0 4px;
+                     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(opt.label)}</p>
+          <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden;">
+            <div style="height:100%;width:${barWidth}%;background:${rowColor};border-radius:99px;transition:width 0.8s ease;"></div>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;min-width:70px;">
+          <span style="font-size:clamp(14px,2.5vw,17px);font-weight:800;color:${rowColor};">${pct}%</span>
+          <span style="display:block;font-size:11px;color:rgba(100,116,139,0.8);">${opt.count} ${lbl.votes}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  // ── Show screen, hide loading overlay ────────────────────────────────
+  const loadingEl = document.getElementById('ranking-loading');
+  if (loadingEl) loadingEl.style.display = 'none';
+  screen.classList.remove('hidden');
+  screen.style.animation = 'rankingSlideIn 0.6s ease forwards';
+  screen.scrollTop = 0;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+<% end %>
+
 // ── Countdown ─────────────────────────────────────────────────────────────
+// Hoisted to module scope so freezeCountdown() can clear it from outside the IIFE
+let _countdownTimer = null;
+
 (function() {
   const totalSeconds = <%= @vote.countdown_seconds.to_i %>;
   if (totalSeconds <= 0) return;
   const voteIsActive = <%= @vote.active? ? 'true' : 'false' %>;
-  if (!voteIsActive) { setTimeout(() => location.reload(), 900); return; }
+  const voteIsDraft  = <%= @vote.draft?  ? 'true' : 'false' %>;
+  // Only reload when draft (waiting to open). Do NOT reload when closed — that causes infinite loop.
+  if (!voteIsActive) { if (voteIsDraft) setTimeout(() => location.reload(), 900); return; }
 
   let remaining  = <%= @vote.seconds_remaining || 0 %>;
   const arcEl    = document.getElementById('countdown-arc');
@@ -493,13 +783,18 @@ function showTimeUpBanner() {
   }
 
   updateRing();
-  if (remaining <= 0) { if (voteIsActive) { showTimeUpBanner(); startInsightPolling(); } return; }
+  if (remaining <= 0) { if (voteIsActive) { showTimeUpBanner(); } return; }
 
-  const timer = setInterval(() => {
+  _countdownTimer = setInterval(() => {
     remaining--;
     if (remaining <= 0) {
-      remaining = 0; updateRing(); clearInterval(timer);
-      showTimeUpBanner(); closeVote(); startInsightPolling();
+      remaining = 0; updateRing();
+      clearInterval(_countdownTimer); _countdownTimer = null;
+      showTimeUpBanner(); closeVote();
+      <% if @vote.ranking_enabled? %>
+      showRankingLoading();
+      setTimeout(showRankingScreen, 1800);
+      <% end %>
     } else { updateRing(); }
   }, 1000);
 })();

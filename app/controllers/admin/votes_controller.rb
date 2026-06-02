@@ -1,5 +1,5 @@
 class Admin::VotesController < Admin::BaseController
-  before_action :set_vote, only: [:show, :edit, :update, :destroy, :open, :close, :results, :export, :present, :share, :ai_insight]
+  before_action :set_vote, only: [:show, :edit, :update, :destroy, :open, :close, :results, :export, :present, :share]
 
   def index
     direction = params[:sort] == "asc" ? :asc : :desc
@@ -89,10 +89,6 @@ class Admin::VotesController < Admin::BaseController
   def close
     @vote.close!
     audit_log("vote.close", resource: @vote)
-    # Trigger AI insight if applicable
-    if current_workspace.active_subscription&.has_feature?(:ai_analysis)
-      AiPostVoteInsightJob.perform_later(@vote.id)
-    end
     respond_to do |format|
       format.html { redirect_to results_vote_path(@vote) }
       format.json { render json: { status: "closed" } }
@@ -101,9 +97,6 @@ class Admin::VotesController < Admin::BaseController
 
   def results
     @results = @vote.results_by_option
-    @ai_insight = AiJob.done
-                       .where(job_type: "post_vote_insight", resource_type: "Vote", resource_id: @vote.id)
-                       .last&.output_data
   end
 
   def present
@@ -137,16 +130,6 @@ class Admin::VotesController < Admin::BaseController
     send_data "\xEF\xBB\xBF#{csv_data}", filename: filename, type: "text/csv; charset=utf-8", disposition: "attachment"
   end
 
-  def ai_insight
-    return unless require_ai_feature!(:ai_analysis)
-    return unless require_credits!(2)
-
-    current_workspace.active_subscription&.deduct_credits!(2)
-    job = AiJob.create!(workspace: current_workspace, user: current_user, job_type: "post_vote_insight", resource_type: "Vote", resource_id: @vote.id, credits_cost: 2)
-    AiPostVoteInsightJob.perform_later(job.id)
-    render json: { job_id: job.id }
-  end
-
   private
 
   def set_vote
@@ -154,7 +137,27 @@ class Admin::VotesController < Admin::BaseController
   end
 
   def vote_params
-    params.require(:vote).permit(:title, :vote_type, :identity_mode, :countdown_seconds, :countdown_minutes, :show_results_live, :allow_multiple_votes, :login_providers)
+    raw = params.require(:vote).permit(
+      :title, :vote_type, :identity_mode,
+      :countdown_minutes,           # used as the numeric value field in the form
+      :show_results_live, :allow_multiple_votes, :login_providers,
+      settings: {}
+    ).to_h
+
+    # Convert countdown value to seconds based on the unit radio (minutes / seconds)
+    unit = params.dig(:vote, :countdown_unit).to_s
+    val  = raw.delete("countdown_minutes").to_i
+    raw["countdown_seconds"] = (unit == "seconds") ? val : val * 60
+
+    # Coerce ranking settings from form strings to proper types
+    if raw["settings"]
+      raw["settings"] = raw["settings"].merge(
+        "ranking_enabled" => raw.dig("settings", "ranking_enabled").to_s == "1",
+        "ranking_top"     => raw.dig("settings", "ranking_top").to_i.clamp(1, 10)
+      )
+    end
+
+    raw
   end
 
   def build_vote_options

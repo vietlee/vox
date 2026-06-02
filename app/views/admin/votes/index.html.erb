@@ -250,11 +250,15 @@ async function openVote(id, openUrl, presentUrl) {
 async function closeVote(id, url) {
   const res = await fetch(url, { method: 'PATCH', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json' } });
   if (!res.ok) return;
+  const row = document.getElementById(`vote-row-${id}`);
+  if (row) row.dataset.status = 'closed';
   const statusCell = document.getElementById(`vote-status-${id}`);
   if (statusCell) statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-600"><%= t("status.closed") %></span>';
   const actions = document.getElementById(`vote-actions-${id}`);
   if (actions) {
-    const openPath = url.replace('/close', '/open');
+    const openPath   = url.replace('/close', '/open');
+    const deleteUrl  = url.replace('/close', '');
+    const voteTitle  = document.querySelector(`#vote-row-${id} td:first-child a`)?.textContent?.trim() || '';
     actions.innerHTML = `
       <form action="${openPath}" method="post" style="display:inline">
         <input type="hidden" name="_method" value="patch">
@@ -262,7 +266,8 @@ async function closeVote(id, url) {
         <button class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 border-0 cursor-pointer"><%= t("votes.open") %></button>
       </form>
       <a href="${url.replace('/close', '/results')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><%= t("votes.results_btn") %></a>
-      <a href="${url.replace('/close', '/edit')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><%= t("votes.edit_btn") %></a>`;
+      <a href="${url.replace('/close', '/edit')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><%= t("votes.edit_btn") %></a>
+      <button onclick="confirmDelete(${id}, '${voteTitle.replace(/'/g,"\\'")}', '${deleteUrl}')" class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 cursor-pointer border-0"><%= t("votes.delete") %></button>`;
   }
 }
 </script>

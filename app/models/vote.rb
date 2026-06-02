@@ -16,7 +16,18 @@ class Vote < ApplicationRecord
   validates :title,           presence: true, length: { maximum: 300 }
   validates :login_providers, inclusion: { in: LOGIN_PROVIDERS }, allow_nil: true
 
-  # Virtual attribute: countdown in minutes for UI (stored as seconds in DB)
+  # ── Ranking/leaderboard settings (stored in settings jsonb) ──────────────
+  def ranking_enabled?
+    settings["ranking_enabled"] == true
+  end
+
+  # Number of top positions to display on the ranking screen (1–10)
+  def ranking_top
+    v = settings["ranking_top"].to_i
+    v.between?(1, 10) ? v : 3
+  end
+
+  # ── Virtual attribute: countdown in minutes for UI (stored as seconds in DB)
   def countdown_minutes
     return 0 if countdown_seconds.to_i == 0
     (countdown_seconds.to_f / 60).ceil

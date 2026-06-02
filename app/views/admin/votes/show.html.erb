@@ -24,14 +24,33 @@
   </div>
   <div class="flex gap-2">
     <% if @vote.draft? %>
-      <form id="open-vote-form" action="<%= open_vote_path(@vote) %>" method="post" class="hidden">
-        <%= hidden_field_tag :_method, :patch %>
-        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-      </form>
-      <button onclick="window.open('<%= present_vote_path(@vote) %>','_blank'); document.getElementById('open-vote-form').requestSubmit();"
-        class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors cursor-pointer">
+      <button onclick="openVoteFromShow()" class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors cursor-pointer">
         <%= t("votes.show.open_vote") %>
       </button>
+      <script>
+      function openVoteFromShow() {
+        const win = window.open('', '_blank');
+        if (win) {
+          win.document.write(
+            '<html><head><title>Opening…</title></head>' +
+            '<body style="margin:0;background:#0a0f1e;display:flex;align-items:center;justify-content:center;height:100vh;">' +
+            '<p style="color:#a5b4fc;font-family:sans-serif;font-size:18px;font-weight:700;">⏳ Đang mở vote…</p>' +
+            '</body></html>'
+          );
+        }
+        fetch('<%= open_vote_path(@vote) %>', {
+          method: 'PATCH',
+          headers: { 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' }
+        }).then(res => {
+          if (res.ok) {
+            if (win) win.location.href = '<%= present_vote_path(@vote) %>';
+            window.location.reload();
+          } else {
+            if (win) win.close();
+          }
+        }).catch(() => { if (win) win.close(); });
+      }
+      </script>
     <% elsif @vote.active? %>
       <%= button_to close_vote_path(@vote), method: :patch, class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors" do %>
         <%= t("votes.show.close_vote") %>

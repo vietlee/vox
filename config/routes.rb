@@ -121,7 +121,6 @@ Rails.application.routes.draw do
         get   :export
         get   :present
         get   :share
-        post  :ai_insight
       end
       resources :vote_options, only: [:create, :update, :destroy], shallow: true do
         collection { patch :reorder }
