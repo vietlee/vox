@@ -99,7 +99,7 @@ class ElevenLabsService
           "#{BASE_URL}/v1/text-to-speech/#{voice_id}?output_format=#{output_format}",
           headers: default_headers.merge("Accept" => "audio/mpeg"),
           body:    payload,
-          timeout: 120
+          timeout: 300
         )
 
         if response.success?
