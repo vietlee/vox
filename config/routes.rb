@@ -118,6 +118,8 @@ Rails.application.routes.draw do
     post "stt/transcribe",       to: "stt#transcribe",       as: :stt_transcribe
     post "stt/transcribe_url",   to: "stt#transcribe_url",   as: :stt_transcribe_url
     post "stt/transcribe_chunk", to: "stt#transcribe_chunk", as: :stt_transcribe_chunk
+    post "stt/summarize",        to: "stt#summarize",        as: :stt_summarize
+    post "stt/translate",        to: "stt#translate",        as: :stt_translate
 
     resources :votes do
       member do

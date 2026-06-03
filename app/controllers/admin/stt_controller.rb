@@ -16,8 +16,19 @@ class Admin::SttController < Admin::BaseController
   # → 1 credit covers ~3.75 min, we charge 1 credit/min (adds margin)
   SECONDS_PER_CREDIT = 60
 
+  # Summarize / Translate: 2 credits each (Claude Haiku, fast & cheap)
+  POSTPROCESS_CREDITS = 2
+
+  SUMMARY_LANGUAGES = {
+    "vi" => "Vietnamese",   "en" => "English",
+    "ja" => "Japanese",     "ko" => "Korean",
+    "zh" => "Simplified Chinese", "fr" => "French",
+    "de" => "German",       "es" => "Spanish",
+    "th" => "Thai",         "id" => "Indonesian"
+  }.freeze
+
   # Feature gate for AJAX endpoints (index handles its own gate in view)
-  before_action :check_stt_feature, only: [:transcribe, :transcribe_url, :transcribe_chunk]
+  before_action :check_stt_feature, only: [:transcribe, :transcribe_url, :transcribe_chunk, :summarize, :translate]
 
   def index
     @has_stt             = current_workspace&.active_subscription&.has_feature?(:stt)
@@ -123,6 +134,75 @@ class Admin::SttController < Admin::BaseController
   ensure
     tmp&.close
     tmp&.unlink
+  end
+
+  # POST /stt/summarize — summarize transcript using Claude Haiku
+  def summarize
+    text = params[:text].to_s.strip
+    if text.blank?
+      render json: { error: "Không có nội dung để tóm tắt" }, status: :unprocessable_entity
+      return
+    end
+    return unless require_credits!(POSTPROCESS_CREDITS)
+
+    lang_key  = params[:language].presence.then { |l| SUMMARY_LANGUAGES.key?(l) ? l : "vi" } || "vi"
+    lang_name = SUMMARY_LANGUAGES[lang_key]
+
+    result = ClaudeService.haiku.call(
+      system_prompt: "You are a professional transcript summarizer. Create clear, well-structured summaries.",
+      user_prompt:   <<~PROMPT
+        Summarize the following transcript in #{lang_name}.
+        Format:
+        - Start with 1-2 sentence overview
+        - Then 4-6 bullet points covering key points
+        - Keep it concise (under 200 words total)
+        - Use the target language only
+
+        Transcript:
+        #{text.truncate(10_000)}
+      PROMPT
+    )
+
+    current_workspace.active_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
+    response.headers["X-Credits-Used"] = POSTPROCESS_CREDITS.to_s
+    render json: { result: result, type: "summary" }
+  rescue => e
+    Rails.logger.error "SttController#summarize: #{e.message}"
+    render json: { error: "Tóm tắt thất bại. Vui lòng thử lại." }, status: :internal_server_error
+  end
+
+  # POST /stt/translate — translate transcript using Claude Haiku
+  def translate
+    text = params[:text].to_s.strip
+    if text.blank?
+      render json: { error: "Không có nội dung để dịch" }, status: :unprocessable_entity
+      return
+    end
+    return unless require_credits!(POSTPROCESS_CREDITS)
+
+    target_key  = params[:target_language].presence.then { |l| SUMMARY_LANGUAGES.key?(l) ? l : "en" } || "en"
+    target_name = SUMMARY_LANGUAGES[target_key]
+
+    result = ClaudeService.haiku.call(
+      system_prompt: "You are a professional translator. Translate accurately and naturally.",
+      user_prompt:   <<~PROMPT
+        Translate the following transcript to #{target_name}.
+        Rules:
+        - Provide ONLY the translation, no explanations or notes
+        - Preserve paragraph breaks and structure
+        - Maintain the original tone (formal/informal)
+
+        Transcript:
+        #{text.truncate(10_000)}
+      PROMPT
+    )
+
+    current_workspace.active_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
+    response.headers["X-Credits-Used"] = POSTPROCESS_CREDITS.to_s
+    render json: { result: result, type: "translation" }
+  rescue => e
+    Rails.logger.error "SttController#translate: #{e.message}"
+    render json: { error: "Dịch thất bại. Vui lòng thử lại." }, status: :internal_server_error
   end
 
   private
