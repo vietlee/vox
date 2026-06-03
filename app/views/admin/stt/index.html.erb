@@ -516,10 +516,10 @@
 <!-- ── AI Result Modal ──────────────────────────────────────────────── -->
 <div id="ai-modal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 sm:p-6"
      onclick="if(event.target===this)closeAiModal()">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[580px] flex flex-col overflow-hidden"
-       style="max-height:90vh">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[600px] flex flex-col overflow-hidden"
+       style="height:min(88vh,560px)">
     <!-- Header -->
-    <div class="modal-hdr flex items-center justify-between px-5 py-4">
+    <div class="modal-hdr flex items-center justify-between px-5 py-4 flex-shrink-0">
       <div class="flex items-center gap-2.5">
         <span id="ai-modal-icon" class="text-xl leading-none"></span>
         <h3 id="ai-modal-title" class="modal-accent text-[15px] font-extrabold"></h3>
@@ -528,11 +528,11 @@
         class="w-7 h-7 flex items-center justify-center rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 text-[15px] font-bold border-0 cursor-pointer transition-colors">✕</button>
     </div>
     <!-- Language select + submit -->
-    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-3">
+    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-3 flex-shrink-0">
       <label id="ai-modal-lang-lbl" class="modal-accent text-[12px] font-semibold whitespace-nowrap"></label>
-      <select id="ai-modal-lang" onchange="document.getElementById('ai-modal-result').classList.add('hidden')" class="modal-select flex-1 px-3 py-2 rounded-lg text-[13px] bg-white border focus:outline-none transition-shadow"></select>
+      <select id="ai-modal-lang" onchange="aiModalLangChanged()" class="modal-select flex-1 px-3 py-2 rounded-lg text-[13px] bg-white border focus:outline-none transition-shadow"></select>
       <button id="ai-modal-submit" onclick="submitAiModal()"
-        class="modal-btn text-white px-5 py-2 text-[13px] font-bold rounded-lg border-0 cursor-pointer transition-colors disabled:opacity-50 flex items-center gap-1.5">
+        class="modal-btn text-white px-5 py-2 text-[13px] font-bold rounded-lg border-0 cursor-pointer transition-colors disabled:opacity-50 flex items-center gap-1.5 flex-shrink-0">
         <span id="ai-modal-submit-lbl"></span>
         <svg id="ai-modal-spin" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -540,19 +540,27 @@
         </svg>
       </button>
     </div>
-    <!-- Result -->
-    <div id="ai-modal-result" class="hidden px-5 pt-4 pb-4 flex-1 overflow-y-auto min-h-0">
-      <div class="flex items-center justify-between mb-2.5">
-        <span id="ai-modal-result-lbl" class="modal-accent text-[11px] font-bold uppercase tracking-wide"></span>
-        <div class="flex gap-1.5">
-          <button onclick="copyAiModalResult(this)" class="modal-cpbtn px-2.5 py-1 text-[11px] font-semibold rounded-lg border-0 cursor-pointer transition-colors"><%= t("stt.ai_copy") %></button>
-          <button onclick="downloadAiModalResult()" class="modal-cpbtn px-2.5 py-1 text-[11px] font-semibold rounded-lg border-0 cursor-pointer transition-colors">⬇ <%= t("stt.download_btn") %></button>
-        </div>
+    <!-- Content area — always fills remaining height -->
+    <div class="flex-1 overflow-y-auto min-h-0 relative">
+      <!-- Placeholder (shown before first run / after lang change) -->
+      <div id="ai-modal-ph" class="absolute inset-0 flex flex-col items-center justify-center text-center px-8 pointer-events-none">
+        <div id="ai-modal-ph-icon" class="text-[52px] mb-4" style="opacity:0.18"></div>
+        <p id="ai-modal-ph-text" class="text-slate-400 text-[13px]"></p>
       </div>
-      <div id="ai-modal-text" class="md-content modal-res p-4 rounded-xl border text-[13px] leading-relaxed"></div>
+      <!-- Result -->
+      <div id="ai-modal-result" class="hidden px-5 pt-4 pb-5">
+        <div class="flex items-center justify-between mb-3">
+          <span id="ai-modal-result-lbl" class="modal-accent text-[11px] font-bold uppercase tracking-wide"></span>
+          <div class="flex gap-1.5">
+            <button onclick="copyAiModalResult(this)" class="modal-cpbtn px-2.5 py-1 text-[11px] font-semibold rounded-lg border-0 cursor-pointer transition-colors"><%= t("stt.ai_copy") %></button>
+            <button onclick="downloadAiModalResult()" class="modal-cpbtn px-2.5 py-1 text-[11px] font-semibold rounded-lg border-0 cursor-pointer transition-colors">⬇ <%= t("stt.download_btn") %></button>
+          </div>
+        </div>
+        <div id="ai-modal-text" class="md-content modal-res p-4 rounded-xl border text-[13px] leading-relaxed"></div>
+      </div>
+      <!-- Error -->
+      <div id="ai-modal-error" class="hidden px-5 pb-4 pt-16 text-[13px] text-red-600 font-semibold text-center"></div>
     </div>
-    <!-- Error -->
-    <div id="ai-modal-error" class="hidden px-5 pb-4 pt-2 text-[12px] text-red-600 font-semibold"></div>
   </div>
 </div>
 
@@ -603,6 +611,8 @@ const I18N = {
   hist_download:     "⬇ <%= j t('stt.download_btn') %>",
   hist_ai_title:     "<%= j t('stt.ai_title') %>",
   hist_load_more:    "<%= j t('stt.history_load_more') %>",
+  ai_sum_hint:       "<%= j t('stt.ai_sum_hint') %>",
+  ai_tr_hint:        "<%= j t('stt.ai_tr_hint') %>",
 };
 
 // ── Credits ───────────────────────────────────────────────────────────────
@@ -622,6 +632,7 @@ function creditsForSecs(secs) {
 
 // ── Main tabs ─────────────────────────────────────────────────────────────
 let historyLoaded = false;
+let histPage = 1, histTotal = 0, histHasMore = false;
 function switchMainTab(tab, pushHash = true) {
   ['file','mic','history'].forEach(t => {
     document.getElementById(`main-panel-${t}`).classList.toggle('hidden', t !== tab);
@@ -826,6 +837,21 @@ let aiModal = { mode: null, text: null };
 const LANG_OPTS_SUM = `<option value="vi">🇻🇳 Tiếng Việt</option><option value="en">🇺🇸 English</option><option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option><option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option><option value="th">🇹🇭 Thai</option><option value="id">🇮🇩 Indonesian</option>`;
 const LANG_OPTS_TR  = `<option value="en">🇺🇸 English</option><option value="vi">🇻🇳 Tiếng Việt</option><option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option><option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option><option value="th">🇹🇭 Thai</option><option value="id">🇮🇩 Indonesian</option>`;
 
+function _aiModalShowPh(icon, text) {
+  document.getElementById('ai-modal-ph-icon').textContent = icon;
+  document.getElementById('ai-modal-ph-text').textContent = text;
+  document.getElementById('ai-modal-ph').style.display    = '';
+}
+function _aiModalHidePh() {
+  document.getElementById('ai-modal-ph').style.display = 'none';
+}
+function aiModalLangChanged() {
+  const isSummarize = aiModal.mode === 'summarize';
+  document.getElementById('ai-modal-result').classList.add('hidden');
+  document.getElementById('ai-modal-error').classList.add('hidden');
+  _aiModalShowPh(isSummarize ? '📝' : '🌐',
+    isSummarize ? I18N.ai_sum_hint : I18N.ai_tr_hint);
+}
 function openAiModal(mode, text) {
   if (!text?.trim()) return;
   const isSummarize = mode === 'summarize';
@@ -843,6 +869,8 @@ function openAiModal(mode, text) {
   document.getElementById('ai-modal-error').classList.add('hidden');
   document.getElementById('ai-modal-text').innerHTML = '';
   document.getElementById('ai-modal-text').removeAttribute('data-plain');
+  _aiModalShowPh(isSummarize ? '📝' : '🌐',
+    isSummarize ? I18N.ai_sum_hint : I18N.ai_tr_hint);
   el.classList.remove('hidden');
   el.classList.add('flex');
 }
@@ -854,6 +882,8 @@ function closeAiModal() {
 async function submitAiModal() {
   if (!aiModal.text) return;
   if (getRemainingCredits() < 2) {
+    _aiModalHidePh();
+    document.getElementById('ai-modal-result').classList.add('hidden');
     document.getElementById('ai-modal-error').textContent = '⚠️ ' + I18N.ai_no_credits;
     document.getElementById('ai-modal-error').classList.remove('hidden');
     return;
@@ -866,6 +896,8 @@ async function submitAiModal() {
   document.getElementById('ai-modal-spin').classList.remove('hidden');
   document.getElementById('ai-modal-error').classList.add('hidden');
   document.getElementById('ai-modal-result').classList.add('hidden');
+  // Show loading placeholder
+  _aiModalShowPh('⏳', I18N.ai_processing);
   try {
     const fd  = new FormData();
     const lng = document.getElementById('ai-modal-lang').value;
@@ -879,12 +911,13 @@ async function submitAiModal() {
     const textEl = document.getElementById('ai-modal-text');
     textEl.innerHTML     = renderMarkdown(data.result || '');
     textEl.dataset.plain = data.result || '';
+    _aiModalHidePh();
     document.getElementById('ai-modal-result').classList.remove('hidden');
     const used = parseInt(res.headers.get('X-Credits-Used') || '2');
     if (used > 0) deductLocal(used);
   } catch(e) {
-    document.getElementById('ai-modal-error').textContent = '⚠️ ' + e.message;
-    document.getElementById('ai-modal-error').classList.remove('hidden');
+    _aiModalShowPh('❌', e.message);
+    document.getElementById('ai-modal-error').classList.add('hidden');
   } finally {
     submitBtn.disabled = false;
     document.getElementById('ai-modal-spin').classList.add('hidden');
@@ -1016,8 +1049,6 @@ function clearMicTranscript() {
 }
 
 // ── History ───────────────────────────────────────────────────────────────
-let histPage = 1, histTotal = 0, histHasMore = false;
-
 async function loadHistory(force = false) {
   if (historyLoaded && !force) return;
   histPage = 1;
