@@ -6,12 +6,12 @@
     0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
     50%       { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
   }
-  .mic-recording { animation: pulse-mic 1.4s ease-in-out infinite; }
+  .mic-recording  { animation: pulse-mic 1.4s ease-in-out infinite; }
   .drop-zone-hover { border-color: #6366f1 !important; background: #eef2ff !important; }
+  .main-tab { transition: all 0.15s; }
+  .main-tab.active { background:#fff; color:#1e293b; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
   .src-tab { transition: all 0.15s; }
-  .src-tab.active { background:#fff; border-color:#e2e8f0; color:#1e293b; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
-  .right-tab { transition: all 0.15s; }
-  .right-tab.active { background:#fff; border-color:#e2e8f0; color:#1e293b; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
+  .src-tab.active { background:#fff; border-color:#e2e8f0; color:#1e293b; font-weight:700; box-shadow:0 1px 3px rgba(0,0,0,0.07); }
   .pp-panel { display:none; }
   .pp-panel.open { display:block; }
   .hist-ai-panel { display:none; }
@@ -20,7 +20,7 @@
 </style>
 
 <!-- ── Page header ──────────────────────────────────────────────────── -->
-<div class="flex-shrink-0 px-6 pt-5 pb-4 bg-slate-100">
+<div class="flex-shrink-0 px-6 pt-5 pb-3 bg-slate-100">
   <div class="flex items-start justify-between">
     <div class="flex items-start gap-3">
       <%= render "admin/shared/back_btn" %>
@@ -29,7 +29,7 @@
           🎤 Speech to Text
         </h1>
         <p class="text-[13px] text-slate-500 mt-0.5">
-          Chuyển âm thanh / video thành văn bản · ElevenLabs Scribe v2 ·
+          <%= t("stt.page_subtitle") %> ·
           <span class="text-indigo-500 font-semibold"><%= t("stt.credit_rate") %></span>
         </p>
       </div>
@@ -40,229 +40,249 @@
       </div>
     <% end %>
   </div>
+
+  <% if @has_stt %>
+  <!-- ── 3 main tabs ─────────────────────────────────────────────── -->
+  <div class="flex gap-1 p-1 bg-slate-200/70 rounded-xl mt-4">
+    <button id="main-tab-file" onclick="switchMainTab('file')"
+      class="main-tab active flex-1 py-2 text-[13px] rounded-lg text-slate-500 cursor-pointer bg-transparent border-0">
+      📁 <%= t("stt.tab_file") %>
+    </button>
+    <button id="main-tab-mic" onclick="switchMainTab('mic')"
+      class="main-tab flex-1 py-2 text-[13px] rounded-lg text-slate-400 cursor-pointer bg-transparent border-0">
+      🎙️ <%= t("stt.tab_mic") %>
+    </button>
+    <button id="main-tab-history" onclick="switchMainTab('history')"
+      class="main-tab flex-1 py-2 text-[13px] rounded-lg text-slate-400 cursor-pointer bg-transparent border-0 flex items-center justify-center gap-1.5">
+      📋 <%= t("stt.tab_history") %>
+      <span id="history-count-badge" class="hidden bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">0</span>
+    </button>
+  </div>
+  <% end %>
 </div>
 
-<!-- ── Scrollable content ────────────────────────────────────────────── -->
+<!-- ── Scrollable content ─────────────────────────────────────────────── -->
 <div class="flex-1 min-h-0 overflow-y-auto px-6 py-5">
 
 <% if @has_stt %>
-  <div class="grid grid-cols-[1fr_1fr] gap-5 items-start">
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         LEFT — File / URL
-         ═══════════════════════════════════════════════════════════════ -->
-    <div class="space-y-4">
-      <div class="bg-white rounded-xl border border-slate-200 p-5">
+  <!-- ════════════════════════════════════════════════════════════════
+       TAB 1 — File / URL  (2 columns: left=controls, right=result)
+       ════════════════════════════════════════════════════════════════ -->
+  <div id="main-panel-file" class="grid grid-cols-[1fr_1fr] gap-5 items-start">
 
-        <!-- Source tabs -->
-        <div class="flex gap-1 p-1 bg-slate-100 rounded-lg mb-4">
-          <button id="tab-file" onclick="switchTab('file')"
-            class="src-tab active flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-600 cursor-pointer bg-transparent">
-            📁 Tải file lên
-          </button>
-          <button id="tab-url" onclick="switchTab('url')"
-            class="src-tab flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-400 cursor-pointer bg-transparent">
-            🔗 URL / YouTube
-          </button>
-        </div>
+    <!-- ── LEFT: Input controls ──────────────────────────────────── -->
+    <div class="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
 
-        <!-- ── TAB: File ─────────────────────────────────────────── -->
-        <div id="panel-file">
-          <div id="drop-zone"
-               class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer transition-all hover:border-indigo-400 hover:bg-indigo-50/40"
-               onclick="document.getElementById('file-input').click()"
-               ondragover="event.preventDefault(); this.classList.add('drop-zone-hover')"
-               ondragleave="this.classList.remove('drop-zone-hover')"
-               ondrop="handleFileDrop(event)">
-
-            <%# ── Audio+Video icon: split left=waveform / right=play ── %>
-            <svg class="mx-auto mb-3 text-slate-400" width="64" height="52" viewBox="0 0 64 52" fill="none">
-              <!-- Outer card -->
-              <rect x="1" y="1" width="62" height="50" rx="7" stroke="currentColor" stroke-width="1.8" fill="currentColor" fill-opacity="0.04"/>
-              <!-- Divider line -->
-              <line x1="32" y1="9" x2="32" y2="43" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2" opacity="0.3"/>
-
-              <!-- LEFT: Audio waveform (5 bars, taller in center) -->
-              <rect x="8"  y="25" width="3.5" height="8"  rx="1.75" fill="currentColor" opacity="0.40"/>
-              <rect x="13" y="20" width="3.5" height="13" rx="1.75" fill="currentColor" opacity="0.55"/>
-              <rect x="18" y="16" width="3.5" height="21" rx="1.75" fill="currentColor" opacity="0.75"/>
-              <rect x="23" y="20" width="3.5" height="13" rx="1.75" fill="currentColor" opacity="0.55"/>
-              <rect x="28" y="25" width="3.5" height="8"  rx="1.75" fill="currentColor" opacity="0.40"/>
-
-              <!-- RIGHT: Camera body -->
-              <rect x="35" y="17" width="22" height="16" rx="3" stroke="currentColor" stroke-width="1.8" fill="none" opacity="0.8"/>
-              <!-- Camera lens -->
-              <circle cx="46" cy="25" r="5" stroke="currentColor" stroke-width="1.8" fill="none" opacity="0.8"/>
-              <circle cx="46" cy="25" r="2" fill="currentColor" opacity="0.5"/>
-              <!-- Camera viewfinder dot -->
-              <circle cx="54" cy="20" r="1.2" fill="currentColor" opacity="0.5"/>
-              <!-- Record dot on camera -->
-              <circle cx="38.5" cy="20" r="1.2" fill="currentColor" opacity="0.4"/>
-            </svg>
-
-            <p class="text-[13px] font-semibold text-slate-600 mb-1">Kéo thả file vào đây hoặc click để chọn</p>
-            <p class="text-[11px] text-slate-400">MP3, MP4, WAV, M4A, WebM, FLAC, OGG · Tối đa 2 GB</p>
-            <input type="file" id="file-input" accept="audio/*,video/*" class="hidden" onchange="handleFileSelect(this)">
-          </div>
-
-          <!-- File preview (hidden until file selected) -->
-          <div id="file-preview" class="hidden mt-3 px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-3">
-            <svg id="file-type-icon" class="flex-shrink-0" width="28" height="24" viewBox="0 0 64 52" fill="none">
-              <rect x="1" y="1" width="62" height="50" rx="7" stroke="#6366f1" stroke-width="2" fill="#eef2ff"/>
-              <line x1="32" y1="9" x2="32" y2="43" stroke="#6366f1" stroke-width="1.4" stroke-dasharray="2 2" opacity="0.4"/>
-              <rect x="8"  y="25" width="3.5" height="8"  rx="1.75" fill="#6366f1" opacity="0.5"/>
-              <rect x="13" y="20" width="3.5" height="13" rx="1.75" fill="#6366f1" opacity="0.65"/>
-              <rect x="18" y="16" width="3.5" height="21" rx="1.75" fill="#6366f1" opacity="0.85"/>
-              <rect x="23" y="20" width="3.5" height="13" rx="1.75" fill="#6366f1" opacity="0.65"/>
-              <rect x="28" y="25" width="3.5" height="8"  rx="1.75" fill="#6366f1" opacity="0.5"/>
-              <rect x="35" y="17" width="22" height="16" rx="3" stroke="#6366f1" stroke-width="2" fill="none"/>
-              <circle cx="46" cy="25" r="5" stroke="#6366f1" stroke-width="2" fill="none"/>
-              <circle cx="46" cy="25" r="2" fill="#6366f1" opacity="0.6"/>
-            </svg>
-            <div class="flex-1 min-w-0">
-              <p id="file-name" class="text-[13px] font-semibold text-slate-800 truncate"></p>
-              <p id="file-size" class="text-[11px] text-slate-400"></p>
-            </div>
-            <button onclick="clearFile()" class="text-slate-400 hover:text-red-500 text-[18px] leading-none border-0 bg-transparent cursor-pointer">×</button>
-          </div>
-
-          <!-- Credit estimate (hidden until duration known) -->
-          <div id="file-credit-info" class="hidden mt-3 flex items-center justify-between px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg">
-            <span class="text-[12px] text-indigo-700">🕐 <span id="file-duration-text" class="font-semibold"></span></span>
-            <span class="text-[12px] font-bold text-indigo-600">Ước tính: <span id="file-credit-estimate">—</span></span>
-          </div>
-        </div>
-
-        <!-- ── TAB: URL ───────────────────────────────────────────── -->
-        <div id="panel-url" class="hidden">
-          <div class="mb-2">
-            <label class="block text-[11px] font-semibold text-slate-500 mb-1.5">
-              URL video / audio <span class="font-normal text-slate-400 ml-1">(YouTube, Vimeo, TikTok, Facebook, SoundCloud…)</span>
-            </label>
-            <div class="flex gap-2">
-              <input type="url" id="url-input" placeholder="https://www.youtube.com/watch?v=..."
-                class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-300 placeholder-slate-400">
-              <button onclick="clearUrl()" class="px-3 py-2.5 text-slate-400 hover:text-red-500 border border-slate-200 rounded-lg bg-white cursor-pointer text-[15px] transition-colors">×</button>
-            </div>
-          </div>
-          <div class="flex flex-wrap gap-1.5 mt-2">
-            <% %w[YouTube Vimeo TikTok Facebook Instagram SoundCloud Dailymotion X/Twitter].each do |site| %>
-              <span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-semibold rounded-full"><%= site %></span>
-            <% end %>
-            <span class="px-2 py-0.5 bg-indigo-50 text-indigo-500 text-[10px] font-semibold rounded-full">+1000 nguồn khác</span>
-          </div>
-          <p class="text-[11px] text-slate-400 mt-2">⚡ Powered by <strong>yt-dlp</strong> · Chỉ tải audio, không cần đăng nhập · Video công khai</p>
-          <div class="mt-3 flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg">
-            <span class="text-amber-500 mt-px">💡</span>
-            <span class="text-[12px] text-amber-700">Credit tính theo độ dài video sau khi tải xong. Cần ít nhất <strong>1 credit</strong>.</span>
-          </div>
-        </div>
-
-        <!-- ── Shared settings ───────────────────────────────────── -->
-        <div class="grid grid-cols-2 gap-3 mt-4">
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Model</label>
-            <select id="file-model" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-              <option value="scribe_v2" selected>Scribe v2</option>
-              <option value="scribe_v1">Scribe v1</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Ngôn ngữ</label>
-            <select id="file-language" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-              <option value="">Tự động nhận diện</option>
-              <option value="vi">Tiếng Việt</option>
-              <option value="en">English</option>
-              <option value="ja">日本語</option>
-              <option value="ko">한국어</option>
-              <option value="zh">中文</option>
-              <option value="fr">Français</option>
-              <option value="de">Deutsch</option>
-              <option value="es">Español</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Timestamps</label>
-            <select id="file-timestamps" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-              <option value="none" selected>Không</option>
-              <option value="word">Từng từ</option>
-            </select>
-          </div>
-          <div class="flex items-end pb-0.5">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="file-diarize" class="w-4 h-4 accent-indigo-600">
-              <span class="text-[12px] font-semibold text-slate-600">Nhận diện người nói</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Credit warning: hidden until showCreditWarning() sets text -->
-        <div id="stt-credit-warning" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[13px]">
-          <span id="stt-credit-warning-text"></span>
-        </div>
-
-        <!-- Transcribe button -->
-        <button id="transcribe-btn" onclick="transcribeSource()"
-          class="mt-4 w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-[13px] font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-          <span id="transcribe-btn-label">🎤 Chuyển thành văn bản</span>
-          <svg id="transcribe-spinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-          </svg>
+      <!-- Source sub-tabs -->
+      <div class="flex gap-1 p-1 bg-slate-100 rounded-lg">
+        <button id="src-tab-file" onclick="switchSrcTab('file')"
+          class="src-tab active flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-600 cursor-pointer bg-transparent">
+          📁 <%= t("stt.src_file") %>
+        </button>
+        <button id="src-tab-url" onclick="switchSrcTab('url')"
+          class="src-tab flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-400 cursor-pointer bg-transparent">
+          🔗 <%= t("stt.src_url") %>
         </button>
       </div>
 
-      <!-- ── Transcript result (hidden until success) ─────────────── -->
-      <div id="file-result" class="hidden bg-white rounded-xl border border-slate-200 p-5 space-y-4">
+      <!-- ── Sub-panel: File ──────────────────────────────────────── -->
+      <div id="src-panel-file">
+        <div id="drop-zone"
+             class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer transition-all hover:border-indigo-400 hover:bg-indigo-50/40"
+             onclick="document.getElementById('file-input').click()"
+             ondragover="event.preventDefault(); this.classList.add('drop-zone-hover')"
+             ondragleave="this.classList.remove('drop-zone-hover')"
+             ondrop="handleFileDrop(event)">
+          <svg class="mx-auto mb-3 text-slate-400" width="64" height="52" viewBox="0 0 64 52" fill="none">
+            <rect x="1" y="1" width="62" height="50" rx="7" stroke="currentColor" stroke-width="1.8" fill="currentColor" fill-opacity="0.04"/>
+            <line x1="32" y1="9" x2="32" y2="43" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2" opacity="0.3"/>
+            <rect x="8"  y="25" width="3.5" height="8"  rx="1.75" fill="currentColor" opacity="0.40"/>
+            <rect x="13" y="20" width="3.5" height="13" rx="1.75" fill="currentColor" opacity="0.55"/>
+            <rect x="18" y="16" width="3.5" height="21" rx="1.75" fill="currentColor" opacity="0.75"/>
+            <rect x="23" y="20" width="3.5" height="13" rx="1.75" fill="currentColor" opacity="0.55"/>
+            <rect x="28" y="25" width="3.5" height="8"  rx="1.75" fill="currentColor" opacity="0.40"/>
+            <rect x="35" y="17" width="22" height="16" rx="3" stroke="currentColor" stroke-width="1.8" fill="none" opacity="0.8"/>
+            <circle cx="46" cy="25" r="5" stroke="currentColor" stroke-width="1.8" fill="none" opacity="0.8"/>
+            <circle cx="46" cy="25" r="2" fill="currentColor" opacity="0.5"/>
+            <circle cx="54" cy="20" r="1.2" fill="currentColor" opacity="0.5"/>
+          </svg>
+          <p class="text-[13px] font-semibold text-slate-600 mb-1"><%= t("stt.drop_title") %></p>
+          <p class="text-[11px] text-slate-400"><%= t("stt.drop_subtitle") %></p>
+          <input type="file" id="file-input" accept="audio/*,video/*" class="hidden" onchange="handleFileSelect(this)">
+        </div>
 
-        <!-- Header + action buttons -->
+        <!-- File preview -->
+        <div id="file-preview" class="hidden mt-3 px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-3">
+          <svg class="flex-shrink-0" width="28" height="24" viewBox="0 0 64 52" fill="none">
+            <rect x="1" y="1" width="62" height="50" rx="7" stroke="#6366f1" stroke-width="2" fill="#eef2ff"/>
+            <line x1="32" y1="9" x2="32" y2="43" stroke="#6366f1" stroke-width="1.4" stroke-dasharray="2 2" opacity="0.4"/>
+            <rect x="8"  y="25" width="3.5" height="8"  rx="1.75" fill="#6366f1" opacity="0.5"/>
+            <rect x="13" y="20" width="3.5" height="13" rx="1.75" fill="#6366f1" opacity="0.65"/>
+            <rect x="18" y="16" width="3.5" height="21" rx="1.75" fill="#6366f1" opacity="0.85"/>
+            <rect x="23" y="20" width="3.5" height="13" rx="1.75" fill="#6366f1" opacity="0.65"/>
+            <rect x="28" y="25" width="3.5" height="8"  rx="1.75" fill="#6366f1" opacity="0.5"/>
+            <rect x="35" y="17" width="22" height="16" rx="3" stroke="#6366f1" stroke-width="2" fill="none"/>
+            <circle cx="46" cy="25" r="5" stroke="#6366f1" stroke-width="2" fill="none"/>
+            <circle cx="46" cy="25" r="2" fill="#6366f1" opacity="0.6"/>
+          </svg>
+          <div class="flex-1 min-w-0">
+            <p id="file-name" class="text-[13px] font-semibold text-slate-800 truncate"></p>
+            <p id="file-size" class="text-[11px] text-slate-400"></p>
+          </div>
+          <button onclick="clearFile()" class="text-slate-400 hover:text-red-500 text-[18px] leading-none border-0 bg-transparent cursor-pointer">×</button>
+        </div>
+
+        <!-- Credit estimate -->
+        <div id="file-credit-info" class="hidden mt-3 flex items-center justify-between px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg">
+          <span class="text-[12px] text-indigo-700">🕐 <span id="file-duration-text" class="font-semibold"></span></span>
+          <span class="text-[12px] font-bold text-indigo-600">Ước tính: <span id="file-credit-estimate">—</span></span>
+        </div>
+      </div>
+
+      <!-- ── Sub-panel: URL ──────────────────────────────────────── -->
+      <div id="src-panel-url" class="hidden">
+        <label class="block text-[11px] font-semibold text-slate-500 mb-1.5">
+          <%= t("stt.url_label") %>
+          <span class="font-normal text-slate-400 ml-1">(YouTube, Vimeo, TikTok, Facebook, SoundCloud…)</span>
+        </label>
+        <div class="flex gap-2">
+          <input type="url" id="url-input" placeholder="<%= t('stt.url_placeholder') %>"
+            class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-300 placeholder-slate-400">
+          <button onclick="clearUrl()" class="px-3 py-2.5 text-slate-400 hover:text-red-500 border border-slate-200 rounded-lg bg-white cursor-pointer text-[15px] transition-colors">×</button>
+        </div>
+        <div class="flex flex-wrap gap-1.5 mt-2">
+          <% %w[YouTube Vimeo TikTok Facebook Instagram SoundCloud Dailymotion X/Twitter].each do |site| %>
+            <span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-semibold rounded-full"><%= site %></span>
+          <% end %>
+          <span class="px-2 py-0.5 bg-indigo-50 text-indigo-500 text-[10px] font-semibold rounded-full"><%= t("stt.url_sources_more") %></span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">⚡ Powered by <strong>yt-dlp</strong> · <%= t("stt.url_note") %></p>
+        <div class="mt-3 flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg">
+          <span class="text-amber-500 mt-px">💡</span>
+          <span class="text-[12px] text-amber-700"><%= t("stt.url_credit_note") %></span>
+        </div>
+      </div>
+
+      <!-- ── Shared settings ─────────────────────────────────────── -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 mb-1"><%= t("stt.model_label") %></label>
+          <select id="file-model" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="scribe_v2" selected>Scribe v2</option>
+            <option value="scribe_v1">Scribe v1</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 mb-1"><%= t("stt.language_label") %></label>
+          <select id="file-language" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value=""><%= t("stt.lang_auto") %></option>
+            <option value="vi">Tiếng Việt</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="zh">中文</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 mb-1"><%= t("stt.timestamps_label") %></label>
+          <select id="file-timestamps" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="none" selected><%= t("stt.timestamps_none") %></option>
+            <option value="word"><%= t("stt.timestamps_word") %></option>
+          </select>
+        </div>
+        <div class="flex items-end pb-0.5">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="file-diarize" class="w-4 h-4 accent-indigo-600">
+            <span class="text-[12px] font-semibold text-slate-600"><%= t("stt.diarize_label") %></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Credit warning -->
+      <div id="stt-credit-warning" class="hidden p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[13px]">
+        <span id="stt-credit-warning-text"></span>
+      </div>
+
+      <!-- Transcribe button -->
+      <button id="transcribe-btn" onclick="transcribeSource()"
+        class="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-[13px] font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <span id="transcribe-btn-label"><%= t("stt.btn_transcribe") %></span>
+        <svg id="transcribe-spinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+      </button>
+
+      <!-- Error -->
+      <div id="file-error" class="hidden p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[13px]"></div>
+    </div><!-- /left controls -->
+
+    <!-- ── RIGHT: Result panel ──────────────────────────────────── -->
+    <div>
+      <!-- Empty state -->
+      <div id="file-empty-state" class="bg-white rounded-xl border border-slate-200 p-10 text-center">
+        <div class="text-4xl mb-3">📄</div>
+        <p class="text-[14px] font-semibold text-slate-600 mb-1"><%= t("stt.result_empty_title") %></p>
+        <p class="text-[12px] text-slate-400"><%= t("stt.result_empty_desc") %></p>
+      </div>
+
+      <!-- Result (hidden until transcript arrives) -->
+      <div id="file-result" class="hidden bg-white rounded-xl border border-slate-200 p-5 space-y-4">
+        <!-- Header -->
         <div class="flex items-center justify-between">
-          <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">Kết quả</h3>
+          <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide"><%= t("stt.result_title") %></h3>
           <div class="flex gap-2 flex-wrap items-center">
             <span id="file-lang-badge"         class="hidden px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[11px] font-semibold rounded-full"></span>
             <span id="file-credits-used-badge" class="hidden px-2 py-0.5 bg-violet-100 text-violet-700 text-[11px] font-semibold rounded-full"></span>
             <button onclick="copyText('file-transcript-text')"
-              class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">📋 Sao chép</button>
+              class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
+              📋 <%= t("stt.copy_btn") %>
+            </button>
             <button onclick="downloadText('file-transcript-text','transcript')"
-              class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">⬇ Tải về</button>
+              class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
+              ⬇ <%= t("stt.download_btn") %>
+            </button>
           </div>
         </div>
 
         <!-- Transcript text -->
         <div id="file-transcript-text"
-             class="min-h-[100px] max-h-[320px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono"></div>
+             class="min-h-[100px] max-h-[300px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono"></div>
 
         <!-- Word timestamps (collapsible) -->
         <div id="file-words-wrap" class="hidden">
-          <button onclick="toggleWords()" class="text-[11px] text-indigo-600 font-semibold hover:text-indigo-700 border-0 bg-transparent cursor-pointer">
-            🕐 Xem timestamps từng từ ▾
+          <button id="toggle-words-btn" onclick="toggleWords()"
+            class="text-[11px] text-indigo-600 font-semibold hover:text-indigo-700 border-0 bg-transparent cursor-pointer">
+            <%= t("stt.timestamps_show") %>
           </button>
-          <div id="file-words" class="hidden mt-2 max-h-[160px] overflow-y-auto text-[11px] text-slate-500 font-mono space-y-0.5 bg-slate-50 p-3 rounded-lg border border-slate-100"></div>
+          <div id="file-words" class="hidden mt-2 max-h-[140px] overflow-y-auto text-[11px] text-slate-500 font-mono space-y-0.5 bg-slate-50 p-3 rounded-lg border border-slate-100"></div>
         </div>
 
-        <!-- ── Post-process: Summarize / Translate ─────────────── -->
+        <!-- AI tools -->
         <div class="border-t border-slate-100 pt-4">
           <div class="flex items-center gap-2 mb-3">
-            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">AI Hỗ trợ</span>
-            <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">2 credits / lần</span>
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide"><%= t("stt.ai_title") %></span>
+            <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full"><%= t("stt.ai_credits") %></span>
           </div>
           <div class="flex gap-2 flex-wrap">
-            <!-- Summarize button -->
             <button onclick="togglePanel('summarize')"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg cursor-pointer transition-colors">
-              📝 Tóm tắt
+              <%= t("stt.ai_summarize") %>
             </button>
-            <!-- Translate button -->
             <button onclick="togglePanel('translate')"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg cursor-pointer transition-colors">
-              🌐 Dịch
+              <%= t("stt.ai_translate") %>
             </button>
           </div>
 
           <!-- Summarize panel -->
           <div id="panel-summarize" class="pp-panel mt-3 p-4 bg-violet-50 border border-violet-100 rounded-xl space-y-3">
             <div class="flex items-center gap-3">
-              <label class="text-[12px] font-semibold text-violet-700 whitespace-nowrap">Ngôn ngữ tóm tắt:</label>
+              <label class="text-[12px] font-semibold text-violet-700 whitespace-nowrap"><%= t("stt.ai_sum_lang") %></label>
               <select id="summarize-language" class="flex-1 px-3 py-1.5 border border-violet-200 rounded-lg text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-violet-300">
                 <option value="vi">🇻🇳 Tiếng Việt</option>
                 <option value="en">🇺🇸 English</option>
@@ -277,7 +297,7 @@
               </select>
               <button id="summarize-btn" onclick="doSummarize()"
                 class="px-4 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 transition-colors disabled:opacity-50 flex items-center gap-1.5">
-                <span id="summarize-btn-label">Tóm tắt</span>
+                <span id="summarize-btn-label"><%= t("stt.ai_summarize").gsub(/^\S+\s*/,'') %></span>
                 <svg id="summarize-spinner" class="hidden w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -286,10 +306,10 @@
             </div>
             <div id="summarize-result" class="hidden">
               <div class="flex items-center justify-between mb-1.5">
-                <span class="text-[11px] font-bold text-violet-700 uppercase">Tóm tắt</span>
+                <span class="text-[11px] font-bold text-violet-700 uppercase"><%= t("stt.ai_sum_result") %></span>
                 <div class="flex gap-1.5">
-                  <button onclick="copyText('summarize-text')" class="px-2 py-0.5 text-[10px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">📋 Copy</button>
-                  <button onclick="downloadText('summarize-text','summary')" class="px-2 py-0.5 text-[10px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">⬇ Tải</button>
+                  <button onclick="copyText('summarize-text')" class="px-2 py-0.5 text-[10px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0"><%= t("stt.ai_copy") %></button>
+                  <button onclick="downloadText('summarize-text','summary')" class="px-2 py-0.5 text-[10px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">⬇ <%= t("stt.download_btn") %></button>
                 </div>
               </div>
               <div id="summarize-text" class="max-h-[200px] overflow-y-auto p-3 bg-white rounded-lg border border-violet-100 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap"></div>
@@ -300,7 +320,7 @@
           <!-- Translate panel -->
           <div id="panel-translate" class="pp-panel mt-3 p-4 bg-blue-50 border border-blue-100 rounded-xl space-y-3">
             <div class="flex items-center gap-3">
-              <label class="text-[12px] font-semibold text-blue-700 whitespace-nowrap">Dịch sang:</label>
+              <label class="text-[12px] font-semibold text-blue-700 whitespace-nowrap"><%= t("stt.ai_tr_lang") %></label>
               <select id="translate-language" class="flex-1 px-3 py-1.5 border border-blue-200 rounded-lg text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
                 <option value="en">🇺🇸 English</option>
                 <option value="vi">🇻🇳 Tiếng Việt</option>
@@ -315,7 +335,7 @@
               </select>
               <button id="translate-btn" onclick="doTranslate()"
                 class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 transition-colors disabled:opacity-50 flex items-center gap-1.5">
-                <span id="translate-btn-label">Dịch</span>
+                <span id="translate-btn-label"><%= t("stt.ai_translate").gsub(/^\S+\s*/,'') %></span>
                 <svg id="translate-spinner" class="hidden w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -324,10 +344,10 @@
             </div>
             <div id="translate-result" class="hidden">
               <div class="flex items-center justify-between mb-1.5">
-                <span class="text-[11px] font-bold text-blue-700 uppercase">Bản dịch</span>
+                <span class="text-[11px] font-bold text-blue-700 uppercase"><%= t("stt.ai_tr_result") %></span>
                 <div class="flex gap-1.5">
-                  <button onclick="copyText('translate-text')" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">📋 Copy</button>
-                  <button onclick="downloadText('translate-text','translation')" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">⬇ Tải</button>
+                  <button onclick="copyText('translate-text')" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0"><%= t("stt.ai_copy") %></button>
+                  <button onclick="downloadText('translate-text','translation')" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">⬇ <%= t("stt.download_btn") %></button>
                 </div>
               </div>
               <div id="translate-text" class="max-h-[200px] overflow-y-auto p-3 bg-white rounded-lg border border-blue-100 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap"></div>
@@ -335,114 +355,116 @@
             <div id="translate-error" class="hidden text-[12px] text-red-600 font-semibold"></div>
           </div>
         </div>
-      </div>
-
-      <!-- Error -->
-      <div id="file-error" class="hidden p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[13px]"></div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         RIGHT — Tabs: Ghi âm Realtime | Lịch sử
-         ═══════════════════════════════════════════════════════════════ -->
-    <div class="space-y-3">
-
-      <!-- Tab bar -->
-      <div class="flex gap-1 p-1 bg-slate-100 rounded-lg">
-        <button id="right-tab-mic" onclick="switchRightTab('mic')"
-          class="right-tab active flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-600 cursor-pointer bg-transparent">
-          🎙️ Ghi âm Realtime
-        </button>
-        <button id="right-tab-history" onclick="switchRightTab('history')"
-          class="right-tab flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-400 cursor-pointer bg-transparent flex items-center justify-center gap-1.5">
-          📋 Lịch sử
-          <span id="history-count-badge" class="hidden bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">0</span>
-        </button>
-      </div>
-
-      <!-- ── PANEL: Ghi âm ──────────────────────────────────────── -->
-      <div id="right-panel-mic" class="space-y-3">
-        <div class="bg-white rounded-xl border border-slate-200 p-5">
-          <h2 class="text-[13px] font-bold text-slate-700 mb-1 flex items-center gap-2">
-            🎙️ Ghi âm Realtime
-            <span class="text-[10px] font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Chunk mode · mỗi 5s gửi lên</span>
-          </h2>
-          <p class="text-[11px] text-slate-400 mb-4">
-            🪙 <span class="font-semibold text-violet-600">1 credit / đoạn (5 giây)</span> · Còn lại:
-            <span id="mic-credit-remaining" class="font-bold text-slate-600"><%= @remaining_credits %></span> credit
-          </p>
-          <div class="flex flex-col items-center py-6">
-            <button id="mic-btn" onclick="toggleMic()"
-              class="w-20 h-20 rounded-full bg-slate-100 hover:bg-red-100 border-2 border-slate-200 hover:border-red-400 flex items-center justify-center text-4xl transition-all cursor-pointer">
-              🎙️
-            </button>
-            <p id="mic-status" class="mt-3 text-[12px] text-slate-500 font-semibold">Click để bắt đầu ghi âm</p>
-            <div class="mt-3 w-48 h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div id="vol-bar" class="h-full bg-emerald-400 rounded-full transition-all" style="width:0%"></div>
-            </div>
-            <p id="mic-timer" class="hidden mt-2 text-[12px] font-mono text-red-600 font-bold">00:00</p>
-            <p id="mic-no-credit" class="hidden mt-2 text-[12px] text-red-600 font-semibold text-center">⚠️ Không đủ AI credits để ghi âm</p>
-          </div>
-          <div class="grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-500 mb-1">Model</label>
-              <select id="mic-model" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                <option value="scribe_v2" selected>Scribe v2</option>
-                <option value="scribe_v1">Scribe v1</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-500 mb-1">Ngôn ngữ</label>
-              <select id="mic-language" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                <option value="">Tự động</option>
-                <option value="vi">Tiếng Việt</option>
-                <option value="en">English</option>
-                <option value="ja">日本語</option>
-                <option value="ko">한국어</option>
-                <option value="zh">中文</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Realtime transcript -->
-        <div class="bg-white rounded-xl border border-slate-200 p-5">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">Transcript</h3>
-              <span id="mic-sending-badge" class="hidden text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full animate-pulse">⏳ Đang xử lý...</span>
-            </div>
-            <div class="flex gap-2">
-              <button onclick="clearMicTranscript()" class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">🗑 Xóa</button>
-              <button onclick="copyText('mic-transcript-text')" class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">📋 Sao chép</button>
-              <button onclick="downloadText('mic-transcript-text','transcript-mic')" class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">⬇ Tải về</button>
-            </div>
-          </div>
-          <div id="mic-transcript-text"
-               class="min-h-[200px] max-h-[480px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">
-            <span class="text-slate-400 text-[12px]">Transcript sẽ xuất hiện ở đây sau mỗi 5 giây ghi âm...</span>
-          </div>
-          <p id="chunk-counter" class="hidden mt-2 text-[11px] text-slate-400"></p>
-        </div>
-      </div><!-- /right-panel-mic -->
-
-      <!-- ── PANEL: Lịch sử ─────────────────────────────────────── -->
-      <div id="right-panel-history" class="hidden">
-        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <!-- Header -->
-          <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-            <span class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">📋 Lịch sử Transcript</span>
-            <button onclick="loadHistory(true)" class="text-[11px] text-indigo-600 hover:text-indigo-700 font-semibold border-0 bg-transparent cursor-pointer">↺ Làm mới</button>
-          </div>
-          <!-- List container -->
-          <div id="history-list" class="divide-y divide-slate-100 max-h-[680px] overflow-y-auto">
-            <div class="text-center py-10 text-slate-400 text-[13px]">Đang tải...</div>
-          </div>
-        </div>
-      </div><!-- /right-panel-history -->
-
+      </div><!-- /file-result -->
     </div><!-- /right col -->
 
-  </div>
+  </div><!-- /main-panel-file -->
+
+
+  <!-- ════════════════════════════════════════════════════════════════
+       TAB 2 — Ghi âm Realtime  (2 columns: left=controls, right=transcript)
+       ════════════════════════════════════════════════════════════════ -->
+  <div id="main-panel-mic" class="hidden grid grid-cols-[1fr_1fr] gap-5 items-start">
+
+    <!-- ── LEFT: Mic controls ────────────────────────────────────── -->
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <h2 class="text-[14px] font-bold text-slate-700 mb-0.5 flex items-center gap-2">
+        🎙️ <%= t("stt.tab_mic") %>
+        <span class="text-[10px] font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full"><%= t("stt.mic_subtitle") %></span>
+      </h2>
+      <p class="text-[11px] text-slate-400 mb-5">
+        🪙 <span class="font-semibold text-violet-600"><%= t("stt.mic_credit_info") %></span>
+        · <%= t("stt.mic_remaining") %>
+        <span id="mic-credit-remaining" class="font-bold text-slate-600"><%= @remaining_credits %></span>
+      </p>
+
+      <!-- Mic button + volume -->
+      <div class="flex flex-col items-center py-4">
+        <button id="mic-btn" onclick="toggleMic()"
+          class="w-24 h-24 rounded-full bg-slate-100 hover:bg-red-100 border-2 border-slate-200 hover:border-red-400 flex items-center justify-center text-5xl transition-all cursor-pointer">
+          🎙️
+        </button>
+        <p id="mic-status" class="mt-3 text-[12px] text-slate-500 font-semibold"><%= t("stt.mic_start_hint") %></p>
+        <div class="mt-3 w-52 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div id="vol-bar" class="h-full bg-emerald-400 rounded-full transition-all" style="width:0%"></div>
+        </div>
+        <p id="mic-timer" class="hidden mt-2 text-[14px] font-mono text-red-600 font-bold">00:00</p>
+        <p id="mic-no-credit" class="hidden mt-3 text-[12px] text-red-600 font-semibold text-center"><%= t("stt.mic_no_credit") %></p>
+      </div>
+
+      <!-- Settings -->
+      <div class="grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 mb-1"><%= t("stt.model_label") %></label>
+          <select id="mic-model" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="scribe_v2" selected>Scribe v2</option>
+            <option value="scribe_v1">Scribe v1</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 mb-1"><%= t("stt.language_label") %></label>
+          <select id="mic-language" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value=""><%= t("stt.mic_lang_auto") %></option>
+            <option value="vi">Tiếng Việt</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="zh">中文</option>
+          </select>
+        </div>
+      </div>
+    </div><!-- /mic left -->
+
+    <!-- ── RIGHT: Realtime transcript ───────────────────────────── -->
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide"><%= t("stt.mic_transcript_title") %></h3>
+          <span id="mic-sending-badge" class="hidden text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full animate-pulse"><%= t("stt.mic_sending") %></span>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="clearMicTranscript()"
+            class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
+            🗑 <%= t("stt.clear_btn") %>
+          </button>
+          <button onclick="copyText('mic-transcript-text')"
+            class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
+            📋 <%= t("stt.copy_btn") %>
+          </button>
+          <button onclick="downloadText('mic-transcript-text','transcript-mic')"
+            class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
+            ⬇ <%= t("stt.download_btn") %>
+          </button>
+        </div>
+      </div>
+      <div id="mic-transcript-text"
+           class="min-h-[280px] max-h-[520px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">
+        <span class="text-slate-400 text-[12px]"><%= t("stt.mic_placeholder") %></span>
+      </div>
+      <p id="chunk-counter" class="hidden mt-2 text-[11px] text-slate-400"></p>
+    </div><!-- /mic right -->
+
+  </div><!-- /main-panel-mic -->
+
+
+  <!-- ════════════════════════════════════════════════════════════════
+       TAB 3 — Lịch sử (full width)
+       ════════════════════════════════════════════════════════════════ -->
+  <div id="main-panel-history" class="hidden">
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+        <span class="text-[13px] font-bold text-slate-700">📋 <%= t("stt.history_title") %></span>
+        <button onclick="loadHistory(true)"
+          class="text-[12px] text-indigo-600 hover:text-indigo-700 font-semibold border-0 bg-transparent cursor-pointer">
+          <%= t("stt.history_refresh") %>
+        </button>
+      </div>
+      <div id="history-list" class="divide-y divide-slate-100">
+        <div class="text-center py-10 text-slate-400 text-[13px]"><%= t("stt.history_loading") %></div>
+      </div>
+    </div>
+  </div><!-- /main-panel-history -->
+
 
 <% else %>
   <%# ── UPGRADE LANDING PAGE ─────────────────────────────────────────── %>
@@ -490,10 +512,11 @@
   </div>
 <% end %>
 
-</div>
+</div><%# /scrollable %>
 
 <% if @has_stt %>
 <script>
+// ── URL constants ─────────────────────────────────────────────────────────
 const TRANSCRIBE_URL     = "<%= stt_transcribe_path %>";
 const TRANSCRIBE_URL_URL = "<%= stt_transcribe_url_path %>";
 const CHUNK_URL          = "<%= stt_transcribe_chunk_path %>";
@@ -504,6 +527,40 @@ const SAVE_MIC_URL       = "<%= stt_save_mic_path %>";
 const DELETE_HISTORY_URL = "<%= stt_destroy_history_path(id: '__ID__') %>";
 const CSRF               = document.querySelector('meta[name="csrf-token"]').content;
 const SECS_PER_CREDIT    = 60;
+
+// ── I18n strings used in JS ───────────────────────────────────────────────
+const I18N = {
+  btn_transcribe:    "<%= j t('stt.btn_transcribe') %>",
+  btn_uploading:     "<%= j t('stt.btn_uploading') %>",
+  btn_downloading:   "<%= j t('stt.btn_downloading') %>",
+  mic_start:         "<%= j t('stt.mic_start_hint') %>",
+  mic_recording:     "<%= j t('stt.mic_recording') %>",
+  ts_show:           "<%= j t('stt.timestamps_show') %>",
+  ts_hide:           "<%= j t('stt.timestamps_hide') %>",
+  ai_sum_lbl:        "<%= j t('stt.ai_summarize').gsub(/^\S+\s*/, '') %>",
+  ai_tr_lbl:         "<%= j t('stt.ai_translate').gsub(/^\S+\s*/, '') %>",
+  ai_processing:     "<%= j t('stt.ai_processing') %>",
+  ai_no_credits:     "<%= j t('stt.ai_no_credits') %>",
+  mic_chunks:        "<%= j t('stt.mic_chunks') %>",
+  hist_view:         "<%= j t('stt.history_view') %>",
+  hist_collapse:     "<%= j t('stt.history_collapse') %>",
+  hist_delete:       "<%= j t('stt.history_delete') %>",
+  hist_del_confirm:  "<%= j t('stt.history_delete_confirm') %>",
+  hist_content:      "<%= j t('stt.history_content') %>",
+  hist_empty_title:  "<%= j t('stt.history_empty_title') %>",
+  hist_empty_desc:   "<%= j t('stt.history_empty_desc') %>",
+  hist_error:        "<%= j t('stt.history_error') %>",
+  hist_ai_credits:   "<%= j t('stt.ai_credits') %>",
+  hist_ai_sum:       "<%= j t('stt.ai_summarize') %>",
+  hist_ai_tr:        "<%= j t('stt.ai_translate') %>",
+  hist_sum_lang:     "<%= j t('stt.ai_sum_lang') %>",
+  hist_tr_lang:      "<%= j t('stt.ai_tr_lang') %>",
+  hist_sum_result:   "<%= j t('stt.ai_sum_result') %>",
+  hist_tr_result:    "<%= j t('stt.ai_tr_result') %>",
+  hist_copy:         "<%= j t('stt.ai_copy') %>",
+  hist_download:     "⬇ <%= j t('stt.download_btn') %>",
+  hist_ai_title:     "<%= j t('stt.ai_title') %>",
+};
 
 // ── Credits ───────────────────────────────────────────────────────────────
 function getRemainingCredits() {
@@ -520,25 +577,26 @@ function creditsForSecs(secs) {
   return Math.max(Math.ceil(secs > 0 ? secs / SECS_PER_CREDIT : 1), 1);
 }
 
-// ── Right-column tabs (Mic | History) ────────────────────────────────────
+// ── Main tabs ─────────────────────────────────────────────────────────────
 let historyLoaded = false;
-function switchRightTab(tab) {
-  ['mic','history'].forEach(t => {
-    document.getElementById(`right-panel-${t}`).classList.toggle('hidden', t !== tab);
-    document.getElementById(`right-tab-${t}`).classList.toggle('active', t === tab);
+function switchMainTab(tab) {
+  ['file','mic','history'].forEach(t => {
+    document.getElementById(`main-panel-${t}`).classList.toggle('hidden', t !== tab);
+    document.getElementById(`main-tab-${t}`).classList.toggle('active', t === tab);
   });
   if (tab === 'history' && !historyLoaded) loadHistory();
 }
 
-// ── Source tabs (File | URL) ──────────────────────────────────────────────
-let activeTab = 'file';
-function switchTab(tab) {
-  activeTab = tab;
+// ── Source sub-tabs (File | URL) ──────────────────────────────────────────
+let activeSrcTab = 'file';
+function switchSrcTab(tab) {
+  activeSrcTab = tab;
   ['file','url'].forEach(t => {
-    document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
-    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`src-panel-${t}`).classList.toggle('hidden', t !== tab);
+    document.getElementById(`src-tab-${t}`).classList.toggle('active', t === tab);
   });
   document.getElementById('file-result').classList.add('hidden');
+  document.getElementById('file-empty-state').classList.remove('hidden');
   document.getElementById('file-error').classList.add('hidden');
   hideCreditWarning();
   checkTranscribeButton();
@@ -562,7 +620,6 @@ function setFile(file) {
   document.getElementById('file-credit-info').classList.add('hidden');
   hideResultError(); hideCreditWarning();
 
-  // Read duration without uploading
   const isVid = file.type.startsWith('video/') || /\.(mp4|mkv|avi|mov|webm)$/i.test(file.name);
   const media = document.createElement(isVid ? 'video' : 'audio');
   media.preload = 'metadata';
@@ -576,8 +633,8 @@ function setFile(file) {
       const credits = creditsForSecs(dur);
       const mins = Math.floor(dur / 60), secs = Math.round(dur % 60);
       const el = document.getElementById('file-credit-estimate');
-      el.textContent    = `${credits} credit${credits > 1 ? 's' : ''}`;
-      el.style.color    = credits > getRemainingCredits() ? '#dc2626' : '#4f46e5';
+      el.textContent = `${credits} credit${credits > 1 ? 's' : ''}`;
+      el.style.color = credits > getRemainingCredits() ? '#dc2626' : '#4f46e5';
       document.getElementById('file-duration-text').textContent = `${mins}:${String(secs).padStart(2,'0')} phút`;
       document.getElementById('file-credit-info').classList.remove('hidden');
     }
@@ -602,11 +659,11 @@ function clearUrl() {
 function checkTranscribeButton() {
   const btn = document.getElementById('transcribe-btn');
   const rem = getRemainingCredits();
-  if (activeTab === 'file' && selectedFile && fileDurationSecs > 0) {
+  if (activeSrcTab === 'file' && selectedFile && fileDurationSecs > 0) {
     const need = creditsForSecs(fileDurationSecs);
     if (need > rem) { showCreditWarning(need, rem); btn.disabled = true; return; }
   }
-  if (activeTab === 'url' && rem < 1) { showCreditWarning(1, 0); btn.disabled = true; return; }
+  if (activeSrcTab === 'url' && rem < 1) { showCreditWarning(1, 0); btn.disabled = true; return; }
   hideCreditWarning(); btn.disabled = false;
 }
 function showCreditWarning(need, rem) {
@@ -615,21 +672,21 @@ function showCreditWarning(need, rem) {
   document.getElementById('stt-credit-warning').classList.remove('hidden');
 }
 function hideCreditWarning() {
-  const el = document.getElementById('stt-credit-warning');
-  el?.classList.add('hidden');
+  document.getElementById('stt-credit-warning')?.classList.add('hidden');
   const txt = document.getElementById('stt-credit-warning-text');
   if (txt) txt.textContent = '';
 }
 
 // ── Transcribe ────────────────────────────────────────────────────────────
-async function transcribeSource() { activeTab === 'file' ? await transcribeFile() : await transcribeUrl(); }
-
+async function transcribeSource() {
+  activeSrcTab === 'file' ? await transcribeFile() : await transcribeUrl();
+}
 async function transcribeFile() {
   if (!selectedFile) { showFileError("Vui lòng chọn file audio/video."); return; }
   if (fileDurationSecs > 0 && creditsForSecs(fileDurationSecs) > getRemainingCredits()) {
     showCreditWarning(creditsForSecs(fileDurationSecs), getRemainingCredits()); return;
   }
-  setLoading(true, "Đang tải lên & xử lý...");
+  setLoading(true, I18N.btn_uploading);
   hideResultError();
   const fd = new FormData();
   fd.append('audio_file',    selectedFile);
@@ -644,7 +701,7 @@ async function transcribeUrl() {
   const url = document.getElementById('url-input').value.trim();
   if (!url) { showFileError("Vui lòng nhập URL."); return; }
   if (getRemainingCredits() < 1) { showCreditWarning(1, 0); return; }
-  setLoading(true, "Đang tải audio từ URL...");
+  setLoading(true, I18N.btn_downloading);
   hideResultError();
   const fd = new FormData();
   fd.append('url',           url);
@@ -668,10 +725,11 @@ async function doTranscribe(endpoint, fd) {
     if (used > 0) deductLocal(used);
     showResult(data, used);
     checkTranscribeButton();
-  } catch (e) { showFileError("Không thể kết nối server. Vui lòng thử lại."); }
-  finally { setLoading(false, "🎤 Chuyển thành văn bản"); }
+  } catch(e) { showFileError("Không thể kết nối server. Vui lòng thử lại."); }
+  finally    { setLoading(false, I18N.btn_transcribe); }
 }
 function showResult(data, used) {
+  document.getElementById('file-empty-state').classList.add('hidden');
   document.getElementById('file-transcript-text').textContent = data.text || "(không có kết quả)";
   const lb = document.getElementById('file-lang-badge');
   if (data.language_code) { lb.textContent = `🌐 ${data.language_code.toUpperCase()}`; lb.classList.remove('hidden'); }
@@ -686,37 +744,41 @@ function showResult(data, used) {
   } else {
     document.getElementById('file-words-wrap').classList.add('hidden');
   }
-  // Reset AI panels when new transcript arrives
   ['summarize','translate'].forEach(k => {
     document.getElementById(`panel-${k}`).classList.remove('open');
     document.getElementById(`${k}-result`).classList.add('hidden');
     document.getElementById(`${k}-error`).classList.add('hidden');
   });
   document.getElementById('file-result').classList.remove('hidden');
-  // Invalidate history cache so next open shows new record
   historyLoaded = false;
 }
 function setLoading(on, label) {
   const btn = document.getElementById('transcribe-btn');
   btn.disabled = on;
-  document.getElementById('transcribe-btn-label').textContent = on ? label : '🎤 Chuyển thành văn bản';
+  document.getElementById('transcribe-btn-label').textContent = on ? label : I18N.btn_transcribe;
   document.getElementById('transcribe-spinner').classList.toggle('hidden', !on);
 }
 function showFileError(msg) {
-  document.getElementById('file-error').textContent = '⚠️ ' + msg;
-  document.getElementById('file-error').classList.remove('hidden');
+  const el = document.getElementById('file-error');
+  el.textContent = '⚠️ ' + msg;
+  el.classList.remove('hidden');
 }
 function hideResultError() {
   document.getElementById('file-result').classList.add('hidden');
+  document.getElementById('file-empty-state').classList.remove('hidden');
   document.getElementById('file-error').classList.add('hidden');
 }
-function toggleWords() { document.getElementById('file-words').classList.toggle('hidden'); }
+let wordsVisible = false;
+function toggleWords() {
+  wordsVisible = !wordsVisible;
+  document.getElementById('file-words').classList.toggle('hidden', !wordsVisible);
+  document.getElementById('toggle-words-btn').textContent = wordsVisible ? I18N.ts_hide : I18N.ts_show;
+}
 
 // ── Post-process panel toggle ─────────────────────────────────────────────
 function togglePanel(key) {
   const panel = document.getElementById(`panel-${key}`);
   const isOpen = panel.classList.contains('open');
-  // Close all panels first
   ['summarize','translate'].forEach(k => document.getElementById(`panel-${k}`).classList.remove('open'));
   if (!isOpen) panel.classList.add('open');
 }
@@ -726,16 +788,15 @@ async function doSummarize() {
   const text = document.getElementById('file-transcript-text').textContent.trim();
   if (!text || text === "(không có kết quả)") return;
   if (getRemainingCredits() < 2) {
-    document.getElementById('summarize-error').textContent = '⚠️ Không đủ credits (cần 2).';
+    document.getElementById('summarize-error').textContent = '⚠️ ' + I18N.ai_no_credits;
     document.getElementById('summarize-error').classList.remove('hidden'); return;
   }
   const btn = document.getElementById('summarize-btn');
   btn.disabled = true;
-  document.getElementById('summarize-btn-label').textContent = 'Đang xử lý...';
+  document.getElementById('summarize-btn-label').textContent = I18N.ai_processing;
   document.getElementById('summarize-spinner').classList.remove('hidden');
   document.getElementById('summarize-error').classList.add('hidden');
   document.getElementById('summarize-result').classList.add('hidden');
-
   try {
     const fd = new FormData();
     fd.append('text',     text);
@@ -752,7 +813,7 @@ async function doSummarize() {
     document.getElementById('summarize-error').classList.remove('hidden');
   } finally {
     btn.disabled = false;
-    document.getElementById('summarize-btn-label').textContent = 'Tóm tắt';
+    document.getElementById('summarize-btn-label').textContent = I18N.ai_sum_lbl;
     document.getElementById('summarize-spinner').classList.add('hidden');
   }
 }
@@ -762,16 +823,15 @@ async function doTranslate() {
   const text = document.getElementById('file-transcript-text').textContent.trim();
   if (!text || text === "(không có kết quả)") return;
   if (getRemainingCredits() < 2) {
-    document.getElementById('translate-error').textContent = '⚠️ Không đủ credits (cần 2).';
+    document.getElementById('translate-error').textContent = '⚠️ ' + I18N.ai_no_credits;
     document.getElementById('translate-error').classList.remove('hidden'); return;
   }
   const btn = document.getElementById('translate-btn');
   btn.disabled = true;
-  document.getElementById('translate-btn-label').textContent = 'Đang dịch...';
+  document.getElementById('translate-btn-label').textContent = I18N.ai_processing;
   document.getElementById('translate-spinner').classList.remove('hidden');
   document.getElementById('translate-error').classList.add('hidden');
   document.getElementById('translate-result').classList.add('hidden');
-
   try {
     const fd = new FormData();
     fd.append('text',            text);
@@ -788,7 +848,7 @@ async function doTranslate() {
     document.getElementById('translate-error').classList.remove('hidden');
   } finally {
     btn.disabled = false;
-    document.getElementById('translate-btn-label').textContent = 'Dịch';
+    document.getElementById('translate-btn-label').textContent = I18N.ai_tr_lbl;
     document.getElementById('translate-spinner').classList.add('hidden');
   }
 }
@@ -797,6 +857,7 @@ async function doTranslate() {
 let mediaRecorder=null, micStream=null, micTimer=null;
 let micSeconds=0, chunkCount=0, audioCtx=null, analyser=null, volInterval=null;
 let isMicRecording=false;
+
 async function toggleMic() { isMicRecording ? stopMic() : await startMic(); }
 async function startMic() {
   if (getRemainingCredits() < 1) { document.getElementById('mic-no-credit').classList.remove('hidden'); return; }
@@ -810,12 +871,12 @@ async function startMic() {
   const buf = new Uint8Array(analyser.frequencyBinCount);
   volInterval = setInterval(() => {
     analyser.getByteFrequencyData(buf);
-    document.getElementById('vol-bar').style.width = Math.min(buf.reduce((a,b)=>a+b,0)/buf.length*2,100)+'%';
+    document.getElementById('vol-bar').style.width = Math.min(buf.reduce((a,b)=>a+b,0)/buf.length*2, 100)+'%';
   }, 80);
   mediaRecorder = new MediaRecorder(micStream, { mimeType: getSupportedMimeType() });
   mediaRecorder.ondataavailable = e => { if (e.data.size > 0) sendChunk(e.data); };
   mediaRecorder.start(5000);
-  micSeconds = 0;
+  micSeconds = 0; chunkCount = 0;
   document.getElementById('mic-timer').classList.remove('hidden');
   micTimer = setInterval(() => {
     micSeconds++;
@@ -827,7 +888,7 @@ async function startMic() {
   btn.textContent = '⏹';
   btn.classList.add('mic-recording','bg-red-100','border-red-400');
   btn.classList.remove('bg-slate-100','border-slate-200');
-  document.getElementById('mic-status').textContent = '🔴 Đang ghi âm... Click để dừng';
+  document.getElementById('mic-status').textContent = I18N.mic_recording;
   const txtEl = document.getElementById('mic-transcript-text');
   if (txtEl.querySelector('span.text-slate-400')) txtEl.innerHTML = '';
 }
@@ -842,14 +903,12 @@ function stopMic() {
   btn.textContent = '🎙️';
   btn.classList.remove('mic-recording','bg-red-100','border-red-400');
   btn.classList.add('bg-slate-100','border-slate-200');
-  document.getElementById('mic-status').textContent = 'Click để bắt đầu ghi âm';
-  // Auto-save mic transcript if there's content
+  document.getElementById('mic-status').textContent = I18N.mic_start;
+  // Auto-save
   const txtEl = document.getElementById('mic-transcript-text');
   const text = txtEl.innerText?.trim() || '';
   const hasPlaceholder = txtEl.querySelector('span.text-slate-400') !== null;
-  if (!hasPlaceholder && text.length > 0 && chunkCount > 0) {
-    saveMicTranscript(text);
-  }
+  if (!hasPlaceholder && text.length > 0 && chunkCount > 0) saveMicTranscript(text);
 }
 async function saveMicTranscript(text) {
   try {
@@ -859,7 +918,7 @@ async function saveMicTranscript(text) {
     fd.append('duration_secs', micSeconds.toString());
     fd.append('credits_used',  chunkCount.toString());
     await fetch(SAVE_MIC_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
-    historyLoaded = false; // force reload next time history tab opens
+    historyLoaded = false;
   } catch(e) { /* silent */ }
 }
 async function sendChunk(blob) {
@@ -878,7 +937,7 @@ async function sendChunk(blob) {
       el.scrollTop = el.scrollHeight;
       chunkCount++;
       const counter = document.getElementById('chunk-counter');
-      counter.textContent = `${chunkCount} đoạn đã xử lý`;
+      counter.textContent = `${chunkCount} ${I18N.mic_chunks}`;
       counter.classList.remove('hidden');
       const used = parseInt(res.headers.get('X-Credits-Used') || '1');
       deductLocal(used);
@@ -892,52 +951,25 @@ async function sendChunk(blob) {
 }
 function clearMicTranscript() {
   document.getElementById('mic-transcript-text').innerHTML =
-    '<span class="text-slate-400 text-[12px]">Transcript sẽ xuất hiện ở đây sau mỗi 5 giây ghi âm...</span>';
+    `<span class="text-slate-400 text-[12px]"><%= j t('stt.mic_placeholder') %></span>`;
   chunkCount = 0;
   document.getElementById('chunk-counter').textContent = '';
   document.getElementById('chunk-counter').classList.add('hidden');
   document.getElementById('mic-no-credit').classList.add('hidden');
 }
 
-// ── Utils ─────────────────────────────────────────────────────────────────
-function getSupportedMimeType() {
-  return ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4']
-    .find(t => MediaRecorder.isTypeSupported(t)) || '';
-}
-function copyText(elId) {
-  const el = document.getElementById(elId);
-  navigator.clipboard.writeText(el.textContent).then(() => {
-    const btn = event.target; const orig = btn.textContent;
-    btn.textContent = '✅ Đã sao chép'; setTimeout(() => btn.textContent = orig, 1500);
-  });
-}
-function downloadText(elId, name) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([document.getElementById(elId).textContent], { type:'text/plain' }));
-  a.download = `${name}-${Date.now()}.txt`; a.click();
-}
-function formatBytes(b) {
-  return b < 1024 ? b+' B' : b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB';
-}
-function fmtTime(sec) {
-  if (sec == null) return '—';
-  return `${Math.floor(sec/60)}:${(sec%60).toFixed(1).padStart(4,'0')}`;
-}
-function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
 // ── History ───────────────────────────────────────────────────────────────
 async function loadHistory(force = false) {
   if (historyLoaded && !force) return;
   const container = document.getElementById('history-list');
-  container.innerHTML = '<div class="text-center py-10 text-slate-400 text-[13px]">Đang tải...</div>';
+  container.innerHTML = `<div class="text-center py-10 text-slate-400 text-[13px]"><%= j t('stt.history_loading') %></div>`;
   try {
     const res  = await fetch(HISTORY_URL, { headers:{'X-CSRF-Token':CSRF} });
     const data = await res.json();
     historyLoaded = true;
     renderHistory(data);
   } catch(e) {
-    container.innerHTML = '<div class="text-center py-10 text-red-400 text-[12px]">Lỗi tải lịch sử. Thử lại.</div>';
+    container.innerHTML = `<div class="text-center py-10 text-red-400 text-[12px]">${I18N.hist_error}</div>`;
   }
 }
 
@@ -949,92 +981,84 @@ function renderHistory(items) {
 
   if (items.length === 0) {
     container.innerHTML = `
-      <div class="text-center py-12 px-4">
-        <div class="text-4xl mb-3">📭</div>
-        <p class="text-slate-500 text-[13px] font-semibold mb-1">Chưa có lịch sử</p>
-        <p class="text-slate-400 text-[12px]">Transcript sẽ được lưu tự động sau mỗi lần chuyển đổi</p>
+      <div class="text-center py-16 px-4">
+        <div class="text-5xl mb-3">📭</div>
+        <p class="text-slate-600 text-[14px] font-semibold mb-1">${I18N.hist_empty_title}</p>
+        <p class="text-slate-400 text-[13px]">${I18N.hist_empty_desc}</p>
       </div>`;
     return;
   }
 
   container.innerHTML = items.map(item => `
     <div id="hist-${item.id}" class="group">
-      <!-- Card header -->
-      <div class="px-4 py-3 hover:bg-slate-50 transition-colors">
-        <div class="flex items-start gap-2.5">
-          <span class="text-lg flex-shrink-0 mt-0.5">${histSourceIcon(item.source)}</span>
+      <div class="px-5 py-3.5 hover:bg-slate-50 transition-colors">
+        <div class="flex items-start gap-3">
+          <span class="text-xl flex-shrink-0 mt-0.5">${histSourceIcon(item.source)}</span>
           <div class="flex-1 min-w-0">
-            <p class="text-[12px] font-semibold text-slate-800 truncate" title="${escHtml(item.full_title)}">${escHtml(item.title)}</p>
-            <p class="text-[11px] text-slate-400">${item.created_at}</p>
+            <p class="text-[13px] font-semibold text-slate-800 truncate" title="${escHtml(item.full_title)}">${escHtml(item.title)}</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">${item.created_at}</p>
           </div>
-          <div class="flex items-center gap-1 flex-shrink-0">
+          <div class="flex items-center gap-1.5 flex-shrink-0">
             ${item.language_code ? `<span class="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">${item.language_code.toUpperCase()}</span>` : ''}
-            <span class="px-1.5 py-0.5 bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full">🪙${item.credits_used}</span>
+            <span class="px-1.5 py-0.5 bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full">🪙 ${item.credits_used}</span>
           </div>
         </div>
-        <p class="mt-1.5 ml-8 text-[11px] text-slate-500 line-clamp-2">${escHtml(item.transcript_text.substring(0, 120))}${item.transcript_text.length > 120 ? '…' : ''}</p>
-        <div class="mt-2 ml-8 flex items-center gap-3">
-          <button onclick="toggleHistoryDetail(${item.id})"
-            class="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold border-0 bg-transparent cursor-pointer" id="hist-toggle-${item.id}">
-            Xem chi tiết ▾
+        <p class="mt-2 ml-9 text-[12px] text-slate-500 line-clamp-2">${escHtml(item.transcript_text.substring(0, 150))}${item.transcript_text.length > 150 ? '…' : ''}</p>
+        <div class="mt-2.5 ml-9 flex items-center gap-3">
+          <button onclick="toggleHistoryDetail(${item.id})" id="hist-toggle-${item.id}"
+            class="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold border-0 bg-transparent cursor-pointer">
+            ${I18N.hist_view}
           </button>
           <button onclick="deleteHistory(${item.id})"
             class="text-[11px] text-red-400 hover:text-red-600 font-semibold border-0 bg-transparent cursor-pointer ml-auto">
-            🗑 Xóa
+            ${I18N.hist_delete}
           </button>
         </div>
       </div>
 
-      <!-- Expandable detail -->
-      <div id="hist-detail-${item.id}" class="hidden border-t border-slate-100 bg-slate-50">
-        <div class="px-4 py-3 space-y-3">
-          <!-- Full text -->
+      <div id="hist-detail-${item.id}" class="hidden border-t border-slate-100 bg-slate-50/60">
+        <div class="px-5 py-4 space-y-3">
           <div>
             <div class="flex items-center justify-between mb-1.5">
-              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Nội dung</span>
+              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${I18N.hist_content}</span>
               <div class="flex gap-1.5">
-                <button onclick="copyHistText(${item.id})" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">📋 Copy</button>
-                <button onclick="downloadHistText(${item.id}, '${escHtml(item.title).replace(/'/g,'')}')" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">⬇ Tải</button>
+                <button onclick="copyHistText(${item.id})" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">${I18N.hist_copy}</button>
+                <button onclick="downloadHistText(${item.id}, '${escHtml(item.title).replace(/'/g,'').substring(0,30)}')" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">${I18N.hist_download}</button>
               </div>
             </div>
             <div id="hist-text-${item.id}"
-                 class="max-h-[180px] overflow-y-auto p-3 bg-white rounded-lg border border-slate-200 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono"
-                 data-full="${escHtml(item.transcript_text)}">${escHtml(item.transcript_text)}</div>
+                 data-full="${escHtml(item.transcript_text)}"
+                 class="max-h-[200px] overflow-y-auto p-3 bg-white rounded-lg border border-slate-200 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">${escHtml(item.transcript_text)}</div>
           </div>
 
-          <!-- AI tools -->
-          <div class="border-t border-slate-200 pt-2.5">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">AI Hỗ trợ</span>
-              <span class="text-[10px] text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded-full">2 credits / lần</span>
+          <div class="border-t border-slate-200 pt-3">
+            <div class="flex items-center gap-2 mb-2.5">
+              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${I18N.hist_ai_title}</span>
+              <span class="text-[10px] text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded-full">${I18N.hist_ai_credits}</span>
             </div>
             <div class="flex gap-2 flex-wrap">
               <button onclick="toggleHistAiPanel(${item.id}, 'sum')"
-                class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg cursor-pointer">
-                📝 Tóm tắt
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg cursor-pointer">
+                ${I18N.hist_ai_sum}
               </button>
               <button onclick="toggleHistAiPanel(${item.id}, 'tr')"
-                class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg cursor-pointer">
-                🌐 Dịch
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg cursor-pointer">
+                ${I18N.hist_ai_tr}
               </button>
             </div>
 
-            <!-- Summarize panel -->
-            <div id="hist-sum-${item.id}" class="hist-ai-panel mt-2 p-3 bg-violet-50 border border-violet-100 rounded-xl">
+            <div id="hist-sum-${item.id}" class="hist-ai-panel mt-2.5 p-3 bg-violet-50 border border-violet-100 rounded-xl">
               <div class="flex items-center gap-2 mb-2">
+                <label class="text-[11px] font-semibold text-violet-700 whitespace-nowrap">${I18N.hist_sum_lang}</label>
                 <select id="hist-sum-lang-${item.id}" class="flex-1 px-2 py-1.5 border border-violet-200 rounded-lg text-[11px] bg-white focus:outline-none">
-                  <option value="vi">🇻🇳 Tiếng Việt</option>
-                  <option value="en">🇺🇸 English</option>
-                  <option value="zh">🇨🇳 中文</option>
-                  <option value="ja">🇯🇵 日本語</option>
-                  <option value="ko">🇰🇷 한국어</option>
-                  <option value="fr">🇫🇷 Français</option>
-                  <option value="de">🇩🇪 Deutsch</option>
-                  <option value="es">🇪🇸 Español</option>
+                  <option value="vi">🇻🇳 Tiếng Việt</option><option value="en">🇺🇸 English</option>
+                  <option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option>
+                  <option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option>
+                  <option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option>
                 </select>
                 <button id="hist-sum-btn-${item.id}" onclick="doHistSummarize(${item.id})"
-                  class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[11px] font-bold rounded-lg cursor-pointer border-0 transition-colors disabled:opacity-50 flex items-center gap-1">
-                  <span id="hist-sum-lbl-${item.id}">Tóm tắt</span>
+                  class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[11px] font-bold rounded-lg cursor-pointer border-0 disabled:opacity-50 flex items-center gap-1">
+                  <span id="hist-sum-lbl-${item.id}">${I18N.hist_ai_sum.replace(/^\S+\s*/,'')}</span>
                   <svg id="hist-sum-spin-${item.id}" class="hidden w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -1043,30 +1067,26 @@ function renderHistory(items) {
               </div>
               <div id="hist-sum-result-${item.id}" class="hidden">
                 <div class="flex items-center justify-between mb-1">
-                  <span class="text-[10px] font-bold text-violet-700 uppercase">Tóm tắt</span>
-                  <button onclick="copyHistSumResult(${item.id})" class="px-1.5 py-0.5 text-[10px] bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">📋 Copy</button>
+                  <span class="text-[10px] font-bold text-violet-700 uppercase">${I18N.hist_sum_result}</span>
+                  <button onclick="copyHistSumResult(${item.id})" class="px-1.5 py-0.5 text-[10px] bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">${I18N.hist_copy}</button>
                 </div>
                 <div id="hist-sum-text-${item.id}" class="max-h-[160px] overflow-y-auto p-2.5 bg-white rounded-lg border border-violet-100 text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap"></div>
               </div>
               <div id="hist-sum-err-${item.id}" class="hidden text-[11px] text-red-600 mt-1"></div>
             </div>
 
-            <!-- Translate panel -->
-            <div id="hist-tr-${item.id}" class="hist-ai-panel mt-2 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+            <div id="hist-tr-${item.id}" class="hist-ai-panel mt-2.5 p-3 bg-blue-50 border border-blue-100 rounded-xl">
               <div class="flex items-center gap-2 mb-2">
+                <label class="text-[11px] font-semibold text-blue-700 whitespace-nowrap">${I18N.hist_tr_lang}</label>
                 <select id="hist-tr-lang-${item.id}" class="flex-1 px-2 py-1.5 border border-blue-200 rounded-lg text-[11px] bg-white focus:outline-none">
-                  <option value="en">🇺🇸 English</option>
-                  <option value="vi">🇻🇳 Tiếng Việt</option>
-                  <option value="zh">🇨🇳 中文</option>
-                  <option value="ja">🇯🇵 日本語</option>
-                  <option value="ko">🇰🇷 한국어</option>
-                  <option value="fr">🇫🇷 Français</option>
-                  <option value="de">🇩🇪 Deutsch</option>
-                  <option value="es">🇪🇸 Español</option>
+                  <option value="en">🇺🇸 English</option><option value="vi">🇻🇳 Tiếng Việt</option>
+                  <option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option>
+                  <option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option>
+                  <option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option>
                 </select>
                 <button id="hist-tr-btn-${item.id}" onclick="doHistTranslate(${item.id})"
-                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg cursor-pointer border-0 transition-colors disabled:opacity-50 flex items-center gap-1">
-                  <span id="hist-tr-lbl-${item.id}">Dịch</span>
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg cursor-pointer border-0 disabled:opacity-50 flex items-center gap-1">
+                  <span id="hist-tr-lbl-${item.id}">${I18N.hist_ai_tr.replace(/^\S+\s*/,'')}</span>
                   <svg id="hist-tr-spin-${item.id}" class="hidden w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -1075,16 +1095,16 @@ function renderHistory(items) {
               </div>
               <div id="hist-tr-result-${item.id}" class="hidden">
                 <div class="flex items-center justify-between mb-1">
-                  <span class="text-[10px] font-bold text-blue-700 uppercase">Bản dịch</span>
-                  <button onclick="copyHistTrResult(${item.id})" class="px-1.5 py-0.5 text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">📋 Copy</button>
+                  <span class="text-[10px] font-bold text-blue-700 uppercase">${I18N.hist_tr_result}</span>
+                  <button onclick="copyHistTrResult(${item.id})" class="px-1.5 py-0.5 text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">${I18N.hist_copy}</button>
                 </div>
                 <div id="hist-tr-text-${item.id}" class="max-h-[160px] overflow-y-auto p-2.5 bg-white rounded-lg border border-blue-100 text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap"></div>
               </div>
               <div id="hist-tr-err-${item.id}" class="hidden text-[11px] text-red-600 mt-1"></div>
             </div>
-          </div><!-- /AI tools -->
+          </div>
         </div>
-      </div><!-- /hist-detail -->
+      </div>
     </div>
   `).join('');
 }
@@ -1093,32 +1113,21 @@ function toggleHistoryDetail(id) {
   const detail = document.getElementById(`hist-detail-${id}`);
   const toggle = document.getElementById(`hist-toggle-${id}`);
   const isOpen = !detail.classList.contains('hidden');
-  // Close all others first
   document.querySelectorAll('[id^="hist-detail-"]').forEach(el => el.classList.add('hidden'));
-  document.querySelectorAll('[id^="hist-toggle-"]').forEach(el => { el.textContent = 'Xem chi tiết ▾'; });
-  if (!isOpen) {
-    detail.classList.remove('hidden');
-    toggle.textContent = 'Thu lại ▴';
-  }
+  document.querySelectorAll('[id^="hist-toggle-"]').forEach(el => { el.textContent = I18N.hist_view; });
+  if (!isOpen) { detail.classList.remove('hidden'); toggle.textContent = I18N.hist_collapse; }
 }
-
 function toggleHistAiPanel(id, type) {
   const panel = document.getElementById(`hist-${type}-${id}`);
   const isOpen = panel.classList.contains('open');
-  // Close both panels for this item first
-  [`hist-sum-${id}`, `hist-tr-${id}`].forEach(k => {
-    document.getElementById(k)?.classList.remove('open');
-  });
+  [`hist-sum-${id}`,`hist-tr-${id}`].forEach(k => document.getElementById(k)?.classList.remove('open'));
   if (!isOpen) panel.classList.add('open');
 }
-
 async function doHistSummarize(id) {
   const textEl = document.getElementById(`hist-text-${id}`);
   const text   = textEl.dataset.full || textEl.textContent;
   if (!text?.trim()) return;
-  if (getRemainingCredits() < 2) {
-    showHistErr(id, 'sum', '⚠️ Không đủ credits (cần 2).'); return;
-  }
+  if (getRemainingCredits() < 2) { showHistErr(id, 'sum', '⚠️ ' + I18N.ai_no_credits); return; }
   setHistBtn(id, 'sum', true);
   clearHistErr(id, 'sum');
   document.getElementById(`hist-sum-result-${id}`).classList.add('hidden');
@@ -1136,14 +1145,11 @@ async function doHistSummarize(id) {
   } catch(e) { showHistErr(id, 'sum', '⚠️ ' + e.message); }
   finally     { setHistBtn(id, 'sum', false); }
 }
-
 async function doHistTranslate(id) {
   const textEl = document.getElementById(`hist-text-${id}`);
   const text   = textEl.dataset.full || textEl.textContent;
   if (!text?.trim()) return;
-  if (getRemainingCredits() < 2) {
-    showHistErr(id, 'tr', '⚠️ Không đủ credits (cần 2).'); return;
-  }
+  if (getRemainingCredits() < 2) { showHistErr(id, 'tr', '⚠️ ' + I18N.ai_no_credits); return; }
   setHistBtn(id, 'tr', true);
   clearHistErr(id, 'tr');
   document.getElementById(`hist-tr-result-${id}`).classList.add('hidden');
@@ -1161,32 +1167,28 @@ async function doHistTranslate(id) {
   } catch(e) { showHistErr(id, 'tr', '⚠️ ' + e.message); }
   finally     { setHistBtn(id, 'tr', false); }
 }
-
 async function deleteHistory(id) {
-  if (!confirm('Xóa transcript này?')) return;
+  if (!confirm(I18N.hist_del_confirm)) return;
   const url = DELETE_HISTORY_URL.replace('__ID__', id);
   try {
     const res = await fetch(url, { method:'DELETE', headers:{'X-CSRF-Token':CSRF} });
     if (res.ok) {
-      const el = document.getElementById(`hist-${id}`);
-      el?.remove();
-      // Update badge count
-      const remaining = document.querySelectorAll('[id^="hist-"]').length;
+      document.getElementById(`hist-${id}`)?.remove();
+      const remaining = document.querySelectorAll('[id^="hist-detail-"]').length;
       const badge = document.getElementById('history-count-badge');
       badge.textContent = remaining;
       badge.classList.toggle('hidden', remaining === 0);
       if (remaining === 0) {
         document.getElementById('history-list').innerHTML = `
-          <div class="text-center py-12 px-4">
-            <div class="text-4xl mb-3">📭</div>
-            <p class="text-slate-500 text-[13px] font-semibold mb-1">Chưa có lịch sử</p>
-            <p class="text-slate-400 text-[12px]">Transcript sẽ được lưu tự động sau mỗi lần chuyển đổi</p>
+          <div class="text-center py-16 px-4">
+            <div class="text-5xl mb-3">📭</div>
+            <p class="text-slate-600 text-[14px] font-semibold mb-1">${I18N.hist_empty_title}</p>
+            <p class="text-slate-400 text-[13px]">${I18N.hist_empty_desc}</p>
           </div>`;
       }
     }
-  } catch(e) { alert('Xóa thất bại. Vui lòng thử lại.'); }
+  } catch(e) { alert('Xóa thất bại.'); }
 }
-
 function copyHistText(id) {
   const el = document.getElementById(`hist-text-${id}`);
   navigator.clipboard.writeText(el.dataset.full || el.textContent);
@@ -1195,33 +1197,53 @@ function downloadHistText(id, name) {
   const el = document.getElementById(`hist-text-${id}`);
   const a  = document.createElement('a');
   a.href     = URL.createObjectURL(new Blob([el.dataset.full || el.textContent], { type:'text/plain' }));
-  a.download = `${(name || 'transcript').replace(/[^a-z0-9]/gi,'_').substring(0,40)}-${Date.now()}.txt`;
+  a.download = `${(name||'transcript').replace(/[^a-z0-9]/gi,'_').substring(0,40)}-${Date.now()}.txt`;
   a.click();
 }
-function copyHistSumResult(id) {
-  navigator.clipboard.writeText(document.getElementById(`hist-sum-text-${id}`).textContent);
-}
-function copyHistTrResult(id) {
-  navigator.clipboard.writeText(document.getElementById(`hist-tr-text-${id}`).textContent);
-}
-
+function copyHistSumResult(id) { navigator.clipboard.writeText(document.getElementById(`hist-sum-text-${id}`).textContent); }
+function copyHistTrResult(id)  { navigator.clipboard.writeText(document.getElementById(`hist-tr-text-${id}`).textContent); }
 function setHistBtn(id, type, loading) {
   const btn  = document.getElementById(`hist-${type}-btn-${id}`);
   const lbl  = document.getElementById(`hist-${type}-lbl-${id}`);
   const spin = document.getElementById(`hist-${type}-spin-${id}`);
   btn.disabled = loading;
-  lbl.textContent  = loading ? 'Đang xử lý...' : (type === 'sum' ? 'Tóm tắt' : 'Dịch');
+  lbl.textContent = loading ? I18N.ai_processing
+    : (type === 'sum' ? I18N.hist_ai_sum.replace(/^\S+\s*/,'') : I18N.hist_ai_tr.replace(/^\S+\s*/,''));
   spin.classList.toggle('hidden', !loading);
 }
 function showHistErr(id, type, msg) {
   const el = document.getElementById(`hist-${type}-err-${id}`);
   if (el) { el.textContent = msg; el.classList.remove('hidden'); }
 }
-function clearHistErr(id, type) {
-  document.getElementById(`hist-${type}-err-${id}`)?.classList.add('hidden');
+function clearHistErr(id, type) { document.getElementById(`hist-${type}-err-${id}`)?.classList.add('hidden'); }
+function histSourceIcon(src) { return src==='mic'?'🎙️':src==='url'?'🔗':'🎵'; }
+
+// ── Utils ─────────────────────────────────────────────────────────────────
+function getSupportedMimeType() {
+  return ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4']
+    .find(t => MediaRecorder.isTypeSupported(t)) || '';
 }
-function histSourceIcon(src) {
-  return src === 'mic' ? '🎙️' : src === 'url' ? '🔗' : '🎵';
+function copyText(elId) {
+  const el = document.getElementById(elId);
+  navigator.clipboard.writeText(el.textContent).then(() => {
+    const btn = event.target; const orig = btn.textContent;
+    btn.textContent = '✅'; setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+function downloadText(elId, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([document.getElementById(elId).textContent], { type:'text/plain' }));
+  a.download = `${name}-${Date.now()}.txt`; a.click();
+}
+function formatBytes(b) {
+  return b < 1024 ? b+' B' : b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB';
+}
+function fmtTime(sec) {
+  if (sec == null) return '—';
+  return `${Math.floor(sec/60)}:${(sec%60).toFixed(1).padStart(4,'0')}`;
+}
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 checkTranscribeButton();
