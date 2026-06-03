@@ -212,15 +212,15 @@ class Admin::SttController < Admin::BaseController
     lang_name = SUMMARY_LANGUAGES[lang_key]
 
     result = ClaudeService.haiku.call(
-      system_prompt: "You are a professional transcript summarizer. Create clear, well-structured summaries. Never add a title or heading at the top — output the content directly.",
+      system_prompt: "You are a professional transcript summarizer. You ALWAYS write your response in the requested output language, regardless of the language of the input transcript. Never add a title or heading at the top — output the content directly.",
       user_prompt:   <<~PROMPT
-        Summarize the following transcript in #{lang_name}.
+        Summarize the following transcript. Your response MUST be written entirely in #{lang_name} — this is mandatory even if the transcript is in a different language.
         Rules:
         - Do NOT add any title, heading, or label at the start — begin directly with content
         - Start with 1-2 sentence overview paragraph
         - Then 4-6 bullet points covering key points (use "- " prefix)
         - Keep it concise (under 200 words total)
-        - Use the target language only
+        - IMPORTANT: Write your entire response in #{lang_name} only
 
         Transcript:
         #{text.truncate(10_000)}
@@ -248,13 +248,14 @@ class Admin::SttController < Admin::BaseController
     target_name = SUMMARY_LANGUAGES[target_key]
 
     result = ClaudeService.haiku.call(
-      system_prompt: "You are a professional translator. Translate accurately and naturally.",
+      system_prompt: "You are a professional translator. You ALWAYS translate into the exact target language requested, regardless of the source language.",
       user_prompt:   <<~PROMPT
-        Translate the following transcript to #{target_name}.
+        Translate the following transcript into #{target_name}. Your entire response MUST be in #{target_name}.
         Rules:
-        - Provide ONLY the translation, no explanations or notes
+        - Provide ONLY the translation — no explanations, no notes, no preamble
         - Preserve paragraph breaks and structure
         - Maintain the original tone (formal/informal)
+        - IMPORTANT: Output exclusively in #{target_name}
 
         Transcript:
         #{text.truncate(10_000)}
