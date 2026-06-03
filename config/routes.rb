@@ -113,6 +113,12 @@ Rails.application.routes.draw do
     get  "tts/voices",   to: "tts#voices",   as: :tts_voices
     post "tts/generate", to: "tts#generate", as: :tts_generate
 
+    # Speech-to-Text / Transcription (ElevenLabs Scribe v2)
+    get  "stt",                  to: "stt#index",            as: :stt
+    post "stt/transcribe",       to: "stt#transcribe",       as: :stt_transcribe
+    post "stt/transcribe_url",   to: "stt#transcribe_url",   as: :stt_transcribe_url
+    post "stt/transcribe_chunk", to: "stt#transcribe_chunk", as: :stt_transcribe_chunk
+
     resources :votes do
       member do
         patch :open

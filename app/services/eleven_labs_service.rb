@@ -146,6 +146,63 @@ class ElevenLabsService
     raise
   end
 
+  # ── Speech-to-Text (Scribe v1 / v2) ───────────────────────────────────────
+  # audio_io  : IO-like object (file, StringIO, Tempfile) OR path string
+  # filename  : hint for content-type detection (e.g. "recording.webm")
+  # model     : "scribe_v1" | "scribe_v2"
+  # language_code : ISO 639-1 code e.g. "vi", "en", nil = auto-detect
+  # timestamps    : "none" | "word" | "character"
+  # diarize       : true = identify individual speakers
+  #
+  # Returns hash: { text:, words:, language_code:, language_probability: }
+  def speech_to_text(audio_io:, filename: "audio.webm", model: "scribe_v2",
+                     language_code: nil, timestamps: "none", diarize: false)
+    Rails.logger.info "ElevenLabs STT start: model=#{model} file=#{filename}"
+
+    # Build multipart body using httmultiparty-style approach via HTTParty
+    body = {
+      audio:    audio_io,
+      model_id: model,
+      timestamps_granularity: timestamps,
+      diarize:  diarize.to_s,
+      tag_audio_events: "true"
+    }
+    body[:language_code] = language_code if language_code.present?
+
+    response = HTTParty.post(
+      "#{BASE_URL}/v1/speech-to-text",
+      headers: { "xi-api-key" => @api_key },
+      multipart: true,
+      body:    body,
+      timeout: 300
+    )
+
+    unless response.success?
+      log_http_error(response, 0, 1)
+      raise build_http_error(response)
+    end
+
+    parsed = JSON.parse(response.body)
+    Rails.logger.info "ElevenLabs STT ok: #{parsed['text']&.length} chars"
+
+    {
+      text:                 parsed["text"].to_s,
+      words:                parsed["words"] || [],
+      language_code:        parsed["language_code"],
+      language_probability: parsed["language_probability"]
+    }
+  rescue ElevenLabsService::Error
+    raise
+  rescue Timeout::Error, Net::ReadTimeout, Net::OpenTimeout => e
+    raise ElevenLabsService::Error.new(
+      "ElevenLabs STT timeout. Vui lòng thử lại.",
+      code: :timeout
+    )
+  rescue => e
+    Rails.logger.error "ElevenLabsService#speech_to_text error: #{e.message} (#{e.class})"
+    raise
+  end
+
   private
 
   def default_headers
