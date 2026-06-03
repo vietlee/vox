@@ -6,15 +6,27 @@ class ErrorsController < ActionController::Base
   before_action :set_locale
 
   def not_found
-    render "participate/errors/not_found", status: :not_found
+    respond_to do |format|
+      format.html { render "participate/errors/not_found", status: :not_found }
+      format.json { render json: { error: "Not found" }, status: :not_found }
+      format.any  { head :not_found }
+    end
   end
 
   def server_error
-    render "participate/errors/server_error", status: :internal_server_error
+    respond_to do |format|
+      format.html { render "participate/errors/server_error", status: :internal_server_error }
+      format.json { render json: { error: "Internal server error" }, status: :internal_server_error }
+      format.any  { head :internal_server_error }
+    end
   end
 
   def unprocessable
-    render "participate/errors/not_found", status: :unprocessable_entity
+    respond_to do |format|
+      format.html { render "participate/errors/not_found", status: :unprocessable_entity }
+      format.json { render json: { error: "Unprocessable entity" }, status: :unprocessable_entity }
+      format.any  { head :unprocessable_entity }
+    end
   end
 
   private
