@@ -38,6 +38,27 @@
   .md-content hr { border:none; border-top:1px solid #e2e8f0; margin:.6em 0; }
   /* Smaller size for history panels */
   .md-content.sm { font-size:12px; }
+  /* AI Result Modal */
+  #ai-modal { background:rgba(15,23,42,0.55); backdrop-filter:blur(3px); }
+  #ai-modal .modal-hdr  { background:#f5f3ff; border-bottom:1px solid #ede9fe; }
+  #ai-modal .modal-accent{ color:#6d28d9; }
+  #ai-modal .modal-select{ border-color:#ddd6fe; outline:none; }
+  #ai-modal .modal-select:focus{ box-shadow:0 0 0 2px #c4b5fd; }
+  #ai-modal .modal-btn  { background:#7c3aed; }
+  #ai-modal .modal-btn:hover:not(:disabled){ background:#6d28d9; }
+  #ai-modal .modal-res  { background:#faf5ff; border-color:#ede9fe; }
+  #ai-modal .modal-cpbtn{ background:#ede9fe; color:#7c3aed; }
+  #ai-modal .modal-cpbtn:hover{ background:#ddd6fe; }
+  /* Translate (blue) overrides */
+  #ai-modal.mode-tr .modal-hdr  { background:#eff6ff; border-bottom-color:#dbeafe; }
+  #ai-modal.mode-tr .modal-accent{ color:#1d4ed8; }
+  #ai-modal.mode-tr .modal-select{ border-color:#bfdbfe; }
+  #ai-modal.mode-tr .modal-select:focus{ box-shadow:0 0 0 2px #93c5fd; }
+  #ai-modal.mode-tr .modal-btn  { background:#2563eb; }
+  #ai-modal.mode-tr .modal-btn:hover:not(:disabled){ background:#1d4ed8; }
+  #ai-modal.mode-tr .modal-res  { background:#eff6ff; border-color:#dbeafe; }
+  #ai-modal.mode-tr .modal-cpbtn{ background:#dbeafe; color:#1d4ed8; }
+  #ai-modal.mode-tr .modal-cpbtn:hover{ background:#bfdbfe; }
 </style>
 
 <!-- ── Page header ──────────────────────────────────────────────────── -->
@@ -290,91 +311,16 @@
             <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full"><%= t("stt.ai_credits") %></span>
           </div>
           <div class="flex gap-2 flex-wrap">
-            <button onclick="togglePanel('summarize')"
+            <button onclick="openAiModal('summarize', getPlainText('file-transcript-text'))"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg cursor-pointer transition-colors">
               <%= t("stt.ai_summarize") %>
             </button>
-            <button onclick="togglePanel('translate')"
+            <button onclick="openAiModal('translate', getPlainText('file-transcript-text'))"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg cursor-pointer transition-colors">
               <%= t("stt.ai_translate") %>
             </button>
           </div>
 
-          <!-- Summarize panel -->
-          <div id="panel-summarize" class="pp-panel mt-3 p-4 bg-violet-50 border border-violet-100 rounded-xl space-y-3">
-            <div class="flex items-center gap-3">
-              <label class="text-[12px] font-semibold text-violet-700 whitespace-nowrap"><%= t("stt.ai_sum_lang") %></label>
-              <select id="summarize-language" class="flex-1 px-3 py-1.5 border border-violet-200 rounded-lg text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-violet-300">
-                <option value="vi">🇻🇳 Tiếng Việt</option>
-                <option value="en">🇺🇸 English</option>
-                <option value="zh">🇨🇳 中文</option>
-                <option value="ja">🇯🇵 日本語</option>
-                <option value="ko">🇰🇷 한국어</option>
-                <option value="fr">🇫🇷 Français</option>
-                <option value="de">🇩🇪 Deutsch</option>
-                <option value="es">🇪🇸 Español</option>
-                <option value="th">🇹🇭 Thai</option>
-                <option value="id">🇮🇩 Indonesian</option>
-              </select>
-              <button id="summarize-btn" onclick="doSummarize()"
-                class="px-4 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 transition-colors disabled:opacity-50 flex items-center gap-1.5">
-                <span id="summarize-btn-label"><%= t("stt.ai_summarize").gsub(/^\S+\s*/,'') %></span>
-                <svg id="summarize-spinner" class="hidden w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                </svg>
-              </button>
-            </div>
-            <div id="summarize-result" class="hidden">
-              <div class="flex items-center justify-between mb-1.5">
-                <span class="text-[11px] font-bold text-violet-700 uppercase"><%= t("stt.ai_sum_result") %></span>
-                <div class="flex gap-1.5">
-                  <button onclick="copyText('summarize-text', this)" class="px-2 py-0.5 text-[10px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0"><%= t("stt.ai_copy") %></button>
-                  <button onclick="downloadText('summarize-text','summary')" class="px-2 py-0.5 text-[10px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">⬇ <%= t("stt.download_btn") %></button>
-                </div>
-              </div>
-              <div id="summarize-text" class="md-content max-h-[240px] overflow-y-auto p-3 bg-white rounded-lg border border-violet-100 text-[12px] text-slate-800 leading-relaxed"></div>
-            </div>
-            <div id="summarize-error" class="hidden text-[12px] text-red-600 font-semibold"></div>
-          </div>
-
-          <!-- Translate panel -->
-          <div id="panel-translate" class="pp-panel mt-3 p-4 bg-blue-50 border border-blue-100 rounded-xl space-y-3">
-            <div class="flex items-center gap-3">
-              <label class="text-[12px] font-semibold text-blue-700 whitespace-nowrap"><%= t("stt.ai_tr_lang") %></label>
-              <select id="translate-language" class="flex-1 px-3 py-1.5 border border-blue-200 rounded-lg text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
-                <option value="en">🇺🇸 English</option>
-                <option value="vi">🇻🇳 Tiếng Việt</option>
-                <option value="zh">🇨🇳 中文</option>
-                <option value="ja">🇯🇵 日本語</option>
-                <option value="ko">🇰🇷 한국어</option>
-                <option value="fr">🇫🇷 Français</option>
-                <option value="de">🇩🇪 Deutsch</option>
-                <option value="es">🇪🇸 Español</option>
-                <option value="th">🇹🇭 Thai</option>
-                <option value="id">🇮🇩 Indonesian</option>
-              </select>
-              <button id="translate-btn" onclick="doTranslate()"
-                class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 transition-colors disabled:opacity-50 flex items-center gap-1.5">
-                <span id="translate-btn-label"><%= t("stt.ai_translate").gsub(/^\S+\s*/,'') %></span>
-                <svg id="translate-spinner" class="hidden w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                </svg>
-              </button>
-            </div>
-            <div id="translate-result" class="hidden">
-              <div class="flex items-center justify-between mb-1.5">
-                <span class="text-[11px] font-bold text-blue-700 uppercase"><%= t("stt.ai_tr_result") %></span>
-                <div class="flex gap-1.5">
-                  <button onclick="copyText('translate-text', this)" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0"><%= t("stt.ai_copy") %></button>
-                  <button onclick="downloadText('translate-text','translation')" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">⬇ <%= t("stt.download_btn") %></button>
-                </div>
-              </div>
-              <div id="translate-text" class="md-content max-h-[240px] overflow-y-auto p-3 bg-white rounded-lg border border-blue-100 text-[12px] text-slate-800 leading-relaxed"></div>
-            </div>
-            <div id="translate-error" class="hidden text-[12px] text-red-600 font-semibold"></div>
-          </div>
         </div>
       </div><!-- /file-result -->
     </div><!-- /right col -->
@@ -534,6 +480,49 @@
 <% end %>
 
 </div><%# /scrollable %>
+
+<!-- ── AI Result Modal ──────────────────────────────────────────────── -->
+<div id="ai-modal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 sm:p-6"
+     onclick="if(event.target===this)closeAiModal()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[580px] flex flex-col overflow-hidden"
+       style="max-height:90vh">
+    <!-- Header -->
+    <div class="modal-hdr flex items-center justify-between px-5 py-4">
+      <div class="flex items-center gap-2.5">
+        <span id="ai-modal-icon" class="text-xl leading-none"></span>
+        <h3 id="ai-modal-title" class="modal-accent text-[15px] font-extrabold"></h3>
+      </div>
+      <button onclick="closeAiModal()"
+        class="w-7 h-7 flex items-center justify-center rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 text-[15px] font-bold border-0 cursor-pointer transition-colors">✕</button>
+    </div>
+    <!-- Language select + submit -->
+    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-3">
+      <label id="ai-modal-lang-lbl" class="modal-accent text-[12px] font-semibold whitespace-nowrap"></label>
+      <select id="ai-modal-lang" class="modal-select flex-1 px-3 py-2 rounded-lg text-[13px] bg-white border focus:outline-none transition-shadow"></select>
+      <button id="ai-modal-submit" onclick="submitAiModal()"
+        class="modal-btn text-white px-5 py-2 text-[13px] font-bold rounded-lg border-0 cursor-pointer transition-colors disabled:opacity-50 flex items-center gap-1.5">
+        <span id="ai-modal-submit-lbl"></span>
+        <svg id="ai-modal-spin" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+      </button>
+    </div>
+    <!-- Result -->
+    <div id="ai-modal-result" class="hidden px-5 pt-4 pb-4 flex-1 overflow-y-auto min-h-0">
+      <div class="flex items-center justify-between mb-2.5">
+        <span id="ai-modal-result-lbl" class="modal-accent text-[11px] font-bold uppercase tracking-wide"></span>
+        <div class="flex gap-1.5">
+          <button onclick="copyAiModalResult(this)" class="modal-cpbtn px-2.5 py-1 text-[11px] font-semibold rounded-lg border-0 cursor-pointer transition-colors">📋 <%= t("stt.ai_copy") %></button>
+          <button onclick="downloadAiModalResult()" class="modal-cpbtn px-2.5 py-1 text-[11px] font-semibold rounded-lg border-0 cursor-pointer transition-colors">⬇ <%= t("stt.download_btn") %></button>
+        </div>
+      </div>
+      <div id="ai-modal-text" class="md-content modal-res p-4 rounded-xl border text-[13px] leading-relaxed"></div>
+    </div>
+    <!-- Error -->
+    <div id="ai-modal-error" class="hidden px-5 pb-4 pt-2 text-[12px] text-red-600 font-semibold"></div>
+  </div>
+</div>
 
 <% if @has_stt %>
 <script>
@@ -765,11 +754,7 @@ function showResult(data, used) {
   } else {
     document.getElementById('file-words-wrap').classList.add('hidden');
   }
-  ['summarize','translate'].forEach(k => {
-    document.getElementById(`panel-${k}`).classList.remove('open');
-    document.getElementById(`${k}-result`).classList.add('hidden');
-    document.getElementById(`${k}-error`).classList.add('hidden');
-  });
+  closeAiModal();
   document.getElementById('file-result').classList.remove('hidden');
   historyLoaded = false;
 }
@@ -796,83 +781,95 @@ function toggleWords() {
   document.getElementById('toggle-words-btn').textContent = wordsVisible ? I18N.ts_hide : I18N.ts_show;
 }
 
-// ── Post-process panel toggle ─────────────────────────────────────────────
-function togglePanel(key) {
-  const panel = document.getElementById(`panel-${key}`);
-  const isOpen = panel.classList.contains('open');
-  ['summarize','translate'].forEach(k => document.getElementById(`panel-${k}`).classList.remove('open'));
-  if (!isOpen) panel.classList.add('open');
-}
+// ── AI Modal ──────────────────────────────────────────────────────────────
+let aiModal = { mode: null, text: null };
 
-// ── Summarize ─────────────────────────────────────────────────────────────
-async function doSummarize() {
-  const text = document.getElementById('file-transcript-text').textContent.trim();
-  if (!text || text === "(không có kết quả)") return;
+const LANG_OPTS_SUM = `<option value="vi">🇻🇳 Tiếng Việt</option><option value="en">🇺🇸 English</option><option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option><option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option><option value="th">🇹🇭 Thai</option><option value="id">🇮🇩 Indonesian</option>`;
+const LANG_OPTS_TR  = `<option value="en">🇺🇸 English</option><option value="vi">🇻🇳 Tiếng Việt</option><option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option><option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option><option value="th">🇹🇭 Thai</option><option value="id">🇮🇩 Indonesian</option>`;
+
+function openAiModal(mode, text) {
+  if (!text?.trim()) return;
+  const isSummarize = mode === 'summarize';
+  aiModal.mode = mode;
+  aiModal.text = text;
+  const el = document.getElementById('ai-modal');
+  el.classList.toggle('mode-tr', !isSummarize);
+  document.getElementById('ai-modal-icon').textContent       = isSummarize ? '📝' : '🌐';
+  document.getElementById('ai-modal-title').textContent      = isSummarize ? I18N.ai_sum_lbl : I18N.ai_tr_lbl;
+  document.getElementById('ai-modal-lang-lbl').textContent   = isSummarize ? I18N.hist_sum_lang : I18N.hist_tr_lang;
+  document.getElementById('ai-modal-submit-lbl').textContent = isSummarize ? I18N.ai_sum_lbl : I18N.ai_tr_lbl;
+  document.getElementById('ai-modal-result-lbl').textContent = isSummarize ? I18N.hist_sum_result : I18N.hist_tr_result;
+  document.getElementById('ai-modal-lang').innerHTML         = isSummarize ? LANG_OPTS_SUM : LANG_OPTS_TR;
+  document.getElementById('ai-modal-result').classList.add('hidden');
+  document.getElementById('ai-modal-error').classList.add('hidden');
+  document.getElementById('ai-modal-text').innerHTML = '';
+  document.getElementById('ai-modal-text').removeAttribute('data-plain');
+  el.classList.remove('hidden');
+  el.classList.add('flex');
+}
+function closeAiModal() {
+  const el = document.getElementById('ai-modal');
+  el.classList.add('hidden');
+  el.classList.remove('flex');
+}
+async function submitAiModal() {
+  if (!aiModal.text) return;
   if (getRemainingCredits() < 2) {
-    document.getElementById('summarize-error').textContent = '⚠️ ' + I18N.ai_no_credits;
-    document.getElementById('summarize-error').classList.remove('hidden'); return;
+    document.getElementById('ai-modal-error').textContent = '⚠️ ' + I18N.ai_no_credits;
+    document.getElementById('ai-modal-error').classList.remove('hidden');
+    return;
   }
-  const btn = document.getElementById('summarize-btn');
-  btn.disabled = true;
-  document.getElementById('summarize-btn-label').textContent = I18N.ai_processing;
-  document.getElementById('summarize-spinner').classList.remove('hidden');
-  document.getElementById('summarize-error').classList.add('hidden');
-  document.getElementById('summarize-result').classList.add('hidden');
+  const submitBtn = document.getElementById('ai-modal-submit');
+  const lbl       = document.getElementById('ai-modal-submit-lbl');
+  const prevLbl   = lbl.textContent;
+  submitBtn.disabled = true;
+  lbl.textContent = I18N.ai_processing;
+  document.getElementById('ai-modal-spin').classList.remove('hidden');
+  document.getElementById('ai-modal-error').classList.add('hidden');
+  document.getElementById('ai-modal-result').classList.add('hidden');
   try {
-    const fd = new FormData();
-    fd.append('text',     text);
-    fd.append('language', document.getElementById('summarize-language').value);
-    const res  = await fetch(SUMMARIZE_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
+    const fd  = new FormData();
+    const lng = document.getElementById('ai-modal-lang').value;
+    fd.append('text', aiModal.text);
+    if (aiModal.mode === 'summarize') fd.append('language', lng);
+    else fd.append('target_language', lng);
+    const url  = aiModal.mode === 'summarize' ? SUMMARIZE_URL : TRANSLATE_URL;
+    const res  = await fetch(url, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Lỗi server');
-    setMdContent('summarize-text', data.result || '');
-    document.getElementById('summarize-result').classList.remove('hidden');
+    const textEl = document.getElementById('ai-modal-text');
+    textEl.innerHTML     = renderMarkdown(data.result || '');
+    textEl.dataset.plain = data.result || '';
+    document.getElementById('ai-modal-result').classList.remove('hidden');
     const used = parseInt(res.headers.get('X-Credits-Used') || '2');
     if (used > 0) deductLocal(used);
   } catch(e) {
-    document.getElementById('summarize-error').textContent = '⚠️ ' + e.message;
-    document.getElementById('summarize-error').classList.remove('hidden');
+    document.getElementById('ai-modal-error').textContent = '⚠️ ' + e.message;
+    document.getElementById('ai-modal-error').classList.remove('hidden');
   } finally {
-    btn.disabled = false;
-    document.getElementById('summarize-btn-label').textContent = I18N.ai_sum_lbl;
-    document.getElementById('summarize-spinner').classList.add('hidden');
+    submitBtn.disabled = false;
+    document.getElementById('ai-modal-spin').classList.add('hidden');
+    lbl.textContent = prevLbl;
   }
 }
-
-// ── Translate ─────────────────────────────────────────────────────────────
-async function doTranslate() {
-  const text = document.getElementById('file-transcript-text').textContent.trim();
-  if (!text || text === "(không có kết quả)") return;
-  if (getRemainingCredits() < 2) {
-    document.getElementById('translate-error').textContent = '⚠️ ' + I18N.ai_no_credits;
-    document.getElementById('translate-error').classList.remove('hidden'); return;
-  }
-  const btn = document.getElementById('translate-btn');
-  btn.disabled = true;
-  document.getElementById('translate-btn-label').textContent = I18N.ai_processing;
-  document.getElementById('translate-spinner').classList.remove('hidden');
-  document.getElementById('translate-error').classList.add('hidden');
-  document.getElementById('translate-result').classList.add('hidden');
-  try {
-    const fd = new FormData();
-    fd.append('text',            text);
-    fd.append('target_language', document.getElementById('translate-language').value);
-    const res  = await fetch(TRANSLATE_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Lỗi server');
-    setMdContent('translate-text', data.result || '');
-    document.getElementById('translate-result').classList.remove('hidden');
-    const used = parseInt(res.headers.get('X-Credits-Used') || '2');
-    if (used > 0) deductLocal(used);
-  } catch(e) {
-    document.getElementById('translate-error').textContent = '⚠️ ' + e.message;
-    document.getElementById('translate-error').classList.remove('hidden');
-  } finally {
-    btn.disabled = false;
-    document.getElementById('translate-btn-label').textContent = I18N.ai_tr_lbl;
-    document.getElementById('translate-spinner').classList.add('hidden');
-  }
+function copyAiModalResult(btn) {
+  const el = document.getElementById('ai-modal-text');
+  copyWithFeedback(el.dataset.plain || el.innerText, btn);
 }
+function downloadAiModalResult() {
+  const el   = document.getElementById('ai-modal-text');
+  const text = el.dataset.plain || el.innerText;
+  const name = aiModal.mode === 'summarize' ? 'summary' : 'translation';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
+  a.download = `${name}-${Date.now()}.txt`;
+  a.click();
+}
+function getHistText(id) {
+  const el = document.getElementById('hist-text-' + id);
+  return el ? (el.dataset.full || el.textContent || '') : '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAiModal(); });
 
 // ── Realtime Mic ──────────────────────────────────────────────────────────
 let mediaRecorder=null, micStream=null, micTimer=null;
@@ -1058,70 +1055,14 @@ function renderHistory(items) {
               <span class="text-[10px] text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded-full">${I18N.hist_ai_credits}</span>
             </div>
             <div class="flex gap-2 flex-wrap">
-              <button onclick="toggleHistAiPanel(${item.id}, 'sum')"
-                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg cursor-pointer">
+              <button onclick="openAiModal('summarize', getHistText(${item.id}))"
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg cursor-pointer transition-colors">
                 ${I18N.hist_ai_sum}
               </button>
-              <button onclick="toggleHistAiPanel(${item.id}, 'tr')"
-                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg cursor-pointer">
+              <button onclick="openAiModal('translate', getHistText(${item.id}))"
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg cursor-pointer transition-colors">
                 ${I18N.hist_ai_tr}
               </button>
-            </div>
-
-            <div id="hist-sum-${item.id}" class="hist-ai-panel mt-2.5 p-3 bg-violet-50 border border-violet-100 rounded-xl">
-              <div class="flex items-center gap-2 mb-2">
-                <label class="text-[11px] font-semibold text-violet-700 whitespace-nowrap">${I18N.hist_sum_lang}</label>
-                <select id="hist-sum-lang-${item.id}" class="flex-1 px-2 py-1.5 border border-violet-200 rounded-lg text-[11px] bg-white focus:outline-none">
-                  <option value="vi">🇻🇳 Tiếng Việt</option><option value="en">🇺🇸 English</option>
-                  <option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option>
-                  <option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option>
-                  <option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option>
-                </select>
-                <button id="hist-sum-btn-${item.id}" onclick="doHistSummarize(${item.id})"
-                  class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[11px] font-bold rounded-lg cursor-pointer border-0 disabled:opacity-50 flex items-center gap-1">
-                  <span id="hist-sum-lbl-${item.id}">${I18N.hist_ai_sum.replace(/^\S+\s*/,'')}</span>
-                  <svg id="hist-sum-spin-${item.id}" class="hidden w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                  </svg>
-                </button>
-              </div>
-              <div id="hist-sum-result-${item.id}" class="hidden">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-[10px] font-bold text-violet-700 uppercase">${I18N.hist_sum_result}</span>
-                  <button onclick="copyHistSumResult(${item.id}, this)" class="px-1.5 py-0.5 text-[10px] bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">${I18N.hist_copy}</button>
-                </div>
-                <div id="hist-sum-text-${item.id}" class="md-content sm max-h-[180px] overflow-y-auto p-2.5 bg-white rounded-lg border border-violet-100"></div>
-              </div>
-              <div id="hist-sum-err-${item.id}" class="hidden text-[11px] text-red-600 mt-1"></div>
-            </div>
-
-            <div id="hist-tr-${item.id}" class="hist-ai-panel mt-2.5 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-              <div class="flex items-center gap-2 mb-2">
-                <label class="text-[11px] font-semibold text-blue-700 whitespace-nowrap">${I18N.hist_tr_lang}</label>
-                <select id="hist-tr-lang-${item.id}" class="flex-1 px-2 py-1.5 border border-blue-200 rounded-lg text-[11px] bg-white focus:outline-none">
-                  <option value="en">🇺🇸 English</option><option value="vi">🇻🇳 Tiếng Việt</option>
-                  <option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option>
-                  <option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option>
-                  <option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option>
-                </select>
-                <button id="hist-tr-btn-${item.id}" onclick="doHistTranslate(${item.id})"
-                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg cursor-pointer border-0 disabled:opacity-50 flex items-center gap-1">
-                  <span id="hist-tr-lbl-${item.id}">${I18N.hist_ai_tr.replace(/^\S+\s*/,'')}</span>
-                  <svg id="hist-tr-spin-${item.id}" class="hidden w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                  </svg>
-                </button>
-              </div>
-              <div id="hist-tr-result-${item.id}" class="hidden">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-[10px] font-bold text-blue-700 uppercase">${I18N.hist_tr_result}</span>
-                  <button onclick="copyHistTrResult(${item.id}, this)" class="px-1.5 py-0.5 text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">${I18N.hist_copy}</button>
-                </div>
-                <div id="hist-tr-text-${item.id}" class="md-content sm max-h-[180px] overflow-y-auto p-2.5 bg-white rounded-lg border border-blue-100"></div>
-              </div>
-              <div id="hist-tr-err-${item.id}" class="hidden text-[11px] text-red-600 mt-1"></div>
             </div>
           </div>
         </div>
@@ -1137,58 +1078,6 @@ function toggleHistoryDetail(id) {
   document.querySelectorAll('[id^="hist-detail-"]').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('[id^="hist-toggle-"]').forEach(el => { el.textContent = I18N.hist_view; });
   if (!isOpen) { detail.classList.remove('hidden'); toggle.textContent = I18N.hist_collapse; }
-}
-function toggleHistAiPanel(id, type) {
-  const panel = document.getElementById(`hist-${type}-${id}`);
-  const isOpen = panel.classList.contains('open');
-  [`hist-sum-${id}`,`hist-tr-${id}`].forEach(k => document.getElementById(k)?.classList.remove('open'));
-  if (!isOpen) panel.classList.add('open');
-}
-async function doHistSummarize(id) {
-  const textEl = document.getElementById(`hist-text-${id}`);
-  const text   = textEl.dataset.full || textEl.textContent;
-  if (!text?.trim()) return;
-  if (getRemainingCredits() < 2) { showHistErr(id, 'sum', '⚠️ ' + I18N.ai_no_credits); return; }
-  setHistBtn(id, 'sum', true);
-  clearHistErr(id, 'sum');
-  document.getElementById(`hist-sum-result-${id}`).classList.add('hidden');
-  try {
-    const fd = new FormData();
-    fd.append('text',     text);
-    fd.append('language', document.getElementById(`hist-sum-lang-${id}`).value);
-    const res  = await fetch(SUMMARIZE_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Lỗi server');
-    setMdContent(`hist-sum-text-${id}`, data.result || '');
-    document.getElementById(`hist-sum-text-${id}`).dataset.plain = data.result || '';
-    document.getElementById(`hist-sum-result-${id}`).classList.remove('hidden');
-    const used = parseInt(res.headers.get('X-Credits-Used') || '2');
-    if (used > 0) deductLocal(used);
-  } catch(e) { showHistErr(id, 'sum', '⚠️ ' + e.message); }
-  finally     { setHistBtn(id, 'sum', false); }
-}
-async function doHistTranslate(id) {
-  const textEl = document.getElementById(`hist-text-${id}`);
-  const text   = textEl.dataset.full || textEl.textContent;
-  if (!text?.trim()) return;
-  if (getRemainingCredits() < 2) { showHistErr(id, 'tr', '⚠️ ' + I18N.ai_no_credits); return; }
-  setHistBtn(id, 'tr', true);
-  clearHistErr(id, 'tr');
-  document.getElementById(`hist-tr-result-${id}`).classList.add('hidden');
-  try {
-    const fd = new FormData();
-    fd.append('text',            text);
-    fd.append('target_language', document.getElementById(`hist-tr-lang-${id}`).value);
-    const res  = await fetch(TRANSLATE_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Lỗi server');
-    setMdContent(`hist-tr-text-${id}`, data.result || '');
-    document.getElementById(`hist-tr-text-${id}`).dataset.plain = data.result || '';
-    document.getElementById(`hist-tr-result-${id}`).classList.remove('hidden');
-    const used = parseInt(res.headers.get('X-Credits-Used') || '2');
-    if (used > 0) deductLocal(used);
-  } catch(e) { showHistErr(id, 'tr', '⚠️ ' + e.message); }
-  finally     { setHistBtn(id, 'tr', false); }
 }
 async function deleteHistory(id) {
   if (!confirm(I18N.hist_del_confirm)) return;
@@ -1223,28 +1112,6 @@ function downloadHistText(id, name) {
   a.download = `${(name||'transcript').replace(/[^a-z0-9]/gi,'_').substring(0,40)}-${Date.now()}.txt`;
   a.click();
 }
-function copyHistSumResult(id, btn) {
-  const el = document.getElementById(`hist-sum-text-${id}`);
-  copyWithFeedback(el.dataset.plain || el.innerText, btn);
-}
-function copyHistTrResult(id, btn) {
-  const el = document.getElementById(`hist-tr-text-${id}`);
-  copyWithFeedback(el.dataset.plain || el.innerText, btn);
-}
-function setHistBtn(id, type, loading) {
-  const btn  = document.getElementById(`hist-${type}-btn-${id}`);
-  const lbl  = document.getElementById(`hist-${type}-lbl-${id}`);
-  const spin = document.getElementById(`hist-${type}-spin-${id}`);
-  btn.disabled = loading;
-  lbl.textContent = loading ? I18N.ai_processing
-    : (type === 'sum' ? I18N.hist_ai_sum.replace(/^\S+\s*/,'') : I18N.hist_ai_tr.replace(/^\S+\s*/,''));
-  spin.classList.toggle('hidden', !loading);
-}
-function showHistErr(id, type, msg) {
-  const el = document.getElementById(`hist-${type}-err-${id}`);
-  if (el) { el.textContent = msg; el.classList.remove('hidden'); }
-}
-function clearHistErr(id, type) { document.getElementById(`hist-${type}-err-${id}`)?.classList.add('hidden'); }
 function histSourceIcon(src) { return src==='mic'?'🎙️':src==='url'?'🔗':'🎵'; }
 
 // ── Markdown renderer ─────────────────────────────────────────────────────
