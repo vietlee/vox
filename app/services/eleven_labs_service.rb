@@ -191,9 +191,14 @@ class ElevenLabsService
 
         if response.success?
           parsed = JSON.parse(response.body)
-          Rails.logger.info "ElevenLabs STT ok (attempt #{attempt + 1}): #{parsed['text']&.length} chars"
+          # ElevenLabs Scribe inserts non-speech audio event tags into the transcript
+          # text when tag_audio_events is enabled (e.g. "[music]", "[outro jingle]",
+          # "[applause]", "[background noise]"). Strip them so they don't appear in the
+          # transcript shown to users. Raw words array is preserved for callers that need it.
+          clean_text = parsed["text"].to_s.gsub(/\[[^\]]*\]/, '').gsub(/\s{2,}/, ' ').strip
+          Rails.logger.info "ElevenLabs STT ok (attempt #{attempt + 1}): #{clean_text.length} chars"
           return {
-            text:                 parsed["text"].to_s,
+            text:                 clean_text,
             words:                parsed["words"] || [],
             language_code:        parsed["language_code"],
             language_probability: parsed["language_probability"]
