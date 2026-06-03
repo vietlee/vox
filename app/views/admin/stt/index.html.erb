@@ -259,7 +259,7 @@
           <div class="flex gap-2 flex-wrap items-center">
             <span id="file-lang-badge"         class="hidden px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[11px] font-semibold rounded-full"></span>
             <span id="file-credits-used-badge" class="hidden px-2 py-0.5 bg-violet-100 text-violet-700 text-[11px] font-semibold rounded-full"></span>
-            <button onclick="copyText('file-transcript-text')"
+            <button onclick="copyText('file-transcript-text', this)"
               class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
               📋 <%= t("stt.copy_btn") %>
             </button>
@@ -329,7 +329,7 @@
               <div class="flex items-center justify-between mb-1.5">
                 <span class="text-[11px] font-bold text-violet-700 uppercase"><%= t("stt.ai_sum_result") %></span>
                 <div class="flex gap-1.5">
-                  <button onclick="copyText('summarize-text')" class="px-2 py-0.5 text-[10px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0"><%= t("stt.ai_copy") %></button>
+                  <button onclick="copyText('summarize-text', this)" class="px-2 py-0.5 text-[10px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0"><%= t("stt.ai_copy") %></button>
                   <button onclick="downloadText('summarize-text','summary')" class="px-2 py-0.5 text-[10px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">⬇ <%= t("stt.download_btn") %></button>
                 </div>
               </div>
@@ -367,7 +367,7 @@
               <div class="flex items-center justify-between mb-1.5">
                 <span class="text-[11px] font-bold text-blue-700 uppercase"><%= t("stt.ai_tr_result") %></span>
                 <div class="flex gap-1.5">
-                  <button onclick="copyText('translate-text')" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0"><%= t("stt.ai_copy") %></button>
+                  <button onclick="copyText('translate-text', this)" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0"><%= t("stt.ai_copy") %></button>
                   <button onclick="downloadText('translate-text','translation')" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">⬇ <%= t("stt.download_btn") %></button>
                 </div>
               </div>
@@ -448,7 +448,7 @@
             class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
             🗑 <%= t("stt.clear_btn") %>
           </button>
-          <button onclick="copyText('mic-transcript-text')"
+          <button onclick="copyText('mic-transcript-text', this)"
             class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
             📋 <%= t("stt.copy_btn") %>
           </button>
@@ -1043,7 +1043,7 @@ function renderHistory(items) {
             <div class="flex items-center justify-between mb-1.5">
               <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${I18N.hist_content}</span>
               <div class="flex gap-1.5">
-                <button onclick="copyHistText(${item.id})" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">${I18N.hist_copy}</button>
+                <button onclick="copyHistText(${item.id}, this)" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">${I18N.hist_copy}</button>
                 <button onclick="downloadHistText(${item.id}, '${escHtml(item.title).replace(/'/g,'').substring(0,30)}')" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">${I18N.hist_download}</button>
               </div>
             </div>
@@ -1089,7 +1089,7 @@ function renderHistory(items) {
               <div id="hist-sum-result-${item.id}" class="hidden">
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-[10px] font-bold text-violet-700 uppercase">${I18N.hist_sum_result}</span>
-                  <button onclick="copyHistSumResult(${item.id})" class="px-1.5 py-0.5 text-[10px] bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">${I18N.hist_copy}</button>
+                  <button onclick="copyHistSumResult(${item.id}, this)" class="px-1.5 py-0.5 text-[10px] bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">${I18N.hist_copy}</button>
                 </div>
                 <div id="hist-sum-text-${item.id}" class="md-content sm max-h-[180px] overflow-y-auto p-2.5 bg-white rounded-lg border border-violet-100"></div>
               </div>
@@ -1117,7 +1117,7 @@ function renderHistory(items) {
               <div id="hist-tr-result-${item.id}" class="hidden">
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-[10px] font-bold text-blue-700 uppercase">${I18N.hist_tr_result}</span>
-                  <button onclick="copyHistTrResult(${item.id})" class="px-1.5 py-0.5 text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">${I18N.hist_copy}</button>
+                  <button onclick="copyHistTrResult(${item.id}, this)" class="px-1.5 py-0.5 text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">${I18N.hist_copy}</button>
                 </div>
                 <div id="hist-tr-text-${item.id}" class="md-content sm max-h-[180px] overflow-y-auto p-2.5 bg-white rounded-lg border border-blue-100"></div>
               </div>
@@ -1212,9 +1212,9 @@ async function deleteHistory(id) {
     }
   } catch(e) { alert('Xóa thất bại.'); }
 }
-function copyHistText(id) {
+function copyHistText(id, btn) {
   const el = document.getElementById(`hist-text-${id}`);
-  navigator.clipboard.writeText(el.dataset.full || el.textContent);
+  copyWithFeedback(el.dataset.full || el.textContent, btn);
 }
 function downloadHistText(id, name) {
   const el = document.getElementById(`hist-text-${id}`);
@@ -1223,13 +1223,13 @@ function downloadHistText(id, name) {
   a.download = `${(name||'transcript').replace(/[^a-z0-9]/gi,'_').substring(0,40)}-${Date.now()}.txt`;
   a.click();
 }
-function copyHistSumResult(id) {
+function copyHistSumResult(id, btn) {
   const el = document.getElementById(`hist-sum-text-${id}`);
-  navigator.clipboard.writeText(el.dataset.plain || el.innerText);
+  copyWithFeedback(el.dataset.plain || el.innerText, btn);
 }
-function copyHistTrResult(id) {
+function copyHistTrResult(id, btn) {
   const el = document.getElementById(`hist-tr-text-${id}`);
-  navigator.clipboard.writeText(el.dataset.plain || el.innerText);
+  copyWithFeedback(el.dataset.plain || el.innerText, btn);
 }
 function setHistBtn(id, type, loading) {
   const btn  = document.getElementById(`hist-${type}-btn-${id}`);
@@ -1331,14 +1331,21 @@ function getSupportedMimeType() {
 }
 function getPlainText(elId) {
   const el = document.getElementById(elId);
-  // Prefer stored plain text (for md-content boxes), else innerText
   return el.dataset.plain ?? el.innerText ?? el.textContent;
 }
-function copyText(elId) {
-  navigator.clipboard.writeText(getPlainText(elId)).then(() => {
-    const btn = event.target; const orig = btn.textContent;
-    btn.textContent = '✅'; setTimeout(() => btn.textContent = orig, 1500);
+function copyWithFeedback(text, btn) {
+  const orig = btn.innerHTML;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.innerHTML = '✅ Đã sao chép';
+    btn.disabled = true;
+    setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1800);
+  }).catch(() => {
+    btn.innerHTML = '❌ Lỗi';
+    setTimeout(() => { btn.innerHTML = orig; }, 1500);
   });
+}
+function copyText(elId, btn) {
+  copyWithFeedback(getPlainText(elId), btn || event.currentTarget);
 }
 function downloadText(elId, name) {
   const a = document.createElement('a');

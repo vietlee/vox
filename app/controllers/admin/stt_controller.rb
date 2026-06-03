@@ -200,12 +200,13 @@ class Admin::SttController < Admin::BaseController
     lang_name = SUMMARY_LANGUAGES[lang_key]
 
     result = ClaudeService.haiku.call(
-      system_prompt: "You are a professional transcript summarizer. Create clear, well-structured summaries.",
+      system_prompt: "You are a professional transcript summarizer. Create clear, well-structured summaries. Never add a title or heading at the top — output the content directly.",
       user_prompt:   <<~PROMPT
         Summarize the following transcript in #{lang_name}.
-        Format:
-        - Start with 1-2 sentence overview
-        - Then 4-6 bullet points covering key points
+        Rules:
+        - Do NOT add any title, heading, or label at the start — begin directly with content
+        - Start with 1-2 sentence overview paragraph
+        - Then 4-6 bullet points covering key points (use "- " prefix)
         - Keep it concise (under 200 words total)
         - Use the target language only
 
