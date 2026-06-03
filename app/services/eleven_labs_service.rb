@@ -161,7 +161,7 @@ class ElevenLabsService
 
     # Build multipart body using httmultiparty-style approach via HTTParty
     body = {
-      audio:    audio_io,
+      file:     audio_io,
       model_id: model,
       timestamps_granularity: timestamps,
       diarize:  diarize.to_s,
