@@ -196,9 +196,8 @@
           </div>
         </div>
 
-        <!-- Credit warning -->
-        <div id="stt-credit-warning" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[13px] flex items-start gap-2">
-          <span class="text-base leading-none mt-px">⚠️</span>
+        <!-- Credit warning: hidden until showCreditWarning() sets text -->
+        <div id="stt-credit-warning" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[13px]">
           <span id="stt-credit-warning-text"></span>
         </div>
 
@@ -611,12 +610,16 @@ function checkTranscribeButton() {
   hideCreditWarning(); btn.disabled = false;
 }
 function showCreditWarning(need, rem) {
-  const el = document.getElementById('stt-credit-warning');
-  document.getElementById('stt-credit-warning-text').textContent =
-    `Cần ${need} credit nhưng bạn chỉ còn ${rem} credit. Vui lòng nạp thêm hoặc chọn file ngắn hơn.`;
-  el.classList.remove('hidden');
+  const text = `⚠️ Cần ${need} credit nhưng bạn chỉ còn ${rem} credit. Vui lòng nạp thêm hoặc chọn file ngắn hơn.`;
+  document.getElementById('stt-credit-warning-text').textContent = text;
+  document.getElementById('stt-credit-warning').classList.remove('hidden');
 }
-function hideCreditWarning() { document.getElementById('stt-credit-warning')?.classList.add('hidden'); }
+function hideCreditWarning() {
+  const el = document.getElementById('stt-credit-warning');
+  el?.classList.add('hidden');
+  const txt = document.getElementById('stt-credit-warning-text');
+  if (txt) txt.textContent = '';
+}
 
 // ── Transcribe ────────────────────────────────────────────────────────────
 async function transcribeSource() { activeTab === 'file' ? await transcribeFile() : await transcribeUrl(); }
