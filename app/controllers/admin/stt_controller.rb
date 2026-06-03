@@ -28,11 +28,58 @@ class Admin::SttController < Admin::BaseController
   }.freeze
 
   # Feature gate for AJAX endpoints (index handles its own gate in view)
-  before_action :check_stt_feature, only: [:transcribe, :transcribe_url, :transcribe_chunk, :summarize, :translate]
+  before_action :check_stt_feature, only: [:transcribe, :transcribe_url, :transcribe_chunk,
+                                            :summarize, :translate, :history, :save_mic, :destroy_history]
 
   def index
     @has_stt             = current_workspace&.active_subscription&.has_feature?(:stt)
     @remaining_credits   = current_workspace&.active_subscription&.credit_balance.to_i
+  end
+
+  # GET /stt/history — returns last 50 transcripts as JSON
+  def history
+    records = current_workspace.stt_transcripts.recent.limit(50)
+    render json: records.map { |r|
+      {
+        id:              r.id,
+        title:           r.display_title,
+        full_title:      r.title,
+        transcript_text: r.transcript_text,
+        language_code:   r.language_code,
+        duration_secs:   r.duration_secs.to_f,
+        credits_used:    r.credits_used,
+        source:          r.source,
+        created_at:      r.created_at.strftime("%d/%m/%Y %H:%M")
+      }
+    }
+  end
+
+  # DELETE /stt/history/:id
+  def destroy_history
+    record = current_workspace.stt_transcripts.find(params[:id])
+    record.destroy
+    render json: { ok: true }
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: "Không tìm thấy" }, status: :not_found
+  end
+
+  # POST /stt/save_mic — save mic transcript after recording stops
+  def save_mic
+    text = params[:text].to_s.strip
+    return render json: { ok: false } if text.blank?
+
+    current_workspace.stt_transcripts.create!(
+      title:           "Ghi âm #{Time.current.strftime('%d/%m/%Y %H:%M')}",
+      transcript_text: text,
+      language_code:   params[:language_code].presence,
+      duration_secs:   params[:duration_secs].to_f,
+      credits_used:    [params[:credits_used].to_i, 1].max,
+      source:          "mic"
+    )
+    render json: { ok: true }
+  rescue => e
+    Rails.logger.warn "SttController#save_mic: #{e.message}"
+    render json: { ok: false }
   end
 
   # POST /stt/transcribe — file upload
@@ -57,7 +104,9 @@ class Admin::SttController < Admin::BaseController
       audio_io:  file.tempfile,
       filename:  file.original_filename,
       cleanup:   false,
-      credits:   credits
+      credits:   credits,
+      title:     file.original_filename,
+      source:    "file"
     )
   end
 
@@ -99,7 +148,9 @@ class Admin::SttController < Admin::BaseController
       filename:  File.basename(tmp_path),
       cleanup:   true,
       tmp_path:  tmp_path,
-      credits:   credits
+      credits:   credits,
+      title:     url.truncate(180),
+      source:    "url"
     )
   rescue => e
     Rails.logger.error "SttController#transcribe_url: #{e.message}"
@@ -209,7 +260,8 @@ class Admin::SttController < Admin::BaseController
 
   # Shared transcription logic
   def run_transcription(audio_io:, filename:, cleanup: false, tmp_path: nil,
-                        timestamps: nil, diarize: nil, credits: 1)
+                        timestamps: nil, diarize: nil, credits: 1,
+                        title: nil, source: "file")
     model      = safe_model(params[:model])
     language   = params[:language_code].presence
     timestamps = timestamps || (%w[none word].include?(params[:timestamps]) ? params[:timestamps] : "none")
@@ -228,6 +280,22 @@ class Admin::SttController < Admin::BaseController
     # Deduct credits after successful transcription
     current_workspace.active_subscription&.deduct_credits!(credits)
     response.headers["X-Credits-Used"] = credits.to_s
+
+    # Save to history (best-effort, never block the response)
+    begin
+      if result[:text].present? && source != "chunk"
+        current_workspace.stt_transcripts.create!(
+          title:           (title || filename.to_s).truncate(200),
+          transcript_text: result[:text],
+          language_code:   result[:language_code],
+          duration_secs:   credits * SECONDS_PER_CREDIT.to_f,
+          credits_used:    credits,
+          source:          source
+        )
+      end
+    rescue => e
+      Rails.logger.warn "SttController: history save failed: #{e.message}"
+    end
 
     render json: result
   rescue ElevenLabsService::Error => e

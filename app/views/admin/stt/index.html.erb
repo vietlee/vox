@@ -10,8 +10,13 @@
   .drop-zone-hover { border-color: #6366f1 !important; background: #eef2ff !important; }
   .src-tab { transition: all 0.15s; }
   .src-tab.active { background:#fff; border-color:#e2e8f0; color:#1e293b; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
+  .right-tab { transition: all 0.15s; }
+  .right-tab.active { background:#fff; border-color:#e2e8f0; color:#1e293b; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
   .pp-panel { display:none; }
   .pp-panel.open { display:block; }
+  .hist-ai-panel { display:none; }
+  .hist-ai-panel.open { display:block; }
+  .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 </style>
 
 <!-- ── Page header ──────────────────────────────────────────────────── -->
@@ -338,73 +343,105 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         RIGHT — Realtime Microphone
+         RIGHT — Tabs: Ghi âm Realtime | Lịch sử
          ═══════════════════════════════════════════════════════════════ -->
-    <div class="space-y-4">
-      <div class="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 class="text-[13px] font-bold text-slate-700 mb-1 flex items-center gap-2">
+    <div class="space-y-3">
+
+      <!-- Tab bar -->
+      <div class="flex gap-1 p-1 bg-slate-100 rounded-lg">
+        <button id="right-tab-mic" onclick="switchRightTab('mic')"
+          class="right-tab active flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-600 cursor-pointer bg-transparent">
           🎙️ Ghi âm Realtime
-          <span class="text-[10px] font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Chunk mode · mỗi 5s gửi lên</span>
-        </h2>
-        <p class="text-[11px] text-slate-400 mb-4">
-          🪙 <span class="font-semibold text-violet-600">1 credit / đoạn (5 giây)</span> · Còn lại:
-          <span id="mic-credit-remaining" class="font-bold text-slate-600"><%= @remaining_credits %></span> credit
-        </p>
-        <div class="flex flex-col items-center py-6">
-          <button id="mic-btn" onclick="toggleMic()"
-            class="w-20 h-20 rounded-full bg-slate-100 hover:bg-red-100 border-2 border-slate-200 hover:border-red-400 flex items-center justify-center text-4xl transition-all cursor-pointer">
-            🎙️
-          </button>
-          <p id="mic-status" class="mt-3 text-[12px] text-slate-500 font-semibold">Click để bắt đầu ghi âm</p>
-          <div class="mt-3 w-48 h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div id="vol-bar" class="h-full bg-emerald-400 rounded-full transition-all" style="width:0%"></div>
-          </div>
-          <p id="mic-timer" class="hidden mt-2 text-[12px] font-mono text-red-600 font-bold">00:00</p>
-          <p id="mic-no-credit" class="hidden mt-2 text-[12px] text-red-600 font-semibold text-center">⚠️ Không đủ AI credits để ghi âm</p>
-        </div>
-        <div class="grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Model</label>
-            <select id="mic-model" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-              <option value="scribe_v2" selected>Scribe v2</option>
-              <option value="scribe_v1">Scribe v1</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Ngôn ngữ</label>
-            <select id="mic-language" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-              <option value="">Tự động</option>
-              <option value="vi">Tiếng Việt</option>
-              <option value="en">English</option>
-              <option value="ja">日本語</option>
-              <option value="ko">한국어</option>
-              <option value="zh">中文</option>
-            </select>
-          </div>
-        </div>
+        </button>
+        <button id="right-tab-history" onclick="switchRightTab('history')"
+          class="right-tab flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-400 cursor-pointer bg-transparent flex items-center justify-center gap-1.5">
+          📋 Lịch sử
+          <span id="history-count-badge" class="hidden bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">0</span>
+        </button>
       </div>
 
-      <!-- Realtime transcript -->
-      <div class="bg-white rounded-xl border border-slate-200 p-5">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">Transcript</h3>
-            <span id="mic-sending-badge" class="hidden text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full animate-pulse">⏳ Đang xử lý...</span>
+      <!-- ── PANEL: Ghi âm ──────────────────────────────────────── -->
+      <div id="right-panel-mic" class="space-y-3">
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+          <h2 class="text-[13px] font-bold text-slate-700 mb-1 flex items-center gap-2">
+            🎙️ Ghi âm Realtime
+            <span class="text-[10px] font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Chunk mode · mỗi 5s gửi lên</span>
+          </h2>
+          <p class="text-[11px] text-slate-400 mb-4">
+            🪙 <span class="font-semibold text-violet-600">1 credit / đoạn (5 giây)</span> · Còn lại:
+            <span id="mic-credit-remaining" class="font-bold text-slate-600"><%= @remaining_credits %></span> credit
+          </p>
+          <div class="flex flex-col items-center py-6">
+            <button id="mic-btn" onclick="toggleMic()"
+              class="w-20 h-20 rounded-full bg-slate-100 hover:bg-red-100 border-2 border-slate-200 hover:border-red-400 flex items-center justify-center text-4xl transition-all cursor-pointer">
+              🎙️
+            </button>
+            <p id="mic-status" class="mt-3 text-[12px] text-slate-500 font-semibold">Click để bắt đầu ghi âm</p>
+            <div class="mt-3 w-48 h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div id="vol-bar" class="h-full bg-emerald-400 rounded-full transition-all" style="width:0%"></div>
+            </div>
+            <p id="mic-timer" class="hidden mt-2 text-[12px] font-mono text-red-600 font-bold">00:00</p>
+            <p id="mic-no-credit" class="hidden mt-2 text-[12px] text-red-600 font-semibold text-center">⚠️ Không đủ AI credits để ghi âm</p>
           </div>
-          <div class="flex gap-2">
-            <button onclick="clearMicTranscript()" class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">🗑 Xóa</button>
-            <button onclick="copyText('mic-transcript-text')" class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">📋 Sao chép</button>
-            <button onclick="downloadText('mic-transcript-text','transcript-mic')" class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">⬇ Tải về</button>
+          <div class="grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 mb-1">Model</label>
+              <select id="mic-model" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                <option value="scribe_v2" selected>Scribe v2</option>
+                <option value="scribe_v1">Scribe v1</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 mb-1">Ngôn ngữ</label>
+              <select id="mic-language" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                <option value="">Tự động</option>
+                <option value="vi">Tiếng Việt</option>
+                <option value="en">English</option>
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+                <option value="zh">中文</option>
+              </select>
+            </div>
           </div>
         </div>
-        <div id="mic-transcript-text"
-             class="min-h-[200px] max-h-[480px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">
-          <span class="text-slate-400 text-[12px]">Transcript sẽ xuất hiện ở đây sau mỗi 5 giây ghi âm...</span>
+
+        <!-- Realtime transcript -->
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">Transcript</h3>
+              <span id="mic-sending-badge" class="hidden text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full animate-pulse">⏳ Đang xử lý...</span>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="clearMicTranscript()" class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">🗑 Xóa</button>
+              <button onclick="copyText('mic-transcript-text')" class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">📋 Sao chép</button>
+              <button onclick="downloadText('mic-transcript-text','transcript-mic')" class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">⬇ Tải về</button>
+            </div>
+          </div>
+          <div id="mic-transcript-text"
+               class="min-h-[200px] max-h-[480px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">
+            <span class="text-slate-400 text-[12px]">Transcript sẽ xuất hiện ở đây sau mỗi 5 giây ghi âm...</span>
+          </div>
+          <p id="chunk-counter" class="hidden mt-2 text-[11px] text-slate-400"></p>
         </div>
-        <!-- chunk-counter: hidden until first chunk -->
-        <p id="chunk-counter" class="hidden mt-2 text-[11px] text-slate-400"></p>
-      </div>
-    </div>
+      </div><!-- /right-panel-mic -->
+
+      <!-- ── PANEL: Lịch sử ─────────────────────────────────────── -->
+      <div id="right-panel-history" class="hidden">
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <!-- Header -->
+          <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+            <span class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">📋 Lịch sử Transcript</span>
+            <button onclick="loadHistory(true)" class="text-[11px] text-indigo-600 hover:text-indigo-700 font-semibold border-0 bg-transparent cursor-pointer">↺ Làm mới</button>
+          </div>
+          <!-- List container -->
+          <div id="history-list" class="divide-y divide-slate-100 max-h-[680px] overflow-y-auto">
+            <div class="text-center py-10 text-slate-400 text-[13px]">Đang tải...</div>
+          </div>
+        </div>
+      </div><!-- /right-panel-history -->
+
+    </div><!-- /right col -->
 
   </div>
 
@@ -463,6 +500,9 @@ const TRANSCRIBE_URL_URL = "<%= stt_transcribe_url_path %>";
 const CHUNK_URL          = "<%= stt_transcribe_chunk_path %>";
 const SUMMARIZE_URL      = "<%= stt_summarize_path %>";
 const TRANSLATE_URL      = "<%= stt_translate_path %>";
+const HISTORY_URL        = "<%= stt_history_path %>";
+const SAVE_MIC_URL       = "<%= stt_save_mic_path %>";
+const DELETE_HISTORY_URL = "<%= stt_destroy_history_path(id: '__ID__') %>";
 const CSRF               = document.querySelector('meta[name="csrf-token"]').content;
 const SECS_PER_CREDIT    = 60;
 
@@ -481,7 +521,17 @@ function creditsForSecs(secs) {
   return Math.max(Math.ceil(secs > 0 ? secs / SECS_PER_CREDIT : 1), 1);
 }
 
-// ── Tabs ─────────────────────────────────────────────────────────────────
+// ── Right-column tabs (Mic | History) ────────────────────────────────────
+let historyLoaded = false;
+function switchRightTab(tab) {
+  ['mic','history'].forEach(t => {
+    document.getElementById(`right-panel-${t}`).classList.toggle('hidden', t !== tab);
+    document.getElementById(`right-tab-${t}`).classList.toggle('active', t === tab);
+  });
+  if (tab === 'history' && !historyLoaded) loadHistory();
+}
+
+// ── Source tabs (File | URL) ──────────────────────────────────────────────
 let activeTab = 'file';
 function switchTab(tab) {
   activeTab = tab;
@@ -640,6 +690,8 @@ function showResult(data, used) {
     document.getElementById(`${k}-error`).classList.add('hidden');
   });
   document.getElementById('file-result').classList.remove('hidden');
+  // Invalidate history cache so next open shows new record
+  historyLoaded = false;
 }
 function setLoading(on, label) {
   const btn = document.getElementById('transcribe-btn');
@@ -788,6 +840,24 @@ function stopMic() {
   btn.classList.remove('mic-recording','bg-red-100','border-red-400');
   btn.classList.add('bg-slate-100','border-slate-200');
   document.getElementById('mic-status').textContent = 'Click để bắt đầu ghi âm';
+  // Auto-save mic transcript if there's content
+  const txtEl = document.getElementById('mic-transcript-text');
+  const text = txtEl.innerText?.trim() || '';
+  const hasPlaceholder = txtEl.querySelector('span.text-slate-400') !== null;
+  if (!hasPlaceholder && text.length > 0 && chunkCount > 0) {
+    saveMicTranscript(text);
+  }
+}
+async function saveMicTranscript(text) {
+  try {
+    const fd = new FormData();
+    fd.append('text',          text);
+    fd.append('language_code', document.getElementById('mic-language').value);
+    fd.append('duration_secs', micSeconds.toString());
+    fd.append('credits_used',  chunkCount.toString());
+    await fetch(SAVE_MIC_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
+    historyLoaded = false; // force reload next time history tab opens
+  } catch(e) { /* silent */ }
 }
 async function sendChunk(blob) {
   if (getRemainingCredits() < 1) { stopMic(); document.getElementById('mic-no-credit').classList.remove('hidden'); return; }
@@ -853,6 +923,304 @@ function fmtTime(sec) {
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+// ── History ───────────────────────────────────────────────────────────────
+async function loadHistory(force = false) {
+  if (historyLoaded && !force) return;
+  const container = document.getElementById('history-list');
+  container.innerHTML = '<div class="text-center py-10 text-slate-400 text-[13px]">Đang tải...</div>';
+  try {
+    const res  = await fetch(HISTORY_URL, { headers:{'X-CSRF-Token':CSRF} });
+    const data = await res.json();
+    historyLoaded = true;
+    renderHistory(data);
+  } catch(e) {
+    container.innerHTML = '<div class="text-center py-10 text-red-400 text-[12px]">Lỗi tải lịch sử. Thử lại.</div>';
+  }
+}
+
+function renderHistory(items) {
+  const container = document.getElementById('history-list');
+  const badge     = document.getElementById('history-count-badge');
+  badge.textContent = items.length;
+  badge.classList.toggle('hidden', items.length === 0);
+
+  if (items.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-12 px-4">
+        <div class="text-4xl mb-3">📭</div>
+        <p class="text-slate-500 text-[13px] font-semibold mb-1">Chưa có lịch sử</p>
+        <p class="text-slate-400 text-[12px]">Transcript sẽ được lưu tự động sau mỗi lần chuyển đổi</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = items.map(item => `
+    <div id="hist-${item.id}" class="group">
+      <!-- Card header -->
+      <div class="px-4 py-3 hover:bg-slate-50 transition-colors">
+        <div class="flex items-start gap-2.5">
+          <span class="text-lg flex-shrink-0 mt-0.5">${histSourceIcon(item.source)}</span>
+          <div class="flex-1 min-w-0">
+            <p class="text-[12px] font-semibold text-slate-800 truncate" title="${escHtml(item.full_title)}">${escHtml(item.title)}</p>
+            <p class="text-[11px] text-slate-400">${item.created_at}</p>
+          </div>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            ${item.language_code ? `<span class="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">${item.language_code.toUpperCase()}</span>` : ''}
+            <span class="px-1.5 py-0.5 bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full">🪙${item.credits_used}</span>
+          </div>
+        </div>
+        <p class="mt-1.5 ml-8 text-[11px] text-slate-500 line-clamp-2">${escHtml(item.transcript_text.substring(0, 120))}${item.transcript_text.length > 120 ? '…' : ''}</p>
+        <div class="mt-2 ml-8 flex items-center gap-3">
+          <button onclick="toggleHistoryDetail(${item.id})"
+            class="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold border-0 bg-transparent cursor-pointer" id="hist-toggle-${item.id}">
+            Xem chi tiết ▾
+          </button>
+          <button onclick="deleteHistory(${item.id})"
+            class="text-[11px] text-red-400 hover:text-red-600 font-semibold border-0 bg-transparent cursor-pointer ml-auto">
+            🗑 Xóa
+          </button>
+        </div>
+      </div>
+
+      <!-- Expandable detail -->
+      <div id="hist-detail-${item.id}" class="hidden border-t border-slate-100 bg-slate-50">
+        <div class="px-4 py-3 space-y-3">
+          <!-- Full text -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Nội dung</span>
+              <div class="flex gap-1.5">
+                <button onclick="copyHistText(${item.id})" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">📋 Copy</button>
+                <button onclick="downloadHistText(${item.id}, '${escHtml(item.title).replace(/'/g,'')}')" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">⬇ Tải</button>
+              </div>
+            </div>
+            <div id="hist-text-${item.id}"
+                 class="max-h-[180px] overflow-y-auto p-3 bg-white rounded-lg border border-slate-200 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono"
+                 data-full="${escHtml(item.transcript_text)}">${escHtml(item.transcript_text)}</div>
+          </div>
+
+          <!-- AI tools -->
+          <div class="border-t border-slate-200 pt-2.5">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">AI Hỗ trợ</span>
+              <span class="text-[10px] text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded-full">2 credits / lần</span>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="toggleHistAiPanel(${item.id}, 'sum')"
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg cursor-pointer">
+                📝 Tóm tắt
+              </button>
+              <button onclick="toggleHistAiPanel(${item.id}, 'tr')"
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg cursor-pointer">
+                🌐 Dịch
+              </button>
+            </div>
+
+            <!-- Summarize panel -->
+            <div id="hist-sum-${item.id}" class="hist-ai-panel mt-2 p-3 bg-violet-50 border border-violet-100 rounded-xl">
+              <div class="flex items-center gap-2 mb-2">
+                <select id="hist-sum-lang-${item.id}" class="flex-1 px-2 py-1.5 border border-violet-200 rounded-lg text-[11px] bg-white focus:outline-none">
+                  <option value="vi">🇻🇳 Tiếng Việt</option>
+                  <option value="en">🇺🇸 English</option>
+                  <option value="zh">🇨🇳 中文</option>
+                  <option value="ja">🇯🇵 日本語</option>
+                  <option value="ko">🇰🇷 한국어</option>
+                  <option value="fr">🇫🇷 Français</option>
+                  <option value="de">🇩🇪 Deutsch</option>
+                  <option value="es">🇪🇸 Español</option>
+                </select>
+                <button id="hist-sum-btn-${item.id}" onclick="doHistSummarize(${item.id})"
+                  class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[11px] font-bold rounded-lg cursor-pointer border-0 transition-colors disabled:opacity-50 flex items-center gap-1">
+                  <span id="hist-sum-lbl-${item.id}">Tóm tắt</span>
+                  <svg id="hist-sum-spin-${item.id}" class="hidden w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                </button>
+              </div>
+              <div id="hist-sum-result-${item.id}" class="hidden">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-[10px] font-bold text-violet-700 uppercase">Tóm tắt</span>
+                  <button onclick="copyHistSumResult(${item.id})" class="px-1.5 py-0.5 text-[10px] bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">📋 Copy</button>
+                </div>
+                <div id="hist-sum-text-${item.id}" class="max-h-[160px] overflow-y-auto p-2.5 bg-white rounded-lg border border-violet-100 text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap"></div>
+              </div>
+              <div id="hist-sum-err-${item.id}" class="hidden text-[11px] text-red-600 mt-1"></div>
+            </div>
+
+            <!-- Translate panel -->
+            <div id="hist-tr-${item.id}" class="hist-ai-panel mt-2 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+              <div class="flex items-center gap-2 mb-2">
+                <select id="hist-tr-lang-${item.id}" class="flex-1 px-2 py-1.5 border border-blue-200 rounded-lg text-[11px] bg-white focus:outline-none">
+                  <option value="en">🇺🇸 English</option>
+                  <option value="vi">🇻🇳 Tiếng Việt</option>
+                  <option value="zh">🇨🇳 中文</option>
+                  <option value="ja">🇯🇵 日本語</option>
+                  <option value="ko">🇰🇷 한국어</option>
+                  <option value="fr">🇫🇷 Français</option>
+                  <option value="de">🇩🇪 Deutsch</option>
+                  <option value="es">🇪🇸 Español</option>
+                </select>
+                <button id="hist-tr-btn-${item.id}" onclick="doHistTranslate(${item.id})"
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg cursor-pointer border-0 transition-colors disabled:opacity-50 flex items-center gap-1">
+                  <span id="hist-tr-lbl-${item.id}">Dịch</span>
+                  <svg id="hist-tr-spin-${item.id}" class="hidden w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                </button>
+              </div>
+              <div id="hist-tr-result-${item.id}" class="hidden">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-[10px] font-bold text-blue-700 uppercase">Bản dịch</span>
+                  <button onclick="copyHistTrResult(${item.id})" class="px-1.5 py-0.5 text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">📋 Copy</button>
+                </div>
+                <div id="hist-tr-text-${item.id}" class="max-h-[160px] overflow-y-auto p-2.5 bg-white rounded-lg border border-blue-100 text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap"></div>
+              </div>
+              <div id="hist-tr-err-${item.id}" class="hidden text-[11px] text-red-600 mt-1"></div>
+            </div>
+          </div><!-- /AI tools -->
+        </div>
+      </div><!-- /hist-detail -->
+    </div>
+  `).join('');
+}
+
+function toggleHistoryDetail(id) {
+  const detail = document.getElementById(`hist-detail-${id}`);
+  const toggle = document.getElementById(`hist-toggle-${id}`);
+  const isOpen = !detail.classList.contains('hidden');
+  // Close all others first
+  document.querySelectorAll('[id^="hist-detail-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('[id^="hist-toggle-"]').forEach(el => { el.textContent = 'Xem chi tiết ▾'; });
+  if (!isOpen) {
+    detail.classList.remove('hidden');
+    toggle.textContent = 'Thu lại ▴';
+  }
+}
+
+function toggleHistAiPanel(id, type) {
+  const panel = document.getElementById(`hist-${type}-${id}`);
+  const isOpen = panel.classList.contains('open');
+  // Close both panels for this item first
+  [`hist-sum-${id}`, `hist-tr-${id}`].forEach(k => {
+    document.getElementById(k)?.classList.remove('open');
+  });
+  if (!isOpen) panel.classList.add('open');
+}
+
+async function doHistSummarize(id) {
+  const textEl = document.getElementById(`hist-text-${id}`);
+  const text   = textEl.dataset.full || textEl.textContent;
+  if (!text?.trim()) return;
+  if (getRemainingCredits() < 2) {
+    showHistErr(id, 'sum', '⚠️ Không đủ credits (cần 2).'); return;
+  }
+  setHistBtn(id, 'sum', true);
+  clearHistErr(id, 'sum');
+  document.getElementById(`hist-sum-result-${id}`).classList.add('hidden');
+  try {
+    const fd = new FormData();
+    fd.append('text',     text);
+    fd.append('language', document.getElementById(`hist-sum-lang-${id}`).value);
+    const res  = await fetch(SUMMARIZE_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Lỗi server');
+    document.getElementById(`hist-sum-text-${id}`).textContent = data.result || '';
+    document.getElementById(`hist-sum-result-${id}`).classList.remove('hidden');
+    const used = parseInt(res.headers.get('X-Credits-Used') || '2');
+    if (used > 0) deductLocal(used);
+  } catch(e) { showHistErr(id, 'sum', '⚠️ ' + e.message); }
+  finally     { setHistBtn(id, 'sum', false); }
+}
+
+async function doHistTranslate(id) {
+  const textEl = document.getElementById(`hist-text-${id}`);
+  const text   = textEl.dataset.full || textEl.textContent;
+  if (!text?.trim()) return;
+  if (getRemainingCredits() < 2) {
+    showHistErr(id, 'tr', '⚠️ Không đủ credits (cần 2).'); return;
+  }
+  setHistBtn(id, 'tr', true);
+  clearHistErr(id, 'tr');
+  document.getElementById(`hist-tr-result-${id}`).classList.add('hidden');
+  try {
+    const fd = new FormData();
+    fd.append('text',            text);
+    fd.append('target_language', document.getElementById(`hist-tr-lang-${id}`).value);
+    const res  = await fetch(TRANSLATE_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Lỗi server');
+    document.getElementById(`hist-tr-text-${id}`).textContent = data.result || '';
+    document.getElementById(`hist-tr-result-${id}`).classList.remove('hidden');
+    const used = parseInt(res.headers.get('X-Credits-Used') || '2');
+    if (used > 0) deductLocal(used);
+  } catch(e) { showHistErr(id, 'tr', '⚠️ ' + e.message); }
+  finally     { setHistBtn(id, 'tr', false); }
+}
+
+async function deleteHistory(id) {
+  if (!confirm('Xóa transcript này?')) return;
+  const url = DELETE_HISTORY_URL.replace('__ID__', id);
+  try {
+    const res = await fetch(url, { method:'DELETE', headers:{'X-CSRF-Token':CSRF} });
+    if (res.ok) {
+      const el = document.getElementById(`hist-${id}`);
+      el?.remove();
+      // Update badge count
+      const remaining = document.querySelectorAll('[id^="hist-"]').length;
+      const badge = document.getElementById('history-count-badge');
+      badge.textContent = remaining;
+      badge.classList.toggle('hidden', remaining === 0);
+      if (remaining === 0) {
+        document.getElementById('history-list').innerHTML = `
+          <div class="text-center py-12 px-4">
+            <div class="text-4xl mb-3">📭</div>
+            <p class="text-slate-500 text-[13px] font-semibold mb-1">Chưa có lịch sử</p>
+            <p class="text-slate-400 text-[12px]">Transcript sẽ được lưu tự động sau mỗi lần chuyển đổi</p>
+          </div>`;
+      }
+    }
+  } catch(e) { alert('Xóa thất bại. Vui lòng thử lại.'); }
+}
+
+function copyHistText(id) {
+  const el = document.getElementById(`hist-text-${id}`);
+  navigator.clipboard.writeText(el.dataset.full || el.textContent);
+}
+function downloadHistText(id, name) {
+  const el = document.getElementById(`hist-text-${id}`);
+  const a  = document.createElement('a');
+  a.href     = URL.createObjectURL(new Blob([el.dataset.full || el.textContent], { type:'text/plain' }));
+  a.download = `${(name || 'transcript').replace(/[^a-z0-9]/gi,'_').substring(0,40)}-${Date.now()}.txt`;
+  a.click();
+}
+function copyHistSumResult(id) {
+  navigator.clipboard.writeText(document.getElementById(`hist-sum-text-${id}`).textContent);
+}
+function copyHistTrResult(id) {
+  navigator.clipboard.writeText(document.getElementById(`hist-tr-text-${id}`).textContent);
+}
+
+function setHistBtn(id, type, loading) {
+  const btn  = document.getElementById(`hist-${type}-btn-${id}`);
+  const lbl  = document.getElementById(`hist-${type}-lbl-${id}`);
+  const spin = document.getElementById(`hist-${type}-spin-${id}`);
+  btn.disabled = loading;
+  lbl.textContent  = loading ? 'Đang xử lý...' : (type === 'sum' ? 'Tóm tắt' : 'Dịch');
+  spin.classList.toggle('hidden', !loading);
+}
+function showHistErr(id, type, msg) {
+  const el = document.getElementById(`hist-${type}-err-${id}`);
+  if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+}
+function clearHistErr(id, type) {
+  document.getElementById(`hist-${type}-err-${id}`)?.classList.add('hidden');
+}
+function histSourceIcon(src) {
+  return src === 'mic' ? '🎙️' : src === 'url' ? '🔗' : '🎵';
+}
+
 checkTranscribeButton();
 </script>
 <% end %>
