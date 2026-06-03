@@ -630,9 +630,24 @@ function creditsForSecs(secs) {
   return Math.max(Math.ceil(secs > 0 ? secs / SECS_PER_CREDIT : 1), 1);
 }
 
-// ── Main tabs ─────────────────────────────────────────────────────────────
+// ── History badge helpers ─────────────────────────────────────────────────
 let historyLoaded = false;
 let histPage = 1, histTotal = 0, histHasMore = false;
+
+function _histBadgeSync() {
+  // Keep histTotal in sync with the server-rendered initial value on first load
+  if (histTotal === 0) {
+    const badge = document.getElementById('history-count-badge');
+    histTotal = parseInt(badge.textContent) || 0;
+  }
+}
+function bumpHistoryBadge(delta = 1) {
+  _histBadgeSync();
+  histTotal = Math.max(0, histTotal + delta);
+  const badge = document.getElementById('history-count-badge');
+  badge.textContent = histTotal;
+  badge.classList.toggle('hidden', histTotal === 0);
+}
 function switchMainTab(tab, pushHash = true) {
   ['file','mic','history'].forEach(t => {
     document.getElementById(`main-panel-${t}`).classList.toggle('hidden', t !== tab);
@@ -807,6 +822,7 @@ function showResult(data, used) {
   closeAiModal();
   document.getElementById('file-result').classList.remove('hidden');
   historyLoaded = false;
+  bumpHistoryBadge(1);
 }
 function setLoading(on, label) {
   const btn = document.getElementById('transcribe-btn');
@@ -1009,6 +1025,7 @@ async function saveMicTranscript(text) {
     fd.append('credits_used',  chunkCount.toString());
     await fetch(SAVE_MIC_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
     historyLoaded = false;
+    bumpHistoryBadge(1);
   } catch(e) { /* silent */ }
 }
 async function sendChunk(blob) {
@@ -1278,11 +1295,8 @@ async function confirmDelete() {
     const res = await fetch(url, { method:'DELETE', headers:{'X-CSRF-Token':CSRF} });
     if (res.ok) {
       document.getElementById(`hist-${id}`)?.remove();
-      histTotal = Math.max(0, histTotal - 1);
+      bumpHistoryBadge(-1);
       const remaining = document.querySelectorAll('[id^="hist-detail-"]').length;
-      const badge = document.getElementById('history-count-badge');
-      badge.textContent = histTotal;
-      badge.classList.toggle('hidden', histTotal === 0);
       updateLoadMore(histTotal, histHasMore);
       if (remaining === 0 && !histHasMore) {
         document.getElementById('history-list').innerHTML = `
