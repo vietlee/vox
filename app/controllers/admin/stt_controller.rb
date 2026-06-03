@@ -36,21 +36,33 @@ class Admin::SttController < Admin::BaseController
     @remaining_credits   = current_workspace&.active_subscription&.credit_balance.to_i
   end
 
-  # GET /stt/history — returns last 50 transcripts as JSON
+  # GET /stt/history — returns paginated transcripts as JSON
+  HISTORY_PER_PAGE = 20
+
   def history
-    records = current_workspace.stt_transcripts.recent.limit(50)
-    render json: records.map { |r|
-      {
-        id:              r.id,
-        title:           r.display_title,
-        full_title:      r.title,
-        transcript_text: r.transcript_text,
-        language_code:   r.language_code,
-        duration_secs:   r.duration_secs.to_f,
-        credits_used:    r.credits_used,
-        source:          r.source,
-        created_at:      r.created_at.strftime("%d/%m/%Y %H:%M")
-      }
+    page    = [params[:page].to_i, 1].max
+    total   = current_workspace.stt_transcripts.count
+    records = current_workspace.stt_transcripts.recent
+                               .offset((page - 1) * HISTORY_PER_PAGE)
+                               .limit(HISTORY_PER_PAGE)
+    render json: {
+      items:    records.map { |r|
+        {
+          id:              r.id,
+          title:           r.display_title,
+          full_title:      r.title,
+          transcript_text: r.transcript_text,
+          language_code:   r.language_code,
+          duration_secs:   r.duration_secs.to_f,
+          credits_used:    r.credits_used,
+          source:          r.source,
+          created_at:      r.created_at.strftime("%d/%m/%Y %H:%M")
+        }
+      },
+      page:     page,
+      per:      HISTORY_PER_PAGE,
+      total:    total,
+      has_more: (page * HISTORY_PER_PAGE) < total
     }
   end
 

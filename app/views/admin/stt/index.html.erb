@@ -429,6 +429,18 @@
       <div id="history-list" class="divide-y divide-slate-100">
         <div class="text-center py-10 text-slate-400 text-[13px]"><%= t("stt.history_loading") %></div>
       </div>
+      <!-- Load more -->
+      <div id="hist-load-more-wrap" class="hidden border-t border-slate-100 px-5 py-3 text-center">
+        <button id="hist-load-more-btn" onclick="loadMoreHistory()"
+          class="inline-flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border-0 cursor-pointer transition-colors">
+          <span id="hist-load-more-lbl"><%= t("stt.history_load_more") %></span>
+          <svg id="hist-load-more-spin" class="hidden w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+        </button>
+        <p id="hist-total-info" class="mt-1 text-[11px] text-slate-400"></p>
+      </div>
     </div>
   </div><!-- /main-panel-history -->
 
@@ -480,6 +492,26 @@
 <% end %>
 
 </div><%# /scrollable %>
+
+<!-- ── Delete Confirm Modal ──────────────────────────────────────────── -->
+<div id="del-modal" class="fixed inset-0 z-[9998] hidden items-center justify-center p-4"
+     style="background:rgba(15,23,42,0.5)" onclick="if(event.target===this)closeDelModal()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[360px] p-6 text-center">
+    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">🗑️</div>
+    <h3 class="text-[15px] font-bold text-slate-800 mb-1"><%= t("stt.history_delete_confirm_title") %></h3>
+    <p id="del-modal-name" class="text-[12px] text-slate-500 mb-5 line-clamp-2 min-h-[18px]"></p>
+    <div class="flex gap-3">
+      <button onclick="closeDelModal()"
+        class="flex-1 px-4 py-2.5 text-[13px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border-0 cursor-pointer transition-colors">
+        <%= t("stt.cancel_btn") %>
+      </button>
+      <button onclick="confirmDelete()"
+        class="flex-1 px-4 py-2.5 text-[13px] font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl border-0 cursor-pointer transition-colors">
+        🗑 <%= t("stt.history_delete") %>
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- ── AI Result Modal ──────────────────────────────────────────────── -->
 <div id="ai-modal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 sm:p-6"
@@ -570,6 +602,7 @@ const I18N = {
   hist_copy:         "<%= j t('stt.ai_copy') %>",
   hist_download:     "⬇ <%= j t('stt.download_btn') %>",
   hist_ai_title:     "<%= j t('stt.ai_title') %>",
+  hist_load_more:    "<%= j t('stt.history_load_more') %>",
 };
 
 // ── Credits ───────────────────────────────────────────────────────────────
@@ -977,33 +1010,71 @@ function clearMicTranscript() {
 }
 
 // ── History ───────────────────────────────────────────────────────────────
+let histPage = 1, histTotal = 0, histHasMore = false;
+
 async function loadHistory(force = false) {
   if (historyLoaded && !force) return;
+  histPage = 1;
   const container = document.getElementById('history-list');
   container.innerHTML = `<div class="text-center py-10 text-slate-400 text-[13px]"><%= j t('stt.history_loading') %></div>`;
+  document.getElementById('hist-load-more-wrap').classList.add('hidden');
   try {
-    const res  = await fetch(HISTORY_URL, { headers:{'X-CSRF-Token':CSRF} });
+    const res  = await fetch(HISTORY_URL + '?page=1', { headers:{'X-CSRF-Token':CSRF} });
     const data = await res.json();
     historyLoaded = true;
-    renderHistory(data);
+    histPage     = 1;
+    histTotal    = data.total;
+    histHasMore  = data.has_more;
+    renderHistory(data.items, data.total, data.has_more);
   } catch(e) {
     container.innerHTML = `<div class="text-center py-10 text-red-400 text-[12px]">${I18N.hist_error}</div>`;
   }
 }
+async function loadMoreHistory() {
+  if (!histHasMore) return;
+  const btn  = document.getElementById('hist-load-more-btn');
+  const lbl  = document.getElementById('hist-load-more-lbl');
+  const spin = document.getElementById('hist-load-more-spin');
+  btn.disabled = true;
+  lbl.textContent = I18N.ai_processing;
+  spin.classList.remove('hidden');
+  try {
+    const nextPage = histPage + 1;
+    const res  = await fetch(HISTORY_URL + '?page=' + nextPage, { headers:{'X-CSRF-Token':CSRF} });
+    const data = await res.json();
+    histPage    = nextPage;
+    histTotal   = data.total;
+    histHasMore = data.has_more;
+    appendHistory(data.items, data.total, data.has_more);
+  } catch(e) { /* silent */ }
+  finally {
+    btn.disabled = false;
+    lbl.textContent = I18N.hist_load_more;
+    spin.classList.add('hidden');
+  }
+}
 
-function renderHistory(items) {
+function updateLoadMore(total, hasMore) {
+  const wrap = document.getElementById('hist-load-more-wrap');
+  const info = document.getElementById('hist-total-info');
+  const loaded = document.querySelectorAll('[id^="hist-detail-"]').length;
+  wrap.classList.toggle('hidden', !hasMore);
+  info.textContent = hasMore ? `${loaded} / ${total}` : '';
+}
+function renderHistory(items, total, hasMore) {
   const container = document.getElementById('history-list');
   const badge     = document.getElementById('history-count-badge');
-  badge.textContent = items.length;
-  badge.classList.toggle('hidden', items.length === 0);
+  badge.textContent = total || 0;
+  badge.classList.toggle('hidden', (total || 0) === 0);
 
-  if (items.length === 0) {
+  if (!items || items.length === 0) {
     container.innerHTML = `
       <div class="text-center py-16 px-4">
         <div class="text-5xl mb-3">📭</div>
         <p class="text-slate-600 text-[14px] font-semibold mb-1">${I18N.hist_empty_title}</p>
         <p class="text-slate-400 text-[13px]">${I18N.hist_empty_desc}</p>
       </div>`;
+    updateLoadMore(0, false);
     return;
   }
 
@@ -1027,9 +1098,9 @@ function renderHistory(items) {
             class="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold border-0 bg-transparent cursor-pointer">
             ${I18N.hist_view}
           </button>
-          <button onclick="deleteHistory(${item.id})"
+          <button onclick="openDelModal(${item.id}, '${escHtml(item.title).replace(/'/g,'&#39;').substring(0,60)}')"
             class="text-[11px] text-red-400 hover:text-red-600 font-semibold border-0 bg-transparent cursor-pointer ml-auto">
-            ${I18N.hist_delete}
+            🗑 ${I18N.hist_delete}
           </button>
         </div>
       </div>
@@ -1069,6 +1140,73 @@ function renderHistory(items) {
       </div>
     </div>
   `).join('');
+  updateLoadMore(total, hasMore);
+}
+function appendHistory(items, total, hasMore) {
+  if (!items || items.length === 0) { updateLoadMore(total, hasMore); return; }
+  const container = document.getElementById('history-list');
+  const frag = document.createRange().createContextualFragment(
+    items.map(item => `
+    <div id="hist-${item.id}" class="group">
+      <div class="px-5 py-3.5 hover:bg-slate-50 transition-colors">
+        <div class="flex items-start gap-3">
+          <span class="text-xl flex-shrink-0 mt-0.5">${histSourceIcon(item.source)}</span>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] font-semibold text-slate-800 truncate" title="${escHtml(item.full_title)}">${escHtml(item.title)}</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">${item.created_at}</p>
+          </div>
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            ${item.language_code ? `<span class="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">${item.language_code.toUpperCase()}</span>` : ''}
+            <span class="px-1.5 py-0.5 bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full">🪙 ${item.credits_used}</span>
+          </div>
+        </div>
+        <p class="mt-2 ml-9 text-[12px] text-slate-500 line-clamp-2">${escHtml(item.transcript_text.substring(0,150))}${item.transcript_text.length>150?'…':''}</p>
+        <div class="mt-2.5 ml-9 flex items-center gap-3">
+          <button onclick="toggleHistoryDetail(${item.id})" id="hist-toggle-${item.id}"
+            class="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold border-0 bg-transparent cursor-pointer">
+            ${I18N.hist_view}
+          </button>
+          <button onclick="openDelModal(${item.id}, '${escHtml(item.title).replace(/'/g,'&#39;').substring(0,60)}')"
+            class="text-[11px] text-red-400 hover:text-red-600 font-semibold border-0 bg-transparent cursor-pointer ml-auto">
+            🗑 ${I18N.hist_delete}
+          </button>
+        </div>
+      </div>
+      <div id="hist-detail-${item.id}" class="hidden border-t border-slate-100 bg-slate-50/60">
+        <div class="px-5 py-4 space-y-3">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${I18N.hist_content}</span>
+              <div class="flex gap-1.5">
+                <button onclick="copyHistText(${item.id}, this)" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">${I18N.hist_copy}</button>
+                <button onclick="downloadHistText(${item.id}, '${escHtml(item.title).replace(/'/g,'').substring(0,30)}')" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">${I18N.hist_download}</button>
+              </div>
+            </div>
+            <div id="hist-text-${item.id}" data-full="${escHtml(item.transcript_text)}"
+              class="max-h-[200px] overflow-y-auto p-3 bg-white rounded-lg border border-slate-200 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">${escHtml(item.transcript_text)}</div>
+          </div>
+          <div class="border-t border-slate-200 pt-3">
+            <div class="flex items-center gap-2 mb-2.5">
+              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${I18N.hist_ai_title}</span>
+              <span class="text-[10px] text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded-full">${I18N.hist_ai_credits}</span>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="openAiModal('summarize', getHistText(${item.id}))"
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg cursor-pointer transition-colors">
+                ${I18N.hist_ai_sum}
+              </button>
+              <button onclick="openAiModal('translate', getHistText(${item.id}))"
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg cursor-pointer transition-colors">
+                ${I18N.hist_ai_tr}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`).join('')
+  );
+  container.appendChild(frag);
+  updateLoadMore(total, hasMore);
 }
 
 function toggleHistoryDetail(id) {
@@ -1079,28 +1217,49 @@ function toggleHistoryDetail(id) {
   document.querySelectorAll('[id^="hist-toggle-"]').forEach(el => { el.textContent = I18N.hist_view; });
   if (!isOpen) { detail.classList.remove('hidden'); toggle.textContent = I18N.hist_collapse; }
 }
-async function deleteHistory(id) {
-  if (!confirm(I18N.hist_del_confirm)) return;
+// ── Delete Confirm Modal ──────────────────────────────────────────────────
+let pendingDeleteId = null;
+function openDelModal(id, title) {
+  pendingDeleteId = id;
+  document.getElementById('del-modal-name').textContent = title || '';
+  const el = document.getElementById('del-modal');
+  el.classList.remove('hidden');
+  el.classList.add('flex');
+}
+function closeDelModal() {
+  pendingDeleteId = null;
+  const el = document.getElementById('del-modal');
+  el.classList.add('hidden');
+  el.classList.remove('flex');
+}
+async function confirmDelete() {
+  if (pendingDeleteId === null) return;
+  const id = pendingDeleteId;
+  closeDelModal();
   const url = DELETE_HISTORY_URL.replace('__ID__', id);
   try {
     const res = await fetch(url, { method:'DELETE', headers:{'X-CSRF-Token':CSRF} });
     if (res.ok) {
       document.getElementById(`hist-${id}`)?.remove();
+      histTotal = Math.max(0, histTotal - 1);
       const remaining = document.querySelectorAll('[id^="hist-detail-"]').length;
       const badge = document.getElementById('history-count-badge');
-      badge.textContent = remaining;
-      badge.classList.toggle('hidden', remaining === 0);
-      if (remaining === 0) {
+      badge.textContent = histTotal;
+      badge.classList.toggle('hidden', histTotal === 0);
+      updateLoadMore(histTotal, histHasMore);
+      if (remaining === 0 && !histHasMore) {
         document.getElementById('history-list').innerHTML = `
           <div class="text-center py-16 px-4">
             <div class="text-5xl mb-3">📭</div>
             <p class="text-slate-600 text-[14px] font-semibold mb-1">${I18N.hist_empty_title}</p>
             <p class="text-slate-400 text-[13px]">${I18N.hist_empty_desc}</p>
           </div>`;
+        document.getElementById('hist-load-more-wrap').classList.add('hidden');
       }
     }
-  } catch(e) { alert('Xóa thất bại.'); }
+  } catch(e) { /* silent */ }
 }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDelModal(); });
 function copyHistText(id, btn) {
   const el = document.getElementById(`hist-text-${id}`);
   copyWithFeedback(el.dataset.full || el.textContent, btn);
