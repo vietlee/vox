@@ -22,7 +22,8 @@
           🎤 Speech to Text
         </h1>
         <p class="text-[13px] text-slate-500 mt-0.5">
-          Chuyển âm thanh / video thành văn bản · ElevenLabs Scribe v2 · ~$0.22/giờ
+          Chuyển âm thanh / video thành văn bản · ElevenLabs Scribe v2 ·
+          <span class="text-indigo-500 font-semibold"><%= t("stt.credit_rate") %></span>
         </p>
       </div>
     </div>
@@ -36,232 +37,326 @@
 
 <!-- ── Scrollable content ────────────────────────────────────────────── -->
 <div class="flex-1 min-h-0 overflow-y-auto px-6 py-5">
-<div class="grid grid-cols-[1fr_1fr] gap-5 items-start">
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       LEFT — File / URL Input
-       ═══════════════════════════════════════════════════════════════ -->
-  <div class="space-y-4">
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
+<% if @has_stt %>
+  <%# ── MAIN STT UI ─────────────────────────────────────────────────── %>
+  <div class="grid grid-cols-[1fr_1fr] gap-5 items-start">
 
-      <!-- Source tabs: File | URL -->
-      <div class="flex gap-1 p-1 bg-slate-100 rounded-lg mb-4">
-        <button id="tab-file" onclick="switchTab('file')"
-          class="src-tab active flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-600 cursor-pointer bg-transparent">
-          📁 Tải file lên
-        </button>
-        <button id="tab-url" onclick="switchTab('url')"
-          class="src-tab flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-400 cursor-pointer bg-transparent">
-          🔗 URL / YouTube
+    <!-- ═══════════════════════════════════════════════════════════════
+         LEFT — File / URL Input
+         ═══════════════════════════════════════════════════════════════ -->
+    <div class="space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 p-5">
+
+        <!-- Source tabs: File | URL -->
+        <div class="flex gap-1 p-1 bg-slate-100 rounded-lg mb-4">
+          <button id="tab-file" onclick="switchTab('file')"
+            class="src-tab active flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-600 cursor-pointer bg-transparent">
+            📁 Tải file lên
+          </button>
+          <button id="tab-url" onclick="switchTab('url')"
+            class="src-tab flex-1 py-1.5 text-[12px] rounded-md border border-transparent text-slate-400 cursor-pointer bg-transparent">
+            🔗 URL / YouTube
+          </button>
+        </div>
+
+        <!-- ── TAB: File ──────────────────────────────────────────── -->
+        <div id="panel-file">
+          <div id="drop-zone"
+               class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer transition-all hover:border-indigo-400 hover:bg-indigo-50/40"
+               onclick="document.getElementById('file-input').click()"
+               ondragover="event.preventDefault(); this.classList.add('drop-zone-hover')"
+               ondragleave="this.classList.remove('drop-zone-hover')"
+               ondrop="handleFileDrop(event)">
+            <div class="text-4xl mb-2">🎵</div>
+            <p class="text-[13px] font-semibold text-slate-600 mb-1">Kéo thả file vào đây hoặc click để chọn</p>
+            <p class="text-[11px] text-slate-400">MP3, MP4, WAV, M4A, WebM, FLAC, OGG · Tối đa 2 GB</p>
+            <input type="file" id="file-input" accept="audio/*,video/*" class="hidden" onchange="handleFileSelect(this)">
+          </div>
+          <!-- Selected file preview -->
+          <div id="file-preview" class="hidden mt-3 px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-3">
+            <span class="text-2xl">🎵</span>
+            <div class="flex-1 min-w-0">
+              <p id="file-name" class="text-[13px] font-semibold text-slate-800 truncate"></p>
+              <p id="file-size" class="text-[11px] text-slate-400"></p>
+            </div>
+            <button onclick="clearFile()" class="text-slate-400 hover:text-red-500 text-[18px] leading-none border-0 bg-transparent cursor-pointer">×</button>
+          </div>
+          <!-- File credit estimate (shows after duration is read) -->
+          <div id="file-credit-info" class="hidden mt-3 flex items-center justify-between px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg">
+            <span class="text-[12px] text-indigo-700">
+              🕐 <span id="file-duration-text" class="font-semibold"></span>
+            </span>
+            <span class="text-[12px] font-bold text-indigo-600">
+              Ước tính: <span id="file-credit-estimate">—</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- ── TAB: URL ───────────────────────────────────────────── -->
+        <div id="panel-url" class="hidden">
+          <div class="mb-2">
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1.5">
+              URL video / audio
+              <span class="font-normal text-slate-400 ml-1">(YouTube, Vimeo, TikTok, Facebook, SoundCloud…)</span>
+            </label>
+            <div class="flex gap-2">
+              <input type="url" id="url-input" placeholder="https://www.youtube.com/watch?v=..."
+                class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-300 placeholder-slate-400">
+              <button onclick="clearUrl()" title="Xóa URL"
+                class="px-3 py-2.5 text-slate-400 hover:text-red-500 border border-slate-200 rounded-lg bg-white cursor-pointer text-[15px] transition-colors">×</button>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            <% %w[YouTube Vimeo TikTok Facebook Instagram SoundCloud Dailymotion X/Twitter].each do |site| %>
+              <span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-semibold rounded-full"><%= site %></span>
+            <% end %>
+            <span class="px-2 py-0.5 bg-indigo-50 text-indigo-500 text-[10px] font-semibold rounded-full">+1000 nguồn khác</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">
+            ⚡ Powered by <strong>yt-dlp</strong> · Chỉ tải audio, không cần đăng nhập · Video công khai
+          </p>
+          <!-- URL credit note -->
+          <div class="mt-3 flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg">
+            <span class="text-amber-500 mt-px">💡</span>
+            <span class="text-[12px] text-amber-700">Credit tính theo độ dài video sau khi tải xong. Cần ít nhất <strong>1 credit</strong>.</span>
+          </div>
+        </div>
+
+        <!-- ── Shared settings ────────────────────────────────────── -->
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Model</label>
+            <select id="file-model" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+              <option value="scribe_v2" selected>Scribe v2</option>
+              <option value="scribe_v1">Scribe v1</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Ngôn ngữ</label>
+            <select id="file-language" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+              <option value="">Tự động nhận diện</option>
+              <option value="vi">Tiếng Việt</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="zh">中文</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+              <option value="es">Español</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Timestamps</label>
+            <select id="file-timestamps" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+              <option value="none" selected>Không</option>
+              <option value="word">Từng từ</option>
+            </select>
+          </div>
+          <div class="flex items-end pb-0.5">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="file-diarize" class="w-4 h-4 accent-indigo-600">
+              <span class="text-[12px] font-semibold text-slate-600">Nhận diện người nói</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Credit warning banner -->
+        <div id="stt-credit-warning" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[13px] flex items-start gap-2">
+          <span class="text-base leading-none mt-px">⚠️</span>
+          <span id="stt-credit-warning-text"></span>
+        </div>
+
+        <!-- Transcribe button -->
+        <button id="transcribe-btn" onclick="transcribeSource()"
+          class="mt-4 w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-[13px] font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          <span id="transcribe-btn-label">🎤 Chuyển thành văn bản</span>
+          <svg id="transcribe-spinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
         </button>
       </div>
 
-      <!-- ── TAB: File ──────────────────────────────────────────── -->
-      <div id="panel-file">
-        <!-- Drop zone -->
-        <div id="drop-zone"
-             class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer transition-all hover:border-indigo-400 hover:bg-indigo-50/40"
-             onclick="document.getElementById('file-input').click()"
-             ondragover="event.preventDefault(); this.classList.add('drop-zone-hover')"
-             ondragleave="this.classList.remove('drop-zone-hover')"
-             ondrop="handleFileDrop(event)">
-          <div class="text-4xl mb-2">🎵</div>
-          <p class="text-[13px] font-semibold text-slate-600 mb-1">Kéo thả file vào đây hoặc click để chọn</p>
-          <p class="text-[11px] text-slate-400">MP3, MP4, WAV, M4A, WebM, FLAC, OGG · Tối đa 2 GB</p>
-          <input type="file" id="file-input" accept="audio/*,video/*" class="hidden" onchange="handleFileSelect(this)">
-        </div>
-        <!-- Selected file preview -->
-        <div id="file-preview" class="hidden mt-3 px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-3">
-          <span class="text-2xl">🎵</span>
-          <div class="flex-1 min-w-0">
-            <p id="file-name" class="text-[13px] font-semibold text-slate-800 truncate"></p>
-            <p id="file-size" class="text-[11px] text-slate-400"></p>
+      <!-- Result -->
+      <div id="file-result" class="hidden bg-white rounded-xl border border-slate-200 p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">Kết quả</h3>
+          <div class="flex gap-2 flex-wrap">
+            <span id="file-lang-badge" class="hidden px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[11px] font-semibold rounded-full"></span>
+            <span id="file-credits-used-badge" class="hidden px-2 py-0.5 bg-violet-100 text-violet-700 text-[11px] font-semibold rounded-full"></span>
+            <button onclick="copyText('file-transcript-text')"
+              class="px-3 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
+              📋 Sao chép
+            </button>
+            <button onclick="downloadText('file-transcript-text', 'transcript')"
+              class="px-3 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
+              ⬇ Tải về
+            </button>
           </div>
-          <button onclick="clearFile()" class="text-slate-400 hover:text-red-500 text-[18px] leading-none border-0 bg-transparent cursor-pointer">×</button>
+        </div>
+        <div id="file-transcript-text"
+             class="min-h-[120px] max-h-[400px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">
+        </div>
+        <div id="file-words-wrap" class="hidden mt-3">
+          <button onclick="toggleWords()" class="text-[11px] text-indigo-600 font-semibold hover:text-indigo-700 border-0 bg-transparent cursor-pointer">
+            🕐 Xem timestamps từng từ ▾
+          </button>
+          <div id="file-words" class="hidden mt-2 max-h-[200px] overflow-y-auto text-[11px] text-slate-500 font-mono space-y-0.5 bg-slate-50 p-3 rounded-lg border border-slate-100">
+          </div>
         </div>
       </div>
 
-      <!-- ── TAB: URL ───────────────────────────────────────────── -->
-      <div id="panel-url" class="hidden">
-        <div class="mb-2">
-          <label class="block text-[11px] font-semibold text-slate-500 mb-1.5">
-            URL video / audio
-            <span class="font-normal text-slate-400 ml-1">(YouTube, Vimeo, TikTok, Facebook, SoundCloud…)</span>
-          </label>
-          <div class="flex gap-2">
-            <input type="url" id="url-input" placeholder="https://www.youtube.com/watch?v=..."
-              class="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-300 placeholder-slate-400">
-            <button onclick="clearUrl()" title="Xóa URL"
-              class="px-3 py-2.5 text-slate-400 hover:text-red-500 border border-slate-200 rounded-lg bg-white cursor-pointer text-[15px] transition-colors">×</button>
-          </div>
-        </div>
-        <!-- URL info badges -->
-        <div class="flex flex-wrap gap-1.5 mt-2">
-          <% %w[YouTube Vimeo TikTok Facebook Instagram SoundCloud Dailymotion X/Twitter].each do |site| %>
-            <span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-semibold rounded-full"><%= site %></span>
-          <% end %>
-          <span class="px-2 py-0.5 bg-indigo-50 text-indigo-500 text-[10px] font-semibold rounded-full">+1000 nguồn khác</span>
-        </div>
-        <p class="text-[11px] text-slate-400 mt-2">
-          ⚡ Powered by <strong>yt-dlp</strong> · Chỉ tải audio, không cần đăng nhập · Video công khai
+      <!-- Error -->
+      <div id="file-error" class="hidden p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[13px]"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         RIGHT — Realtime Microphone
+         ═══════════════════════════════════════════════════════════════ -->
+    <div class="space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 p-5">
+        <h2 class="text-[13px] font-bold text-slate-700 mb-1 flex items-center gap-2">
+          🎙️ Ghi âm Realtime
+          <span class="text-[10px] font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Chunk mode · mỗi 5s gửi lên</span>
+        </h2>
+        <p class="text-[11px] text-slate-400 mb-4">
+          🪙 <span class="font-semibold text-violet-600">1 credit / đoạn (5 giây)</span> · Còn lại:
+          <span id="mic-credit-remaining" class="font-bold text-slate-600"><%= @remaining_credits %></span> credit
         </p>
-      </div>
-
-      <!-- ── Shared settings ────────────────────────────────────── -->
-      <div class="grid grid-cols-2 gap-3 mt-4">
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 mb-1">Model</label>
-          <select id="file-model" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="scribe_v2" selected>Scribe v2 — $0.22/hr</option>
-            <option value="scribe_v1">Scribe v1 — $0.22/hr</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 mb-1">Ngôn ngữ</label>
-          <select id="file-language" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="">Tự động nhận diện</option>
-            <option value="vi">Tiếng Việt</option>
-            <option value="en">English</option>
-            <option value="ja">日本語</option>
-            <option value="ko">한국어</option>
-            <option value="zh">中文</option>
-            <option value="fr">Français</option>
-            <option value="de">Deutsch</option>
-            <option value="es">Español</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 mb-1">Timestamps</label>
-          <select id="file-timestamps" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="none" selected>Không</option>
-            <option value="word">Từng từ</option>
-          </select>
-        </div>
-        <div class="flex items-end pb-0.5">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" id="file-diarize" class="w-4 h-4 accent-indigo-600">
-            <span class="text-[12px] font-semibold text-slate-600">Nhận diện người nói</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Transcribe button -->
-      <button id="transcribe-btn" onclick="transcribeSource()"
-        class="mt-4 w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-[13px] font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-        <span id="transcribe-btn-label">🎤 Chuyển thành văn bản</span>
-        <svg id="transcribe-spinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-        </svg>
-      </button>
-    </div>
-
-    <!-- Result -->
-    <div id="file-result" class="hidden bg-white rounded-xl border border-slate-200 p-5">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">Kết quả</h3>
-        <div class="flex gap-2 flex-wrap">
-          <span id="file-lang-badge" class="hidden px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[11px] font-semibold rounded-full"></span>
-          <button onclick="copyText('file-transcript-text')"
-            class="px-3 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
-            📋 Sao chép
+        <div class="flex flex-col items-center py-6">
+          <button id="mic-btn" onclick="toggleMic()"
+            class="w-20 h-20 rounded-full bg-slate-100 hover:bg-red-100 border-2 border-slate-200 hover:border-red-400 flex items-center justify-center text-4xl transition-all cursor-pointer">
+            🎙️
           </button>
-          <button onclick="downloadText('file-transcript-text', 'transcript')"
-            class="px-3 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
-            ⬇ Tải về
-          </button>
+          <p id="mic-status" class="mt-3 text-[12px] text-slate-500 font-semibold">Click để bắt đầu ghi âm</p>
+          <div class="mt-3 w-48 h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div id="vol-bar" class="h-full bg-emerald-400 rounded-full transition-all" style="width:0%"></div>
+          </div>
+          <p id="mic-timer" class="hidden mt-2 text-[12px] font-mono text-red-600 font-bold">00:00</p>
+          <p id="mic-no-credit" class="hidden mt-2 text-[12px] text-red-600 font-semibold text-center">
+            ⚠️ Không đủ AI credits để ghi âm
+          </p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Model</label>
+            <select id="mic-model" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+              <option value="scribe_v2" selected>Scribe v2</option>
+              <option value="scribe_v1">Scribe v1</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Ngôn ngữ</label>
+            <select id="mic-language" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
+              <option value="">Tự động</option>
+              <option value="vi">Tiếng Việt</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="zh">中文</option>
+            </select>
+          </div>
         </div>
       </div>
-      <div id="file-transcript-text"
-           class="min-h-[120px] max-h-[400px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">
-      </div>
-      <!-- Word timestamps (collapsible) -->
-      <div id="file-words-wrap" class="hidden mt-3">
-        <button onclick="toggleWords()" class="text-[11px] text-indigo-600 font-semibold hover:text-indigo-700 border-0 bg-transparent cursor-pointer">
-          🕐 Xem timestamps từng từ ▾
-        </button>
-        <div id="file-words" class="hidden mt-2 max-h-[200px] overflow-y-auto text-[11px] text-slate-500 font-mono space-y-0.5 bg-slate-50 p-3 rounded-lg border border-slate-100">
+
+      <!-- Realtime transcript -->
+      <div class="bg-white rounded-xl border border-slate-200 p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">
+            Transcript
+            <span id="mic-sending-badge" class="hidden ml-2 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full animate-pulse">
+              ⏳ Đang xử lý...
+            </span>
+          </h3>
+          <div class="flex gap-2">
+            <button onclick="clearMicTranscript()" class="px-3 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">🗑 Xóa</button>
+            <button onclick="copyText('mic-transcript-text')" class="px-3 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">📋 Sao chép</button>
+            <button onclick="downloadText('mic-transcript-text', 'transcript-mic')" class="px-3 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">⬇ Tải về</button>
+          </div>
         </div>
+        <div id="mic-transcript-text"
+             class="min-h-[200px] max-h-[480px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">
+          <span class="text-slate-400 text-[12px]">Transcript sẽ xuất hiện ở đây sau mỗi 5 giây ghi âm...</span>
+        </div>
+        <p id="chunk-counter" class="mt-2 text-[11px] text-slate-400"></p>
       </div>
     </div>
 
-    <!-- Error -->
-    <div id="file-error" class="hidden p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[13px]"></div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       RIGHT — Realtime Microphone
-       ═══════════════════════════════════════════════════════════════ -->
-  <div class="space-y-4">
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-4 flex items-center gap-2">
-        🎙️ Ghi âm Realtime
-        <span class="text-[10px] font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Chunk mode · mỗi 5s gửi lên</span>
-      </h2>
-      <div class="flex flex-col items-center py-6">
-        <button id="mic-btn" onclick="toggleMic()"
-          class="w-20 h-20 rounded-full bg-slate-100 hover:bg-red-100 border-2 border-slate-200 hover:border-red-400 flex items-center justify-center text-4xl transition-all cursor-pointer">
-          🎙️
-        </button>
-        <p id="mic-status" class="mt-3 text-[12px] text-slate-500 font-semibold">Click để bắt đầu ghi âm</p>
-        <div class="mt-3 w-48 h-2 bg-slate-100 rounded-full overflow-hidden">
-          <div id="vol-bar" class="h-full bg-emerald-400 rounded-full transition-all" style="width:0%"></div>
-        </div>
-        <p id="mic-timer" class="hidden mt-2 text-[12px] font-mono text-red-600 font-bold">00:00</p>
+<% else %>
+  <%# ── UPGRADE LANDING PAGE ─────────────────────────────────────────── %>
+  <div class="max-w-2xl mx-auto py-10">
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      <div class="bg-gradient-to-br from-violet-600 to-indigo-600 px-8 py-10 text-center text-white">
+        <div class="text-5xl mb-4">🎤</div>
+        <h2 class="text-2xl font-extrabold mb-2">Speech to Text</h2>
+        <p class="text-indigo-200 text-[14px]"><%= t("stt.upgrade_desc") %></p>
       </div>
-      <div class="grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 mb-1">Model</label>
-          <select id="mic-model" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="scribe_v2" selected>Scribe v2</option>
-            <option value="scribe_v1">Scribe v1</option>
-          </select>
+      <div class="px-8 py-6">
+        <p class="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-4"><%= t("stt.upgrade_title") %></p>
+        <ul class="space-y-3 mb-6">
+          <% [:upgrade_feature_1, :upgrade_feature_2, :upgrade_feature_3, :upgrade_feature_4].each do |key| %>
+            <li class="flex items-center gap-3 text-[13px] text-slate-700">
+              <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0 text-[11px] font-bold">✓</span>
+              <%= t("stt.#{key}") %>
+            </li>
+          <% end %>
+        </ul>
+        <div class="mb-6 px-4 py-3 bg-violet-50 border border-violet-100 rounded-xl flex items-center gap-3">
+          <span class="text-2xl">🪙</span>
+          <div>
+            <p class="text-[13px] font-bold text-violet-800">Giá sử dụng</p>
+            <p class="text-[12px] text-violet-600"><%= t("stt.credit_rate") %> · ElevenLabs Scribe v2 (~$0.40/giờ)</p>
+          </div>
         </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 mb-1">Ngôn ngữ</label>
-          <select id="mic-language" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="">Tự động</option>
-            <option value="vi">Tiếng Việt</option>
-            <option value="en">English</option>
-            <option value="ja">日本語</option>
-            <option value="ko">한국어</option>
-            <option value="zh">中文</option>
-          </select>
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="rounded-xl border-2 border-indigo-500 bg-indigo-50 p-4 text-center">
+            <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide mb-1">Pro</div>
+            <div class="text-xl font-extrabold text-slate-800">190.000₫<span class="text-[12px] font-normal text-slate-400"><%= t("stt.per_month") %></span></div>
+            <div class="text-[11px] text-slate-500 mt-1"><%= t("stt.pro_credits") %></div>
+          </div>
+          <div class="rounded-xl border-2 border-violet-500 bg-violet-50 p-4 text-center">
+            <div class="text-[11px] font-bold text-violet-600 uppercase tracking-wide mb-1">Enterprise</div>
+            <div class="text-xl font-extrabold text-slate-800">390.000₫<span class="text-[12px] font-normal text-slate-400"><%= t("stt.per_month") %></span></div>
+            <div class="text-[11px] text-slate-500 mt-1"><%= t("stt.enterprise_credits") %></div>
+          </div>
         </div>
+        <%= link_to subscription_path, class: "block w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold rounded-xl text-center transition-colors" do %>
+          <%= t("stt.upgrade_btn") %> →
+        <% end %>
       </div>
-    </div>
-
-    <!-- Realtime transcript -->
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide">
-          Transcript
-          <span id="mic-sending-badge" class="hidden ml-2 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full animate-pulse">
-            ⏳ Đang xử lý...
-          </span>
-        </h3>
-        <div class="flex gap-2">
-          <button onclick="clearMicTranscript()" class="px-3 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">🗑 Xóa</button>
-          <button onclick="copyText('mic-transcript-text')" class="px-3 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">📋 Sao chép</button>
-          <button onclick="downloadText('mic-transcript-text', 'transcript-mic')" class="px-3 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">⬇ Tải về</button>
-        </div>
-      </div>
-      <div id="mic-transcript-text"
-           class="min-h-[200px] max-h-[480px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">
-        <span class="text-slate-400 text-[12px]">Transcript sẽ xuất hiện ở đây sau mỗi 5 giây ghi âm...</span>
-      </div>
-      <p id="chunk-counter" class="mt-2 text-[11px] text-slate-400"></p>
     </div>
   </div>
+<% end %>
 
 </div>
-</div>
 
+<% if @has_stt %>
 <script>
 const TRANSCRIBE_URL     = "<%= stt_transcribe_path %>";
 const TRANSCRIBE_URL_URL = "<%= stt_transcribe_url_path %>";
 const CHUNK_URL          = "<%= stt_transcribe_chunk_path %>";
 const CSRF               = document.querySelector('meta[name="csrf-token"]').content;
+const SECS_PER_CREDIT    = 60;  // 1 credit per minute of audio
+
+// ── Credit helpers ────────────────────────────────────────────────────────
+function getRemainingCredits() {
+  if (typeof window.__currentCredits === "number") return window.__currentCredits;
+  return parseInt(document.getElementById('mic-credit-remaining')?.textContent || "0") || 0;
+}
+
+function deductLocal(amount) {
+  if (typeof window.deductDisplayCredits === "function") window.deductDisplayCredits(amount);
+  const el = document.getElementById('mic-credit-remaining');
+  if (el) el.textContent = Math.max(0, getRemainingCredits() - amount);
+}
+
+function creditsForSecs(secs) {
+  if (secs <= 0) return 1;
+  return Math.max(Math.ceil(secs / SECS_PER_CREDIT), 1);
+}
 
 // ── Tab switch ────────────────────────────────────────────────────────────
 let activeTab = 'file';
@@ -273,10 +368,13 @@ function switchTab(tab) {
   });
   document.getElementById('file-result').classList.add('hidden');
   document.getElementById('file-error').classList.add('hidden');
+  hideCreditWarning();
+  checkTranscribeButton();
 }
 
 // ── File Upload ───────────────────────────────────────────────────────────
 let selectedFile = null;
+let fileDurationSecs = 0;
 
 function handleFileSelect(input) { if (input.files[0]) setFile(input.files[0]); }
 function handleFileDrop(e) {
@@ -284,63 +382,121 @@ function handleFileDrop(e) {
   document.getElementById('drop-zone').classList.remove('drop-zone-hover');
   if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
 }
+
 function setFile(file) {
   selectedFile = file;
+  fileDurationSecs = 0;
   document.getElementById('drop-zone').classList.add('hidden');
   document.getElementById('file-preview').classList.remove('hidden');
   document.getElementById('file-name').textContent = file.name;
   document.getElementById('file-size').textContent = formatBytes(file.size);
+  document.getElementById('file-credit-info').classList.add('hidden');
   hideResultError();
+  hideCreditWarning();
+
+  // Read audio/video duration via HTML5 media element (no upload needed)
+  const isVideo = file.type.startsWith('video/') || /\.(mp4|mkv|avi|mov|webm)$/i.test(file.name);
+  const media   = document.createElement(isVideo ? 'video' : 'audio');
+  media.preload = 'metadata';
+  const objUrl  = URL.createObjectURL(file);
+  media.src     = objUrl;
+  media.onloadedmetadata = () => {
+    URL.revokeObjectURL(objUrl);
+    const dur = media.duration;
+    if (dur && isFinite(dur)) {
+      fileDurationSecs = dur;
+      const mins    = Math.floor(dur / 60);
+      const secs    = Math.round(dur % 60);
+      const credits = creditsForSecs(dur);
+      const creditEl = document.getElementById('file-credit-estimate');
+      creditEl.textContent = `${credits} credit${credits > 1 ? 's' : ''}`;
+      // Colour estimate red if insufficient
+      creditEl.style.color = credits > getRemainingCredits() ? '#dc2626' : '#4f46e5';
+      document.getElementById('file-duration-text').textContent =
+        `${mins}:${String(secs).padStart(2,'0')} phút`;
+      document.getElementById('file-credit-info').classList.remove('hidden');
+    }
+    checkTranscribeButton();
+  };
+  media.onerror = () => { URL.revokeObjectURL(objUrl); checkTranscribeButton(); };
 }
+
 function clearFile() {
-  selectedFile = null;
+  selectedFile = null; fileDurationSecs = 0;
   document.getElementById('file-input').value = '';
   document.getElementById('drop-zone').classList.remove('hidden');
   document.getElementById('file-preview').classList.add('hidden');
-  hideResultError();
-}
-function clearUrl() {
-  document.getElementById('url-input').value = '';
-  hideResultError();
+  document.getElementById('file-credit-info').classList.add('hidden');
+  hideResultError(); hideCreditWarning(); checkTranscribeButton();
 }
 
-// ── Transcribe (file or URL) ──────────────────────────────────────────────
-async function transcribeSource() {
-  if (activeTab === 'file') {
-    await transcribeFile();
-  } else {
-    await transcribeUrl();
+function clearUrl() {
+  document.getElementById('url-input').value = '';
+  hideResultError(); hideCreditWarning(); checkTranscribeButton();
+}
+
+// ── Credit guard ──────────────────────────────────────────────────────────
+function checkTranscribeButton() {
+  const btn       = document.getElementById('transcribe-btn');
+  const remaining = getRemainingCredits();
+
+  if (activeTab === 'file' && selectedFile && fileDurationSecs > 0) {
+    const needed = creditsForSecs(fileDurationSecs);
+    if (needed > remaining) { showCreditWarning(needed, remaining); btn.disabled = true; return; }
   }
+  if (activeTab === 'url' && remaining < 1) {
+    showCreditWarning(1, 0); btn.disabled = true; return;
+  }
+
+  hideCreditWarning(); btn.disabled = false;
+}
+
+function showCreditWarning(needed, remaining) {
+  const el   = document.getElementById('stt-credit-warning');
+  const text = document.getElementById('stt-credit-warning-text');
+  if (el && text) {
+    text.textContent = `Cần ${needed} credit nhưng bạn chỉ còn ${remaining} credit. Vui lòng nạp thêm hoặc chọn file ngắn hơn.`;
+    el.classList.remove('hidden');
+  }
+}
+function hideCreditWarning() {
+  document.getElementById('stt-credit-warning')?.classList.add('hidden');
+}
+
+// ── Transcribe ────────────────────────────────────────────────────────────
+async function transcribeSource() {
+  activeTab === 'file' ? await transcribeFile() : await transcribeUrl();
 }
 
 async function transcribeFile() {
   if (!selectedFile) { showFileError("Vui lòng chọn file audio/video."); return; }
+  if (fileDurationSecs > 0 && creditsForSecs(fileDurationSecs) > getRemainingCredits()) {
+    showCreditWarning(creditsForSecs(fileDurationSecs), getRemainingCredits()); return;
+  }
   setLoading(true, "Đang tải lên & xử lý...");
   hideResultError();
-
   const fd = new FormData();
   fd.append('audio_file',    selectedFile);
+  fd.append('duration_secs', fileDurationSecs > 0 ? fileDurationSecs.toFixed(1) : '0');
   fd.append('model',         document.getElementById('file-model').value);
   fd.append('language_code', document.getElementById('file-language').value);
   fd.append('timestamps',    document.getElementById('file-timestamps').value);
   fd.append('diarize',       document.getElementById('file-diarize').checked ? 'true' : 'false');
-
   await doTranscribe(TRANSCRIBE_URL, fd);
 }
 
 async function transcribeUrl() {
   const url = document.getElementById('url-input').value.trim();
   if (!url) { showFileError("Vui lòng nhập URL."); return; }
+  if (getRemainingCredits() < 1) { showCreditWarning(1, 0); return; }
   setLoading(true, "Đang tải audio từ URL...");
   hideResultError();
-
   const fd = new FormData();
   fd.append('url',           url);
   fd.append('model',         document.getElementById('file-model').value);
   fd.append('language_code', document.getElementById('file-language').value);
   fd.append('timestamps',    document.getElementById('file-timestamps').value);
   fd.append('diarize',       document.getElementById('file-diarize').checked ? 'true' : 'false');
-
   await doTranscribe(TRANSCRIBE_URL_URL, fd);
 }
 
@@ -348,8 +504,16 @@ async function doTranscribe(endpoint, fd) {
   try {
     const res  = await fetch(endpoint, { method: 'POST', headers: { 'X-CSRF-Token': CSRF }, body: fd });
     const data = await res.json();
-    if (!res.ok) { showFileError(data.error || "Lỗi server."); return; }
-    showResult(data);
+    if (!res.ok) {
+      if (data.upgrade_required)    showFileError("Gói của bạn không hỗ trợ tính năng này. Vui lòng nâng cấp.");
+      else if (data.insufficient_credits) { showFileError(data.error || "Không đủ AI credits."); checkTranscribeButton(); }
+      else showFileError(data.error || "Lỗi server.");
+      return;
+    }
+    const creditsUsed = parseInt(res.headers.get("X-Credits-Used") || "0");
+    if (creditsUsed > 0) deductLocal(creditsUsed);
+    showResult(data, creditsUsed);
+    checkTranscribeButton();
   } catch (e) {
     showFileError("Không thể kết nối server. Vui lòng thử lại.");
   } finally {
@@ -357,22 +521,20 @@ async function doTranscribe(endpoint, fd) {
   }
 }
 
-function showResult(data) {
+function showResult(data, creditsUsed) {
   document.getElementById('file-transcript-text').textContent = data.text || "(không có kết quả)";
   const badge = document.getElementById('file-lang-badge');
-  if (data.language_code) {
-    badge.textContent = `🌐 ${data.language_code.toUpperCase()}`;
-    badge.classList.remove('hidden');
-  }
+  if (data.language_code) { badge.textContent = `🌐 ${data.language_code.toUpperCase()}`; badge.classList.remove('hidden'); }
+  const cBadge = document.getElementById('file-credits-used-badge');
+  if (creditsUsed > 0) { cBadge.textContent = `🪙 -${creditsUsed} credit`; cBadge.classList.remove('hidden'); }
   const words = data.words || [];
-  const wordsWrap = document.getElementById('file-words-wrap');
   if (words.length > 0) {
     document.getElementById('file-words').innerHTML = words.map(w =>
       `<div>[${fmtTime(w.start)}–${fmtTime(w.end)}] <span class="text-slate-800 font-semibold">${escHtml(w.text)}</span>${w.speaker_id ? ` <span class="text-indigo-400">${w.speaker_id}</span>` : ''}</div>`
     ).join('');
-    wordsWrap.classList.remove('hidden');
+    document.getElementById('file-words-wrap').classList.remove('hidden');
   } else {
-    wordsWrap.classList.add('hidden');
+    document.getElementById('file-words-wrap').classList.add('hidden');
   }
   document.getElementById('file-result').classList.remove('hidden');
 }
@@ -385,8 +547,7 @@ function setLoading(on, label) {
 }
 function showFileError(msg) {
   const el = document.getElementById('file-error');
-  el.textContent = '⚠️ ' + msg;
-  el.classList.remove('hidden');
+  el.textContent = '⚠️ ' + msg; el.classList.remove('hidden');
 }
 function hideResultError() {
   document.getElementById('file-result').classList.add('hidden');
@@ -402,18 +563,21 @@ let isMicRecording = false;
 async function toggleMic() { isMicRecording ? stopMic() : await startMic(); }
 
 async function startMic() {
+  if (getRemainingCredits() < 1) {
+    document.getElementById('mic-no-credit').classList.remove('hidden'); return;
+  }
+  document.getElementById('mic-no-credit').classList.add('hidden');
   try { micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); }
   catch (e) { alert("Không thể truy cập microphone: " + e.message); return; }
 
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  analyser = audioCtx.createAnalyser();
+  audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+  analyser  = audioCtx.createAnalyser();
   audioCtx.createMediaStreamSource(micStream).connect(analyser);
   analyser.fftSize = 256;
   const buf = new Uint8Array(analyser.frequencyBinCount);
   volInterval = setInterval(() => {
     analyser.getByteFrequencyData(buf);
-    const vol = buf.reduce((a, b) => a + b, 0) / buf.length;
-    document.getElementById('vol-bar').style.width = Math.min(vol * 2, 100) + '%';
+    document.getElementById('vol-bar').style.width = Math.min(buf.reduce((a,b)=>a+b,0)/buf.length*2, 100) + '%';
   }, 80);
 
   mediaRecorder = new MediaRecorder(micStream, { mimeType: getSupportedMimeType() });
@@ -454,6 +618,7 @@ function stopMic() {
 }
 
 async function sendChunk(blob) {
+  if (getRemainingCredits() < 1) { stopMic(); document.getElementById('mic-no-credit').classList.remove('hidden'); return; }
   document.getElementById('mic-sending-badge').classList.remove('hidden');
   const fd = new FormData();
   fd.append('chunk',         blob, 'chunk.webm');
@@ -468,6 +633,14 @@ async function sendChunk(blob) {
       el.scrollTop = el.scrollHeight;
       chunkCount++;
       document.getElementById('chunk-counter').textContent = `${chunkCount} đoạn đã xử lý`;
+      const used = parseInt(res.headers.get("X-Credits-Used") || "1");
+      deductLocal(used);
+      const remaining = getRemainingCredits();
+      const el2 = document.getElementById('mic-credit-remaining');
+      if (el2) el2.textContent = remaining;
+      if (remaining < 1 && isMicRecording) { stopMic(); document.getElementById('mic-no-credit').classList.remove('hidden'); }
+    } else if (!res.ok && data.insufficient_credits) {
+      stopMic(); document.getElementById('mic-no-credit').classList.remove('hidden');
     }
   } catch (e) { console.warn('STT chunk error:', e); }
   finally { document.getElementById('mic-sending-badge').classList.add('hidden'); }
@@ -478,6 +651,7 @@ function clearMicTranscript() {
     '<span class="text-slate-400 text-[12px]">Transcript sẽ xuất hiện ở đây sau mỗi 5 giây ghi âm...</span>';
   chunkCount = 0;
   document.getElementById('chunk-counter').textContent = '';
+  document.getElementById('mic-no-credit').classList.add('hidden');
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────
@@ -508,4 +682,7 @@ function fmtTime(sec) {
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+checkTranscribeButton();
 </script>
+<% end %>
