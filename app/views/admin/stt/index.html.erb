@@ -17,6 +17,27 @@
   .hist-ai-panel { display:none; }
   .hist-ai-panel.open { display:block; }
   .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  /* Markdown rendered content */
+  .md-content { font-size:13px; color:#334155; line-height:1.65; }
+  .md-content p { margin:0 0 .6em; }
+  .md-content p:last-child { margin-bottom:0; }
+  .md-content strong { font-weight:700; color:#1e293b; }
+  .md-content em { font-style:italic; }
+  .md-content h1,.md-content h2,.md-content h3 { font-weight:700; color:#1e293b; margin:.8em 0 .3em; line-height:1.3; }
+  .md-content h1 { font-size:15px; }
+  .md-content h2 { font-size:14px; }
+  .md-content h3 { font-size:13px; }
+  .md-content ul { margin:.4em 0 .6em; padding:0; list-style:none; display:flex; flex-direction:column; gap:4px; }
+  .md-content ul li { display:flex; gap:7px; align-items:flex-start; }
+  .md-content ul li .bul { color:#6366f1; flex-shrink:0; margin-top:1px; font-size:14px; line-height:1.4; }
+  .md-content ol { margin:.4em 0 .6em; padding:0; list-style:none; display:flex; flex-direction:column; gap:4px; counter-reset:ol; }
+  .md-content ol li { display:flex; gap:7px; align-items:flex-start; counter-increment:ol; }
+  .md-content ol li .bul { color:#6366f1; font-weight:700; flex-shrink:0; min-width:16px; font-size:12px; margin-top:1px; }
+  .md-content code { background:#f1f5f9; border:1px solid #e2e8f0; border-radius:4px; padding:1px 5px; font-family:ui-monospace,monospace; font-size:11px; }
+  .md-content blockquote { border-left:3px solid #c7d2fe; margin:.4em 0; padding:.3em .7em; background:#f8f9ff; border-radius:0 6px 6px 0; color:#475569; font-style:italic; }
+  .md-content hr { border:none; border-top:1px solid #e2e8f0; margin:.6em 0; }
+  /* Smaller size for history panels */
+  .md-content.sm { font-size:12px; }
 </style>
 
 <!-- ── Page header ──────────────────────────────────────────────────── -->
@@ -312,7 +333,7 @@
                   <button onclick="downloadText('summarize-text','summary')" class="px-2 py-0.5 text-[10px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">⬇ <%= t("stt.download_btn") %></button>
                 </div>
               </div>
-              <div id="summarize-text" class="max-h-[200px] overflow-y-auto p-3 bg-white rounded-lg border border-violet-100 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap"></div>
+              <div id="summarize-text" class="md-content max-h-[240px] overflow-y-auto p-3 bg-white rounded-lg border border-violet-100 text-[12px] text-slate-800 leading-relaxed"></div>
             </div>
             <div id="summarize-error" class="hidden text-[12px] text-red-600 font-semibold"></div>
           </div>
@@ -350,7 +371,7 @@
                   <button onclick="downloadText('translate-text','translation')" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">⬇ <%= t("stt.download_btn") %></button>
                 </div>
               </div>
-              <div id="translate-text" class="max-h-[200px] overflow-y-auto p-3 bg-white rounded-lg border border-blue-100 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap"></div>
+              <div id="translate-text" class="md-content max-h-[240px] overflow-y-auto p-3 bg-white rounded-lg border border-blue-100 text-[12px] text-slate-800 leading-relaxed"></div>
             </div>
             <div id="translate-error" class="hidden text-[12px] text-red-600 font-semibold"></div>
           </div>
@@ -804,7 +825,7 @@ async function doSummarize() {
     const res  = await fetch(SUMMARIZE_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Lỗi server');
-    document.getElementById('summarize-text').textContent = data.result || '';
+    setMdContent('summarize-text', data.result || '');
     document.getElementById('summarize-result').classList.remove('hidden');
     const used = parseInt(res.headers.get('X-Credits-Used') || '2');
     if (used > 0) deductLocal(used);
@@ -839,7 +860,7 @@ async function doTranslate() {
     const res  = await fetch(TRANSLATE_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Lỗi server');
-    document.getElementById('translate-text').textContent = data.result || '';
+    setMdContent('translate-text', data.result || '');
     document.getElementById('translate-result').classList.remove('hidden');
     const used = parseInt(res.headers.get('X-Credits-Used') || '2');
     if (used > 0) deductLocal(used);
@@ -1070,7 +1091,7 @@ function renderHistory(items) {
                   <span class="text-[10px] font-bold text-violet-700 uppercase">${I18N.hist_sum_result}</span>
                   <button onclick="copyHistSumResult(${item.id})" class="px-1.5 py-0.5 text-[10px] bg-violet-100 hover:bg-violet-200 text-violet-700 rounded cursor-pointer border-0">${I18N.hist_copy}</button>
                 </div>
-                <div id="hist-sum-text-${item.id}" class="max-h-[160px] overflow-y-auto p-2.5 bg-white rounded-lg border border-violet-100 text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap"></div>
+                <div id="hist-sum-text-${item.id}" class="md-content sm max-h-[180px] overflow-y-auto p-2.5 bg-white rounded-lg border border-violet-100"></div>
               </div>
               <div id="hist-sum-err-${item.id}" class="hidden text-[11px] text-red-600 mt-1"></div>
             </div>
@@ -1098,7 +1119,7 @@ function renderHistory(items) {
                   <span class="text-[10px] font-bold text-blue-700 uppercase">${I18N.hist_tr_result}</span>
                   <button onclick="copyHistTrResult(${item.id})" class="px-1.5 py-0.5 text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-700 rounded cursor-pointer border-0">${I18N.hist_copy}</button>
                 </div>
-                <div id="hist-tr-text-${item.id}" class="max-h-[160px] overflow-y-auto p-2.5 bg-white rounded-lg border border-blue-100 text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap"></div>
+                <div id="hist-tr-text-${item.id}" class="md-content sm max-h-[180px] overflow-y-auto p-2.5 bg-white rounded-lg border border-blue-100"></div>
               </div>
               <div id="hist-tr-err-${item.id}" class="hidden text-[11px] text-red-600 mt-1"></div>
             </div>
@@ -1138,7 +1159,8 @@ async function doHistSummarize(id) {
     const res  = await fetch(SUMMARIZE_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Lỗi server');
-    document.getElementById(`hist-sum-text-${id}`).textContent = data.result || '';
+    setMdContent(`hist-sum-text-${id}`, data.result || '');
+    document.getElementById(`hist-sum-text-${id}`).dataset.plain = data.result || '';
     document.getElementById(`hist-sum-result-${id}`).classList.remove('hidden');
     const used = parseInt(res.headers.get('X-Credits-Used') || '2');
     if (used > 0) deductLocal(used);
@@ -1160,7 +1182,8 @@ async function doHistTranslate(id) {
     const res  = await fetch(TRANSLATE_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Lỗi server');
-    document.getElementById(`hist-tr-text-${id}`).textContent = data.result || '';
+    setMdContent(`hist-tr-text-${id}`, data.result || '');
+    document.getElementById(`hist-tr-text-${id}`).dataset.plain = data.result || '';
     document.getElementById(`hist-tr-result-${id}`).classList.remove('hidden');
     const used = parseInt(res.headers.get('X-Credits-Used') || '2');
     if (used > 0) deductLocal(used);
@@ -1200,8 +1223,14 @@ function downloadHistText(id, name) {
   a.download = `${(name||'transcript').replace(/[^a-z0-9]/gi,'_').substring(0,40)}-${Date.now()}.txt`;
   a.click();
 }
-function copyHistSumResult(id) { navigator.clipboard.writeText(document.getElementById(`hist-sum-text-${id}`).textContent); }
-function copyHistTrResult(id)  { navigator.clipboard.writeText(document.getElementById(`hist-tr-text-${id}`).textContent); }
+function copyHistSumResult(id) {
+  const el = document.getElementById(`hist-sum-text-${id}`);
+  navigator.clipboard.writeText(el.dataset.plain || el.innerText);
+}
+function copyHistTrResult(id) {
+  const el = document.getElementById(`hist-tr-text-${id}`);
+  navigator.clipboard.writeText(el.dataset.plain || el.innerText);
+}
 function setHistBtn(id, type, loading) {
   const btn  = document.getElementById(`hist-${type}-btn-${id}`);
   const lbl  = document.getElementById(`hist-${type}-lbl-${id}`);
@@ -1218,21 +1247,102 @@ function showHistErr(id, type, msg) {
 function clearHistErr(id, type) { document.getElementById(`hist-${type}-err-${id}`)?.classList.add('hidden'); }
 function histSourceIcon(src) { return src==='mic'?'🎙️':src==='url'?'🔗':'🎵'; }
 
+// ── Markdown renderer ─────────────────────────────────────────────────────
+function renderMarkdown(raw) {
+  if (!raw) return '';
+  // HTML-escape first (security)
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Inline formatting (runs on already-escaped text)
+  const inline = s => s
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,         '<em>$1</em>')
+    .replace(/`(.+?)`/g,           '<code>$1</code>');
+
+  const lines  = raw.split('\n');
+  let html     = '';
+  let listType = null;   // 'ul' | 'ol' | null
+  let para     = [];
+
+  const flushPara = () => {
+    if (!para.length) return;
+    html += `<p>${inline(para.join(' '))}</p>`;
+    para = [];
+  };
+  const flushList = () => {
+    if (listType) { html += `</${listType}>`; listType = null; }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const raw  = line.trim();
+
+    // Horizontal rule
+    if (/^[-*_]{3,}$/.test(raw)) {
+      flushPara(); flushList(); html += '<hr>'; continue;
+    }
+    // Blockquote
+    if (raw.startsWith('> ')) {
+      flushPara(); flushList();
+      html += `<blockquote>${inline(esc(raw.slice(2)))}</blockquote>`; continue;
+    }
+    // Headings
+    const hm = raw.match(/^(#{1,3})\s+(.+)/);
+    if (hm) {
+      flushPara(); flushList();
+      const lvl = hm[1].length;
+      html += `<h${lvl}>${inline(esc(hm[2]))}</h${lvl}>`; continue;
+    }
+    // Unordered list (•, -, *, +)
+    const ulm = raw.match(/^[•\-\*\+]\s+(.+)/);
+    if (ulm) {
+      flushPara();
+      if (listType !== 'ul') { flushList(); html += '<ul>'; listType = 'ul'; }
+      html += `<li><span class="bul">•</span><span>${inline(esc(ulm[1]))}</span></li>`; continue;
+    }
+    // Ordered list
+    const olm = raw.match(/^(\d+)[.)]\s+(.+)/);
+    if (olm) {
+      flushPara();
+      if (listType !== 'ol') { flushList(); html += '<ol>'; listType = 'ol'; }
+      html += `<li><span class="bul">${olm[1]}.</span><span>${inline(esc(olm[2]))}</span></li>`; continue;
+    }
+    // Empty line
+    if (raw === '') {
+      flushPara(); flushList(); continue;
+    }
+    // Normal text — accumulate into paragraph
+    flushList();
+    para.push(esc(raw));
+  }
+  flushPara(); flushList();
+  return html;
+}
+function setMdContent(elId, text) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = renderMarkdown(text);
+}
+
 // ── Utils ─────────────────────────────────────────────────────────────────
 function getSupportedMimeType() {
   return ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4']
     .find(t => MediaRecorder.isTypeSupported(t)) || '';
 }
-function copyText(elId) {
+function getPlainText(elId) {
   const el = document.getElementById(elId);
-  navigator.clipboard.writeText(el.textContent).then(() => {
+  // Prefer stored plain text (for md-content boxes), else innerText
+  return el.dataset.plain ?? el.innerText ?? el.textContent;
+}
+function copyText(elId) {
+  navigator.clipboard.writeText(getPlainText(elId)).then(() => {
     const btn = event.target; const orig = btn.textContent;
     btn.textContent = '✅'; setTimeout(() => btn.textContent = orig, 1500);
   });
 }
 function downloadText(elId, name) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([document.getElementById(elId).textContent], { type:'text/plain' }));
+  a.href = URL.createObjectURL(new Blob([getPlainText(elId)], { type:'text/plain' }));
   a.download = `${name}-${Date.now()}.txt`; a.click();
 }
 function formatBytes(b) {
