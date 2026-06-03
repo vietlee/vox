@@ -26,7 +26,8 @@
        data-tts-generate-url="<%= tts_generate_path %>"
        data-tts-label-generating="<%= t("tts.generating") %>"
        data-tts-label-generate="🎙️ <%= t("tts.generate_btn") %>"
-       data-tts-label-other-voices="<%= t("tts.other_voices") %>">
+       data-tts-label-other-voices="<%= t("tts.other_voices") %>"
+       data-tts-remaining-credits="<%= current_workspace&.active_subscription&.credit_balance.to_i %>">
 
     <% unless ENV["ELEVENLABS_API_KEY"].present? %>
       <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[13px] flex items-start gap-2">
@@ -68,6 +69,13 @@
               <div data-tts-target="charBar" class="h-full bg-indigo-400 rounded-full transition-all" style="width:0%"></div>
             </div>
           </div>
+        </div>
+
+        <!-- Credit warning (shown when estimated > remaining) -->
+        <div data-tts-target="creditWarning"
+             class="hidden p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[13px] flex items-start gap-2">
+          <span class="text-base leading-none mt-px">⚠️</span>
+          <span data-tts-target="creditWarningText"></span>
         </div>
 
         <!-- Generate Button -->

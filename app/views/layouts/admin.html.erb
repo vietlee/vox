@@ -129,7 +129,8 @@
         </div>
         <script>
           // Global helper — called after any AI job completes
-          window.__maxCredits = <%= sub.max_ai_credits.nil? ? 'null' : sub.max_ai_credits %>;
+          window.__maxCredits     = <%= sub.max_ai_credits.nil? ? 'null' : sub.max_ai_credits %>;
+          window.__currentCredits = <%= sub.credit_balance %>;
           window.deductDisplayCredits = function(amount) {
             const el  = document.getElementById('nav-credit-balance');
             const bar = document.getElementById('nav-credit-bar');
@@ -137,6 +138,7 @@
             const current = parseInt(el.textContent) || 0;
             const next    = Math.max(0, current - amount);
             el.textContent = next;
+            window.__currentCredits = next;
             if (bar && window.__maxCredits) {
               bar.style.width = Math.round((next / window.__maxCredits) * 100) + '%';
             }

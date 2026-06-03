@@ -27,7 +27,8 @@ export default class extends Controller {
     "outputFormat",
     "generateBtn", "btnLabel", "spinner",
     "result", "player", "downloadLink",
-    "error"
+    "error",
+    "creditWarning", "creditWarningText"
   ]
 
   connect() {
@@ -92,11 +93,53 @@ export default class extends Controller {
 
     if (len === 0) {
       this.costEstimateTarget.textContent = "—"
+      this.costEstimateTarget.className = "font-semibold text-indigo-600"
+      this._clearCreditWarning()
       return
     }
 
-    const credits = ttsCredits(len, model)
-    this.costEstimateTarget.textContent = `${credits} credit${credits > 1 ? "s" : ""}`
+    const credits  = ttsCredits(len, model)
+    const remaining = this.remainingCredits
+
+    if (remaining !== null && credits > remaining) {
+      this.costEstimateTarget.textContent = `${credits} credits`
+      this.costEstimateTarget.className   = "font-semibold text-red-600"
+      this._showCreditWarning(credits, remaining)
+    } else {
+      this.costEstimateTarget.textContent = `${credits} credit${credits > 1 ? "s" : ""}`
+      this.costEstimateTarget.className   = "font-semibold text-indigo-600"
+      this._clearCreditWarning()
+    }
+  }
+
+  // ── Credit guard helpers ──────────────────────────────────────────
+  get remainingCredits() {
+    // Prefer live value updated by deductDisplayCredits
+    if (typeof window.__currentCredits === "number") return window.__currentCredits
+    // Fall back to server-rendered value on page load
+    const v = parseInt(this.element.dataset.ttsRemainingCredits)
+    return isNaN(v) ? null : v
+  }
+
+  _showCreditWarning(needed, remaining) {
+    if (this.hasCreditWarningTarget) {
+      this.creditWarningTextTarget.textContent =
+        `Cần ${needed} credit nhưng bạn chỉ còn ${remaining} credit. Vui lòng nạp thêm hoặc rút ngắn văn bản.`
+      this.creditWarningTarget.classList.remove("hidden")
+    }
+    this.generateBtnTarget.disabled = true
+    this.generateBtnTarget.classList.add("opacity-50", "cursor-not-allowed")
+  }
+
+  _clearCreditWarning() {
+    if (this.hasCreditWarningTarget) {
+      this.creditWarningTarget.classList.add("hidden")
+    }
+    // Only re-enable if not currently loading
+    if (!this._loading) {
+      this.generateBtnTarget.disabled = false
+      this.generateBtnTarget.classList.remove("opacity-50", "cursor-not-allowed")
+    }
   }
 
   // ── Slider display ─────────────────────────────────────────────────
@@ -166,6 +209,14 @@ export default class extends Controller {
 
     if (!text) {
       this.showError("Vui lòng nhập nội dung văn bản")
+      return
+    }
+
+    // Guard: re-check credits before sending request
+    const needed    = ttsCredits(text.length, model)
+    const remaining = this.remainingCredits
+    if (remaining !== null && needed > remaining) {
+      this._showCreditWarning(needed, remaining)
       return
     }
 
@@ -246,11 +297,14 @@ export default class extends Controller {
 
   // ── Helpers ───────────────────────────────────────────────────────
   setLoading(loading) {
+    this._loading = loading
     this.generateBtnTarget.disabled = loading
     this.spinnerTarget.classList.toggle("hidden", !loading)
     this.btnLabelTarget.textContent = loading
       ? (this.element.dataset.ttsLabelGenerating || "...")
       : (this.element.dataset.ttsLabelGenerate   || "🎙️ Generate")
+    // After finishing, re-run credit check so disabled state is accurate
+    if (!loading) this.updateCost()
   }
 
   showError(msg, code = "unknown") {
