@@ -622,13 +622,19 @@ function creditsForSecs(secs) {
 
 // ── Main tabs ─────────────────────────────────────────────────────────────
 let historyLoaded = false;
-function switchMainTab(tab) {
+function switchMainTab(tab, pushHash = true) {
   ['file','mic','history'].forEach(t => {
     document.getElementById(`main-panel-${t}`).classList.toggle('hidden', t !== tab);
     document.getElementById(`main-tab-${t}`).classList.toggle('active', t === tab);
   });
   if (tab === 'history' && !historyLoaded) loadHistory();
+  if (pushHash) history.replaceState(null, '', '#' + tab);
 }
+// Restore tab from URL hash on load
+(function() {
+  const tab = window.location.hash.replace('#','');
+  if (['file','mic','history'].includes(tab)) switchMainTab(tab, false);
+})();
 
 // ── Source sub-tabs (File | URL) ──────────────────────────────────────────
 let activeSrcTab = 'file';
