@@ -468,7 +468,7 @@
           <span class="text-2xl">🪙</span>
           <div>
             <p class="text-[13px] font-bold text-violet-800">Giá sử dụng</p>
-            <p class="text-[12px] text-violet-600"><%= t("stt.credit_rate") %> · ElevenLabs Scribe v2 (~$0.40/giờ)</p>
+            <p class="text-[12px] text-violet-600"><%= t("stt.credit_rate") %></p>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3 mb-6">
@@ -567,19 +567,19 @@
 <% if @has_stt %>
 <script>
 // ── URL constants ─────────────────────────────────────────────────────────
-const TRANSCRIBE_URL     = "<%= stt_transcribe_path %>";
-const TRANSCRIBE_URL_URL = "<%= stt_transcribe_url_path %>";
-const CHUNK_URL          = "<%= stt_transcribe_chunk_path %>";
-const SUMMARIZE_URL      = "<%= stt_summarize_path %>";
-const TRANSLATE_URL      = "<%= stt_translate_path %>";
-const HISTORY_URL        = "<%= stt_history_path %>";
-const SAVE_MIC_URL       = "<%= stt_save_mic_path %>";
-const DELETE_HISTORY_URL = "<%= stt_destroy_history_path(id: '__ID__') %>";
-const CSRF               = document.querySelector('meta[name="csrf-token"]').content;
-const SECS_PER_CREDIT    = 60;
+var TRANSCRIBE_URL     = "<%= stt_transcribe_path %>";
+var TRANSCRIBE_URL_URL = "<%= stt_transcribe_url_path %>";
+var CHUNK_URL          = "<%= stt_transcribe_chunk_path %>";
+var SUMMARIZE_URL      = "<%= stt_summarize_path %>";
+var TRANSLATE_URL      = "<%= stt_translate_path %>";
+var HISTORY_URL        = "<%= stt_history_path %>";
+var SAVE_MIC_URL       = "<%= stt_save_mic_path %>";
+var DELETE_HISTORY_URL = "<%= stt_destroy_history_path(id: '__ID__') %>";
+var CSRF               = document.querySelector('meta[name="csrf-token"]').content;
+var SECS_PER_CREDIT    = 60;
 
 // ── I18n strings used in JS ───────────────────────────────────────────────
-const I18N = {
+var I18N = {
   btn_transcribe:    "<%= j t('stt.btn_transcribe') %>",
   btn_uploading:     "<%= j t('stt.btn_uploading') %>",
   btn_downloading:   "<%= j t('stt.btn_downloading') %>",
@@ -631,8 +631,8 @@ function creditsForSecs(secs) {
 }
 
 // ── History badge helpers ─────────────────────────────────────────────────
-let historyLoaded = false;
-let histPage = 1, histTotal = 0, histHasMore = false;
+var historyLoaded = false;
+var histPage = 1, histTotal = 0, histHasMore = false;
 
 function _histBadgeSync() {
   // Keep histTotal in sync with the server-rendered initial value on first load
@@ -663,7 +663,7 @@ function switchMainTab(tab, pushHash = true) {
 })();
 
 // ── Source sub-tabs (File | URL) ──────────────────────────────────────────
-let activeSrcTab = 'file';
+var activeSrcTab = 'file';
 function switchSrcTab(tab) {
   activeSrcTab = tab;
   ['file','url'].forEach(t => {
@@ -678,7 +678,7 @@ function switchSrcTab(tab) {
 }
 
 // ── File Upload ───────────────────────────────────────────────────────────
-let selectedFile = null, fileDurationSecs = 0;
+var selectedFile = null, fileDurationSecs = 0;
 
 function handleFileSelect(input) { if (input.files[0]) setFile(input.files[0]); }
 function handleFileDrop(e) {
@@ -786,9 +786,15 @@ async function transcribeUrl() {
   fd.append('diarize',       document.getElementById('file-diarize').checked ? 'true' : 'false');
   await doTranscribe(TRANSCRIBE_URL_URL, fd);
 }
+// JS-side timeout: 11 min — slightly longer than server STT_READ_TIMEOUT (600s) + upload buffer.
+// Ensures the user gets a friendly message instead of a silent browser-level connection drop.
+var TRANSCRIBE_TIMEOUT_MS = 660000;
+
 async function doTranscribe(endpoint, fd) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), TRANSCRIBE_TIMEOUT_MS);
   try {
-    const res  = await fetch(endpoint, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
+    const res  = await fetch(endpoint, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd, signal:ctrl.signal });
     const data = await res.json();
     if (!res.ok) {
       showFileError(data.upgrade_required ? "Gói của bạn không hỗ trợ tính năng này."
@@ -800,8 +806,16 @@ async function doTranscribe(endpoint, fd) {
     if (used > 0) deductLocal(used);
     showResult(data, used);
     checkTranscribeButton();
-  } catch(e) { showFileError("Không thể kết nối server. Vui lòng thử lại."); }
-  finally    { setLoading(false, I18N.btn_transcribe); }
+  } catch(e) {
+    if (e.name === 'AbortError') {
+      showFileError("Quá thời gian xử lý (>11 phút). File quá lớn hoặc đường truyền chậm — vui lòng thử file ngắn hơn.");
+    } else {
+      showFileError("Không thể kết nối server. Vui lòng thử lại.");
+    }
+  } finally {
+    clearTimeout(tid);
+    setLoading(false, I18N.btn_transcribe);
+  }
 }
 function showResult(data, used) {
   document.getElementById('file-empty-state').classList.add('hidden');
@@ -840,7 +854,7 @@ function hideResultError() {
   document.getElementById('file-empty-state').classList.remove('hidden');
   document.getElementById('file-error').classList.add('hidden');
 }
-let wordsVisible = false;
+var wordsVisible = false;
 function toggleWords() {
   wordsVisible = !wordsVisible;
   document.getElementById('file-words').classList.toggle('hidden', !wordsVisible);
@@ -848,10 +862,10 @@ function toggleWords() {
 }
 
 // ── AI Modal ──────────────────────────────────────────────────────────────
-let aiModal = { mode: null, text: null };
+var aiModal = { mode: null, text: null };
 
-const LANG_OPTS_SUM = `<option value="vi">🇻🇳 Tiếng Việt</option><option value="en">🇺🇸 English</option><option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option><option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option><option value="th">🇹🇭 Thai</option><option value="id">🇮🇩 Indonesian</option>`;
-const LANG_OPTS_TR  = `<option value="en">🇺🇸 English</option><option value="vi">🇻🇳 Tiếng Việt</option><option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option><option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option><option value="th">🇹🇭 Thai</option><option value="id">🇮🇩 Indonesian</option>`;
+var LANG_OPTS_SUM = `<option value="vi">🇻🇳 Tiếng Việt</option><option value="en">🇺🇸 English</option><option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option><option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option><option value="th">🇹🇭 Thai</option><option value="id">🇮🇩 Indonesian</option>`;
+var LANG_OPTS_TR  = `<option value="en">🇺🇸 English</option><option value="vi">🇻🇳 Tiếng Việt</option><option value="zh">🇨🇳 中文</option><option value="ja">🇯🇵 日本語</option><option value="ko">🇰🇷 한국어</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option><option value="es">🇪🇸 Español</option><option value="th">🇹🇭 Thai</option><option value="id">🇮🇩 Indonesian</option>`;
 
 function _aiModalShowPh(icon, text) {
   document.getElementById('ai-modal-ph-icon').textContent = icon;
@@ -960,9 +974,9 @@ function getHistText(id) {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAiModal(); });
 
 // ── Realtime Mic ──────────────────────────────────────────────────────────
-let mediaRecorder=null, micStream=null, micTimer=null;
-let micSeconds=0, chunkCount=0, audioCtx=null, analyser=null, volInterval=null;
-let isMicRecording=false;
+var mediaRecorder=null, micStream=null, micTimer=null;
+var micSeconds=0, chunkCount=0, audioCtx=null, analyser=null, volInterval=null;
+var isMicRecording=false;
 
 async function toggleMic() { isMicRecording ? stopMic() : await startMic(); }
 async function startMic() {
@@ -1274,7 +1288,7 @@ function toggleHistoryDetail(id) {
   if (!isOpen) { detail.classList.remove('hidden'); toggle.textContent = I18N.hist_collapse; }
 }
 // ── Delete Confirm Modal ──────────────────────────────────────────────────
-let pendingDeleteId = null;
+var pendingDeleteId = null;
 function openDelModal(id, title) {
   pendingDeleteId = id;
   document.getElementById('del-modal-name').textContent = title || '';

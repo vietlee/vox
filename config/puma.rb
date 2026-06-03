@@ -9,7 +9,7 @@ if ENV["RAILS_ENV"] == "production"
   state_path "#{shared}/tmp/pids/puma.state"
   stdout_redirect "#{shared}/log/puma.log", "#{shared}/log/puma.log", true
   workers ENV.fetch("WEB_CONCURRENCY", 2)
-  worker_timeout 360   # allow up to 5-min ElevenLabs TTS requests + buffer
+  worker_timeout 720   # must be > STT_READ_TIMEOUT (600s) + overhead. Chain: HTTParty 600s < Puma 720s < Nginx 780s
   preload_app!
 else
   port ENV.fetch("PORT", 3000)

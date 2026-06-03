@@ -324,18 +324,33 @@ class Admin::SttController < Admin::BaseController
     end
   end
 
+  # Maximum time allowed for yt-dlp to download + convert a remote video/audio.
+  # Keeps a Puma thread from being blocked indefinitely.
+  YTDLP_TIMEOUT_SECS = 300   # 5 minutes — generous for most videos, safe under Puma worker_timeout (720s)
+
   # Download audio from any yt-dlp-supported URL → returns local tmp file path
   def download_audio_from_url(url)
     dir      = Dir.mktmpdir("stt_url_")
     out_tmpl = File.join(dir, "audio.%(ext)s")
 
+    # --socket-timeout 30  : abort if the remote server stops sending data for 30s
+    # --retries 2          : retry transient network errors twice
     cmd = "#{YTDLP_CMD} --no-playlist --extract-audio --audio-format mp3 " \
           "--audio-quality 0 --max-filesize 2048m " \
+          "--socket-timeout 30 --retries 2 " \
           "--output #{Shellwords.escape(out_tmpl)} " \
           "#{Shellwords.escape(url)} 2>&1"
 
     Rails.logger.info "yt-dlp download: #{url}"
-    output = `#{cmd}`
+
+    output = nil
+    begin
+      Timeout.timeout(YTDLP_TIMEOUT_SECS) { output = `#{cmd}` }
+    rescue Timeout::Error
+      FileUtils.rm_rf(dir) rescue nil
+      raise "Tải audio quá lâu (quá #{YTDLP_TIMEOUT_SECS / 60} phút). Vui lòng thử URL khác hoặc tải file thủ công."
+    end
+
     Rails.logger.info "yt-dlp output: #{output.last(500)}"
 
     unless $?.success?

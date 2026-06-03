@@ -155,49 +155,95 @@ class ElevenLabsService
   # diarize       : true = identify individual speakers
   #
   # Returns hash: { text:, words:, language_code:, language_probability: }
+  #
+  # Timeout strategy (must satisfy: HTTParty < Puma worker_timeout < Nginx proxy_read_timeout):
+  #   HTTParty read_timeout  : 600s (10 min) — covers upload to ElevenLabs + processing time
+  #   HTTParty open_timeout  :  30s          — fail fast if API unreachable
+  #   Puma worker_timeout    : 720s (set in puma.rb)
+  #   Nginx proxy_read_timeout: 780s (set in nginx conf for /stt/ paths)
+  STT_READ_TIMEOUT = 600
+  STT_OPEN_TIMEOUT = 30
+  STT_MAX_ATTEMPTS = 2   # retry once on transient 5xx / network errors
+
   def speech_to_text(audio_io:, filename: "audio.webm", model: "scribe_v2",
                      language_code: nil, timestamps: "none", diarize: false)
     Rails.logger.info "ElevenLabs STT start: model=#{model} file=#{filename}"
 
-    # Build multipart body using httmultiparty-style approach via HTTParty
     body = {
-      file:     audio_io,
-      model_id: model,
+      file:                   audio_io,
+      model_id:               model,
       timestamps_granularity: timestamps,
-      diarize:  diarize.to_s,
-      tag_audio_events: "true"
+      diarize:                diarize.to_s,
+      tag_audio_events:       "true"
     }
     body[:language_code] = language_code if language_code.present?
 
-    response = HTTParty.post(
-      "#{BASE_URL}/v1/speech-to-text",
-      headers: { "xi-api-key" => @api_key },
-      multipart: true,
-      body:    body,
-      timeout: 300
-    )
+    STT_MAX_ATTEMPTS.times do |attempt|
+      begin
+        response = HTTParty.post(
+          "#{BASE_URL}/v1/speech-to-text",
+          headers:  { "xi-api-key" => @api_key },
+          multipart: true,
+          body:      body,
+          read_timeout: STT_READ_TIMEOUT,
+          open_timeout: STT_OPEN_TIMEOUT
+        )
 
-    unless response.success?
-      log_http_error(response, 0, 1)
-      raise build_http_error(response)
+        if response.success?
+          parsed = JSON.parse(response.body)
+          Rails.logger.info "ElevenLabs STT ok (attempt #{attempt + 1}): #{parsed['text']&.length} chars"
+          return {
+            text:                 parsed["text"].to_s,
+            words:                parsed["words"] || [],
+            language_code:        parsed["language_code"],
+            language_probability: parsed["language_probability"]
+          }
+        end
+
+        log_http_error(response, attempt, STT_MAX_ATTEMPTS)
+
+        # Retry on transient server errors; raise immediately on client errors
+        retryable = [500, 502, 503, 504].include?(response.code)
+        if retryable && attempt < STT_MAX_ATTEMPTS - 1
+          sleep (attempt + 1) * 3
+          # Rewind IO so the file can be re-uploaded on retry
+          audio_io.rewind rescue nil
+          next
+        end
+
+        raise build_http_error(response)
+
+      rescue ElevenLabsService::Error
+        raise
+
+      rescue Timeout::Error, Net::ReadTimeout, Net::OpenTimeout => e
+        log_network_error(e, attempt, STT_MAX_ATTEMPTS)
+        if attempt < STT_MAX_ATTEMPTS - 1
+          sleep (attempt + 1) * 3
+          audio_io.rewind rescue nil
+          next
+        end
+        raise ElevenLabsService::Error.new(
+          "ElevenLabs STT timeout sau #{STT_READ_TIMEOUT}s. File quá lớn hoặc đường truyền chậm — vui lòng thử file ngắn hơn.",
+          code: :timeout
+        )
+
+      rescue HTTParty::Error, SocketError, Errno::ECONNREFUSED, Errno::ECONNRESET,
+             OpenSSL::SSL::SSLError, EOFError => e
+        log_network_error(e, attempt, STT_MAX_ATTEMPTS)
+        if attempt < STT_MAX_ATTEMPTS - 1
+          sleep (attempt + 1) * 3
+          audio_io.rewind rescue nil
+          next
+        end
+        raise ElevenLabsService::Error.new(
+          "Không thể kết nối ElevenLabs (#{e.class.name.demodulize}). Vui lòng thử lại.",
+          code: :network_error
+        )
+      end
     end
-
-    parsed = JSON.parse(response.body)
-    Rails.logger.info "ElevenLabs STT ok: #{parsed['text']&.length} chars"
-
-    {
-      text:                 parsed["text"].to_s,
-      words:                parsed["words"] || [],
-      language_code:        parsed["language_code"],
-      language_probability: parsed["language_probability"]
-    }
   rescue ElevenLabsService::Error
     raise
-  rescue Timeout::Error, Net::ReadTimeout, Net::OpenTimeout => e
-    raise ElevenLabsService::Error.new(
-      "ElevenLabs STT timeout. Vui lòng thử lại.",
-      code: :timeout
-    )
   rescue => e
     Rails.logger.error "ElevenLabsService#speech_to_text error: #{e.message} (#{e.class})"
     raise
