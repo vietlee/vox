@@ -1014,7 +1014,10 @@ function stopMic() {
   const txtEl = document.getElementById('mic-transcript-text');
   const text = txtEl.innerText?.trim() || '';
   const hasPlaceholder = txtEl.querySelector('span.text-slate-400') !== null;
-  if (!hasPlaceholder && text.length > 0 && chunkCount > 0) saveMicTranscript(text);
+  if (!hasPlaceholder && text.length > 0 && chunkCount > 0) {
+    bumpHistoryBadge(1);
+    saveMicTranscript(text);
+  }
 }
 async function saveMicTranscript(text) {
   try {
@@ -1025,7 +1028,6 @@ async function saveMicTranscript(text) {
     fd.append('credits_used',  chunkCount.toString());
     await fetch(SAVE_MIC_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd });
     historyLoaded = false;
-    bumpHistoryBadge(1);
   } catch(e) { /* silent */ }
 }
 async function sendChunk(blob) {
