@@ -55,15 +55,16 @@ class Admin::SttController < Admin::BaseController
     render json: {
       items:    records.map { |r|
         {
-          id:              r.id,
-          title:           r.display_title,
-          full_title:      r.title,
-          transcript_text: r.transcript_text,
-          language_code:   r.language_code,
-          duration_secs:   r.duration_secs.to_f,
-          credits_used:    r.credits_used,
-          source:          r.source,
-          created_at:      r.created_at.strftime("%d/%m/%Y %H:%M")
+          id:               r.id,
+          title:            r.display_title,
+          full_title:       r.title,
+          transcript_text:  r.transcript_text,
+          language_code:    r.language_code,
+          duration_secs:    r.duration_secs.to_f,
+          credits_used:     r.credits_used,
+          source:           r.source,
+          speaker_segments: r.speaker_segments,
+          created_at:       r.created_at.strftime("%d/%m/%Y %H:%M")
         }
       },
       page:     page,
@@ -193,23 +194,27 @@ class Admin::SttController < Admin::BaseController
       current_workspace.active_subscription&.deduct_credits!(credits)
       response.headers["X-Credits-Used"] = credits.to_s
 
+      # Build speaker segments when diarize was requested
+      segments = build_speaker_segments(result[:words]) if diarize && result[:words].any?
+
       # Save to history
       begin
         if result[:text].present?
           current_workspace.stt_transcripts.create!(
-            title:           url.truncate(200),
-            transcript_text: result[:text],
-            language_code:   result[:language_code],
-            duration_secs:   duration_secs,
-            credits_used:    credits,
-            source:          "url"
+            title:            url.truncate(200),
+            transcript_text:  result[:text],
+            language_code:    result[:language_code],
+            duration_secs:    duration_secs,
+            credits_used:     credits,
+            source:           "url",
+            speaker_segments: segments.presence
           )
         end
       rescue => e
         Rails.logger.warn "SttController: history save failed: #{e.message}"
       end
 
-      render json: result
+      render json: result.merge(speaker_segments: segments)
 
     rescue ElevenLabsService::Error => e
       # ── Fallback: yt-dlp download for non-video-platform URLs ──────────────
@@ -388,23 +393,28 @@ class Admin::SttController < Admin::BaseController
     current_workspace.active_subscription&.deduct_credits!(credits)
     response.headers["X-Credits-Used"] = credits.to_s
 
+    # Build speaker segments for history (when diarize was requested)
+    segments = build_speaker_segments(result[:words]) if diarize && result[:words].any?
+
     # Save to history (best-effort, never block the response)
     begin
       if result[:text].present? && source != "chunk"
         current_workspace.stt_transcripts.create!(
-          title:           (title || filename.to_s).truncate(200),
-          transcript_text: result[:text],
-          language_code:   result[:language_code],
-          duration_secs:   credits * SECONDS_PER_CREDIT.to_f,
-          credits_used:    credits,
-          source:          source
+          title:            (title || filename.to_s).truncate(200),
+          transcript_text:  result[:text],
+          language_code:    result[:language_code],
+          duration_secs:    credits * SECONDS_PER_CREDIT.to_f,
+          credits_used:     credits,
+          source:           source,
+          speaker_segments: segments.presence
         )
       end
     rescue => e
       Rails.logger.warn "SttController: history save failed: #{e.message}"
     end
 
-    render json: result
+    # Include speaker_segments in the response so the UI can render immediately
+    render json: result.merge(speaker_segments: segments)
   rescue ElevenLabsService::Error => e
     render json: { error: e.message, error_code: e.code }, status: :service_unavailable
   rescue => e
@@ -503,5 +513,26 @@ class Admin::SttController < Admin::BaseController
         upgrade_required: true
       }, status: :payment_required
     end
+  end
+
+  # Group words array (from ElevenLabs) into speaker segments.
+  # Input:  [{ "text"=>"..", "start"=>0.1, "end"=>0.5, "speaker_id"=>"speaker_0", ... }, ...]
+  # Output: [{ speaker_id: "speaker_0", start: 0.1, end: 3.5, tokens: ["Hi,", "everyone."] }, ...]
+  def build_speaker_segments(words)
+    segments = []
+    current  = nil
+    words.each do |w|
+      text = w["text"] || w[:text]
+      next if text.nil? || text.strip.empty?
+      sid = w["speaker_id"] || w[:speaker_id] || "unknown"
+      if current.nil? || current[:speaker_id] != sid
+        segments << current if current
+        current = { speaker_id: sid, start: (w["start"] || w[:start]).to_f, end: (w["end"] || w[:end]).to_f, tokens: [] }
+      end
+      current[:tokens] << text
+      current[:end] = (w["end"] || w[:end]).to_f
+    end
+    segments << current if current
+    segments
   end
 end

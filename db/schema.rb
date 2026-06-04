@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_03_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_04_070000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -348,6 +348,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_03_120000) do
     t.string "source", default: "file", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "speaker_segments"
     t.index ["workspace_id", "created_at"], name: "index_stt_transcripts_on_workspace_id_and_created_at"
     t.index ["workspace_id"], name: "index_stt_transcripts_on_workspace_id"
   end

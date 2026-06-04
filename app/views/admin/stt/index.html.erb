@@ -864,12 +864,16 @@ function showResult(data, used) {
   var cb = document.getElementById('file-credits-used-badge');
   if (used > 0) { cb.textContent = '🪙 -' + used + ' credit'; cb.classList.remove('hidden'); }
 
-  var words = data.words || [];
-  var hasSpeakers = words.some(function(w){ return w.speaker_id; });
+  // Prefer pre-built speaker_segments from server (already grouped).
+  // Fall back to building from words array if segments not provided.
+  var words    = data.words || [];
+  var segments = data.speaker_segments || null;
+  if (!segments && words.some(function(w){ return w.speaker_id; })) {
+    segments = buildSpeakerSegments(words);
+  }
 
-  if (hasSpeakers) {
-    // Build speaker segments and show diarization view by default
-    var segments = buildSpeakerSegments(words);
+  if (segments && segments.length > 0) {
+    // Show diarization view by default
     var speakerIds = [...new Set(segments.map(function(s){ return s.speaker_id; }))];
     renderSpeakerView(segments, speakerIds);
     document.getElementById('speaker-count-badge').textContent = speakerIds.length + ' người nói được phát hiện';
@@ -929,18 +933,23 @@ function buildSpeakerSegments(words) {
   return segments;
 }
 
-function renderSpeakerView(segments, speakerIds) {
-  // Assign colors to speakers in order of first appearance
-  speakerColorMap = {};
-  for (var i = 0; i < speakerIds.length; i++) {
-    speakerColorMap[speakerIds[i]] = SPEAKER_COLORS[i % SPEAKER_COLORS.length];
-  }
-  var html = segments.map(function(seg) {
-    var c = speakerColorMap[seg.speaker_id] || SPEAKER_COLORS[0];
+// Build speaker view HTML from segments array (reused in live result + history)
+function buildSpeakerViewHtml(segments) {
+  // Build a local color map for this render
+  var localColorMap = {};
+  var colorIdx = 0;
+  segments.forEach(function(seg) {
+    if (!(seg.speaker_id in localColorMap)) {
+      localColorMap[seg.speaker_id] = SPEAKER_COLORS[colorIdx % SPEAKER_COLORS.length];
+      colorIdx++;
+    }
+  });
+  return segments.map(function(seg) {
+    var c = localColorMap[seg.speaker_id] || SPEAKER_COLORS[0];
     var label = seg.speaker_id.replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase(); });
     var initials = label.replace('Speaker ', 'S');
     var ts = fmtTimeShort(seg.start);
-    var text = escHtml(seg.tokens.join(' '));
+    var text = escHtml((seg.tokens || []).join(' '));
     return '<div class="flex gap-3 py-3 px-3 rounded-xl ' + c.bg + ' border-l-4 ' + c.bar + '">'
       + '<div class="flex-shrink-0 pt-0.5">'
       + '<div class="w-8 h-8 rounded-full ' + c.dot + ' flex items-center justify-center text-white text-[10px] font-bold select-none shadow-sm">' + escHtml(initials) + '</div>'
@@ -954,7 +963,27 @@ function renderSpeakerView(segments, speakerIds) {
       + '</div>'
       + '</div>';
   }).join('<div class="h-2"></div>');
-  document.getElementById('file-speaker-view').innerHTML = html;
+}
+
+function renderSpeakerView(segments, speakerIds) {
+  // Keep global map in sync for setView toggle state
+  speakerColorMap = {};
+  speakerIds.forEach(function(sid, i) {
+    speakerColorMap[sid] = SPEAKER_COLORS[i % SPEAKER_COLORS.length];
+  });
+  document.getElementById('file-speaker-view').innerHTML = buildSpeakerViewHtml(segments);
+}
+
+// Toggle speaker ↔ plain text in a history detail panel
+function toggleHistView(id) {
+  var sv = document.getElementById('hist-speaker-' + id);
+  var tv = document.getElementById('hist-text-' + id);
+  var btn = document.getElementById('hist-view-toggle-' + id);
+  if (!sv || !tv) return;
+  var showingSpeaker = !sv.classList.contains('hidden');
+  sv.classList.toggle('hidden', showingSpeaker);
+  tv.classList.toggle('hidden', !showingSpeaker);
+  if (btn) btn.textContent = showingSpeaker ? '👥 Speakers' : '📄 Văn bản';
 }
 
 var currentView = 'text';
@@ -1325,15 +1354,26 @@ function renderHistory(items, total, hasMore) {
         <div class="px-5 py-4 space-y-3">
           <div>
             <div class="flex items-center justify-between mb-1.5">
-              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${I18N.hist_content}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${I18N.hist_content}</span>
+                ${item.speaker_segments && item.speaker_segments.length > 0
+                  ? `<button id="hist-view-toggle-${item.id}" onclick="toggleHistView(${item.id})"
+                       class="px-2 py-0.5 text-[10px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded border border-indigo-200 cursor-pointer">
+                       📄 Văn bản
+                     </button>`
+                  : ''}
+              </div>
               <div class="flex gap-1.5">
                 <button onclick="copyHistText(${item.id}, this)" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">${I18N.hist_copy}</button>
                 <button onclick="downloadHistText(${item.id}, '${escHtml(item.title).replace(/'/g,'').substring(0,30)}')" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">${I18N.hist_download}</button>
               </div>
             </div>
+            ${item.speaker_segments && item.speaker_segments.length > 0
+              ? `<div id="hist-speaker-${item.id}" class="max-h-[360px] overflow-y-auto space-y-2 pr-1">${buildSpeakerViewHtml(item.speaker_segments)}</div>`
+              : ''}
             <div id="hist-text-${item.id}"
                  data-full="${escHtml(item.transcript_text)}"
-                 class="max-h-[200px] overflow-y-auto p-3 bg-white rounded-lg border border-slate-200 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">${escHtml(item.transcript_text)}</div>
+                 class="${item.speaker_segments && item.speaker_segments.length > 0 ? 'hidden ' : ''}max-h-[200px] overflow-y-auto p-3 bg-white rounded-lg border border-slate-200 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">${escHtml(item.transcript_text)}</div>
           </div>
 
           <div class="border-t border-slate-200 pt-3">
@@ -1393,14 +1433,25 @@ function appendHistory(items, total, hasMore) {
         <div class="px-5 py-4 space-y-3">
           <div>
             <div class="flex items-center justify-between mb-1.5">
-              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${I18N.hist_content}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${I18N.hist_content}</span>
+                ${item.speaker_segments && item.speaker_segments.length > 0
+                  ? `<button id="hist-view-toggle-${item.id}" onclick="toggleHistView(${item.id})"
+                       class="px-2 py-0.5 text-[10px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded border border-indigo-200 cursor-pointer">
+                       📄 Văn bản
+                     </button>`
+                  : ''}
+              </div>
               <div class="flex gap-1.5">
                 <button onclick="copyHistText(${item.id}, this)" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">${I18N.hist_copy}</button>
                 <button onclick="downloadHistText(${item.id}, '${escHtml(item.title).replace(/'/g,'').substring(0,30)}')" class="px-2 py-0.5 text-[10px] font-semibold bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 cursor-pointer">${I18N.hist_download}</button>
               </div>
             </div>
+            ${item.speaker_segments && item.speaker_segments.length > 0
+              ? `<div id="hist-speaker-${item.id}" class="max-h-[360px] overflow-y-auto space-y-2 pr-1">${buildSpeakerViewHtml(item.speaker_segments)}</div>`
+              : ''}
             <div id="hist-text-${item.id}" data-full="${escHtml(item.transcript_text)}"
-              class="max-h-[200px] overflow-y-auto p-3 bg-white rounded-lg border border-slate-200 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">${escHtml(item.transcript_text)}</div>
+              class="${item.speaker_segments && item.speaker_segments.length > 0 ? 'hidden ' : ''}max-h-[200px] overflow-y-auto p-3 bg-white rounded-lg border border-slate-200 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">${escHtml(item.transcript_text)}</div>
           </div>
           <div class="border-t border-slate-200 pt-3">
             <div class="flex items-center gap-2 mb-2.5">
