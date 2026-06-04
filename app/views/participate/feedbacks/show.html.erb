@@ -450,29 +450,15 @@
         <span id="vm-timer" style="font-size:22px; font-weight:800; color:rgba(255,255,255,0.95); letter-spacing:-0.5px; font-variant-numeric:tabular-nums;">0:00</span>
       </div>
 
-      <!-- Status text -->
-      <p id="vm-status" style="font-size:12px; color:rgba(255,255,255,0.45); margin:0 0 20px; min-height:18px;"></p>
-
-      <!-- Success flash -->
-      <div id="vm-success"
-           style="display:none; align-items:center; justify-content:center; gap:6px;
-                  margin-bottom:12px; padding:8px 14px; border-radius:10px;
-                  background:rgba(16,185,129,0.2); border:1px solid rgba(16,185,129,0.35);">
-        <span style="color:#6ee7b7; font-size:13px;">✓</span>
-        <span style="font-size:12px; font-weight:600; color:#6ee7b7;">
-          <%= I18n.locale.to_s == 'vi' ? 'Đã thêm vào ô nhập' : 'Added to input' %>
-        </span>
-      </div>
-
-      <!-- Error text -->
-      <div id="vm-error"
-           style="display:none; margin-bottom:12px; padding:8px 12px; border-radius:10px;
-                  background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3);">
-        <p id="vm-err-msg" style="font-size:12px; color:#fca5a5; margin:0; line-height:1.5;"></p>
-      </div>
+      <!-- Status / success / error — single text line -->
+      <p id="vm-status" style="font-size:12px; color:rgba(255,255,255,0.45); margin:0 0 8px; min-height:18px;"></p>
+      <p id="vm-success" style="display:none; font-size:12px; font-weight:600; color:#6ee7b7; margin:0 0 8px;">
+        ✓ <%= I18n.locale.to_s == 'vi' ? 'Đã thêm vào ô nhập' : 'Added to input' %>
+      </p>
+      <p id="vm-err-msg" style="display:none; font-size:12px; color:#fca5a5; margin:0 0 8px; line-height:1.5;"></p>
 
       <!-- Action button with rings -->
-      <div style="display:flex; align-items:center; justify-content:center; margin-bottom:10px;">
+      <div style="display:flex; align-items:center; justify-content:center; margin-bottom:6px;">
         <div style="position:relative; width:100px; height:100px; display:flex; align-items:center; justify-content:center;">
           <div id="vm-ring1" style="position:absolute; inset:0; border-radius:50%; pointer-events:none;
                                     border:2px solid rgba(239,68,68,0.3);
@@ -1194,11 +1180,11 @@ async function toggleUpvote(btn, feedbackId) {
     const ring1     = _el('vm-ring1');
     const ring2     = _el('vm-ring2');
     const successEl = _el('vm-success');
-    const errorEl   = _el('vm-error');
 
     // Clear transient banners
     if (successEl) successEl.style.display = 'none';
-    if (errorEl)   errorEl.style.display   = 'none';
+    const errMsgEl = _el('vm-err-msg');
+    if (errMsgEl)  errMsgEl.style.display  = 'none';
 
     if (s === 'recording') {
       if (waves)    { waves.style.display = 'flex'; }
@@ -1359,7 +1345,7 @@ async function toggleUpvote(btn, feedbackId) {
         _applyState('idle');
         const successEl = _el('vm-success');
         if (successEl) {
-          successEl.style.display = 'flex';
+          successEl.style.display = '';
           setTimeout(() => { successEl.style.display = 'none'; }, 2200);
         }
       } else {
@@ -1371,11 +1357,9 @@ async function toggleUpvote(btn, feedbackId) {
   }
 
   function _showError(msg) {
-    _applyState('idle'); // reset button to idle so they can try again
+    _applyState('idle');
     const errEl = _el('vm-err-msg');
-    const errWrap = _el('vm-error');
-    if (errEl) errEl.textContent = msg;
-    if (errWrap) errWrap.style.display = '';
+    if (errEl) { errEl.textContent = msg; errEl.style.display = ''; }
     const statusEl = _el('vm-status');
     if (statusEl) { statusEl.textContent = isVI ? 'Nhấn micro để thử lại' : 'Tap mic to retry'; statusEl.style.color = 'rgba(255,255,255,0.45)'; }
   }
