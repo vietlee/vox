@@ -129,7 +129,12 @@ class Admin::SttController < Admin::BaseController
     )
   end
 
-  # POST /stt/transcribe_url — download from URL then transcribe
+  # POST /stt/transcribe_url — transcribe from a URL
+  # Strategy:
+  #   1. Pass the URL directly to ElevenLabs via `source_url` (supports YouTube, TikTok, etc.)
+  #      — this avoids yt-dlp and YouTube bot-detection issues entirely.
+  #   2. If ElevenLabs rejects the URL (invalid_data / server_error), fall back to yt-dlp
+  #      download + upload (for generic audio/video file URLs that ElevenLabs won't fetch).
   def transcribe_url
     url = params[:url].to_s.strip
 
@@ -143,37 +148,82 @@ class Admin::SttController < Admin::BaseController
       return
     end
 
-    # Must have at least 1 credit before we even attempt the download
+    # Must have at least 1 credit before attempting anything
     return unless require_credits!(1)
 
-    tmp_path = download_audio_from_url(url)
-    file_size = File.size(tmp_path)
-    credits   = credits_for_duration(0, file_size)  # estimate from file size
-    # Charge extra if needed (already confirmed at least 1)
-    if credits > 1
-      sub = current_workspace.active_subscription
-      if sub && !sub.enterprise? && sub.credit_balance < credits
-        render json: {
-          error:               "Không đủ AI credits (ước tính cần #{credits} credit cho file này).",
-          insufficient_credits: true
-        }, status: :payment_required
-        FileUtils.rm_rf(File.dirname(tmp_path)) rescue nil
-        return
-      end
-    end
+    model      = safe_model(params[:model])
+    language   = params[:language_code].presence
+    timestamps = %w[none word].include?(params[:timestamps]) ? params[:timestamps] : "none"
+    diarize    = params[:diarize] == "true"
 
-    run_transcription(
-      audio_io:  File.open(tmp_path, "rb"),
-      filename:  File.basename(tmp_path),
-      cleanup:   true,
-      tmp_path:  tmp_path,
-      credits:   credits,
-      title:     url.truncate(180),
-      source:    "url"
-    )
-  rescue => e
-    Rails.logger.error "SttController#transcribe_url: #{e.message}"
-    render json: { error: e.message }, status: :unprocessable_entity
+    service = ElevenLabsService.new
+
+    begin
+      # ── Primary path: ElevenLabs source_url (no download) ──────────────────
+      # Always request word timestamps so we can calculate actual duration for
+      # credit billing. The caller's requested granularity is applied below.
+      result = service.speech_to_text_from_url(
+        url:           url,
+        model:         model,
+        language_code: language,
+        timestamps:    "word",   # needed to infer duration from last word end-time
+        diarize:       diarize
+      )
+
+      # Strip words from the response if caller didn't request them
+      result[:words] = [] if timestamps == "none"
+
+      # Calculate actual credits from duration returned by ElevenLabs
+      duration_secs = result[:duration_secs].to_f
+      credits = credits_for_duration(duration_secs, 0)
+
+      # If we need more than 1 credit, verify balance and deduct the remainder
+      if credits > 1
+        sub = current_workspace.active_subscription
+        if sub && !sub.enterprise? && sub.credit_balance < credits
+          render json: {
+            error:               "Không đủ AI credits (cần #{credits} credit cho video này).",
+            insufficient_credits: true
+          }, status: :payment_required
+          return
+        end
+      end
+
+      current_workspace.active_subscription&.deduct_credits!(credits)
+      response.headers["X-Credits-Used"] = credits.to_s
+
+      # Save to history
+      begin
+        if result[:text].present?
+          current_workspace.stt_transcripts.create!(
+            title:           url.truncate(200),
+            transcript_text: result[:text],
+            language_code:   result[:language_code],
+            duration_secs:   duration_secs,
+            credits_used:    credits,
+            source:          "url"
+          )
+        end
+      rescue => e
+        Rails.logger.warn "SttController: history save failed: #{e.message}"
+      end
+
+      render json: result
+
+    rescue ElevenLabsService::Error => e
+      # ── Fallback: yt-dlp download for non-video-platform URLs ──────────────
+      # ElevenLabs may reject URLs that aren't from recognised video platforms
+      # (e.g. direct .mp3 links from private CDNs). Fall back to local download.
+      if e.code == :invalid_data || e.code == :server_error
+        Rails.logger.warn "ElevenLabs source_url rejected (#{e.code}), falling back to yt-dlp: #{e.message}"
+        transcribe_url_via_ytdlp(url)
+      else
+        render json: { error: e.message, error_code: e.code }, status: :service_unavailable
+      end
+    rescue => e
+      Rails.logger.error "SttController#transcribe_url: #{e.message}"
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
   end
 
   # POST /stt/transcribe_chunk — realtime mic chunk (binary blob)
@@ -278,6 +328,39 @@ class Admin::SttController < Admin::BaseController
   end
 
   private
+
+  # Fallback: download with yt-dlp then upload to ElevenLabs.
+  # Called from transcribe_url when ElevenLabs rejects the source_url (e.g. generic CDN links).
+  def transcribe_url_via_ytdlp(url)
+    tmp_path  = download_audio_from_url(url)
+    file_size = File.size(tmp_path)
+    credits   = credits_for_duration(0, file_size)
+
+    if credits > 1
+      sub = current_workspace.active_subscription
+      if sub && !sub.enterprise? && sub.credit_balance < credits
+        render json: {
+          error:               "Không đủ AI credits (ước tính cần #{credits} credit cho file này).",
+          insufficient_credits: true
+        }, status: :payment_required
+        FileUtils.rm_rf(File.dirname(tmp_path)) rescue nil
+        return
+      end
+    end
+
+    run_transcription(
+      audio_io:  File.open(tmp_path, "rb"),
+      filename:  File.basename(tmp_path),
+      cleanup:   true,
+      tmp_path:  tmp_path,
+      credits:   credits,
+      title:     url.truncate(180),
+      source:    "url"
+    )
+  rescue => e
+    Rails.logger.error "SttController#transcribe_url_via_ytdlp: #{e.message}"
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
 
   # Shared transcription logic
   def run_transcription(audio_io:, filename:, cleanup: false, tmp_path: nil,

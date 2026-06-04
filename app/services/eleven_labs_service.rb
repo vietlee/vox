@@ -165,6 +165,96 @@ class ElevenLabsService
   STT_OPEN_TIMEOUT = 30
   STT_MAX_ATTEMPTS = 2   # retry once on transient 5xx / network errors
 
+  # ── Speech-to-Text via URL ────────────────────────────────────────────────
+  # ElevenLabs Scribe accepts a `source_url` parameter that can be a YouTube
+  # URL, TikTok URL, or any hosted audio/video URL — no local download needed.
+  # This completely bypasses yt-dlp and YouTube bot-detection issues.
+  #
+  # Returns hash: { text:, words:, language_code:, language_probability:, duration_secs: }
+  def speech_to_text_from_url(url:, model: "scribe_v2", language_code: nil,
+                               timestamps: "none", diarize: false)
+    Rails.logger.info "ElevenLabs STT (source_url) start: model=#{model} url=#{url.truncate(120)}"
+
+    body = {
+      source_url:             url,
+      model_id:               model,
+      timestamps_granularity: timestamps,
+      diarize:                diarize.to_s,
+      tag_audio_events:       "true"
+    }
+    body[:language_code] = language_code if language_code.present?
+
+    STT_MAX_ATTEMPTS.times do |attempt|
+      begin
+        response = HTTParty.post(
+          "#{BASE_URL}/v1/speech-to-text",
+          headers:      { "xi-api-key" => @api_key },
+          multipart:    true,
+          body:         body,
+          read_timeout: STT_READ_TIMEOUT,
+          open_timeout: STT_OPEN_TIMEOUT
+        )
+
+        if response.success?
+          parsed     = JSON.parse(response.body)
+          clean_text = parsed["text"].to_s.gsub(/\[[^\]]*\]/, '').gsub(/\s{2,}/, ' ').strip
+          words      = parsed["words"] || []
+          # Infer audio duration from the last word's end timestamp (if available)
+          duration_secs = words.any? ? words.last["end"].to_f : 0.0
+          Rails.logger.info "ElevenLabs STT (URL) ok (attempt #{attempt + 1}): #{clean_text.length} chars, #{duration_secs.round(1)}s"
+          return {
+            text:                 clean_text,
+            words:                words,
+            language_code:        parsed["language_code"],
+            language_probability: parsed["language_probability"],
+            duration_secs:        duration_secs
+          }
+        end
+
+        log_http_error(response, attempt, STT_MAX_ATTEMPTS)
+
+        retryable = [500, 502, 503, 504].include?(response.code)
+        if retryable && attempt < STT_MAX_ATTEMPTS - 1
+          sleep (attempt + 1) * 3
+          next
+        end
+
+        raise build_http_error(response)
+
+      rescue ElevenLabsService::Error
+        raise
+
+      rescue Timeout::Error, Net::ReadTimeout, Net::OpenTimeout => e
+        log_network_error(e, attempt, STT_MAX_ATTEMPTS)
+        if attempt < STT_MAX_ATTEMPTS - 1
+          sleep (attempt + 1) * 3
+          next
+        end
+        raise ElevenLabsService::Error.new(
+          "ElevenLabs STT timeout sau #{STT_READ_TIMEOUT}s. Video quá dài hoặc đường truyền chậm.",
+          code: :timeout
+        )
+
+      rescue HTTParty::Error, SocketError, Errno::ECONNREFUSED, Errno::ECONNRESET,
+             OpenSSL::SSL::SSLError, EOFError => e
+        log_network_error(e, attempt, STT_MAX_ATTEMPTS)
+        if attempt < STT_MAX_ATTEMPTS - 1
+          sleep (attempt + 1) * 3
+          next
+        end
+        raise ElevenLabsService::Error.new(
+          "Không thể kết nối ElevenLabs (#{e.class.name.demodulize}). Vui lòng thử lại.",
+          code: :network_error
+        )
+      end
+    end
+  rescue ElevenLabsService::Error
+    raise
+  rescue => e
+    Rails.logger.error "ElevenLabsService#speech_to_text_from_url error: #{e.message} (#{e.class})"
+    raise
+  end
+
   def speech_to_text(audio_io:, filename: "audio.webm", model: "scribe_v2",
                      language_code: nil, timestamps: "none", diarize: false)
     Rails.logger.info "ElevenLabs STT start: model=#{model} file=#{filename}"
