@@ -114,6 +114,11 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   end
 
   def board_params
-    params.require(:feedback_board).permit(:title, :description, :identity_mode, :auto_moderation, :manual_approval, :allow_replies, :allow_upvotes, :allow_voice_input, :logo)
+    permitted = params.require(:feedback_board).permit(:title, :description, :identity_mode, :auto_moderation, :manual_approval, :allow_replies, :allow_upvotes, :allow_voice_input, :logo)
+    # Strip allow_voice_input unless workspace has STT feature (Pro+/Enterprise)
+    unless current_workspace.active_subscription&.has_feature?(:stt)
+      permitted.delete(:allow_voice_input)
+    end
+    permitted
   end
 end
