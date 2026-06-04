@@ -673,7 +673,7 @@ function playSpeakerSegment(btn, text, speakerIdx, ns) {
   var voiceId = (sel && sel.value) ? sel.value : SPEAKER_VOICES[speakerIdx % SPEAKER_VOICES.length];
   _ttsPlayBtn = btn;
   btn.disabled = true;
-  btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">'
+  btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">'
     + '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>'
     + '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>'
     + '</svg>';
@@ -699,7 +699,7 @@ function playSpeakerSegment(btn, text, speakerIdx, ns) {
       _ttsAudio = new Audio(url);
       // Show stop icon while playing
       btn.disabled = false;
-      btn.innerHTML = '<svg class="w-3.5 h-3.5 text-rose-500" fill="currentColor" viewBox="0 0 24 24">'
+      btn.innerHTML = '<svg class="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 24 24">'
         + '<rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>';
       _ttsAudio.onended = function() {
         URL.revokeObjectURL(url);
@@ -719,7 +719,7 @@ function playSpeakerSegment(btn, text, speakerIdx, ns) {
 }
 function _resetPlayBtn(btn) {
   btn.disabled = false;
-  btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">'
+  btn.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">'
     + '<path d="M8 5v14l11-7z"/></svg>';
 }
 
@@ -1103,19 +1103,20 @@ function buildSpeakerViewHtml(segments, ns) {
     var rawText    = (seg.tokens || []).join(' ');
     var text       = escHtml(rawText);
     var escapedForAttr = rawText.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
-    var actionBtns = '<div class="flex-shrink-0 self-start pt-0.5 flex items-center gap-0.5 opacity-0 group-hover/seg:opacity-100 transition-opacity">'
+    var btnBase = 'w-7 h-7 flex items-center justify-center rounded-lg transition-colors border-0 cursor-pointer opacity-40 group-hover/seg:opacity-100';
+    var actionBtns = '<div class="flex-shrink-0 self-start mt-0.5 flex items-center gap-1">'
       // TTS play button (only shown when workspace has TTS access)
       + (HAS_TTS
           ? '<button onclick="playSpeakerSegment(this, &quot;' + escapedForAttr + '&quot;, ' + spkIdx + ', &quot;' + ns + '&quot;)"'
-            + ' class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors border-0 bg-transparent cursor-pointer"'
+            + ' class="' + btnBase + ' bg-white/60 hover:bg-white text-slate-500 hover:text-slate-800 shadow-sm"'
             + ' title="Nghe · 🪙 ' + _segCreditCost(rawText) + ' credit">'
-            + '<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'
+            + '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'
             + '</button>'
           : '')
       // Copy button
       + '<button onclick="copySpeakerText(this, &quot;' + escapedForAttr + '&quot;)"'
-      + ' class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors border-0 bg-transparent cursor-pointer" title="Copy">'
-      + '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+      + ' class="' + btnBase + ' bg-white/60 hover:bg-white text-slate-500 hover:text-slate-800 shadow-sm" title="Copy">'
+      + '<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
       + '</button>'
       + '</div>';
     return '<div class="group/seg flex gap-3 py-3 px-3 rounded-xl ' + c.bg + ' border-l-4 ' + c.bar + '">'
