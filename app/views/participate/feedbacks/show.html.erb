@@ -404,133 +404,108 @@
   <!-- ── Voice Recording Modal ──────────────────────────────────────────────── -->
   <% if @board.allow_voice_input? %>
   <div id="vm-overlay"
-       style="display:none; position:fixed; inset:0; z-index:10000; background:rgba(15,23,42,0.72);
-              backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+       style="display:none; position:fixed; inset:0; z-index:10000;
+              background:rgba(255,255,255,0.28);
+              backdrop-filter:blur(22px) saturate(180%);
+              -webkit-backdrop-filter:blur(22px) saturate(180%);
               align-items:center; justify-content:center;">
-    <div style="background:#ffffff; border-radius:28px; padding:32px 24px 28px; width:296px;
+    <div style="background:rgba(255,255,255,0.82);
+                backdrop-filter:blur(40px); -webkit-backdrop-filter:blur(40px);
+                border:1px solid rgba(255,255,255,0.7);
+                box-shadow:0 8px 40px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04);
+                border-radius:28px; padding:24px 24px 28px; width:284px;
                 text-align:center; position:relative;
-                box-shadow:0 32px 80px rgba(0,0,0,0.3);
-                animation:vm-modal-in 0.22s cubic-bezier(0.34,1.56,0.64,1) forwards;">
+                animation:vm-modal-in 0.2s cubic-bezier(0.34,1.56,0.64,1) forwards;">
 
-      <!-- Close button -->
-      <button id="vm-close" onclick="closeVoiceModal()"
-        style="position:absolute; top:12px; right:14px; width:30px; height:30px;
-               border-radius:50%; border:none; background:rgba(0,0,0,0.06);
-               color:#64748b; font-size:14px; cursor:pointer; display:flex;
-               align-items:center; justify-content:center; line-height:1;">✕</button>
+      <!-- Header -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+        <span style="font-size:13px; font-weight:700; color:#475569; letter-spacing:0.2px;">
+          🎙 <%= I18n.locale.to_s == 'vi' ? 'Ghi âm giọng nói' : 'Voice input' %>
+        </span>
+        <button onclick="closeVoiceModal()"
+          style="width:28px; height:28px; border-radius:50%; border:none;
+                 background:rgba(0,0,0,0.06); color:#94a3b8; font-size:13px;
+                 cursor:pointer; display:flex; align-items:center; justify-content:center;
+                 transition:background 0.15s; flex-shrink:0;"
+          onmouseenter="this.style.background='rgba(0,0,0,0.1)'"
+          onmouseleave="this.style.background='rgba(0,0,0,0.06)'">✕</button>
+      </div>
 
-      <!-- ── State: recording ── -->
-      <div id="vm-s-recording">
-        <!-- Sound wave bars -->
-        <div style="height:52px; display:flex; align-items:flex-end; justify-content:center; gap:3px; margin-bottom:18px;">
-          <div class="vm-bar" style="width:5px; background:linear-gradient(to top,#ef4444,#fb7185); border-radius:4px; height:52px; animation-delay:0s;"></div>
-          <div class="vm-bar" style="width:5px; background:linear-gradient(to top,#ef4444,#fb7185); border-radius:4px; height:52px; animation-delay:0.09s;"></div>
-          <div class="vm-bar" style="width:5px; background:linear-gradient(to top,#ef4444,#fb7185); border-radius:4px; height:52px; animation-delay:0.18s;"></div>
-          <div class="vm-bar" style="width:5px; background:linear-gradient(to top,#ef4444,#fb7185); border-radius:4px; height:52px; animation-delay:0.27s;"></div>
-          <div class="vm-bar" style="width:5px; background:linear-gradient(to top,#f97316,#ef4444); border-radius:4px; height:52px; animation-delay:0.36s;"></div>
-          <div class="vm-bar" style="width:5px; background:linear-gradient(to top,#ef4444,#fb7185); border-radius:4px; height:52px; animation-delay:0.27s;"></div>
-          <div class="vm-bar" style="width:5px; background:linear-gradient(to top,#ef4444,#fb7185); border-radius:4px; height:52px; animation-delay:0.18s;"></div>
-          <div class="vm-bar" style="width:5px; background:linear-gradient(to top,#ef4444,#fb7185); border-radius:4px; height:52px; animation-delay:0.09s;"></div>
-          <div class="vm-bar" style="width:5px; background:linear-gradient(to top,#ef4444,#fb7185); border-radius:4px; height:52px; animation-delay:0s;"></div>
-        </div>
+      <!-- Wave bars (shown only when recording) -->
+      <div id="vm-waves" style="display:none; height:44px; align-items:flex-end; justify-content:center; gap:3px; margin-bottom:14px;">
+        <div class="vm-bar" style="width:4px; background:linear-gradient(to top,#ef4444,#f87171); border-radius:3px; height:44px; animation-delay:0s;"></div>
+        <div class="vm-bar" style="width:4px; background:linear-gradient(to top,#ef4444,#f87171); border-radius:3px; height:44px; animation-delay:0.08s;"></div>
+        <div class="vm-bar" style="width:4px; background:linear-gradient(to top,#ef4444,#f87171); border-radius:3px; height:44px; animation-delay:0.16s;"></div>
+        <div class="vm-bar" style="width:4px; background:linear-gradient(to top,#ef4444,#f87171); border-radius:3px; height:44px; animation-delay:0.24s;"></div>
+        <div class="vm-bar" style="width:4px; background:linear-gradient(to top,#f97316,#ef4444); border-radius:3px; height:44px; animation-delay:0.32s;"></div>
+        <div class="vm-bar" style="width:4px; background:linear-gradient(to top,#ef4444,#f87171); border-radius:3px; height:44px; animation-delay:0.24s;"></div>
+        <div class="vm-bar" style="width:4px; background:linear-gradient(to top,#ef4444,#f87171); border-radius:3px; height:44px; animation-delay:0.16s;"></div>
+        <div class="vm-bar" style="width:4px; background:linear-gradient(to top,#ef4444,#f87171); border-radius:3px; height:44px; animation-delay:0.08s;"></div>
+        <div class="vm-bar" style="width:4px; background:linear-gradient(to top,#ef4444,#f87171); border-radius:3px; height:44px; animation-delay:0s;"></div>
+      </div>
 
-        <!-- Timer -->
-        <div style="display:flex; align-items:center; justify-content:center; gap:7px; margin-bottom:3px;">
-          <span style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block; animation:vm-bar 1s ease-in-out infinite; transform-origin:center;"></span>
-          <span id="vm-timer" style="font-size:26px; font-weight:800; color:#1e293b; letter-spacing:-0.5px; font-variant-numeric:tabular-nums;">0:00</span>
-        </div>
-        <p style="font-size:12px; color:#94a3b8; margin:0 0 22px;">
-          <%= I18n.locale.to_s == 'vi' ? 'Đang ghi âm...' : 'Recording...' %>
-        </p>
+      <!-- Timer (shown only when recording) -->
+      <div id="vm-timer-row" style="display:none; align-items:center; justify-content:center; gap:6px; margin-bottom:4px;">
+        <span style="width:7px; height:7px; border-radius:50%; background:#ef4444; display:inline-block; animation:vm-bar 1s ease-in-out infinite; transform-origin:center; flex-shrink:0;"></span>
+        <span id="vm-timer" style="font-size:22px; font-weight:800; color:#1e293b; letter-spacing:-0.5px; font-variant-numeric:tabular-nums;">0:00</span>
+      </div>
 
-        <!-- Large stop button with pulsing rings -->
-        <div style="position:relative; display:inline-flex; align-items:center; justify-content:center; margin-bottom:10px; width:120px; height:120px;">
-          <!-- pointer-events:none so rings never intercept clicks -->
-          <div style="position:absolute; inset:0; border-radius:50%;
-                      border:2px solid rgba(239,68,68,0.35); pointer-events:none;
-                      animation:vm-ring 1.6s ease-out infinite;"></div>
-          <div style="position:absolute; inset:0; border-radius:50%;
-                      border:2px solid rgba(239,68,68,0.2); pointer-events:none;
-                      animation:vm-ring 1.6s ease-out 0.55s infinite;"></div>
-          <button onclick="voiceStopRecording()"
-            style="position:relative; z-index:2;
-                   width:72px; height:72px; border-radius:50%; border:none; cursor:pointer;
-                   background:linear-gradient(135deg,#ef4444,#dc2626);
-                   box-shadow:0 8px 28px rgba(239,68,68,0.45);
-                   display:flex; align-items:center; justify-content:center;
+      <!-- Status text -->
+      <p id="vm-status" style="font-size:12px; color:#94a3b8; margin:0 0 20px; min-height:18px;"></p>
+
+      <!-- Success flash -->
+      <div id="vm-success"
+           style="display:none; align-items:center; justify-content:center; gap:6px;
+                  margin-bottom:12px; padding:8px 14px; border-radius:10px;
+                  background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2);">
+        <span style="color:#10b981; font-size:13px;">✓</span>
+        <span style="font-size:12px; font-weight:600; color:#065f46;">
+          <%= I18n.locale.to_s == 'vi' ? 'Đã thêm vào ô nhập' : 'Added to input' %>
+        </span>
+      </div>
+
+      <!-- Error text -->
+      <div id="vm-error"
+           style="display:none; margin-bottom:12px; padding:8px 12px; border-radius:10px;
+                  background:rgba(239,68,68,0.07); border:1px solid rgba(239,68,68,0.15);">
+        <p id="vm-err-msg" style="font-size:12px; color:#b91c1c; margin:0; line-height:1.5;"></p>
+      </div>
+
+      <!-- Action button with rings -->
+      <div style="display:flex; align-items:center; justify-content:center; margin-bottom:10px;">
+        <div style="position:relative; width:100px; height:100px; display:flex; align-items:center; justify-content:center;">
+          <div id="vm-ring1" style="position:absolute; inset:0; border-radius:50%; pointer-events:none;
+                                    border:2px solid rgba(239,68,68,0.3);
+                                    animation:vm-ring 1.6s ease-out infinite; animation-play-state:paused;"></div>
+          <div id="vm-ring2" style="position:absolute; inset:0; border-radius:50%; pointer-events:none;
+                                    border:2px solid rgba(239,68,68,0.15);
+                                    animation:vm-ring 1.6s ease-out 0.55s infinite; animation-play-state:paused;"></div>
+          <button id="vm-action-btn" onclick="voiceActionClick()"
+            style="position:relative; z-index:2; width:68px; height:68px; border-radius:50%; border:none;
+                   cursor:pointer; display:flex; align-items:center; justify-content:center;
+                   background:linear-gradient(135deg,#6366f1,#4f46e5);
+                   box-shadow:0 8px 24px rgba(99,102,241,0.35);
                    transition:transform 0.15s, box-shadow 0.15s; flex-shrink:0;"
-            onmouseenter="this.style.transform='scale(1.06)'; this.style.boxShadow='0 12px 36px rgba(239,68,68,0.55)'"
-            onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 8px 28px rgba(239,68,68,0.45)'">
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+            onmouseenter="this.style.transform='scale(1.06)'"
+            onmouseleave="this.style.transform='scale(1)'">
+            <svg id="vm-btn-icon" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"
                  fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
               <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
               <line x1="12" y1="19" x2="12" y2="23"/>
               <line x1="8" y1="23" x2="16" y2="23"/>
             </svg>
+            <div id="vm-btn-spinner"
+                 style="display:none; width:24px; height:24px; border:2.5px solid rgba(255,255,255,0.3);
+                        border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite;"></div>
           </button>
         </div>
-        <p style="font-size:12px; color:#cbd5e1; margin:0;">
-          <%= I18n.locale.to_s == 'vi' ? 'Nhấn để dừng' : 'Tap to stop' %>
-        </p>
       </div>
 
-      <!-- ── State: processing ── -->
-      <div id="vm-s-processing" style="display:none; padding:12px 0;">
-        <div style="width:56px; height:56px; border-radius:50%;
-                    background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(168,85,247,0.1));
-                    display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
-          <div style="width:32px; height:32px; border:3px solid #e0e7ff;
-                      border-top-color:#6366f1; border-radius:50%;
-                      animation:spin 0.8s linear infinite;"></div>
-        </div>
-        <p style="font-size:14px; font-weight:600; color:#475569; margin:0 0 4px;">
-          <%= I18n.locale.to_s == 'vi' ? 'Đang xử lý...' : 'Processing...' %>
-        </p>
-        <p style="font-size:12px; color:#94a3b8; margin:0;">
-          <%= I18n.locale.to_s == 'vi' ? 'ElevenLabs đang phiên âm' : 'Transcribing with ElevenLabs' %>
-        </p>
-      </div>
-
-      <!-- ── State: done ── -->
-      <div id="vm-s-done" style="display:none; padding:8px 0;">
-        <div style="width:56px; height:56px; border-radius:50%;
-                    background:rgba(16,185,129,0.1); border:2px solid rgba(16,185,129,0.3);
-                    display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-               style="stroke-dasharray:40; stroke-dashoffset:40; animation:vm-check 0.4s ease 0.1s forwards;">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        </div>
-        <p style="font-size:14px; font-weight:700; color:#065f46; margin:0 0 8px;">
-          <%= I18n.locale.to_s == 'vi' ? 'Hoàn tất!' : 'Done!' %>
-        </p>
-        <p id="vm-preview"
-           style="font-size:12px; color:#64748b; font-style:italic; margin:0 0 20px;
-                  padding:10px 12px; background:#f8fafc; border-radius:10px;
-                  border:1px solid #e2e8f0; line-height:1.5; text-align:left; max-height:80px; overflow:hidden;"></p>
-        <button onclick="closeVoiceModal()"
-          style="width:100%; padding:11px; background:linear-gradient(135deg,#6366f1,#4f46e5);
-                 border:none; border-radius:12px; color:white; font-size:13px;
-                 font-weight:700; cursor:pointer; letter-spacing:0.2px;">
-          <%= I18n.locale.to_s == 'vi' ? 'Xong — xem kết quả' : 'Done — see result' %>
-        </button>
-      </div>
-
-      <!-- ── State: error ── -->
-      <div id="vm-s-error" style="display:none; padding:8px 0;">
-        <div style="width:56px; height:56px; border-radius:50%;
-                    background:rgba(239,68,68,0.08); border:2px solid rgba(239,68,68,0.2);
-                    display:flex; align-items:center; justify-content:center; margin:0 auto 14px;
-                    font-size:22px;">⚠️</div>
-        <p id="vm-err-msg" style="font-size:13px; color:#7f1d1d; margin:0 0 16px; line-height:1.5;"></p>
-        <button onclick="voiceRetry()"
-          style="width:100%; padding:11px; background:#ef4444;
-                 border:none; border-radius:12px; color:white; font-size:13px;
-                 font-weight:700; cursor:pointer;">
-          <%= I18n.locale.to_s == 'vi' ? 'Thử lại' : 'Try again' %>
-        </button>
-      </div>
+      <!-- Hint -->
+      <p id="vm-hint" style="font-size:11px; color:#cbd5e1; margin:0;">
+        <%= I18n.locale.to_s == 'vi' ? 'Nhấn micro để bắt đầu' : 'Tap mic to start' %>
+      </p>
 
     </div>
   </div>
@@ -1201,123 +1176,159 @@ async function toggleUpvote(btn, feedbackId) {
   const isVI = navigator.language.startsWith('vi');
   let _mr = null, _stream = null, _chunks = [], _startMs = 0;
   let _timerIv = null, _discarding = false;
+  // 'idle' | 'recording' | 'processing'
+  let _vmState = 'idle';
 
   function _el(id) { return document.getElementById(id); }
 
-  // ── Modal state machine ───────────────────────────────────────────────────
-  function _showState(name) {
-    ['recording','processing','done','error'].forEach(s => {
-      const el = _el('vm-s-' + s);
-      if (el) el.style.display = s === name ? '' : 'none';
-    });
-    // Hide X during processing (can't interrupt), show otherwise
-    const closeBtn = _el('vm-close');
-    if (closeBtn) closeBtn.style.display = name === 'processing' ? 'none' : '';
+  // ── Render UI for state ───────────────────────────────────────────────────
+  function _applyState(s) {
+    _vmState = s;
+    const waves     = _el('vm-waves');
+    const timerRow  = _el('vm-timer-row');
+    const statusEl  = _el('vm-status');
+    const hintEl    = _el('vm-hint');
+    const btn       = _el('vm-action-btn');
+    const btnIcon   = _el('vm-btn-icon');
+    const btnSpinner= _el('vm-btn-spinner');
+    const ring1     = _el('vm-ring1');
+    const ring2     = _el('vm-ring2');
+    const successEl = _el('vm-success');
+    const errorEl   = _el('vm-error');
+
+    // Clear transient banners
+    if (successEl) successEl.style.display = 'none';
+    if (errorEl)   errorEl.style.display   = 'none';
+
+    if (s === 'recording') {
+      if (waves)    { waves.style.display = 'flex'; }
+      if (timerRow) { timerRow.style.display = 'flex'; }
+      if (statusEl) statusEl.textContent = isVI ? 'Đang ghi âm...' : 'Recording...';
+      if (hintEl)   hintEl.textContent   = isVI ? 'Nhấn để dừng' : 'Tap to stop';
+      if (btn)      { btn.disabled = false; btn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)'; btn.style.boxShadow = '0 8px 24px rgba(239,68,68,0.45)'; }
+      if (btnIcon)  btnIcon.style.display = '';
+      if (btnSpinner) btnSpinner.style.display = 'none';
+      if (ring1)    { ring1.style.animationPlayState = 'running'; ring1.style.borderColor = 'rgba(239,68,68,0.3)'; }
+      if (ring2)    { ring2.style.animationPlayState = 'running'; ring2.style.borderColor = 'rgba(239,68,68,0.15)'; }
+
+    } else if (s === 'processing') {
+      if (waves)    waves.style.display = 'none';
+      if (timerRow) timerRow.style.display = 'none';
+      if (statusEl) statusEl.textContent = isVI ? 'Đang xử lý...' : 'Processing...';
+      if (hintEl)   hintEl.textContent   = '';
+      if (btn)      { btn.disabled = true; btn.style.background = 'rgba(226,232,240,0.8)'; btn.style.boxShadow = 'none'; }
+      if (btnIcon)  btnIcon.style.display = 'none';
+      if (btnSpinner) btnSpinner.style.display = '';
+      if (ring1)    ring1.style.animationPlayState = 'paused';
+      if (ring2)    ring2.style.animationPlayState = 'paused';
+
+    } else { // idle
+      if (waves)    waves.style.display = 'none';
+      if (timerRow) timerRow.style.display = 'none';
+      const timerEl = _el('vm-timer'); if (timerEl) timerEl.textContent = '0:00';
+      if (statusEl) statusEl.textContent = isVI ? 'Nhấn micro để ghi âm thêm' : 'Tap to record more';
+      if (hintEl)   hintEl.textContent   = '';
+      if (btn)      { btn.disabled = false; btn.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)'; btn.style.boxShadow = '0 8px 24px rgba(99,102,241,0.35)'; }
+      if (btnIcon)  btnIcon.style.display = '';
+      if (btnSpinner) btnSpinner.style.display = 'none';
+      if (ring1)    ring1.style.animationPlayState = 'paused';
+      if (ring2)    ring2.style.animationPlayState = 'paused';
+    }
   }
 
-  function _openOverlay() {
-    const ov = _el('vm-overlay');
-    if (ov) { ov.style.display = 'flex'; }
-    _showState('recording');
-    _startTimer();
-  }
-
+  // ── Timer ─────────────────────────────────────────────────────────────────
   function _startTimer() {
     _startMs = Date.now();
-    _stopTimer();
+    if (_timerIv) clearInterval(_timerIv);
     _timerIv = setInterval(() => {
       const s = Math.floor((Date.now() - _startMs) / 1000);
       const el = _el('vm-timer');
       if (el) el.textContent = Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
     }, 500);
   }
+  function _stopTimer() { if (_timerIv) { clearInterval(_timerIv); _timerIv = null; } }
 
-  function _stopTimer() {
-    if (_timerIv) { clearInterval(_timerIv); _timerIv = null; }
+  // ── Open modal (first time) ───────────────────────────────────────────────
+  function _openModal() {
+    const ov = _el('vm-overlay');
+    if (ov) ov.style.display = 'flex';
+    _applyState('idle');
+    const statusEl = _el('vm-status');
+    if (statusEl) statusEl.textContent = isVI ? 'Đang khởi động micro...' : 'Starting microphone...';
   }
 
   // ── Start recording ───────────────────────────────────────────────────────
-  async function _start() {
+  async function _startRecording() {
     _discarding = false;
     _chunks = [];
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showToast(isVI ? 'Trình duyệt không hỗ trợ ghi âm.' : 'Browser does not support recording.', true);
+      showToast(isVI ? 'Trình duyệt không hỗ trợ ghi âm.' : 'Recording not supported.', true);
       return;
     }
 
-    // Open modal immediately to give user feedback
-    _openOverlay();
+    // Show modal with “starting” message
+    _openModal();
 
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     } catch(err) {
-      _el('vm-overlay').style.display = 'none';
+      const ov = _el('vm-overlay');
+      if (ov) ov.style.display = 'none';
       _stopTimer();
-      const msg = err.name === 'NotAllowedError'
-        ? (isVI ? 'Cần cấp quyền truy cập micro.' : 'Microphone permission denied.')
-        : (isVI ? 'Không thể truy cập micro.' : 'Cannot access microphone.');
-      showToast(msg, true);
+      showToast(
+        err.name === 'NotAllowedError'
+          ? (isVI ? 'Cần cấp quyền truy cập micro.' : 'Microphone permission denied.')
+          : (isVI ? 'Không thể truy cập micro.' : 'Cannot access microphone.'),
+        true
+      );
       return;
     }
 
     _stream = stream;
 
-    // Pick best supported MIME type (Safari needs mp4)
-    const mimeType = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg;codecs=opus',
-      'audio/mp4',
-    ].find(t => {
-      try { return MediaRecorder.isTypeSupported(t); } catch(e) { return false; }
-    }) || '';
+    // Best MIME (Safari needs mp4)
+    const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4']
+      .find(t => { try { return MediaRecorder.isTypeSupported(t); } catch(e) { return false; } }) || '';
 
-    try {
-      _mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-    } catch(e) {
-      _mr = new MediaRecorder(stream);
-    }
+    try { _mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream); }
+    catch(e) { _mr = new MediaRecorder(stream); }
 
-    _mr.addEventListener('dataavailable', e => {
-      if (e.data && e.data.size > 0) _chunks.push(e.data);
-    });
-
+    _mr.addEventListener('dataavailable', e => { if (e.data && e.data.size > 0) _chunks.push(e.data); });
     _mr.addEventListener('stop', _onStop);
 
-    // timeslice=250ms: fire dataavailable every 250ms so data isn't lost
-    _mr.start(250);
+    _mr.start(250); // collect every 250ms → reliable data capture
+    _applyState('recording');
+    _startTimer();
   }
 
-  // ── Process after stop ────────────────────────────────────────────────────
+  // ── After stop: transcribe + fill textarea → back to idle ─────────────────
   async function _onStop() {
     if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
     _stopTimer();
 
-    if (_discarding) { _chunks = []; return; } // user X'd out mid-recording
+    if (_discarding) { _chunks = []; _mr = null; return; }
 
     const durationSecs = (Date.now() - _startMs) / 1000;
 
     if (_chunks.length === 0) {
-      const errEl = _el('vm-err-msg');
-      if (errEl) errEl.textContent = isVI ? 'Không có dữ liệu âm thanh. Hãy nói gì đó trước khi dừng.' : 'No audio captured. Please say something first.';
-      _showState('error');
+      _showError(isVI ? 'Không có dữ liệu âm thanh. Hãy nói gì đó trước khi dừng.' : 'No audio captured. Please speak first.');
+      _mr = null;
       return;
     }
 
     const blobType = (_mr && _mr.mimeType) ? _mr.mimeType : 'audio/webm';
     const blob = new Blob(_chunks, { type: blobType });
     _chunks = [];
+    _mr = null;
 
-    _showState('processing');
+    _applyState('processing');
 
     try {
-      const fd = new FormData();
-      // Pick extension matching MIME
       const ext = blobType.includes('mp4') || blobType.includes('m4a') ? 'm4a'
-                : blobType.includes('ogg') ? 'ogg'
-                : 'webm';
+                : blobType.includes('ogg') ? 'ogg' : 'webm';
+      const fd = new FormData();
       fd.append('audio', blob, 'recording.' + ext);
       fd.append('duration_secs', durationSecs.toFixed(2));
 
@@ -1331,64 +1342,75 @@ async function toggleUpvote(btn, feedbackId) {
       try { data = await res.json(); } catch(e) { data = {}; }
 
       if (!res.ok) {
-        const errEl = _el('vm-err-msg');
-        if (errEl) errEl.textContent = data.error || (isVI ? 'Đã xảy ra lỗi.' : 'An error occurred.');
-        _showState('error');
+        _showError(data.error || (isVI ? 'Đã xảy ra lỗi.' : 'An error occurred.'));
         return;
       }
 
       const text = (data.text || '').trim();
       if (text) {
-        // Inject into textarea
+        // Fill into textarea
         const ta = _el('fb-content');
         if (ta) {
           const sep = ta.value.trim() ? ' ' : '';
           ta.value = ta.value.trim() + sep + text;
           ta.dispatchEvent(new Event('input'));
         }
-        // Show done state with preview
-        const prev = _el('vm-preview');
-        if (prev) prev.textContent = '“' + (text.length > 100 ? text.slice(0, 100) + '…' : text) + '”';
-        _showState('done');
+        // Flash success then go idle (ready to record more)
+        _applyState('idle');
+        const successEl = _el('vm-success');
+        if (successEl) {
+          successEl.style.display = 'flex';
+          setTimeout(() => { successEl.style.display = 'none'; }, 2200);
+        }
       } else {
-        const errEl = _el('vm-err-msg');
-        if (errEl) errEl.textContent = isVI ? 'Không nhận ra giọng nói. Vui lòng thử lại và nói rõ hơn.' : 'No speech detected. Please try again and speak clearly.';
-        _showState('error');
+        _showError(isVI ? 'Không nhận ra giọng nói. Nói rõ hơn và thử lại.' : 'No speech detected. Speak clearly and try again.');
       }
-    } catch(err) {
-      const errEl = _el('vm-err-msg');
-      if (errEl) errEl.textContent = isVI ? 'Lỗi kết nối. Vui lòng thử lại.' : 'Connection error. Please try again.';
-      _showState('error');
+    } catch(e) {
+      _showError(isVI ? 'Lỗi kết nối. Vui lòng thử lại.' : 'Connection error. Please try again.');
     }
   }
 
-  // ── Public API ────────────────────────────────────────────────────────────
-  window.openVoiceModal = _start;
+  function _showError(msg) {
+    _applyState('idle'); // reset button to idle so they can try again
+    const errEl = _el('vm-err-msg');
+    const errWrap = _el('vm-error');
+    if (errEl) errEl.textContent = msg;
+    if (errWrap) errWrap.style.display = '';
+    const statusEl = _el('vm-status');
+    if (statusEl) statusEl.textContent = isVI ? 'Nhấn micro để thử lại' : 'Tap mic to retry';
+  }
 
-  window.voiceStopRecording = function() {
-    if (_mr && _mr.state !== 'inactive') {
-      _mr.stop(); // fires dataavailable then stop event → _onStop
-    } else if (!_mr) {
-      // getUserMedia not resolved yet — abort and close
-      window.closeVoiceModal();
+  // ── Public API ────────────────────────────────────────────────────────────
+  // Open modal (from mic button in toolbar)
+  window.openVoiceModal = function() {
+    const ov = _el('vm-overlay');
+    if (ov && ov.style.display !== 'flex') {
+      _startRecording();
+    } else {
+      // Already open and idle → start recording
+      if (_vmState === 'idle') _startRecording();
     }
   };
 
-  window.closeVoiceModal = function() {
-    // Only discard if we're still actively recording (not done/error)
-    const stillRecording = _mr && _mr.state !== 'inactive';
-    if (stillRecording) {
-      _discarding = true;
-      _mr.stop();
+  // Big button click: start (idle) or stop (recording)
+  window.voiceActionClick = function() {
+    if (_vmState === 'idle')      { _startRecording(); }
+    else if (_vmState === 'recording') {
+      if (_mr && _mr.state !== 'inactive') _mr.stop();
     }
+    // processing: ignore
+  };
+
+  // X button: close and discard
+  window.closeVoiceModal = function() {
+    _discarding = true;
+    if (_mr && _mr.state !== 'inactive') _mr.stop();
     if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
     _stopTimer();
+    _mr = null;
     const ov = _el('vm-overlay');
     if (ov) ov.style.display = 'none';
-  };
-
-  window.voiceRetry = function() {
-    _start();
+    _vmState = 'idle';
   };
 })();
 
