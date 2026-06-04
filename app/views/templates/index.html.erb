@@ -44,15 +44,15 @@
     <!-- Type filter pills — target the turbo frame below -->
     <div class="flex flex-wrap justify-center gap-2">
       <%= link_to templates_path(category: @category),
-        data: { turbo_frame: "templates-main", turbo_action: "advance" },
-        class: "px-4 py-1.5 rounded-full text-[12px] font-semibold transition-all #{@type.nil? ? 'text-white shadow-sm' : 'text-slate-600 bg-white border border-slate-200 hover:border-indigo-300'}",
+        data: { turbo_frame: "templates-main", turbo_action: "advance", type_tab: "" },
+        class: "type-tab-pill px-4 py-1.5 rounded-full text-[12px] font-semibold transition-all #{@type.nil? ? 'text-white shadow-sm' : 'text-slate-600 bg-white border border-slate-200 hover:border-indigo-300'}",
         style: @type.nil? ? "background:linear-gradient(135deg,#4F46E5,#7C3AED);" : "" do %>
         <%= I18n.locale == :vi ? "Tất cả" : "All" %>
       <% end %>
       <% SurveyTemplate::TYPE_META.each do |type, meta| %>
         <%= link_to templates_path(type: type, category: @category),
-          data: { turbo_frame: "templates-main", turbo_action: "advance" },
-          class: "px-4 py-1.5 rounded-full text-[12px] font-semibold transition-all #{@type == type ? 'text-white shadow-sm' : 'text-slate-600 bg-white border border-slate-200 hover:border-indigo-300'}",
+          data: { turbo_frame: "templates-main", turbo_action: "advance", type_tab: type },
+          class: "type-tab-pill px-4 py-1.5 rounded-full text-[12px] font-semibold transition-all #{@type == type ? 'text-white shadow-sm' : 'text-slate-600 bg-white border border-slate-200 hover:border-indigo-300'}",
           style: @type == type ? "background:linear-gradient(135deg,#4F46E5,#7C3AED);" : "" do %>
           <%= meta[:icon] %> <%= I18n.locale == :vi ? meta[:vi] : meta[:en] %>
         <% end %>
@@ -114,6 +114,37 @@
     </div>
   </turbo-frame>
 </div>
+
+<script>
+(function() {
+  const ACTIVE_STYLE   = 'background:linear-gradient(135deg,#4F46E5,#7C3AED);';
+  const INACTIVE_CLASS = 'text-slate-600 bg-white border border-slate-200 hover:border-indigo-300';
+  const ACTIVE_CLASS   = 'text-white shadow-sm';
+
+  function syncTabs() {
+    const type = new URLSearchParams(window.location.search).get('type') || '';
+    document.querySelectorAll('.type-tab-pill').forEach(el => {
+      const tab = el.dataset.typeTab;
+      const isActive = tab === type;
+      // reset classes
+      el.classList.remove('text-white', 'shadow-sm', 'text-slate-600', 'bg-white',
+                          'border', 'border-slate-200', 'hover:border-indigo-300');
+      if (isActive) {
+        el.classList.add('text-white', 'shadow-sm');
+        el.style.background = 'linear-gradient(135deg,#4F46E5,#7C3AED)';
+      } else {
+        el.classList.add('text-slate-600', 'bg-white', 'border', 'border-slate-200', 'hover:border-indigo-300');
+        el.style.background = '';
+      }
+    });
+  }
+
+  // On turbo frame navigation (tab/category click)
+  document.addEventListener('turbo:frame-load', syncTabs);
+  // On page load (direct URL visit)
+  document.addEventListener('DOMContentLoaded', syncTabs);
+})();
+</script>
 
 <!-- ── BOTTOM CTA ─────────────────────────────────────────────────────────────── -->
 <div style="background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);" class="py-14 text-center">
