@@ -897,15 +897,17 @@ function showResult(data, used) {
 }
 
 // ── Speaker diarization ───────────────────────────────────────────────────
+// Colors chosen for maximum visual contrast between adjacent speakers.
+// Each entry: dot (avatar bg), text (name label), bar (left accent border color)
 var SPEAKER_COLORS = [
-  { dot: 'bg-indigo-500',  text: 'text-indigo-700',  card: 'bg-indigo-50 border-indigo-100'  },
-  { dot: 'bg-violet-500',  text: 'text-violet-700',  card: 'bg-violet-50 border-violet-100'  },
-  { dot: 'bg-emerald-500', text: 'text-emerald-700', card: 'bg-emerald-50 border-emerald-100' },
-  { dot: 'bg-amber-500',   text: 'text-amber-700',   card: 'bg-amber-50 border-amber-100'   },
-  { dot: 'bg-rose-500',    text: 'text-rose-700',    card: 'bg-rose-50 border-rose-100'     },
-  { dot: 'bg-cyan-500',    text: 'text-cyan-700',    card: 'bg-cyan-50 border-cyan-100'     },
-  { dot: 'bg-orange-500',  text: 'text-orange-700',  card: 'bg-orange-50 border-orange-100' },
-  { dot: 'bg-pink-500',    text: 'text-pink-700',    card: 'bg-pink-50 border-pink-100'     },
+  { dot: 'bg-blue-500',    text: 'text-blue-600',    bar: 'border-blue-400',    bg: 'bg-blue-50'    },
+  { dot: 'bg-emerald-500', text: 'text-emerald-600', bar: 'border-emerald-400', bg: 'bg-emerald-50' },
+  { dot: 'bg-orange-500',  text: 'text-orange-600',  bar: 'border-orange-400',  bg: 'bg-orange-50'  },
+  { dot: 'bg-violet-500',  text: 'text-violet-600',  bar: 'border-violet-400',  bg: 'bg-violet-50'  },
+  { dot: 'bg-rose-500',    text: 'text-rose-600',    bar: 'border-rose-400',    bg: 'bg-rose-50'    },
+  { dot: 'bg-cyan-500',    text: 'text-cyan-600',    bar: 'border-cyan-400',    bg: 'bg-cyan-50'    },
+  { dot: 'bg-amber-500',   text: 'text-amber-600',   bar: 'border-amber-400',   bg: 'bg-amber-50'   },
+  { dot: 'bg-pink-500',    text: 'text-pink-600',    bar: 'border-pink-400',    bg: 'bg-pink-50'    },
 ];
 var speakerColorMap = {};
 
@@ -939,19 +941,19 @@ function renderSpeakerView(segments, speakerIds) {
     var initials = label.replace('Speaker ', 'S');
     var ts = fmtTimeShort(seg.start);
     var text = escHtml(seg.tokens.join(' '));
-    return '<div class="flex gap-3 py-2.5 px-1 rounded-lg hover:bg-slate-50 transition-colors">'
+    return '<div class="flex gap-3 py-3 px-3 rounded-xl ' + c.bg + ' border-l-4 ' + c.bar + '">'
       + '<div class="flex-shrink-0 pt-0.5">'
-      + '<div class="w-7 h-7 rounded-full ' + c.dot + ' flex items-center justify-center text-white text-[9px] font-bold select-none">' + escHtml(initials) + '</div>'
+      + '<div class="w-8 h-8 rounded-full ' + c.dot + ' flex items-center justify-center text-white text-[10px] font-bold select-none shadow-sm">' + escHtml(initials) + '</div>'
       + '</div>'
       + '<div class="flex-1 min-w-0">'
-      + '<div class="flex items-center gap-2 mb-0.5">'
-      + '<span class="text-[11px] font-bold ' + c.text + '">' + escHtml(label) + '</span>'
-      + '<span class="text-[10px] text-slate-400 font-mono">' + ts + '</span>'
+      + '<div class="flex items-center gap-2 mb-1">'
+      + '<span class="text-[12px] font-bold ' + c.text + '">' + escHtml(label) + '</span>'
+      + '<span class="text-[11px] text-slate-400 font-mono">' + ts + '</span>'
       + '</div>'
       + '<div class="text-[13px] text-slate-700 leading-relaxed">' + text + '</div>'
       + '</div>'
       + '</div>';
-  }).join('<div class="border-t border-slate-50 mx-10"></div>');
+  }).join('<div class="h-2"></div>');
   document.getElementById('file-speaker-view').innerHTML = html;
 }
 
