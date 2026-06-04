@@ -170,8 +170,9 @@ class Admin::SttController < Admin::BaseController
         diarize:       diarize
       )
 
-      # Strip words from the response if caller didn't request them
-      result[:words] = [] if timestamps == "none"
+      # Keep words when diarize=true (needed for speaker segments in the UI).
+      # Strip them only when the caller didn't request timestamps AND isn't using diarization.
+      result[:words] = [] if timestamps == "none" && !diarize
 
       # Calculate actual credits from duration returned by ElevenLabs
       duration_secs = result[:duration_secs].to_f

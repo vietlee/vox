@@ -635,9 +635,9 @@ var I18N = {
 // ── Diarize → auto-enable word timestamps ─────────────────────────────────
 // Speaker diarization requires word-level timestamps to build speaker segments.
 // Automatically lock the timestamps select to "word" when diarize is checked.
-document.getElementById('file-diarize').addEventListener('change', function() {
+function syncDiarizeTimestamps(checked) {
   var tsSelect = document.getElementById('file-timestamps');
-  if (this.checked) {
+  if (checked) {
     tsSelect.value = 'word';
     tsSelect.disabled = true;
     tsSelect.title = 'Word timestamps bắt buộc khi bật nhận diện người nói';
@@ -645,7 +645,12 @@ document.getElementById('file-diarize').addEventListener('change', function() {
     tsSelect.disabled = false;
     tsSelect.title = '';
   }
+}
+document.getElementById('file-diarize').addEventListener('change', function() {
+  syncDiarizeTimestamps(this.checked);
 });
+// Also apply on page load — browser may restore checkbox state from previous session
+syncDiarizeTimestamps(document.getElementById('file-diarize').checked);
 
 // ── Credits ───────────────────────────────────────────────────────────────
 function getRemainingCredits() {
