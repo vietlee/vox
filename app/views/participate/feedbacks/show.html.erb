@@ -29,6 +29,8 @@
   .fade-in { animation: fadeIn 0.35s ease forwards; }
   .reply-section { transition: all 0.2s ease; }
   .vm-bar { transform-origin: bottom; animation: vm-bar 0.65s ease-in-out infinite; }
+  #ep-grid-wrap::-webkit-scrollbar { display: none; }
+  #ep-tabs::-webkit-scrollbar { display: none; }
 </style>
 
 <% content_for :nav_right do %>
@@ -396,7 +398,7 @@
         class="inline-flex items-center gap-2 px-6 py-2.5 text-[13px] font-semibold text-white rounded-full transition-all hover:opacity-90 disabled:opacity-60"
         style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 4px 14px rgba(99,102,241,0.3);">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-        <%= I18n.locale.to_s == 'vi' ? 'Xem thêm góp ý' : 'Load more' %>
+        <%= t('participate.feedback.load_more_feedbacks') %>
       </button>
     </div>
   </div>
@@ -413,14 +415,14 @@
                 backdrop-filter:blur(32px) saturate(160%); -webkit-backdrop-filter:blur(32px) saturate(160%);
                 border:1px solid rgba(255,255,255,0.18);
                 box-shadow:0 24px 64px rgba(0,0,0,0.4);
-                border-radius:28px; padding:24px 24px 28px; width:284px;
-                text-align:center; position:relative;
+                border-radius:28px; padding:24px 24px 10px 24px; width:284px;
+                text-align:center; position:relative; overflow:hidden;
                 animation:vm-modal-in 0.2s cubic-bezier(0.34,1.56,0.64,1) forwards;">
 
       <!-- Header -->
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
         <span style="font-size:13px; font-weight:700; color:rgba(255,255,255,0.85); letter-spacing:0.2px;">
-          🎙 <%= I18n.locale.to_s == 'vi' ? 'Ghi âm giọng nói' : 'Voice input' %>
+          🎙 <%= t('participate.feedback.voice_modal_title') %>
         </span>
         <button onclick="closeVoiceModal()"
           style="width:28px; height:28px; border-radius:50%; border:none;
@@ -450,15 +452,8 @@
         <span id="vm-timer" style="font-size:22px; font-weight:800; color:rgba(255,255,255,0.95); letter-spacing:-0.5px; font-variant-numeric:tabular-nums;">0:00</span>
       </div>
 
-      <!-- Status / success / error — single text line -->
-      <p id="vm-status" style="font-size:12px; color:rgba(255,255,255,0.45); margin:0 0 8px; min-height:18px;"></p>
-      <p id="vm-success" style="display:none; font-size:12px; font-weight:600; color:#6ee7b7; margin:0 0 8px;">
-        ✓ <%= I18n.locale.to_s == 'vi' ? 'Đã thêm vào ô nhập' : 'Added to input' %>
-      </p>
-      <p id="vm-err-msg" style="display:none; font-size:12px; color:#fca5a5; margin:0 0 8px; line-height:1.5;"></p>
-
       <!-- Action button with rings -->
-      <div style="display:flex; align-items:center; justify-content:center; margin-bottom:6px;">
+      <div style="display:flex; align-items:center; justify-content:center; margin-bottom:0; min-height: 150px;">
         <div style="position:relative; width:100px; height:100px; display:flex; align-items:center; justify-content:center;">
           <div id="vm-ring1" style="position:absolute; inset:0; border-radius:50%; pointer-events:none;
                                     border:2px solid rgba(239,68,68,0.3);
@@ -488,9 +483,13 @@
         </div>
       </div>
 
+      <!-- Status / error — below rings so they never overlap -->
+      <p id="vm-status" style="font-size:12px; color:rgba(255,255,255,0.45); margin:18px 0 4px; min-height:18px;"></p>
+      <p id="vm-err-msg" style="display:none; font-size:12px; color:#fca5a5; margin:0 0 4px; line-height:1.5;"></p>
+
       <!-- Hint -->
       <p id="vm-hint" style="font-size:11px; color:rgba(255,255,255,0.35); margin:0;">
-        <%= I18n.locale.to_s == 'vi' ? 'Nhấn micro để bắt đầu' : 'Tap mic to start' %>
+        <%= t('participate.feedback.voice_hint_start') %>
       </p>
 
     </div>
@@ -517,9 +516,25 @@ const ALLOW_VOICE      = <%= @board.allow_voice_input? ? 'true' : 'false' %>;
 const AUTO_MODERATION  = <%= @board.auto_moderation? ? 'true' : 'false' %>;
 const BOARD_SLUG       = "<%= @board.slug %>";
 const IDENTITY_MODE    = "<%= @board.identity_mode %>";
-const I18N_VOICE_RECORD     = "<%= j t('participate.feedback.voice_record') %>";
-const I18N_VOICE_RECORDING  = "<%= j t('participate.feedback.voice_recording') %>";
-const I18N_VOICE_PROCESSING = "<%= j t('participate.feedback.voice_processing') %>";
+const I18N_VOICE_RECORD          = "<%= j t('participate.feedback.voice_record') %>";
+const I18N_VOICE_RECORDING       = "<%= j t('participate.feedback.voice_recording') %>";
+const I18N_VOICE_PROCESSING      = "<%= j t('participate.feedback.voice_processing') %>";
+const I18N_VOICE_MODAL_TITLE     = "<%= j t('participate.feedback.voice_modal_title') %>";
+const I18N_VOICE_HINT_START      = "<%= j t('participate.feedback.voice_hint_start') %>";
+const I18N_VOICE_STATUS_REC      = "<%= j t('participate.feedback.voice_status_recording') %>";
+const I18N_VOICE_HINT_STOP       = "<%= j t('participate.feedback.voice_hint_stop') %>";
+const I18N_VOICE_STATUS_PROC     = "<%= j t('participate.feedback.voice_status_processing') %>";
+const I18N_VOICE_STATUS_READY    = "<%= j t('participate.feedback.voice_status_ready') %>";
+const I18N_VOICE_STARTING        = "<%= j t('participate.feedback.voice_starting') %>";
+const I18N_VOICE_NO_BROWSER      = "<%= j t('participate.feedback.voice_no_browser_support') %>";
+const I18N_VOICE_MIC_DENIED      = "<%= j t('participate.feedback.voice_mic_denied') %>";
+const I18N_VOICE_MIC_ERROR       = "<%= j t('participate.feedback.voice_mic_error') %>";
+const I18N_VOICE_NO_AUDIO_MSG    = "<%= j t('participate.feedback.voice_no_audio_msg') %>";
+const I18N_VOICE_GENERIC_ERROR   = "<%= j t('participate.feedback.voice_generic_error') %>";
+const I18N_VOICE_NO_SPEECH       = "<%= j t('participate.feedback.voice_no_speech') %>";
+const I18N_VOICE_CONN_ERROR      = "<%= j t('participate.feedback.voice_connection_error') %>";
+const I18N_VOICE_HINT_RETRY      = "<%= j t('participate.feedback.voice_hint_retry') %>";
+const I18N_LOAD_MORE             = "<%= j t('participate.feedback.load_more_feedbacks') %>";
 const ANONYMOUS_LABEL = "<%= j t('participate.feedback.anonymous') %>";
 const REPLY_LABEL     = "<%= j t('participate.feedback.reply_label') %>";
 const REPLY_COUNT_LABEL = "<%= j t('participate.feedback.reply_count') %>";
@@ -979,7 +994,7 @@ async function loadMore() {
     }
   } finally {
     btn.disabled = false;
-    btn.textContent = "<%= I18n.locale.to_s == 'vi' ? 'Xem thêm góp ý' : 'Load more' %>";
+    btn.textContent = I18N_LOAD_MORE;
   }
 }
 
@@ -1159,7 +1174,6 @@ async function toggleUpvote(btn, feedbackId) {
 (function() {
   if (!ALLOW_VOICE) return;
 
-  const isVI = navigator.language.startsWith('vi');
   let _mr = null, _stream = null, _chunks = [], _startMs = 0;
   let _timerIv = null, _discarding = false;
   // 'idle' | 'recording' | 'processing'
@@ -1179,18 +1193,16 @@ async function toggleUpvote(btn, feedbackId) {
     const btnSpinner= _el('vm-btn-spinner');
     const ring1     = _el('vm-ring1');
     const ring2     = _el('vm-ring2');
-    const successEl = _el('vm-success');
 
-    // Clear transient banners
-    if (successEl) successEl.style.display = 'none';
+    // Clear transient error banner
     const errMsgEl = _el('vm-err-msg');
     if (errMsgEl)  errMsgEl.style.display  = 'none';
 
     if (s === 'recording') {
       if (waves)    { waves.style.display = 'flex'; }
       if (timerRow) { timerRow.style.display = 'flex'; }
-      if (statusEl) { statusEl.textContent = isVI ? 'Đang ghi âm...' : 'Recording...'; statusEl.style.color = 'rgba(255,255,255,0.45)'; }
-      if (hintEl)   { hintEl.textContent   = isVI ? 'Nhấn để dừng' : 'Tap to stop'; hintEl.style.color = 'rgba(255,255,255,0.35)'; }
+      if (statusEl) { statusEl.textContent = I18N_VOICE_STATUS_REC; statusEl.style.color = 'rgba(255,255,255,0.45)'; }
+      if (hintEl)   { hintEl.textContent   = I18N_VOICE_HINT_STOP; hintEl.style.color = 'rgba(255,255,255,0.35)'; }
       if (btn)      { btn.disabled = false; btn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)'; btn.style.boxShadow = '0 8px 24px rgba(239,68,68,0.45)'; }
       if (btnIcon)  btnIcon.style.display = '';
       if (btnSpinner) btnSpinner.style.display = 'none';
@@ -1200,7 +1212,7 @@ async function toggleUpvote(btn, feedbackId) {
     } else if (s === 'processing') {
       if (waves)    waves.style.display = 'none';
       if (timerRow) timerRow.style.display = 'none';
-      if (statusEl) { statusEl.textContent = isVI ? 'Đang xử lý...' : 'Processing...'; statusEl.style.color = 'rgba(255,255,255,0.45)'; }
+      if (statusEl) { statusEl.textContent = I18N_VOICE_STATUS_PROC; statusEl.style.color = 'rgba(255,255,255,0.45)'; }
       if (hintEl)   hintEl.textContent   = '';
       if (btn)      { btn.disabled = true; btn.style.background = 'rgba(226,232,240,0.8)'; btn.style.boxShadow = 'none'; }
       if (btnIcon)  btnIcon.style.display = 'none';
@@ -1212,7 +1224,7 @@ async function toggleUpvote(btn, feedbackId) {
       if (waves)    waves.style.display = 'none';
       if (timerRow) timerRow.style.display = 'none';
       const timerEl = _el('vm-timer'); if (timerEl) timerEl.textContent = '0:00';
-      if (statusEl) { statusEl.textContent = isVI ? 'Nhấn micro để ghi âm thêm' : 'Tap to record more'; statusEl.style.color = 'rgba(255,255,255,0.45)'; }
+      if (statusEl) { statusEl.textContent = I18N_VOICE_STATUS_READY; statusEl.style.color = 'rgba(255,255,255,0.45)'; }
       if (hintEl)   hintEl.textContent   = '';
       if (btn)      { btn.disabled = false; btn.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)'; btn.style.boxShadow = '0 8px 24px rgba(99,102,241,0.35)'; }
       if (btnIcon)  btnIcon.style.display = '';
@@ -1240,7 +1252,7 @@ async function toggleUpvote(btn, feedbackId) {
     if (ov) ov.style.display = 'flex';
     _applyState('idle');
     const statusEl = _el('vm-status');
-    if (statusEl) statusEl.textContent = isVI ? 'Đang khởi động micro...' : 'Starting microphone...';
+    if (statusEl) statusEl.textContent = I18N_VOICE_STARTING;
   }
 
   // ── Start recording ───────────────────────────────────────────────────────
@@ -1249,7 +1261,7 @@ async function toggleUpvote(btn, feedbackId) {
     _chunks = [];
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showToast(isVI ? 'Trình duyệt không hỗ trợ ghi âm.' : 'Recording not supported.', true);
+      showToast(I18N_VOICE_NO_BROWSER, true);
       return;
     }
 
@@ -1264,9 +1276,7 @@ async function toggleUpvote(btn, feedbackId) {
       if (ov) ov.style.display = 'none';
       _stopTimer();
       showToast(
-        err.name === 'NotAllowedError'
-          ? (isVI ? 'Cần cấp quyền truy cập micro.' : 'Microphone permission denied.')
-          : (isVI ? 'Không thể truy cập micro.' : 'Cannot access microphone.'),
+        err.name === 'NotAllowedError' ? I18N_VOICE_MIC_DENIED : I18N_VOICE_MIC_ERROR,
         true
       );
       return;
@@ -1299,7 +1309,7 @@ async function toggleUpvote(btn, feedbackId) {
     const durationSecs = (Date.now() - _startMs) / 1000;
 
     if (_chunks.length === 0) {
-      _showError(isVI ? 'Không có dữ liệu âm thanh. Hãy nói gì đó trước khi dừng.' : 'No audio captured. Please speak first.');
+      _showError(I18N_VOICE_NO_AUDIO_MSG);
       _mr = null;
       return;
     }
@@ -1328,31 +1338,28 @@ async function toggleUpvote(btn, feedbackId) {
       try { data = await res.json(); } catch(e) { data = {}; }
 
       if (!res.ok) {
-        _showError(data.error || (isVI ? 'Đã xảy ra lỗi.' : 'An error occurred.'));
+        _showError(data.error || I18N_VOICE_GENERIC_ERROR);
         return;
       }
 
       const text = (data.text || '').trim();
       if (text) {
-        // Fill into textarea
+        // Fill into textarea, separating chunks with ". "
         const ta = _el('fb-content');
         if (ta) {
-          const sep = ta.value.trim() ? ' ' : '';
-          ta.value = ta.value.trim() + sep + text;
+          const existing = ta.value.trim();
+          ta.value = existing
+            ? existing + (existing.endsWith('.') ? ' ' : '. ') + text
+            : text;
           ta.dispatchEvent(new Event('input'));
         }
-        // Flash success then go idle (ready to record more)
+        // Go idle — ready to record more
         _applyState('idle');
-        const successEl = _el('vm-success');
-        if (successEl) {
-          successEl.style.display = '';
-          setTimeout(() => { successEl.style.display = 'none'; }, 2200);
-        }
       } else {
-        _showError(isVI ? 'Không nhận ra giọng nói. Nói rõ hơn và thử lại.' : 'No speech detected. Speak clearly and try again.');
+        _showError(I18N_VOICE_NO_SPEECH);
       }
     } catch(e) {
-      _showError(isVI ? 'Lỗi kết nối. Vui lòng thử lại.' : 'Connection error. Please try again.');
+      _showError(I18N_VOICE_CONN_ERROR);
     }
   }
 
@@ -1361,19 +1368,21 @@ async function toggleUpvote(btn, feedbackId) {
     const errEl = _el('vm-err-msg');
     if (errEl) { errEl.textContent = msg; errEl.style.display = ''; }
     const statusEl = _el('vm-status');
-    if (statusEl) { statusEl.textContent = isVI ? 'Nhấn micro để thử lại' : 'Tap mic to retry'; statusEl.style.color = 'rgba(255,255,255,0.45)'; }
+    if (statusEl) { statusEl.textContent = I18N_VOICE_HINT_RETRY; statusEl.style.color = 'rgba(255,255,255,0.45)'; }
   }
 
   // ── Public API ────────────────────────────────────────────────────────────
   // Open modal (from mic button in toolbar)
   window.openVoiceModal = function() {
     const ov = _el('vm-overlay');
-    if (ov && ov.style.display !== 'flex') {
-      _startRecording();
-    } else {
-      // Already open and idle → start recording
-      if (_vmState === 'idle') _startRecording();
-    }
+    if (!ov || ov.style.display === 'flex') return;
+    ov.style.display = 'flex';
+    _applyState('idle');
+    // Fresh open: clear status, show "tap to start" hint
+    const statusEl = _el('vm-status');
+    if (statusEl) statusEl.textContent = '';
+    const hintEl = _el('vm-hint');
+    if (hintEl) hintEl.textContent = I18N_VOICE_HINT_START;
   };
 
   // Big button click: start (idle) or stop (recording)
@@ -1400,44 +1409,139 @@ async function toggleUpvote(btn, feedbackId) {
 
 // ── Emoji Picker ──────────────────────────────────────────────────────────────
 (function() {
-  const EMOJIS = [
-    '😀','😂','😍','😊','😢','😮','😡','😎','🥰','🤔',
-    '😅','😭','😱','🥺','🤗','😇','🥳','😤','😴','🤣',
-    '👍','👏','🙌','💪','👋','🙏','🤝','🤞','✌️','🤙',
-    '❤️','🧡','💛','💚','💙','💜','💕','🖤','🔥','⭐',
-    '✅','❌','🎉','💬','💯','🚀','💡','🎯','🌟','🎊'
+  const EMOJI_CATS = [
+    { icon: '😀', label: 'Mặt', emojis: [
+      '😀','😁','😂','🤣','😃','😄','😅','😆','😊','😇',
+      '🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚',
+      '🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤩','🥳',
+      '🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯',
+      '😦','😧','😮','😲','🥺','😢','😥','😭','😱','😨',
+      '😰','😓','😞','😔','😟','😕','🙁','☹️','😣','😖',
+      '😫','😩','🥱','😤','😠','😡','🤬','😈','👿','💀',
+      '☠️','💩','🤡','👹','👺','👻','👽','👾','🤖','😺',
+    ]},
+    { icon: '👋', label: 'Cử chỉ', emojis: [
+      '👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞',
+      '🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍',
+      '👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🙏',
+      '🤝','💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🫀',
+      '🧠','🦷','👁️','👅','💋','🫦','💅','🤳','🧏','🙋',
+      '🙆','🙅','💁','🤷','🤦','🧍','🧎','🚶','🏃','💃',
+    ]},
+    { icon: '❤️', label: 'Tình cảm', emojis: [
+      '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔',
+      '❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️',
+      '✝️','☯️','🕊️','🌈','💫','⭐','🌟','✨','💥','🔥',
+      '🌸','🌺','🌻','🌹','💐','🍀','🌿','🍃','🌱','🌾',
+    ]},
+    { icon: '🎉', label: 'Ký hiệu', emojis: [
+      '✅','❌','⭕','❓','❗','💯','🔝','🆗','🆙','🆒',
+      '🆕','🆓','🔔','🔕','🔇','🔊','📢','📣','🎵','🎶',
+      '🎉','🎊','🎈','🎁','🎀','🏆','🥇','🥈','🥉','🎖️',
+      '🏅','🎗️','🎫','🎟️','🎪','🎭','🎨','🎬','🎤','🎧',
+      '🚀','💡','🔑','🗝️','🔒','🔓','💰','💎','📌','📍',
+      '💬','💭','🗯️','📝','📋','📊','📈','📉','🔎','🔍',
+    ]},
+    { icon: '🍕', label: 'Đồ ăn', emojis: [
+      '🍎','🍊','🍋','🍇','🍓','🫐','🍒','🍑','🥭','🍍',
+      '🥥','🥝','🍅','🥑','🌽','🥕','🧅','🧄','🥔','🍠',
+      '🍕','🍔','🍟','🌭','🍿','🧂','🥨','🧀','🥚','🍳',
+      '🥞','🧇','🥓','🍗','🍖','🌮','🌯','🥙','🧆','🥗',
+      '🍜','🍝','🍛','🍲','🍱','🍣','🍤','🍙','🍚','🍘',
+      '🍦','🍧','🍨','🍩','🍪','🎂','🍰','🧁','🍫','🍬',
+      '☕','🍵','🧋','🥤','🧃','🍺','🥂','🍷','🥃','🍸',
+    ]},
+    { icon: '🐶', label: 'Động vật', emojis: [
+      '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
+      '🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧',
+      '🐦','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝',
+      '🦋','🐛','🐌','🐞','🐜','🦟','🦗','🦂','🐢','🐍',
+      '🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠',
+      '🐬','🐳','🦭','🐊','🦓','🦍','🦧','🦣','🐘','🦏',
+    ]},
+    { icon: '⚽', label: 'Thể thao', emojis: [
+      '⚽','🏀','🏈','⚾','🥎','🏐','🏉','🎾','🥏','🎱',
+      '🏓','🏸','🥍','🏒','🥅','⛳','🎣','🤿','🎽','🎿',
+      '🛷','🥌','🎯','🪃','🎱','🏹','🛹','🛼','⛸️','🥊',
+      '🥋','🎪','🏋️','🤸','⛹️','🤺','🤼','🤾','🏌️','🧘',
+    ]},
+    { icon: '🚗', label: 'Du lịch', emojis: [
+      '🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚐',
+      '🛻','🚚','🚛','🚜','🏍️','🛵','🚲','🛺','🚁','🛸',
+      '✈️','🚀','🛶','⛵','🚢','🗺️','🧭','🏔️','🏝️','🏜️',
+      '🌋','🏛️','🏗️','🏘️','🏚️','🏠','🏡','🏢','🏨','🗼',
+      '🗽','🗿','🌁','🌃','🌆','🌇','🌉','🌌','🎠','🎡',
+    ]},
   ];
 
   let _currentFbId = null;
+  let _activeCat = 0;
 
   function buildPicker() {
     const el = document.createElement('div');
     el.id = 'shared-emoji-picker';
-    el.style.cssText = [
-      'position:fixed; z-index:9999; background:white;',
-      'border:1px solid #e2e8f0; border-radius:16px; padding:10px;',
-      'display:none; box-shadow:0 8px 32px rgba(0,0,0,0.12);',
-      'width:224px;'
-    ].join('');
+    el.style.cssText = 'position:fixed; z-index:9999; background:white; border:1px solid #e2e8f0; border-radius:16px; display:none; box-shadow:0 8px 32px rgba(0,0,0,0.14); width:272px; overflow:hidden;';
     el.onclick = e => e.stopPropagation();
 
-    const grid = document.createElement('div');
-    grid.style.cssText = 'display:grid; grid-template-columns:repeat(5,1fr); gap:2px;';
+    // Tab bar
+    const tabs = document.createElement('div');
+    tabs.id = 'ep-tabs';
+    tabs.style.cssText = 'display:flex; overflow-x:auto; padding:8px 8px 0; gap:2px; scrollbar-width:none; border-bottom:1px solid #f1f5f9;';
+    tabs.style.msOverflowStyle = 'none';
 
-    EMOJIS.forEach(emoji => {
+    EMOJI_CATS.forEach((cat, i) => {
+      const tb = document.createElement('button');
+      tb.type = 'button';
+      tb.title = cat.label;
+      tb.textContent = cat.icon;
+      tb.dataset.catIdx = i;
+      tb.style.cssText = 'border:none; cursor:pointer; font-size:18px; padding:4px 6px; border-radius:8px; line-height:1; flex-shrink:0; transition:background 0.1s;';
+      tb.style.background = i === _activeCat ? '#f1f5f9' : 'transparent';
+      tb.onclick = () => { _activeCat = i; _renderGrid(el); _highlightTab(tabs); };
+      tabs.appendChild(tb);
+    });
+    el.appendChild(tabs);
+
+    // Grid container
+    const gridWrap = document.createElement('div');
+    gridWrap.id = 'ep-grid-wrap';
+    gridWrap.style.cssText = 'height:200px; overflow-y:auto; padding:8px; scrollbar-width:none; -ms-overflow-style:none;';
+    gridWrap.style.setProperty('::-webkit-scrollbar', 'display:none');
+    el.appendChild(gridWrap);
+
+    document.body.appendChild(el);
+    _renderGrid(el);
+    return el;
+  }
+
+  function _highlightTab(tabs) {
+    tabs.querySelectorAll('button').forEach(b => {
+      b.style.background = parseInt(b.dataset.catIdx) === _activeCat ? '#f1f5f9' : 'transparent';
+    });
+  }
+
+  function _renderGrid(el) {
+    const wrap = el.querySelector('#ep-grid-wrap');
+    wrap.innerHTML = '';
+    wrap.scrollTop = 0;
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid; grid-template-columns:repeat(7,1fr); gap:1px;';
+    EMOJI_CATS[_activeCat].emojis.forEach(emoji => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.textContent = emoji;
-      btn.style.cssText = 'border:none; background:transparent; cursor:pointer; font-size:22px; padding:5px; border-radius:8px; line-height:1; transition:background 0.1s;';
+      btn.style.cssText = 'border:none; background:transparent; cursor:pointer; font-size:22px; padding:4px; border-radius:8px; line-height:1; transition:background 0.15s, transform 0.15s;';
       btn.onmouseenter = () => btn.style.background = '#f1f5f9';
       btn.onmouseleave = () => btn.style.background = 'transparent';
-      btn.onclick = () => { insertEmoji(_currentFbId, emoji); };
+      btn.onclick = () => {
+        insertEmoji(_currentFbId, emoji);
+        btn.style.background = '#dcfce7';
+        btn.style.transform = 'scale(1.3)';
+        setTimeout(() => { btn.style.transform = 'scale(1)'; btn.style.background = 'transparent'; }, 220);
+      };
       grid.appendChild(btn);
     });
-
-    el.appendChild(grid);
-    document.body.appendChild(el);
-    return el;
+    wrap.appendChild(grid);
   }
 
   function insertEmoji(feedbackId, emoji) {
@@ -1473,7 +1577,7 @@ async function toggleUpvote(btn, feedbackId) {
     let left = rect.left;
     // Keep within viewport
     if (top < 8) top = rect.bottom + 8;
-    if (left + 224 > window.innerWidth - 8) left = window.innerWidth - 232;
+    if (left + 272 > window.innerWidth - 8) left = window.innerWidth - 280;
     picker.style.top  = top + 'px';
     picker.style.left = left + 'px';
 
