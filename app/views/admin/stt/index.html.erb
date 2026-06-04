@@ -928,8 +928,10 @@ async function doTranscribe(endpoint, fd) {
     const res  = await fetch(endpoint, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body:fd, signal:ctrl.signal });
     const data = await res.json();
     if (!res.ok) {
+      // server_error from ElevenLabs is transient — show retry button
+      const retryable = data.error_code === 'server_error' || res.status === 503;
       showFileError(data.upgrade_required ? "Gói của bạn không hỗ trợ tính năng này."
-                  : data.error || "Lỗi server.");
+                  : data.error || "Lỗi server.", retryable);
       if (data.insufficient_credits) checkTranscribeButton();
       return;
     }
@@ -1242,9 +1244,15 @@ function setLoading(on, label) {
   document.getElementById('transcribe-btn-label').textContent = on ? label : I18N.btn_transcribe;
   document.getElementById('transcribe-spinner').classList.toggle('hidden', !on);
 }
-function showFileError(msg) {
+function showFileError(msg, retryable) {
   const el = document.getElementById('file-error');
-  el.textContent = '⚠️ ' + msg;
+  if (retryable) {
+    el.innerHTML = '⚠️ ' + escHtml(msg)
+      + ' <button onclick="document.getElementById(\'transcribe-btn\').click()" '
+      + 'class="ml-2 underline font-semibold hover:opacity-80 cursor-pointer border-0 bg-transparent text-red-700 text-[13px]">Thử lại</button>';
+  } else {
+    el.textContent = '⚠️ ' + msg;
+  }
   el.classList.remove('hidden');
 }
 function hideResultError() {

@@ -218,14 +218,26 @@ class Admin::SttController < Admin::BaseController
       render json: result.merge(speaker_segments: segments)
 
     rescue ElevenLabsService::Error => e
-      # ── Fallback: yt-dlp download for non-video-platform URLs ──────────────
-      # ElevenLabs may reject URLs that aren't from recognised video platforms
-      # (e.g. direct .mp3 links from private CDNs). Fall back to local download.
-      if e.code == :invalid_data || e.code == :server_error
+      # ── Fallback: yt-dlp download for non-video-platform URLs only ─────────
+      # ElevenLabs handles YouTube/TikTok/etc. natively via source_url.
+      # For those platforms, yt-dlp will ALSO fail (bot detection), so never
+      # fall back — just surface the error and let the user retry.
+      # Only fall back to yt-dlp for generic/CDN URLs (direct .mp3/.mp4 links).
+      is_video_platform = url.match?(/youtube\.com|youtu\.be|tiktok\.com|facebook\.com|
+                                      instagram\.com|twitter\.com|x\.com|vimeo\.com|
+                                      dailymotion\.com|soundcloud\.com/ix)
+
+      if !is_video_platform && (e.code == :invalid_data || e.code == :server_error)
         Rails.logger.warn "ElevenLabs source_url rejected (#{e.code}), falling back to yt-dlp: #{e.message}"
         transcribe_url_via_ytdlp(url)
       else
-        render json: { error: e.message, error_code: e.code }, status: :service_unavailable
+        # For video platforms: give a helpful retry message instead of the raw API error
+        error_msg = if is_video_platform && (e.code == :server_error || e.code == :invalid_data)
+          "ElevenLabs gặp sự cố khi xử lý URL này (#{e.code}). Vui lòng thử lại sau ít giây."
+        else
+          e.message
+        end
+        render json: { error: error_msg, error_code: e.code }, status: :service_unavailable
       end
     rescue => e
       Rails.logger.error "SttController#transcribe_url: #{e.message}"
