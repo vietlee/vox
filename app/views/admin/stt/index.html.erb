@@ -305,8 +305,11 @@
           <span id="speaker-count-badge" class="text-[11px] text-slate-400"></span>
         </div>
 
+        <!-- Voice selector bar per speaker (outside scroll area so always visible) -->
+        <div id="file-speaker-voice-bar" class="hidden"></div>
+
         <!-- Speaker diarization view (hidden until diarize results arrive) -->
-        <div id="file-speaker-view" class="hidden max-h-[420px] overflow-y-auto space-y-1 pr-1"></div>
+        <div id="file-speaker-view" class="hidden max-h-[360px] overflow-y-auto space-y-1 pr-1"></div>
 
         <!-- Plain transcript text -->
         <div id="file-transcript-text"
@@ -635,22 +638,24 @@ var I18N = {
 // ── TTS for speaker segments ──────────────────────────────────────────────
 var HAS_TTS      = <%= @has_tts ? 'true' : 'false' %>;
 var TTS_PATH     = "<%= tts_generate_path %>";
-// Pre-selected diverse voices: female/male alternating, different accents
+var VOICES_URL   = "<%= tts_voices_path %>";
+var _cachedVoices = null;
+// Multilingual voices — support Vietnamese and 28+ other languages via eleven_multilingual_v2
 // ElevenLabs premade voice IDs (always available on any API key)
 var SPEAKER_VOICES = [
-  "EXAVITQu4vr4xnSDxMaL",  // Rachel — female, American
-  "TxGEqnHWrfWFTfGW9XjX",  // Josh   — male,   American
-  "AZnzlk1XvdvUeBnXmlld",  // Domi   — female, American
-  "VR6AewLTigWG4xSOukaG",  // Arnold — male,   American
-  "pNInz6obpgDQGcFmaJgB",  // Adam   — male,   American
-  "MF3mGyEYCl7XYWbV9V6O",  // Elli   — female, American
-  "jBpfuIE2acCO8z3wKNLl",  // Gigi   — female, American
-  "t0jbNlBVZ17f02VDIeMI",  // Jessie — male,   American
+  "EXAVITQu4vr4xnSDxMaL",  // Rachel  — female, neutral (multilingual)
+  "onwK4e9ZLuTAKqWW03F9",  // Daniel  — male,   neutral (multilingual)
+  "XB0fDUnXU5powFXDhCwa",  // Charlotte — female (multilingual)
+  "iP95p4xoKVk53GoZ742B",  // Chris   — male   (multilingual)
+  "cgSgspJ2msm6clMCkdW9",  // Jessica — female (multilingual)
+  "CwhRBWXzGAHq8TQ4Fs17",  // Roger   — male   (multilingual)
+  "FGY2WhTYpPnrIDTdsKH5",  // Laura   — female (multilingual)
+  "IKne3meq5aSn9XLyUdCD",  // Charlie — male   (multilingual)
 ];
 var _ttsAudio   = null;   // currently playing Audio object
 var _ttsPlayBtn = null;   // button that triggered current playback
 
-function playSpeakerSegment(btn, text, speakerIdx) {
+function playSpeakerSegment(btn, text, speakerIdx, ns) {
   // If same button clicked again → stop playback
   if (_ttsPlayBtn === btn && _ttsAudio) {
     _ttsAudio.pause();
@@ -663,7 +668,9 @@ function playSpeakerSegment(btn, text, speakerIdx) {
   if (_ttsAudio) { _ttsAudio.pause(); _ttsAudio = null; }
   if (_ttsPlayBtn && _ttsPlayBtn !== btn) _resetPlayBtn(_ttsPlayBtn);
 
-  var voiceId = SPEAKER_VOICES[speakerIdx % SPEAKER_VOICES.length];
+  // Read voice from the per-speaker select if available, else fall back to defaults
+  var sel = document.getElementById('spk-voice-' + (ns || '') + speakerIdx);
+  var voiceId = (sel && sel.value) ? sel.value : SPEAKER_VOICES[speakerIdx % SPEAKER_VOICES.length];
   _ttsPlayBtn = btn;
   btn.disabled = true;
   btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">'
@@ -674,7 +681,7 @@ function playSpeakerSegment(btn, text, speakerIdx) {
   var fd = new FormData();
   fd.append('text',     text);
   fd.append('voice_id', voiceId);
-  fd.append('model',    'eleven_turbo_v2_5');
+  fd.append('model',    'eleven_multilingual_v2');
 
   fetch(TTS_PATH, { method: 'POST', headers: { 'X-CSRF-Token': CSRF }, body: fd })
     .then(function(res) {
@@ -1011,8 +1018,57 @@ function buildSpeakerSegments(words) {
   return segments;
 }
 
+// ── Speaker voice loading ─────────────────────────────────────────────────────
+// Fetches voices once, caches, then populates every .spk-voice-select on the page
+function loadSpeakerVoices() {
+  if (!HAS_TTS) return;
+  if (_cachedVoices) { _populateVoiceSelects(_cachedVoices); return; }
+  fetch(VOICES_URL, { headers: { 'Accept': 'application/json' } })
+    .then(function(r) { return r.json(); })
+    .then(function(voices) {
+      _cachedVoices = voices;
+      _populateVoiceSelects(voices);
+    })
+    .catch(function(e) { console.warn('Voice list load failed:', e.message); });
+}
+
+function _populateVoiceSelects(voices) {
+  document.querySelectorAll('.spk-voice-select').forEach(function(sel) {
+    var current = sel.value || sel.dataset.defaultVoice || '';
+    sel.innerHTML = voices.map(function(v) {
+      return '<option value="' + v.id + '"' + (v.id === current ? ' selected' : '') + '>' + escHtml(v.name) + '</option>';
+    }).join('');
+    if (!sel.value && voices.length > 0) sel.value = voices[0].id;
+  });
+}
+
+// Build voice selector bar (one row per unique speaker) — shown above segments when TTS available
+// ns: namespace string ('' for live result, 'h{id}-' for history items)
+function buildSpeakerVoiceBar(speakerMap, ns) {
+  if (!HAS_TTS) return '';
+  var rows = speakerMap.map(function(spk) {
+    var c         = spk.color;
+    var label     = spk.speaker_id.replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase(); });
+    var defVoice  = SPEAKER_VOICES[spk.idx % SPEAKER_VOICES.length];
+    return '<div class="flex items-center gap-2 min-w-0">'
+      + '<div class="w-3 h-3 rounded-full ' + c.dot + ' flex-shrink-0"></div>'
+      + '<span class="text-[11px] font-semibold ' + c.text + ' w-20 flex-shrink-0 truncate">' + escHtml(label) + '</span>'
+      + '<select id="spk-voice-' + escHtml(ns) + spk.idx + '" data-default-voice="' + defVoice + '"'
+      + ' class="spk-voice-select flex-1 min-w-0 text-[11px] border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-300">'
+      + '<option value="">Đang tải...</option>'
+      + '</select>'
+      + '</div>';
+  }).join('');
+  return '<div class="mb-3 p-3 bg-white rounded-xl border border-slate-200 space-y-1.5">'
+    + '<div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">🎙 Giọng đọc</div>'
+    + rows
+    + '</div>';
+}
+
 // Build speaker view HTML from segments array (reused in live result + history)
-function buildSpeakerViewHtml(segments) {
+// ns: namespace for voice select IDs ('' for live, 'h{id}-' for history)
+function buildSpeakerViewHtml(segments, ns) {
+  ns = ns || '';
   // Build a local color map + speaker index map for voice assignment
   var localColorMap  = {};
   var speakerIdxMap  = {};
@@ -1024,7 +1080,7 @@ function buildSpeakerViewHtml(segments) {
       colorIdx++;
     }
   });
-  return segments.map(function(seg) {
+  var segmentsHtml = segments.map(function(seg) {
     var c          = localColorMap[seg.speaker_id] || SPEAKER_COLORS[0];
     var spkIdx     = speakerIdxMap[seg.speaker_id] || 0;
     var label      = seg.speaker_id.replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase(); });
@@ -1036,7 +1092,7 @@ function buildSpeakerViewHtml(segments) {
     var actionBtns = '<div class="flex-shrink-0 self-start pt-0.5 flex items-center gap-0.5 opacity-0 group-hover/seg:opacity-100 transition-opacity">'
       // TTS play button (only shown when workspace has TTS access)
       + (HAS_TTS
-          ? '<button onclick="playSpeakerSegment(this, &quot;' + escapedForAttr + '&quot;, ' + spkIdx + ')"'
+          ? '<button onclick="playSpeakerSegment(this, &quot;' + escapedForAttr + '&quot;, ' + spkIdx + ', &quot;' + ns + '&quot;)"'
             + ' class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors border-0 bg-transparent cursor-pointer" title="Nghe">'
             + '<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'
             + '</button>'
@@ -1061,6 +1117,10 @@ function buildSpeakerViewHtml(segments) {
       + actionBtns
       + '</div>';
   }).join('<div class="h-2"></div>');
+
+  return { html: segmentsHtml, speakerMap: Object.keys(localColorMap).map(function(sid) {
+    return { speaker_id: sid, idx: speakerIdxMap[sid], color: localColorMap[sid] };
+  })};
 }
 
 function renderSpeakerView(segments, speakerIds) {
@@ -1069,19 +1129,41 @@ function renderSpeakerView(segments, speakerIds) {
   speakerIds.forEach(function(sid, i) {
     speakerColorMap[sid] = SPEAKER_COLORS[i % SPEAKER_COLORS.length];
   });
-  document.getElementById('file-speaker-view').innerHTML = buildSpeakerViewHtml(segments);
+  var result = buildSpeakerViewHtml(segments, '');
+  document.getElementById('file-speaker-view').innerHTML = result.html;
+  // Voice bar goes in its own div (above the scroll area, always visible)
+  var vbar = document.getElementById('file-speaker-voice-bar');
+  if (vbar) {
+    var barHtml = buildSpeakerVoiceBar(result.speakerMap, '');
+    vbar.innerHTML = barHtml;
+    vbar.classList.toggle('hidden', !barHtml);
+  }
+  // Populate voice dropdowns (uses cache after first load)
+  loadSpeakerVoices();
+}
+
+// Build a history speaker block: voice bar (always visible) + scrollable segments
+function buildHistSpeakerBlock(item) {
+  if (!(item.speaker_segments && item.speaker_segments.length > 0)) return '';
+  var ns  = 'h' + item.id + '-';
+  var r   = buildSpeakerViewHtml(item.speaker_segments, ns);
+  var bar = buildSpeakerVoiceBar(r.speakerMap, ns);
+  return (bar ? '<div id="hist-voice-bar-' + item.id + '" class="mb-2">' + bar + '</div>' : '')
+       + '<div id="hist-speaker-' + item.id + '" class="max-h-[320px] overflow-y-auto space-y-2 pr-1">' + r.html + '</div>';
 }
 
 // Switch between speaker and plain text view in a history detail panel
 function setHistView(id, view) {
-  var sv   = document.getElementById('hist-speaker-' + id);
-  var tv   = document.getElementById('hist-text-'    + id);
-  var spkB = document.getElementById('hist-spk-btn-' + id);
-  var txtB = document.getElementById('hist-txt-btn-' + id);
+  var sv   = document.getElementById('hist-speaker-'   + id);
+  var tv   = document.getElementById('hist-text-'      + id);
+  var vbar = document.getElementById('hist-voice-bar-' + id);
+  var spkB = document.getElementById('hist-spk-btn-'   + id);
+  var txtB = document.getElementById('hist-txt-btn-'   + id);
   if (!sv || !tv) return;
   var isSpeaker = (view === 'speaker');
-  sv.classList.toggle('hidden', !isSpeaker);
-  tv.classList.toggle('hidden',  isSpeaker);
+  sv.classList.toggle('hidden',   !isSpeaker);
+  tv.classList.toggle('hidden',    isSpeaker);
+  if (vbar) vbar.classList.toggle('hidden', !isSpeaker);
   var activeClass   = 'px-2.5 py-0.5 text-[10px] font-semibold rounded-md transition-colors bg-white shadow-sm text-slate-800';
   var inactiveClass = 'px-2.5 py-0.5 text-[10px] font-semibold rounded-md transition-colors text-slate-500 hover:text-slate-700';
   if (spkB) spkB.className = isSpeaker  ? activeClass : inactiveClass;
@@ -1094,6 +1176,9 @@ function setView(view) {
   var isSpeaker = (view === 'speaker');
   document.getElementById('file-speaker-view').classList.toggle('hidden', !isSpeaker);
   document.getElementById('file-transcript-text').classList.toggle('hidden', isSpeaker);
+  // Voice bar: show/hide alongside speaker view
+  var vbar = document.getElementById('file-speaker-voice-bar');
+  if (vbar && vbar.innerHTML.trim()) vbar.classList.toggle('hidden', !isSpeaker);
   // Words wrap: only visible in text view, and only if it already had content
   if (isSpeaker) {
     document.getElementById('file-words-wrap').classList.add('hidden');
@@ -1490,7 +1575,7 @@ function renderHistory(items, total, hasMore) {
               </div>
             </div>
             ${item.speaker_segments && item.speaker_segments.length > 0
-              ? `<div id="hist-speaker-${item.id}" class="max-h-[360px] overflow-y-auto space-y-2 pr-1">${buildSpeakerViewHtml(item.speaker_segments)}</div>`
+              ? buildHistSpeakerBlock(item)
               : ''}
             <div id="hist-text-${item.id}"
                  data-full="${escHtml(item.transcript_text)}"
@@ -1518,6 +1603,8 @@ function renderHistory(items, total, hasMore) {
     </div>
   `).join('');
   updateLoadMore(total, hasMore);
+  // Populate any voice dropdowns that were just rendered
+  loadSpeakerVoices();
 }
 function appendHistory(items, total, hasMore) {
   if (!items || items.length === 0) { updateLoadMore(total, hasMore); return; }
@@ -1575,7 +1662,7 @@ function appendHistory(items, total, hasMore) {
               </div>
             </div>
             ${item.speaker_segments && item.speaker_segments.length > 0
-              ? `<div id="hist-speaker-${item.id}" class="max-h-[360px] overflow-y-auto space-y-2 pr-1">${buildSpeakerViewHtml(item.speaker_segments)}</div>`
+              ? buildHistSpeakerBlock(item)
               : ''}
             <div id="hist-text-${item.id}" data-full="${escHtml(item.transcript_text)}"
               class="${item.speaker_segments && item.speaker_segments.length > 0 ? 'hidden ' : ''}max-h-[200px] overflow-y-auto p-3 bg-white rounded-lg border border-slate-200 text-[12px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono">${escHtml(item.transcript_text)}</div>
@@ -1602,6 +1689,8 @@ function appendHistory(items, total, hasMore) {
   );
   container.appendChild(frag);
   updateLoadMore(total, hasMore);
+  // Populate any voice dropdowns that were just appended
+  loadSpeakerVoices();
 }
 
 function toggleHistoryDetail(id) {
