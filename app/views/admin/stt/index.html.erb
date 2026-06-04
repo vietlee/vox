@@ -633,6 +633,9 @@ var I18N = {
   hist_load_more:    "<%= j t('stt.history_load_more') %>",
   ai_sum_hint:       "<%= j t('stt.ai_sum_hint') %>",
   ai_tr_hint:        "<%= j t('stt.ai_tr_hint') %>",
+  spk_voice_title:   "<%= j t('stt.spk_voice_title') %>",
+  spk_voice_loading: "<%= j t('stt.spk_voice_loading') %>",
+  spk_credit_note:   "<%= j t('stt.spk_credit_note') %>",
 };
 
 // ── TTS for speaker segments ──────────────────────────────────────────────
@@ -1061,19 +1064,19 @@ function buildSpeakerVoiceBar(speakerMap, ns) {
     var c         = spk.color;
     var label     = spk.speaker_id.replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase(); });
     var defVoice  = SPEAKER_VOICES[spk.idx % SPEAKER_VOICES.length];
-    return '<div class="flex items-center gap-2 min-w-0">'
+    return '<div class="flex items-center gap-2">'
       + '<div class="w-3 h-3 rounded-full ' + c.dot + ' flex-shrink-0"></div>'
       + '<span class="text-[11px] font-semibold ' + c.text + ' w-20 flex-shrink-0 truncate">' + escHtml(label) + '</span>'
       + '<select id="spk-voice-' + escHtml(ns) + spk.idx + '" data-default-voice="' + defVoice + '"'
-      + ' class="spk-voice-select flex-1 min-w-0 text-[11px] border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-300">'
-      + '<option value="">Đang tải...</option>'
+      + ' class="spk-voice-select w-48 text-[11px] border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-300">'
+      + '<option value="">' + I18N.spk_voice_loading + '</option>'
       + '</select>'
       + '</div>';
   }).join('');
   return '<div class="mb-3 p-3 bg-white rounded-xl border border-slate-200 space-y-1.5">'
     + '<div class="flex items-center justify-between mb-2">'
-    + '<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">🎙 Giọng đọc</span>'
-    + '<span class="text-[10px] text-slate-400">🪙 1 credit / 500 ký tự &nbsp;·&nbsp; tối thiểu 1 credit / đoạn</span>'
+    + '<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">' + I18N.spk_voice_title + '</span>'
+    + '<span class="text-[10px] text-slate-400">' + I18N.spk_credit_note + '</span>'
     + '</div>'
     + rows
     + '</div>';
