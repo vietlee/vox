@@ -39,6 +39,7 @@ class Admin::SttController < Admin::BaseController
 
   def index
     @has_stt             = current_workspace&.active_subscription&.has_feature?(:stt)
+    @has_tts             = current_workspace&.active_subscription&.has_feature?(:tts)
     @remaining_credits   = current_workspace&.active_subscription&.credit_balance.to_i
     @history_count       = @has_stt ? current_workspace.stt_transcripts.count : 0
   end

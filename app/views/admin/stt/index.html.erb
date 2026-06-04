@@ -632,6 +632,84 @@ var I18N = {
   ai_tr_hint:        "<%= j t('stt.ai_tr_hint') %>",
 };
 
+// ── TTS for speaker segments ──────────────────────────────────────────────
+var HAS_TTS      = <%= @has_tts ? 'true' : 'false' %>;
+var TTS_PATH     = "<%= tts_generate_path %>";
+// Pre-selected diverse voices: female/male alternating, different accents
+// ElevenLabs premade voice IDs (always available on any API key)
+var SPEAKER_VOICES = [
+  "EXAVITQu4vr4xnSDxMaL",  // Rachel — female, American
+  "TxGEqnHWrfWFTfGW9XjX",  // Josh   — male,   American
+  "AZnzlk1XvdvUeBnXmlld",  // Domi   — female, American
+  "VR6AewLTigWG4xSOukaG",  // Arnold — male,   American
+  "pNInz6obpgDQGcFmaJgB",  // Adam   — male,   American
+  "MF3mGyEYCl7XYWbV9V6O",  // Elli   — female, American
+  "jBpfuIE2acCO8z3wKNLl",  // Gigi   — female, American
+  "t0jbNlBVZ17f02VDIeMI",  // Jessie — male,   American
+];
+var _ttsAudio   = null;   // currently playing Audio object
+var _ttsPlayBtn = null;   // button that triggered current playback
+
+function playSpeakerSegment(btn, text, speakerIdx) {
+  // If same button clicked again → stop playback
+  if (_ttsPlayBtn === btn && _ttsAudio) {
+    _ttsAudio.pause();
+    _ttsAudio = null;
+    _resetPlayBtn(btn);
+    _ttsPlayBtn = null;
+    return;
+  }
+  // Stop any existing playback
+  if (_ttsAudio) { _ttsAudio.pause(); _ttsAudio = null; }
+  if (_ttsPlayBtn && _ttsPlayBtn !== btn) _resetPlayBtn(_ttsPlayBtn);
+
+  var voiceId = SPEAKER_VOICES[speakerIdx % SPEAKER_VOICES.length];
+  _ttsPlayBtn = btn;
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">'
+    + '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>'
+    + '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>'
+    + '</svg>';
+
+  var fd = new FormData();
+  fd.append('text',     text);
+  fd.append('voice_id', voiceId);
+  fd.append('model',    'eleven_turbo_v2_5');
+
+  fetch(TTS_PATH, { method: 'POST', headers: { 'X-CSRF-Token': CSRF }, body: fd })
+    .then(function(res) {
+      if (!res.ok) return res.json().then(function(j){ throw new Error(j.error || 'TTS thất bại'); });
+      return res.blob();
+    })
+    .then(function(blob) {
+      var url = URL.createObjectURL(blob);
+      _ttsAudio = new Audio(url);
+      // Show stop icon while playing
+      btn.disabled = false;
+      btn.innerHTML = '<svg class="w-3.5 h-3.5 text-rose-500" fill="currentColor" viewBox="0 0 24 24">'
+        + '<rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>';
+      _ttsAudio.onended = function() {
+        URL.revokeObjectURL(url);
+        _resetPlayBtn(btn);
+        _ttsAudio = null;
+        _ttsPlayBtn = null;
+      };
+      _ttsAudio.play();
+    })
+    .catch(function(e) {
+      _resetPlayBtn(btn);
+      _ttsAudio = null;
+      _ttsPlayBtn = null;
+      btn.title = e.message;
+      setTimeout(function(){ btn.title = 'Nghe'; }, 3000);
+    });
+}
+function _resetPlayBtn(btn) {
+  btn.disabled = false;
+  btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">'
+    + '<path d="M8 5v14l11-7z"/></svg>';
+}
+
 // ── Diarize → auto-enable word timestamps ─────────────────────────────────
 // Speaker diarization requires word-level timestamps to build speaker segments.
 // Automatically lock the timestamps select to "word" when diarize is checked.
@@ -935,23 +1013,40 @@ function buildSpeakerSegments(words) {
 
 // Build speaker view HTML from segments array (reused in live result + history)
 function buildSpeakerViewHtml(segments) {
-  // Build a local color map for this render
-  var localColorMap = {};
+  // Build a local color map + speaker index map for voice assignment
+  var localColorMap  = {};
+  var speakerIdxMap  = {};
   var colorIdx = 0;
   segments.forEach(function(seg) {
     if (!(seg.speaker_id in localColorMap)) {
       localColorMap[seg.speaker_id] = SPEAKER_COLORS[colorIdx % SPEAKER_COLORS.length];
+      speakerIdxMap[seg.speaker_id] = colorIdx;
       colorIdx++;
     }
   });
   return segments.map(function(seg) {
-    var c = localColorMap[seg.speaker_id] || SPEAKER_COLORS[0];
-    var label = seg.speaker_id.replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase(); });
-    var initials = label.replace('Speaker ', 'S');
-    var ts = fmtTimeShort(seg.start);
-    var rawText = (seg.tokens || []).join(' ');
-    var text = escHtml(rawText);
+    var c          = localColorMap[seg.speaker_id] || SPEAKER_COLORS[0];
+    var spkIdx     = speakerIdxMap[seg.speaker_id] || 0;
+    var label      = seg.speaker_id.replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase(); });
+    var initials   = label.replace('Speaker ', 'S');
+    var ts         = fmtTimeShort(seg.start);
+    var rawText    = (seg.tokens || []).join(' ');
+    var text       = escHtml(rawText);
     var escapedForAttr = rawText.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+    var actionBtns = '<div class="flex-shrink-0 self-start pt-0.5 flex items-center gap-0.5 opacity-0 group-hover/seg:opacity-100 transition-opacity">'
+      // TTS play button (only shown when workspace has TTS access)
+      + (HAS_TTS
+          ? '<button onclick="playSpeakerSegment(this, &quot;' + escapedForAttr + '&quot;, ' + spkIdx + ')"'
+            + ' class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors border-0 bg-transparent cursor-pointer" title="Nghe">'
+            + '<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'
+            + '</button>'
+          : '')
+      // Copy button
+      + '<button onclick="copySpeakerText(this, &quot;' + escapedForAttr + '&quot;)"'
+      + ' class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors border-0 bg-transparent cursor-pointer" title="Copy">'
+      + '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+      + '</button>'
+      + '</div>';
     return '<div class="group/seg flex gap-3 py-3 px-3 rounded-xl ' + c.bg + ' border-l-4 ' + c.bar + '">'
       + '<div class="flex-shrink-0 pt-0.5">'
       + '<div class="w-8 h-8 rounded-full ' + c.dot + ' flex items-center justify-center text-white text-[10px] font-bold select-none shadow-sm">' + escHtml(initials) + '</div>'
@@ -963,12 +1058,7 @@ function buildSpeakerViewHtml(segments) {
       + '</div>'
       + '<div class="text-[13px] text-slate-700 leading-relaxed">' + text + '</div>'
       + '</div>'
-      + '<div class="flex-shrink-0 self-start pt-0.5 opacity-0 group-hover/seg:opacity-100 transition-opacity">'
-      + '<button onclick="copySpeakerText(this, &quot;' + escapedForAttr + '&quot;)"'
-      + '  class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors border-0 bg-transparent cursor-pointer" title="Copy">'
-      + '  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
-      + '</button>'
-      + '</div>'
+      + actionBtns
       + '</div>';
   }).join('<div class="h-2"></div>');
 }
