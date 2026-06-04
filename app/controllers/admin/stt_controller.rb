@@ -370,6 +370,8 @@ class Admin::SttController < Admin::BaseController
     language   = params[:language_code].presence
     timestamps = timestamps || (%w[none word].include?(params[:timestamps]) ? params[:timestamps] : "none")
     diarize    = diarize.nil? ? params[:diarize] == "true" : diarize
+    # Diarization requires word timestamps to build speaker segments in the UI
+    timestamps = "word" if diarize && timestamps == "none"
 
     service = ElevenLabsService.new
     result  = service.speech_to_text(

@@ -199,7 +199,6 @@
           <% end %>
           <span class="px-2 py-0.5 bg-indigo-50 text-indigo-500 text-[10px] font-semibold rounded-full"><%= t("stt.url_sources_more") %></span>
         </div>
-        <p class="text-[11px] text-slate-400 mt-2">⚡ Powered by <strong>yt-dlp</strong> · <%= t("stt.url_note") %></p>
         <div class="mt-3 flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg">
           <span class="text-amber-500 mt-px">💡</span>
           <span class="text-[12px] text-amber-700"><%= t("stt.url_credit_note") %></span>
@@ -291,11 +290,29 @@
           </div>
         </div>
 
-        <!-- Transcript text -->
+        <!-- View toggle: Speaker view ↔ Plain text (only shown when diarize results) -->
+        <div id="view-toggle" class="hidden flex items-center justify-between">
+          <div class="inline-flex items-center bg-slate-100 rounded-lg p-0.5 gap-0.5">
+            <button id="view-speaker-btn" onclick="setView('speaker')"
+              class="px-3 py-1 text-[11px] font-semibold rounded-md transition-colors text-slate-500 hover:text-slate-700">
+              👥 Speakers
+            </button>
+            <button id="view-text-btn" onclick="setView('text')"
+              class="px-3 py-1 text-[11px] font-semibold rounded-md transition-colors text-slate-500 hover:text-slate-700">
+              📄 Văn bản
+            </button>
+          </div>
+          <span id="speaker-count-badge" class="text-[11px] text-slate-400"></span>
+        </div>
+
+        <!-- Speaker diarization view (hidden until diarize results arrive) -->
+        <div id="file-speaker-view" class="hidden max-h-[420px] overflow-y-auto space-y-1 pr-1"></div>
+
+        <!-- Plain transcript text -->
         <div id="file-transcript-text"
              class="min-h-[100px] max-h-[300px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-800 leading-relaxed whitespace-pre-wrap font-mono"></div>
 
-        <!-- Word timestamps (collapsible) -->
+        <!-- Word timestamps (collapsible, plain text view only) -->
         <div id="file-words-wrap" class="hidden">
           <button id="toggle-words-btn" onclick="toggleWords()"
             class="text-[11px] text-indigo-600 font-semibold hover:text-indigo-700 border-0 bg-transparent cursor-pointer">
@@ -615,6 +632,21 @@ var I18N = {
   ai_tr_hint:        "<%= j t('stt.ai_tr_hint') %>",
 };
 
+// ── Diarize → auto-enable word timestamps ─────────────────────────────────
+// Speaker diarization requires word-level timestamps to build speaker segments.
+// Automatically lock the timestamps select to "word" when diarize is checked.
+document.getElementById('file-diarize').addEventListener('change', function() {
+  var tsSelect = document.getElementById('file-timestamps');
+  if (this.checked) {
+    tsSelect.value = 'word';
+    tsSelect.disabled = true;
+    tsSelect.title = 'Word timestamps bắt buộc khi bật nhận diện người nói';
+  } else {
+    tsSelect.disabled = false;
+    tsSelect.title = '';
+  }
+});
+
 // ── Credits ───────────────────────────────────────────────────────────────
 function getRemainingCredits() {
   return typeof window.__currentCredits === "number"
@@ -819,25 +851,131 @@ async function doTranscribe(endpoint, fd) {
 }
 function showResult(data, used) {
   document.getElementById('file-empty-state').classList.add('hidden');
+  // Always populate plain text (used by copy/download/AI even when speaker view is shown)
   document.getElementById('file-transcript-text').textContent = data.text || "(không có kết quả)";
-  const lb = document.getElementById('file-lang-badge');
-  if (data.language_code) { lb.textContent = `🌐 ${data.language_code.toUpperCase()}`; lb.classList.remove('hidden'); }
-  const cb = document.getElementById('file-credits-used-badge');
-  if (used > 0) { cb.textContent = `🪙 -${used} credit`; cb.classList.remove('hidden'); }
-  const words = data.words || [];
-  if (words.length > 0) {
-    document.getElementById('file-words').innerHTML = words.map(w =>
-      `<div>[${fmtTime(w.start)}–${fmtTime(w.end)}] <span class="text-slate-800 font-semibold">${escHtml(w.text)}</span>${w.speaker_id ? ` <span class="text-indigo-400">${w.speaker_id}</span>` : ''}</div>`
-    ).join('');
+
+  var lb = document.getElementById('file-lang-badge');
+  if (data.language_code) { lb.textContent = '🌐 ' + data.language_code.toUpperCase(); lb.classList.remove('hidden'); }
+  var cb = document.getElementById('file-credits-used-badge');
+  if (used > 0) { cb.textContent = '🪙 -' + used + ' credit'; cb.classList.remove('hidden'); }
+
+  var words = data.words || [];
+  var hasSpeakers = words.some(function(w){ return w.speaker_id; });
+
+  if (hasSpeakers) {
+    // Build speaker segments and show diarization view by default
+    var segments = buildSpeakerSegments(words);
+    var speakerIds = [...new Set(segments.map(function(s){ return s.speaker_id; }))];
+    renderSpeakerView(segments, speakerIds);
+    document.getElementById('speaker-count-badge').textContent = speakerIds.length + ' người nói được phát hiện';
+    document.getElementById('view-toggle').classList.remove('hidden');
+    document.getElementById('file-words-wrap').classList.add('hidden');
+    setView('speaker');
+  } else if (words.length > 0) {
+    // Word timestamps without speaker diarization
+    document.getElementById('file-words').innerHTML = words.map(function(w){
+      return '<div>[' + fmtTime(w.start) + '–' + fmtTime(w.end) + '] <span class="text-slate-800 font-semibold">' + escHtml(w.text) + '</span></div>';
+    }).join('');
     document.getElementById('file-words-wrap').classList.remove('hidden');
+    document.getElementById('view-toggle').classList.add('hidden');
+    setView('text');
   } else {
     document.getElementById('file-words-wrap').classList.add('hidden');
+    document.getElementById('view-toggle').classList.add('hidden');
+    setView('text');
   }
+
   closeAiModal();
   document.getElementById('file-result').classList.remove('hidden');
   historyLoaded = false;
   bumpHistoryBadge(1);
 }
+
+// ── Speaker diarization ───────────────────────────────────────────────────
+var SPEAKER_COLORS = [
+  { dot: 'bg-indigo-500',  text: 'text-indigo-700',  card: 'bg-indigo-50 border-indigo-100'  },
+  { dot: 'bg-violet-500',  text: 'text-violet-700',  card: 'bg-violet-50 border-violet-100'  },
+  { dot: 'bg-emerald-500', text: 'text-emerald-700', card: 'bg-emerald-50 border-emerald-100' },
+  { dot: 'bg-amber-500',   text: 'text-amber-700',   card: 'bg-amber-50 border-amber-100'   },
+  { dot: 'bg-rose-500',    text: 'text-rose-700',    card: 'bg-rose-50 border-rose-100'     },
+  { dot: 'bg-cyan-500',    text: 'text-cyan-700',    card: 'bg-cyan-50 border-cyan-100'     },
+  { dot: 'bg-orange-500',  text: 'text-orange-700',  card: 'bg-orange-50 border-orange-100' },
+  { dot: 'bg-pink-500',    text: 'text-pink-700',    card: 'bg-pink-50 border-pink-100'     },
+];
+var speakerColorMap = {};
+
+function buildSpeakerSegments(words) {
+  var segments = [];
+  var current = null;
+  for (var i = 0; i < words.length; i++) {
+    var w = words[i];
+    if (!w.text || !w.text.trim()) continue;  // skip spacing/empty tokens
+    var sid = w.speaker_id || 'unknown';
+    if (!current || current.speaker_id !== sid) {
+      if (current) segments.push(current);
+      current = { speaker_id: sid, start: w.start, end: w.end, tokens: [] };
+    }
+    current.tokens.push(w.text);
+    current.end = w.end;
+  }
+  if (current) segments.push(current);
+  return segments;
+}
+
+function renderSpeakerView(segments, speakerIds) {
+  // Assign colors to speakers in order of first appearance
+  speakerColorMap = {};
+  for (var i = 0; i < speakerIds.length; i++) {
+    speakerColorMap[speakerIds[i]] = SPEAKER_COLORS[i % SPEAKER_COLORS.length];
+  }
+  var html = segments.map(function(seg) {
+    var c = speakerColorMap[seg.speaker_id] || SPEAKER_COLORS[0];
+    var label = seg.speaker_id.replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase(); });
+    var initials = label.replace('Speaker ', 'S');
+    var ts = fmtTimeShort(seg.start);
+    var text = escHtml(seg.tokens.join(' '));
+    return '<div class="flex gap-3 py-2.5 px-1 rounded-lg hover:bg-slate-50 transition-colors">'
+      + '<div class="flex-shrink-0 pt-0.5">'
+      + '<div class="w-7 h-7 rounded-full ' + c.dot + ' flex items-center justify-center text-white text-[9px] font-bold select-none">' + escHtml(initials) + '</div>'
+      + '</div>'
+      + '<div class="flex-1 min-w-0">'
+      + '<div class="flex items-center gap-2 mb-0.5">'
+      + '<span class="text-[11px] font-bold ' + c.text + '">' + escHtml(label) + '</span>'
+      + '<span class="text-[10px] text-slate-400 font-mono">' + ts + '</span>'
+      + '</div>'
+      + '<div class="text-[13px] text-slate-700 leading-relaxed">' + text + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('<div class="border-t border-slate-50 mx-10"></div>');
+  document.getElementById('file-speaker-view').innerHTML = html;
+}
+
+var currentView = 'text';
+function setView(view) {
+  currentView = view;
+  var isSpeaker = (view === 'speaker');
+  document.getElementById('file-speaker-view').classList.toggle('hidden', !isSpeaker);
+  document.getElementById('file-transcript-text').classList.toggle('hidden', isSpeaker);
+  // Words wrap: only visible in text view, and only if it already had content
+  if (isSpeaker) {
+    document.getElementById('file-words-wrap').classList.add('hidden');
+  }
+  // Active button styling
+  var sbtn = document.getElementById('view-speaker-btn');
+  var tbtn = document.getElementById('view-text-btn');
+  if (sbtn && tbtn) {
+    sbtn.className = 'px-3 py-1 text-[11px] font-semibold rounded-md transition-colors ' + (isSpeaker ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700');
+    tbtn.className = 'px-3 py-1 text-[11px] font-semibold rounded-md transition-colors ' + (!isSpeaker ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700');
+  }
+}
+
+function fmtTimeShort(sec) {
+  if (sec == null) return '';
+  var m = Math.floor(sec / 60);
+  var s = Math.floor(sec % 60);
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
 function setLoading(on, label) {
   const btn = document.getElementById('transcribe-btn');
   btn.disabled = on;
