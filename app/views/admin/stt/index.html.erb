@@ -681,15 +681,21 @@ function playSpeakerSegment(btn, text, speakerIdx, ns) {
   var fd = new FormData();
   fd.append('text',     text);
   fd.append('voice_id', voiceId);
-  fd.append('model',    'eleven_multilingual_v2');
+  fd.append('model',    'eleven_turbo_v2_5');
 
   fetch(TTS_PATH, { method: 'POST', headers: { 'X-CSRF-Token': CSRF }, body: fd })
     .then(function(res) {
       if (!res.ok) return res.json().then(function(j){ throw new Error(j.error || 'TTS thất bại'); });
-      return res.blob();
+      // Read credit header before consuming body
+      var creditsUsed = parseInt(res.headers.get('X-Credits-Used') || '0');
+      return res.blob().then(function(blob) { return { blob: blob, credits: creditsUsed }; });
     })
-    .then(function(blob) {
-      var url = URL.createObjectURL(blob);
+    .then(function(data) {
+      // Deduct credits from sidebar immediately (no page reload)
+      if (data.credits > 0 && typeof window.deductDisplayCredits === 'function') {
+        window.deductDisplayCredits(data.credits);
+      }
+      var url = URL.createObjectURL(data.blob);
       _ttsAudio = new Audio(url);
       // Show stop icon while playing
       btn.disabled = false;
@@ -1044,6 +1050,11 @@ function _populateVoiceSelects(voices) {
 
 // Build voice selector bar (one row per unique speaker) — shown above segments when TTS available
 // ns: namespace string ('' for live result, 'h{id}-' for history items)
+// Credit cost for speaker TTS (eleven_turbo_v2_5: 500 chars = 1 credit, min 1)
+function _segCreditCost(text) {
+  return Math.max(1, Math.ceil((text || '').length / 500));
+}
+
 function buildSpeakerVoiceBar(speakerMap, ns) {
   if (!HAS_TTS) return '';
   var rows = speakerMap.map(function(spk) {
@@ -1060,7 +1071,10 @@ function buildSpeakerVoiceBar(speakerMap, ns) {
       + '</div>';
   }).join('');
   return '<div class="mb-3 p-3 bg-white rounded-xl border border-slate-200 space-y-1.5">'
-    + '<div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">🎙 Giọng đọc</div>'
+    + '<div class="flex items-center justify-between mb-2">'
+    + '<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">🎙 Giọng đọc</span>'
+    + '<span class="text-[10px] text-slate-400">🪙 1 credit / 500 ký tự &nbsp;·&nbsp; tối thiểu 1 credit / đoạn</span>'
+    + '</div>'
     + rows
     + '</div>';
 }
@@ -1093,7 +1107,8 @@ function buildSpeakerViewHtml(segments, ns) {
       // TTS play button (only shown when workspace has TTS access)
       + (HAS_TTS
           ? '<button onclick="playSpeakerSegment(this, &quot;' + escapedForAttr + '&quot;, ' + spkIdx + ', &quot;' + ns + '&quot;)"'
-            + ' class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors border-0 bg-transparent cursor-pointer" title="Nghe">'
+            + ' class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors border-0 bg-transparent cursor-pointer"'
+            + ' title="Nghe · 🪙 ' + _segCreditCost(rawText) + ' credit">'
             + '<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'
             + '</button>'
           : '')
