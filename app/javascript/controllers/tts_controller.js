@@ -126,6 +126,7 @@ export default class extends Controller {
       this.creditWarningTextTarget.textContent =
         `Cần ${needed} credit nhưng bạn chỉ còn ${remaining} credit. Vui lòng nạp thêm hoặc rút ngắn văn bản.`
       this.creditWarningTarget.classList.remove("hidden")
+      this.creditWarningTarget.classList.add("flex")
     }
     this.generateBtnTarget.disabled = true
     this.generateBtnTarget.classList.add("opacity-50", "cursor-not-allowed")
@@ -134,6 +135,7 @@ export default class extends Controller {
   _clearCreditWarning() {
     if (this.hasCreditWarningTarget) {
       this.creditWarningTarget.classList.add("hidden")
+      this.creditWarningTarget.classList.remove("flex")
     }
     // Only re-enable if not currently loading
     if (!this._loading) {
