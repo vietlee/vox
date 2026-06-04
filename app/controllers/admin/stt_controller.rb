@@ -6,6 +6,12 @@ class Admin::SttController < Admin::BaseController
   # yt-dlp binary — installed via `pip3 install yt-dlp` as python3 module
   YTDLP_CMD = "python3 -m yt_dlp"
 
+  # Optional cookies file to bypass YouTube bot detection (HTTP 429 / "Sign in" errors).
+  # To set up: export cookies from a logged-in YouTube session using a browser extension
+  # (e.g. "Get cookies.txt LOCALLY"), then upload to this path on the server:
+  #   scp youtube_cookies.txt deploy@server:/var/www/vox/shared/youtube_cookies.txt
+  YTDLP_COOKIES_FILE = Rails.root.join("..", "..", "shared", "youtube_cookies.txt").to_s
+
   # Domains supported by yt-dlp (non-exhaustive, shown in UI)
   URL_SUPPORTED_DOMAINS = %w[youtube.com youtu.be vimeo.com tiktok.com facebook.com
                               instagram.com twitter.com x.com dailymotion.com soundcloud.com].freeze
@@ -335,9 +341,12 @@ class Admin::SttController < Admin::BaseController
 
     # --socket-timeout 30  : abort if the remote server stops sending data for 30s
     # --retries 2          : retry transient network errors twice
+    # --cookies            : use browser cookies to bypass YouTube bot detection (optional)
+    cookies_flag = File.exist?(YTDLP_COOKIES_FILE) ? "--cookies #{Shellwords.escape(YTDLP_COOKIES_FILE)}" : ""
     cmd = "#{YTDLP_CMD} --no-playlist --extract-audio --audio-format mp3 " \
           "--audio-quality 0 --max-filesize 2048m " \
           "--socket-timeout 30 --retries 2 " \
+          "#{cookies_flag} " \
           "--output #{Shellwords.escape(out_tmpl)} " \
           "#{Shellwords.escape(url)} 2>&1"
 
@@ -365,18 +374,22 @@ class Admin::SttController < Admin::BaseController
   end
 
   def extract_ytdlp_error(output)
-    if output.include?("Sign in") || output.include?("login")
-      "Video yêu cầu đăng nhập — không thể tải tự động."
+    if output.include?("429") || output.include?("Too Many Requests")
+      "YouTube đang chặn server (rate limit / bot detection). " \
+      "Vui lòng tải file audio/video về máy và upload trực tiếp qua tab 'File / URL'."
+    elsif output.include?("Sign in") || output.include?("not a bot") || output.include?("login")
+      "YouTube yêu cầu xác minh để tải video này. " \
+      "Vui lòng tải file video về máy rồi upload trực tiếp — hoặc dùng tab 'File / URL' với file đã tải."
     elsif output.include?("Private video") || output.include?("private")
-      "Video này là private."
+      "Video này là private, không thể tải tự động."
     elsif output.include?("not available") || output.include?("unavailable")
       "Video không khả dụng hoặc đã bị xóa."
     elsif output.include?("Unsupported URL")
-      "URL không được hỗ trợ. yt-dlp không nhận diện được nguồn này."
+      "URL không được hỗ trợ. Vui lòng tải file về máy và upload trực tiếp."
     elsif output.include?("age") || output.include?("18+")
       "Video bị giới hạn độ tuổi — không thể tải tự động."
     else
-      "Không thể tải audio từ URL này. Chi tiết: #{output.last(200)}"
+      "Không thể tải audio từ URL này. Vui lòng tải file về máy và upload trực tiếp."
     end
   end
 
