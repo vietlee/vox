@@ -165,8 +165,9 @@ export default class extends Controller {
       data.forEach(v => {
         const opt           = document.createElement("option")
         opt.value           = v.id
-        opt.textContent     = v.name
+        opt.textContent     = v.name.length > 32 ? v.name.substring(0, 32) + "…" : v.name
         opt.dataset.preview = v.preview_url || ""
+        opt.title           = v.name   // full name on hover
         sel.appendChild(opt)
       })
 

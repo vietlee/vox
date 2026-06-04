@@ -1041,11 +1041,16 @@ function loadSpeakerVoices() {
     .catch(function(e) { console.warn('Voice list load failed:', e.message); });
 }
 
+function _truncVoiceName(name, max) {
+  max = max || 26;
+  return name.length > max ? name.substring(0, max) + '…' : name;
+}
+
 function _populateVoiceSelects(voices) {
   document.querySelectorAll('.spk-voice-select').forEach(function(sel) {
     var current = sel.value || sel.dataset.defaultVoice || '';
     sel.innerHTML = voices.map(function(v) {
-      return '<option value="' + v.id + '"' + (v.id === current ? ' selected' : '') + '>' + escHtml(v.name) + '</option>';
+      return '<option value="' + v.id + '"' + (v.id === current ? ' selected' : '') + '>' + escHtml(_truncVoiceName(v.name)) + '</option>';
     }).join('');
     if (!sel.value && voices.length > 0) sel.value = voices[0].id;
   });
