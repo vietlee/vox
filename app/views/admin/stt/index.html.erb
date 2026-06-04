@@ -974,16 +974,20 @@ function renderSpeakerView(segments, speakerIds) {
   document.getElementById('file-speaker-view').innerHTML = buildSpeakerViewHtml(segments);
 }
 
-// Toggle speaker ↔ plain text in a history detail panel
-function toggleHistView(id) {
-  var sv = document.getElementById('hist-speaker-' + id);
-  var tv = document.getElementById('hist-text-' + id);
-  var btn = document.getElementById('hist-view-toggle-' + id);
+// Switch between speaker and plain text view in a history detail panel
+function setHistView(id, view) {
+  var sv   = document.getElementById('hist-speaker-' + id);
+  var tv   = document.getElementById('hist-text-'    + id);
+  var spkB = document.getElementById('hist-spk-btn-' + id);
+  var txtB = document.getElementById('hist-txt-btn-' + id);
   if (!sv || !tv) return;
-  var showingSpeaker = !sv.classList.contains('hidden');
-  sv.classList.toggle('hidden', showingSpeaker);
-  tv.classList.toggle('hidden', !showingSpeaker);
-  if (btn) btn.textContent = showingSpeaker ? '👥 Speakers' : '📄 Văn bản';
+  var isSpeaker = (view === 'speaker');
+  sv.classList.toggle('hidden', !isSpeaker);
+  tv.classList.toggle('hidden',  isSpeaker);
+  var activeClass   = 'px-2.5 py-0.5 text-[10px] font-semibold rounded-md transition-colors bg-white shadow-sm text-slate-800';
+  var inactiveClass = 'px-2.5 py-0.5 text-[10px] font-semibold rounded-md transition-colors text-slate-500 hover:text-slate-700';
+  if (spkB) spkB.className = isSpeaker  ? activeClass : inactiveClass;
+  if (txtB) txtB.className = !isSpeaker ? activeClass : inactiveClass;
 }
 
 var currentView = 'text';
@@ -1357,10 +1361,16 @@ function renderHistory(items, total, hasMore) {
               <div class="flex items-center gap-2">
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${I18N.hist_content}</span>
                 ${item.speaker_segments && item.speaker_segments.length > 0
-                  ? `<button id="hist-view-toggle-${item.id}" onclick="toggleHistView(${item.id})"
-                       class="px-2 py-0.5 text-[10px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded border border-indigo-200 cursor-pointer">
-                       📄 Văn bản
-                     </button>`
+                  ? `<div class="inline-flex items-center bg-slate-200 rounded-lg p-0.5 gap-0.5">
+                       <button id="hist-spk-btn-${item.id}" onclick="setHistView(${item.id},'speaker')"
+                         class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md transition-colors bg-white shadow-sm text-slate-800">
+                         👥 Speakers
+                       </button>
+                       <button id="hist-txt-btn-${item.id}" onclick="setHistView(${item.id},'text')"
+                         class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md transition-colors text-slate-500 hover:text-slate-700">
+                         📄 Văn bản
+                       </button>
+                     </div>`
                   : ''}
               </div>
               <div class="flex gap-1.5">
@@ -1436,10 +1446,16 @@ function appendHistory(items, total, hasMore) {
               <div class="flex items-center gap-2">
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${I18N.hist_content}</span>
                 ${item.speaker_segments && item.speaker_segments.length > 0
-                  ? `<button id="hist-view-toggle-${item.id}" onclick="toggleHistView(${item.id})"
-                       class="px-2 py-0.5 text-[10px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded border border-indigo-200 cursor-pointer">
-                       📄 Văn bản
-                     </button>`
+                  ? `<div class="inline-flex items-center bg-slate-200 rounded-lg p-0.5 gap-0.5">
+                       <button id="hist-spk-btn-${item.id}" onclick="setHistView(${item.id},'speaker')"
+                         class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md transition-colors bg-white shadow-sm text-slate-800">
+                         👥 Speakers
+                       </button>
+                       <button id="hist-txt-btn-${item.id}" onclick="setHistView(${item.id},'text')"
+                         class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md transition-colors text-slate-500 hover:text-slate-700">
+                         📄 Văn bản
+                       </button>
+                     </div>`
                   : ''}
               </div>
               <div class="flex gap-1.5">
