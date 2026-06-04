@@ -444,19 +444,21 @@
         </p>
 
         <!-- Large stop button with pulsing rings -->
-        <div style="position:relative; display:inline-flex; align-items:center; justify-content:center; margin-bottom:10px;">
-          <div style="position:absolute; width:84px; height:84px; border-radius:50%;
-                      border:2px solid rgba(239,68,68,0.35);
+        <div style="position:relative; display:inline-flex; align-items:center; justify-content:center; margin-bottom:10px; width:120px; height:120px;">
+          <!-- pointer-events:none so rings never intercept clicks -->
+          <div style="position:absolute; inset:0; border-radius:50%;
+                      border:2px solid rgba(239,68,68,0.35); pointer-events:none;
                       animation:vm-ring 1.6s ease-out infinite;"></div>
-          <div style="position:absolute; width:84px; height:84px; border-radius:50%;
-                      border:2px solid rgba(239,68,68,0.2);
+          <div style="position:absolute; inset:0; border-radius:50%;
+                      border:2px solid rgba(239,68,68,0.2); pointer-events:none;
                       animation:vm-ring 1.6s ease-out 0.55s infinite;"></div>
           <button onclick="voiceStopRecording()"
-            style="width:72px; height:72px; border-radius:50%; border:none; cursor:pointer;
+            style="position:relative; z-index:2;
+                   width:72px; height:72px; border-radius:50%; border:none; cursor:pointer;
                    background:linear-gradient(135deg,#ef4444,#dc2626);
                    box-shadow:0 8px 28px rgba(239,68,68,0.45);
                    display:flex; align-items:center; justify-content:center;
-                   transition:transform 0.15s, box-shadow 0.15s;"
+                   transition:transform 0.15s, box-shadow 0.15s; flex-shrink:0;"
             onmouseenter="this.style.transform='scale(1.06)'; this.style.boxShadow='0 12px 36px rgba(239,68,68,0.55)'"
             onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 8px 28px rgba(239,68,68,0.45)'">
             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
@@ -1365,14 +1367,20 @@ async function toggleUpvote(btn, feedbackId) {
 
   window.voiceStopRecording = function() {
     if (_mr && _mr.state !== 'inactive') {
-      _mr.stop(); // fires _onStop after all dataavailable events
+      _mr.stop(); // fires dataavailable then stop event → _onStop
+    } else if (!_mr) {
+      // getUserMedia not resolved yet — abort and close
+      window.closeVoiceModal();
     }
   };
 
   window.closeVoiceModal = function() {
-    // If still recording: discard
-    _discarding = true;
-    if (_mr && _mr.state !== 'inactive') _mr.stop();
+    // Only discard if we're still actively recording (not done/error)
+    const stillRecording = _mr && _mr.state !== 'inactive';
+    if (stillRecording) {
+      _discarding = true;
+      _mr.stop();
+    }
     if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
     _stopTimer();
     const ov = _el('vm-overlay');
