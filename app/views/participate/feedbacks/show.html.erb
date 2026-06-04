@@ -21,8 +21,10 @@
   input, textarea, select { font-size: 16px !important; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse-ring { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.35);opacity:0.5} }
   .fade-in { animation: fadeIn 0.35s ease forwards; }
   .reply-section { transition: all 0.2s ease; }
+  .voice-btn-recording { animation: pulse-ring 1.2s ease-in-out infinite; color: #ef4444 !important; }
 </style>
 
 <% content_for :nav_right do %>
@@ -154,6 +156,14 @@
                 class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors border-0 bg-transparent cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
               </button>
+              <% if @board.allow_voice_input? %>
+                <button type="button" id="fb-voice-btn" onclick="toggleVoiceRecording()"
+                  title="<%= t('participate.feedback.voice_record') %>"
+                  class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors border-0 bg-transparent cursor-pointer">
+                  <svg id="fb-voice-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                  <span id="fb-voice-spinner" style="display:none; width:16px; height:16px; border:2px solid #fecaca; border-top-color:#ef4444; border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0;"></span>
+                </button>
+              <% end %>
               <button type="button" onclick="document.getElementById('fb-image-input').click()"
                 class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors border-0 bg-transparent cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -400,12 +410,17 @@ const SUBMIT_URL   = "<%= submit_feedback_path(@board.slug) %>";
 const LIST_URL     = "<%= list_feedbacks_path(@board.slug) %>";
 const UPVOTE_URL   = "<%= upvote_feedback_path(@board.slug) %>";
 const REPLY_URL    = "<%= reply_feedback_path(@board.slug) %>";
+const VOICE_URL    = "<%= @board.allow_voice_input? ? feedback_voice_transcribe_path(@board.slug) : '' %>";
 const CSRF         = document.querySelector('meta[name="csrf-token"]')?.content;
-const ALLOW_UPVOTES  = <%= @board.allow_upvotes? ? 'true' : 'false' %>;
-const ALLOW_REPLIES  = <%= @board.allow_replies? ? 'true' : 'false' %>;
-const AUTO_MODERATION = <%= @board.auto_moderation? ? 'true' : 'false' %>;
-const BOARD_SLUG     = "<%= @board.slug %>";
-const IDENTITY_MODE  = "<%= @board.identity_mode %>";
+const ALLOW_UPVOTES    = <%= @board.allow_upvotes? ? 'true' : 'false' %>;
+const ALLOW_REPLIES    = <%= @board.allow_replies? ? 'true' : 'false' %>;
+const ALLOW_VOICE      = <%= @board.allow_voice_input? ? 'true' : 'false' %>;
+const AUTO_MODERATION  = <%= @board.auto_moderation? ? 'true' : 'false' %>;
+const BOARD_SLUG       = "<%= @board.slug %>";
+const IDENTITY_MODE    = "<%= @board.identity_mode %>";
+const I18N_VOICE_RECORD     = "<%= j t('participate.feedback.voice_record') %>";
+const I18N_VOICE_RECORDING  = "<%= j t('participate.feedback.voice_recording') %>";
+const I18N_VOICE_PROCESSING = "<%= j t('participate.feedback.voice_processing') %>";
 const ANONYMOUS_LABEL = "<%= j t('participate.feedback.anonymous') %>";
 const REPLY_LABEL     = "<%= j t('participate.feedback.reply_label') %>";
 const REPLY_COUNT_LABEL = "<%= j t('participate.feedback.reply_count') %>";
@@ -1040,6 +1055,132 @@ async function toggleUpvote(btn, feedbackId) {
     btn.disabled = false;
   }
 }
+
+// ── Voice Recording (STT) ────────────────────────────────────────────────────
+(function() {
+  if (!ALLOW_VOICE) return;
+
+  let _mediaRecorder = null;
+  let _audioChunks   = [];
+  let _recordingStart = 0;
+
+  function _setVoiceBtnState(state) {
+    // state: 'idle' | 'recording' | 'processing'
+    const btn     = document.getElementById('fb-voice-btn');
+    const icon    = document.getElementById('fb-voice-icon');
+    const spinner = document.getElementById('fb-voice-spinner');
+    if (!btn) return;
+    if (state === 'idle') {
+      btn.title = I18N_VOICE_RECORD;
+      btn.classList.remove('voice-btn-recording');
+      btn.style.color = '';
+      if (icon)    { icon.style.display = ''; }
+      if (spinner) { spinner.style.display = 'none'; }
+      btn.disabled = false;
+    } else if (state === 'recording') {
+      btn.title = I18N_VOICE_RECORDING;
+      btn.classList.add('voice-btn-recording');
+      btn.style.color = '#ef4444';
+      if (icon)    { icon.style.display = ''; }
+      if (spinner) { spinner.style.display = 'none'; }
+      btn.disabled = false;
+    } else if (state === 'processing') {
+      btn.title = I18N_VOICE_PROCESSING;
+      btn.classList.remove('voice-btn-recording');
+      btn.style.color = '';
+      if (icon)    { icon.style.display = 'none'; }
+      if (spinner) { spinner.style.display = 'inline-block'; }
+      btn.disabled = true;
+    }
+  }
+
+  async function _startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      _audioChunks  = [];
+      _recordingStart = Date.now();
+
+      // Prefer webm/opus; fall back to default
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '');
+
+      _mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      _mediaRecorder.addEventListener('dataavailable', e => {
+        if (e.data.size > 0) _audioChunks.push(e.data);
+      });
+
+      _mediaRecorder.addEventListener('stop', async () => {
+        // Stop all tracks
+        stream.getTracks().forEach(t => t.stop());
+
+        const durationSecs = (Date.now() - _recordingStart) / 1000;
+        const blob = new Blob(_audioChunks, { type: _mediaRecorder.mimeType || 'audio/webm' });
+        _audioChunks = [];
+
+        _setVoiceBtnState('processing');
+
+        try {
+          const formData = new FormData();
+          const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+          formData.append('audio', blob, `recording.${ext}`);
+          formData.append('duration_secs', durationSecs.toFixed(1));
+
+          const res = await fetch(VOICE_URL, {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' },
+            body: formData
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            showToast(data.error || I18N_VOICE_PROCESSING, true);
+          } else if (data.text) {
+            const ta = document.getElementById('fb-content');
+            if (ta) {
+              const sep = ta.value.trim() ? ' ' : '';
+              ta.value = ta.value.trim() + sep + data.text.trim();
+              ta.focus();
+              // Trigger resize if textarea auto-grows
+              ta.dispatchEvent(new Event('input'));
+            }
+          }
+        } catch(err) {
+          showToast(I18N_VOICE_PROCESSING + ' — network error', true);
+        } finally {
+          _setVoiceBtnState('idle');
+        }
+      });
+
+      _mediaRecorder.start();
+      _setVoiceBtnState('recording');
+    } catch(err) {
+      // Permission denied or not supported
+      const msg = err.name === 'NotAllowedError'
+        ? (navigator.language.startsWith('vi') ? 'Cần quyền truy cập micro.' : 'Microphone permission denied.')
+        : (navigator.language.startsWith('vi') ? 'Micro không khả dụng.' : 'Microphone not available.');
+      showToast(msg, true);
+      _setVoiceBtnState('idle');
+    }
+  }
+
+  function _stopRecording() {
+    if (_mediaRecorder && _mediaRecorder.state !== 'inactive') {
+      _mediaRecorder.stop();
+    }
+  }
+
+  window.toggleVoiceRecording = function() {
+    if (!_mediaRecorder || _mediaRecorder.state === 'inactive') {
+      _startRecording();
+    } else {
+      _stopRecording();
+    }
+  };
+})();
 
 // ── Emoji Picker ──────────────────────────────────────────────────────────────
 (function() {

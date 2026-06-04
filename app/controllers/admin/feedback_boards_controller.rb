@@ -12,7 +12,8 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   end
 
   def new
-    @board = current_workspace.feedback_boards.build
+    @board    = current_workspace.feedback_boards.build
+    @has_stt  = current_workspace.active_subscription&.has_feature?(:stt)
   end
 
   def create
@@ -42,6 +43,7 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   end
 
   def edit
+    @has_stt = current_workspace.active_subscription&.has_feature?(:stt)
   end
 
   def update
@@ -112,6 +114,6 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   end
 
   def board_params
-    params.require(:feedback_board).permit(:title, :description, :identity_mode, :auto_moderation, :manual_approval, :allow_replies, :allow_upvotes, :logo)
+    params.require(:feedback_board).permit(:title, :description, :identity_mode, :auto_moderation, :manual_approval, :allow_replies, :allow_upvotes, :allow_voice_input, :logo)
   end
 end

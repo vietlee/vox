@@ -59,15 +59,21 @@
               <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3"><%= t("feedback_boards.form.settings") %></p>
               <div class="grid grid-cols-2 gap-3">
                 <% [
-                  [:auto_moderation,  t("feedback_boards.form.auto_moderation"),  "🤖"],
-                  [:manual_approval,  t("feedback_boards.form.manual_approval"),  "✅"],
-                  [:allow_upvotes,    t("feedback_boards.form.allow_upvotes"),    "👍"],
-                  [:allow_replies,    t("feedback_boards.form.allow_replies"),    "💬"],
-                ].each do |field, label, icon| %>
-                  <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 hover:border-indigo-200 transition-all group">
+                  [:auto_moderation,  t("feedback_boards.form.auto_moderation"),  "🤖", true],
+                  [:manual_approval,  t("feedback_boards.form.manual_approval"),  "✅", true],
+                  [:allow_upvotes,    t("feedback_boards.form.allow_upvotes"),    "👍", true],
+                  [:allow_replies,    t("feedback_boards.form.allow_replies"),    "💬", true],
+                  [:allow_voice_input, t("feedback_boards.form.allow_voice_input_short", default: "Nhập giọng nói"), "🎙", @has_stt],
+                ].each do |field, label, icon, enabled| %>
+                  <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 transition-all <%= enabled ? 'cursor-pointer hover:bg-slate-50 hover:border-indigo-200' : 'opacity-50 cursor-not-allowed' %>">
                     <span class="text-[16px]"><%= icon %></span>
-                    <span class="flex-1 text-[12px] font-medium text-slate-700"><%= label %></span>
-                    <%= f.check_box field, class: "w-4 h-4 accent-indigo-600 cursor-pointer" %>
+                    <span class="flex-1 text-[12px] font-medium text-slate-700">
+                      <%= label %>
+                      <% unless enabled %>
+                        <span class="ml-1 px-1 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-700 rounded-full uppercase tracking-wide">Pro+</span>
+                      <% end %>
+                    </span>
+                    <%= f.check_box field, { class: "w-4 h-4 accent-indigo-600 cursor-pointer", disabled: !enabled }, "1", "0" %>
                   </label>
                 <% end %>
               </div>

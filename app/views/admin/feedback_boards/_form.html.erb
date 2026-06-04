@@ -38,6 +38,18 @@
           <span class="text-[13px] text-slate-700"><%= t("feedback_boards.form.allow_replies") %></span>
           <%= f.check_box :allow_replies, class: "w-4 h-4 accent-indigo-600" %>
         </label>
+        <%# Voice input — requires Pro+ (:stt feature) %>
+        <label class="flex items-center justify-between gap-3 <%= @has_stt ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed' %>">
+          <span class="flex items-center gap-2 text-[13px] text-slate-700">
+            <%= t("feedback_boards.form.allow_voice_input") %>
+            <% unless @has_stt %>
+              <span class="px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-700 rounded-full uppercase tracking-wide">Pro+</span>
+            <% end %>
+          </span>
+          <%= f.check_box :allow_voice_input,
+                { class: "w-4 h-4 accent-indigo-600", disabled: !@has_stt },
+                "1", "0" %>
+        </label>
       </div>
     </div>
 

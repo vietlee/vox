@@ -104,6 +104,63 @@ class Participate::FeedbacksController < Participate::BaseController
     end
   end
 
+  # POST /f/:slug/voice — record audio from participant, return transcript text
+  # Requires: board.allow_voice_input? AND workspace has :stt feature (Pro+)
+  VOICE_MAX_BYTES    = 25.megabytes
+  VOICE_SECS_PER_CREDIT = 60   # 1 credit per 60 s audio, min 1
+
+  def voice_transcribe
+    # Feature gates
+    unless @board.allow_voice_input?
+      render json: { error: t("participate.feedback.voice_not_enabled") }, status: :forbidden and return
+    end
+
+    sub = @workspace.active_subscription
+    unless sub&.has_feature?(:stt)
+      render json: { error: t("participate.feedback.voice_upgrade_required") }, status: :payment_required and return
+    end
+
+    blob = params[:audio]
+    unless blob.present?
+      render json: { error: t("participate.feedback.voice_no_audio") }, status: :unprocessable_entity and return
+    end
+
+    if blob.size > VOICE_MAX_BYTES
+      render json: { error: t("participate.feedback.voice_too_large") }, status: :unprocessable_entity and return
+    end
+
+    # Check at least 1 credit available
+    unless sub.enterprise? || sub.credit_balance >= 1
+      render json: { error: t("participate.feedback.voice_no_credits") }, status: :payment_required and return
+    end
+
+    begin
+      service = ElevenLabsService.new
+      result  = service.speech_to_text(
+        audio_io:      blob.tempfile,
+        filename:      blob.original_filename.presence || "recording.webm",
+        model:         "scribe_v2",
+        language_code: nil,   # auto-detect
+        timestamps:    "none",
+        diarize:       false
+      )
+
+      # Deduct 1 credit (single short recording — typical < 1 min)
+      duration_secs = params[:duration_secs].to_f
+      credits = duration_secs > 0 ? [(duration_secs / VOICE_SECS_PER_CREDIT.to_f).ceil, 1].max : 1
+      sub.deduct_credits!(credits)
+
+      render json: { text: result[:text], language_code: result[:language_code], credits_used: credits }
+
+    rescue ElevenLabsService::Error => e
+      Rails.logger.warn "Participate::FeedbacksController#voice_transcribe ElevenLabs error: #{e.message}"
+      render json: { error: e.message }, status: :service_unavailable
+    rescue => e
+      Rails.logger.error "Participate::FeedbacksController#voice_transcribe: #{e.message}"
+      render json: { error: t("participate.feedback.voice_error") }, status: :internal_server_error
+    end
+  end
+
   private
 
   def serialize_feedback(fb, upvoted_ids)
