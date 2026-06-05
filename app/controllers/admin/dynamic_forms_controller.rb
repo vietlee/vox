@@ -123,7 +123,10 @@ class Admin::DynamicFormsController < Admin::BaseController
       @submissions.each_with_index do |sub, i|
         assignee_name = sub.assignee ? (sub.assignee.name.presence || sub.assignee.email) : ""
         row = [i + 1, I18n.l(sub.created_at, format: :short), status_labels[sub.status] || sub.status, assignee_name]
-        @fields.each { |f| row << Array(sub.value_for(f.field_key)).join(", ") }
+        @fields.each do |f|
+          val = sub.value_for(f.field_key)
+          row << format_csv_value(val)
+        end
         csv << row
       end
     end
@@ -190,6 +193,31 @@ class Admin::DynamicFormsController < Admin::BaseController
       else
         @form.dynamic_form_fields.create!(attrs)
       end
+    end
+  end
+
+  def format_csv_value(val)
+    return "" if val.nil?
+
+    blobs = if val.is_a?(Array) && val.first.is_a?(Hash) && val.first["blob_id"]
+      val
+    elsif val.is_a?(Hash) && val["blob_id"]
+      [val]
+    end
+
+    if blobs
+      blobs.map do |b|
+        begin
+          blob = ActiveStorage::Blob.find_signed(b["blob_id"])
+          rails_blob_url(blob, host: request.base_url)
+        rescue
+          b["filename"].to_s
+        end
+      end.join(", ")
+    elsif val.is_a?(Array)
+      val.join(", ")
+    else
+      val.to_s
     end
   end
 
