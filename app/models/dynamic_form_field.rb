@@ -10,15 +10,6 @@ class DynamicFormField < ApplicationRecord
 
   before_validation :sanitize_field_key
 
-  # Returns label in current locale, falls back to default label
-  def localized_label
-    if I18n.locale.to_s == "en" && label_en.present?
-      label_en
-    else
-      label
-    end
-  end
-
   # Types that support options list
   def option_type?
     %w[select radio checkboxes].include?(field_type)

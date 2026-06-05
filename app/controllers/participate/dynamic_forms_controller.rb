@@ -81,7 +81,7 @@ class Participate::DynamicFormsController < Participate::BaseController
       if field.field_type == "file"
         uploaded = Array(params.dig(:submission, field.field_key)).select { |f| f.respond_to?(:read) }
         if field.required && uploaded.empty?
-          errors[field.field_key] = v.(:required, label: field.localized_label)
+          errors[field.field_key] = v.(:required, label: field.label)
         elsif field.max_size_mb.present?
           max_bytes = field.max_size_mb.to_i * 1024 * 1024
           big = uploaded.find { |f| f.size > max_bytes }
@@ -94,7 +94,7 @@ class Participate::DynamicFormsController < Participate::BaseController
       blank = val.is_a?(Array) ? val.empty? : val.to_s.strip.empty?
 
       if field.required && blank
-        errors[field.field_key] = v.(:required, label: field.localized_label)
+        errors[field.field_key] = v.(:required, label: field.label)
         next
       end
       next if blank
