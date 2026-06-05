@@ -98,7 +98,7 @@
           <h2 class="text-[13px] font-bold text-slate-500 uppercase tracking-wider">
             <%= t("dynamic_forms.fields_section") %> &nbsp;<span class="text-indigo-600 font-bold" id="field-count">0</span>
           </h2>
-          <button type="button" onclick="addField()"
+          <button type="button" id="add-field-btn-main" onclick="addField()"
             class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[12px] font-semibold rounded-lg transition-colors">
             <%= t("dynamic_forms.add_field_btn") %>
           </button>
@@ -109,6 +109,24 @@
         <div id="fields-empty" class="text-center py-10 text-slate-400 hidden">
           <div class="text-3xl mb-2">📋</div>
           <p class="text-[13px]"><%= t("dynamic_forms.no_fields_hint") %></p>
+        </div>
+
+        <!-- Sticky "Add field" — hiện khi scroll qua nút gốc và có ít nhất 1 trường -->
+        <div id="add-field-btn-float-wrap"
+             style="position:sticky; bottom:64px; z-index:30; pointer-events:none;
+                    opacity:0; transform:translateY(6px);
+                    transition: opacity 0.2s ease, transform 0.2s ease;
+                    display:flex; justify-content:flex-end; margin-top:16px;">
+          <button type="button" id="add-field-btn-float" onclick="addField()"
+            style="pointer-events:auto;
+                   background:linear-gradient(135deg,#3b82f6,#2563eb);
+                   box-shadow:0 4px 16px rgba(37,99,235,0.3);"
+            class="inline-flex items-center gap-2 px-4 py-2.5 text-white text-[13px] font-semibold rounded-xl border-0 cursor-pointer">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            <%= t("dynamic_forms.add_field_btn") %>
+          </button>
         </div>
       </div>
     </div>
@@ -246,6 +264,7 @@
   </div>
 </div>
 
+
 <!-- Field delete confirm modal -->
 <div id="field-delete-modal" class="hidden fixed inset-0 z-50"
      onclick="if(event.target===this) _cancelDeleteField()">
@@ -369,9 +388,10 @@ function renderAll() {
   const container = document.getElementById('fields-container');
   const empty     = document.getElementById('fields-empty');
   document.getElementById('field-count').textContent = _fields.length;
-  if (_fields.length === 0) { container.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  if (_fields.length === 0) { container.innerHTML = ''; empty.classList.remove('hidden'); window._updateFloatBtn?.(); return; }
   empty.classList.add('hidden');
   container.innerHTML = _fields.map((f, i) => renderField(f, i)).join('');
+  window._updateFloatBtn?.();
 
   // Init / re-init SortableJS on the container
   if (_sortable) _sortable.destroy();
@@ -715,4 +735,31 @@ function escHtml(s) {
 Object.assign(window, { syncFieldsData, addField, removeField, moveField, setFieldProp, addOption, removeOption, setOption, submitForm, markUnsaved, renderAll });
 
 })(); // end outer IIFE — prevents Turbo redeclaration errors
+
+// ── Floating "Add field" button ───────────────────────────────────────────────
+// Hiện khi nút gốc cuộn ra khỏi viewport; ẩn khi không có trường nào (empty state đang show)
+(function() {
+  const mainBtn  = document.getElementById('add-field-btn-main');
+  const floatWrap = document.getElementById('add-field-btn-float-wrap');
+  if (!mainBtn || !floatWrap) return;
+
+  function updateFloat(mainVisible) {
+    const hasFields = document.querySelectorAll('#fields-container > *').length > 0;
+    const show = !mainVisible && hasFields;
+    floatWrap.style.opacity        = show ? '1' : '0';
+    floatWrap.style.transform      = show ? 'translateY(0)' : 'translateY(6px)';
+    floatWrap.style.pointerEvents  = show ? 'none' : 'none'; // wrapper is always none; button inside handles clicks
+  }
+
+  const observer = new IntersectionObserver(
+    ([entry]) => updateFloat(entry.isIntersecting),
+    { threshold: 0, rootMargin: '-10px 0px 0px 0px' }
+  );
+  observer.observe(mainBtn);
+
+  window._updateFloatBtn = () => {
+    const r = mainBtn.getBoundingClientRect();
+    updateFloat(r.top >= 0 && r.bottom <= window.innerHeight);
+  };
+})();
 </script>
