@@ -345,5 +345,40 @@
     });
   });
 </script>
+
+<script>
+// ── Override browser-native HTML5 validation messages with i18n strings ──────
+(function() {
+  const MSGS = {
+    valueMissing:   "<%= j t('errors.messages.blank', default: 'Không được để trống') %>",
+    typeMismatch:   "<%= j t('errors.messages.invalid', default: 'Giá trị không hợp lệ') %>",
+    tooShort:       "<%= j t('errors.messages.too_short.other', count: '__COUNT__', default: 'Quá ngắn (tối thiểu __COUNT__ ký tự)') %>",
+    tooLong:        "<%= j t('errors.messages.too_long.other', count: '__COUNT__', default: 'Quá dài (tối đa __COUNT__ ký tự)') %>",
+    rangeUnderflow: "<%= j t('errors.messages.greater_than_or_equal_to', count: '__COUNT__', default: 'Phải lớn hơn hoặc bằng __COUNT__') %>",
+    rangeOverflow:  "<%= j t('errors.messages.less_than_or_equal_to', count: '__COUNT__', default: 'Phải nhỏ hơn hoặc bằng __COUNT__') %>",
+    patternMismatch:"<%= j t('errors.messages.invalid', default: 'Định dạng không hợp lệ') %>",
+  };
+
+  document.addEventListener('invalid', function(e) {
+    const el = e.target;
+    el.setCustomValidity(''); // reset first so we get fresh validity state
+    const v = el.validity;
+    let msg = '';
+    if (v.valueMissing)    msg = MSGS.valueMissing;
+    else if (v.typeMismatch)    msg = MSGS.typeMismatch;
+    else if (v.tooShort)        msg = MSGS.tooShort.replace(/__COUNT__/g, el.minLength);
+    else if (v.tooLong)         msg = MSGS.tooLong.replace(/__COUNT__/g, el.maxLength);
+    else if (v.rangeUnderflow)  msg = MSGS.rangeUnderflow.replace(/__COUNT__/g, el.min);
+    else if (v.rangeOverflow)   msg = MSGS.rangeOverflow.replace(/__COUNT__/g, el.max);
+    else if (v.patternMismatch) msg = MSGS.patternMismatch;
+    if (msg) el.setCustomValidity(msg);
+  }, true);
+
+  // Clear custom message when user starts typing so next submit re-validates cleanly
+  document.addEventListener('input', function(e) {
+    if (e.target.setCustomValidity) e.target.setCustomValidity('');
+  }, true);
+})();
+</script>
 </body>
 </html>
