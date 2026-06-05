@@ -75,15 +75,17 @@ class Participate::DynamicFormsController < Participate::BaseController
 
   def validate_submission(data)
     errors = {}
+    v = ->(key, **opts) { t("participate.dynamic_form.validation.#{key}", **opts) }
+
     @form.dynamic_form_fields.each do |field|
       if field.field_type == "file"
         uploaded = Array(params.dig(:submission, field.field_key)).select { |f| f.respond_to?(:read) }
         if field.required && uploaded.empty?
-          errors[field.field_key] = "#{field.label} không được để trống."
+          errors[field.field_key] = v.(:required, label: field.label)
         elsif field.max_size_mb.present?
           max_bytes = field.max_size_mb.to_i * 1024 * 1024
           big = uploaded.find { |f| f.size > max_bytes }
-          errors[field.field_key] = "File \"#{big.original_filename}\" quá lớn (tối đa #{field.max_size_mb}MB)." if big
+          errors[field.field_key] = v.(:file_too_large, filename: big.original_filename, max: field.max_size_mb) if big
         end
         next
       end
@@ -92,22 +94,22 @@ class Participate::DynamicFormsController < Participate::BaseController
       blank = val.is_a?(Array) ? val.empty? : val.to_s.strip.empty?
 
       if field.required && blank
-        errors[field.field_key] = "#{field.label} không được để trống."
+        errors[field.field_key] = v.(:required, label: field.label)
         next
       end
       next if blank
 
       if %w[text email textarea url phone].include?(field.field_type)
         s = val.to_s
-        errors[field.field_key] = "Tối thiểu #{field.min_length} ký tự." if field.min_length.present? && s.length < field.min_length
-        errors[field.field_key] = "Tối đa #{field.max_length} ký tự."    if field.max_length.present? && s.length > field.max_length
-        errors[field.field_key] = "Email không hợp lệ."                  if field.field_type == "email" && s !~ /\A[^@\s]+@[^@\s]+\z/
+        errors[field.field_key] = v.(:min_length, min: field.min_length) if field.min_length.present? && s.length < field.min_length
+        errors[field.field_key] = v.(:max_length, max: field.max_length) if field.max_length.present? && s.length > field.max_length
+        errors[field.field_key] = v.(:invalid_email)                     if field.field_type == "email" && s !~ /\A[^@\s]+@[^@\s]+\z/
       end
 
       if field.field_type == "number"
         n = val.to_s.to_f
-        errors[field.field_key] = "Phải ≥ #{field.min_value}." if field.min_value.present? && n < field.min_value.to_f
-        errors[field.field_key] = "Phải ≤ #{field.max_value}." if field.max_value.present? && n > field.max_value.to_f
+        errors[field.field_key] = v.(:min_value, min: field.min_value) if field.min_value.present? && n < field.min_value.to_f
+        errors[field.field_key] = v.(:max_value, max: field.max_value) if field.max_value.present? && n > field.max_value.to_f
       end
     end
     errors
