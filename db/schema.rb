@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_04_080000) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_05_130001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -144,6 +144,66 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_04_080000) do
     t.index ["created_at"], name: "index_audit_logs_on_created_at"
     t.index ["user_id"], name: "index_audit_logs_on_user_id"
     t.index ["workspace_id"], name: "index_audit_logs_on_workspace_id"
+  end
+
+  create_table "dynamic_form_assignments", force: :cascade do |t|
+    t.bigint "dynamic_form_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["dynamic_form_id", "user_id"], name: "index_dynamic_form_assignments_on_dynamic_form_id_and_user_id", unique: true
+    t.index ["dynamic_form_id"], name: "index_dynamic_form_assignments_on_dynamic_form_id"
+    t.index ["user_id"], name: "index_dynamic_form_assignments_on_user_id"
+  end
+
+  create_table "dynamic_form_fields", force: :cascade do |t|
+    t.bigint "dynamic_form_id", null: false
+    t.string "label", null: false
+    t.string "field_key", null: false
+    t.string "field_type", default: "text", null: false
+    t.string "placeholder"
+    t.text "hint"
+    t.boolean "required", default: false, null: false
+    t.jsonb "options", default: [], null: false
+    t.integer "min_length"
+    t.integer "max_length"
+    t.string "min_value"
+    t.string "max_value"
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "accept"
+    t.integer "max_size_mb"
+    t.boolean "multiple", default: false, null: false
+    t.index ["dynamic_form_id"], name: "index_dynamic_form_fields_on_dynamic_form_id"
+  end
+
+  create_table "dynamic_form_submissions", force: :cascade do |t|
+    t.bigint "dynamic_form_id", null: false
+    t.jsonb "data", default: {}, null: false
+    t.string "respondent_token"
+    t.string "ip_address"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "status", default: 0, null: false
+    t.index ["dynamic_form_id"], name: "index_dynamic_form_submissions_on_dynamic_form_id"
+    t.index ["status"], name: "index_dynamic_form_submissions_on_status"
+  end
+
+  create_table "dynamic_forms", force: :cascade do |t|
+    t.bigint "workspace_id", null: false
+    t.bigint "user_id", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.string "slug", null: false
+    t.integer "status", default: 0, null: false
+    t.integer "submissions_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["slug"], name: "index_dynamic_forms_on_slug", unique: true
+    t.index ["user_id"], name: "index_dynamic_forms_on_user_id"
+    t.index ["workspace_id", "slug"], name: "index_dynamic_forms_on_workspace_id_and_slug", unique: true
+    t.index ["workspace_id"], name: "index_dynamic_forms_on_workspace_id"
   end
 
   create_table "feedback_boards", force: :cascade do |t|
@@ -575,6 +635,12 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_04_080000) do
   add_foreign_key "answers", "responses"
   add_foreign_key "audit_logs", "users"
   add_foreign_key "audit_logs", "workspaces"
+  add_foreign_key "dynamic_form_assignments", "dynamic_forms"
+  add_foreign_key "dynamic_form_assignments", "users"
+  add_foreign_key "dynamic_form_fields", "dynamic_forms"
+  add_foreign_key "dynamic_form_submissions", "dynamic_forms"
+  add_foreign_key "dynamic_forms", "users"
+  add_foreign_key "dynamic_forms", "workspaces"
   add_foreign_key "feedback_boards", "users"
   add_foreign_key "feedback_boards", "workspaces"
   add_foreign_key "feedback_replies", "feedbacks"

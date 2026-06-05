@@ -1,0 +1,196 @@
+<% content_for :title, t("dynamic_forms.index_title") %>
+<% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
+
+<!-- Page header -->
+<div class="flex-shrink-0 px-6 pt-5 pb-0 bg-slate-100">
+  <div class="flex items-start gap-3 justify-between mb-4">
+    <div class="flex items-start gap-3">
+      <%= render "admin/shared/back_btn" %>
+      <div>
+      <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">📝 <%= t("dynamic_forms.index_title") %></h1>
+      <p class="text-[12px] text-slate-500 mt-0.5"><%= t("dynamic_forms.index_subtitle") %></p>
+    </div>
+    </div>
+    <%= link_to new_dynamic_form_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors" do %>
+      <%= t("dynamic_forms.create_btn") %>
+    <% end %>
+  </div>
+</div>
+
+<!-- Card area -->
+<div class="flex-1 min-h-0 overflow-hidden px-6 pt-3 pb-5">
+  <div class="rounded-[12px] border overflow-hidden flex flex-col h-full" style="border-color:rgba(99,102,241,0.2); background:rgba(238,242,255,0.5);">
+
+    <!-- Card header: search -->
+    <div class="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b" style="background:rgba(99,102,241,0.06); border-color:rgba(99,102,241,0.15);">
+      <%= form_with url: dynamic_forms_path, method: :get, local: true, class: "flex items-center gap-2 flex-1" do |f| %>
+        <div class="relative w-72">
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+          </svg>
+          <%= f.text_field :q, value: @search_query,
+                id: "df-search",
+                placeholder: t("dynamic_forms.search_form_placeholder", default: "Tìm kiếm form..."),
+                autocomplete: "off",
+                class: "w-full pl-8 pr-8 py-1.5 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-400 outline-none bg-white" %>
+          <% if @search_query.present? %>
+            <%= link_to dynamic_forms_path, class: "absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[15px] leading-none" do %>✕<% end %>
+          <% end %>
+        </div>
+      <% end %>
+      <span class="text-[11px] text-slate-400 ml-auto whitespace-nowrap"><%= @pagy.count %> forms</span>
+    </div>
+
+    <!-- Table -->
+    <div class="flex-1 min-h-0 overflow-y-auto">
+      <% if @forms.any? %>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200" style="position:sticky;top:0;z-index:1;background:rgba(248,250,252,0.97);">
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("dynamic_forms.col_name") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("dynamic_forms.col_status") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("dynamic_forms.col_fields") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("dynamic_forms.col_submissions") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("dynamic_forms.col_managers") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("dynamic_forms.col_created") %></th>
+              <th class="px-4 py-2.5"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @forms.each do |form| %>
+              <tr class="border-b border-slate-200 hover:bg-white/70 transition-colors">
+                <td class="px-4 py-3">
+                  <%= link_to edit_dynamic_form_path(form), class: "group block" do %>
+                    <div class="text-[13px] font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors"><%= form.title %></div>
+                    <div class="text-[11px] text-slate-400 font-mono">/forms/<%= form.slug %></div>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3">
+                  <% badge = form.draft? ? ['bg-slate-100 text-slate-500', t("dynamic_forms.status_draft")] :
+                              form.active? ? ['bg-emerald-50 text-emerald-700', t("dynamic_forms.status_active")] :
+                              ['bg-amber-50 text-amber-700', t("dynamic_forms.status_closed")] %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold <%= badge[0] %>">
+                    <%= badge[1] %>
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-[13px] text-slate-700"><%= form.dynamic_form_fields.count %></td>
+                <td class="px-4 py-3 text-[13px] text-slate-700"><%= form.submissions_count %></td>
+                <td class="px-4 py-3">
+                  <% assignees = form.assignees %>
+                  <% if assignees.any? %>
+                    <div class="flex -space-x-1.5">
+                      <% assignees.first(3).each do |a| %>
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white ring-2 ring-white flex-shrink-0"
+                             style="background:linear-gradient(135deg,#6366f1,#a855f7);"
+                             title="<%= a.name.presence || a.email %>">
+                          <%= (a.name.presence || a.email).first.upcase %>
+                        </div>
+                      <% end %>
+                      <% if assignees.count > 3 %>
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-slate-500 bg-slate-100 ring-2 ring-white flex-shrink-0">
+                          +<%= assignees.count - 3 %>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <span class="text-[11px] text-slate-400 italic"><%= t("dynamic_forms.no_assignees") %></span>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3 text-[12px] text-slate-500"><%= I18n.l(form.created_at, format: :short) %></td>
+                <td class="px-4 py-3">
+                  <div class="flex gap-1.5 justify-end flex-wrap">
+                    <%= link_to edit_dynamic_form_path(form), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100 font-medium" do %><%= t("dynamic_forms.edit_btn") %><% end %>
+                    <%= link_to submissions_dynamic_form_path(form), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 font-medium" do %><%= t("dynamic_forms.submissions_title") %><% end %>
+                    <% if form.active? %>
+                      <%= link_to participate_dynamic_form_url(form.slug), target: "_blank", class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 font-medium" do %>🔗<% end %>
+                    <% end %>
+                    <% if form.deletable? %>
+                      <button type="button"
+                        onclick="showDeleteConfirm('<%= dynamic_form_path(form) %>', '<%= j form.title %>')"
+                        class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 font-medium border-0 cursor-pointer">
+                        <%= t("dynamic_forms.delete_btn_short") %>
+                      </button>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% else %>
+        <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div class="text-4xl mb-3">📝</div>
+          <% if @search_query.present? %>
+            <h3 class="text-[15px] font-semibold text-slate-700 mb-1">Không tìm thấy form nào</h3>
+            <p class="text-[13px] text-slate-400 mb-4">Thử từ khoá khác hoặc <a href="<%= dynamic_forms_path %>" class="text-indigo-600 hover:underline">xoá bộ lọc</a></p>
+          <% else %>
+            <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("dynamic_forms.no_forms_title") %></h3>
+            <p class="text-[13px] text-slate-400 mb-4"><%= t("dynamic_forms.no_forms_hint") %></p>
+            <%= link_to t("dynamic_forms.create_btn"), new_dynamic_form_path,
+                  class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Pagination -->
+    <% if @pagy && @pagy.pages > 1 %>
+      <% from = (@pagy.page - 1) * @pagy.items + 1; to = [@pagy.page * @pagy.items, @pagy.count].min %>
+      <div class="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-t gap-4" style="border-color:rgba(99,102,241,0.12); background:rgba(99,102,241,0.04);">
+        <p class="text-[11px] text-slate-500 whitespace-nowrap"><%= from %>–<%= to %> / <%= @pagy.count %></p>
+        <div class="flex items-center gap-1">
+          <%= link_to dynamic_forms_path(page: @pagy.page - 1, q: @search_query),
+                class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md transition-colors #{@pagy.page > 1 ? 'text-slate-600 hover:bg-white bg-white/60' : 'text-slate-300 pointer-events-none bg-white/30'}" do %>←<% end %>
+          <% ([[@pagy.page - 2, 1].max, [@pagy.pages - 4, 1].max].min .. [[@pagy.page - 2, 1].max + 4, @pagy.pages].min).each do |p| %>
+            <%= link_to p, dynamic_forms_path(page: p, q: @search_query),
+                  class: "w-7 h-7 flex items-center justify-center text-[11px] font-semibold rounded-md border transition-colors #{p == @pagy.page ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-slate-200 text-slate-600 hover:bg-white bg-white/60'}" %>
+          <% end %>
+          <%= link_to dynamic_forms_path(page: @pagy.page + 1, q: @search_query),
+                class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md transition-colors #{@pagy.page < @pagy.pages ? 'text-slate-600 hover:bg-white bg-white/60' : 'text-slate-300 pointer-events-none bg-white/30'}" do %>→<% end %>
+        </div>
+      </div>
+    <% end %>
+
+  </div>
+</div>
+
+<!-- Delete modal -->
+<div id="df-delete-modal" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm" onclick="closeDeleteConfirm()">
+    <div class="bg-white rounded-2xl shadow-2xl w-[400px] max-w-full mx-4 p-6" onclick="event.stopPropagation()">
+      <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl" style="background:#fee2e2;">🗑️</div>
+      <h3 class="text-[17px] font-bold text-slate-900 text-center mb-2"><%= t("dynamic_forms.delete_field_title") %></h3>
+      <p id="df-delete-body" class="text-[13px] text-slate-500 text-center leading-relaxed mb-6"></p>
+      <div class="flex gap-3">
+        <button onclick="closeDeleteConfirm()" class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 border-0 cursor-pointer"><%= t("dynamic_forms.cancel") %></button>
+        <form id="df-delete-form" method="post" class="flex-1">
+          <input type="hidden" name="_method" value="delete">
+          <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+          <button type="submit" class="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white border-0 cursor-pointer" style="background:#ef4444;"><%= t("dynamic_forms.delete_btn_short") %></button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const input = document.getElementById('df-search');
+  if (!input) return;
+  let timer;
+  input.addEventListener('input', function() {
+    clearTimeout(timer);
+    timer = setTimeout(() => input.closest('form').submit(), 400);
+  });
+  if (input.value) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+})();
+
+window.showDeleteConfirm = function(url, title) {
+  document.getElementById('df-delete-form').action = url;
+  document.getElementById('df-delete-body').textContent = '<%= j t("dynamic_forms.delete_form_confirm", title: "__TITLE__") %>'.replace('__TITLE__', title);
+  document.getElementById('df-delete-modal').classList.remove('hidden');
+};
+window.closeDeleteConfirm = function() {
+  document.getElementById('df-delete-modal').classList.add('hidden');
+};
+</script>

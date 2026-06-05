@@ -1,0 +1,426 @@
+<% content_for :title, @form.title %>
+
+<style>
+  html, body { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height: 100%; scrollbar-width: none; -ms-overflow-style: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+  input, textarea, select { font-size: 16px !important; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes draw-check { to { stroke-dashoffset: 0; } }
+  @keyframes pop-in { 0%{transform:scale(0.6);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+  .fade-in { animation: fadeIn 0.35s ease forwards; }
+  .df-field:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); outline: none; }
+  .opt-label { transition: all 0.18s ease; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px; border: 2px solid #e2e8f0; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .opt-label:hover { border-color: #a5b4fc; background: rgba(238,240,255,0.45); box-shadow: 0 4px 14px rgba(99,102,241,0.1); transform: translateY(-1px); }
+  .opt-label:has(input:checked) { border-color: #6366f1; background: rgba(238,240,255,0.85); box-shadow: 0 4px 18px rgba(99,102,241,0.18); }
+  .opt-dot { flex-shrink:0; width:20px; height:20px; border-radius:50%; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition: all 0.18s; }
+  .opt-label:has(input[type=radio]:checked) .opt-dot { border-color:#6366f1; background:#6366f1; }
+  .opt-label:has(input[type=radio]:checked) .opt-dot::after { content:''; width:8px; height:8px; border-radius:50%; background:#fff; display:block; }
+  .opt-box { flex-shrink:0; width:20px; height:20px; border-radius:6px; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition: all 0.18s; }
+  .opt-label:has(input[type=checkbox]:checked) .opt-box { border-color:#6366f1; background:#6366f1; }
+  .opt-label:has(input[type=checkbox]:checked) .opt-box::after { content:'✓'; font-size:12px; font-weight:900; color:#fff; display:block; line-height:1; }
+  .upload-zone { transition: all 0.15s; cursor: pointer; border: 1.5px dashed #d1d5db; border-radius: 10px; background: #fafafa; }
+  .upload-zone:hover { border-color: #a5b4fc; background: rgba(238,240,255,0.3); }
+  .upload-zone-active { border-color: #6366f1; background: rgba(238,240,255,0.4); }
+</style>
+
+
+<div class="min-h-screen flex flex-col" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
+
+  <!-- Fixed form header — same positioning layer as navbar, immune to mobile Chrome viewport shifts -->
+  <div id="form-fixed-header"
+       style="position:fixed; left:0; right:0; z-index:9998;
+              background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
+              border-bottom:1px solid rgba(226,232,240,0.7);
+              box-shadow:0 2px 12px rgba(99,102,241,0.06);
+              transform:translateZ(0); -webkit-transform:translateZ(0);">
+    <div id="form-header-section" class="max-w-2xl mx-auto px-4 py-3 text-center">
+      <% if @form.logo.attached? %>
+        <img src="<%= url_for(@form.logo) %>" alt="<%= @form.title %>"
+             class="object-contain mx-auto mb-1.5"
+             style="max-height:48px; max-width:180px;">
+      <% else %>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl mx-auto mb-1.5"
+             style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 4px 12px rgba(99,102,241,0.3);">📝</div>
+      <% end %>
+      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-0.5"><%= @form.title %></h1>
+      <% if @form.description.present? %>
+        <div id="form-desc-wrap" class="mb-0.5">
+          <p id="form-desc-text" class="text-[12px] text-slate-500"
+             style="overflow:hidden; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;"><%= @form.description %></p>
+          <button id="form-desc-toggle" type="button" onclick="toggleFormDesc()"
+                  class="text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 border-0 bg-transparent p-0 cursor-pointer mt-0.5"
+                  style="display:none;">Xem thêm</button>
+        </div>
+      <% end %>
+      <span class="text-[11px] text-slate-400"><%= @form.dynamic_form_fields.count %> trường</span>
+    </div>
+  </div>
+  <!-- Spacer — height set by JS so content isn't hidden behind fixed header -->
+  <div id="form-header-spacer"></div>
+
+  <script>
+    (function() {
+      var navH = window.innerWidth >= 640 ? 57 : 47;
+      var hdr  = document.getElementById('form-fixed-header');
+      hdr.style.top = navH + 'px';
+      function sync() {
+        navH = window.innerWidth >= 640 ? 57 : 47;
+        hdr.style.top = navH + 'px';
+        document.getElementById('form-header-spacer').style.height = hdr.offsetHeight + 'px';
+      }
+      sync();
+      window.addEventListener('resize', sync);
+      // Re-sync after images finish loading (logo may not be loaded yet on first run)
+      window.addEventListener('load', sync);
+      requestAnimationFrame(function() { requestAnimationFrame(sync); });
+
+      // Show "Xem thêm" button only when text is actually clamped
+      var desc = document.getElementById('form-desc-text');
+      var btn  = document.getElementById('form-desc-toggle');
+      if (desc && btn && desc.scrollHeight > desc.clientHeight + 2) {
+        btn.style.display = 'inline';
+      }
+    })();
+
+    var _descExpanded = false;
+    function toggleFormDesc() {
+      _descExpanded = !_descExpanded;
+      var desc = document.getElementById('form-desc-text');
+      var btn  = document.getElementById('form-desc-toggle');
+      if (_descExpanded) {
+        desc.style.webkitLineClamp = 'unset';
+        desc.style.display = 'block';
+        btn.textContent = 'Thu gọn';
+      } else {
+        desc.style.webkitLineClamp = '1';
+        desc.style.display = '-webkit-box';
+        btn.textContent = 'Xem thêm';
+      }
+      // Re-sync spacer after height change
+      var hdr = document.getElementById('form-fixed-header');
+      document.getElementById('form-header-spacer').style.height = hdr.offsetHeight + 'px';
+    }
+  </script>
+
+  <!-- Scrollable content -->
+  <div class="max-w-[640px] mx-auto w-full px-4 pt-5 pb-10 fade-in">
+
+    <!-- Success state -->
+    <div id="success-state" class="hidden fade-in">
+      <div class="rounded-2xl p-10 text-center"
+           style="background:#ffffff; border:1px solid rgba(226,232,240,0.8); box-shadow:0 2px 16px rgba(0,0,0,0.06);">
+
+        <!-- Animated checkmark -->
+        <div class="mx-auto mb-6" style="width:72px; height:72px;">
+          <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="36" cy="36" r="36" fill="url(#success-grad)"/>
+            <path d="M22 36.5l10 10 18-20" stroke="white" stroke-width="3.5"
+                  stroke-linecap="round" stroke-linejoin="round"
+                  style="stroke-dasharray:50; stroke-dashoffset:50; animation:draw-check 0.5s 0.2s ease forwards;"/>
+            <defs>
+              <linearGradient id="success-grad" x1="0" y1="0" x2="72" y2="72" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#818cf8"/>
+                <stop offset="100%" stop-color="#6366f1"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        <h2 class="text-[24px] font-extrabold text-slate-900 mb-2 tracking-tight">Đã gửi thành công!</h2>
+        <p class="text-[14px] text-slate-500 leading-relaxed mb-1">Cảm ơn bạn đã điền form.</p>
+        <% if @form.description.present? %>
+          <p class="text-[13px] text-slate-400 mb-8"><%= @form.title %></p>
+        <% else %>
+          <div class="mb-8"></div>
+        <% end %>
+
+        <!-- Divider -->
+        <div class="border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button onclick="resetForm()"
+            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all"
+            style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 2px 10px rgba(99,102,241,0.3);">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Gửi thêm một lần nữa
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div id="form-wrap">
+      <% if @form.dynamic_form_fields.empty? %>
+        <div class="text-center py-20 text-slate-400">
+          <div class="text-4xl mb-3">📋</div>
+          <p class="text-[14px]">Form này chưa có trường nào.</p>
+        </div>
+      <% else %>
+        <!-- Single white card containing all fields -->
+        <div class="rounded-2xl p-5 mb-4"
+             style="background:#ffffff; border:1px solid rgba(226,232,240,0.8); box-shadow:0 2px 16px rgba(0,0,0,0.06);">
+          <form id="df-form" class="space-y-0" novalidate enctype="multipart/form-data">
+
+            <% @form.dynamic_form_fields.each_with_index do |field, idx| %>
+              <div class="field-group py-4 <%= idx > 0 ? 'border-t border-slate-100' : '' %>"
+                   data-key="<%= field.field_key %>">
+
+                <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">
+                  <%= field.label %>
+                  <% if field.required? %><span class="text-red-500 ml-0.5">*</span><% end %>
+                </label>
+
+                <% if field.hint.present? %>
+                  <p class="text-[11px] text-slate-400 mb-2 leading-relaxed"><%= field.hint %></p>
+                <% end %>
+
+                <% if field.field_type == "textarea" %>
+                  <textarea name="submission[<%= field.field_key %>]" rows="3"
+                    <%= "required" if field.required? %>
+                    placeholder="<%= field.placeholder %>"
+                    class="df-field w-full px-3 py-2.5 rounded-lg text-[14px] text-slate-800 outline-none resize-none transition-all"
+                    style="border:1.5px solid #e2e8f0; background:white;"
+                    onfocus="this.style.borderColor='#6366f1'; this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.08)'"
+                    onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"></textarea>
+
+                <% elsif field.field_type == "select" %>
+                  <select name="submission[<%= field.field_key %>]" <%= "required" if field.required? %>
+                    class="df-field w-full px-3 py-2.5 rounded-lg text-[14px] text-slate-700 outline-none bg-white transition-all"
+                    style="border:1.5px solid #e2e8f0;"
+                    onfocus="this.style.borderColor='#6366f1'; this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.08)'"
+                    onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
+                    <option value=""><%= field.placeholder.presence || "Chọn một lựa chọn…" %></option>
+                    <% field.options_list.each do |opt| %>
+                      <option value="<%= opt['value'] %>"><%= opt['label'] %></option>
+                    <% end %>
+                  </select>
+
+                <% elsif field.field_type == "radio" %>
+                  <div class="space-y-2 mt-1">
+                    <% field.options_list.each do |opt| %>
+                      <label class="opt-label">
+                        <span class="opt-dot"></span>
+                        <input type="radio" name="submission[<%= field.field_key %>]" value="<%= opt['value'].presence || opt['label'] %>"
+                          <%= "required" if field.required? %>
+                          class="sr-only">
+                        <span class="text-[14px] font-medium text-slate-800"><%= opt['label'] %></span>
+                      </label>
+                    <% end %>
+                  </div>
+
+                <% elsif field.field_type == "checkboxes" %>
+                  <div class="space-y-2 mt-1">
+                    <% field.options_list.each do |opt| %>
+                      <label class="opt-label">
+                        <span class="opt-box"></span>
+                        <input type="checkbox" name="submission[<%= field.field_key %>][]" value="<%= opt['value'].presence || opt['label'] %>"
+                          class="sr-only">
+                        <span class="text-[14px] font-medium text-slate-800"><%= opt['label'] %></span>
+                      </label>
+                    <% end %>
+                  </div>
+
+                <% elsif field.field_type == "file" %>
+                  <label class="upload-zone flex flex-col items-center justify-center gap-2 py-8 px-4 cursor-pointer text-center"
+                         id="file-label-<%= field.field_key %>">
+                    <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    <div>
+                      <p class="text-[13px] font-semibold text-slate-600" id="file-name-<%= field.field_key %>">
+                        Kéo thả hoặc nhấn để chọn file
+                      </p>
+                      <p class="text-[11px] text-slate-400 mt-0.5">
+                        <% hints = [field.accept.presence, field.max_size_mb.present? ? "tối đa #{field.max_size_mb}MB/file" : nil, "nhiều file"].compact %>
+                        <%= hints.join(" · ") %>
+                      </p>
+                    </div>
+                    <input type="file"
+                      name="submission[<%= field.field_key %>][]"
+                      <%= "required" if field.required? %>
+                      multiple
+                      <% if field.accept.present? %>accept="<%= field.accept %>"<% end %>
+                      class="hidden" onchange="updateFileName('<%= field.field_key %>', this)">
+                  </label>
+
+                <% else %>
+                  <input type="<%= field.field_type == 'phone' ? 'tel' : field.field_type %>"
+                    name="submission[<%= field.field_key %>]"
+                    placeholder="<%= field.placeholder %>"
+                    <%= "required" if field.required? %>
+                    <% if field.min_length.present? %>minlength="<%= field.min_length %>"<% end %>
+                    <% if field.max_length.present? %>maxlength="<%= field.max_length %>"<% end %>
+                    <% if field.min_value.present? && field.field_type == "number" %>min="<%= field.min_value %>"<% end %>
+                    <% if field.max_value.present? && field.field_type == "number" %>max="<%= field.max_value %>"<% end %>
+                    class="df-field w-full px-3 py-2.5 rounded-lg text-[14px] text-slate-800 outline-none transition-all"
+                    style="border:1.5px solid #e2e8f0; background:white;"
+                    onfocus="this.style.borderColor='#6366f1'; this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.08)'"
+                    onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
+                <% end %>
+
+                <p class="field-error text-[12px] text-red-500 mt-1.5 hidden"></p>
+              </div>
+            <% end %>
+
+            <!-- Error banner -->
+            <div id="form-error" class="hidden mt-2 px-3 py-2.5 rounded-lg text-[13px] font-medium"
+                 style="background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); color:#991b1b;"></div>
+
+            <!-- Submit -->
+            <div class="pt-4 border-t border-slate-100">
+              <button type="submit" id="df-submit-btn"
+                class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all disabled:opacity-60"
+                style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 2px 10px rgba(99,102,241,0.3);">
+                <span id="df-btn-text">Gửi</span>
+                <span id="df-btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite;"></span>
+              </button>
+            </div>
+          </form>
+        </div>
+      <% end %>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="text-center py-6 mt-auto">
+    <span class="inline-flex items-center gap-1.5">
+      <img src="/vox_logo.svg" alt="VOX" style="height:16px; width:auto; opacity:0.55;">
+      <span style="font-size:11px; color:#94a3b8;">· Powered by VOX</span>
+    </span>
+  </div>
+
+</div>
+
+<script>
+const SUBMIT_URL = "<%= submit_dynamic_form_path(@form.slug) %>";
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+
+
+function updateFileName(key, input) {
+  const label = document.getElementById('file-name-' + key);
+  const zone  = document.getElementById('file-label-' + key);
+  if (!input.files || !input.files.length) return;
+  const files = Array.from(input.files);
+  if (files.length === 1) {
+    const f = files[0];
+    label.innerHTML = '📎 <span style="color:#4f46e5;font-weight:600;">' + f.name + '</span><br><span style="font-size:11px;color:#94a3b8;">' + (f.size/1024/1024).toFixed(1) + ' MB</span>';
+  } else {
+    const total = files.reduce((s, f) => s + f.size, 0);
+    label.innerHTML = '📎 <span style="color:#4f46e5;font-weight:600;">' + files.length + ' file</span><br><span style="font-size:11px;color:#94a3b8;">' + files.map(f => f.name).join(', ').slice(0, 60) + (files.map(f=>f.name).join(', ').length > 60 ? '…' : '') + ' · ' + (total/1024/1024).toFixed(1) + ' MB</span>';
+  }
+  zone?.classList.add('upload-zone-active');
+}
+
+// Drag-and-drop for file upload zones
+document.addEventListener('DOMContentLoaded', initDropZones);
+document.addEventListener('turbo:load', initDropZones);
+function initDropZones() {
+  document.querySelectorAll('.upload-zone').forEach(zone => {
+    const input = zone.querySelector('input[type=file]');
+    if (!input) return;
+    const key = input.name.match(/\[([^\]]+)\]/)?.[1];
+
+    zone.addEventListener('dragover', e => {
+      e.preventDefault();
+      zone.classList.add('upload-zone-active');
+    });
+    zone.addEventListener('dragleave', e => {
+      if (!zone.contains(e.relatedTarget)) zone.classList.remove('upload-zone-active');
+    });
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('upload-zone-active');
+      const dropped = e.dataTransfer?.files;
+      if (!dropped || !dropped.length) return;
+      const dt = new DataTransfer();
+      if (input.multiple) {
+        Array.from(dropped).forEach(f => dt.items.add(f));
+      } else {
+        dt.items.add(dropped[0]);
+      }
+      input.files = dt.files;
+      if (key) updateFileName(key, input);
+    });
+  });
+}
+
+document.getElementById('df-form')?.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  clearErrors();
+  const btn     = document.getElementById('df-submit-btn');
+  const btnText = document.getElementById('df-btn-text');
+  const spinner = document.getElementById('df-btn-spinner');
+  btn.disabled = true;
+  btnText.style.display = 'none';
+  spinner.style.display = 'inline-block';
+
+  try {
+    const res  = await fetch(SUBMIT_URL, {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' },
+      body: new FormData(this)
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      document.getElementById('form-wrap').classList.add('hidden');
+      const ss = document.getElementById('success-state');
+      ss.classList.remove('hidden');
+      const circle = ss.querySelector('circle');
+      if (circle) circle.style.animation = 'pop-in 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (data.errors) {
+      showErrors(data.errors);
+    } else {
+      showFormError(data.error || 'Có lỗi xảy ra. Vui lòng thử lại.');
+    }
+  } catch(err) {
+    showFormError('Lỗi kết nối. Vui lòng thử lại.');
+  } finally {
+    btn.disabled = false;
+    btnText.style.display = '';
+    spinner.style.display = 'none';
+  }
+});
+
+function showErrors(errors) {
+  let first = true;
+  Object.entries(errors).forEach(([key, msg]) => {
+    const group = document.querySelector(`.field-group[data-key="${key}"]`);
+    if (!group) return;
+    // Error message below field
+    const errEl = group.querySelector('.field-error');
+    if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+    // Highlight only the input, not the whole section
+    const input = group.querySelector('input:not(.sr-only):not([type=file]), textarea, select');
+    if (input) {
+      input.style.borderColor = '#f87171';
+      input.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+    }
+    if (first) { group.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); first = false; }
+  });
+}
+function showFormError(msg) {
+  const el = document.getElementById('form-error');
+  el.textContent = msg; el.classList.remove('hidden');
+}
+function clearErrors() {
+  document.querySelectorAll('.field-error').forEach(e => e.classList.add('hidden'));
+  document.querySelectorAll('.field-group').forEach(g => {
+    const input = g.querySelector('input:not(.sr-only):not([type=file]), textarea, select');
+    if (input) { input.style.borderColor = '#e2e8f0'; input.style.boxShadow = 'none'; }
+  });
+  document.getElementById('form-error')?.classList.add('hidden');
+}
+function resetForm() {
+  document.getElementById('df-form')?.reset();
+  document.getElementById('success-state').classList.add('hidden');
+  document.getElementById('form-wrap').classList.remove('hidden');
+  // Reset visual state of custom inputs
+  document.querySelectorAll('.opt-label').forEach(l => {
+    l.classList.remove('opt-checked');
+    l.querySelectorAll('.w-5').forEach(b => { b.style.borderColor=''; b.style.background=''; });
+    l.querySelectorAll('.w-2\\.5').forEach(d => d.style.transform='scale(0)');
+    l.querySelectorAll('span[style]').forEach(s => s.style.opacity='0');
+  });
+  document.querySelectorAll('[id^="file-name-"]').forEach(el => el.textContent = 'Nhấn để chọn file');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>

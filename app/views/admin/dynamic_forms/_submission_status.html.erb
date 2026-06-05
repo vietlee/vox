@@ -1,0 +1,38 @@
+<%
+  status_cfg = {
+    "pending"    => { label: t("dynamic_forms.status_pending"),    bg: "bg-amber-50",   text: "text-amber-700",   border: "border-amber-200",   dot: "bg-amber-400" },
+    "processing" => { label: t("dynamic_forms.status_processing"), bg: "bg-blue-50",    text: "text-blue-700",    border: "border-blue-200",    dot: "bg-blue-400"  },
+    "done"       => { label: t("dynamic_forms.status_done"),       bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-500" }
+  }
+  cfg = status_cfg[submission.status] || status_cfg["pending"]
+  update_url = update_submission_status_dynamic_form_path(submission.dynamic_form)
+%>
+
+<div class="relative inline-block" id="status-wrap-<%= submission.id %>">
+  <button type="button"
+    onclick="toggleStatusMenu(<%= submission.id %>)"
+    class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-semibold border cursor-pointer transition-all hover:opacity-80 <%= cfg[:bg] %> <%= cfg[:text] %> <%= cfg[:border] %>">
+    <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 <%= cfg[:dot] %>"></span>
+    <span id="status-label-<%= submission.id %>"><%= cfg[:label] %></span>
+    <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+    </svg>
+  </button>
+
+  <div id="status-menu-<%= submission.id %>"
+    class="hidden absolute left-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden min-w-[150px]">
+    <% status_cfg.each do |val, c| %>
+      <button type="button"
+        onclick="setStatus(<%= submission.id %>, '<%= val %>', '<%= j c[:label] %>', '<%= j c[:bg] %>', '<%= j c[:text] %>', '<%= j c[:border] %>', '<%= j c[:dot] %>', '<%= j update_url %>')"
+        class="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-medium hover:bg-slate-50 transition-colors text-left <%= val == submission.status ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700' %>">
+        <span class="w-2 h-2 rounded-full flex-shrink-0 <%= c[:dot] %>"></span>
+        <%= c[:label] %>
+        <% if val == submission.status %>
+          <svg class="w-3.5 h-3.5 ml-auto text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+          </svg>
+        <% end %>
+      </button>
+    <% end %>
+  </div>
+</div>

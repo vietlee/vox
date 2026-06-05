@@ -15,6 +15,7 @@ class QrCode < ApplicationRecord
     when "Survey"        then "/s/#{resource.slug}"
     when "Vote"          then "/v/#{resource.slug}"
     when "FeedbackBoard" then "/f/#{resource.slug}"
+    when "DynamicForm"   then "/forms/#{resource.slug}"
     end
   end
 

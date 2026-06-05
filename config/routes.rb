@@ -53,6 +53,10 @@ Rails.application.routes.draw do
   get  "/f/:slug/verify_pending", to: "participate/feedbacks#verify_pending", as: :verify_pending_feedbacks
   post "/f/:slug/voice",          to: "participate/feedbacks#voice_transcribe", as: :feedback_voice_transcribe
 
+  # Dynamic Forms — public participation
+  get  "/forms/:slug",        to: "participate/dynamic_forms#show",   as: :participate_dynamic_form
+  post "/forms/:slug/submit", to: "participate/dynamic_forms#submit",  as: :submit_dynamic_form
+
   # Participant — history of their votes/surveys/feedback
   namespace :my do
     resources :participations, only: [:index]
@@ -165,6 +169,17 @@ Rails.application.routes.draw do
           patch :update_admin_status
           patch :mark_safe
         end
+      end
+    end
+
+    resources :dynamic_forms do
+      member do
+        patch :publish
+        patch :close
+        patch :reopen
+        get   :submissions
+        get   :export_csv
+        patch :update_submission_status
       end
     end
 

@@ -1,0 +1,105 @@
+<%# Cropper.js CSS (loaded once — guarded by a flag) %>
+<% unless content_for?(:logo_cropper_loaded) %>
+  <% content_for :logo_cropper_loaded, true %>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" crossorigin="anonymous">
+<% end %>
+
+<div id="logo-upload-section">
+  <label class="block text-[12px] font-semibold text-slate-700 mb-1.5">Logo</label>
+
+  <div id="logo-preview-wrap" class="<%= @form.logo.attached? ? '' : 'hidden' %> mb-3">
+    <img id="logo-preview-img"
+         src="<%= @form.logo.attached? ? url_for(@form.logo) : '' %>"
+         alt="Logo"
+         class="rounded-xl object-contain border border-slate-200 bg-slate-50 p-1.5"
+         style="max-height:80px; max-width:220px; display:block;">
+  </div>
+
+  <% if @form.logo.attached? %>
+    <label class="flex items-center gap-1.5 text-[11px] text-red-500 cursor-pointer mb-2">
+      <input type="checkbox" name="dynamic_form[remove_logo]" value="1" id="remove-logo-cb"
+             class="w-3.5 h-3.5 accent-red-500"
+             onchange="dfLogoUpload.toggleRemove(this.checked); if(typeof markUnsaved==='function') markUnsaved()">
+      Xoá logo
+    </label>
+  <% end %>
+
+  <input type="file" id="logo-file-input" name="dynamic_form[logo]" accept="image/*"
+         class="w-full text-[12px] text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[12px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+         onchange="dfLogoUpload.onFileChange(this)">
+  <p class="text-[11px] text-slate-400 mt-1">PNG, JPG, SVG — tối đa 2MB. SVG được tải lên nguyên bản.</p>
+</div>
+
+<%# Crop Modal %>
+<div id="logo-crop-modal" class="fixed inset-0 z-50 items-center justify-center"
+     style="display:none; background:rgba(15,23,42,0.55); backdrop-filter:blur(4px);"
+     onclick="if(event.target===this) dfLogoUpload.cancelCrop()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full mx-4" style="max-width:400px;">
+    <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
+      <h3 class="text-[14px] font-bold text-slate-800">Chỉnh sửa logo</h3>
+      <button type="button" onclick="dfLogoUpload.cancelCrop()"
+              class="w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 border-0 bg-transparent cursor-pointer text-[16px]">✕</button>
+    </div>
+    <div class="px-5 pt-4">
+      <div class="rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center" style="height:260px;">
+        <img id="logo-crop-image" src="" alt="" style="max-width:100%; display:block; max-height:260px;">
+      </div>
+    </div>
+    <div class="flex items-center justify-center gap-2 px-5 pt-3">
+      <button type="button" onclick="dfLogoUpload.cropper?.zoom(0.1)" class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer bg-white">＋</button>
+      <button type="button" onclick="dfLogoUpload.cropper?.zoom(-0.1)" class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer bg-white">－</button>
+      <div class="w-px h-5 bg-slate-200 mx-1"></div>
+      <button type="button" onclick="dfLogoUpload.cropper?.rotate(-90)" class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer bg-white">↺</button>
+      <button type="button" onclick="dfLogoUpload.cropper?.rotate(90)" class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer bg-white">↻</button>
+    </div>
+    <div class="flex gap-2 px-5 pt-3 pb-5">
+      <button type="button" onclick="dfLogoUpload.cancelCrop()" class="flex-1 py-2 rounded-lg text-[13px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 cursor-pointer border-0">Huỷ</button>
+      <button type="button" onclick="dfLogoUpload.applyCrop()" class="flex-1 py-2 rounded-lg text-[13px] font-semibold text-white bg-blue-500 hover:bg-blue-600 cursor-pointer border-0">Áp dụng</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js" crossorigin="anonymous"></script>
+<script>
+window.dfLogoUpload = (() => {
+  let cropper = null, originalFile = null;
+  function onFileChange(input) {
+    const file = input.files && input.files[0]; if (!file) return; originalFile = file;
+    if (file.type === 'image/svg+xml') { _showPreview(URL.createObjectURL(file)); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = document.getElementById('logo-crop-image'); img.src = e.target.result;
+      document.getElementById('logo-crop-modal').style.display = 'flex';
+      if (cropper) { cropper.destroy(); cropper = null; }
+      setTimeout(() => { cropper = new Cropper(img, { viewMode:1, autoCropArea:0.9, movable:true, zoomable:true, scalable:true, rotatable:true }); }, 60);
+    };
+    reader.readAsDataURL(file); input.value = '';
+  }
+  function cancelCrop() { document.getElementById('logo-crop-modal').style.display='none'; if(cropper){cropper.destroy();cropper=null;} }
+  function applyCrop() {
+    if (!cropper) return;
+    const canvas = cropper.getCroppedCanvas({ maxWidth:1200, maxHeight:1200 });
+    const mime = originalFile.type==='image/jpeg'?'image/jpeg':'image/png';
+    canvas.toBlob((blob) => {
+      const ext = mime==='image/jpeg'?'.jpg':'.png';
+      const f = new File([blob], originalFile.name.replace(/\.[^.]+$/,'')+ext, {type:mime});
+      const dt = new DataTransfer(); dt.items.add(f);
+      document.getElementById('logo-file-input').files = dt.files;
+      _showPreview(canvas.toDataURL(mime)); cancelCrop();
+    }, mime);
+  }
+  function toggleRemove(checked) {
+    const wrap=document.getElementById('logo-preview-wrap'), input=document.getElementById('logo-file-input');
+    if(checked){wrap?.classList.add('hidden');if(input)input.disabled=true;}
+    else{wrap?.classList.remove('hidden');if(input)input.disabled=false;}
+  }
+  function _showPreview(src) {
+    const img=document.getElementById('logo-preview-img'); if(img)img.src=src;
+    document.getElementById('logo-preview-wrap')?.classList.remove('hidden');
+    const cb=document.getElementById('remove-logo-cb'); if(cb)cb.checked=false;
+    const input=document.getElementById('logo-file-input'); if(input)input.disabled=false;
+    if(typeof markUnsaved === 'function') markUnsaved();
+  }
+  return { onFileChange, cancelCrop, applyCrop, toggleRemove, get cropper(){return cropper;} };
+})();
+</script>

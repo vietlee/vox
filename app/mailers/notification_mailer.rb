@@ -14,6 +14,21 @@ class NotificationMailer < ApplicationMailer
     mail(to: admin.email, subject: subject)
   end
 
+  def new_dynamic_form_submission(submission, recipient)
+    @submission  = submission
+    @form        = submission.dynamic_form
+    @workspace   = @form.workspace
+    @recipient   = recipient
+    @review_url  = Rails.application.routes.url_helpers.submissions_dynamic_form_url(
+      @form,
+      host: ENV.fetch("APP_HOST", "localhost:3000")
+    )
+    @submitted_at = I18n.l(submission.created_at, format: :short, locale: @workspace.language&.to_sym || :vi)
+
+    subject = "[VOX] Form \"#{@form.title}\" có submission mới"
+    mail(to: recipient.email, subject: subject)
+  end
+
   def new_response(response, admin)
     @response  = response
     @survey    = response.survey

@@ -1,0 +1,17 @@
+<% content_for :title, @form.title %>
+
+<div class="min-h-screen flex flex-col items-center justify-center px-4 text-center"
+     style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
+  <% if @form.logo.attached? %>
+    <img src="<%= url_for(@form.logo) %>" alt="<%= @form.title %>"
+         class="object-contain mx-auto mb-4" style="max-height:56px; max-width:200px;">
+  <% else %>
+    <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4"
+         style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 4px 14px rgba(99,102,241,0.3);">📝</div>
+  <% end %>
+  <h1 class="text-[22px] font-extrabold text-slate-800 mb-2"><%= @form.title %></h1>
+  <p class="text-[14px] text-slate-500 mb-1">
+    <% if @form.draft? %>Form này chưa được mở.<% else %>Form này đã đóng và không còn nhận submissions.<% end %>
+  </p>
+  <span class="inline-flex items-center px-3 py-1 mt-3 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-500">🔒 <%= @form.draft? ? "Chưa mở" : "Đã đóng" %></span>
+</div>

@@ -207,7 +207,7 @@
     </div>
 
     <!-- ── Pending / Flagged warning banners ──────────────────────────── -->
-    <div id="banners-wrap" class="<%= (@pending_count > 0 || @flagged_count > 0) ? 'flex-shrink-0 flex gap-2 flex-wrap px-4 py-2.5 border-b border-indigo-50' : 'hidden' %>">
+    <div id="banners-wrap" class="<%= (@pending_count > 0 || @flagged_count > 0) ? 'flex-shrink-0 flex gap-2 flex-wrap px-4 py-2.5 border-b border-slate-200' : 'hidden' %>">
       <div id="pending-banner" class="<%= @pending_count > 0 ? '' : 'hidden' %> flex-1 min-w-0 flex items-center gap-2 px-3 py-2 rounded-[8px] border border-amber-200 bg-amber-50">
         <span class="text-[13px] flex-shrink-0">⏳</span>
         <p class="flex-1 min-w-0 text-[11px] font-semibold text-amber-800 truncate">
@@ -229,7 +229,7 @@
     </div>
 
     <!-- ── Search ─────────────────────────────────────────────────────── -->
-    <div class="flex-shrink-0 px-4 py-2.5 border-b border-indigo-50">
+    <div class="flex-shrink-0 px-4 py-2.5 border-b border-slate-200">
       <div class="relative">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[12px] pointer-events-none">🔍</span>
         <input id="feedback-search" type="text" value="<%= params[:q] %>"
@@ -243,7 +243,7 @@
 
     <!-- ── Status filter pills ────────────────────────────────────────── -->
     <% status_counts = { "pending" => @pending_count, "approved" => @approved_count, "hidden" => @hidden_count, "rejected" => @rejected_count } %>
-    <div class="flex-shrink-0 flex gap-1 px-4 py-2 border-b border-indigo-50 flex-wrap">
+    <div class="flex-shrink-0 flex gap-1 px-4 py-2 border-b border-slate-200 flex-wrap">
       <% ["", "pending", "approved", "hidden", "rejected"].each do |s| %>
         <% active = params[:status].to_s == s && params[:moderation].blank? %>
         <% cnt = status_counts[s].to_i %>
@@ -265,7 +265,7 @@
 
     <!-- ── Feedback list (scrollable) ─────────────────────────────────── -->
     <!-- Select-all header row -->
-    <div class="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 border-b border-indigo-50 bg-slate-50/60">
+    <div class="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 border-b border-slate-200 bg-slate-50/60">
       <input type="checkbox" id="bulk-select-all" onchange="toggleSelectAll(this.checked)"
              class="w-3.5 h-3.5 accent-indigo-600 cursor-pointer flex-shrink-0">
       <label for="bulk-select-all" class="text-[11px] text-slate-400 cursor-pointer select-none">
@@ -741,7 +741,7 @@ function syncBannersWrap() {
   const hasPending = !document.getElementById('pending-banner')?.classList.contains('hidden');
   const hasFlagged = !document.getElementById('flagged-banner')?.classList.contains('hidden');
   if (hasPending || hasFlagged) {
-    wrap.className = 'flex-shrink-0 flex gap-2 flex-wrap px-4 py-2.5 border-b border-indigo-50';
+    wrap.className = 'flex-shrink-0 flex gap-2 flex-wrap px-4 py-2.5 border-b border-slate-200';
   } else {
     wrap.className = 'hidden';
   }

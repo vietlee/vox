@@ -1,0 +1,239 @@
+<% content_for :title, "#{t("dynamic_forms.submissions_title")} — #{@form.title}" %>
+<% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
+
+<!-- Page header -->
+<div class="flex-shrink-0 px-6 pt-5 pb-0 bg-slate-100">
+  <div class="flex items-start justify-between mb-4">
+    <div class="flex items-start gap-3">
+      <%= render "admin/shared/back_btn" %>
+      <div>
+        <div class="flex items-center gap-2 text-[12px] text-slate-400 mb-1">
+          <%= link_to t("dynamic_forms.nav"), dynamic_forms_path, class: "hover:text-indigo-600 transition-colors" %>
+          <span>/</span>
+          <%= link_to @form.title, edit_dynamic_form_path(@form), class: "hover:text-indigo-600 transition-colors truncate max-w-[200px]" %>
+          <span>/</span>
+          <span class="text-slate-600 font-medium"><%= t("dynamic_forms.submissions_title") %></span>
+        </div>
+        <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">📬 <%= @form.title %></h1>
+        <p class="text-[12px] text-slate-500 mt-0.5"><%= t("dynamic_forms.submissions_count", count: @form.submissions_count) %></p>
+      </div>
+    </div>
+    <div class="flex gap-2 flex-shrink-0">
+      <%= link_to edit_dynamic_form_path(@form),
+            class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors" do %>
+        ✏️ <%= t("dynamic_forms.edit_form_btn") %>
+      <% end %>
+      <%= link_to export_csv_dynamic_form_path(@form),
+            class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors" do %>
+        ⬇ <%= t("dynamic_forms.export_csv_btn") %>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Card area -->
+<div class="flex-1 min-h-0 overflow-hidden px-6 pt-3 pb-5">
+  <div class="rounded-[12px] border overflow-hidden flex flex-col h-full" style="border-color:rgba(99,102,241,0.2); background:rgba(238,242,255,0.5);">
+
+    <!-- Search + Filter bar -->
+    <div class="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b" style="background:rgba(99,102,241,0.04); border-color:rgba(99,102,241,0.12);">
+      <%= form_with url: submissions_dynamic_form_path(@form), method: :get, local: true, class: "flex items-center gap-2 flex-1" do |f| %>
+        <!-- Search -->
+        <div class="relative flex-1 max-w-sm">
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+          </svg>
+          <%= f.text_field :q, value: @search_query,
+                placeholder: t("dynamic_forms.search_placeholder"),
+                id: "submission-search",
+                autocomplete: "off",
+                class: "w-full pl-8 pr-3 py-1.5 text-[12px] border border-slate-200 rounded-lg outline-none focus:border-indigo-400 bg-white" %>
+        </div>
+
+        <!-- Status filter -->
+        <%= f.select :status,
+              [
+                [t("dynamic_forms.filter_all_status"), ""],
+                [t("dynamic_forms.status_pending"),    "pending"],
+                [t("dynamic_forms.status_processing"), "processing"],
+                [t("dynamic_forms.status_done"),       "done"]
+              ],
+              { selected: @status_filter },
+              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-lg outline-none focus:border-indigo-400 bg-white",
+              onchange: "this.form.submit()" %>
+      <% end %>
+
+      <!-- Count -->
+      <span class="text-[11px] text-slate-400 ml-auto whitespace-nowrap flex-shrink-0">
+        <%= @pagy.count %> <%= t("dynamic_forms.submissions_title").downcase %>
+      </span>
+    </div>
+
+    <!-- Table -->
+    <div class="flex-1 min-h-0 overflow-auto">
+      <% if @submissions.any? %>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200" style="position:sticky;top:0;z-index:1;background:rgba(248,250,252,0.97);">
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 w-10"><%= t("dynamic_forms.col_index") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap"><%= t("dynamic_forms.col_time") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap"><%= t("dynamic_forms.col_status") %></th>
+              <% @fields.each do |field| %>
+                <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap"><%= field.label %></th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody>
+            <% @submissions.each_with_index do |sub, i| %>
+              <tr class="border-b border-slate-200 hover:bg-white/70 transition-colors" id="sub-row-<%= sub.id %>">
+                <td class="px-4 py-3 text-[12px] text-slate-400 font-mono"><%= (@pagy.page - 1) * @pagy.items + i + 1 %></td>
+                <td class="px-4 py-3 text-[12px] text-slate-500 whitespace-nowrap">
+                  <%= I18n.l(sub.created_at, format: :short) %>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <%= render "admin/dynamic_forms/submission_status", submission: sub %>
+                </td>
+                <% @fields.each do |field| %>
+                  <% val = sub.value_for(field.field_key) %>
+                  <td class="px-4 py-3 text-[13px] text-slate-700 max-w-[220px]">
+                    <% if val.is_a?(Array) && val.first.is_a?(Hash) && val.first["blob_id"].present? %>
+                      <div class="space-y-0.5">
+                        <% val.each do |fdata| %>
+                          <% begin %>
+                            <%= link_to rails_blob_url(ActiveStorage::Blob.find_signed(fdata['blob_id'])), target: "_blank",
+                                  class: "flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-[12px] font-medium hover:underline" do %>
+                              <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                              <span class="truncate max-w-[160px]"><%= fdata['filename'] %></span>
+                            <% end %>
+                          <% rescue nil; end %>
+                        <% end %>
+                      </div>
+                    <% elsif val.is_a?(Hash) && val["blob_id"].present? %>
+                      <% begin %>
+                        <%= link_to rails_blob_url(ActiveStorage::Blob.find_signed(val['blob_id'])), target: "_blank",
+                              class: "flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-[12px] font-medium hover:underline" do %>
+                          <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                          <span class="truncate max-w-[160px]"><%= val['filename'] %></span>
+                        <% end %>
+                      <% rescue nil; end %>
+                    <% elsif val.is_a?(Array) %>
+                      <span class="text-slate-600"><%= val.join(", ") %></span>
+                    <% elsif val.present? %>
+                      <span class="block truncate" title="<%= val %>"><%= val %></span>
+                    <% else %>
+                      <span class="text-slate-300">—</span>
+                    <% end %>
+                  </td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% else %>
+        <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div class="text-4xl mb-3">📭</div>
+          <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("dynamic_forms.no_submissions") %></h3>
+          <p class="text-[13px] text-slate-400"><%= t("dynamic_forms.no_submissions_hint") %></p>
+          <%= link_to participate_dynamic_form_url(@form.slug), target: "_blank",
+                class: "mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors" do %>
+            🔗 <%= t("dynamic_forms.open_public_btn") %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Pagination -->
+    <% if @pagy && @pagy.pages > 1 %>
+      <% from = (@pagy.page - 1) * @pagy.items + 1; to = [@pagy.page * @pagy.items, @pagy.count].min %>
+      <div class="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-t gap-4" style="border-color:rgba(99,102,241,0.12); background:rgba(99,102,241,0.04);">
+        <p class="text-[11px] text-slate-500 whitespace-nowrap">
+          <%= t("dynamic_forms.pagination", from: from, to: to, total: @pagy.count) %>
+        </p>
+        <div class="flex items-center gap-1">
+          <%# Prev %>
+          <%= link_to submissions_dynamic_form_path(@form, page: @pagy.page - 1),
+                class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md transition-colors #{@pagy.page > 1 ? 'text-slate-600 hover:bg-white bg-white/60' : 'text-slate-300 pointer-events-none bg-white/30'}" do %>
+            ←
+          <% end %>
+
+          <%# Page numbers — show up to 5 around current %>
+          <% pages = @pagy.pages
+             window_start = [[@pagy.page - 2, 1].max, [pages - 4, 1].max].min
+             window_end   = [window_start + 4, pages].min %>
+          <% (window_start..window_end).each do |p| %>
+            <%= link_to submissions_dynamic_form_path(@form, page: p),
+                  class: "w-7 h-7 flex items-center justify-center text-[11px] font-semibold rounded-md border transition-colors #{p == @pagy.page ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-slate-200 text-slate-600 hover:bg-white bg-white/60'}" do %>
+              <%= p %>
+            <% end %>
+          <% end %>
+
+          <%# Next %>
+          <%= link_to submissions_dynamic_form_path(@form, page: @pagy.page + 1),
+                class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md transition-colors #{@pagy.page < @pagy.pages ? 'text-slate-600 hover:bg-white bg-white/60' : 'text-slate-300 pointer-events-none bg-white/30'}" do %>
+            →
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+  </div>
+</div>
+
+<script>
+const SUBMISSION_CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+
+// Debounce search — submit 450ms after user stops typing
+(function() {
+  const input = document.getElementById('submission-search');
+  if (!input) return;
+  let timer;
+  input.addEventListener('input', function() {
+    clearTimeout(timer);
+    timer = setTimeout(() => input.closest('form').submit(), 450);
+  });
+  // Restore focus & cursor position after Turbo reload
+  if (input.value) input.focus();
+})();
+
+function toggleStatusMenu(id) {
+  const menu = document.getElementById('status-menu-' + id);
+  if (!menu) return;
+  const isOpen = !menu.classList.contains('hidden');
+  // close all other menus first
+  document.querySelectorAll('[id^="status-menu-"]').forEach(m => m.classList.add('hidden'));
+  if (!isOpen) menu.classList.remove('hidden');
+}
+
+async function setStatus(id, val, label, bg, text, border, dot, url) {
+  document.getElementById('status-menu-' + id)?.classList.add('hidden');
+
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': SUBMISSION_CSRF },
+    body: JSON.stringify({ submission_id: id, status: val })
+  });
+  if (!res.ok) return;
+
+  // Update badge
+  const wrap = document.getElementById('status-wrap-' + id);
+  if (!wrap) return;
+  const btn = wrap.querySelector('button');
+  btn.className = btn.className
+    .replace(/bg-\w+-\d+/g, '').replace(/text-\w+-\d+/g, '').replace(/border-\w+-\d+/g, '')
+    .replace(/\s+/g, ' ').trim();
+  btn.classList.add(...bg.split(' '), ...text.split(' '), ...border.split(' '));
+
+  const dotEl = btn.querySelector('span:first-child');
+  if (dotEl) { dotEl.className = 'w-1.5 h-1.5 rounded-full flex-shrink-0 ' + dot; }
+
+  const labelEl = document.getElementById('status-label-' + id);
+  if (labelEl) labelEl.textContent = label;
+}
+
+// Close menus on outside click
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('[id^="status-wrap-"]')) {
+    document.querySelectorAll('[id^="status-menu-"]').forEach(m => m.classList.add('hidden'));
+  }
+});
+</script>
