@@ -344,7 +344,7 @@ const INITIAL_FIELDS = <%= @form.dynamic_form_fields.map { |f|
     placeholder: f.placeholder.to_s, hint: f.hint.to_s, required: f.required,
     options: f.options_list, min_length: f.min_length, max_length: f.max_length,
     min_value: f.min_value, max_value: f.max_value,
-    accept: f.accept, max_size_mb: f.max_size_mb, multiple: f.multiple }
+    accept: f.accept, max_size_mb: f.max_size_mb, multiple: f.multiple, label_en: f.label_en.to_s }
 }.to_json.html_safe %>;
 
 const FIELD_TYPES = Object.entries(DF_I18N.field_types).map(([v, l]) => ({ value: v, label: l }));
@@ -477,9 +477,13 @@ function renderField(f, i) {
         <div class="flex-1 min-w-0 space-y-2">
           <div class="flex gap-2 flex-wrap items-end">
             <div class="flex-1 min-w-[130px]">
-              <label class="text-[10px] font-bold text-slate-700 uppercase tracking-wide">Nhãn *</label>
+              <label class="text-[10px] font-bold text-slate-700 uppercase tracking-wide">Nhãn (VI) *</label>
               <input type="text" value="${escHtml(f.label)}" placeholder="${DF_I18N.label_placeholder}"
                 oninput="setFieldProp(${f._uid},'label',this.value)"
+                class="w-full mt-0.5 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-indigo-400 bg-white">
+              <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mt-1.5 block">Nhãn (EN)</label>
+              <input type="text" value="${escHtml(f.label_en||'')}" placeholder="English label…"
+                oninput="setFieldProp(${f._uid},'label_en',this.value)"
                 class="w-full mt-0.5 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-indigo-400 bg-white">
             </div>
             <div class="w-38 flex-shrink-0">
@@ -648,6 +652,7 @@ function syncFieldsData() {
     min_length: f.min_length||null, max_length: f.max_length||null,
     min_value: f.min_value||null, max_value: f.max_value||null,
     accept: f.accept||null, max_size_mb: f.max_size_mb||null, multiple: !!f.multiple,
+    label_en: f.label_en||'',
   }));
   document.getElementById('fields-data-input').value = JSON.stringify(data);
 }

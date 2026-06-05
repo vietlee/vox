@@ -165,6 +165,7 @@ class Admin::DynamicFormsController < Admin::BaseController
         accept:      fdata["accept"].to_s.presence,
         max_size_mb: fdata["max_size_mb"].presence,
         multiple:    fdata["multiple"].to_s == "true",
+        label_en:    fdata["label_en"].to_s.strip.presence,
         position:    idx,
       }
 
