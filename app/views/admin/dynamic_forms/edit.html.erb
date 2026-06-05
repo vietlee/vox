@@ -347,6 +347,25 @@ const INITIAL_FIELDS = <%= @form.dynamic_form_fields.map { |f|
     accept: f.accept, max_size_mb: f.max_size_mb, multiple: f.multiple }
 }.to_json.html_safe %>;
 
+// Vietnamese → ASCII transliteration for field key auto-generation
+function slugify(str) {
+  const map = {
+    'à':'a','á':'a','ả':'a','ã':'a','ạ':'a','ă':'a','ằ':'a','ắ':'a','ẳ':'a','ẵ':'a','ặ':'a',
+    'â':'a','ầ':'a','ấ':'a','ẩ':'a','ẫ':'a','ậ':'a','è':'e','é':'e','ẻ':'e','ẽ':'e','ẹ':'e',
+    'ê':'e','ề':'e','ế':'e','ể':'e','ễ':'e','ệ':'e','ì':'i','í':'i','ỉ':'i','ĩ':'i','ị':'i',
+    'ò':'o','ó':'o','ỏ':'o','õ':'o','ọ':'o','ô':'o','ồ':'o','ố':'o','ổ':'o','ỗ':'o','ộ':'o',
+    'ơ':'o','ờ':'o','ớ':'o','ở':'o','ỡ':'o','ợ':'o','ù':'u','ú':'u','ủ':'u','ũ':'u','ụ':'u',
+    'ư':'u','ừ':'u','ứ':'u','ử':'u','ữ':'u','ự':'u','ỳ':'y','ý':'y','ỷ':'y','ỹ':'y','ỵ':'y',
+    'đ':'d'
+  };
+  return str.toLowerCase()
+    .replace(/./g, c => map[c] || c)
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
 const FIELD_TYPES = Object.entries(DF_I18N.field_types).map(([v, l]) => ({ value: v, label: l }));
 
 let _fields = [];
@@ -578,7 +597,7 @@ function setFieldProp(uid, prop, val) {
   if (prop === 'required') val = !!val;
   f[prop] = val;
   if (prop === 'label') {
-    const auto = val.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').replace(/_+/g,'_').replace(/^_|_$/g,'');
+    const auto = slugify(val);
     const keyEl = document.querySelector(`#field-${uid} input[oninput*="field_key"]`);
     if (keyEl && (!f.field_key || f._autoKey)) { f.field_key = auto; f._autoKey = true; keyEl.value = auto; }
   }
