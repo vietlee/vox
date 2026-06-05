@@ -180,6 +180,7 @@ Rails.application.routes.draw do
         get   :submissions
         get   :export_csv
         patch :update_submission_status
+        patch :update_submission_assignee
       end
     end
 

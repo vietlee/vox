@@ -20,7 +20,8 @@ class Participate::DynamicFormsController < Participate::BaseController
     sub = @form.dynamic_form_submissions.create!(
       data:             data,
       respondent_token: respondent_token,
-      ip_address:       request.remote_ip
+      ip_address:       request.remote_ip,
+      assignee_id:      @form.workspace.admin_users.first&.id
     )
 
     # Attach uploaded files, store blob info back into data

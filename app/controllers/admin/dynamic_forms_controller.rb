@@ -1,7 +1,7 @@
 require "csv"
 class Admin::DynamicFormsController < Admin::BaseController
-  before_action :set_form,            only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status]
-  before_action :authorize_form_access!, only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status]
+  before_action :set_form,            only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee]
+  before_action :authorize_form_access!, only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee]
 
   def index
     scope = if current_workspace_admin?
@@ -80,13 +80,18 @@ class Admin::DynamicFormsController < Admin::BaseController
   end
 
   def submissions
-    scope = @form.dynamic_form_submissions.order(created_at: :desc)
-    scope = scope.where(status: params[:status]) if params[:status].present? && DynamicFormSubmission.statuses.key?(params[:status])
-    scope = scope.search_data(params[:q])        if params[:q].present?
+    scope = @form.dynamic_form_submissions.includes(:assignee).order(created_at: :desc)
+    scope = scope.where(status: params[:status])      if params[:status].present? && DynamicFormSubmission.statuses.key?(params[:status])
+    scope = scope.where(assignee_id: params[:assignee_id]) if params[:assignee_id].present?
+    scope = scope.search_data(params[:q])             if params[:q].present?
     @pagy, @submissions = pagy(scope, items: 15)
-    @fields = @form.dynamic_form_fields
-    @status_filter = params[:status]
-    @search_query  = params[:q]
+    @fields       = @form.dynamic_form_fields
+    @assignees    = @form.assignees.order(:name, :email)
+    @ws_admins    = @form.workspace.admin_users.order(:name, :email)
+    @all_handlers = (@assignees + @ws_admins).uniq(&:id)
+    @status_filter   = params[:status]
+    @assignee_filter = params[:assignee_id]
+    @search_query    = params[:q]
   end
 
   def update_submission_status
@@ -97,15 +102,27 @@ class Admin::DynamicFormsController < Admin::BaseController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def update_submission_assignee
+    sub = @form.dynamic_form_submissions.find(params[:submission_id])
+    sub.update!(assignee_id: params[:assignee_id].presence)
+    assignee = sub.assignee
+    render json: { ok: true, assignee_id: sub.assignee_id,
+                   name: assignee ? (assignee.name.presence || assignee.email) : nil,
+                   initials: assignee ? (assignee.name.presence || assignee.email).first.upcase : "?" }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def export_csv
     @fields      = @form.dynamic_form_fields
     @submissions = @form.dynamic_form_submissions.order(created_at: :desc)
 
     status_labels = { "pending" => "Chưa xử lý", "processing" => "Đang xử lý", "done" => "Đã xử lý" }
     csv = CSV.generate(headers: true, encoding: "UTF-8") do |csv|
-      csv << ["#", "Thời gian", "Trạng thái"] + @fields.map(&:label)
+      csv << ["#", "Thời gian", "Trạng thái", "Người xử lý"] + @fields.map(&:label)
       @submissions.each_with_index do |sub, i|
-        row = [i + 1, I18n.l(sub.created_at, format: :short), status_labels[sub.status] || sub.status]
+        assignee_name = sub.assignee ? (sub.assignee.name.presence || sub.assignee.email) : ""
+        row = [i + 1, I18n.l(sub.created_at, format: :short), status_labels[sub.status] || sub.status, assignee_name]
         @fields.each { |f| row << Array(sub.value_for(f.field_key)).join(", ") }
         csv << row
       end

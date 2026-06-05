@@ -61,6 +61,14 @@
               { selected: @status_filter },
               class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-lg outline-none focus:border-indigo-400 bg-white",
               onchange: "this.form.submit()" %>
+
+        <!-- Assignee filter -->
+        <%= f.select :assignee_id,
+              [[t("dynamic_forms.filter_all_assignee"), ""]] +
+              @all_handlers.map { |u| [u.name.presence || u.email, u.id] },
+              { selected: @assignee_filter },
+              class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-lg outline-none focus:border-indigo-400 bg-white",
+              onchange: "this.form.submit()" %>
       <% end %>
 
       <!-- Count -->
@@ -78,6 +86,7 @@
               <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 w-10"><%= t("dynamic_forms.col_index") %></th>
               <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap"><%= t("dynamic_forms.col_time") %></th>
               <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap"><%= t("dynamic_forms.col_status") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap"><%= t("dynamic_forms.col_assignee") %></th>
               <% @fields.each do |field| %>
                 <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap"><%= field.label %></th>
               <% end %>
@@ -92,6 +101,9 @@
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
                   <%= render "admin/dynamic_forms/submission_status", submission: sub %>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <%= render "admin/dynamic_forms/submission_assignee", submission: sub, handlers: @all_handlers %>
                 </td>
                 <% @fields.each do |field| %>
                   <% val = sub.value_for(field.field_key) %>
@@ -232,8 +244,54 @@ async function setStatus(id, val, label, bg, text, border, dot, url) {
 
 // Close menus on outside click
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('[id^="status-wrap-"]')) {
-    document.querySelectorAll('[id^="status-menu-"]').forEach(m => m.classList.add('hidden'));
+  if (!e.target.closest('[id^="status-wrap-"]') && !e.target.closest('[id^="assignee-wrap-"]')) {
+    document.querySelectorAll('[id^="status-menu-"],[id^="assignee-menu-"]').forEach(m => m.classList.add('hidden'));
   }
 });
+
+function toggleAssigneeMenu(id) {
+  const menu = document.getElementById('assignee-menu-' + id);
+  if (!menu) return;
+  const isOpen = !menu.classList.contains('hidden');
+  document.querySelectorAll('[id^="assignee-menu-"],[id^="status-menu-"]').forEach(m => m.classList.add('hidden'));
+  if (!isOpen) menu.classList.remove('hidden');
+}
+
+async function setAssignee(id, userId, name, url) {
+  document.getElementById('assignee-menu-' + id)?.classList.add('hidden');
+
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': SUBMISSION_CSRF },
+    body: JSON.stringify({ submission_id: id, assignee_id: userId })
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+
+  // Update badge
+  const wrap = document.getElementById('assignee-wrap-' + id);
+  if (!wrap) return;
+  const btn  = wrap.querySelector('button');
+  const nameEl = document.getElementById('assignee-name-' + id);
+  if (nameEl) nameEl.textContent = name;
+
+  const avatarEl = btn.querySelector('span:first-child');
+  if (avatarEl) {
+    if (userId) {
+      avatarEl.className = 'w-4 h-4 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-[8px] font-black text-white flex-shrink-0';
+      avatarEl.textContent = data.initials || name.charAt(0).toUpperCase();
+    } else {
+      avatarEl.className = 'w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] text-slate-400 flex-shrink-0';
+      avatarEl.textContent = '?';
+    }
+  }
+
+  // Update button color
+  btn.className = btn.className.replace(/bg-\S+|text-\S+-\d+|border-\S+/g, '').trim();
+  if (userId) {
+    btn.classList.add('bg-indigo-50','text-indigo-700','border-indigo-200');
+  } else {
+    btn.classList.add('bg-slate-50','text-slate-500','border-slate-200');
+  }
+}
 </script>

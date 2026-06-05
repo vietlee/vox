@@ -1,5 +1,6 @@
 class DynamicFormSubmission < ApplicationRecord
   belongs_to :dynamic_form
+  belongs_to :assignee, class_name: "User", optional: true
 
   has_many_attached :field_files
 
