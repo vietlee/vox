@@ -130,9 +130,20 @@ const PLAN_DEFAULTS = <%= PlanConfig.all.each_with_object({}) { |pc, h|
     max_feedbacks:     pc.limits["max_feedbacks"],
     max_dynamic_forms: pc.limits["max_dynamic_forms"],
     max_supporters:    pc.limits["max_supporters"],
-    max_ai_credits:    pc.limits["max_ai_credits"]
+    max_ai_credits:    pc.limits["max_ai_credits"],
+    price_cents:       pc.price_vnd
   }
 }.to_json.html_safe %>;
+
+// Auto-fill price when plan changes
+document.querySelector('select[name="subscription[plan]"]').addEventListener('change', function() {
+  const defaults = PLAN_DEFAULTS[this.value];
+  if (!defaults) return;
+  const priceInput = document.querySelector('input[name="subscription[price_cents]"]');
+  if (priceInput && (priceInput.value === "" || priceInput.value === "0")) {
+    priceInput.value = defaults.price_cents ?? 0;
+  }
+});
 
 function resetToDefaults() {
   const plan = document.querySelector('select[name="subscription[plan]"]').value;
@@ -142,5 +153,7 @@ function resetToDefaults() {
     const input = document.querySelector(`input[name="subscription[${field}]"]`);
     if (input) input.value = defaults[field] ?? "";
   });
+  const priceInput = document.querySelector('input[name="subscription[price_cents]"]');
+  if (priceInput) priceInput.value = defaults.price_cents ?? 0;
 }
 </script>
