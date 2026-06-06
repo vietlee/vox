@@ -47,7 +47,7 @@ class SuperAdmin::SubscriptionsController < SuperAdmin::BaseController
   def subscription_params
     params.require(:subscription).permit(
       :plan, :status, :starts_at, :ends_at, :auto_renew,
-      :credit_balance, :max_surveys, :max_votes, :max_feedbacks,
+      :credit_balance, :max_surveys, :max_votes, :max_feedbacks, :max_dynamic_forms,
       :max_supporters, :max_ai_credits, :price_cents, :billing_cycle
     )
   end

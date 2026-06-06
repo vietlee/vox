@@ -78,10 +78,11 @@
       </div>
       <div class="space-y-3">
         <% [
-          [:max_surveys,    t("super_admin.subscriptions.limit_max_surveys")],
-          [:max_votes,      t("super_admin.subscriptions.limit_max_votes")],
-          [:max_feedbacks,  t("super_admin.subscriptions.limit_max_feedbacks")],
-          [:max_supporters, t("super_admin.subscriptions.limit_max_supporters")]
+          [:max_surveys,       t("super_admin.subscriptions.limit_max_surveys")],
+          [:max_votes,         t("super_admin.subscriptions.limit_max_votes")],
+          [:max_feedbacks,     t("super_admin.subscriptions.limit_max_feedbacks")],
+          [:max_dynamic_forms, t("super_admin.subscriptions.limit_max_dynamic_forms")],
+          [:max_supporters,    t("super_admin.subscriptions.limit_max_supporters")]
         ].each do |field, label| %>
           <div>
             <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= label %></label>
@@ -124,11 +125,12 @@
 <script>
 const PLAN_DEFAULTS = <%= PlanConfig.all.each_with_object({}) { |pc, h|
   h[pc.plan_key] = {
-    max_surveys:    pc.limits["max_surveys"],
-    max_votes:      pc.limits["max_votes"],
-    max_feedbacks:  pc.limits["max_feedbacks"],
-    max_supporters: pc.limits["max_supporters"],
-    max_ai_credits: pc.limits["max_ai_credits"]
+    max_surveys:       pc.limits["max_surveys"],
+    max_votes:         pc.limits["max_votes"],
+    max_feedbacks:     pc.limits["max_feedbacks"],
+    max_dynamic_forms: pc.limits["max_dynamic_forms"],
+    max_supporters:    pc.limits["max_supporters"],
+    max_ai_credits:    pc.limits["max_ai_credits"]
   }
 }.to_json.html_safe %>;
 
@@ -136,7 +138,7 @@ function resetToDefaults() {
   const plan = document.querySelector('select[name="subscription[plan]"]').value;
   const defaults = PLAN_DEFAULTS[plan];
   if (!defaults) return;
-  ["max_surveys","max_votes","max_feedbacks","max_supporters","max_ai_credits"].forEach(field => {
+  ["max_surveys","max_votes","max_feedbacks","max_dynamic_forms","max_supporters","max_ai_credits"].forEach(field => {
     const input = document.querySelector(`input[name="subscription[${field}]"]`);
     if (input) input.value = defaults[field] ?? "";
   });
