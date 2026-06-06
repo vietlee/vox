@@ -9,20 +9,21 @@
     <div class="flex items-start gap-3">
       <%= render "admin/shared/back_btn" %>
       <div>
-      <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">📋 <%= t("surveys.title") %></h1>
-      <div class="flex items-center gap-3 mt-0.5">
-        <p class="text-[12px] text-slate-500"><%= @surveys.total_count rescue @surveys.count %> <%= t("surveys.subtitle") %></p>
-        <% if sub&.max_surveys %>
-          <% pct = sub.surveys_pct %>
-          <div class="flex items-center gap-1.5">
-            <div class="w-20 h-1.5 rounded-full overflow-hidden bg-slate-200">
-              <div class="h-1.5 rounded-full" style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
+        <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">📋 <%= t("surveys.title") %></h1>
+        <div class="flex items-center gap-3 mt-0.5">
+          <p class="text-[12px] text-slate-500"><%= @surveys.total_count rescue @surveys.count %> <%= t("surveys.subtitle") %></p>
+          <% if sub&.max_surveys %>
+            <% pct = sub.surveys_pct %>
+            <div class="flex items-center gap-1.5">
+              <div class="w-20 h-1.5 rounded-full overflow-hidden bg-slate-200">
+                <div class="h-1.5 rounded-full" style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
+              </div>
+              <span class="text-[11px] font-semibold <%= pct >= 100 ? 'text-amber-600' : 'text-slate-500' %>">
+                <%= sub.surveys_used %> / <%= sub.max_surveys %>
+              </span>
             </div>
-            <span class="text-[11px] font-semibold <%= pct >= 100 ? 'text-amber-600' : 'text-slate-500' %>">
-              <%= sub.surveys_used %> / <%= sub.max_surveys %>
-            </span>
-          </div>
-        <% end %>
+          <% end %>
+        </div>
       </div>
     </div>
     <div class="flex gap-2">
