@@ -6,19 +6,19 @@ class PlanConfig < ApplicationRecord
     "free" => {
       display_name: "Free",
       price_vnd: 0,
-      limits: { max_surveys: 5, max_votes: 5, max_feedbacks: 10, max_supporters: 0, max_ai_credits: 30 },
+      limits: { max_surveys: 5, max_votes: 5, max_feedbacks: 10, max_supporters: 0, max_ai_credits: 30, max_dynamic_forms: 3 },
       features: { ai_survey_builder: true, ai_analysis: true, ai_executive_report: false, ai_chat: true, ai_moderation: false, custom_branding: false, export: false, sso: false, tts: false, stt: false }
     },
     "pro" => {
       display_name: "Pro",
       price_vnd: 190_000,
-      limits: { max_surveys: 50, max_votes: 50, max_feedbacks: 50, max_supporters: 10, max_ai_credits: 300 },
+      limits: { max_surveys: 50, max_votes: 50, max_feedbacks: 50, max_supporters: 10, max_ai_credits: 300, max_dynamic_forms: 10 },
       features: { ai_survey_builder: true, ai_analysis: true, ai_executive_report: true, ai_chat: true, ai_moderation: true, custom_branding: true, export: true, sso: false, tts: true, stt: true }
     },
     "enterprise" => {
       display_name: "Enterprise",
       price_vnd: 390_000,
-      limits: { max_surveys: nil, max_votes: nil, max_feedbacks: nil, max_supporters: nil, max_ai_credits: 1000 },
+      limits: { max_surveys: nil, max_votes: nil, max_feedbacks: nil, max_supporters: nil, max_ai_credits: 1000, max_dynamic_forms: nil },
       features: { ai_survey_builder: true, ai_analysis: true, ai_executive_report: true, ai_chat: true, ai_moderation: true, custom_branding: true, export: true, sso: true, tts: true, stt: true }
     }
   }.freeze

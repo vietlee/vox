@@ -183,7 +183,7 @@ class Admin::SubscriptionsController < Admin::BaseController
 
   def subscription_update_params
     if current_user.super_admin?
-      params.require(:subscription).permit(:plan, :max_surveys, :max_votes, :max_feedbacks, :max_supporters, :max_ai_credits, :price_cents, :ends_at)
+      params.require(:subscription).permit(:plan, :max_surveys, :max_votes, :max_feedbacks, :max_supporters, :max_ai_credits, :max_dynamic_forms, :price_cents, :ends_at)
     else
       params.require(:subscription).permit(:auto_renew)
     end

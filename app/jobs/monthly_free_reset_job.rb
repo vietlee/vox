@@ -10,10 +10,11 @@ class MonthlyFreeResetJob < ApplicationJob
 
     Workspace.where(id: free_workspace_ids).find_each do |workspace|
       workspace.update_columns(
-        surveys_created_count:   0,
-        votes_created_count:     0,
-        feedbacks_created_count: 0,
-        counts_reset_at:         reset_at
+        surveys_created_count:       0,
+        votes_created_count:         0,
+        feedbacks_created_count:     0,
+        dynamic_forms_created_count: 0,
+        counts_reset_at:             reset_at
       )
     end
 

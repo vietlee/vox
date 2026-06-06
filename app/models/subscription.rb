@@ -11,9 +11,9 @@ class Subscription < ApplicationRecord
   scope :active, -> { where(status: :active) }
 
   PLAN_LIMITS = {
-    "free"       => { max_surveys: 3, max_votes: 3, max_feedbacks: 10, max_supporters: 0, max_ai_credits: 0 },
-    "pro"        => { max_surveys: nil, max_votes: nil, max_feedbacks: nil, max_supporters: 10, max_ai_credits: 500 },
-    "enterprise" => { max_surveys: nil, max_votes: nil, max_feedbacks: nil, max_supporters: nil, max_ai_credits: nil }
+    "free"       => { max_surveys: 3, max_votes: 3, max_feedbacks: 10, max_supporters: 0, max_ai_credits: 0, max_dynamic_forms: 3 },
+    "pro"        => { max_surveys: nil, max_votes: nil, max_feedbacks: nil, max_supporters: 10, max_ai_credits: 500, max_dynamic_forms: 10 },
+    "enterprise" => { max_surveys: nil, max_votes: nil, max_feedbacks: nil, max_supporters: nil, max_ai_credits: nil, max_dynamic_forms: nil }
   }.freeze
 
   PLAN_PRICES = {
@@ -63,6 +63,10 @@ class Subscription < ApplicationRecord
     max_votes.nil? || workspace.votes_created_count < max_votes
   end
 
+  def within_dynamic_form_limit?
+    max_dynamic_forms.nil? || workspace.dynamic_forms_created_count < max_dynamic_forms
+  end
+
   def within_feedback_limit?
     max_feedbacks.nil? || workspace.feedbacks_created_count < max_feedbacks
   end
@@ -80,6 +84,10 @@ class Subscription < ApplicationRecord
   def votes_used = workspace.votes_created_count
   def votes_remaining = max_votes.nil? ? nil : [max_votes - votes_used, 0].max
   def votes_pct = max_votes.nil? ? 0 : [(votes_used * 100.0 / max_votes).round, 100].min
+
+  def dynamic_forms_used      = workspace.dynamic_forms_created_count
+  def dynamic_forms_remaining = max_dynamic_forms.nil? ? nil : [max_dynamic_forms - dynamic_forms_used, 0].max
+  def dynamic_forms_pct       = max_dynamic_forms.nil? ? 0 : [(dynamic_forms_used * 100.0 / max_dynamic_forms).round, 100].min
 
   def feedbacks_used = workspace.feedbacks_created_count
   def feedbacks_remaining = max_feedbacks.nil? ? nil : [max_feedbacks - feedbacks_used, 0].max

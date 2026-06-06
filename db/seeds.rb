@@ -32,7 +32,8 @@ plans = [
       max_votes:      3,
       max_feedbacks:  10,
       max_supporters: 0,
-      max_ai_credits: 0
+      max_ai_credits: 0,
+      max_dynamic_forms: 3
     },
     features: {
       ai_survey_builder:    false,
@@ -55,7 +56,8 @@ plans = [
       max_votes:      nil,
       max_feedbacks:  nil,
       max_supporters: 10,
-      max_ai_credits: 500
+      max_ai_credits: 500,
+      max_dynamic_forms: 10
     },
     features: {
       ai_survey_builder:    true,
@@ -78,7 +80,8 @@ plans = [
       max_votes:      nil,
       max_feedbacks:  nil,
       max_supporters: nil,
-      max_ai_credits: nil
+      max_ai_credits: nil,
+      max_dynamic_forms: nil
     },
     features: {
       ai_survey_builder:    true,
@@ -150,11 +153,12 @@ unless Rails.env.production?
   end
 
   workspace.subscriptions.find_or_create_by(status: :active) do |s|
-    s.plan           = :pro
-    s.credit_balance = 500
-    s.max_ai_credits = 500
-    s.starts_at      = Time.current
-    s.ends_at        = 1.year.from_now
+    s.plan              = :pro
+    s.credit_balance    = 500
+    s.max_ai_credits    = 500
+    s.max_dynamic_forms = 10
+    s.starts_at         = Time.current
+    s.ends_at           = 1.year.from_now
   end
 
   admin = workspace.users.find_or_create_by(email: "admin@demo.vox.vn") do |u|

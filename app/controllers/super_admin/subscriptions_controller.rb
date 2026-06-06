@@ -22,13 +22,14 @@ class SuperAdmin::SubscriptionsController < SuperAdmin::BaseController
         limits   = PlanConfig.limits_for(@subscription.plan)
         features = PlanConfig.features_for(@subscription.plan)
         @subscription.update_columns(
-          max_surveys:    limits[:max_surveys],
-          max_votes:      limits[:max_votes],
-          max_feedbacks:  limits[:max_feedbacks],
-          max_supporters: limits[:max_supporters],
-          max_ai_credits: limits[:max_ai_credits],
-          credit_balance: limits[:max_ai_credits] || 0,
-          features:       features
+          max_surveys:       limits[:max_surveys],
+          max_votes:         limits[:max_votes],
+          max_feedbacks:     limits[:max_feedbacks],
+          max_supporters:    limits[:max_supporters],
+          max_ai_credits:    limits[:max_ai_credits],
+          max_dynamic_forms: limits[:max_dynamic_forms],
+          credit_balance:    limits[:max_ai_credits] || 0,
+          features:          features
         )
       end
       redirect_to super_admin_subscription_path(@subscription), notice: "Cập nhật subscription thành công."

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_05_132822) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_06_103307) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -436,6 +436,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_05_132822) do
     t.jsonb "features", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "max_dynamic_forms"
     t.index ["plan"], name: "index_subscriptions_on_plan"
     t.index ["status"], name: "index_subscriptions_on_status"
     t.index ["workspace_id"], name: "index_subscriptions_on_workspace_id"
@@ -621,6 +622,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_05_132822) do
     t.datetime "counts_reset_at"
     t.boolean "notify_on_new_feedback", default: false, null: false
     t.boolean "notify_on_new_response", default: false, null: false
+    t.integer "dynamic_forms_created_count", default: 0, null: false
     t.index ["slug"], name: "index_workspaces_on_slug", unique: true
     t.index ["status"], name: "index_workspaces_on_status"
   end

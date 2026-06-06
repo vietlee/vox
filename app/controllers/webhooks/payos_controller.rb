@@ -80,15 +80,16 @@ class Webhooks::PayosController < ActionController::Base
     new_ends_at = base + 1.month
 
     sub.update_columns(
-      status:         Subscription.statuses[:active],
-      ends_at:        new_ends_at,
-      max_surveys:    limits[:max_surveys],
-      max_votes:      limits[:max_votes],
-      max_feedbacks:  limits[:max_feedbacks],
-      max_supporters: limits[:max_supporters],
-      max_ai_credits: limits[:max_ai_credits],
-      credit_balance: limits[:max_ai_credits] || 0,
-      features:       features
+      status:            Subscription.statuses[:active],
+      ends_at:           new_ends_at,
+      max_surveys:       limits[:max_surveys],
+      max_votes:         limits[:max_votes],
+      max_feedbacks:     limits[:max_feedbacks],
+      max_supporters:    limits[:max_supporters],
+      max_ai_credits:    limits[:max_ai_credits],
+      max_dynamic_forms: limits[:max_dynamic_forms],
+      credit_balance:    limits[:max_ai_credits] || 0,
+      features:          features
     )
   end
 end
