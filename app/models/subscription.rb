@@ -12,7 +12,7 @@ class Subscription < ApplicationRecord
 
   PLAN_LIMITS = {
     "free"       => { max_surveys: 3, max_votes: 3, max_feedbacks: 10, max_supporters: 0, max_ai_credits: 0, max_dynamic_forms: 3 },
-    "pro"        => { max_surveys: nil, max_votes: nil, max_feedbacks: nil, max_supporters: 10, max_ai_credits: 500, max_dynamic_forms: 10 },
+    "pro"        => { max_surveys: nil, max_votes: nil, max_feedbacks: nil, max_supporters: 10, max_ai_credits: 500, max_dynamic_forms: 50 },
     "enterprise" => { max_surveys: nil, max_votes: nil, max_feedbacks: nil, max_supporters: nil, max_ai_credits: nil, max_dynamic_forms: nil }
   }.freeze
 

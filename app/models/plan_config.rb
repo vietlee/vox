@@ -12,7 +12,7 @@ class PlanConfig < ApplicationRecord
     "pro" => {
       display_name: "Pro",
       price_vnd: 190_000,
-      limits: { max_surveys: 50, max_votes: 50, max_feedbacks: 50, max_supporters: 10, max_ai_credits: 300, max_dynamic_forms: 10 },
+      limits: { max_surveys: 50, max_votes: 50, max_feedbacks: 50, max_supporters: 10, max_ai_credits: 300, max_dynamic_forms: 50 },
       features: { ai_survey_builder: true, ai_analysis: true, ai_executive_report: true, ai_chat: true, ai_moderation: true, custom_branding: true, export: true, sso: false, tts: true, stt: true }
     },
     "enterprise" => {

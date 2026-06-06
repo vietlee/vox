@@ -57,7 +57,7 @@ plans = [
       max_feedbacks:  nil,
       max_supporters: 10,
       max_ai_credits: 500,
-      max_dynamic_forms: 10
+      max_dynamic_forms: 50
     },
     features: {
       ai_survey_builder:    true,
@@ -156,7 +156,7 @@ unless Rails.env.production?
     s.plan              = :pro
     s.credit_balance    = 500
     s.max_ai_credits    = 500
-    s.max_dynamic_forms = 10
+    s.max_dynamic_forms = 50
     s.starts_at         = Time.current
     s.ends_at           = 1.year.from_now
   end
