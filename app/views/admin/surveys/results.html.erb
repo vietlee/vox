@@ -177,8 +177,14 @@
             </div>
           <% end %>
         <% else %>
+          <%
+            preview_count = 4
+            all_text_answers = q_answers.select { |a| a.uploaded_file.attached? || a.text_value.present? }
+            preview_answers  = all_text_answers.first(preview_count)
+            remaining        = all_text_answers.count - preview_count
+          %>
           <div class="space-y-1.5">
-            <% q_answers.first(5).each do |ans| %>
+            <% preview_answers.each do |ans| %>
               <% if ans.uploaded_file.attached? %>
                 <div class="bg-slate-50 rounded-lg px-3 py-2 text-[13px] text-slate-700 flex items-center gap-2">
                   📎 <%= link_to ans.uploaded_file.filename.to_s, rails_blob_path(ans.uploaded_file, disposition: "attachment"), class: "text-indigo-600 hover:underline", target: "_blank" %>
@@ -188,10 +194,28 @@
                 <div class="bg-slate-50 rounded-lg px-3 py-2 text-[13px] text-slate-700">"<%= ans.text_value %>"</div>
               <% end %>
             <% end %>
-            <% if q_answers.count > 5 %>
-              <p class="text-[12px] text-slate-400 text-center"><%= t("surveys.results.more_responses", count: q_answers.count - 5) %></p>
+            <% if remaining > 0 %>
+              <button type="button"
+                onclick="openAnswersModal(<%= question.id %>, '<%= j question.title %>')"
+                class="w-full mt-1 py-2 text-[12px] font-semibold text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
+                + <%= t("surveys.results.more_responses", count: remaining) %>
+              </button>
             <% end %>
           </div>
+
+          <%# Hidden container with ALL answers for this question — read by JS modal %>
+          <template id="answers-data-<%= question.id %>">
+            <% all_text_answers.each do |ans| %>
+              <% if ans.uploaded_file.attached? %>
+                <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-4 py-3 text-[13px] text-slate-700">
+                  📎 <%= link_to ans.uploaded_file.filename.to_s, rails_blob_path(ans.uploaded_file, disposition: "attachment"), class: "text-indigo-600 hover:underline", target: "_blank" %>
+                  <span class="text-slate-400 text-[11px]">(<%= number_to_human_size(ans.uploaded_file.byte_size) %>)</span>
+                </div>
+              <% elsif ans.text_value.present? %>
+                <div class="bg-slate-50 rounded-lg px-4 py-3 text-[13px] text-slate-700 whitespace-pre-wrap">"<%= ans.text_value %>"</div>
+              <% end %>
+            <% end %>
+          </template>
         <% end %>
       </div>
     <% end %>
@@ -1118,3 +1142,51 @@ function hideSurveyCloseConfirm() {
     </div>
   </div>
 </div>
+
+<!-- All Answers Modal -->
+<div id="answers-modal" class="hidden fixed inset-0 z-50" onclick="if(event.target===this)closeAnswersModal()">
+  <div class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col" style="max-height:80vh;">
+      <!-- Header -->
+      <div class="flex items-start justify-between gap-3 px-5 py-4 border-b border-slate-100 flex-shrink-0">
+        <h3 id="answers-modal-title" class="text-[14px] font-bold text-slate-900 leading-snug"></h3>
+        <button onclick="closeAnswersModal()" class="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 text-[16px] border-0 bg-transparent cursor-pointer">✕</button>
+      </div>
+      <!-- Count badge -->
+      <div class="px-5 pt-3 flex-shrink-0">
+        <span id="answers-modal-count" class="inline-block text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full"></span>
+      </div>
+      <!-- Scrollable list -->
+      <div id="answers-modal-body" class="overflow-y-auto px-5 py-3 space-y-2 flex-1"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openAnswersModal(questionId, title) {
+  const tmpl = document.getElementById('answers-data-' + questionId);
+  if (!tmpl) return;
+
+  const items = tmpl.content.querySelectorAll('div');
+  const count = items.length;
+
+  document.getElementById('answers-modal-title').textContent = title;
+  document.getElementById('answers-modal-count').textContent = count + ' phản hồi';
+
+  const body = document.getElementById('answers-modal-body');
+  body.innerHTML = '';
+  items.forEach(function(el) { body.appendChild(el.cloneNode(true)); });
+
+  document.getElementById('answers-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAnswersModal() {
+  document.getElementById('answers-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeAnswersModal();
+});
+</script>
