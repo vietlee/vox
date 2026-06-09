@@ -462,22 +462,7 @@
                       <% next if ans.nil? %>
                       <div class="pl-1">
                         <p class="text-[12px] font-semibold text-slate-400 mb-0.5"><%= q.title %></p>
-                        <p class="text-[13px] text-slate-800 whitespace-pre-wrap">
-                          <% if ans.uploaded_file.attached? %>
-                            📎 <%= link_to ans.uploaded_file.filename.to_s, rails_blob_path(ans.uploaded_file, disposition: "attachment"), class: "text-indigo-600 hover:underline", target: "_blank" %>
-                            <span class="text-slate-400 text-[11px]">(<%= number_to_human_size(ans.uploaded_file.byte_size) %>)</span>
-                          <% elsif ans.text_value.present? %>
-                            <%= ans.text_value %>
-                          <% elsif ans.numeric_value.present? %>
-                            <%= ans.numeric_value.to_i %>
-                          <% elsif ans.option_ids.present? %>
-                            <%= ans.option_ids.map { |id| option_labels[id.to_s] || id }.join(", ") %>
-                          <% elsif ans.date_value.present? %>
-                            <%= ans.date_value %>
-                          <% else %>
-                            <span class="text-slate-400">—</span>
-                          <% end %>
-                        </p>
+                        <p class="text-[13px] text-slate-800 whitespace-pre-wrap"><% if ans.uploaded_file.attached? %>📎 <%= link_to ans.uploaded_file.filename.to_s, rails_blob_path(ans.uploaded_file, disposition: "attachment"), class: "text-indigo-600 hover:underline", target: "_blank" %> <span class="text-slate-400 text-[11px]">(<%= number_to_human_size(ans.uploaded_file.byte_size) %>)</span><% elsif ans.text_value.present? %><%= ans.text_value %><% elsif ans.numeric_value.present? %><%= ans.numeric_value.to_i %><% elsif ans.option_ids.present? %><%= ans.option_ids.map { |id| option_labels[id.to_s] || id }.join(", ") %><% elsif ans.date_value.present? %><%= ans.date_value %><% else %><span class="text-slate-400">—</span><% end %></p>
                       </div>
                     <% end %>
                   </div>
