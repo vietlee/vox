@@ -1,13 +1,16 @@
 <%
-  has_options  = %w[single_choice multiple_choice dropdown ranking].include?(question.question_type)
-  survey_id    = question.survey_id
-  q_url        = survey_question_path(survey_id, question)
-  opts_url     = survey_question_question_options_path(survey_id, question)
-  cond         = question.conditional_logic.presence || {}
-  cond_source  = cond['source_question_id'].to_s
-  cond_op      = cond['operator'].presence || 'equals'
-  cond_value   = cond['value'].to_s
-  has_condition = cond_source.present?
+  has_options    = %w[single_choice multiple_choice dropdown ranking].include?(question.question_type)
+  has_min_max    = %w[linear_scale rating nps].include?(question.question_type)
+  survey_id      = question.survey_id
+  q_url          = survey_question_path(survey_id, question)
+  opts_url       = survey_question_question_options_path(survey_id, question)
+  cond           = question.conditional_logic.presence || {}
+  cond_source    = cond['source_question_id'].to_s
+  cond_op        = cond['operator'].presence || 'equals'
+  cond_value     = cond['value'].to_s
+  has_condition  = cond_source.present?
+  q_min_label    = question.settings["min_label"].to_s
+  q_max_label    = question.settings["max_label"].to_s
 %>
 
 <div class="question-card bg-white rounded-[10px] border border-slate-200 shadow-sm group" data-question-id="<%= question.id %>">
@@ -79,6 +82,24 @@
             onchange="saveQuestion(<%= question.id %>, '<%= q_url %>')">
           <span class="text-[12px] font-semibold text-slate-600"><%= t("surveys.question_card.required_label") %></span>
         </label>
+      </div>
+    </div>
+
+    <!-- Min/Max labels (linear_scale, rating, nps) -->
+    <div id="minmax-panel-<%= question.id %>" class="<%= has_min_max ? '' : 'hidden' %> grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nhãn nhỏ nhất</label>
+        <input type="text" id="q-min-label-<%= question.id %>" value="<%= q_min_label %>"
+          placeholder="VD: Rất không hài lòng"
+          class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-400 outline-none bg-white"
+          onblur="saveQuestion(<%= question.id %>, '<%= q_url %>')">
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nhãn lớn nhất</label>
+        <input type="text" id="q-max-label-<%= question.id %>" value="<%= q_max_label %>"
+          placeholder="VD: Rất hài lòng"
+          class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-400 outline-none bg-white"
+          onblur="saveQuestion(<%= question.id %>, '<%= q_url %>')">
       </div>
     </div>
 
@@ -207,10 +228,17 @@ async function saveQuestion(id, url) {
   const type        = document.getElementById('q-type-' + id)?.value;
   const required    = document.getElementById('q-required-' + id)?.checked;
   if (!title) return;
+  const minLabel = document.getElementById('q-min-label-' + id)?.value ?? '';
+  const maxLabel = document.getElementById('q-max-label-' + id)?.value ?? '';
+  const minMaxTypes = ['linear_scale', 'rating', 'nps'];
+  const settings = minMaxTypes.includes(type) ? { min_label: minLabel, max_label: maxLabel } : {};
+  // Show/hide min-max panel when type changes
+  const minMaxPanel = document.getElementById('minmax-panel-' + id);
+  if (minMaxPanel) minMaxPanel.classList.toggle('hidden', !minMaxTypes.includes(type));
   const res = await fetch(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content },
-    body: JSON.stringify({ question: { title, description, question_type: type, required } })
+    body: JSON.stringify({ question: { title, description, question_type: type, required, settings } })
   });
   if (!res.ok) return;
   const card = document.querySelector('[data-question-id="' + id + '"]');

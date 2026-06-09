@@ -17,7 +17,12 @@ class Admin::QuestionsController < Admin::BaseController
 
   def update
     @question = @survey.questions.find(params[:id])
-    if @question.update(question_params)
+    attrs = question_params.to_h
+    # Merge settings so existing keys (min_value, max_value, step…) are preserved
+    if attrs.key?("settings") && attrs["settings"].present?
+      attrs["settings"] = @question.settings.merge(attrs["settings"])
+    end
+    if @question.update(attrs)
       render json: { success: true }
     else
       render json: { errors: @question.errors.full_messages }, status: :unprocessable_entity
