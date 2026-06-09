@@ -41,19 +41,22 @@
       <span class="text-[11px] text-slate-400"><%= @questions.count %> <%= t("participate.survey.questions_count") %></span>
     </div>
 
-    <% if @survey.show_progress? %>
-    <div class="px-4 sm:px-6 pb-3">
-      <div class="max-w-[680px] mx-auto">
-        <div class="flex justify-between text-[11px] text-slate-500 mb-1.5">
-          <span id="progress-label"><%= t("participate.survey.progress", answered: 0, total: 0) %></span>
-        </div>
-        <div class="h-1.5 bg-white/60 rounded-full overflow-hidden" style="border:1px solid rgba(99,102,241,0.15);">
-          <div id="progress-bar" class="h-full rounded-full transition-all duration-500" style="width:0%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
-        </div>
+  </div>
+
+  <% if @survey.show_progress? %>
+  <!-- Progress bar — sticky so it's always visible while scrolling -->
+  <div class="sticky top-0 z-40 px-4 sm:px-6 py-2.5"
+       style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%); border-bottom:1px solid rgba(226,232,240,0.6); box-shadow:0 1px 8px rgba(99,102,241,0.06);">
+    <div class="max-w-[680px] mx-auto">
+      <div class="flex justify-between text-[11px] text-slate-500 mb-1.5">
+        <span id="progress-label"><%= t("participate.survey.progress", answered: 0, total: 0) %></span>
+      </div>
+      <div class="h-1.5 bg-white/60 rounded-full overflow-hidden" style="border:1px solid rgba(99,102,241,0.15);">
+        <div id="progress-bar" class="h-full rounded-full transition-all duration-500" style="width:0%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
       </div>
     </div>
-    <% end %>
   </div>
+  <% end %>
 
   <!-- Content -->
   <div class="flex-1 flex flex-col px-4 py-4">
