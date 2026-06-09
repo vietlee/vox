@@ -18,9 +18,13 @@ class Participate::SurveysController < Participate::BaseController
     # Track when user opened the form for avg completion time calculation
     session["survey_start_#{@survey.id}"] = Time.current.to_i
 
-    if @survey.allow_edit? && (prev = find_previous_response)
-      @previous_answers = prev.answers.index_by(&:question_id)
-      @previous_email   = prev.respondent_email
+    if @survey.allow_edit?
+      # When allow_edit is on, never block the user — always show the form.
+      # Try to pre-fill answers from previous response (cookie may be missing on mobile).
+      if (prev = find_previous_response)
+        @previous_answers = prev.answers.index_by(&:question_id)
+        @previous_email   = prev.respondent_email
+      end
       @already_responded = false
     else
       @already_responded = already_responded?
@@ -52,12 +56,16 @@ class Participate::SurveysController < Participate::BaseController
       return
     end
 
-    if already_responded?
-      respond_to do |format|
-        format.json { render json: { error: t("participate.survey.already_answered") }, status: :unprocessable_entity }
-        format.html { redirect_to participate_survey_path(@survey.slug), alert: t("participate.survey.already_answered") }
+    # Skip duplicate check when allow_edit is on — user may be submitting from a
+    # different browser/device where the respondent_token cookie is missing.
+    unless @survey.allow_edit?
+      if already_responded?
+        respond_to do |format|
+          format.json { render json: { error: t("participate.survey.already_answered") }, status: :unprocessable_entity }
+          format.html { redirect_to participate_survey_path(@survey.slug), alert: t("participate.survey.already_answered") }
+        end
+        return
       end
-      return
     end
 
     respondent_email = if @survey.login_required?
