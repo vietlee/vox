@@ -45,11 +45,19 @@ class Participate::SurveysController < Participate::BaseController
       existing.answers.destroy_all
       save_answers(existing)
       session[:survey_last_response_id] = existing.id
-      redirect_to survey_done_path(@survey.slug) and return
+      respond_to do |format|
+        format.json { render json: { ok: true, redirect: survey_done_path(@survey.slug) } }
+        format.html { redirect_to survey_done_path(@survey.slug) }
+      end
+      return
     end
 
     if already_responded?
-      redirect_to participate_survey_path(@survey.slug), alert: t("participate.survey.already_answered") and return
+      respond_to do |format|
+        format.json { render json: { error: t("participate.survey.already_answered") }, status: :unprocessable_entity }
+        format.html { redirect_to participate_survey_path(@survey.slug), alert: t("participate.survey.already_answered") }
+      end
+      return
     end
 
     respondent_email = if @survey.login_required?

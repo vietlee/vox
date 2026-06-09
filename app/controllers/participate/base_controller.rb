@@ -9,7 +9,11 @@ class Participate::BaseController < ActionController::Base
 
   def render_not_found(exception = nil)
     Rails.logger.warn "[Participate] 404 — #{exception&.message} (#{request.path})"
-    render "participate/errors/not_found", status: :not_found, layout: "participate"
+    respond_to do |format|
+      format.json { render json: { error: "Not found" }, status: :not_found }
+      format.html { render "participate/errors/not_found", status: :not_found, layout: "participate" }
+      format.any  { render "participate/errors/not_found", status: :not_found, layout: "participate" }
+    end
   end
 
   def render_server_error(exception = nil)
