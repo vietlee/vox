@@ -26,97 +26,34 @@
 
 <div class="min-h-screen flex flex-col" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
 
-  <% if @survey.show_progress? %>
-  <!-- Progress — fixed to avoid Chrome mobile stacking context issues -->
-  <div class="px-4 sm:px-6 py-2" style="position:fixed; top:47px; left:0; right:0; z-index:9998; transform:translateZ(0); -webkit-transform:translateZ(0); background:linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%);">
-    <div class="max-w-[680px] mx-auto">
-      <div class="flex justify-between text-[11px] text-slate-500 mb-1.5 mt-2">
-        <span id="progress-label"><%= t("participate.survey.progress", answered: 0, total: 0) %></span>
-      </div>
-      <div class="h-1.5 bg-white/60 rounded-full overflow-hidden" style="border:1px solid rgba(99,102,241,0.15);">
-        <div id="progress-bar" class="h-full rounded-full transition-all duration-500" style="width:0%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
-      </div>
-    </div>
-  </div>
-  <!-- Spacer matching progress bar height -->
-  <div style="height:44px;"></div>
-  <% end %>
-
-  <!-- Fixed survey header — same layer as navbar, immune to mobile Chrome viewport shifts -->
-  <div id="survey-fixed-header"
-       style="position:fixed; left:0; right:0; z-index:9997;
-              background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
-              border-bottom:1px solid rgba(226,232,240,0.7);
-              box-shadow:0 2px 12px rgba(99,102,241,0.06);
-              transform:translateZ(0); -webkit-transform:translateZ(0);">
-    <div class="max-w-[680px] mx-auto px-4 py-3 text-center">
+  <!-- Survey header — scrolls with page -->
+  <div class="border-b" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%); border-color:rgba(226,232,240,0.7);">
+    <div class="max-w-[680px] mx-auto px-4 py-5 text-center">
       <% if @survey.logo.attached? %>
         <img src="<%= url_for(@survey.logo) %>" alt="<%= @survey.title %>"
-             class="object-contain mx-auto mb-1.5"
-             style="max-height:48px; max-width:180px;">
+             class="object-contain mx-auto mb-2"
+             style="max-height:56px; max-width:200px;">
       <% end %>
-      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-0.5"><%= @survey.title %></h1>
+      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @survey.title %></h1>
       <% if @survey.description.present? %>
-        <div id="survey-desc-wrap" class="mb-0.5">
-          <p id="survey-desc-text" class="text-[12px] text-slate-500"
-             style="overflow:hidden; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;"><%= @survey.description %></p>
-          <button id="survey-desc-toggle" type="button"
-                  onclick="toggleSurveyDesc()"
-                  class="text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 border-0 bg-transparent p-0 cursor-pointer mt-0.5"
-                  style="display:none;">
-            <%= t("participate.feedback.show_more") %>
-          </button>
-        </div>
+        <p class="text-[12px] text-slate-500 mb-1"><%= @survey.description %></p>
       <% end %>
       <span class="text-[11px] text-slate-400"><%= @questions.count %> <%= t("participate.survey.questions_count") %></span>
     </div>
+
+    <% if @survey.show_progress? %>
+    <div class="px-4 sm:px-6 pb-3">
+      <div class="max-w-[680px] mx-auto">
+        <div class="flex justify-between text-[11px] text-slate-500 mb-1.5">
+          <span id="progress-label"><%= t("participate.survey.progress", answered: 0, total: 0) %></span>
+        </div>
+        <div class="h-1.5 bg-white/60 rounded-full overflow-hidden" style="border:1px solid rgba(99,102,241,0.15);">
+          <div id="progress-bar" class="h-full rounded-full transition-all duration-500" style="width:0%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
+        </div>
+      </div>
+    </div>
+    <% end %>
   </div>
-  <!-- Spacer — height set by JS -->
-  <div id="survey-header-spacer"></div>
-  <script>
-    (function() {
-      var showProgress = <%= @survey.show_progress? ? 'true' : 'false' %>;
-      var navH = window.innerWidth >= 640 ? 57 : 47;
-      var progH = showProgress ? 44 : 0;
-      var hdr = document.getElementById('survey-fixed-header');
-      function sync() {
-        navH  = window.innerWidth >= 640 ? 57 : 47;
-        hdr.style.top = (navH + progH) + 'px';
-        document.getElementById('survey-header-spacer').style.height = hdr.offsetHeight + 'px';
-      }
-      sync();
-      window.addEventListener('resize', sync);
-      // Re-sync after images finish loading (logo may not be loaded yet on first run)
-      window.addEventListener('load', sync);
-      requestAnimationFrame(function() { requestAnimationFrame(sync); });
-
-      // Show "Xem thêm" button only when text is actually clamped
-      var desc = document.getElementById('survey-desc-text');
-      var btn  = document.getElementById('survey-desc-toggle');
-      if (desc && btn && desc.scrollHeight > desc.clientHeight + 2) {
-        btn.style.display = 'inline';
-      }
-    })();
-
-    var _surveyDescExpanded = false;
-    function toggleSurveyDesc() {
-      _surveyDescExpanded = !_surveyDescExpanded;
-      var desc = document.getElementById('survey-desc-text');
-      var btn  = document.getElementById('survey-desc-toggle');
-      if (_surveyDescExpanded) {
-        desc.style.webkitLineClamp = 'unset';
-        desc.style.display = 'block';
-        btn.textContent = '<%= j t("participate.feedback.show_less") %>';
-      } else {
-        desc.style.webkitLineClamp = '1';
-        desc.style.display = '-webkit-box';
-        btn.textContent = '<%= j t("participate.feedback.show_more") %>';
-      }
-      // re-sync spacer after height change
-      var hdr = document.getElementById('survey-fixed-header');
-      document.getElementById('survey-header-spacer').style.height = hdr.offsetHeight + 'px';
-    }
-  </script>
 
   <!-- Content -->
   <div class="flex-1 flex flex-col px-4 py-4">
@@ -345,7 +282,7 @@
     });
 
     if (failed.length > 0) {
-      const offset = failed[0].getBoundingClientRect().top + window.scrollY - 120;
+      const offset = failed[0].getBoundingClientRect().top + window.scrollY - 24;
       window.scrollTo({ top: offset, behavior: 'smooth' });
       return false;
     }

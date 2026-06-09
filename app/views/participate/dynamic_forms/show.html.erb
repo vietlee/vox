@@ -27,81 +27,24 @@
 
 <div class="min-h-screen flex flex-col" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
 
-  <!-- Fixed form header — same positioning layer as navbar, immune to mobile Chrome viewport shifts -->
-  <div id="form-fixed-header"
-       style="position:fixed; left:0; right:0; z-index:9998;
-              background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
-              border-bottom:1px solid rgba(226,232,240,0.7);
-              box-shadow:0 2px 12px rgba(99,102,241,0.06);
-              transform:translateZ(0); -webkit-transform:translateZ(0);">
-    <div id="form-header-section" class="max-w-2xl mx-auto px-4 py-3 text-center">
+  <!-- Form header — scrolls with page -->
+  <div class="border-b" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%); border-color:rgba(226,232,240,0.7);">
+    <div class="max-w-2xl mx-auto px-4 py-5 text-center">
       <% if @form.logo.attached? %>
         <img src="<%= url_for(@form.logo) %>" alt="<%= @form.title %>"
-             class="object-contain mx-auto mb-1.5"
-             style="max-height:48px; max-width:180px;">
+             class="object-contain mx-auto mb-2"
+             style="max-height:56px; max-width:200px;">
       <% else %>
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl mx-auto mb-1.5"
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl mx-auto mb-2"
              style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 4px 12px rgba(99,102,241,0.3);">📝</div>
       <% end %>
-      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-0.5"><%= @form.title %></h1>
+      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @form.title %></h1>
       <% if @form.description.present? %>
-        <div id="form-desc-wrap" class="mb-0.5">
-          <p id="form-desc-text" class="text-[12px] text-slate-500"
-             style="overflow:hidden; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;"><%= @form.description %></p>
-          <button id="form-desc-toggle" type="button" onclick="toggleFormDesc()"
-                  class="text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 border-0 bg-transparent p-0 cursor-pointer mt-0.5"
-                  style="display:none;">Xem thêm</button>
-        </div>
+        <p class="text-[12px] text-slate-500 mb-1"><%= @form.description %></p>
       <% end %>
       <span class="text-[11px] text-slate-400"><%= @form.dynamic_form_fields.count %> trường</span>
     </div>
   </div>
-  <!-- Spacer — height set by JS so content isn't hidden behind fixed header -->
-  <div id="form-header-spacer"></div>
-
-  <script>
-    (function() {
-      var navH = window.innerWidth >= 640 ? 57 : 47;
-      var hdr  = document.getElementById('form-fixed-header');
-      hdr.style.top = navH + 'px';
-      function sync() {
-        navH = window.innerWidth >= 640 ? 57 : 47;
-        hdr.style.top = navH + 'px';
-        document.getElementById('form-header-spacer').style.height = hdr.offsetHeight + 'px';
-      }
-      sync();
-      window.addEventListener('resize', sync);
-      // Re-sync after images finish loading (logo may not be loaded yet on first run)
-      window.addEventListener('load', sync);
-      requestAnimationFrame(function() { requestAnimationFrame(sync); });
-
-      // Show "Xem thêm" button only when text is actually clamped
-      var desc = document.getElementById('form-desc-text');
-      var btn  = document.getElementById('form-desc-toggle');
-      if (desc && btn && desc.scrollHeight > desc.clientHeight + 2) {
-        btn.style.display = 'inline';
-      }
-    })();
-
-    var _descExpanded = false;
-    function toggleFormDesc() {
-      _descExpanded = !_descExpanded;
-      var desc = document.getElementById('form-desc-text');
-      var btn  = document.getElementById('form-desc-toggle');
-      if (_descExpanded) {
-        desc.style.webkitLineClamp = 'unset';
-        desc.style.display = 'block';
-        btn.textContent = 'Thu gọn';
-      } else {
-        desc.style.webkitLineClamp = '1';
-        desc.style.display = '-webkit-box';
-        btn.textContent = 'Xem thêm';
-      }
-      // Re-sync spacer after height change
-      var hdr = document.getElementById('form-fixed-header');
-      document.getElementById('form-header-spacer').style.height = hdr.offsetHeight + 'px';
-    }
-  </script>
 
   <!-- Scrollable content -->
   <div class="max-w-[640px] mx-auto w-full px-4 pt-5 pb-10 fade-in">
