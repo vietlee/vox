@@ -456,13 +456,13 @@
               </tr>
               <tr id="row-detail-<%= resp.id %>" class="hidden bg-indigo-50/40">
                 <td colspan="<%= @questions.count + 2 %>" class="px-5 py-4">
-                  <div class="grid grid-cols-1 gap-2">
+                  <div class="grid grid-cols-1 gap-3">
                     <% @questions.each do |q| %>
                       <% ans = ans_map[q.id] %>
                       <% next if ans.nil? %>
-                      <div class="flex gap-3">
-                        <span class="text-[12px] font-semibold text-slate-500 min-w-[180px] flex-shrink-0"><%= q.title %></span>
-                        <span class="text-[13px] text-slate-800 whitespace-pre-wrap">
+                      <div class="pl-1">
+                        <p class="text-[12px] font-semibold text-slate-400 mb-0.5"><%= q.title %></p>
+                        <p class="text-[13px] text-slate-800 whitespace-pre-wrap">
                           <% if ans.uploaded_file.attached? %>
                             📎 <%= link_to ans.uploaded_file.filename.to_s, rails_blob_path(ans.uploaded_file, disposition: "attachment"), class: "text-indigo-600 hover:underline", target: "_blank" %>
                             <span class="text-slate-400 text-[11px]">(<%= number_to_human_size(ans.uploaded_file.byte_size) %>)</span>
@@ -477,7 +477,7 @@
                           <% else %>
                             <span class="text-slate-400">—</span>
                           <% end %>
-                        </span>
+                        </p>
                       </div>
                     <% end %>
                   </div>
