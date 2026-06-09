@@ -26,25 +26,8 @@
 
 <div class="min-h-screen flex flex-col" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
 
-  <!-- Survey header — scrolls with page -->
-  <div class="border-b" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%); border-color:rgba(226,232,240,0.7);">
-    <div class="max-w-[680px] mx-auto px-4 py-5 text-center">
-      <% if @survey.logo.attached? %>
-        <img src="<%= url_for(@survey.logo) %>" alt="<%= @survey.title %>"
-             class="object-contain mx-auto mb-2"
-             style="max-height:56px; max-width:200px;">
-      <% end %>
-      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @survey.title %></h1>
-      <% if @survey.description.present? %>
-        <p class="text-[12px] text-slate-500 mb-1"><%= @survey.description %></p>
-      <% end %>
-      <span class="text-[11px] text-slate-400"><%= @questions.count %> <%= t("participate.survey.questions_count") %></span>
-    </div>
-
-  </div>
-
   <% if @survey.show_progress? %>
-  <!-- Progress bar — fixed just below navbar, above scrolling header content -->
+  <!-- Progress bar — fixed just below navbar -->
   <div id="progress-fixed" class="px-4 sm:px-6 py-2.5"
        style="position:fixed; left:0; right:0; z-index:9997;
               background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
@@ -59,7 +42,7 @@
       </div>
     </div>
   </div>
-  <!-- Spacer matching progress bar height so content isn't hidden behind it -->
+  <!-- Spacer pushes ALL content below the fixed progress bar -->
   <div id="progress-spacer"></div>
   <script>
     (function() {
@@ -76,6 +59,22 @@
     })();
   </script>
   <% end %>
+
+  <!-- Survey header — scrolls with page, sits below fixed progress bar -->
+  <div class="border-b" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%); border-color:rgba(226,232,240,0.7);">
+    <div class="max-w-[680px] mx-auto px-4 py-5 text-center">
+      <% if @survey.logo.attached? %>
+        <img src="<%= url_for(@survey.logo) %>" alt="<%= @survey.title %>"
+             class="object-contain mx-auto mb-2"
+             style="max-height:56px; max-width:200px;">
+      <% end %>
+      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @survey.title %></h1>
+      <% if @survey.description.present? %>
+        <p class="text-[12px] text-slate-500 mb-1"><%= @survey.description %></p>
+      <% end %>
+      <span class="text-[11px] text-slate-400"><%= @questions.count %> <%= t("participate.survey.questions_count") %></span>
+    </div>
+  </div>
 
   <!-- Content -->
   <div class="flex-1 flex flex-col px-4 py-4">
