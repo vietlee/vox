@@ -83,6 +83,13 @@
 
       <%= form_with url: submit_survey_path(@survey.slug), method: :post, local: true, id: "survey-form", class: "space-y-4", multipart: true, data: { turbo: false } do |f| %>
 
+        <% if @editing_response %>
+          <%= hidden_field_tag :edit_token, @editing_response.edit_token %>
+          <div class="mb-2 px-4 py-3 rounded-xl text-[13px] text-amber-700 font-medium" style="background:#fffbeb; border:1px solid #fcd34d;">
+            ✏️ <%= t("participate.survey.editing_previous") %>
+          </div>
+        <% end %>
+
         <% if @survey.email_required? %>
           <div class="q-card rounded-2xl p-5" style="background:#ffffff; border:1px solid rgba(99,102,241,0.15); box-shadow:0 4px 16px rgba(99,102,241,0.06);">
             <label class="block text-[13px] font-semibold text-slate-700 mb-2"><%= t("participate.survey.email_label") %> <span class="text-red-400">*</span></label>

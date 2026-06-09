@@ -155,9 +155,18 @@
             <span class="text-[13px] text-slate-700"><%= t("surveys.settings.show_results") %></span>
             <%= f.check_box :show_results, class: "w-4 h-4 accent-indigo-600" %>
           </div>
-          <div class="flex items-center justify-between py-2 border-b border-slate-100">
-            <span class="text-[13px] text-slate-700"><%= t("surveys.settings.allow_edit") %></span>
-            <%= f.check_box :allow_edit, class: "w-4 h-4 accent-indigo-600" %>
+          <div id="allow-edit-row" class="flex items-start justify-between py-2 border-b border-slate-100 gap-2 <%= 'opacity-40 pointer-events-none' unless @survey.email_required? %>">
+            <div>
+              <span class="text-[13px] text-slate-700"><%= t("surveys.settings.allow_edit") %></span>
+              <p id="allow-edit-note" class="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                <% if @survey.email_required? %>
+                  <%= t("surveys.settings.allow_edit_note_active") %>
+                <% else %>
+                  <%= t("surveys.settings.allow_edit_note_disabled") %>
+                <% end %>
+              </p>
+            </div>
+            <%= f.check_box :allow_edit, id: "allow-edit-checkbox", class: "w-4 h-4 accent-indigo-600 flex-shrink-0 mt-0.5" %>
           </div>
           <div>
             <label class="block text-[12px] font-semibold text-slate-700 mb-1"><%= t("surveys.settings.opens_at") %></label>
@@ -397,6 +406,21 @@ Object.assign(window, { addQuestion, checkQuestion });
 window.onIdentityChange = function(val) {
   var wrap = document.getElementById('sso-providers-wrap');
   if (wrap) wrap.style.display = val === 'login_required' ? '' : 'none';
+
+  // allow_edit only works with email_required
+  var editRow  = document.getElementById('allow-edit-row');
+  var editNote = document.getElementById('allow-edit-note');
+  var editChk  = document.getElementById('allow-edit-checkbox');
+  if (!editRow) return;
+  var isEmail = val === 'email_required';
+  editRow.classList.toggle('opacity-40', !isEmail);
+  editRow.classList.toggle('pointer-events-none', !isEmail);
+  if (!isEmail && editChk) editChk.checked = false;
+  if (editNote) {
+    editNote.textContent = isEmail
+      ? '<%= j t("surveys.settings.allow_edit_note_active") %>'
+      : '<%= j t("surveys.settings.allow_edit_note_disabled") %>';
+  }
 };
 
 })(); // end IIFE

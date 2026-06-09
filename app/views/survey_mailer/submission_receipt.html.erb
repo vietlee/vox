@@ -1,0 +1,81 @@
+<% locale = @locale || :vi %>
+
+<!-- Heading -->
+<p style="margin:0 0 6px;font-size:22px;font-weight:800;color:#0f172a;">
+  📋 <%= I18n.t("survey_mailer.submission_receipt.heading", locale: locale) %>
+</p>
+<p style="margin:0 0 24px;font-size:15px;color:#64748b;">
+  <%= I18n.t("survey_mailer.submission_receipt.intro",
+        survey: "<strong style='color:#0f172a;'>#{@survey.title}</strong>",
+        locale: locale).html_safe %>
+</p>
+
+<!-- Edit CTA (if allow_edit) -->
+<% if @edit_url.present? %>
+<table cellpadding="0" cellspacing="0" width="100%"
+       style="background:#faf5ff;border:1.5px solid #e9d5ff;border-radius:12px;margin-bottom:24px;">
+  <tr>
+    <td style="padding:16px 20px;">
+      <p style="margin:0 0 12px;font-size:13px;color:#7c3aed;font-weight:600;">
+        ✏️ <%= I18n.t("survey_mailer.submission_receipt.edit_section_title", locale: locale) %>
+      </p>
+      <p style="margin:0 0 14px;font-size:13px;color:#64748b;">
+        <%= I18n.t("survey_mailer.submission_receipt.edit_section_desc", locale: locale) %>
+      </p>
+      <a href="<%= @edit_url %>"
+         style="display:inline-block;padding:11px 28px;background:linear-gradient(135deg,#6366f1,#a855f7);color:#ffffff;font-size:13px;font-weight:700;text-decoration:none;border-radius:10px;">
+        <%= I18n.t("survey_mailer.submission_receipt.edit_cta", locale: locale) %>
+      </a>
+    </td>
+  </tr>
+</table>
+<% end %>
+
+<!-- Answers summary (if show_results) -->
+<% if @survey.show_results? && @questions_with_answers.any? %>
+<table cellpadding="0" cellspacing="0" width="100%"
+       style="background:#f8faff;border:1.5px solid #e0e7ff;border-radius:12px;margin-bottom:24px;">
+  <tr>
+    <td style="padding:20px 24px;">
+      <p style="margin:0 0 16px;font-size:13px;font-weight:700;color:#1e293b;">
+        📝 <%= I18n.t("survey_mailer.submission_receipt.answers_title", locale: locale) %>
+      </p>
+
+      <% @questions_with_answers.each_with_index do |qa, idx| %>
+        <% next if qa[:display].blank? %>
+        <table cellpadding="0" cellspacing="0" width="100%"
+               style="margin-bottom:<%= idx < @questions_with_answers.size - 1 ? '14px' : '0' %>;">
+          <tr>
+            <td style="padding-bottom:3px;">
+              <span style="font-size:11px;font-weight:700;color:#6366f1;background:#eef2ff;padding:2px 8px;border-radius:20px;">
+                <%= idx + 1 %>
+              </span>
+              <span style="font-size:13px;font-weight:600;color:#334155;margin-left:8px;">
+                <%= qa[:question].title %>
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-left:28px;padding-top:4px;font-size:13px;color:#475569;white-space:pre-wrap;">
+              <%= qa[:display] %>
+            </td>
+          </tr>
+        </table>
+        <% if idx < @questions_with_answers.count { |q| q[:display].present? } - 1 %>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:10px 0;">
+        <% end %>
+      <% end %>
+    </td>
+  </tr>
+</table>
+<% end %>
+
+<!-- Footer note for edit link -->
+<% if @edit_url.present? %>
+<p style="font-size:11px;color:#cbd5e1;margin:0 0 4px;">
+  <%= I18n.t("survey_mailer.submission_receipt.link_note", locale: locale) %>
+</p>
+<p style="font-size:11px;color:#cbd5e1;word-break:break-all;margin:0;">
+  <%= @edit_url %>
+</p>
+<% end %>

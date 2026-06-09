@@ -11,6 +11,7 @@ class Response < ApplicationRecord
   scope :quality,   -> { where(excluded: false) }
 
   after_create :increment_survey_counter
+  before_create :generate_edit_token_if_needed
 
   MAX_COMPLETION_SECONDS = 30.minutes.to_i  # cap idle sessions
 
@@ -36,6 +37,14 @@ class Response < ApplicationRecord
 
   def increment_survey_counter
     # response_count will be incremented on complete!
+  end
+
+  def generate_edit_token_if_needed
+    # Generate token whenever allow_edit is on AND we'll have a recipient email
+    # (email_required mode OR login_required/SSO — email resolved at controller level)
+    return unless survey&.allow_edit?
+    return unless survey&.email_required? || survey&.login_required?
+    self.edit_token = SecureRandom.urlsafe_base64(24)
   end
 
 end

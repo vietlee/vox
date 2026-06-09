@@ -1,12 +1,10 @@
 class Participate::SurveysController < Participate::BaseController
   before_action :set_survey
   before_action :enforce_login_required!, only: [:show, :submit]
+  before_action :set_edit_response, only: [:edit_response]
 
   def done
-    @questions = @survey.questions.includes(:question_options)
-    response_id = session.delete(:survey_last_response_id)
-    @response = @survey.responses.find_by(id: response_id)
-    @stats = build_results_stats if @survey.show_results?
+    session.delete(:survey_last_response_id)
   end
 
   def show
@@ -22,12 +20,43 @@ class Participate::SurveysController < Participate::BaseController
     @response = @survey.responses.build
   end
 
+  # GET /s/:slug/edit/:token — load existing response for editing via email link
+  def edit_response
+    @questions = @survey.questions.includes(:question_options)
+    unless @survey.accepting_responses?
+      render :closed and return
+    end
+    session["survey_start_#{@survey.id}"] = Time.current.to_i
+    @editing_response = @existing_response
+    @previous_answers = @existing_response.answers.index_by(&:question_id)
+    @previous_email   = @existing_response.respondent_email
+    render :show
+  end
+
   def submit
     unless @survey.accepting_responses?
       redirect_to participate_survey_path(@survey.slug), alert: "Survey is closed."
       return
     end
 
+    # Edit via token: update existing response
+    if params[:edit_token].present?
+      existing = @survey.responses.find_by(edit_token: params[:edit_token])
+      if existing
+        existing.answers.destroy_all
+        save_answers(existing)
+        new_email = params.dig(:response, :respondent_email).presence || existing.respondent_email
+        existing.update_column(:respondent_email, new_email)
+        existing.answers.reload
+        send_submission_receipt(existing, new_email)
+        session[:survey_last_response_id] = existing.id
+        respond_to do |format|
+          format.json { render json: { ok: true, redirect: survey_done_path(@survey.slug) } }
+          format.html { redirect_to survey_done_path(@survey.slug) }
+        end
+        return
+      end
+    end
 
     respondent_email = if @survey.login_required?
       current_user&.email
@@ -50,6 +79,7 @@ class Participate::SurveysController < Participate::BaseController
       completion_secs = started_at ? (Time.current.to_i - started_at.to_i) : nil
       @response.complete!(completion_secs)
       session[:survey_last_response_id] = @response.id
+      send_submission_receipt(@response, respondent_email)
       respond_to do |format|
         format.json { render json: { ok: true, redirect: survey_done_path(@survey.slug) } }
         format.html { redirect_to survey_done_path(@survey.slug) }
@@ -70,6 +100,24 @@ class Participate::SurveysController < Participate::BaseController
   def set_survey
     @survey = Survey.find_by!(slug: params[:slug])
     @workspace = @survey.workspace
+  end
+
+  def set_edit_response
+    @existing_response = @survey.responses.find_by(edit_token: params[:token])
+    unless @existing_response
+      render_not_found and return
+    end
+  end
+
+  # Send post-submission email when show_results OR allow_edit is on
+  # and we have a recipient email (email_required or SSO login).
+  def send_submission_receipt(response, email)
+    return unless @survey.show_results? || @survey.allow_edit?
+    recipient = email.presence || current_user&.email
+    return if recipient.blank?
+    # Reload answers so mailer has them available
+    response.answers.load
+    SurveyMailer.submission_receipt(response).deliver_later
   end
 
   def enforce_login_required!
@@ -93,23 +141,6 @@ class Participate::SurveysController < Participate::BaseController
     when "microsoft" then current_user.provider == "entra_id"
     when "both"      then current_user.provider.in?(%w[google_oauth2 entra_id])
     else false
-    end
-  end
-
-  def build_results_stats
-    @survey.questions.each_with_object({}) do |question, stats|
-      answers = question.answers.joins(:response).where(responses: { status: :completed })
-      if question.choice_type?
-        counts = Hash.new(0)
-        answers.each { |a| Array(a.option_ids).each { |id| counts[id.to_s] += 1 } }
-        stats[question.id] = { type: :choice, counts: counts, total: answers.count }
-      elsif question.numeric_type?
-        vals = answers.where.not(numeric_value: nil).pluck(:numeric_value)
-        stats[question.id] = { type: :numeric, avg: vals.empty? ? nil : (vals.sum / vals.size.to_f).round(1), count: vals.size }
-      elsif question.text_type?
-        recent = answers.where.not(text_value: [nil, ""]).order(created_at: :desc).limit(3).pluck(:text_value)
-        stats[question.id] = { type: :text, recent: recent, count: answers.count } if recent.any?
-      end
     end
   end
 

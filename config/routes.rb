@@ -37,9 +37,10 @@ Rails.application.routes.draw do
   post "webhooks/payos" => "webhooks/payos#receive", as: :payos_webhook
 
   # Public participation (End User — no login required)
-  get  "/s/:slug",         to: "participate/surveys#show",    as: :participate_survey
-  post "/s/:slug/submit",  to: "participate/surveys#submit",  as: :submit_survey
-  get  "/s/:slug/done",    to: "participate/surveys#done",    as: :survey_done
+  get  "/s/:slug",              to: "participate/surveys#show",    as: :participate_survey
+  post "/s/:slug/submit",       to: "participate/surveys#submit",  as: :submit_survey
+  get  "/s/:slug/done",         to: "participate/surveys#done",    as: :survey_done
+  get  "/s/:slug/edit/:token",  to: "participate/surveys#edit_response", as: :edit_survey_response
   get  "/v/:slug",              to: "participate/votes#show",        as: :participate_vote
   post "/v/:slug/submit",       to: "participate/votes#submit",      as: :submit_vote
   get  "/v/:slug/results",      to: "participate/votes#results",     as: :vote_results
