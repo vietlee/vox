@@ -12,11 +12,14 @@ class Response < ApplicationRecord
 
   after_create :increment_survey_counter
 
+  MAX_COMPLETION_SECONDS = 30.minutes.to_i  # cap idle sessions
+
   def complete!(time_seconds = nil)
+    raw = time_seconds.present? ? time_seconds.to_i : (Time.current - created_at).to_i
     update!(
       status: :completed,
       completed_at: Time.current,
-      completion_time_seconds: time_seconds.present? ? time_seconds.to_i : (Time.current - created_at).to_i
+      completion_time_seconds: [raw, MAX_COMPLETION_SECONDS].min
     )
     survey.increment!(:response_count)
     notify_admins_of_new_response
