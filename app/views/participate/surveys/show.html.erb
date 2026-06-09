@@ -44,9 +44,12 @@
   </div>
 
   <% if @survey.show_progress? %>
-  <!-- Progress bar — sticky so it's always visible while scrolling -->
-  <div class="sticky top-0 z-40 px-4 sm:px-6 py-2.5"
-       style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%); border-bottom:1px solid rgba(226,232,240,0.6); box-shadow:0 1px 8px rgba(99,102,241,0.06);">
+  <!-- Progress bar — fixed at top, always visible while scrolling -->
+  <div id="progress-fixed" class="px-4 sm:px-6 py-2.5"
+       style="position:fixed; top:0; left:0; right:0; z-index:9999;
+              background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
+              border-bottom:1px solid rgba(226,232,240,0.6);
+              box-shadow:0 1px 8px rgba(99,102,241,0.06);">
     <div class="max-w-[680px] mx-auto">
       <div class="flex justify-between text-[11px] text-slate-500 mb-1.5">
         <span id="progress-label"><%= t("participate.survey.progress", answered: 0, total: 0) %></span>
@@ -56,6 +59,14 @@
       </div>
     </div>
   </div>
+  <!-- Spacer to prevent content hiding behind fixed progress bar -->
+  <div id="progress-spacer" style="height:44px;"></div>
+  <script>
+    (function() {
+      var bar = document.getElementById('progress-fixed');
+      if (bar) document.getElementById('progress-spacer').style.height = bar.offsetHeight + 'px';
+    })();
+  </script>
   <% end %>
 
   <!-- Content -->
