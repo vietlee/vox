@@ -80,26 +80,6 @@
   <div class="flex-1 flex flex-col px-4 py-4">
     <div class="max-w-3xl mx-auto w-full px-4 pt-4 pb-5 fade-in">
 
-      <% if @already_responded || flash[:alert].present? %>
-        <div class="fade-in text-center">
-          <div class="rounded-2xl py-10 px-8" style="background:#ffffff; border:1px solid rgba(99,102,241,0.15); box-shadow:0 8px 32px rgba(99,102,241,0.08);">
-            <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
-                 style="background:linear-gradient(135deg,#6366f1,#a855f7);">
-              <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-              </svg>
-            </div>
-            <h2 class="text-[20px] font-extrabold text-slate-800 mb-2"><%= t("participate.survey.already_answered") %></h2>
-            <p class="text-[13px] text-slate-500"><%= t("participate.survey.already_answered_desc") %></p>
-          </div>
-        </div>
-      <% else %>
-
-      <% if @previous_answers.present? %>
-        <div class="mb-4 px-4 py-3 rounded-xl text-[13px] text-amber-700 font-medium" style="background:#fffbeb; border:1px solid #fcd34d;">
-          ✏️ <%= t("participate.survey.editing_previous") %>
-        </div>
-      <% end %>
 
       <%= form_with url: submit_survey_path(@survey.slug), method: :post, local: true, id: "survey-form", class: "space-y-4", multipart: true, data: { turbo: false } do |f| %>
 
@@ -144,7 +124,6 @@
         </div>
       <% end %>
 
-      <% end %> <%# end unless @already_responded %>
 
       <div class="flex-1"></div>
       <p class="flex justify-center items-center gap-1.5 py-6"><img src="/vox_logo.svg" alt="VOX" style="height:18px;width:auto;opacity:0.65;"><span style="font-size:11px;color:#94a3b8;">· Survey &amp; Voting Platform</span></p>

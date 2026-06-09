@@ -18,17 +18,7 @@ class Participate::SurveysController < Participate::BaseController
     # Track when user opened the form for avg completion time calculation
     session["survey_start_#{@survey.id}"] = Time.current.to_i
 
-    if @survey.allow_edit?
-      # When allow_edit is on, never block the user — always show the form.
-      # Try to pre-fill answers from previous response (cookie may be missing on mobile).
-      if (prev = find_previous_response)
-        @previous_answers = prev.answers.index_by(&:question_id)
-        @previous_email   = prev.respondent_email
-      end
-      @already_responded = false
-    else
-      @already_responded = already_responded?
-    end
+    @already_responded = false
     @response = @survey.responses.build
   end
 
@@ -38,35 +28,6 @@ class Participate::SurveysController < Participate::BaseController
       return
     end
 
-    # Allow edit: update existing response instead of creating new
-    if @survey.allow_edit? && (existing = find_previous_response)
-      new_email = if @survey.login_required?
-        current_user&.email
-      elsif @survey.email_required?
-        params.dig(:response, :respondent_email).presence
-      end
-      existing.update_column(:respondent_email, new_email) if new_email
-      existing.answers.destroy_all
-      save_answers(existing)
-      session[:survey_last_response_id] = existing.id
-      respond_to do |format|
-        format.json { render json: { ok: true, redirect: survey_done_path(@survey.slug) } }
-        format.html { redirect_to survey_done_path(@survey.slug) }
-      end
-      return
-    end
-
-    # Skip duplicate check when allow_edit is on — user may be submitting from a
-    # different browser/device where the respondent_token cookie is missing.
-    unless @survey.allow_edit?
-      if already_responded?
-        respond_to do |format|
-          format.json { render json: { error: t("participate.survey.already_answered") }, status: :unprocessable_entity }
-          format.html { redirect_to participate_survey_path(@survey.slug), alert: t("participate.survey.already_answered") }
-        end
-        return
-      end
-    end
 
     respondent_email = if @survey.login_required?
       current_user&.email
@@ -94,18 +55,11 @@ class Participate::SurveysController < Participate::BaseController
         format.html { redirect_to survey_done_path(@survey.slug) }
       end
     else
-      if @response.errors.where(:base, :already_responded).any?
-        respond_to do |format|
-          format.json { render json: { error: t("participate.survey.already_answered") }, status: :unprocessable_entity }
-          format.html { redirect_to participate_survey_path(@survey.slug), alert: t("participate.survey.already_answered") }
-        end
-      else
-        respond_to do |format|
-          format.json { render json: { error: @response.errors.full_messages.first }, status: :unprocessable_entity }
-          format.html do
-            @questions = @survey.questions.includes(:question_options)
-            render :show, status: :unprocessable_entity
-          end
+      respond_to do |format|
+        format.json { render json: { error: @response.errors.full_messages.first }, status: :unprocessable_entity }
+        format.html do
+          @questions = @survey.questions.includes(:question_options)
+          render :show, status: :unprocessable_entity
         end
       end
     end
@@ -140,38 +94,6 @@ class Participate::SurveysController < Participate::BaseController
     when "both"      then current_user.provider.in?(%w[google_oauth2 entra_id])
     else false
     end
-  end
-
-  def find_previous_response
-    if current_user.present?
-      @survey.responses.completed.find_by(user_id: current_user.id) ||
-        @survey.responses.completed.find_by(respondent_token: respondent_token)
-    else
-      @survey.responses.completed.find_by(respondent_token: respondent_token)
-    end
-  end
-
-  def already_responded?
-    return false unless @survey.max_per_user.to_i > 0
-    completed = @survey.responses.completed
-    return true if current_user.present? && completed.exists?(user_id: current_user.id)
-    return true if completed.exists?(respondent_token: respondent_token)
-    if @survey.email_required? || @survey.login_required?
-      # For login_required: use account email.
-      # For email_required: use form email first (matches what gets stored in respondent_email),
-      # fall back to account email so logged-in users are also protected.
-      email = if @survey.login_required?
-        current_user&.email
-      else
-        params.dig(:response, :respondent_email).presence || current_user&.email
-      end
-      return true if email && completed.exists?(respondent_email: email)
-    end
-    # IP check for anonymous surveys
-    if @survey.anonymous?
-      return true if completed.where.not(respondent_ip: nil).exists?(respondent_ip: request.remote_ip)
-    end
-    false
   end
 
   def build_results_stats
