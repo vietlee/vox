@@ -365,21 +365,21 @@ async function pollJobStatus(jobId, onDone) {
 }
 
 // ── Renumber question badges after reorder ────────────────────────────────────
-function renumberQuestions() {
+window.renumberQuestions = function() {
   document.querySelectorAll('#questions-container .question-number').forEach((el, i) => {
     el.textContent = i + 1;
   });
-}
+};
 
 // ── Drag-and-drop reorder ─────────────────────────────────────────────────────
+let _sortableInstance = null;
 function _initSortable() {
   const container = document.getElementById('questions-container');
   if (!container || typeof Sortable === 'undefined') return;
-  // Guard against double-init (turbo:load fires after DOMContentLoaded too)
-  if (container.dataset.sortableReady) return;
-  container.dataset.sortableReady = '1';
+  // Destroy previous instance to avoid double-init (Turbo navigations)
+  if (_sortableInstance) { try { _sortableInstance.destroy(); } catch(e) {} }
 
-  Sortable.create(container, {
+  _sortableInstance = Sortable.create(container, {
     handle:     '.drag-handle',
     animation:  150,
     ghostClass: 'sq-ghost',
