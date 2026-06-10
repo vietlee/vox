@@ -299,6 +299,8 @@ async function addQuestion(type) {
     card.style.transform = 'translateY(0)';
   });
 
+  renumberQuestions();
+
   const editPanel = card.querySelector('[id^="edit-panel-"]');
   if (editPanel) editPanel.classList.remove('hidden');
   card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -362,6 +364,13 @@ async function pollJobStatus(jobId, onDone) {
   }
 }
 
+// ── Renumber question badges after reorder ────────────────────────────────────
+function renumberQuestions() {
+  document.querySelectorAll('#questions-container .question-number').forEach((el, i) => {
+    el.textContent = i + 1;
+  });
+}
+
 // ── Drag-and-drop reorder ─────────────────────────────────────────────────────
 function _initSortable() {
   const container = document.getElementById('questions-container');
@@ -380,6 +389,8 @@ function _initSortable() {
       const order = Array.from(
         container.querySelectorAll('[data-question-id]')
       ).map(el => el.dataset.questionId);
+
+      renumberQuestions();
 
       fetch(REORDER_URL, {
         method: 'PATCH',

@@ -18,6 +18,7 @@
   <!-- Summary row -->
   <div class="flex items-start gap-3 p-4">
     <div class="drag-handle flex-shrink-0 text-slate-300 cursor-grab active:cursor-grabbing pt-0.5 text-[16px] select-none">⠿</div>
+    <div class="question-number flex-shrink-0 w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-[11px] font-bold text-white mt-0.5 select-none"><%= idx + 1 %></div>
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 mb-1.5">
         <span class="question-type-badge inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-semibold text-slate-500 uppercase">
@@ -332,7 +333,7 @@ async function deleteQuestion(id, url) {
   card.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
   card.style.opacity = '0';
   card.style.transform = 'translateY(-6px)';
-  setTimeout(() => card.remove(), 220);
+  setTimeout(() => { card.remove(); if (typeof renumberQuestions === 'function') renumberQuestions(); }, 220);
 }
 
 // ── Delete option ─────────────────────────────────────────────────────────────
