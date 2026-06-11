@@ -247,7 +247,8 @@
         <!-- Custom statuses -->
         <div class="mb-4">
           <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-0.5">Trạng thái submission</label>
-          <p class="text-[10px] text-slate-400 mb-2">Tùy chỉnh danh sách trạng thái. Để trống = dùng mặc định.</p>
+          <p class="text-[10px] text-slate-400 mb-1">Tùy chỉnh danh sách. Để trống = dùng mặc định.</p>
+          <p class="text-[10px] text-amber-600 font-medium mb-2">⭐ Trạng thái đầu tiên là giá trị mặc định cho submission mới. Kéo thả để sắp xếp.</p>
           <div id="custom-statuses-list" class="space-y-1.5 mb-2"></div>
           <button type="button" onclick="addCustomStatus()"
             class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg border-0 cursor-pointer transition-colors">
@@ -870,17 +871,38 @@ function syncSettingsData() {
 
 // Custom statuses
 window.updateCustomStatus = function(i, val) { _settings.custom_statuses[i] = val; markUnsaved(); };
+let _statusSortable = null;
 function renderCustomStatuses() {
   const list = document.getElementById('custom-statuses-list');
   if (!list) return;
   list.innerHTML = (_settings.custom_statuses||[]).map((s, i) => `
-    <div class="flex gap-1.5 items-center">
+    <div class="status-item flex gap-1.5 items-center" data-idx="${i}">
+      <span class="status-drag-handle flex-shrink-0 cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 select-none text-base leading-none px-0.5" title="Kéo để sắp xếp">⠿</span>
       <input type="text" value="${escHtml(s)}" placeholder="Tên trạng thái..."
         oninput="updateCustomStatus(${i}, this.value)"
         class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white">
       <button type="button" onclick="removeCustomStatus(${i})"
         class="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 text-[11px] flex-shrink-0">✕</button>
     </div>`).join('');
+
+  // Init SortableJS on the statuses list
+  if (_statusSortable) { try { _statusSortable.destroy(); } catch(e) {} }
+  if (typeof Sortable !== 'undefined' && list.children.length > 1) {
+    _statusSortable = Sortable.create(list, {
+      handle: '.status-drag-handle',
+      animation: 120,
+      ghostClass: 'opacity-40',
+      onEnd() {
+        const newOrder = Array.from(list.querySelectorAll('.status-item')).map(el => {
+          const idx = parseInt(el.dataset.idx);
+          return _settings.custom_statuses[idx];
+        });
+        _settings.custom_statuses = newOrder;
+        markUnsaved();
+        renderCustomStatuses(); // re-render to sync indices
+      }
+    });
+  }
 }
 window.addCustomStatus = function() {
   _settings.custom_statuses = [...(_settings.custom_statuses||[]), ''];
