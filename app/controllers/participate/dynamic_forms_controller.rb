@@ -44,10 +44,10 @@ class Participate::DynamicFormsController < Participate::BaseController
     end
 
     # Send notification emails
-    if @form.notification_emails.any?
-      # Custom recipient list from settings
-      @form.notification_emails.each do |email|
-        NotificationMailer.new_dynamic_form_submission_to_email(sub, email).deliver_later
+    user_ids = Array(@form.settings["notification_user_ids"]).map(&:to_i).reject(&:zero?)
+    if user_ids.any?
+      User.where(id: user_ids).each do |user|
+        NotificationMailer.new_dynamic_form_submission(sub, user).deliver_later
       end
     else
       # Default: workspace admins only

@@ -46,8 +46,10 @@ class Admin::DynamicFormsController < Admin::BaseController
   end
 
   def edit
-    @members     = current_workspace.members.order(:name, :email)
-    @assignee_ids = @form.assignees.pluck(:id)
+    @members              = current_workspace.members.order(:name, :email)
+    @assignee_ids         = @form.assignees.pluck(:id)
+    @form_assignees       = @form.assignees.order(:name, :email)
+    @notification_user_ids = Array(@form.settings["notification_user_ids"]).map(&:to_i)
   end
 
   def update

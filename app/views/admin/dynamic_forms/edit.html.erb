@@ -270,13 +270,31 @@
         </div>
 
         <div class="border-t border-slate-100 pt-4">
-          <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-0.5">Email nhận thông báo mới</label>
-          <p class="text-[10px] text-slate-400 mb-2">Nhận email khi có submission. Nếu để trống, gửi đến admin của workspace.</p>
-          <div id="notification-emails-list" class="space-y-1.5 mb-2"></div>
-          <button type="button" onclick="addNotificationEmail()"
-            class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg border-0 cursor-pointer transition-colors">
-            + Thêm email
-          </button>
+          <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-0.5">Nhận thông báo submission mới</label>
+          <p class="text-[10px] text-slate-400 mb-2">Chọn người nhận email khi có phản hồi mới. Nếu để trống, gửi đến admin của workspace.</p>
+          <% if @form_assignees.any? %>
+            <div class="space-y-0.5">
+              <% @form_assignees.each do |user| %>
+                <% uname = user.name.presence || user.email %>
+                <label class="flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                  <input type="checkbox"
+                         id="notif-user-<%= user.id %>"
+                         data-user-id="<%= user.id %>"
+                         onchange="toggleNotificationUser(<%= user.id %>, this.checked)"
+                         class="w-3.5 h-3.5 accent-indigo-600 flex-shrink-0"
+                         <%= @notification_user_ids.include?(user.id) ? 'checked' : '' %>>
+                  <div class="min-w-0">
+                    <p class="text-[12px] font-semibold text-slate-700 truncate"><%= uname %></p>
+                    <% if user.name.present? %>
+                      <p class="text-[10px] text-slate-400 truncate"><%= user.email %></p>
+                    <% end %>
+                  </div>
+                </label>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="text-[11px] text-slate-400 italic">Chưa có người quản lý nào. Hãy thêm ở mục "Người quản lý" trước.</p>
+          <% end %>
         </div>
       </div>
 
@@ -860,15 +878,15 @@ function setConditionProp(uid, prop, val) {
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 let _settings = Object.assign(
-  { custom_statuses: [], notify_assignee: false, notification_emails: [] },
+  { custom_statuses: [], notify_assignee: false, notification_user_ids: [] },
   INITIAL_SETTINGS
 );
 
 function syncSettingsData() {
   const toSave = {
     ..._settings,
-    custom_statuses:     (_settings.custom_statuses||[]).filter(s => s.trim() !== ''),
-    notification_emails: (_settings.notification_emails||[]).filter(e => e.trim() !== ''),
+    custom_statuses:      (_settings.custom_statuses||[]).filter(s => s.trim() !== ''),
+    notification_user_ids: (_settings.notification_user_ids||[]).map(Number).filter(Boolean),
   };
   document.getElementById('settings-data-input').value = JSON.stringify(toSave);
 }
@@ -932,34 +950,31 @@ window.toggleNotifyAssignee = function() {
   renderNotifyToggle(); markUnsaved();
 };
 
-// Notification emails
-window.updateNotificationEmail = function(i, val) { _settings.notification_emails[i] = val; markUnsaved(); };
-function renderNotificationEmails() {
-  const list = document.getElementById('notification-emails-list');
-  if (!list) return;
-  list.innerHTML = (_settings.notification_emails||[]).map((e, i) => `
-    <div class="flex gap-1.5 items-center">
-      <input type="email" value="${escHtml(e)}" placeholder="email@example.com"
-        oninput="updateNotificationEmail(${i}, this.value)"
-        class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-mono outline-none focus:border-indigo-400 bg-white">
-      <button type="button" onclick="removeNotificationEmail(${i})"
-        class="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 text-[11px] flex-shrink-0">✕</button>
-    </div>`).join('');
-}
-window.addNotificationEmail = function() {
-  _settings.notification_emails = [...(_settings.notification_emails||[]), ''];
-  renderNotificationEmails(); markUnsaved();
+// Notification user IDs (checkboxes rendered in ERB, JS just tracks the array)
+window.toggleNotificationUser = function(userId, checked) {
+  let ids = _settings.notification_user_ids || [];
+  if (checked) {
+    if (!ids.includes(userId)) ids = [...ids, userId];
+  } else {
+    ids = ids.filter(id => Number(id) !== Number(userId));
+  }
+  _settings.notification_user_ids = ids;
+  markUnsaved();
 };
-window.removeNotificationEmail = function(i) {
-  _settings.notification_emails.splice(i, 1);
-  renderNotificationEmails(); markUnsaved();
-};
+
+// Sync checkboxes state from INITIAL_SETTINGS on load
+(function() {
+  const ids = (_settings.notification_user_ids||[]).map(Number);
+  document.querySelectorAll('[id^="notif-user-"]').forEach(cb => {
+    const uid = parseInt(cb.dataset.userId);
+    cb.checked = ids.includes(uid);
+  });
+})();
 
 // Init settings UI
 (function() {
   renderCustomStatuses();
   renderNotifyToggle();
-  renderNotificationEmails();
   syncSettingsData();
 })();
 
