@@ -382,6 +382,7 @@
             <% rpt_ctx    = rpt_meta["user_context"] %>
             <% rpt_title  = rpt.output["title"].presence || @survey.title %>
             <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4" id="report-card-<%= rpt.id %>">
+              <!-- Header -->
               <div class="flex items-start justify-between gap-2 mb-2">
                 <div class="flex-1 min-w-0">
                   <div class="text-[12px] font-semibold text-slate-800 truncate"><%= rpt_title %></div>
@@ -394,22 +395,44 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Prompt preview + expand -->
               <% if rpt_ctx.present? %>
-                <p class="text-[11px] text-slate-500 italic mb-2 line-clamp-2">"<%= rpt_ctx %>"</p>
+                <div class="mb-2">
+                  <p class="text-[11px] text-slate-500 italic line-clamp-2" id="rpt-ctx-preview-<%= rpt.id %>">"<%= rpt_ctx %>"</p>
+                  <div class="text-[11px] text-slate-500 italic hidden" id="rpt-ctx-full-<%= rpt.id %>">"<%= rpt_ctx %>"</div>
+                  <% if rpt_ctx.length > 80 %>
+                    <button onclick="toggleReportPrompt(<%= rpt.id %>)"
+                      id="rpt-ctx-btn-<%= rpt.id %>"
+                      class="text-[10px] font-semibold text-indigo-500 hover:text-indigo-700 mt-0.5 cursor-pointer bg-transparent border-0 p-0">
+                      Đọc thêm ▾
+                    </button>
+                  <% end %>
+                </div>
               <% end %>
+
+              <!-- Summary preview -->
               <p class="text-[11px] text-slate-600 line-clamp-2 mb-3">
                 <%= rpt.output["executive_summary"]&.truncate(100) %>
               </p>
-              <div class="flex gap-2">
+
+              <!-- Actions -->
+              <div class="flex gap-1.5 flex-wrap">
                 <a href="<%= export_report_survey_path(@survey, report_id: rpt.id, format_type: rpt_fmt) %>"
                    data-turbo="false"
                    onclick="btnDownloadLoading(this)"
-                   class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg text-white hover:opacity-90 transition-opacity"
-                   style="background:linear-gradient(135deg,#7c3aed,#6366f1);">
+                   class="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg text-white hover:opacity-90 transition-opacity"
+                   style="background:linear-gradient(135deg,#7c3aed,#6366f1);min-width:0;">
                   ⬇ Tải <%= rpt_fmt == 'word' ? 'WORD' : rpt_fmt.upcase %>
                 </a>
+                <% if rpt_ctx.present? %>
+                <button onclick="regenReport('<%= j rpt_ctx %>', '<%= rpt_lang.downcase %>', '<%= rpt_fmt %>')"
+                  class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border border-violet-200 text-violet-600 hover:bg-violet-50 transition-colors cursor-pointer bg-white">
+                  ↺ Tạo lại
+                </button>
+                <% end %>
                 <button onclick="deleteReport(<%= rpt.id %>, '<%= delete_report_survey_path(@survey, report_id: rpt.id) %>')"
-                  class="px-3 py-1.5 text-[11px] font-semibold text-red-500 hover:bg-red-50 rounded-lg border border-red-200 transition-colors">
+                  class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-red-500 hover:bg-red-50 rounded-lg border border-red-200 transition-colors cursor-pointer bg-white">
                   Xoá
                 </button>
               </div>
@@ -1196,7 +1219,44 @@ async function suggestReportPrompt() {
   }
 }
 
-Object.assign(window, { switchTab, toggleRow, requestAiAnalysis, requestReport, updateReportBtn, toggleReport, checkReport, startPdfExport, openExportPicker, closeExportPicker, closeDeleteReportModal, showSurveyCloseConfirm, hideSurveyCloseConfirm, deleteReport, btnDownloadLoading, suggestReportPrompt });
+function toggleReportPrompt(id) {
+  const preview = document.getElementById(`rpt-ctx-preview-${id}`);
+  const full    = document.getElementById(`rpt-ctx-full-${id}`);
+  const btn     = document.getElementById(`rpt-ctx-btn-${id}`);
+  if (!preview || !full) return;
+  const expanded = full.classList.contains('hidden');
+  preview.classList.toggle('hidden', expanded);
+  full.classList.toggle('hidden', !expanded);
+  if (btn) btn.textContent = expanded ? 'Thu gọn ▴' : 'Đọc thêm ▾';
+}
+
+function regenReport(ctx, lang, fmt) {
+  // Switch to report tab
+  switchTab('report');
+  // Fill context textarea
+  const ta = document.getElementById('report-context');
+  if (ta) {
+    ta.value = ctx;
+    ta.style.borderColor = '#8b5cf6';
+    setTimeout(() => { ta.style.borderColor = '#e2e8f0'; }, 2000);
+    ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  // Set language
+  const langInputs = document.querySelectorAll('input[name="language"]');
+  langInputs.forEach(inp => { inp.checked = (inp.value === lang); });
+  const langSel = document.querySelector('select[name="language"]');
+  if (langSel) langSel.value = lang;
+  // Set format
+  const fmtBtns = document.querySelectorAll('[data-format]');
+  fmtBtns.forEach(btn => {
+    const isActive = btn.dataset.format === fmt;
+    btn.style.background = isActive ? 'linear-gradient(135deg,#7c3aed,#6366f1)' : '';
+    btn.style.color = isActive ? 'white' : '';
+  });
+  updateReportBtn();
+}
+
+Object.assign(window, { switchTab, toggleRow, requestAiAnalysis, requestReport, updateReportBtn, toggleReport, checkReport, startPdfExport, openExportPicker, closeExportPicker, closeDeleteReportModal, showSurveyCloseConfirm, hideSurveyCloseConfirm, deleteReport, btnDownloadLoading, suggestReportPrompt, toggleReportPrompt, regenReport });
 })();
 
 function showSurveyCloseConfirm() {

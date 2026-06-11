@@ -98,17 +98,22 @@ class AiExecutiveReportJob < ApplicationJob
             "expected_impact": "What improvement is expected"
           }
         ],
-        "conclusion": "Closing paragraph summarizing the path forward and reinforcing urgency or optimism based on the data."
+        "conclusion": "1 sentence only — forward-looking and action-oriented.",
+
+        "relevant_question_ids": [<list of question IDs (integers) that are most relevant to the report focus — exclude demographics, names, or questions irrelevant to the prompt. Max 6 IDs.>]
       }
 
       Hard constraints:
       - EXACTLY 3-4 sections (not 5). Each section: 2 short paragraphs max.
       - EXACTLY 3 recommendations (most impactful only).
-      - conclusion: 1 sentence only.
       - Section headings and ALL text in #{lang_name}.
       - Sections = survey DATA only. Zero meta-commentary about the report itself.
       - #{user_context ? "Directly address: \"#{user_context}\" — weave into the sections, not as a separate section." : "Focus only on the most statistically significant findings."}
       - sentiment_positive/negative in key_metrics MUST be numeric percentages (e.g. "72%"), not "N/A" or placeholders.
+      - relevant_question_ids: pick only questions whose data directly supports the report focus. Skip name fields, open demographic questions, and low-signal questions.
+
+      ## Survey questions for reference (to populate relevant_question_ids):
+      #{survey.questions.order(:position).map { |q| "ID #{q.id}: [#{q.question_type}] #{q.title}" }.join("\n")}
     PROMPT
 
     result_text = ClaudeService.opus_long.call(
@@ -119,8 +124,12 @@ class AiExecutiveReportJob < ApplicationJob
 
     result = parse_json_response(result_text)
 
-    # Attach real per-question chart data from DB
-    result["chart_data"] = build_question_chart_data(survey)
+    # Attach real per-question chart data from DB, filtered by AI-selected relevant questions
+    all_chart_data = build_question_chart_data(survey)
+    relevant_ids   = Array(result["relevant_question_ids"]).map(&:to_i).select(&:positive?)
+    result["chart_data"] = relevant_ids.any? ?
+      all_chart_data.select { |d| relevant_ids.include?(d["question_id"].to_i) } :
+      all_chart_data
 
     # Store metadata alongside the report content
     result["_meta"] = {
@@ -153,7 +162,7 @@ class AiExecutiveReportJob < ApplicationJob
   private
 
   def build_question_chart_data(survey)
-    completed_response_ids = survey.responses.completed.where(excluded: false).pluck(:id)
+    completed_response_ids = survey.responses.completed.where(excluded: [false, nil]).pluck(:id)
     return [] if completed_response_ids.empty?
 
     survey.questions.order(:position).filter_map do |q|
