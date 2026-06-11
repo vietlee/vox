@@ -1,7 +1,7 @@
 require "csv"
 class Admin::DynamicFormsController < Admin::BaseController
-  before_action :set_form,            only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee, :show_submission, :destroy_submission]
-  before_action :authorize_form_access!, only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee, :show_submission, :destroy_submission]
+  before_action :set_form,            only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee, :show_submission, :destroy_submission, :update_submission_data]
+  before_action :authorize_form_access!, only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee, :show_submission, :destroy_submission, :update_submission_data]
 
   def index
     scope = if current_workspace_admin?
@@ -90,7 +90,8 @@ class Admin::DynamicFormsController < Admin::BaseController
   end
 
   def submissions
-    scope = @form.dynamic_form_submissions.includes(:assignee).order(created_at: :desc)
+    @time_order = params[:order] == "asc" ? "asc" : "desc"
+    scope = @form.dynamic_form_submissions.includes(:assignee).order(created_at: @time_order)
     if params[:status].present?
       if @form.custom_statuses.any?
         scope = scope.where(custom_status: params[:status])
@@ -108,12 +109,25 @@ class Admin::DynamicFormsController < Admin::BaseController
     @status_filter   = params[:status]
     @assignee_filter = params[:assignee_id]
     @search_query    = params[:q]
+    @time_order      = @time_order
   end
 
   def show_submission
     @submission  = @form.dynamic_form_submissions.find(params[:submission_id])
     @fields      = @form.dynamic_form_fields
     @all_handlers = (@form.assignees + @form.workspace.admin_users).uniq(&:id).sort_by { |u| u.name.presence || u.email }
+  end
+
+  def update_submission_data
+    sub = @form.dynamic_form_submissions.find(params[:submission_id])
+    updates = params[:data].to_unsafe_h rescue {}
+    # Only allow fields marked as admin_editable
+    editable_keys = @form.dynamic_form_fields.where(admin_editable: true).pluck(:field_key)
+    filtered = updates.slice(*editable_keys)
+    sub.update_column(:data, sub.data.merge(filtered))
+    render json: { ok: true }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def destroy_submission
@@ -237,6 +251,7 @@ class Admin::DynamicFormsController < Admin::BaseController
         max_size_mb:       fdata["max_size_mb"].presence,
         multiple:          fdata["multiple"].to_s == "true",
         admin_only:        fdata["admin_only"].to_s == "true",
+        admin_editable:    fdata["admin_editable"].to_s == "true",
         conditional_logic: cond_attrs,
         position:          idx,
       }

@@ -42,22 +42,82 @@
           <span class="text-[11px] text-slate-400"><%= I18n.l(@submission.created_at, format: :long) rescue I18n.l(@submission.created_at, format: :short) %></span>
         </div>
 
+        <% has_editable = @fields.any?(&:admin_editable?) %>
         <% if @fields.any? %>
-          <dl class="divide-y divide-slate-100">
+          <% if has_editable %>
+            <div class="px-6 pt-4 pb-0 flex items-center justify-between">
+              <p class="text-[11px] text-emerald-600 font-medium flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Một số trường có thể chỉnh sửa
+              </p>
+              <button type="button" id="save-editable-btn"
+                onclick="saveEditableFields()"
+                class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-emerald-500 hover:bg-emerald-600 text-white border-0 cursor-pointer transition-colors shadow-sm">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Lưu thay đổi
+              </button>
+            </div>
+          <% end %>
+          <dl class="divide-y divide-slate-100" id="fields-list">
             <% @fields.each do |field| %>
               <% val = @submission.value_for(field.field_key) %>
               <div class="px-6 py-4">
-                <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1.5"><%= field.label %></dt>
+                <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                  <%= field.label %>
+                  <% if field.admin_editable? %>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-600 font-semibold normal-case tracking-normal">có thể sửa</span>
+                  <% end %>
+                  <% if field.admin_only? %>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-600 font-semibold normal-case tracking-normal">admin only</span>
+                  <% end %>
+                </dt>
                 <dd class="text-[13px] text-slate-800 leading-relaxed">
-                  <% if val.is_a?(Array) && val.first.is_a?(Hash) && val.first["blob_id"].present? %>
+                  <% if field.admin_editable? %>
+                    <%# Editable input %>
+                    <% if field.field_type == "textarea" %>
+                      <textarea data-field-key="<%= field.field_key %>"
+                        onchange="markDirty()"  oninput="markDirty()"
+                        class="editable-field w-full px-3 py-2 border border-emerald-200 rounded-lg text-[13px] outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-y bg-emerald-50/30 transition-all"
+                        rows="3"><%= val.is_a?(Array) ? val.join(", ") : val.to_s %></textarea>
+                    <% elsif field.field_type == "select" %>
+                      <select data-field-key="<%= field.field_key %>"
+                        onchange="markDirty()"
+                        class="editable-field w-full px-3 py-2 border border-emerald-200 rounded-lg text-[13px] outline-none focus:border-emerald-400 bg-emerald-50/30 transition-all">
+                        <% field.options_list.each do |opt| %>
+                          <option value="<%= opt["value"] %>" <%= val.to_s == opt["value"].to_s ? "selected" : "" %>><%= opt["label"] %></option>
+                        <% end %>
+                      </select>
+                    <% elsif %w[radio checkboxes].include?(field.field_type) %>
+                      <div class="space-y-1.5">
+                        <% checked_vals = val.is_a?(Array) ? val : [val.to_s] %>
+                        <% field.options_list.each do |opt| %>
+                          <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="<%= field.field_type == "radio" ? "radio" : "checkbox" %>"
+                              name="editable_<%= field.field_key %>"
+                              value="<%= opt["value"] %>"
+                              class="editable-field accent-emerald-600"
+                              data-field-key="<%= field.field_key %>"
+                              data-multi="<%= field.field_type == "checkboxes" %>"
+                              onchange="markDirty()"
+                              <%= checked_vals.include?(opt["value"].to_s) ? "checked" : "" %>>
+                            <span class="text-[13px] text-slate-700"><%= opt["label"] %></span>
+                          </label>
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <input type="<%= field.field_type == "number" ? "number" : "text" %>"
+                        data-field-key="<%= field.field_key %>"
+                        value="<%= val.is_a?(Array) ? val.join(", ") : val.to_s %>"
+                        onchange="markDirty()" oninput="markDirty()"
+                        class="editable-field w-full px-3 py-2 border border-emerald-200 rounded-lg text-[13px] outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 bg-emerald-50/30 transition-all">
+                    <% end %>
+                  <% elsif val.is_a?(Array) && val.first.is_a?(Hash) && val.first["blob_id"].present? %>
                     <div class="space-y-1.5">
                       <% val.each do |fdata| %>
                         <% begin %>
                           <%= link_to rails_blob_url(ActiveStorage::Blob.find_signed(fdata['blob_id'])), target: "_blank",
                                 class: "inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[12px] font-medium rounded-lg hover:bg-indigo-100 transition-colors" do %>
-                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
-                            </svg>
+                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                             <%= fdata['filename'] %>
                           <% end %>
                         <% rescue nil; end %>
@@ -67,9 +127,7 @@
                     <% begin %>
                       <%= link_to rails_blob_url(ActiveStorage::Blob.find_signed(val['blob_id'])), target: "_blank",
                             class: "inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[12px] font-medium rounded-lg hover:bg-indigo-100 transition-colors" do %>
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
-                        </svg>
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                         <%= val['filename'] %>
                       <% end %>
                     <% rescue nil; end %>
@@ -308,6 +366,62 @@
     }
     btn.disabled = false; btn.textContent = 'Xoá';
     window._cancelDeleteSub();
+  };
+
+  // ── Editable fields ────────────────────────────────────────────────────────
+  const SAVE_URL = '<%= j update_submission_data_dynamic_form_path(@form) %>';
+  const SUB_ID   = <%= @submission.id %>;
+
+  window.markDirty = function() {
+    const btn = document.getElementById('save-editable-btn');
+    if (btn) btn.classList.remove('hidden');
+  };
+
+  window.saveEditableFields = async function() {
+    const btn = document.getElementById('save-editable-btn');
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    // Collect values from all editable inputs
+    const data = {};
+    // Text / textarea / number / select inputs
+    document.querySelectorAll('.editable-field[data-field-key]:not([type=checkbox]):not([type=radio])').forEach(el => {
+      data[el.dataset.fieldKey] = el.value;
+    });
+    // Checkboxes (multi)
+    const cbGroups = {};
+    document.querySelectorAll('.editable-field[type=checkbox][data-field-key]').forEach(el => {
+      if (!cbGroups[el.dataset.fieldKey]) cbGroups[el.dataset.fieldKey] = [];
+      if (el.checked) cbGroups[el.dataset.fieldKey].push(el.value);
+    });
+    Object.assign(data, cbGroups);
+    // Radio
+    document.querySelectorAll('.editable-field[type=radio][data-field-key]:checked').forEach(el => {
+      data[el.dataset.fieldKey] = el.value;
+    });
+
+    const res = await fetch(SAVE_URL, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify({ submission_id: SUB_ID, data: data })
+    });
+
+    if (res.ok) {
+      btn.textContent = '✓ Đã lưu';
+      btn.classList.remove('bg-emerald-500','hover:bg-emerald-600');
+      btn.classList.add('bg-slate-400');
+      setTimeout(() => {
+        btn.classList.add('hidden');
+        btn.classList.remove('bg-slate-400');
+        btn.classList.add('bg-emerald-500','hover:bg-emerald-600');
+        btn.textContent = 'Lưu thay đổi';
+        btn.disabled = false;
+      }, 1500);
+    } else {
+      btn.textContent = 'Lưu thay đổi';
+      btn.disabled = false;
+      alert('Lưu thất bại, vui lòng thử lại.');
+    }
   };
 
   // Close menus on outside click

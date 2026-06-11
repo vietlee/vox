@@ -183,6 +183,7 @@ Rails.application.routes.draw do
         get   :show_submission
         patch :update_submission_status
         patch :update_submission_assignee
+        patch :update_submission_data
         delete :destroy_submission
       end
     end

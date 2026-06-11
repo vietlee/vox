@@ -405,7 +405,8 @@ const INITIAL_FIELDS = <%= @form.dynamic_form_fields.map { |f|
     min_value: f.min_value, max_value: f.max_value,
     accept: f.accept, max_size_mb: f.max_size_mb, multiple: f.multiple,
     conditional_logic: f.conditional_logic || {},
-    admin_only: f.admin_only }
+    admin_only: f.admin_only,
+    admin_editable: f.admin_editable }
 }.to_json.html_safe %>;
 const INITIAL_SETTINGS = <%= @form.settings.to_json.html_safe %>;
 
@@ -556,21 +557,27 @@ function renderField(f, i) {
           class="w-full mt-0.5 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white"></div>
     </div>` : '';
 
-  // Admin-only toggle
+  // Admin-only + Admin-editable toggles
   const adminOnlyHtml = `
-    <div class="mt-3 pt-2.5 border-t border-slate-100">
-      <div class="flex items-center gap-2">
+    <div class="mt-3 pt-2.5 border-t border-slate-100 space-y-2">
+      <div class="flex items-center gap-4 flex-wrap">
         <label class="flex items-center gap-2 cursor-pointer select-none group">
           <input type="checkbox" ${f.admin_only ? 'checked' : ''}
             onchange="setFieldProp(${f._uid},'admin_only',this.checked)"
             class="w-3.5 h-3.5 accent-violet-600">
-          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-violet-600 transition-colors">
-            🔒 Ẩn trên public link
-          </span>
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-violet-600 transition-colors">🔒 Ẩn trên public link</span>
         </label>
-        ${f.admin_only ? `<span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-violet-100 text-violet-700">Chỉ admin thấy</span>` : ''}
+        <label class="flex items-center gap-2 cursor-pointer select-none group">
+          <input type="checkbox" ${f.admin_editable ? 'checked' : ''}
+            onchange="setFieldProp(${f._uid},'admin_editable',this.checked)"
+            class="w-3.5 h-3.5 accent-emerald-600">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-emerald-600 transition-colors">✏️ Admin có thể sửa</span>
+        </label>
       </div>
-      ${f.admin_only ? `<p class="mt-1 text-[10px] text-violet-500 leading-relaxed">Trường này sẽ không hiển thị cho người dùng khi điền form. Chỉ admin mới thấy dữ liệu này trong submissions.</p>` : ''}
+      ${(f.admin_only || f.admin_editable) ? `<div class="flex flex-wrap gap-1.5">
+        ${f.admin_only ? `<span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-violet-100 text-violet-700">Chỉ admin thấy</span>` : ''}
+        ${f.admin_editable ? `<span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700">Admin có thể sửa</span>` : ''}
+      </div>` : ''}
     </div>`;
 
   // Skip logic section
@@ -683,7 +690,7 @@ function renderOption(uid, oi, o) {
 
 function addField() {
   const uid = _uid++;
-  _fields.push({ _uid:uid, id:0, label:'', field_key:'', field_type:'text', placeholder:'', hint:'', required:false, options:[], min_length:null, max_length:null, min_value:null, max_value:null, admin_only:false, conditional_logic:{} });
+  _fields.push({ _uid:uid, id:0, label:'', field_key:'', field_type:'text', placeholder:'', hint:'', required:false, options:[], min_length:null, max_length:null, min_value:null, max_value:null, admin_only:false, admin_editable:false, conditional_logic:{} });
   markUnsaved();
   renderAll();
   setTimeout(() => document.getElementById(`field-${uid}`)?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
@@ -729,7 +736,7 @@ function setFieldProp(uid, prop, val) {
     if (keyEl && (!f.field_key || f._autoKey)) { f.field_key = auto; f._autoKey = true; keyEl.value = auto; }
   }
   if (prop === 'field_key') f._autoKey = false;
-  if (prop === 'admin_only') { renderAll(); return; }
+  if (prop === 'admin_only' || prop === 'admin_editable') { renderAll(); return; }
   if (prop === 'field_type') {
     if (val === 'file' && f.multiple == null) f.multiple = true;
     renderAll();
@@ -796,6 +803,7 @@ function syncFieldsData() {
     min_value: f.min_value||null, max_value: f.max_value||null,
     accept: f.accept||null, max_size_mb: f.max_size_mb||null, multiple: !!f.multiple,
     admin_only: !!f.admin_only,
+    admin_editable: !!f.admin_editable,
     conditional_logic: f.conditional_logic || {},
   }));
   document.getElementById('fields-data-input').value = JSON.stringify(data);

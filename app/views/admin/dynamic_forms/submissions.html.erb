@@ -88,8 +88,19 @@
             <tr class="border-b border-slate-200" style="position:sticky;top:0;z-index:1;background:rgba(248,250,252,0.97);">
               <th class="w-8 px-2 py-2.5"></th>
               <th class="w-8 px-2 py-2.5"></th>
-              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 w-10"><%= t("dynamic_forms.col_index") %></th>
-              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap"><%= t("dynamic_forms.col_time") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap">
+                <%= link_to submissions_dynamic_form_path(@form,
+                      q: @search_query, status: @status_filter, assignee_id: @assignee_filter,
+                      order: @time_order == "asc" ? "desc" : "asc"),
+                      class: "inline-flex items-center gap-1 hover:text-indigo-600 transition-colors group" do %>
+                  <%= t("dynamic_forms.col_time") %>
+                  <% if @time_order == "asc" %>
+                    <svg class="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                  <% else %>
+                    <svg class="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                  <% end %>
+                <% end %>
+              </th>
               <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap"><%= t("dynamic_forms.col_status") %></th>
               <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap"><%= t("dynamic_forms.col_assignee") %></th>
               <% @fields.each do |field| %>
@@ -118,12 +129,6 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                     </svg>
-                  <% end %>
-                </td>
-                <td class="px-4 py-3">
-                  <%= link_to show_submission_dynamic_form_path(@form, submission_id: sub.id),
-                        class: "inline-flex items-center gap-1 text-[12px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline font-mono" do %>
-                    #<%= (@pagy.page - 1) * @pagy.items + i + 1 %>
                   <% end %>
                 </td>
                 <td class="px-4 py-3 text-[12px] text-slate-500 whitespace-nowrap">
