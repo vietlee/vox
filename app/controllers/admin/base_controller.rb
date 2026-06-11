@@ -45,8 +45,15 @@ class Admin::BaseController < ApplicationController
   def pagy(scope, items: 15, page: nil)
     page  = (page || params[:page] || 1).to_i
     total = scope.count
+    pages = [(total.to_f / items).ceil, 1].max
+    page  = [[page, 1].max, pages].min
     records = scope.offset((page - 1) * items).limit(items)
-    pagy_obj = Struct.new(:page, :items, :count, :pages).new(page, items, total, (total.to_f / items).ceil)
+    from = total.zero? ? 0 : (page - 1) * items + 1
+    to   = [page * items, total].min
+    prev_page = page > 1 ? page - 1 : nil
+    next_page = page < pages ? page + 1 : nil
+    pagy_obj = Struct.new(:page, :items, :count, :pages, :from, :to, :prev, :next)
+                     .new(page, items, total, pages, from, to, prev_page, next_page)
     [pagy_obj, records]
   end
 end
