@@ -860,7 +860,12 @@ let _settings = Object.assign(
 );
 
 function syncSettingsData() {
-  document.getElementById('settings-data-input').value = JSON.stringify(_settings);
+  const toSave = {
+    ..._settings,
+    custom_statuses:     (_settings.custom_statuses||[]).filter(s => s.trim() !== ''),
+    notification_emails: (_settings.notification_emails||[]).filter(e => e.trim() !== ''),
+  };
+  document.getElementById('settings-data-input').value = JSON.stringify(toSave);
 }
 
 // Custom statuses
