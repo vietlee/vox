@@ -223,7 +223,8 @@ function toggleStatusMenu(id) {
 }
 
 async function setStatus(id, val, label, bg, text, border, dot, url) {
-  document.getElementById('status-menu-' + id)?.classList.add('hidden');
+  const menu = document.getElementById('status-menu-' + id);
+  menu?.classList.add('hidden');
 
   const res = await fetch(url, {
     method: 'PATCH',
@@ -232,20 +233,30 @@ async function setStatus(id, val, label, bg, text, border, dot, url) {
   });
   if (!res.ok) return;
 
-  // Update badge
+  // Update badge button colors
   const wrap = document.getElementById('status-wrap-' + id);
   if (!wrap) return;
   const btn = wrap.querySelector('button');
+  // Strip old color classes cleanly
   btn.className = btn.className
-    .replace(/bg-\w+-\d+/g, '').replace(/text-\w+-\d+/g, '').replace(/border-\w+-\d+/g, '')
-    .replace(/\s+/g, ' ').trim();
+    .split(' ')
+    .filter(c => !/^(bg|text|border)-\w+-\d+$/.test(c))
+    .join(' ');
   btn.classList.add(...bg.split(' '), ...text.split(' '), ...border.split(' '));
 
   const dotEl = btn.querySelector('span:first-child');
-  if (dotEl) { dotEl.className = 'w-1.5 h-1.5 rounded-full flex-shrink-0 ' + dot; }
+  if (dotEl) dotEl.className = 'w-1.5 h-1.5 rounded-full flex-shrink-0 ' + dot;
 
   const labelEl = document.getElementById('status-label-' + id);
   if (labelEl) labelEl.textContent = label;
+
+  // Update tick in dropdown
+  if (menu) {
+    menu.querySelectorAll('[data-sval]').forEach(item => {
+      const tick = item.querySelector('.status-tick');
+      if (tick) tick.classList.toggle('hidden', item.dataset.sval !== String(val));
+    });
+  }
 }
 
 // Close menus on outside click
