@@ -113,9 +113,11 @@ class Admin::SurveysController < Admin::BaseController
     @ai_analysis     = @survey.latest_ai_analysis
     @new_responses_since_analysis = @ai_analysis ?
       @survey.responses.completed.where("completed_at > ?", @ai_analysis.created_at).count : 0
-    @individual_responses = @survey.responses.completed
-                              .includes(:answers)
-                              .order(completed_at: :desc)
+    @pagy_responses, @individual_responses = pagy(
+      @survey.responses.completed.includes(:answers).order(completed_at: :desc),
+      items: 20,
+      page: params[:responses_page]
+    )
   end
 
   def share

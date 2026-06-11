@@ -478,6 +478,53 @@
           </tbody>
         </table>
       </div>
+      <% if @pagy_responses.pages > 1 %>
+        <div class="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+          <p class="text-[12px] text-slate-400">
+            Hiển thị <%= @pagy_responses.from %>–<%= @pagy_responses.to %> / <%= @pagy_responses.count %> phản hồi
+          </p>
+          <div class="flex items-center gap-1">
+            <% if @pagy_responses.prev %>
+              <%= link_to results_survey_path(@survey, anchor: "individual", responses_page: @pagy_responses.prev),
+                  class: "px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors",
+                  data: { turbo: false } do %>
+                ← Trước
+              <% end %>
+            <% else %>
+              <span class="px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-100 text-slate-300 cursor-not-allowed">← Trước</span>
+            <% end %>
+
+            <% pagy_window = ([1, @pagy_responses.page - 2].max..[[@pagy_responses.pages, @pagy_responses.page + 2].min, @pagy_responses.pages].min) %>
+            <% if pagy_window.first > 1 %>
+              <%= link_to results_survey_path(@survey, anchor: "individual", responses_page: 1),
+                  class: "px-2.5 py-1.5 text-[12px] rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50",
+                  data: { turbo: false } do %>1<% end %>
+              <span class="text-slate-300 text-[12px] px-1">…</span>
+            <% end %>
+            <% pagy_window.each do |p| %>
+              <%= link_to results_survey_path(@survey, anchor: "individual", responses_page: p),
+                  class: "px-2.5 py-1.5 text-[12px] rounded-lg border transition-colors #{p == @pagy_responses.page ? 'bg-indigo-600 border-indigo-600 text-white font-semibold' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}",
+                  data: { turbo: false } do %><%= p %><% end %>
+            <% end %>
+            <% if pagy_window.last < @pagy_responses.pages %>
+              <span class="text-slate-300 text-[12px] px-1">…</span>
+              <%= link_to results_survey_path(@survey, anchor: "individual", responses_page: @pagy_responses.pages),
+                  class: "px-2.5 py-1.5 text-[12px] rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50",
+                  data: { turbo: false } do %><%= @pagy_responses.pages %><% end %>
+            <% end %>
+
+            <% if @pagy_responses.next %>
+              <%= link_to results_survey_path(@survey, anchor: "individual", responses_page: @pagy_responses.next),
+                  class: "px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors",
+                  data: { turbo: false } do %>
+                Tiếp →
+              <% end %>
+            <% else %>
+              <span class="px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-100 text-slate-300 cursor-not-allowed">Tiếp →</span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
     <% else %>
       <div class="text-center py-12 text-[13px] text-slate-400"><%= t("surveys.results.no_responses") %></div>
     <% end %>
@@ -651,7 +698,13 @@ function switchTab(tab) {
 // Restore tab from URL hash on load
 (function() {
   const hash = location.hash.replace('#', '');
-  if (VALID_TABS.includes(hash)) switchTab(hash);
+  const urlParams = new URLSearchParams(location.search);
+  // Auto-switch to individual tab when paginating responses
+  if (urlParams.has('responses_page') || hash === 'individual') {
+    switchTab('individual');
+  } else if (VALID_TABS.includes(hash)) {
+    switchTab(hash);
+  }
 
   // Update language switcher links to carry the current hash through reloads
   document.querySelectorAll('a[href*="?locale="]').forEach(function(link) {
