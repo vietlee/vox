@@ -21,7 +21,7 @@ class Participate::DynamicFormsController < Participate::BaseController
       data:             data,
       respondent_token: respondent_token,
       ip_address:       request.remote_ip,
-      assignee_id:      @form.workspace.admin_users.first&.id,
+      assignee_id:      nil,
       custom_status:    @form.custom_statuses.first
     )
 
