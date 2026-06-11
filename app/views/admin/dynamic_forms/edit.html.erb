@@ -242,36 +242,36 @@
 
       <!-- Settings card -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h2 class="text-[13px] font-bold text-slate-700 mb-4">⚙️ Cài đặt form</h2>
+        <h2 class="text-[13px] font-bold text-slate-700 mb-4"><%= t("dynamic_forms.settings_title") %></h2>
 
         <!-- Custom statuses -->
         <div class="mb-4">
-          <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-0.5">Trạng thái submission</label>
-          <p class="text-[10px] text-slate-400 mb-1">Tùy chỉnh danh sách. Để trống = dùng mặc định.</p>
-          <p class="text-[10px] text-amber-600 font-medium mb-2">⭐ Trạng thái đầu tiên là giá trị mặc định cho submission mới. Kéo thả để sắp xếp.</p>
+          <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-0.5"><%= t("dynamic_forms.settings_status_label") %></label>
+          <p class="text-[10px] text-slate-400 mb-1"><%= t("dynamic_forms.settings_status_hint") %></p>
+          <p class="text-[10px] text-amber-600 font-medium mb-2"><%= t("dynamic_forms.settings_status_default_hint") %></p>
           <div id="custom-statuses-list" class="space-y-1.5 mb-2"></div>
           <button type="button" onclick="addCustomStatus()"
             class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg border-0 cursor-pointer transition-colors">
-            + Thêm trạng thái
+            <%= t("dynamic_forms.settings_add_status") %>
           </button>
         </div>
 
         <div class="border-t border-slate-100 pt-4 mb-4">
           <div class="flex items-start justify-between gap-2">
             <div>
-              <span class="text-[11px] font-bold text-slate-600">Thông báo người xử lý</span>
-              <p class="text-[10px] text-slate-400 mt-0.5">Hỏi gửi email khi assign người mới</p>
+              <span class="text-[11px] font-bold text-slate-600"><%= t("dynamic_forms.settings_notify_assignee_label") %></span>
+              <p class="text-[10px] text-slate-400 mt-0.5"><%= t("dynamic_forms.settings_notify_assignee_hint") %></p>
             </div>
             <button id="notify-assignee-toggle" type="button" onclick="toggleNotifyAssignee()"
               class="px-3 py-1 rounded-full text-[11px] font-bold border-0 cursor-pointer transition-colors flex-shrink-0 bg-slate-100 text-slate-500">
-              Tắt
+              <%= t("dynamic_forms.settings_notify_off") %>
             </button>
           </div>
         </div>
 
         <div class="border-t border-slate-100 pt-4">
-          <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-0.5">Nhận thông báo submission mới</label>
-          <p class="text-[10px] text-slate-400 mb-2">Chọn người nhận email khi có phản hồi mới. Nếu để trống, gửi đến admin của workspace.</p>
+          <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-0.5"><%= t("dynamic_forms.settings_notification_label") %></label>
+          <p class="text-[10px] text-slate-400 mb-2"><%= t("dynamic_forms.settings_notification_hint") %></p>
           <% if @form_assignees.any? %>
             <div class="space-y-0.5">
               <% @form_assignees.each do |user| %>
@@ -293,7 +293,7 @@
               <% end %>
             </div>
           <% else %>
-            <p class="text-[11px] text-slate-400 italic">Chưa có người quản lý nào. Hãy thêm ở mục "Người quản lý" trước.</p>
+            <p class="text-[11px] text-slate-400 italic"><%= t("dynamic_forms.settings_no_managers") %></p>
           <% end %>
         </div>
       </div>
@@ -396,7 +396,37 @@ const DF_I18N = {
   options_empty_hint:    "<%= j t("dynamic_forms.js.options_empty_hint") %>",
   add_option_btn:        "<%= j t("dynamic_forms.js.add_option_btn") %>",
   options_section:       "<%= j t("dynamic_forms.js.options_section") %>",
-  select_manager:        "<%= j t("dynamic_forms.js.select_manager") %>"
+  select_manager:        "<%= j t("dynamic_forms.js.select_manager") %>",
+  label_label:           "<%= j t("dynamic_forms.js.label_label") %>",
+  type_label:            "<%= j t("dynamic_forms.js.type_label") %>",
+  required_label:        "<%= j t("dynamic_forms.js.required_label") %>",
+  field_key_label:       "<%= j t("dynamic_forms.js.field_key_label") %>",
+  placeholder_label:     "<%= j t("dynamic_forms.js.placeholder_label") %>",
+  hint_label:            "<%= j t("dynamic_forms.js.hint_label") %>",
+  min_length_label:      "<%= j t("dynamic_forms.js.min_length_label") %>",
+  max_length_label:      "<%= j t("dynamic_forms.js.max_length_label") %>",
+  min_value_label:       "<%= j t("dynamic_forms.js.min_value_label") %>",
+  max_value_label:       "<%= j t("dynamic_forms.js.max_value_label") %>",
+  accept_label:          "<%= j t("dynamic_forms.js.accept_label") %>",
+  max_size_label:        "<%= j t("dynamic_forms.js.max_size_label") %>",
+  accept_example:        "<%= j t("dynamic_forms.js.accept_example") %>",
+  multiple_label:        "<%= j t("dynamic_forms.js.multiple_label") %>",
+  condition_section:     "<%= j t("dynamic_forms.js.condition_section") %>",
+  condition_enable:      "<%= j t("dynamic_forms.js.condition_enable") %>",
+  condition_hint:        "<%= j t("dynamic_forms.js.condition_hint") %>",
+  condition_select_field:"<%= j t("dynamic_forms.js.condition_select_field") %>",
+  op_equals:             "<%= j t("dynamic_forms.js.op_equals") %>",
+  op_not_equals:         "<%= j t("dynamic_forms.js.op_not_equals") %>",
+  op_contains:           "<%= j t("dynamic_forms.js.op_contains") %>",
+  op_not_empty:          "<%= j t("dynamic_forms.js.op_not_empty") %>",
+  op_empty:              "<%= j t("dynamic_forms.js.op_empty") %>",
+  condition_value_ph:    "<%= j t("dynamic_forms.js.condition_value_ph") %>",
+  admin_only_label:      "<%= j t("dynamic_forms.js.admin_only_label") %>",
+  admin_editable_label:  "<%= j t("dynamic_forms.js.admin_editable_label") %>",
+  admin_only_badge:      "<%= j t("dynamic_forms.js.admin_only_badge") %>",
+  admin_editable_badge:  "<%= j t("dynamic_forms.js.admin_editable_badge") %>",
+  settings_notify_on:    "<%= j t("dynamic_forms.settings_notify_on") %>",
+  settings_notify_off:   "<%= j t("dynamic_forms.settings_notify_off") %>"
 };
 const INITIAL_FIELDS = <%= @form.dynamic_form_fields.map { |f|
   { id: f.id, label: f.label, field_key: f.field_key, field_type: f.field_type,
@@ -521,13 +551,13 @@ function renderField(f, i) {
 
   const fileHtml = f.field_type === 'file' ? `
     <div class="grid grid-cols-2 gap-2 mt-2">
-      <div><span class="text-[10px] font-semibold text-slate-600">Loại file cho phép</span>
+      <div><span class="text-[10px] font-semibold text-slate-600">${DF_I18N.accept_label}</span>
         <input type="text" value="${escHtml(f.accept||'')}" placeholder="image/*,.pdf,.docx"
           oninput="setFieldProp(${f._uid},'accept',this.value)"
           class="w-full mt-0.5 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-mono outline-none focus:border-indigo-400 bg-white">
-        <span class="text-[9px] text-slate-400">Ví dụ: image/*, .pdf, .docx</span>
+        <span class="text-[9px] text-slate-400">${DF_I18N.accept_example}</span>
       </div>
-      <div><span class="text-[10px] font-semibold text-slate-600">Dung lượng tối đa (MB)</span>
+      <div><span class="text-[10px] font-semibold text-slate-600">${DF_I18N.max_size_label}</span>
         <input type="number" min="1" max="100" value="${f.max_size_mb||''}" placeholder="10"
           oninput="setFieldProp(${f._uid},'max_size_mb',this.value)"
           class="w-full mt-0.5 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white">
@@ -536,23 +566,23 @@ function renderField(f, i) {
     <label class="flex items-center gap-2 mt-2 cursor-pointer">
       <input type="checkbox" ${f.multiple?'checked':''} onchange="setFieldProp(${f._uid},'multiple',this.checked)"
         class="w-3.5 h-3.5 accent-indigo-600">
-      <span class="text-[11px] font-medium text-slate-600">Cho phép upload nhiều file</span>
+      <span class="text-[11px] font-medium text-slate-600">${DF_I18N.multiple_label}</span>
     </label>` : '';
 
   const validHtml = ['text','email','textarea','url','phone'].includes(f.field_type) ? `
     <div class="grid grid-cols-2 gap-2 mt-2">
-      <div><span class="text-[10px] font-semibold text-slate-600">Min ký tự</span>
+      <div><span class="text-[10px] font-semibold text-slate-600">${DF_I18N.min_length_label}</span>
         <input type="number" min="0" value="${f.min_length||''}" oninput="setFieldProp(${f._uid},'min_length',this.value)"
           class="w-full mt-0.5 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white"></div>
-      <div><span class="text-[10px] font-semibold text-slate-600">Max ký tự</span>
+      <div><span class="text-[10px] font-semibold text-slate-600">${DF_I18N.max_length_label}</span>
         <input type="number" min="0" value="${f.max_length||''}" oninput="setFieldProp(${f._uid},'max_length',this.value)"
           class="w-full mt-0.5 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white"></div>
     </div>` : f.field_type === 'number' ? `
     <div class="grid grid-cols-2 gap-2 mt-2">
-      <div><span class="text-[10px] font-semibold text-slate-600">Giá trị min</span>
+      <div><span class="text-[10px] font-semibold text-slate-600">${DF_I18N.min_value_label}</span>
         <input type="number" value="${f.min_value||''}" oninput="setFieldProp(${f._uid},'min_value',this.value)"
           class="w-full mt-0.5 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white"></div>
-      <div><span class="text-[10px] font-semibold text-slate-600">Giá trị max</span>
+      <div><span class="text-[10px] font-semibold text-slate-600">${DF_I18N.max_value_label}</span>
         <input type="number" value="${f.max_value||''}" oninput="setFieldProp(${f._uid},'max_value',this.value)"
           class="w-full mt-0.5 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white"></div>
     </div>` : '';
@@ -565,18 +595,18 @@ function renderField(f, i) {
           <input type="checkbox" ${f.admin_only ? 'checked' : ''}
             onchange="setFieldProp(${f._uid},'admin_only',this.checked)"
             class="w-3.5 h-3.5 accent-violet-600">
-          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-violet-600 transition-colors">🔒 Ẩn trên public link</span>
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-violet-600 transition-colors">${DF_I18N.admin_only_label}</span>
         </label>
         <label class="flex items-center gap-2 cursor-pointer select-none group">
           <input type="checkbox" ${f.admin_editable ? 'checked' : ''}
             onchange="setFieldProp(${f._uid},'admin_editable',this.checked)"
             class="w-3.5 h-3.5 accent-emerald-600">
-          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-emerald-600 transition-colors">✏️ Admin có thể sửa</span>
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-emerald-600 transition-colors">${DF_I18N.admin_editable_label}</span>
         </label>
       </div>
       ${(f.admin_only || f.admin_editable) ? `<div class="flex flex-wrap gap-1.5">
-        ${f.admin_only ? `<span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-violet-100 text-violet-700">Chỉ admin thấy</span>` : ''}
-        ${f.admin_editable ? `<span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700">Admin có thể sửa</span>` : ''}
+        ${f.admin_only ? `<span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-violet-100 text-violet-700">${DF_I18N.admin_only_badge}</span>` : ''}
+        ${f.admin_editable ? `<span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700">${DF_I18N.admin_editable_badge}</span>` : ''}
       </div>` : ''}
     </div>`;
 
@@ -586,33 +616,33 @@ function renderField(f, i) {
   const condHtml = `
     <div class="mt-3 pt-2.5 border-t border-slate-100">
       <div class="flex items-center justify-between mb-1.5">
-        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">⚡ Điều kiện hiển thị</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${DF_I18N.condition_section}</span>
         <label class="flex items-center gap-1.5 cursor-pointer">
           <input type="checkbox" ${clEnabled ? 'checked' : ''}
             onchange="toggleCondition(${f._uid}, this.checked)"
             class="w-3 h-3 accent-indigo-600">
-          <span class="text-[10px] text-slate-600 font-medium">Bật điều kiện</span>
+          <span class="text-[10px] text-slate-600 font-medium">${DF_I18N.condition_enable}</span>
         </label>
       </div>
       <div id="cond-panel-${f._uid}" class="${clEnabled ? '' : 'hidden'} p-2.5 rounded-lg bg-amber-50 border border-amber-200 space-y-1.5">
-        <p class="text-[10px] text-amber-700 font-medium">Hiển thị trường này khi:</p>
+        <p class="text-[10px] text-amber-700 font-medium">${DF_I18N.condition_hint}</p>
         <div class="flex gap-1.5 flex-wrap items-center">
           <select onchange="setConditionProp(${f._uid}, 'field_key', this.value)"
             class="flex-1 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white min-w-[90px]">
-            <option value="">— chọn trường —</option>
+            <option value="">${DF_I18N.condition_select_field}</option>
             ${_fields.filter(ff => ff._uid !== f._uid).map(ff =>
               `<option value="${escHtml(ff.field_key)}" ${(cl.field_key === ff.field_key) ? 'selected' : ''}>${escHtml(ff.label || ff.field_key)}</option>`
             ).join('')}
           </select>
           <select onchange="setConditionProp(${f._uid}, 'operator', this.value)"
             class="w-24 flex-shrink-0 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white">
-            <option value="equals"    ${(cl.operator||'equals')==='equals'    ?'selected':''}>bằng</option>
-            <option value="not_equals"${cl.operator==='not_equals'            ?'selected':''}>khác</option>
-            <option value="contains"  ${cl.operator==='contains'              ?'selected':''}>chứa</option>
-            <option value="not_empty" ${cl.operator==='not_empty'             ?'selected':''}>không rỗng</option>
-            <option value="empty"     ${cl.operator==='empty'                 ?'selected':''}>rỗng</option>
+            <option value="equals"    ${(cl.operator||'equals')==='equals'    ?'selected':''}>${DF_I18N.op_equals}</option>
+            <option value="not_equals"${cl.operator==='not_equals'            ?'selected':''}>${DF_I18N.op_not_equals}</option>
+            <option value="contains"  ${cl.operator==='contains'              ?'selected':''}>${DF_I18N.op_contains}</option>
+            <option value="not_empty" ${cl.operator==='not_empty'             ?'selected':''}>${DF_I18N.op_not_empty}</option>
+            <option value="empty"     ${cl.operator==='empty'                 ?'selected':''}>${DF_I18N.op_empty}</option>
           </select>
-          <input type="text" value="${escHtml(cl.value||'')}" placeholder="Giá trị..."
+          <input type="text" value="${escHtml(cl.value||'')}" placeholder="${DF_I18N.condition_value_ph}"
             oninput="setConditionProp(${f._uid}, 'value', this.value)"
             class="flex-1 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white min-w-[70px]">
         </div>
@@ -628,13 +658,13 @@ function renderField(f, i) {
         <div class="flex-1 min-w-0 space-y-2">
           <div class="flex gap-2 flex-wrap items-end">
             <div class="flex-1 min-w-[130px]">
-              <label class="text-[10px] font-bold text-slate-700 uppercase tracking-wide">Nhãn *</label>
+              <label class="text-[10px] font-bold text-slate-700 uppercase tracking-wide">${DF_I18N.label_label}</label>
               <input type="text" value="${escHtml(f.label)}" placeholder="${DF_I18N.label_placeholder}"
                 oninput="setFieldProp(${f._uid},'label',this.value)"
                 class="w-full mt-0.5 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-indigo-400 bg-white">
             </div>
             <div class="w-38 flex-shrink-0">
-              <label class="text-[10px] font-bold text-slate-700 uppercase tracking-wide">Loại</label>
+              <label class="text-[10px] font-bold text-slate-700 uppercase tracking-wide">${DF_I18N.type_label}</label>
               <select oninput="setFieldProp(${f._uid},'field_type',this.value)"
                 class="w-full mt-0.5 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[12px] outline-none focus:border-indigo-400 bg-white">
                 ${FIELD_TYPES.map(t=>`<option value="${t.value}"${f.field_type===t.value?' selected':''}>${t.label}</option>`).join('')}
@@ -643,25 +673,25 @@ function renderField(f, i) {
             <label class="flex items-center gap-1.5 cursor-pointer pb-1 flex-shrink-0">
               <input type="checkbox" ${f.required?'checked':''} onchange="setFieldProp(${f._uid},'required',this.checked)"
                 class="w-3.5 h-3.5 accent-indigo-600">
-              <span class="text-[11px] text-slate-700 font-semibold whitespace-nowrap">Bắt buộc</span>
+              <span class="text-[11px] text-slate-700 font-semibold whitespace-nowrap">${DF_I18N.required_label}</span>
             </label>
           </div>
           <div class="flex gap-2">
             <div class="w-32 flex-shrink-0">
-              <label class="text-[10px] font-semibold text-slate-600">Field key</label>
+              <label class="text-[10px] font-semibold text-slate-600">${DF_I18N.field_key_label}</label>
               <input type="text" value="${escHtml(f.field_key)}" placeholder="field_key"
                 oninput="setFieldProp(${f._uid},'field_key',this.value)"
                 class="w-full mt-0.5 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-mono outline-none focus:border-indigo-400 bg-white text-slate-700">
             </div>
             <div class="flex-1">
-              <label class="text-[10px] font-semibold text-slate-600">Placeholder</label>
+              <label class="text-[10px] font-semibold text-slate-600">${DF_I18N.placeholder_label}</label>
               <input type="text" value="${escHtml(f.placeholder||'')}" placeholder="${DF_I18N.placeholder_ph}"
                 oninput="setFieldProp(${f._uid},'placeholder',this.value)"
                 class="w-full mt-0.5 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white">
             </div>
           </div>
           <div>
-            <label class="text-[10px] font-semibold text-slate-600">Hint (chú thích phụ)</label>
+            <label class="text-[10px] font-semibold text-slate-600">${DF_I18N.hint_label}</label>
             <input type="text" value="${escHtml(f.hint||'')}" placeholder="${DF_I18N.hint_placeholder}"
               oninput="setFieldProp(${f._uid},'hint',this.value)"
               class="w-full mt-0.5 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white">
@@ -969,7 +999,7 @@ function renderNotifyToggle() {
   const btn = document.getElementById('notify-assignee-toggle');
   if (!btn) return;
   const on = !!_settings.notify_assignee;
-  btn.textContent = on ? 'Bật' : 'Tắt';
+  btn.textContent = on ? DF_I18N.settings_notify_on : DF_I18N.settings_notify_off;
   btn.className = on
     ? 'px-3 py-1 rounded-full text-[11px] font-bold border-0 cursor-pointer transition-colors bg-emerald-100 text-emerald-700'
     : 'px-3 py-1 rounded-full text-[11px] font-bold border-0 cursor-pointer transition-colors bg-slate-100 text-slate-500';

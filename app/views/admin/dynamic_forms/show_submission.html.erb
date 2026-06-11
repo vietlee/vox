@@ -76,8 +76,10 @@
                     <%# Editable input %>
                     <% if field.field_type == "textarea" %>
                       <textarea data-field-key="<%= field.field_key %>"
-                        onchange="markDirty()"  oninput="markDirty()"
-                        class="editable-field w-full px-3 py-2 border border-emerald-200 rounded-lg text-[13px] outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-y bg-emerald-50/30 transition-all"
+                        data-richtext
+                        onchange="markDirty()" oninput="markDirty()"
+                        class="editable-field w-full"
+                        placeholder="Nhập nội dung..."
                         rows="3"><%= val.is_a?(Array) ? val.join(", ") : val.to_s %></textarea>
                     <% elsif field.field_type == "select" %>
                       <select data-field-key="<%= field.field_key %>"
@@ -142,7 +144,11 @@
                       <span class="text-slate-300 italic">—</span>
                     <% end %>
                   <% elsif val.present? %>
-                    <p class="whitespace-pre-wrap"><%= val %></p>
+                    <% if field.field_type == "textarea" && val.to_s.strip.start_with?("<") %>
+                      <div class="prose prose-sm max-w-none text-slate-700"><%= val.html_safe %></div>
+                    <% else %>
+                      <p class="whitespace-pre-wrap"><%= val %></p>
+                    <% end %>
                   <% else %>
                     <span class="text-slate-300 italic">—</span>
                   <% end %>
