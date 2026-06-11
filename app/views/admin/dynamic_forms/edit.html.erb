@@ -471,6 +471,10 @@ function renderAll() {
         return _fields.find(f => f._uid === uid);
       }).filter(Boolean);
       _fields = newOrder;
+      // Update number badges in place without full re-render
+      container.querySelectorAll('.field-num-badge').forEach((badge, i) => {
+        badge.textContent = i + 1;
+      });
       markUnsaved();
     }
   });
@@ -577,7 +581,7 @@ function renderField(f, i) {
       <div class="flex items-start gap-3">
         <div class="drag-handle text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing mt-1 flex-shrink-0 select-none text-lg leading-none transition-colors" title="${DF_I18N.drag_title}">⠿</div>
         <!-- Number badge -->
-        <div class="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold text-white mt-1 select-none">${fieldNum}</div>
+        <div class="field-num-badge flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold text-white mt-1 select-none">${fieldNum}</div>
         <div class="flex-1 min-w-0 space-y-2">
           <div class="flex gap-2 flex-wrap items-end">
             <div class="flex-1 min-w-[130px]">
