@@ -14,6 +14,22 @@ class DynamicForm < ApplicationRecord
     (assignees + [workspace.users.first]).uniq.compact
   end
 
+  # ── Settings helpers ──────────────────────────────────────────────────────────
+  # settings["custom_statuses"] — array of custom status label strings
+  def custom_statuses
+    Array(settings["custom_statuses"]).map(&:to_s).reject(&:blank?)
+  end
+
+  # settings["notify_assignee"] — bool: show confirm popup when changing assignee
+  def notify_assignee?
+    settings["notify_assignee"] == true
+  end
+
+  # settings["notification_emails"] — array of email strings for new-submission alerts
+  def notification_emails
+    Array(settings["notification_emails"]).map(&:to_s).reject(&:blank?)
+  end
+
   enum :status, { draft: 0, active: 1, closed: 2 }
 
   validate :cannot_delete_active, on: :destroy

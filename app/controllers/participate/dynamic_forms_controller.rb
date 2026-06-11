@@ -21,7 +21,8 @@ class Participate::DynamicFormsController < Participate::BaseController
       data:             data,
       respondent_token: respondent_token,
       ip_address:       request.remote_ip,
-      assignee_id:      @form.workspace.admin_users.first&.id
+      assignee_id:      @form.workspace.admin_users.first&.id,
+      custom_status:    @form.custom_statuses.first
     )
 
     # Attach uploaded files, store blob info back into data
@@ -42,9 +43,17 @@ class Participate::DynamicFormsController < Participate::BaseController
       sub.save!
     end
 
-    # Send notification emails to all assignees + workspace owner
-    @form.notification_recipients.each do |recipient|
-      NotificationMailer.new_dynamic_form_submission(sub, recipient).deliver_later
+    # Send notification emails
+    if @form.notification_emails.any?
+      # Custom recipient list from settings
+      @form.notification_emails.each do |email|
+        NotificationMailer.new_dynamic_form_submission_to_email(sub, email).deliver_later
+      end
+    else
+      # Default: assignees + workspace owner
+      @form.notification_recipients.each do |recipient|
+        NotificationMailer.new_dynamic_form_submission(sub, recipient).deliver_later
+      end
     end
 
     render json: { ok: true, message: "Đã gửi thành công!" }
@@ -79,6 +88,9 @@ class Participate::DynamicFormsController < Participate::BaseController
     v = ->(key, **opts) { t("participate.dynamic_form.validation.#{key}", **opts) }
 
     @form.dynamic_form_fields.each do |field|
+      # Skip validation for fields hidden by conditional logic
+      next unless field_visible?(field, data)
+
       if field.field_type == "file"
         uploaded = Array(params.dig(:submission, field.field_key)).select { |f| f.respond_to?(:read) }
         if field.required && uploaded.empty?
@@ -114,5 +126,28 @@ class Participate::DynamicFormsController < Participate::BaseController
       end
     end
     errors
+  end
+
+  # Evaluate whether a field should be visible given submitted data
+  def field_visible?(field, data)
+    cl = field.conditional_logic
+    return true unless cl.is_a?(Hash) && cl["enabled"]
+
+    dep_key         = cl["field_key"].to_s
+    operator        = cl["operator"].to_s.presence || "equals"
+    condition_value = cl["value"].to_s
+    return true if dep_key.blank?
+
+    actual = data[dep_key]
+    actual_str = actual.is_a?(Array) ? actual.join(",") : actual.to_s
+
+    case operator
+    when "equals"     then actual_str == condition_value
+    when "not_equals" then actual_str != condition_value
+    when "contains"   then actual_str.include?(condition_value)
+    when "not_empty"  then actual_str.present?
+    when "empty"      then actual_str.blank?
+    else true
+    end
   end
 end

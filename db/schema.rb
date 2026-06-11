@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_09_115836) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_11_100002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -175,6 +175,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_09_115836) do
     t.string "accept"
     t.integer "max_size_mb"
     t.boolean "multiple", default: false, null: false
+    t.jsonb "conditional_logic", default: {}, null: false
     t.index ["dynamic_form_id"], name: "index_dynamic_form_fields_on_dynamic_form_id"
   end
 
@@ -187,6 +188,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_09_115836) do
     t.datetime "updated_at", null: false
     t.integer "status", default: 0, null: false
     t.integer "assignee_id"
+    t.string "custom_status"
     t.index ["assignee_id"], name: "index_dynamic_form_submissions_on_assignee_id"
     t.index ["dynamic_form_id"], name: "index_dynamic_form_submissions_on_dynamic_form_id"
     t.index ["status"], name: "index_dynamic_form_submissions_on_status"
@@ -202,6 +204,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_09_115836) do
     t.integer "submissions_count", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "settings", default: {}, null: false
     t.index ["slug"], name: "index_dynamic_forms_on_slug", unique: true
     t.index ["user_id"], name: "index_dynamic_forms_on_user_id"
     t.index ["workspace_id", "slug"], name: "index_dynamic_forms_on_workspace_id_and_slug", unique: true

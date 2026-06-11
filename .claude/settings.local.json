@@ -245,7 +245,13 @@
       "Bash(sed -i '' 's/      max_ai_credits: nil$/      max_ai_credits: nil,\\\\n      max_dynamic_forms: nil/' /Users/mac/Desktop/VOX/db/seeds.rb)",
       "Bash(sed -i '' 's/      limit_max_feedbacks: \"Tối đa Feedback\"/      limit_max_feedbacks: \"Tối đa Feedback\"\\\\n      limit_max_dynamic_forms: \"Tối đa Dynamic Forms\"/' /Users/mac/Desktop/VOX/config/locales/vi.yml)",
       "Bash(sed -i '' 's/      limit_max_feedbacks: \"Max Feedbacks\"/      limit_max_feedbacks: \"Max Feedbacks\"\\\\n      limit_max_dynamic_forms: \"Max Dynamic Forms\"/' /Users/mac/Desktop/VOX/config/locales/en.yml)",
-      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && RAILS_ENV=production ~/.rbenv/bin/rbenv exec bundle exec rails runner 'Question.joins\\(:survey\\).where\\(surveys: {slug: \\\\\"khao-sat-muc-do-tiet-kiem-thoi-gian-khi-su-dung-ai-64b1b467\\\\\"}\\).each{|q| puts \\\\\"#{q.id}|#{q.question_type}|#{q.description}\\\\\"}' 2>&1 | grep '|'\")"
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && RAILS_ENV=production ~/.rbenv/bin/rbenv exec bundle exec rails runner 'Question.joins\\(:survey\\).where\\(surveys: {slug: \\\\\"khao-sat-muc-do-tiet-kiem-thoi-gian-khi-su-dung-ai-64b1b467\\\\\"}\\).each{|q| puts \\\\\"#{q.id}|#{q.question_type}|#{q.description}\\\\\"}' 2>&1 | grep '|'\")",
+      "Bash(ssh -i ~/.ssh/id_rsa deploy@188.166.189.119 'bash -lc \"tail -50 /var/www/vox/current/log/production.log\"')",
+      "Bash(ssh -i ~/.ssh/id_rsa deploy@188.166.189.119 \"sudo journalctl -u puma-vox --no-pager -n 30 2>/dev/null || sudo journalctl -u vox_puma_production --no-pager -n 30 2>/dev/null\")",
+      "Bash(convert --version)",
+      "Bash(ssh deploy@188.166.189.119 \"which convert && convert --version 2>&1 | head -2\")",
+      "Bash(bundle list *)",
+      "Bash(rsvg-convert --version)"
     ]
   }
 }

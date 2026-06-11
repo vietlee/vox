@@ -56,6 +56,7 @@ class Admin::DynamicFormsController < Admin::BaseController
       @form.logo.purge if remove_logo && @form.logo.attached?
       save_fields!
       save_assignees!
+      save_settings!
       redirect_to edit_dynamic_form_path(@form), notice: "Đã lưu thay đổi."
     else
       render :edit, status: :unprocessable_entity
@@ -88,7 +89,13 @@ class Admin::DynamicFormsController < Admin::BaseController
 
   def submissions
     scope = @form.dynamic_form_submissions.includes(:assignee).order(created_at: :desc)
-    scope = scope.where(status: params[:status])      if params[:status].present? && DynamicFormSubmission.statuses.key?(params[:status])
+    if params[:status].present?
+      if @form.custom_statuses.any?
+        scope = scope.where(custom_status: params[:status])
+      elsif DynamicFormSubmission.statuses.key?(params[:status])
+        scope = scope.where(status: params[:status])
+      end
+    end
     scope = scope.where(assignee_id: params[:assignee_id]) if params[:assignee_id].present?
     scope = scope.search_data(params[:q])             if params[:q].present?
     @pagy, @submissions = pagy(scope, items: 15)
@@ -103,8 +110,13 @@ class Admin::DynamicFormsController < Admin::BaseController
 
   def update_submission_status
     sub = @form.dynamic_form_submissions.find(params[:submission_id])
-    sub.update!(status: params[:status])
-    render json: { ok: true, status: sub.status }
+    if @form.custom_statuses.any?
+      sub.update!(custom_status: params[:status])
+      render json: { ok: true, status: sub.custom_status }
+    else
+      sub.update!(status: params[:status])
+      render json: { ok: true, status: sub.status }
+    end
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
@@ -112,6 +124,12 @@ class Admin::DynamicFormsController < Admin::BaseController
   def update_submission_assignee
     sub = @form.dynamic_form_submissions.find(params[:submission_id])
     sub.update!(assignee_id: params[:assignee_id].presence)
+
+    # Send assignee notification email if setting enabled and requested
+    if params[:send_notification].to_s == "true" && sub.assignee && @form.notify_assignee?
+      NotificationMailer.assignee_notification(sub, sub.assignee).deliver_later
+    end
+
     assignee = sub.assignee
     render json: { ok: true, assignee_id: sub.assignee_id,
                    name: assignee ? (assignee.name.presence || assignee.email) : nil,
@@ -177,22 +195,32 @@ class Admin::DynamicFormsController < Admin::BaseController
 
       opts = (fdata["options"] || []).map { |o| { "label" => o["label"].to_s.strip, "value" => o["value"].to_s.strip } }
                                       .reject { |o| o["label"].blank? }
+      cond = fdata["conditional_logic"]
+      cond_attrs = if cond.is_a?(Hash) && cond["enabled"]
+        { "enabled" => true, "field_key" => cond["field_key"].to_s,
+          "operator" => cond["operator"].to_s.presence || "equals",
+          "value" => cond["value"].to_s }
+      else
+        {}
+      end
+
       attrs = {
-        label:       fdata["label"].to_s.strip,
-        field_key:   fdata["field_key"].to_s.strip,
-        field_type:  fdata["field_type"].to_s,
-        placeholder: fdata["placeholder"].to_s.strip,
-        hint:        fdata["hint"].to_s.strip,
-        required:    fdata["required"].to_s == "true",
-        options:     opts,
-        min_length:  fdata["min_length"].presence,
-        max_length:  fdata["max_length"].presence,
-        min_value:   fdata["min_value"].to_s.presence,
-        max_value:   fdata["max_value"].to_s.presence,
-        accept:      fdata["accept"].to_s.presence,
-        max_size_mb: fdata["max_size_mb"].presence,
-        multiple:    fdata["multiple"].to_s == "true",
-        position:    idx,
+        label:             fdata["label"].to_s.strip,
+        field_key:         fdata["field_key"].to_s.strip,
+        field_type:        fdata["field_type"].to_s,
+        placeholder:       fdata["placeholder"].to_s.strip,
+        hint:              fdata["hint"].to_s.strip,
+        required:          fdata["required"].to_s == "true",
+        options:           opts,
+        min_length:        fdata["min_length"].presence,
+        max_length:        fdata["max_length"].presence,
+        min_value:         fdata["min_value"].to_s.presence,
+        max_value:         fdata["max_value"].to_s.presence,
+        accept:            fdata["accept"].to_s.presence,
+        max_size_mb:       fdata["max_size_mb"].presence,
+        multiple:          fdata["multiple"].to_s == "true",
+        conditional_logic: cond_attrs,
+        position:          idx,
       }
 
       if fdata["id"].to_i > 0
@@ -226,6 +254,15 @@ class Admin::DynamicFormsController < Admin::BaseController
     else
       val.to_s
     end
+  end
+
+  def save_settings!
+    settings_json = params[:settings_data]
+    return if settings_json.blank?
+    incoming = JSON.parse(settings_json) rescue {}
+    return unless incoming.is_a?(Hash)
+    # Merge & persist
+    @form.update_column(:settings, @form.settings.merge(incoming))
   end
 
   def save_assignees!

@@ -52,12 +52,15 @@
 
         <!-- Status filter -->
         <%= f.select :status,
-              [
-                [t("dynamic_forms.filter_all_status"), ""],
-                [t("dynamic_forms.status_pending"),    "pending"],
-                [t("dynamic_forms.status_processing"), "processing"],
-                [t("dynamic_forms.status_done"),       "done"]
-              ],
+              [["Tất cả trạng thái", ""]] + (
+                @form.custom_statuses.any? ?
+                  @form.custom_statuses.map { |s| [s, s] } :
+                  [
+                    [t("dynamic_forms.status_pending"),    "pending"],
+                    [t("dynamic_forms.status_processing"), "processing"],
+                    [t("dynamic_forms.status_done"),       "done"]
+                  ]
+              ),
               { selected: @status_filter },
               class: "px-3 py-1.5 text-[12px] border border-slate-200 rounded-lg outline-none focus:border-indigo-400 bg-white",
               onchange: "this.form.submit()" %>
@@ -100,7 +103,7 @@
                   <%= I18n.l(sub.created_at, format: :short) %>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
-                  <%= render "admin/dynamic_forms/submission_status", submission: sub %>
+                  <%= render "admin/dynamic_forms/submission_status", submission: sub, form: @form %>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
                   <%= render "admin/dynamic_forms/submission_assignee", submission: sub, handlers: @all_handlers %>
@@ -192,7 +195,9 @@
 </div>
 
 <script>
-const SUBMISSION_CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+const SUBMISSION_CSRF    = document.querySelector('meta[name="csrf-token"]')?.content;
+const NOTIFY_ASSIGNEE    = <%= @form.notify_assignee?.to_json %>;
+const FORM_TITLE         = <%= @form.title.to_json %>;
 
 // Debounce search — submit 450ms after user stops typing
 (function() {
@@ -260,10 +265,16 @@ function toggleAssigneeMenu(id) {
 async function setAssignee(id, userId, name, url) {
   document.getElementById('assignee-menu-' + id)?.classList.add('hidden');
 
+  // If notify_assignee is enabled and we're assigning (not clearing), show confirm popup
+  let sendNotification = false;
+  if (NOTIFY_ASSIGNEE && userId) {
+    sendNotification = await showAssigneeNotifyConfirm(name);
+  }
+
   const res = await fetch(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': SUBMISSION_CSRF },
-    body: JSON.stringify({ submission_id: id, assignee_id: userId })
+    body: JSON.stringify({ submission_id: id, assignee_id: userId, send_notification: sendNotification })
   });
   if (!res.ok) return;
   const data = await res.json();
@@ -294,4 +305,45 @@ async function setAssignee(id, userId, name, url) {
     btn.classList.add('bg-slate-50','text-slate-500','border-slate-200');
   }
 }
+
+// Returns a Promise<boolean> that resolves when user confirms/cancels
+function showAssigneeNotifyConfirm(assigneeName) {
+  return new Promise(resolve => {
+    const modal = document.getElementById('assignee-notify-modal');
+    const msgEl = document.getElementById('assignee-notify-msg');
+    if (!modal) { resolve(false); return; }
+    if (msgEl) {
+      msgEl.textContent = `Có gửi email thông báo cho ${assigneeName} không? Email sẽ thông báo có yêu cầu mới được assign cho họ từ form "${FORM_TITLE}".`;
+    }
+    modal.classList.remove('hidden');
+    const yes = document.getElementById('assignee-notify-yes');
+    const no  = document.getElementById('assignee-notify-no');
+    function cleanup() { modal.classList.add('hidden'); yes.onclick = null; no.onclick = null; }
+    yes.onclick = () => { cleanup(); resolve(true); };
+    no.onclick  = () => { cleanup(); resolve(false); };
+  });
+}
 </script>
+
+<!-- Assignee notification confirm modal -->
+<div id="assignee-notify-modal" class="hidden fixed inset-0 z-50"
+     onclick="if(event.target===this){document.getElementById('assignee-notify-no').click()}">
+  <div class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-[400px] max-w-full mx-4 p-6" onclick="event.stopPropagation()">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 text-xl" style="background:#ede9fe;">📧</div>
+      <h3 class="text-[16px] font-bold text-slate-900 text-center mb-2">Gửi email thông báo?</h3>
+      <p id="assignee-notify-msg" class="text-[13px] text-slate-500 text-center mb-5 leading-relaxed"></p>
+      <div class="flex gap-3">
+        <button id="assignee-notify-no"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 cursor-pointer transition-colors">
+          Không gửi
+        </button>
+        <button id="assignee-notify-yes"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white border-0 cursor-pointer transition-colors"
+          style="background:#6366f1;" onmouseenter="this.style.background='#4f46e5'" onmouseleave="this.style.background='#6366f1'">
+          Gửi email
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

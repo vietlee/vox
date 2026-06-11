@@ -105,8 +105,15 @@
                 data-turbo="false">
 
             <% @form.dynamic_form_fields.each_with_index do |field, idx| %>
+              <%
+                cl = field.conditional_logic
+                has_cond = cl.is_a?(Hash) && cl["enabled"] && cl["field_key"].present?
+                cond_data = has_cond ? { dep: cl["field_key"], op: cl["operator"].presence || "equals", val: cl["value"].to_s }.to_json : nil
+              %>
               <div class="field-group py-4 <%= idx > 0 ? 'border-t border-slate-100' : '' %>"
-                   data-key="<%= field.field_key %>">
+                   data-key="<%= field.field_key %>"
+                   <%= "data-condition='#{h cond_data}'" if has_cond %>
+                   style="<%= has_cond ? 'display:none;' : '' %>">
 
                 <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">
                   <%= field.label %>
@@ -236,6 +243,49 @@
 <script>
 const SUBMIT_URL = "<%= submit_dynamic_form_path(@form.slug, locale: I18n.locale) %>";
 const CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+
+// ── Conditional logic ─────────────────────────────────────────────────────────
+function evaluateConditions() {
+  const groups = document.querySelectorAll('#df-form .field-group[data-condition]');
+  groups.forEach(group => {
+    let cond;
+    try { cond = JSON.parse(group.dataset.condition); } catch(e) { return; }
+    const depGroup = document.querySelector(`#df-form .field-group[data-key="${CSS.escape(cond.dep)}"]`);
+    if (!depGroup) { group.style.display = ''; return; }
+
+    // Get current value from dependent field
+    let actual = '';
+    const inputs = depGroup.querySelectorAll('input:not([type=hidden]), select, textarea');
+    inputs.forEach(inp => {
+      if (inp.type === 'checkbox' && inp.checked) actual = (actual ? actual + ',' : '') + inp.value;
+      else if (inp.type === 'radio' && inp.checked) actual = inp.value;
+      else if (inp.type !== 'checkbox' && inp.type !== 'radio') actual = inp.value;
+    });
+
+    let visible = false;
+    switch(cond.op) {
+      case 'equals':    visible = actual === cond.val; break;
+      case 'not_equals':visible = actual !== cond.val; break;
+      case 'contains':  visible = actual.includes(cond.val); break;
+      case 'not_empty': visible = actual.trim() !== ''; break;
+      case 'empty':     visible = actual.trim() === ''; break;
+      default:          visible = true;
+    }
+    group.style.display = visible ? '' : 'none';
+    // Clear hidden required fields to avoid form validation errors
+    if (!visible) {
+      group.querySelectorAll('input[required], select[required], textarea[required]').forEach(el => {
+        if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+        else el.value = '';
+      });
+    }
+  });
+}
+
+// Listen to any input change and re-evaluate
+document.getElementById('df-form')?.addEventListener('input', evaluateConditions);
+document.getElementById('df-form')?.addEventListener('change', evaluateConditions);
+evaluateConditions(); // run once on load
 
 
 function updateFileName(key, input) {

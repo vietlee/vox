@@ -82,6 +82,7 @@
                     class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] font-mono focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all" %>
             </div>
             <input type="hidden" name="fields_data" id="fields-data-input">
+            <input type="hidden" name="settings_data" id="settings-data-input">
             <div class="pt-3 border-t border-slate-100 flex justify-end">
               <button type="submit" onclick="syncFieldsData()"
                 class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-[12px] font-semibold rounded-lg cursor-pointer transition-colors shadow-sm border-0">
@@ -239,6 +240,45 @@
         <% end %>
       </div>
 
+      <!-- Settings card -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h2 class="text-[13px] font-bold text-slate-700 mb-4">⚙️ Cài đặt form</h2>
+
+        <!-- Custom statuses -->
+        <div class="mb-4">
+          <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-0.5">Trạng thái submission</label>
+          <p class="text-[10px] text-slate-400 mb-2">Tùy chỉnh danh sách trạng thái. Để trống = dùng mặc định.</p>
+          <div id="custom-statuses-list" class="space-y-1.5 mb-2"></div>
+          <button type="button" onclick="addCustomStatus()"
+            class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg border-0 cursor-pointer transition-colors">
+            + Thêm trạng thái
+          </button>
+        </div>
+
+        <div class="border-t border-slate-100 pt-4 mb-4">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <span class="text-[11px] font-bold text-slate-600">Thông báo người xử lý</span>
+              <p class="text-[10px] text-slate-400 mt-0.5">Hỏi gửi email khi assign người mới</p>
+            </div>
+            <button id="notify-assignee-toggle" type="button" onclick="toggleNotifyAssignee()"
+              class="px-3 py-1 rounded-full text-[11px] font-bold border-0 cursor-pointer transition-colors flex-shrink-0 bg-slate-100 text-slate-500">
+              Tắt
+            </button>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-4">
+          <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-0.5">Email nhận thông báo mới</label>
+          <p class="text-[10px] text-slate-400 mb-2">Nhận email khi có submission. Nếu để trống, gửi đến assignees.</p>
+          <div id="notification-emails-list" class="space-y-1.5 mb-2"></div>
+          <button type="button" onclick="addNotificationEmail()"
+            class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg border-0 cursor-pointer transition-colors">
+            + Thêm email
+          </button>
+        </div>
+      </div>
+
       <!-- Status card -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <h2 class="text-[13px] font-bold text-slate-700 mb-3"><%= t("dynamic_forms.status_section") %></h2>
@@ -344,8 +384,10 @@ const INITIAL_FIELDS = <%= @form.dynamic_form_fields.map { |f|
     placeholder: f.placeholder.to_s, hint: f.hint.to_s, required: f.required,
     options: f.options_list, min_length: f.min_length, max_length: f.max_length,
     min_value: f.min_value, max_value: f.max_value,
-    accept: f.accept, max_size_mb: f.max_size_mb, multiple: f.multiple }
+    accept: f.accept, max_size_mb: f.max_size_mb, multiple: f.multiple,
+    conditional_logic: f.conditional_logic || {} }
 }.to_json.html_safe %>;
+const INITIAL_SETTINGS = <%= @form.settings.to_json.html_safe %>;
 
 // Vietnamese → ASCII transliteration for field key auto-generation
 function slugify(str) {
@@ -435,6 +477,7 @@ function renderAll() {
 }
 
 function renderField(f, i) {
+  const fieldNum = i + 1;
   const isOption = ['select','radio','checkboxes'].includes(f.field_type);
   const optHtml = isOption ? `
     <div class="mt-3 rounded-lg p-3" style="background:#f0f4ff; border:1.5px dashed #818cf8;">
@@ -489,10 +532,51 @@ function renderField(f, i) {
           class="w-full mt-0.5 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white"></div>
     </div>` : '';
 
+  // Skip logic section
+  const cl = f.conditional_logic || {};
+  const clEnabled = !!cl.enabled;
+  const condHtml = `
+    <div class="mt-3 pt-2.5 border-t border-slate-100">
+      <div class="flex items-center justify-between mb-1.5">
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">⚡ Điều kiện hiển thị</span>
+        <label class="flex items-center gap-1.5 cursor-pointer">
+          <input type="checkbox" ${clEnabled ? 'checked' : ''}
+            onchange="toggleCondition(${f._uid}, this.checked)"
+            class="w-3 h-3 accent-indigo-600">
+          <span class="text-[10px] text-slate-600 font-medium">Bật điều kiện</span>
+        </label>
+      </div>
+      <div id="cond-panel-${f._uid}" class="${clEnabled ? '' : 'hidden'} p-2.5 rounded-lg bg-amber-50 border border-amber-200 space-y-1.5">
+        <p class="text-[10px] text-amber-700 font-medium">Hiển thị trường này khi:</p>
+        <div class="flex gap-1.5 flex-wrap items-center">
+          <select onchange="setConditionProp(${f._uid}, 'field_key', this.value)"
+            class="flex-1 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white min-w-[90px]">
+            <option value="">— chọn trường —</option>
+            ${_fields.filter(ff => ff._uid !== f._uid).map(ff =>
+              `<option value="${escHtml(ff.field_key)}" ${(cl.field_key === ff.field_key) ? 'selected' : ''}>${escHtml(ff.label || ff.field_key)}</option>`
+            ).join('')}
+          </select>
+          <select onchange="setConditionProp(${f._uid}, 'operator', this.value)"
+            class="w-24 flex-shrink-0 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white">
+            <option value="equals"    ${(cl.operator||'equals')==='equals'    ?'selected':''}>bằng</option>
+            <option value="not_equals"${cl.operator==='not_equals'            ?'selected':''}>khác</option>
+            <option value="contains"  ${cl.operator==='contains'              ?'selected':''}>chứa</option>
+            <option value="not_empty" ${cl.operator==='not_empty'             ?'selected':''}>không rỗng</option>
+            <option value="empty"     ${cl.operator==='empty'                 ?'selected':''}>rỗng</option>
+          </select>
+          <input type="text" value="${escHtml(cl.value||'')}" placeholder="Giá trị..."
+            oninput="setConditionProp(${f._uid}, 'value', this.value)"
+            class="flex-1 px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white min-w-[70px]">
+        </div>
+      </div>
+    </div>`;
+
   return `
     <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 hover:border-indigo-200 transition-colors" id="field-${f._uid}">
       <div class="flex items-start gap-3">
         <div class="drag-handle text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing mt-1 flex-shrink-0 select-none text-lg leading-none transition-colors" title="${DF_I18N.drag_title}">⠿</div>
+        <!-- Number badge -->
+        <div class="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold text-white mt-1 select-none">${fieldNum}</div>
         <div class="flex-1 min-w-0 space-y-2">
           <div class="flex gap-2 flex-wrap items-end">
             <div class="flex-1 min-w-[130px]">
@@ -537,6 +621,7 @@ function renderField(f, i) {
           ${fileHtml}
           ${validHtml}
           ${optHtml}
+          ${condHtml}
         </div>
         <div class="flex flex-col gap-1 flex-shrink-0">
           <button type="button" onclick="removeField(${f._uid})" title="${DF_I18N.delete_field_title}" class="w-6 h-6 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded bg-white border border-red-100 text-[10px]">✕</button>
@@ -556,7 +641,7 @@ function renderOption(uid, oi, o) {
 
 function addField() {
   const uid = _uid++;
-  _fields.push({ _uid:uid, id:0, label:'', field_key:'', field_type:'text', placeholder:'', hint:'', required:false, options:[], min_length:null, max_length:null, min_value:null, max_value:null });
+  _fields.push({ _uid:uid, id:0, label:'', field_key:'', field_type:'text', placeholder:'', hint:'', required:false, options:[], min_length:null, max_length:null, min_value:null, max_value:null, conditional_logic:{} });
   markUnsaved();
   renderAll();
   setTimeout(() => document.getElementById(`field-${uid}`)?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
@@ -667,8 +752,10 @@ function syncFieldsData() {
     min_length: f.min_length||null, max_length: f.max_length||null,
     min_value: f.min_value||null, max_value: f.max_value||null,
     accept: f.accept||null, max_size_mb: f.max_size_mb||null, multiple: !!f.multiple,
+    conditional_logic: f.conditional_logic || {},
   }));
   document.getElementById('fields-data-input').value = JSON.stringify(data);
+  syncSettingsData();
 }
 
 function escHtml(s) {
@@ -750,8 +837,101 @@ function escHtml(s) {
   renderTrigger();
 })();
 
+// ── Conditional logic helpers ──────────────────────────────────────────────────
+function toggleCondition(uid, enabled) {
+  const f = _fields.find(f => f._uid === uid);
+  if (!f) return;
+  f.conditional_logic = { ...(f.conditional_logic||{}), enabled };
+  const panel = document.getElementById(`cond-panel-${uid}`);
+  if (panel) panel.classList.toggle('hidden', !enabled);
+  markUnsaved();
+}
+function setConditionProp(uid, prop, val) {
+  const f = _fields.find(f => f._uid === uid);
+  if (!f) return;
+  f.conditional_logic = { ...(f.conditional_logic||{}), [prop]: val };
+  markUnsaved();
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+let _settings = Object.assign(
+  { custom_statuses: [], notify_assignee: false, notification_emails: [] },
+  INITIAL_SETTINGS
+);
+
+function syncSettingsData() {
+  document.getElementById('settings-data-input').value = JSON.stringify(_settings);
+}
+
+// Custom statuses
+function renderCustomStatuses() {
+  const list = document.getElementById('custom-statuses-list');
+  if (!list) return;
+  list.innerHTML = (_settings.custom_statuses||[]).map((s, i) => `
+    <div class="flex gap-1.5 items-center">
+      <input type="text" value="${escHtml(s)}" placeholder="Tên trạng thái..."
+        oninput="_settings.custom_statuses[${i}]=this.value; markUnsaved();"
+        class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white">
+      <button type="button" onclick="removeCustomStatus(${i})"
+        class="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 text-[11px] flex-shrink-0">✕</button>
+    </div>`).join('');
+}
+window.addCustomStatus = function() {
+  _settings.custom_statuses = [...(_settings.custom_statuses||[]), ''];
+  renderCustomStatuses(); markUnsaved();
+};
+window.removeCustomStatus = function(i) {
+  _settings.custom_statuses.splice(i, 1);
+  renderCustomStatuses(); markUnsaved();
+};
+
+// Notify assignee toggle
+function renderNotifyToggle() {
+  const btn = document.getElementById('notify-assignee-toggle');
+  if (!btn) return;
+  const on = !!_settings.notify_assignee;
+  btn.textContent = on ? 'Bật' : 'Tắt';
+  btn.className = on
+    ? 'px-3 py-1 rounded-full text-[11px] font-bold border-0 cursor-pointer transition-colors bg-emerald-100 text-emerald-700'
+    : 'px-3 py-1 rounded-full text-[11px] font-bold border-0 cursor-pointer transition-colors bg-slate-100 text-slate-500';
+}
+window.toggleNotifyAssignee = function() {
+  _settings.notify_assignee = !_settings.notify_assignee;
+  renderNotifyToggle(); markUnsaved();
+};
+
+// Notification emails
+function renderNotificationEmails() {
+  const list = document.getElementById('notification-emails-list');
+  if (!list) return;
+  list.innerHTML = (_settings.notification_emails||[]).map((e, i) => `
+    <div class="flex gap-1.5 items-center">
+      <input type="email" value="${escHtml(e)}" placeholder="email@example.com"
+        oninput="_settings.notification_emails[${i}]=this.value; markUnsaved();"
+        class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-mono outline-none focus:border-indigo-400 bg-white">
+      <button type="button" onclick="removeNotificationEmail(${i})"
+        class="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 text-[11px] flex-shrink-0">✕</button>
+    </div>`).join('');
+}
+window.addNotificationEmail = function() {
+  _settings.notification_emails = [...(_settings.notification_emails||[]), ''];
+  renderNotificationEmails(); markUnsaved();
+};
+window.removeNotificationEmail = function(i) {
+  _settings.notification_emails.splice(i, 1);
+  renderNotificationEmails(); markUnsaved();
+};
+
+// Init settings UI
+(function() {
+  renderCustomStatuses();
+  renderNotifyToggle();
+  renderNotificationEmails();
+  syncSettingsData();
+})();
+
 // Expose functions used from inline onclick= attributes
-Object.assign(window, { syncFieldsData, addField, removeField, moveField, setFieldProp, addOption, removeOption, setOption, submitForm, markUnsaved, renderAll });
+Object.assign(window, { syncFieldsData, addField, removeField, moveField, setFieldProp, addOption, removeOption, setOption, submitForm, markUnsaved, renderAll, toggleCondition, setConditionProp });
 
 })(); // end outer IIFE — prevents Turbo redeclaration errors
 
