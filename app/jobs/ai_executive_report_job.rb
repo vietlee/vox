@@ -163,8 +163,9 @@ class AiExecutiveReportJob < ApplicationJob
       when :single_choice, :multiple_choice, :dropdown
         total = base.count
         next if total == 0
+        # option_ids is jsonb — use @> with a JSON array literal
         options = q.question_options.order(:position).map do |opt|
-          count = base.where("option_ids @> ARRAY[?]::bigint[]", opt.id).count
+          count = base.where("option_ids @> ?", [opt.id].to_json).count
           { "id" => opt.id, "label" => opt.label, "count" => count,
             "pct" => (count.to_f / total * 100).round(1) }
         end
