@@ -250,11 +250,15 @@ async function setStatus(id, val, label, bg, text, border, dot, url) {
   const labelEl = document.getElementById('status-label-' + id);
   if (labelEl) labelEl.textContent = label;
 
-  // Update tick in dropdown
+  // Update tick + active highlight in dropdown
   if (menu) {
     menu.querySelectorAll('[data-sval]').forEach(item => {
+      const isActive = item.dataset.sval === String(val);
       const tick = item.querySelector('.status-tick');
-      if (tick) tick.classList.toggle('hidden', item.dataset.sval !== String(val));
+      if (tick) tick.classList.toggle('hidden', !isActive);
+      item.classList.toggle('bg-indigo-50', isActive);
+      item.classList.toggle('text-indigo-700', isActive);
+      item.classList.toggle('text-slate-700', !isActive);
     });
   }
 }
@@ -317,12 +321,18 @@ async function setAssignee(id, userId, name, url) {
     btn.classList.add('bg-slate-50','text-slate-500','border-slate-200');
   }
 
-  // Update tick in dropdown menu
+  // Update tick + active highlight in dropdown menu
   const menu = document.getElementById('assignee-menu-' + id);
   if (menu) {
     menu.querySelectorAll('[data-uid]').forEach(item => {
+      const isActive = String(item.dataset.uid) === String(userId || '');
       const tick = item.querySelector('.assignee-tick');
-      if (tick) tick.classList.toggle('hidden', String(item.dataset.uid) !== String(userId || ''));
+      if (tick) tick.classList.toggle('hidden', !isActive);
+      // Toggle active background
+      item.classList.toggle('bg-indigo-50', isActive);
+      item.classList.toggle('text-indigo-700', isActive);
+      item.classList.toggle('text-slate-600', !isActive && item.dataset.uid === '');
+      item.classList.toggle('text-slate-700', !isActive && item.dataset.uid !== '');
     });
   }
 }
