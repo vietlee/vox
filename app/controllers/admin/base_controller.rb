@@ -42,8 +42,8 @@ class Admin::BaseController < ApplicationController
   end
 
   # Simple pagination helper
-  def pagy(scope, items: 15)
-    page  = (params[:page] || 1).to_i
+  def pagy(scope, items: 15, page: nil)
+    page  = (page || params[:page] || 1).to_i
     total = scope.count
     records = scope.offset((page - 1) * items).limit(items)
     pagy_obj = Struct.new(:page, :items, :count, :pages).new(page, items, total, (total.to_f / items).ceil)
