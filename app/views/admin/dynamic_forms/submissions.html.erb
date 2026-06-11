@@ -195,6 +195,7 @@
 </div>
 
 <script>
+(function() {
 const SUBMISSION_CSRF    = document.querySelector('meta[name="csrf-token"]')?.content;
 const NOTIFY_ASSIGNEE    = <%= @form.notify_assignee?.to_json %>;
 const FORM_TITLE         = <%= @form.title.to_json %>;
@@ -323,6 +324,10 @@ function showAssigneeNotifyConfirm(assigneeName) {
     no.onclick  = () => { cleanup(); resolve(false); };
   });
 }
+
+// Expose functions called from inline onclick attributes
+Object.assign(window, { toggleStatusMenu, setStatus, toggleAssigneeMenu, setAssignee, filterAssignees, showAssigneeNotifyConfirm });
+})(); // end IIFE
 </script>
 
 <!-- Assignee notification confirm modal -->
