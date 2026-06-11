@@ -72,6 +72,7 @@ class Participate::DynamicFormsController < Participate::BaseController
   def build_submission_data
     data = {}
     @form.dynamic_form_fields.each do |field|
+      next if field.admin_only?            # admin-only fields are not submitted by participants
       next if field.field_type == "file"   # handled separately after create
       val = params.dig(:submission, field.field_key)
       data[field.field_key] = if field.field_type == "checkboxes"
@@ -88,6 +89,8 @@ class Participate::DynamicFormsController < Participate::BaseController
     v = ->(key, **opts) { t("participate.dynamic_form.validation.#{key}", **opts) }
 
     @form.dynamic_form_fields.each do |field|
+      # Skip admin-only fields — not shown to participants
+      next if field.admin_only?
       # Skip validation for fields hidden by conditional logic
       next unless field_visible?(field, data)
 

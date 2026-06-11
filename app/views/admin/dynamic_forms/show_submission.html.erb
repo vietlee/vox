@@ -1,0 +1,343 @@
+<% content_for :title, "Phản hồi ##{@submission.id} — #{@form.title}" %>
+<% content_for :main_class, "flex-1 overflow-y-auto" %>
+<meta name="turbo-cache-control" content="no-cache">
+
+<!-- Sticky header -->
+<div style="position:sticky; top:0; z-index:50; background:#f1f5f9;
+            border-bottom:1px solid #e2e8f0;
+            box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+  <div class="px-6 py-3.5 flex items-center justify-between gap-3 flex-wrap">
+    <div class="flex items-start gap-3">
+      <%= render "admin/shared/back_btn" %>
+      <div>
+        <div class="flex items-center gap-2 text-[12px] text-slate-400 mb-1">
+          <%= link_to t("dynamic_forms.nav"), dynamic_forms_path, class: "hover:text-indigo-600 transition-colors" %>
+          <span>/</span>
+          <%= link_to @form.title, edit_dynamic_form_path(@form), class: "hover:text-indigo-600 transition-colors truncate max-w-[160px]" %>
+          <span>/</span>
+          <%= link_to "Danh sách phản hồi", submissions_dynamic_form_path(@form), class: "hover:text-indigo-600 transition-colors" %>
+          <span>/</span>
+          <span class="text-slate-600 font-medium">Phản hồi #<%= @submission.id %></span>
+        </div>
+        <h1 class="text-[20px] font-extrabold text-slate-900">📋 Chi tiết phản hồi</h1>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= link_to submissions_dynamic_form_path(@form),
+            class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm transition-colors" do %>
+        ← Về danh sách phản hồi
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<div class="px-6 pt-5 pb-10">
+  <div class="grid grid-cols-[1fr_280px] gap-5 items-start max-w-5xl">
+
+    <!-- Left: Field values -->
+    <div class="space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Nội dung phản hồi</h2>
+          <span class="text-[11px] text-slate-400"><%= I18n.l(@submission.created_at, format: :long) rescue I18n.l(@submission.created_at, format: :short) %></span>
+        </div>
+
+        <% if @fields.any? %>
+          <dl class="divide-y divide-slate-100">
+            <% @fields.each do |field| %>
+              <% val = @submission.value_for(field.field_key) %>
+              <div class="px-6 py-4">
+                <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1.5"><%= field.label %></dt>
+                <dd class="text-[13px] text-slate-800 leading-relaxed">
+                  <% if val.is_a?(Array) && val.first.is_a?(Hash) && val.first["blob_id"].present? %>
+                    <div class="space-y-1.5">
+                      <% val.each do |fdata| %>
+                        <% begin %>
+                          <%= link_to rails_blob_url(ActiveStorage::Blob.find_signed(fdata['blob_id'])), target: "_blank",
+                                class: "inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[12px] font-medium rounded-lg hover:bg-indigo-100 transition-colors" do %>
+                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                            </svg>
+                            <%= fdata['filename'] %>
+                          <% end %>
+                        <% rescue nil; end %>
+                      <% end %>
+                    </div>
+                  <% elsif val.is_a?(Hash) && val["blob_id"].present? %>
+                    <% begin %>
+                      <%= link_to rails_blob_url(ActiveStorage::Blob.find_signed(val['blob_id'])), target: "_blank",
+                            class: "inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[12px] font-medium rounded-lg hover:bg-indigo-100 transition-colors" do %>
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                        </svg>
+                        <%= val['filename'] %>
+                      <% end %>
+                    <% rescue nil; end %>
+                  <% elsif val.is_a?(Array) %>
+                    <% if val.any? %>
+                      <div class="flex flex-wrap gap-1.5">
+                        <% val.each do |v| %>
+                          <span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-[12px] rounded-full"><%= v %></span>
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <span class="text-slate-300 italic">—</span>
+                    <% end %>
+                  <% elsif val.present? %>
+                    <p class="whitespace-pre-wrap"><%= val %></p>
+                  <% else %>
+                    <span class="text-slate-300 italic">—</span>
+                  <% end %>
+                </dd>
+              </div>
+            <% end %>
+          </dl>
+        <% else %>
+          <div class="px-6 py-10 text-center text-slate-400 text-[13px]">Không có trường nào trong form này.</div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Right: Meta info + actions -->
+    <div class="space-y-4">
+
+      <!-- Status card -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h2 class="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-3">Trạng thái</h2>
+        <%= render "admin/dynamic_forms/submission_status", submission: @submission, form: @form %>
+      </div>
+
+      <!-- Assignee card -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h2 class="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-3">Người xử lý</h2>
+        <%= render "admin/dynamic_forms/submission_assignee", submission: @submission, handlers: @all_handlers %>
+      </div>
+
+      <!-- Meta card -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h2 class="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-3">Thông tin</h2>
+        <dl class="space-y-2 text-[12px]">
+          <div class="flex justify-between gap-2">
+            <dt class="text-slate-400 flex-shrink-0">Thời gian</dt>
+            <dd class="text-slate-700 font-medium text-right"><%= I18n.l(@submission.created_at, format: :short) %></dd>
+          </div>
+          <% if @submission.ip_address.present? %>
+            <div class="flex justify-between gap-2">
+              <dt class="text-slate-400 flex-shrink-0">IP</dt>
+              <dd class="text-slate-500 font-mono text-[11px]"><%= @submission.ip_address %></dd>
+            </div>
+          <% end %>
+        </dl>
+      </div>
+
+      <!-- Delete -->
+      <button type="button"
+        onclick="confirmDeleteSubmission(<%= @submission.id %>, '<%= j destroy_submission_dynamic_form_path(@form) %>', '<%= j submissions_dynamic_form_path(@form) %>')"
+        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[12px] font-semibold text-red-500 bg-white border border-red-200 hover:bg-red-50 transition-colors shadow-sm cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+        Xoá phản hồi này
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div id="delete-sub-modal" class="hidden fixed inset-0 z-50"
+     onclick="if(event.target===this) _cancelDeleteSub()">
+  <div class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-[360px] max-w-full mx-4 p-6" onclick="event.stopPropagation()">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 text-xl" style="background:#fee2e2;">🗑️</div>
+      <h3 class="text-[16px] font-bold text-slate-900 text-center mb-1">Xoá phản hồi?</h3>
+      <p class="text-[13px] text-slate-500 text-center mb-5">Hành động này không thể hoàn tác. Phản hồi sẽ bị xoá vĩnh viễn.</p>
+      <div class="flex gap-3">
+        <button onclick="_cancelDeleteSub()"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 cursor-pointer transition-colors">
+          Huỷ
+        </button>
+        <button id="delete-sub-confirm-btn" onclick="_confirmDeleteSub()"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white border-0 cursor-pointer transition-colors"
+          style="background:#ef4444;" onmouseenter="this.style.background='#dc2626'" onmouseleave="this.style.background='#ef4444'">
+          Xoá
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+  const NOTIFY_ASSIGNEE = <%= @form.notify_assignee?.to_json %>;
+  const FORM_TITLE      = <%= @form.title.to_json.html_safe %>;
+
+  // ── Status dropdown ────────────────────────────────────────────────────────
+  window.toggleStatusMenu = function(id) {
+    const menu = document.getElementById('status-menu-' + id);
+    if (!menu) return;
+    const isOpen = !menu.classList.contains('hidden');
+    document.querySelectorAll('[id^="status-menu-"],[id^="assignee-menu-"]').forEach(m => m.classList.add('hidden'));
+    if (!isOpen) menu.classList.remove('hidden');
+  };
+
+  window.setStatus = async function(id, val, label, bg, text, border, dot, url) {
+    const menu = document.getElementById('status-menu-' + id);
+    menu?.classList.add('hidden');
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify({ submission_id: id, status: val })
+    });
+    if (!res.ok) return;
+    const wrap = document.getElementById('status-wrap-' + id);
+    if (!wrap) return;
+    const btn = wrap.querySelector('button');
+    btn.className = btn.className.split(' ').filter(c => !/^(bg|text|border)-\w+-\d+$/.test(c)).join(' ');
+    btn.classList.add(...bg.split(' '), ...text.split(' '), ...border.split(' '));
+    const dotEl = btn.querySelector('span:first-child');
+    if (dotEl) dotEl.className = 'w-1.5 h-1.5 rounded-full flex-shrink-0 ' + dot;
+    const labelEl = document.getElementById('status-label-' + id);
+    if (labelEl) labelEl.textContent = label;
+    if (menu) {
+      menu.querySelectorAll('[data-sval]').forEach(item => {
+        const isActive = item.dataset.sval === String(val);
+        const tick = item.querySelector('.status-tick');
+        if (tick) tick.classList.toggle('hidden', !isActive);
+        item.classList.toggle('bg-indigo-50', isActive);
+        item.classList.toggle('text-indigo-700', isActive);
+        item.classList.toggle('text-slate-700', !isActive);
+      });
+    }
+  };
+
+  // ── Assignee dropdown ─────────────────────────────────────────────────────
+  window.toggleAssigneeMenu = function(id) {
+    const menu = document.getElementById('assignee-menu-' + id);
+    if (!menu) return;
+    const isOpen = !menu.classList.contains('hidden');
+    document.querySelectorAll('[id^="status-menu-"],[id^="assignee-menu-"]').forEach(m => m.classList.add('hidden'));
+    if (!isOpen) menu.classList.remove('hidden');
+  };
+
+  window.setAssignee = async function(id, userId, name, url) {
+    document.getElementById('assignee-menu-' + id)?.classList.add('hidden');
+    let sendNotification = false;
+    if (NOTIFY_ASSIGNEE && userId) {
+      sendNotification = await showAssigneeNotifyConfirm(name);
+    }
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify({ submission_id: id, assignee_id: userId, send_notification: sendNotification })
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const wrap = document.getElementById('assignee-wrap-' + id);
+    if (!wrap) return;
+    const btn  = wrap.querySelector('button');
+    const nameEl = document.getElementById('assignee-name-' + id);
+    if (nameEl) nameEl.textContent = name;
+    const avatarEl = btn.querySelector('span:first-child');
+    if (avatarEl) {
+      if (userId) {
+        avatarEl.className = 'w-4 h-4 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-[8px] font-black text-white flex-shrink-0';
+        avatarEl.textContent = data.initials || name.charAt(0).toUpperCase();
+      } else {
+        avatarEl.className = 'w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] text-slate-400 flex-shrink-0';
+        avatarEl.textContent = '?';
+      }
+    }
+    btn.className = btn.className.replace(/bg-\S+|text-\S+-\d+|border-\S+/g, '').trim();
+    if (userId) { btn.classList.add('bg-indigo-50','text-indigo-700','border-indigo-200'); }
+    else { btn.classList.add('bg-slate-50','text-slate-500','border-slate-200'); }
+    const menu = document.getElementById('assignee-menu-' + id);
+    if (menu) {
+      menu.querySelectorAll('[data-uid]').forEach(item => {
+        const isActive = String(item.dataset.uid) === String(userId || '');
+        const tick = item.querySelector('.assignee-tick');
+        if (tick) tick.classList.toggle('hidden', !isActive);
+        item.classList.toggle('bg-indigo-50', isActive);
+        item.classList.toggle('text-indigo-700', isActive);
+        item.classList.toggle('text-slate-600', !isActive && item.dataset.uid === '');
+        item.classList.toggle('text-slate-700', !isActive && item.dataset.uid !== '');
+      });
+    }
+  };
+
+  // ── Assignee notify confirm ────────────────────────────────────────────────
+  window.showAssigneeNotifyConfirm = function(assigneeName) {
+    return new Promise(resolve => {
+      const modal = document.getElementById('assignee-notify-modal');
+      const msgEl = document.getElementById('assignee-notify-msg');
+      if (!modal) { resolve(false); return; }
+      if (msgEl) msgEl.textContent = `Có gửi email thông báo cho ${assigneeName} không? Email sẽ thông báo có yêu cầu mới được assign cho họ từ form "${FORM_TITLE}".`;
+      modal.classList.remove('hidden');
+      const yes = document.getElementById('assignee-notify-yes');
+      const no  = document.getElementById('assignee-notify-no');
+      function cleanup() { modal.classList.add('hidden'); yes.onclick = null; no.onclick = null; }
+      yes.onclick = () => { cleanup(); resolve(true); };
+      no.onclick  = () => { cleanup(); resolve(false); };
+    });
+  };
+
+  // ── Delete ─────────────────────────────────────────────────────────────────
+  let _deleteSubId = null, _deleteSubUrl = null, _deleteRedirect = null;
+  window.confirmDeleteSubmission = function(id, url, redirect) {
+    _deleteSubId = id; _deleteSubUrl = url; _deleteRedirect = redirect || null;
+    document.getElementById('delete-sub-modal').classList.remove('hidden');
+  };
+  window._cancelDeleteSub = function() {
+    _deleteSubId = null; _deleteSubUrl = null; _deleteRedirect = null;
+    document.getElementById('delete-sub-modal').classList.add('hidden');
+  };
+  window._confirmDeleteSub = async function() {
+    if (!_deleteSubId || !_deleteSubUrl) return;
+    const btn = document.getElementById('delete-sub-confirm-btn');
+    btn.disabled = true; btn.textContent = 'Đang xoá...';
+    const res = await fetch(_deleteSubUrl, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify({ submission_id: _deleteSubId })
+    });
+    if (res.ok) {
+      if (_deleteRedirect) { window.location.href = _deleteRedirect; return; }
+      const row = document.getElementById('sub-row-' + _deleteSubId);
+      row?.remove();
+    }
+    btn.disabled = false; btn.textContent = 'Xoá';
+    window._cancelDeleteSub();
+  };
+
+  // Close menus on outside click
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('[id^="status-wrap-"]') && !e.target.closest('[id^="assignee-wrap-"]')) {
+      document.querySelectorAll('[id^="status-menu-"],[id^="assignee-menu-"]').forEach(m => m.classList.add('hidden'));
+    }
+  });
+})();
+</script>
+
+<!-- Assignee notify modal -->
+<div id="assignee-notify-modal" class="hidden fixed inset-0 z-50"
+     onclick="if(event.target===this){document.getElementById('assignee-notify-no').click()}">
+  <div class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-[400px] max-w-full mx-4 p-6" onclick="event.stopPropagation()">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 text-xl" style="background:#ede9fe;">📧</div>
+      <h3 class="text-[16px] font-bold text-slate-900 text-center mb-2">Gửi email thông báo?</h3>
+      <p id="assignee-notify-msg" class="text-[13px] text-slate-500 text-center mb-5 leading-relaxed"></p>
+      <div class="flex gap-3">
+        <button id="assignee-notify-no"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 cursor-pointer transition-colors">
+          Không gửi
+        </button>
+        <button id="assignee-notify-yes"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white border-0 cursor-pointer transition-colors"
+          style="background:#6366f1;" onmouseenter="this.style.background='#4f46e5'" onmouseleave="this.style.background='#6366f1'">
+          Gửi email
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

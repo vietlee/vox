@@ -19,8 +19,9 @@ class NotificationMailer < ApplicationMailer
     @form        = submission.dynamic_form
     @workspace   = @form.workspace
     @recipient   = recipient
-    @review_url  = Rails.application.routes.url_helpers.submissions_dynamic_form_url(
+    @review_url  = Rails.application.routes.url_helpers.show_submission_dynamic_form_url(
       @form,
+      submission_id: submission.id,
       host: ENV.fetch("APP_HOST", "localhost:3000")
     )
     @submitted_at = I18n.l(submission.created_at, format: :short, locale: @workspace.language&.to_sym || :vi)
@@ -50,8 +51,9 @@ class NotificationMailer < ApplicationMailer
     @form       = submission.dynamic_form
     @workspace  = @form.workspace
     @assignee   = assignee
-    @review_url = Rails.application.routes.url_helpers.submissions_dynamic_form_url(
+    @review_url = Rails.application.routes.url_helpers.show_submission_dynamic_form_url(
       @form,
+      submission_id: submission.id,
       host: ENV.fetch("APP_HOST", "localhost:3000")
     )
 

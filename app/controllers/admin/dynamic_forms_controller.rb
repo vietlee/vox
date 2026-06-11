@@ -1,7 +1,7 @@
 require "csv"
 class Admin::DynamicFormsController < Admin::BaseController
-  before_action :set_form,            only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee]
-  before_action :authorize_form_access!, only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee]
+  before_action :set_form,            only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee, :show_submission, :destroy_submission]
+  before_action :authorize_form_access!, only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee, :show_submission, :destroy_submission]
 
   def index
     scope = if current_workspace_admin?
@@ -108,6 +108,12 @@ class Admin::DynamicFormsController < Admin::BaseController
     @status_filter   = params[:status]
     @assignee_filter = params[:assignee_id]
     @search_query    = params[:q]
+  end
+
+  def show_submission
+    @submission  = @form.dynamic_form_submissions.find(params[:submission_id])
+    @fields      = @form.dynamic_form_fields
+    @all_handlers = (@form.assignees + @form.workspace.admin_users).uniq(&:id).sort_by { |u| u.name.presence || u.email }
   end
 
   def destroy_submission
@@ -230,6 +236,7 @@ class Admin::DynamicFormsController < Admin::BaseController
         accept:            fdata["accept"].to_s.presence,
         max_size_mb:       fdata["max_size_mb"].presence,
         multiple:          fdata["multiple"].to_s == "true",
+        admin_only:        fdata["admin_only"].to_s == "true",
         conditional_logic: cond_attrs,
         position:          idx,
       }
