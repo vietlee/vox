@@ -11,12 +11,14 @@ class QrCodesController < ActionController::Base
     # Use error correction level H (30%) — allows logo to cover ~20% of modules
     qr_code = RQRCode::QRCode.new(target_url, level: :h)
 
-    mod_size = 6
-    pad      = 24
-    radius   = 16
-    modules  = qr_code.modules.size
-    qr_px    = modules * mod_size
-    total    = qr_px + pad * 2
+    mod_size   = 6
+    pad        = 24
+    radius     = 16
+    text_h     = 32       # extra height at bottom for "VOX" label
+    modules    = qr_code.modules.size
+    qr_px      = modules * mod_size
+    total      = qr_px + pad * 2
+    full_h     = total + text_h
 
     # Generate raw QR path (no standalone wrapper)
     inner_svg = qr_code.as_svg(
@@ -37,17 +39,19 @@ class QrCodesController < ActionController::Base
     icon_y   = (total - logo_sz) / 2
 
     svg = <<~SVG
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 #{total} #{total}" width="#{total}" height="#{total}" shape-rendering="crispEdges">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 #{total} #{full_h}" width="#{total}" height="#{full_h}" shape-rendering="crispEdges">
         <defs>
           <clipPath id="qr-clip">
-            <rect width="#{total}" height="#{total}" rx="#{radius}" ry="#{radius}"/>
+            <rect width="#{total}" height="#{full_h}" rx="#{radius}" ry="#{radius}"/>
           </clipPath>
         </defs>
 
-        <!-- White background -->
-        <rect width="#{total}" height="#{total}" rx="#{radius}" ry="#{radius}" fill="#ffffff"/>
+        <!-- White background (full height including text area) -->
+        <rect width="#{total}" height="#{full_h}" rx="#{radius}" ry="#{radius}" fill="#ffffff"/>
         <!-- Subtle indigo border -->
-        <rect width="#{total}" height="#{total}" rx="#{radius}" ry="#{radius}" fill="none" stroke="#e0e7ff" stroke-width="2"/>
+        <rect width="#{total}" height="#{full_h}" rx="#{radius}" ry="#{radius}" fill="none" stroke="#e0e7ff" stroke-width="2"/>
+        <!-- Separator line above text -->
+        <line x1="#{pad}" y1="#{total}" x2="#{total - pad}" y2="#{total}" stroke="#e0e7ff" stroke-width="1"/>
 
         <!-- QR modules -->
         <g transform="translate(#{pad}, #{pad})">
@@ -66,6 +70,12 @@ class QrCodesController < ActionController::Base
           <rect x="16" y="8" width="4" height="13" rx="1" fill="#1A6BFF"/>
           <rect x="23" y="10" width="4" height="9" rx="1" fill="#1A6BFF"/>
         </g>
+
+        <!-- VOX text label at bottom -->
+        <text x="#{total / 2}" y="#{total + text_h / 2 + 5}"
+          font-family="system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif"
+          font-size="13" font-weight="800" letter-spacing="3"
+          fill="#1A6BFF" text-anchor="middle" shape-rendering="geometricPrecision">VOX</text>
       </svg>
     SVG
 
