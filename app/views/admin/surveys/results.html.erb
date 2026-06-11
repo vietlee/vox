@@ -320,12 +320,12 @@
               <span class="text-[9px] text-slate-400 font-normal">3 credits</span>
             </button>
           </div>
-          <textarea id="report-context" rows="5" maxlength="800"
-            placeholder="Mô tả mục đích báo cáo, đối tượng nhận, và định dạng bạn muốn...&#10;&#10;Ví dụ: Báo cáo cho cuộc họp ban giám đốc tháng 6. Tập trung vào vấn đề môi trường làm việc. Tạo file Word có bảng tóm tắt và biểu đồ minh hoạ."
-            class="w-full px-3 py-2.5 text-[13px] text-slate-800 rounded-lg resize-none outline-none"
-            style="border:1.5px solid #e2e8f0; font-size:13px; line-height:1.6;"
-            onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='#e2e8f0'"
-            oninput="updateReportBtn()"></textarea>
+          <!-- Hidden input synced with Quill — used by all JS reading #report-context -->
+          <input type="hidden" id="report-context">
+          <div class="vox-richtext-wrap" id="report-context-wrap">
+            <div id="report-context-editor" style="min-height:110px;font-size:13px;"></div>
+          </div>
+          <p class="text-[10px] text-slate-400 mt-1">Mô tả mục đích báo cáo, đối tượng nhận, trọng tâm phân tích...</p>
         </div>
 
         <!-- Language -->
@@ -1196,11 +1196,9 @@ async function suggestReportPrompt() {
     });
     const data = await res.json();
     if (data.suggestion) {
-      const ta = document.getElementById('report-context');
-      ta.value = data.suggestion;
-      ta.style.borderColor = '#8b5cf6';
-      setTimeout(() => { ta.style.borderColor = '#e2e8f0'; }, 2000);
-      updateReportBtn();
+      if (window.setReportContext) window.setReportContext(data.suggestion);
+      const wrap = document.getElementById('report-context-wrap');
+      if (wrap) { wrap.style.borderColor = '#8b5cf6'; setTimeout(() => { wrap.style.borderColor = ''; }, 2000); }
       icon.textContent = '✅';
       label.textContent = 'Đã gợi ý!';
       setTimeout(() => { icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt'; }, 2500);
@@ -1233,13 +1231,13 @@ function toggleReportPrompt(id) {
 function regenReport(ctx, lang, fmt) {
   // Switch to report tab
   switchTab('report');
-  // Fill context textarea
-  const ta = document.getElementById('report-context');
-  if (ta) {
-    ta.value = ctx;
-    ta.style.borderColor = '#8b5cf6';
-    setTimeout(() => { ta.style.borderColor = '#e2e8f0'; }, 2000);
-    ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Fill context via Quill + hidden input
+  if (window.setReportContext) window.setReportContext(ctx);
+  const wrap = document.getElementById('report-context-wrap');
+  if (wrap) {
+    wrap.style.borderColor = '#8b5cf6';
+    setTimeout(() => { wrap.style.borderColor = ''; }, 2000);
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   // Set language
   const langInputs = document.querySelectorAll('input[name="language"]');
@@ -1375,4 +1373,68 @@ function closeAnswersModal() {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeAnswersModal();
 });
+</script>
+
+<script>
+// ── Report context Quill editor ────────────────────────────────────────────
+(function initReportContextEditor() {
+  function tryInit() {
+    if (typeof Quill === 'undefined') { setTimeout(tryInit, 100); return; }
+
+    const wrap  = document.getElementById('report-context-wrap');
+    const edEl  = document.getElementById('report-context-editor');
+    const input = document.getElementById('report-context');
+    if (!wrap || !edEl || !input || edEl._quill) return;
+
+    const q = new Quill('#report-context-editor', {
+      theme: 'snow',
+      placeholder: 'Mô tả mục đích báo cáo, đối tượng nhận, trọng tâm phân tích...',
+      modules: {
+        toolbar: [
+          ['bold', 'italic', 'underline'],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['clean']
+        ]
+      }
+    });
+    edEl._quill = q;
+
+    // Sync plain text → hidden input on every change
+    q.on('text-change', () => {
+      input.value = q.getText().trim();
+      updateReportBtn();
+    });
+
+    // Focus style on wrap
+    q.on('selection-change', (range) => {
+      wrap.style.borderColor = range ? '#8b5cf6' : '#e2e8f0';
+      wrap.style.boxShadow   = range ? '0 0 0 3px rgba(139,92,246,0.1)' : '';
+    });
+  }
+  tryInit();
+
+  // Patch window.regenReport to also fill Quill editor
+  const _origRegen = window.regenReport;
+  window.regenReport = function(ctx, lang, fmt) {
+    _origRegen && _origRegen(ctx, lang, fmt);
+    const edEl = document.getElementById('report-context-editor');
+    const q = edEl?._quill;
+    if (q) {
+      q.setText(ctx);
+      // Trigger sync
+      document.getElementById('report-context').value = ctx;
+      updateReportBtn();
+    }
+  };
+
+  // Helper: set text in both hidden input AND Quill
+  window.setReportContext = function(text) {
+    const ta = document.getElementById('report-context');
+    const edEl = document.getElementById('report-context-editor');
+    const q = edEl?._quill;
+    if (ta) ta.value = text;
+    if (q)  q.setText(text);
+    updateReportBtn();
+  };
+})();
 </script>
