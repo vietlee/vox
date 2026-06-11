@@ -93,6 +93,7 @@
               <% @fields.each do |field| %>
                 <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap"><%= field.label %></th>
               <% end %>
+              <th class="w-8 px-2 py-2.5"></th>
             </tr>
           </thead>
           <tbody>
@@ -140,6 +141,16 @@
                     <% end %>
                   </td>
                 <% end %>
+                <td class="px-2 py-3 text-right">
+                  <button type="button"
+                    onclick="confirmDeleteSubmission(<%= sub.id %>, '<%= j destroy_submission_dynamic_form_path(@form) %>')"
+                    class="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                    title="Xoá phản hồi">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -355,10 +366,64 @@ function showAssigneeNotifyConfirm(assigneeName) {
   });
 }
 
+// Delete submission
+let _deleteSubId = null, _deleteSubUrl = null;
+window.confirmDeleteSubmission = function(id, url) {
+  _deleteSubId  = id;
+  _deleteSubUrl = url;
+  document.getElementById('delete-sub-modal').classList.remove('hidden');
+};
+window._cancelDeleteSub = function() {
+  _deleteSubId = null; _deleteSubUrl = null;
+  document.getElementById('delete-sub-modal').classList.add('hidden');
+};
+window._confirmDeleteSub = async function() {
+  if (!_deleteSubId || !_deleteSubUrl) return;
+  const btn = document.getElementById('delete-sub-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Đang xoá...';
+  const res = await fetch(_deleteSubUrl, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': SUBMISSION_CSRF },
+    body: JSON.stringify({ submission_id: _deleteSubId })
+  });
+  if (res.ok) {
+    const row = document.getElementById('sub-row-' + _deleteSubId);
+    row?.remove();
+    // Update count display
+    const countEl = document.querySelector('[data-submissions-count]');
+    if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
+  }
+  btn.disabled = false; btn.textContent = 'Xoá';
+  window._cancelDeleteSub();
+};
+
 // Expose functions called from inline onclick attributes
-Object.assign(window, { toggleStatusMenu, setStatus, toggleAssigneeMenu, setAssignee, showAssigneeNotifyConfirm });
+Object.assign(window, { toggleStatusMenu, setStatus, toggleAssigneeMenu, setAssignee, showAssigneeNotifyConfirm, confirmDeleteSubmission, _cancelDeleteSub, _confirmDeleteSub });
 })(); // end IIFE
 </script>
+
+<!-- Delete submission confirm modal -->
+<div id="delete-sub-modal" class="hidden fixed inset-0 z-50"
+     onclick="if(event.target===this) _cancelDeleteSub()">
+  <div class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-[360px] max-w-full mx-4 p-6" onclick="event.stopPropagation()">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 text-xl" style="background:#fee2e2;">🗑️</div>
+      <h3 class="text-[16px] font-bold text-slate-900 text-center mb-1">Xoá phản hồi?</h3>
+      <p class="text-[13px] text-slate-500 text-center mb-5">Hành động này không thể hoàn tác. Phản hồi sẽ bị xoá vĩnh viễn.</p>
+      <div class="flex gap-3">
+        <button onclick="_cancelDeleteSub()"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 cursor-pointer transition-colors">
+          Huỷ
+        </button>
+        <button id="delete-sub-confirm-btn" onclick="_confirmDeleteSub()"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white border-0 cursor-pointer transition-colors"
+          style="background:#ef4444;" onmouseenter="this.style.background='#dc2626'" onmouseleave="this.style.background='#ef4444'">
+          Xoá
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Assignee notification confirm modal -->
 <div id="assignee-notify-modal" class="hidden fixed inset-0 z-50"

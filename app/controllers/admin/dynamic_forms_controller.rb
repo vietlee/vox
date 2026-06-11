@@ -110,6 +110,15 @@ class Admin::DynamicFormsController < Admin::BaseController
     @search_query    = params[:q]
   end
 
+  def destroy_submission
+    sub = @form.dynamic_form_submissions.find(params[:submission_id])
+    sub.destroy!
+    @form.decrement!(:submissions_count)
+    render json: { ok: true }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def update_submission_status
     sub = @form.dynamic_form_submissions.find(params[:submission_id])
     if @form.custom_statuses.any?

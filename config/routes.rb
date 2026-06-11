@@ -182,6 +182,7 @@ Rails.application.routes.draw do
         get   :export_csv
         patch :update_submission_status
         patch :update_submission_assignee
+        delete :destroy_submission
       end
     end
 
