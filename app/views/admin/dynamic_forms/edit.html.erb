@@ -864,13 +864,14 @@ function syncSettingsData() {
 }
 
 // Custom statuses
+window.updateCustomStatus = function(i, val) { _settings.custom_statuses[i] = val; markUnsaved(); };
 function renderCustomStatuses() {
   const list = document.getElementById('custom-statuses-list');
   if (!list) return;
   list.innerHTML = (_settings.custom_statuses||[]).map((s, i) => `
     <div class="flex gap-1.5 items-center">
       <input type="text" value="${escHtml(s)}" placeholder="Tên trạng thái..."
-        oninput="_settings.custom_statuses[${i}]=this.value; markUnsaved();"
+        oninput="updateCustomStatus(${i}, this.value)"
         class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] outline-none focus:border-indigo-400 bg-white">
       <button type="button" onclick="removeCustomStatus(${i})"
         class="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 text-[11px] flex-shrink-0">✕</button>
@@ -901,13 +902,14 @@ window.toggleNotifyAssignee = function() {
 };
 
 // Notification emails
+window.updateNotificationEmail = function(i, val) { _settings.notification_emails[i] = val; markUnsaved(); };
 function renderNotificationEmails() {
   const list = document.getElementById('notification-emails-list');
   if (!list) return;
   list.innerHTML = (_settings.notification_emails||[]).map((e, i) => `
     <div class="flex gap-1.5 items-center">
       <input type="email" value="${escHtml(e)}" placeholder="email@example.com"
-        oninput="_settings.notification_emails[${i}]=this.value; markUnsaved();"
+        oninput="updateNotificationEmail(${i}, this.value)"
         class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-mono outline-none focus:border-indigo-400 bg-white">
       <button type="button" onclick="removeNotificationEmail(${i})"
         class="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 text-[11px] flex-shrink-0">✕</button>
