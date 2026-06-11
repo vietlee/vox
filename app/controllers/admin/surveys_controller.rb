@@ -1,7 +1,7 @@
 require "csv"
 
 class Admin::SurveysController < Admin::BaseController
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :export, :export_report, :delete_report, :ai_analyze, :ai_report, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :export, :export_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
@@ -451,6 +451,53 @@ class Admin::SurveysController < Admin::BaseController
       format.json { render json: { job_id: job.id, status: "queued" } }
       format.turbo_stream { render turbo_stream: turbo_stream.replace("ai-panel", partial: "admin/surveys/ai_loading", locals: { job: job }) }
     end
+  end
+
+  def ai_suggest_prompt
+    return unless require_ai_feature!(:ai_executive_report)
+    return unless require_credits!(3)
+
+    language = params[:language].presence_in(%w[vi en]) || current_workspace.language || "vi"
+    lang_name = language == "vi" ? "Vietnamese" : "English"
+
+    # Build survey context for the AI
+    questions_text = @survey.questions.order(:position).map.with_index(1) do |q, i|
+      opts = q.question_options.any? ? " [#{q.question_options.pluck(:label).join(", ")}]" : ""
+      "#{i}. [#{q.question_type}] #{q.title}#{opts}"
+    end.join("\n")
+
+    system_prompt = "You are an expert data analyst who specializes in crafting concise, targeted survey report briefs. Respond ONLY with the suggested prompt text — no explanation, no preamble, no JSON wrapper."
+
+    user_prompt = <<~PROMPT
+      A user wants to generate an AI executive report for the following survey. Based on the survey content, suggest the optimal report-generation prompt in #{lang_name}.
+
+      Survey title: #{@survey.title}
+      #{@survey.description.present? ? "Description: #{@survey.description}" : ""}
+      Total responses: #{@survey.responses.completed.count}
+
+      Questions:
+      #{questions_text}
+
+      Write a concise 3-5 sentence prompt (in #{lang_name}) that tells the AI:
+      1. The most suitable output format (Word/Excel/PDF) and why
+      2. The key focus areas based on the question types
+      3. What charts or visualizations would be most useful
+      4. The recommended report structure and tone (executive, technical, HR, etc.)
+
+      The prompt should be ready to paste directly into a report context field. Write it as if the user is speaking to the AI directly.
+    PROMPT
+
+    current_workspace.active_subscription&.deduct_credits!(3)
+
+    suggested = ClaudeService.sonnet_long.call(
+      system_prompt: system_prompt,
+      user_prompt:   user_prompt,
+      max_tokens:    600
+    ).strip
+
+    render json: { suggestion: suggested }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def ai_report

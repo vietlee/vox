@@ -306,9 +306,20 @@
 
         <!-- Context input -->
         <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
-            Ngữ cảnh & Trọng tâm báo cáo
-          </label>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+              Ngữ cảnh & Trọng tâm báo cáo
+            </label>
+            <button type="button" id="suggest-prompt-btn" onclick="suggestReportPrompt()"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border-0 cursor-pointer transition-all"
+              style="background:linear-gradient(135deg,rgba(139,92,246,0.12),rgba(99,102,241,0.12));color:#7c3aed;border:1px solid rgba(139,92,246,0.25);"
+              onmouseenter="this.style.background='linear-gradient(135deg,rgba(139,92,246,0.2),rgba(99,102,241,0.2))'"
+              onmouseleave="this.style.background='linear-gradient(135deg,rgba(139,92,246,0.12),rgba(99,102,241,0.12))'">
+              <span id="suggest-icon">✨</span>
+              <span id="suggest-label">AI gợi ý prompt</span>
+              <span class="text-[9px] text-slate-400 font-normal">3 credits</span>
+            </button>
+          </div>
           <textarea id="report-context" rows="5" maxlength="800"
             placeholder="Mô tả mục đích báo cáo, đối tượng nhận, và định dạng bạn muốn...&#10;&#10;Ví dụ: Báo cáo cho cuộc họp ban giám đốc tháng 6. Tập trung vào vấn đề môi trường làm việc. Tạo file Word có bảng tóm tắt và biểu đồ minh hoạ."
             class="w-full px-3 py-2.5 text-[13px] text-slate-800 rounded-lg resize-none outline-none"
@@ -1122,7 +1133,55 @@ function btnDownloadLoading(el) {
   }, 6000);
 }
 
-Object.assign(window, { switchTab, toggleRow, requestAiAnalysis, requestReport, updateReportBtn, toggleReport, checkReport, startPdfExport, openExportPicker, closeExportPicker, closeDeleteReportModal, showSurveyCloseConfirm, hideSurveyCloseConfirm, deleteReport, btnDownloadLoading });
+async function suggestReportPrompt() {
+  const btn = document.getElementById('suggest-prompt-btn');
+  const icon = document.getElementById('suggest-icon');
+  const label = document.getElementById('suggest-label');
+  if (btn.disabled) return;
+
+  // Loading state
+  btn.disabled = true;
+  icon.textContent = '⏳';
+  label.textContent = 'Đang gợi ý...';
+  btn.style.opacity = '0.7';
+
+  // Get selected language
+  const langEl = document.querySelector('input[name="language"]:checked') ||
+                 document.querySelector('select[name="language"]');
+  const language = langEl ? langEl.value : 'vi';
+
+  try {
+    const res = await fetch('<%= ai_suggest_prompt_survey_path(@survey) %>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+      body: JSON.stringify({ language })
+    });
+    const data = await res.json();
+    if (data.suggestion) {
+      const ta = document.getElementById('report-context');
+      ta.value = data.suggestion;
+      ta.style.borderColor = '#8b5cf6';
+      setTimeout(() => { ta.style.borderColor = '#e2e8f0'; }, 2000);
+      updateReportBtn();
+      icon.textContent = '✅';
+      label.textContent = 'Đã gợi ý!';
+      setTimeout(() => { icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt'; }, 2500);
+    } else {
+      icon.textContent = '⚠️';
+      label.textContent = data.error || 'Lỗi';
+      setTimeout(() => { icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt'; }, 3000);
+    }
+  } catch(e) {
+    icon.textContent = '⚠️';
+    label.textContent = 'Lỗi kết nối';
+    setTimeout(() => { icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt'; }, 3000);
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
+
+Object.assign(window, { switchTab, toggleRow, requestAiAnalysis, requestReport, updateReportBtn, toggleReport, checkReport, startPdfExport, openExportPicker, closeExportPicker, closeDeleteReportModal, showSurveyCloseConfirm, hideSurveyCloseConfirm, deleteReport, btnDownloadLoading, suggestReportPrompt });
 })();
 
 function showSurveyCloseConfirm() {

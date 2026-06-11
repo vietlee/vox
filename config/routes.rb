@@ -96,6 +96,7 @@ Rails.application.routes.draw do
         delete :delete_report
         post   :ai_analyze
         post   :ai_report
+        post   :ai_suggest_prompt
         get   :share
         post  :clone
       end
