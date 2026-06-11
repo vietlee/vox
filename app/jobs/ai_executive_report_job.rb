@@ -27,6 +27,14 @@ class AiExecutiveReportJob < ApplicationJob
                       .first&.output || {}
     responses = survey.responses.completed
 
+    # Extract pre-computed sentiment from analysis
+    sentiment_data = analysis["sentiment"] || {}
+    pos_from_analysis = sentiment_data["positive"].to_s.gsub('%', '').strip
+    neg_from_analysis = sentiment_data["negative"].to_s.gsub('%', '').strip
+    sentiment_hint = pos_from_analysis.present? ?
+      "sentiment_positive: \"#{pos_from_analysis}%\", sentiment_negative: \"#{neg_from_analysis}%\"" :
+      "sentiment_positive: \"derive from data\", sentiment_negative: \"derive from data\""
+
     context_block = user_context ? <<~CTX : ""
       ## Additional Focus from Report Requester
       The person requesting this report has provided the following context and focus areas:
@@ -35,13 +43,14 @@ class AiExecutiveReportJob < ApplicationJob
     CTX
 
     system_prompt = <<~SYS.strip
-      You are a senior HR consultant and organizational strategist writing board-ready executive reports.
-      Your reports are used directly in leadership meetings — they must be polished, data-driven, and immediately actionable.
+      You are a senior analyst writing concise, board-ready executive reports.
+      Reports go directly into leadership meetings — executives skim, they do NOT read long paragraphs.
 
-      Rules:
+      CRITICAL STYLE RULES:
       - Write ALL content in #{lang_name}
-      - Every claim must reference actual data from the survey
-      - Recommendations must be specific and assignable (not generic)
+      - Be ruthlessly concise: each paragraph = 2-3 sentences max. No fluff, no padding.
+      - Every sentence must contain a specific number, percentage, or finding. Never write vague generalities.
+      - Recommendations must name WHO does WHAT by WHEN — not generic advice.
       - IMPORTANT: Return ONLY valid JSON. Use \\n\\n for paragraph breaks inside strings. No literal newlines inside JSON string values.
       - Do not include markdown, code fences, or any text outside the JSON object.
     SYS
@@ -67,17 +76,17 @@ class AiExecutiveReportJob < ApplicationJob
       {
         "title": "Professional report title in #{lang_name}",
         "subtitle": "Short subtitle in #{lang_name}, e.g. period or scope of the survey — #{Date.current.strftime("%m/%Y")}",
-        "executive_summary": "2-3 paragraphs covering: overall picture, key findings, sentiment, and what leadership should know. Cite specific numbers. Use \\n\\n between paragraphs.",
+        "executive_summary": "EXACTLY 2 short paragraphs (each 2-3 sentences). Para 1: the single headline number/finding. Para 2: what it means and the top priority action. Use \\n\\n between paragraphs. NO filler sentences.",
         "key_metrics": {
           "response_count": #{responses.count},
-          "sentiment_positive": "X%",
-          "sentiment_negative": "X%",
-          "top_concern": "The most critical issue in one sentence"
+          "sentiment_positive": "<USE EXACT VALUE FROM ANALYSIS: #{pos_from_analysis.presence || 'derive from data'}%>",
+          "sentiment_negative": "<USE EXACT VALUE FROM ANALYSIS: #{neg_from_analysis.presence || 'derive from data'}%>",
+          "top_concern": "The most critical issue in one sentence — be specific with data"
         },
         "sections": [
           {
             "heading": "Section title",
-            "content": "Detailed analysis with data. Use \\n\\n for paragraph breaks.",
+            "content": "2 paragraphs MAX. Each paragraph: 1-2 sentences with specific data. No padding.",
             "key_finding": "The single most important finding from this section, or null"
           }
         ],
@@ -92,18 +101,17 @@ class AiExecutiveReportJob < ApplicationJob
         "conclusion": "Closing paragraph summarizing the path forward and reinforcing urgency or optimism based on the data."
       }
 
-      Requirements:
-      - 3-5 sections covering distinct survey findings themes (e.g. Work Environment, Management, Facilities, Satisfaction Scores). Section headings must be in #{lang_name}.
-      - 3-5 recommendations ordered by priority (high first). action, rationale, expected_impact must be in #{lang_name}.
-      - Each section content: 2-3 paragraphs max, concise and data-backed
-      - executive_summary: 2-3 paragraphs max
-      - sections and recommendations must directly connect to the AI analysis data provided
-      - #{user_context ? "Address the requester's focus areas throughout the content and recommendations — but do NOT create a section about how to read the report or describe file formats." : "Focus on the most impactful findings"}
-      - CRITICAL: sections must be about survey DATA and FINDINGS only. Never write a section about the report format, file type, how to read charts, or instructions for the reader. Those belong in the conclusion at most, in one sentence.
-      - Be concise — quality over length. Do not pad content.
+      Hard constraints:
+      - EXACTLY 3-4 sections (not 5). Each section: 2 short paragraphs max.
+      - EXACTLY 3 recommendations (most impactful only).
+      - conclusion: 1 sentence only.
+      - Section headings and ALL text in #{lang_name}.
+      - Sections = survey DATA only. Zero meta-commentary about the report itself.
+      - #{user_context ? "Directly address: \"#{user_context}\" — weave into the sections, not as a separate section." : "Focus only on the most statistically significant findings."}
+      - sentiment_positive/negative in key_metrics MUST be numeric percentages (e.g. "72%"), not "N/A" or placeholders.
     PROMPT
 
-    result_text = ClaudeService.sonnet_long.call(
+    result_text = ClaudeService.opus_long.call(
       system_prompt: system_prompt,
       user_prompt:   user_prompt,
       max_tokens:    8192

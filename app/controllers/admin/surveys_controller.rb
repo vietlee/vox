@@ -489,7 +489,7 @@ class Admin::SurveysController < Admin::BaseController
 
     current_workspace.active_subscription&.deduct_credits!(3)
 
-    suggested = ClaudeService.sonnet_long.call(
+    suggested = ClaudeService.opus.call(
       system_prompt: system_prompt,
       user_prompt:   user_prompt,
       max_tokens:    600

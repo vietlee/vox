@@ -118,7 +118,7 @@ class AiSurveyAnalysisJob < ApplicationJob
       - question_insights: include one entry per question that has meaningful data
     PROMPT
 
-    result_text = ClaudeService.sonnet_long.call(
+    result_text = ClaudeService.opus_long.call(
       system_prompt: system_prompt,
       user_prompt:   user_prompt,
       max_tokens:    8000

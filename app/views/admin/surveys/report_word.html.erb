@@ -12,8 +12,14 @@
                       .order(created_at: :desc)
                       .first&.output || {}
 
-  pos_pct = km["sentiment_positive"].to_s.gsub('%', '').to_f
-  neg_pct = km["sentiment_negative"].to_s.gsub('%', '').to_f
+  # Prefer report key_metrics, fallback to AI analysis sentiment
+  ai_sentiment = ai_analysis["sentiment"] || {}
+  raw_pos = km["sentiment_positive"].to_s.gsub(/[^0-9.]/, '')
+  raw_neg = km["sentiment_negative"].to_s.gsub(/[^0-9.]/, '')
+  raw_pos = ai_sentiment["positive"].to_s.gsub(/[^0-9.]/, '')  if raw_pos.to_f == 0 && ai_sentiment["positive"].present?
+  raw_neg = ai_sentiment["negative"].to_s.gsub(/[^0-9.]/, '') if raw_neg.to_f == 0 && ai_sentiment["negative"].present?
+  pos_pct = raw_pos.to_f
+  neg_pct = raw_neg.to_f
   neu_pct = [100.0 - pos_pct - neg_pct, 0].max.round(1)
 
   # Extract scored metrics from AI analysis question_insights
@@ -128,7 +134,8 @@
 </div>
 
 <!-- ══ CHARTS ════════════════════════════════════════════════════════ -->
-<% if pos_pct > 0 || neg_pct > 0 || score_items.any? %>
+<% show_charts = pos_pct > 0 || neg_pct > 0 || score_items.any? %>
+<% if show_charts %>
 <h2><%= t("surveys.results.chart_overview", default: "Biểu Đồ Tổng Quan") %></h2>
 <div class="chart-section">
   <table width="100%" cellspacing="0" cellpadding="0">
