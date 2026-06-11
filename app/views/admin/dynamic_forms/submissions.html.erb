@@ -305,6 +305,15 @@ async function setAssignee(id, userId, name, url) {
   } else {
     btn.classList.add('bg-slate-50','text-slate-500','border-slate-200');
   }
+
+  // Update tick in dropdown menu
+  const menu = document.getElementById('assignee-menu-' + id);
+  if (menu) {
+    menu.querySelectorAll('[data-uid]').forEach(item => {
+      const tick = item.querySelector('.assignee-tick');
+      if (tick) tick.classList.toggle('hidden', String(item.dataset.uid) !== String(userId || ''));
+    });
+  }
 }
 
 // Returns a Promise<boolean> that resolves when user confirms/cancels
