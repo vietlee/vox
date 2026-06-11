@@ -50,9 +50,9 @@ class Participate::DynamicFormsController < Participate::BaseController
         NotificationMailer.new_dynamic_form_submission_to_email(sub, email).deliver_later
       end
     else
-      # Default: assignees + workspace owner
-      @form.notification_recipients.each do |recipient|
-        NotificationMailer.new_dynamic_form_submission(sub, recipient).deliver_later
+      # Default: workspace admins only
+      @form.workspace.admin_users.each do |admin|
+        NotificationMailer.new_dynamic_form_submission(sub, admin).deliver_later
       end
     end
 
