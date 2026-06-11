@@ -313,7 +313,11 @@
                 </span>
                 <span class="text-[10px] text-slate-400 ml-auto flex-shrink-0"><%= I18n.l(fb.created_at.in_time_zone, format: :short) %></span>
               </div>
-              <p class="text-[13px] text-slate-800 leading-relaxed mb-1.5"><%= fb.content %></p>
+              <% if fb.content.to_s.strip.start_with?("<") %>
+                <div class="prose prose-sm max-w-none text-[13px] text-slate-800 leading-relaxed mb-1.5"><%= render_vote_desc(fb.content) %></div>
+              <% else %>
+                <p class="text-[13px] text-slate-800 leading-relaxed mb-1.5"><%= fb.content %></p>
+              <% end %>
               <% if fb.images.attached? %>
                 <div class="flex gap-2 flex-wrap mb-1.5">
                   <% fb.images.each do |img| %>
