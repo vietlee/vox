@@ -27,10 +27,11 @@
   end
 %>
 
-<div class="relative inline-block" id="status-wrap-<%= submission.id %>">
+<% full_width ||= false %>
+<div class="relative <%= full_width ? 'block' : 'inline-block' %>" id="status-wrap-<%= submission.id %>">
   <button type="button"
     onclick="toggleStatusMenu(<%= submission.id %>)"
-    class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-semibold border cursor-pointer transition-all hover:opacity-80 <%= cfg[:bg] %> <%= cfg[:text] %> <%= cfg[:border] %>">
+    class="<%= full_width ? 'flex w-full justify-between' : 'inline-flex' %> items-center gap-1.5 px-3 py-2 <%= full_width ? 'rounded-xl' : 'rounded-full' %> text-[12px] font-semibold border cursor-pointer transition-all hover:opacity-80 <%= cfg[:bg] %> <%= cfg[:text] %> <%= cfg[:border] %>">
     <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 <%= cfg[:dot] %>"></span>
     <span id="status-label-<%= submission.id %>"><%= use_custom ? current_val : cfg[:label] %></span>
     <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
