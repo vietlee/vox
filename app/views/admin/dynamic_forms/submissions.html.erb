@@ -120,9 +120,17 @@
                     </svg>
                   <% end %>
                 </td>
-                <td class="px-4 py-3 text-[12px] text-slate-400 font-mono"><%= (@pagy.page - 1) * @pagy.items + i + 1 %></td>
+                <td class="px-4 py-3">
+                  <%= link_to show_submission_dynamic_form_path(@form, submission_id: sub.id),
+                        class: "inline-flex items-center gap-1 text-[12px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline font-mono" do %>
+                    #<%= (@pagy.page - 1) * @pagy.items + i + 1 %>
+                  <% end %>
+                </td>
                 <td class="px-4 py-3 text-[12px] text-slate-500 whitespace-nowrap">
-                  <%= I18n.l(sub.created_at, format: :short) %>
+                  <%= link_to show_submission_dynamic_form_path(@form, submission_id: sub.id),
+                        class: "hover:text-indigo-600 hover:underline transition-colors" do %>
+                    <%= I18n.l(sub.created_at, format: :short) %>
+                  <% end %>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
                   <%= render "admin/dynamic_forms/submission_status", submission: sub, form: @form %>
