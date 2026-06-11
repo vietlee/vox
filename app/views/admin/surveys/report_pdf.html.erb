@@ -1,208 +1,363 @@
 <%
-  out       = report.output
-  meta      = out["_meta"] || {}
-  sentiment = out.dig("key_metrics") || {}
-  sections  = out["sections"] || []
-  recs      = out["recommendations"] || []
-  ai_data   = survey.ai_analysis_results.where(result_type: "executive_summary").order(created_at: :desc).first&.output || {}
-  themes    = ai_data["top_themes"] || ai_data["themes"] || []
+  out        = report.output
+  meta       = out["_meta"] || {}
+  km         = out["key_metrics"] || {}
+  sections   = out["sections"] || []
+  recs       = out["recommendations"] || []
+  chart_data = out["chart_data"] || []
+  ai_data    = survey.ai_analysis_results.where(result_type: "executive_summary").order(created_at: :desc).first&.output || {}
+  themes     = (ai_data["top_themes"] || ai_data["themes"] || []).first(6)
 
-  # Sentiment data
-  pos_pct = (ai_data.dig("sentiment","positive") || sentiment["sentiment_positive"] || "0%").to_s.gsub('%','').to_f
-  neg_pct = (ai_data.dig("sentiment","negative") || sentiment["sentiment_negative"] || "0%").to_s.gsub('%','').to_f
-  neu_pct = [100 - pos_pct - neg_pct, 0].max.round(1)
+  # Sentiment percentages — prefer analysis, fall back to key_metrics
+  ai_sent  = ai_data["sentiment"] || {}
+  pos_pct  = (km["sentiment_positive"].to_s.gsub(/[^0-9.]/, '').to_f.nonzero? ||
+              ai_sent["positive"].to_s.gsub(/[^0-9.]/, '').to_f)
+  neg_pct  = (km["sentiment_negative"].to_s.gsub(/[^0-9.]/, '').to_f.nonzero? ||
+              ai_sent["negative"].to_s.gsub(/[^0-9.]/, '').to_f)
+  neu_pct  = [100.0 - pos_pct - neg_pct, 0].max.round(1)
+  resp_cnt = report.response_count || survey.responses.completed.count
 
-  # SVG pie helper (simple donut)
-  def donut_arc(cx, cy, r, start_deg, end_deg, color)
-    start_rad = (start_deg - 90) * Math::PI / 180
-    end_rad   = (end_deg - 90)   * Math::PI / 180
-    x1 = (cx + r * Math.cos(start_rad)).round(2)
-    y1 = (cy + r * Math.sin(start_rad)).round(2)
-    x2 = (cx + r * Math.cos(end_rad)).round(2)
-    y2 = (cy + r * Math.sin(end_rad)).round(2)
-    large = (end_deg - start_deg) > 180 ? 1 : 0
-    "<path d='M#{cx},#{cy} L#{x1},#{y1} A#{r},#{r} 0 #{large},1 #{x2},#{y2} Z' fill='#{color}'/>"
+  # SVG donut helper
+  def pdf_donut_segments(segments, cx, cy, r)
+    angle = 0.0
+    paths = segments.map do |pct, color|
+      next "" if pct <= 0.5
+      sweep = pct * 3.6
+      s_rad = (angle - 90) * Math::PI / 180
+      e_rad = (angle + sweep - 90) * Math::PI / 180
+      x1 = (cx + r * Math.cos(s_rad)).round(2)
+      y1 = (cy + r * Math.sin(s_rad)).round(2)
+      x2 = (cx + r * Math.cos(e_rad)).round(2)
+      y2 = (cy + r * Math.sin(e_rad)).round(2)
+      large = sweep > 180 ? 1 : 0
+      angle += sweep
+      "<path d='M#{cx},#{cy} L#{x1},#{y1} A#{r},#{r} 0 #{large},1 #{x2},#{y2} Z' fill='#{color}'/>"
+    end
+    paths.join
   end
+
+  # Gradient colors for bar charts
+  BAR_COLORS = %w[#6366f1 #8b5cf6 #06b6d4 #10b981 #f59e0b #ef4444 #ec4899 #0ea5e9].freeze
 %>
 
-<!-- ── Cover page ─────────────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- COVER PAGE                                                        -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
 <div class="cover">
-  <div class="cover-accent"></div>
-  <div class="cover h1" style="font-size:28px;font-weight:900;color:#1e1b4b;line-height:1.25;margin-bottom:12px;">
-    <%= out["title"] || survey.title %>
-  </div>
-  <% if out["subtitle"].present? %>
-    <div class="subtitle"><%= out["subtitle"] %></div>
-  <% end %>
-  <div class="meta-row">
-    <div class="meta-item">
-      <strong><%= report.response_count || survey.responses.completed.count %></strong>
-      <%= t("surveys.results.total_responses") %>
-    </div>
-    <div class="meta-item">
-      <strong><%= report.created_at.strftime("%d/%m/%Y") %></strong>
-      <%= t("surveys.results.report_date", default: "Ngày tạo báo cáo") %>
+  <div class="cover-bg"></div>
+  <div class="cover-grid"></div>
+  <div class="cover-glow"></div>
+  <div class="cover-glow2"></div>
+  <div class="cover-content">
+    <div class="cover-tag">✦ Báo cáo AI · VOX Platform</div>
+    <div class="cover-title"><%= out["title"] || survey.title %></div>
+    <% if out["subtitle"].present? %>
+      <div class="cover-subtitle"><%= out["subtitle"] %></div>
+    <% end %>
+    <div class="cover-stats">
+      <div class="cover-stat">
+        <div class="cover-stat-val"><%= resp_cnt %></div>
+        <div class="cover-stat-lbl">Phản hồi</div>
+      </div>
+      <% if pos_pct > 0 %>
+      <div class="cover-stat">
+        <div class="cover-stat-val" style="color:#86efac;"><%= pos_pct.round %>%</div>
+        <div class="cover-stat-lbl">Tích cực</div>
+      </div>
+      <% end %>
+      <% if km["top_concern"].present? %>
+      <div class="cover-stat" style="flex:2;">
+        <div class="cover-stat-val" style="font-size:14px;font-weight:600;color:#e2e8f0;line-height:1.4;"><%= km["top_concern"].truncate(80) %></div>
+        <div class="cover-stat-lbl">Vấn đề ưu tiên</div>
+      </div>
+      <% end %>
+      <div class="cover-stat">
+        <div class="cover-stat-val" style="font-size:18px;"><%= report.created_at.strftime("%d/%m/%Y") %></div>
+        <div class="cover-stat-lbl">Ngày tạo</div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ── Content pages ────────────────────────────────────────────── -->
-<div class="content page-break">
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 2: OVERVIEW — KPIs + Charts + Executive Summary              -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div class="page">
 
-  <!-- Key metrics row -->
-  <% if sentiment.any? %>
-    <div class="metrics-row">
-      <% if sentiment["sentiment_positive"].present? %>
-        <div class="metric-card" style="border-top:3px solid #10b981;">
-          <div class="metric-val" style="color:#065f46;"><%= sentiment["sentiment_positive"] %></div>
-          <div class="metric-label">Tích cực</div>
-        </div>
-      <% end %>
-      <% if sentiment["sentiment_negative"].present? %>
-        <div class="metric-card" style="border-top:3px solid #ef4444;">
-          <div class="metric-val" style="color:#991b1b;"><%= sentiment["sentiment_negative"] %></div>
-          <div class="metric-label">Tiêu cực</div>
-        </div>
-      <% end %>
-      <div class="metric-card" style="border-top:3px solid #6366f1;">
-        <div class="metric-val"><%= report.response_count || survey.responses.completed.count %></div>
-        <div class="metric-label"><%= t("surveys.results.total_responses") %></div>
-      </div>
-      <% if sentiment["top_concern"].present? %>
-        <div class="metric-card" style="flex:2; border-top:3px solid #f59e0b;">
-          <div class="metric-val" style="font-size:12px;color:#92400e;"><%= sentiment["top_concern"] %></div>
-          <div class="metric-label">Vấn đề ưu tiên</div>
-        </div>
-      <% end %>
+  <!-- KPI grid -->
+  <div class="kpi-grid" style="margin-bottom:24px;">
+    <div class="kpi-card purple">
+      <div class="kpi-val"><%= resp_cnt %></div>
+      <div class="kpi-lbl">Phản hồi</div>
     </div>
-  <% end %>
-
-  <!-- Charts row: sentiment pie + themes bar -->
-  <% if pos_pct + neg_pct > 0 || themes.any? %>
-    <div class="charts-row">
-      <!-- Sentiment donut chart -->
-      <% if pos_pct + neg_pct > 0 %>
-        <div class="chart-box" style="max-width:200px;">
-          <div class="chart-title">Cảm xúc tổng thể</div>
-          <%
-            segments = [
-              [pos_pct, "#10b981", "Tích cực"],
-              [neu_pct, "#94a3b8", "Trung lập"],
-              [neg_pct, "#ef4444", "Tiêu cực"]
-            ].select { |pct,_,_| pct > 0 }
-            angle = 0
-            cx, cy, r = 70, 70, 55
-            inner_r = 30
-          %>
-          <svg width="140" height="140" viewBox="0 0 140 140">
-            <% segments.each do |pct, color, label| %>
-              <% sweep = pct * 3.6 %>
-              <% start_rad = (angle - 90) * Math::PI / 180 %>
-              <% end_rad   = (angle + sweep - 90) * Math::PI / 180 %>
-              <% x1 = (cx + r * Math.cos(start_rad)).round(2) %>
-              <% y1 = (cy + r * Math.sin(start_rad)).round(2) %>
-              <% x2 = (cx + r * Math.cos(end_rad)).round(2) %>
-              <% y2 = (cy + r * Math.sin(end_rad)).round(2) %>
-              <% large = sweep > 180 ? 1 : 0 %>
-              <path d="M<%= cx %>,<%= cy %> L<%= x1 %>,<%= y1 %> A<%= r %>,<%= r %> 0 <%= large %>,1 <%= x2 %>,<%= y2 %> Z" fill="<%= color %>"/>
-              <% angle += sweep %>
-            <% end %>
-            <circle cx="<%= cx %>" cy="<%= cy %>" r="<%= inner_r %>" fill="white"/>
-            <text x="<%= cx %>" y="<%= cy - 4 %>" text-anchor="middle" font-size="14" font-weight="800" fill="#1e1b4b"><%= pos_pct.round %>%</text>
-            <text x="<%= cx %>" y="<%= cy + 12 %>" text-anchor="middle" font-size="8" fill="#64748b">tích cực</text>
-          </svg>
-          <!-- Legend -->
-          <% segments.each do |pct, color, label| %>
-            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#374151;margin-top:3px;">
-              <span style="width:8px;height:8px;border-radius:2px;background:<%= color %>;flex-shrink:0;"></span>
-              <%= label %>: <%= pct.round(1) %>%
-            </div>
-          <% end %>
-        </div>
-      <% end %>
-
-      <!-- Themes bar chart -->
-      <% if themes.any? %>
-        <div class="chart-box" style="flex:2;">
-          <div class="chart-title">Chủ đề nổi bật</div>
-          <% themes.first(6).each do |t| %>
-            <% theme_name = t["theme"] || t["name"] || "" %>
-            <% pct = (t["percentage"] || 0).to_f %>
-            <% bar_color = t["sentiment"] == "positive" ? "#10b981" : t["sentiment"] == "negative" ? "#ef4444" : "#6366f1" %>
-            <div style="margin-bottom:8px;">
-              <div style="display:flex;justify-content:space-between;font-size:10px;color:#374151;margin-bottom:3px;">
-                <span><%= theme_name.truncate(45) %></span>
-                <span style="font-weight:700;color:<%= bar_color %>;"><%= pct.round(1) %>%</span>
-              </div>
-              <div style="height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
-                <div style="height:100%;width:<%= [pct,100].min %>%;background:<%= bar_color %>;border-radius:3px;"></div>
-              </div>
-            </div>
-          <% end %>
-        </div>
-      <% end %>
+    <% if pos_pct > 0 %>
+    <div class="kpi-card green">
+      <div class="kpi-val"><%= pos_pct.round %>%</div>
+      <div class="kpi-lbl">Tích cực</div>
     </div>
-  <% end %>
-
-  <!-- Executive Summary -->
-  <div class="section-label"><%= t("surveys.results.ai_executive_summary") %></div>
-  <div class="exec-summary">
-    <% (out["executive_summary"] || "").split("\\n\\n").each do |para| %>
-      <p><%= para.gsub("\\n", " ") %></p>
+    <% end %>
+    <% if neg_pct > 0 %>
+    <div class="kpi-card red">
+      <div class="kpi-val"><%= neg_pct.round %>%</div>
+      <div class="kpi-lbl">Tiêu cực</div>
+    </div>
+    <% end %>
+    <% rating_q = chart_data.find { |d| %w[rating linear_scale nps].include?(d["type"]) } %>
+    <% if rating_q %>
+    <div class="kpi-card amber">
+      <div class="kpi-val"><%= rating_q["avg"] %><span style="font-size:14px;font-weight:500;color:#92400e;">/<%= rating_q["max"] %></span></div>
+      <div class="kpi-lbl">Điểm TB</div>
+    </div>
     <% end %>
   </div>
 
-  <!-- Sections -->
-  <% sections.each_with_index do |s, i| %>
-    <h2><%= s["heading"] %></h2>
-    <% (s["content"] || "").split("\\n\\n").each do |para| %>
-      <p><%= para.gsub("\\n", " ") %></p>
-    <% end %>
-    <% if s["key_finding"].present? %>
-      <div class="key-finding"><%= s["key_finding"] %></div>
-    <% end %>
-  <% end %>
+  <!-- Charts overview row -->
+  <% if pos_pct + neg_pct > 0 || themes.any? %>
+  <div class="charts-overview" style="<%= themes.any? ? '' : 'grid-template-columns: 220px 1fr;' %>">
 
-  <!-- Recommendations -->
-  <% if recs.any? %>
-    <div class="page-break" style="page-break-before:auto;">
-      <h2><%= t("surveys.results.ai_recommendations") %></h2>
-      <% recs.each_with_index do |rec, i| %>
-        <% text     = rec.is_a?(Hash) ? rec["action"] : rec.to_s %>
-        <% rationale= rec.is_a?(Hash) ? rec["rationale"] : nil %>
-        <% impact   = rec.is_a?(Hash) ? rec["expected_impact"] : nil %>
-        <% pri      = rec.is_a?(Hash) ? rec["priority"].to_s : "" %>
-        <% badge_label = pri == "high" ? "CAO" : pri == "medium" ? "TB" : pri == "low" ? "THẤP" : "" %>
-        <div class="rec">
-          <% if badge_label.present? %>
-            <span class="rec-badge <%= pri %>"><%= badge_label %></span>
+    <!-- Sentiment donut -->
+    <% if pos_pct + neg_pct > 0 %>
+    <div class="chart-card">
+      <div class="chart-card-title">Cảm xúc tổng thể</div>
+      <%
+        segs = [[pos_pct, "#10b981"], [neu_pct, "#94a3b8"], [neg_pct, "#ef4444"]].select { |p,_| p > 0.5 }
+        cx, cy, r, ri = 80, 80, 65, 35
+      %>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <%== pdf_donut_segments(segs, cx, cy, r) %>
+          <circle cx="<%= cx %>" cy="<%= cy %>" r="<%= ri %>" fill="white"/>
+          <text x="<%= cx %>" y="<%= cy - 5 %>" text-anchor="middle" font-size="18" font-weight="800" fill="#1e1b4b" font-family="Arial"><%= pos_pct.round %>%</text>
+          <text x="<%= cx %>" y="<%= cy + 13 %>" text-anchor="middle" font-size="9" fill="#64748b" font-family="Arial">tích cực</text>
+        </svg>
+        <div style="flex:1;">
+          <% [[pos_pct, "#10b981", "Tích cực"], [neu_pct, "#94a3b8", "Trung lập"], [neg_pct, "#ef4444", "Tiêu cực"]].each do |pct, color, label| %>
+            <% next if pct < 0.5 %>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;font-size:11px;color:#374151;">
+              <svg width="10" height="10"><rect width="10" height="10" rx="2" fill="<%= color %>"/></svg>
+              <span style="flex:1;"><%= label %></span>
+              <span style="font-weight:700;color:<%= color %>;"><%= pct.round(1) %>%</span>
+            </div>
           <% end %>
-          <div class="rec-body">
-            <div class="rec-action"><%= i + 1 %>. <%= text %></div>
-            <% if rationale.present? %>
-              <div class="rec-rationale"><%= rationale %></div>
-            <% end %>
-            <% if impact.present? %>
-              <div class="rec-impact">→ <%= impact %></div>
-            <% end %>
+        </div>
+      </div>
+    </div>
+    <% end %>
+
+    <!-- Themes bar chart -->
+    <% if themes.any? %>
+    <div class="chart-card" style="flex:1;">
+      <div class="chart-card-title">Chủ đề nổi bật</div>
+      <% themes.each_with_index do |t, i| %>
+        <% tname = (t["theme"] || t["name"] || "").truncate(50) %>
+        <% pct   = (t["percentage"] || 0).to_f %>
+        <% bcolor = t["sentiment"] == "positive" ? "#10b981" : t["sentiment"] == "negative" ? "#ef4444" : BAR_COLORS[i % BAR_COLORS.size] %>
+        <div class="bar-row">
+          <div class="bar-label">
+            <span><%= tname %></span>
+            <span class="pct" style="color:<%= bcolor %>;"><%= pct.round(1) %>%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:<%= [pct, 100].min %>%;background:<%= bcolor %>;"></div>
           </div>
         </div>
       <% end %>
     </div>
+    <% end %>
+
+  </div>
   <% end %>
+
+  <!-- Executive Summary -->
+  <div class="section-header">
+    <div class="section-num">✦</div>
+    <div class="section-title">Tóm tắt điều hành</div>
+  </div>
+  <div class="exec-card">
+    <% (out["executive_summary"] || "").split(/\\n\\n|\n\n/).each do |para| %>
+      <p><%= para.gsub(/\\n|\n/, ' ').strip %></p>
+    <% end %>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 3: QUESTION-BY-QUESTION CHARTS                               -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<% if chart_data.any? %>
+<div class="page page-break">
+  <div class="section-header" style="margin-bottom:20px;">
+    <div class="section-num">📊</div>
+    <div class="section-title">Phân tích từng câu hỏi</div>
+  </div>
+
+  <div class="questions-grid">
+  <% chart_data.each_with_index do |qd, qi| %>
+    <% qtype = qd["type"] %>
+
+    <% if %w[single_choice multiple_choice dropdown].include?(qtype) %>
+      <%
+        opts  = qd["options"] || []
+        total = qd["total"].to_i
+        max_pct = opts.map { |o| o["pct"].to_f }.max || 1
+      %>
+      <div class="q-card">
+        <div class="q-title"><%= qd["question"].truncate(80) %></div>
+        <div class="q-subtitle"><%= total %> phản hồi · <%= qtype == "multiple_choice" ? "Nhiều lựa chọn" : "Một lựa chọn" %></div>
+        <% opts.each_with_index do |opt, oi| %>
+          <% pct = opt["pct"].to_f %>
+          <% bar_w = max_pct > 0 ? (pct / max_pct * 100).round(1) : 0 %>
+          <% is_top = pct == max_pct && pct > 0 %>
+          <div class="bar-row">
+            <div class="bar-label">
+              <span style="<%= is_top ? 'font-weight:700;color:#1e293b;' : '' %>"><%= opt["label"].to_s.truncate(45) %></span>
+              <span style="font-weight:700;color:<%= is_top ? '#6366f1' : '#94a3b8' %>;"><%= pct.round(1) %>%</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:<%= bar_w %>%;background:<%= is_top ? 'linear-gradient(90deg,#6366f1,#8b5cf6)' : '#cbd5e1' %>;"></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+    <% elsif %w[rating linear_scale nps].include?(qtype) %>
+      <%
+        dist  = qd["distribution"] || []
+        avg   = qd["avg"].to_f
+        max_v = qd["max"].to_i
+        total = qd["total"].to_i
+        max_cnt = dist.map { |d| d["count"].to_i }.max || 1
+        pct_val = (avg / max_v * 100).round
+        score_color = pct_val >= 70 ? "#10b981" : pct_val >= 45 ? "#f59e0b" : "#ef4444"
+      %>
+      <div class="q-card">
+        <div class="q-title"><%= qd["question"].truncate(80) %></div>
+        <div class="q-subtitle"><%= total %> phản hồi · <%= qtype == "nps" ? "NPS" : qtype == "rating" ? "Đánh giá" : "Thang đo" %></div>
+        <div style="display:flex;align-items:flex-end;gap:16px;">
+          <!-- Gauge arc -->
+          <%
+            cx2, cy2, r2 = 52, 52, 42
+            arc_pct = [pct_val, 100].min
+            sweep = arc_pct * 2.7   # 270deg total arc
+            start_deg = 135
+            end_deg = start_deg + sweep
+            sr = (start_deg - 90) * Math::PI / 180
+            er = (end_deg   - 90) * Math::PI / 180
+            ax1 = (cx2 + r2 * Math.cos(sr)).round(2)
+            ay1 = (cy2 + r2 * Math.sin(sr)).round(2)
+            ax2 = (cx2 + r2 * Math.cos(er)).round(2)
+            ay2 = (cy2 + r2 * Math.sin(er)).round(2)
+            bg_sr = (135 - 90) * Math::PI / 180
+            bg_er = (405 - 90) * Math::PI / 180
+            bx1 = (cx2 + r2 * Math.cos(bg_sr)).round(2)
+            by1 = (cy2 + r2 * Math.sin(bg_sr)).round(2)
+            bx2 = (cx2 + r2 * Math.cos(bg_er)).round(2)
+            by2 = (cy2 + r2 * Math.sin(bg_er)).round(2)
+            large_arc = sweep > 180 ? 1 : 0
+          %>
+          <svg width="104" height="78" viewBox="0 0 104 78" style="flex-shrink:0;">
+            <path d="M<%= ax1 %>,<%= ay1 %> A<%= r2 %>,<%= r2 %> 0 1,1 <%= bx2 %>,<%= by2 %>" fill="none" stroke="#e2e8f0" stroke-width="9" stroke-linecap="round"/>
+            <% if arc_pct > 0 %>
+            <path d="M<%= ax1 %>,<%= ay1 %> A<%= r2 %>,<%= r2 %> 0 <%= large_arc %>,1 <%= ax2 %>,<%= ay2 %>" fill="none" stroke="<%= score_color %>" stroke-width="9" stroke-linecap="round"/>
+            <% end %>
+            <text x="<%= cx2 %>" y="<%= cy2 + 4 %>" text-anchor="middle" font-size="18" font-weight="900" fill="<%= score_color %>" font-family="Arial"><%= "%.1f" % avg %></text>
+            <text x="<%= cx2 %>" y="<%= cy2 + 17 %>" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Arial">/<%= max_v %></text>
+          </svg>
+          <!-- Distribution mini bars -->
+          <div style="flex:1;">
+            <% dist.each do |d| %>
+              <% cnt = d["count"].to_i %>
+              <% w = max_cnt > 0 ? (cnt.to_f / max_cnt * 100).round(1) : 0 %>
+              <div class="dist-bar-row">
+                <div class="dist-val-lbl"><%= d["value"] %></div>
+                <div class="dist-track"><div class="dist-fill" style="width:<%= w %>%;"></div></div>
+                <div class="dist-count"><%= cnt %></div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+    <% elsif %w[short_text long_text].include?(qtype) %>
+      <div class="q-card">
+        <div class="q-title"><%= qd["question"].truncate(80) %></div>
+        <div class="text-q-stat">
+          <div class="text-q-num"><%= qd["total"] %></div>
+          <div class="text-q-lbl">phản hồi văn bản<br><span style="color:#94a3b8;font-size:10px;">Xem phân tích AI bên dưới</span></div>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+  </div>
+</div>
+<% end %>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 4: AI INSIGHTS BY SECTION                                    -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<% if sections.any? %>
+<div class="page page-break">
+  <div class="section-header" style="margin-bottom:20px;">
+    <div class="section-num">🔍</div>
+    <div class="section-title">Phân tích chuyên sâu</div>
+  </div>
+
+  <div class="insights-list">
+  <% sections.each_with_index do |s, i| %>
+    <div class="insight-item">
+      <div class="insight-heading"><%= i + 1 %>. <%= s["heading"] %></div>
+      <% (s["content"] || "").split(/\\n\\n|\n\n/).each do |para| %>
+        <div class="insight-body"><%= para.gsub(/\\n|\n/, ' ').strip %></div>
+      <% end %>
+      <% if s["key_finding"].present? %>
+        <div class="key-finding">💡 <%= s["key_finding"] %></div>
+      <% end %>
+    </div>
+  <% end %>
+  </div>
+</div>
+<% end %>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 5: RECOMMENDATIONS + CONCLUSION                              -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<% if recs.any? %>
+<div class="page page-break">
+  <div class="section-header" style="margin-bottom:20px;">
+    <div class="section-num">🎯</div>
+    <div class="section-title">Khuyến nghị hành động</div>
+  </div>
+
+  <div class="recs-grid">
+  <% recs.each_with_index do |rec, i| %>
+    <% next unless rec.is_a?(Hash) %>
+    <% pri = rec["priority"].to_s %>
+    <% badge = pri == "high" ? "⬆ Ưu tiên cao" : pri == "medium" ? "→ Trung bình" : "⬇ Thấp" %>
+    <div class="rec-card <%= pri %>">
+      <div class="rec-num"><%= badge %></div>
+      <div class="rec-action"><%= i + 1 %>. <%= rec["action"] %></div>
+      <% if rec["rationale"].present? %>
+        <div class="rec-rationale"><%= rec["rationale"] %></div>
+      <% end %>
+      <% if rec["expected_impact"].present? %>
+        <div class="rec-impact">→ <%= rec["expected_impact"] %></div>
+      <% end %>
+    </div>
+  <% end %>
+  </div>
 
   <!-- Conclusion -->
   <% if out["conclusion"].present? %>
-    <h2><%= t("surveys.results.ai_conclusion") %></h2>
-    <div class="conclusion">
-      <% out["conclusion"].split("\\n\\n").each do |para| %>
-        <p><%= para.gsub("\\n", " ") %></p>
+    <div class="conclusion-card" style="margin-top:24px;">
+      <% out["conclusion"].split(/\\n\\n|\n\n/).each do |para| %>
+        <p><%= para.gsub(/\\n|\n/, ' ').strip %></p>
       <% end %>
     </div>
   <% end %>
 
   <div class="footer">
-    <span><%= survey.workspace.name %> · <%= t("surveys.results.report_generated", time: report.created_at.strftime("%d/%m/%Y %H:%M")) %></span>
-    <span><%= t("surveys.results.powered_by", default: "Powered by VOX AI") %></span>
+    <span><%= survey.workspace.name %> · Báo cáo tạo lúc <%= report.created_at.strftime("%d/%m/%Y %H:%M") %></span>
+    <span class="vox-badge">✦ VOX AI</span>
   </div>
 </div>
+<% end %>

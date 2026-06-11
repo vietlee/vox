@@ -119,6 +119,9 @@ class AiExecutiveReportJob < ApplicationJob
 
     result = parse_json_response(result_text)
 
+    # Attach real per-question chart data from DB
+    result["chart_data"] = build_question_chart_data(survey)
+
     # Store metadata alongside the report content
     result["_meta"] = {
       "format"       => report_format,
@@ -148,6 +151,44 @@ class AiExecutiveReportJob < ApplicationJob
   end
 
   private
+
+  def build_question_chart_data(survey)
+    completed_response_ids = survey.responses.completed.where(excluded: false).pluck(:id)
+    return [] if completed_response_ids.empty?
+
+    survey.questions.order(:position).filter_map do |q|
+      base = Answer.where(question: q, response_id: completed_response_ids)
+
+      case q.question_type.to_sym
+      when :single_choice, :multiple_choice, :dropdown
+        total = base.count
+        next if total == 0
+        options = q.question_options.order(:position).map do |opt|
+          count = base.where("option_ids @> ARRAY[?]::bigint[]", opt.id).count
+          { "id" => opt.id, "label" => opt.label, "count" => count,
+            "pct" => (count.to_f / total * 100).round(1) }
+        end
+        { "question_id" => q.id, "question" => q.title,
+          "type" => q.question_type.to_s, "total" => total, "options" => options }
+
+      when :rating, :nps, :linear_scale
+        nums = base.where.not(numeric_value: nil).pluck(:numeric_value).map(&:to_i)
+        next if nums.empty?
+        max_val = q.nps? ? 10 : 5
+        avg = (nums.sum.to_f / nums.size).round(1)
+        dist = (1..max_val).map { |v| { "value" => v, "count" => nums.count(v) } }
+        { "question_id" => q.id, "question" => q.title,
+          "type" => q.question_type.to_s, "total" => nums.size,
+          "avg" => avg, "max" => max_val, "distribution" => dist }
+
+      when :short_text, :long_text
+        count = base.where.not(text_value: [nil, ""]).count
+        next if count == 0
+        { "question_id" => q.id, "question" => q.title,
+          "type" => q.question_type.to_s, "total" => count }
+      end
+    end.compact
+  end
 
   def parse_json_response(text)
     clean    = text.gsub(/\A\s*```(?:json)?\s*/i, "").gsub(/\s*```\s*\z/, "").strip
