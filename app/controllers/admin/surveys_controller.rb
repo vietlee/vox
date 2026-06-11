@@ -466,10 +466,20 @@ class Admin::SurveysController < Admin::BaseController
       "#{i}. [#{q.question_type}] #{q.title}#{opts}"
     end.join("\n")
 
-    system_prompt = "You are an expert data analyst who specializes in crafting concise, targeted survey report briefs. Respond ONLY with the suggested prompt text — no explanation, no preamble, no JSON wrapper."
+    system_prompt = <<~SYS.strip
+      You are an expert data analyst who specializes in crafting concise, targeted survey report briefs.
+
+      CONTEXT — The report system automatically handles:
+      - Charts for every question (bar charts for choice questions, score gauges for rating/NPS, distribution bars for scale questions) — pulled from real response data
+      - A sentiment donut chart and top-themes bar chart in the overview
+      - A dark cover page, KPI metrics row, 5-page PDF layout
+      The user's prompt is ONLY used to guide the AI's written analysis: tone, focus areas, audience, priorities.
+
+      Respond ONLY with the suggested prompt text — no explanation, no preamble, no JSON wrapper.
+    SYS
 
     user_prompt = <<~PROMPT
-      A user wants to generate an AI executive report for the following survey. Based on the survey content, suggest the optimal report-generation prompt in #{lang_name}.
+      A user wants to generate an AI executive report for the following survey. Based on the survey content, write the ideal context prompt in #{lang_name}.
 
       Survey title: #{@survey.title}
       #{@survey.description.present? ? "Description: #{@survey.description}" : ""}
@@ -478,13 +488,14 @@ class Admin::SurveysController < Admin::BaseController
       Questions:
       #{questions_text}
 
-      Write a concise 3-5 sentence prompt (in #{lang_name}) that tells the AI:
-      1. The most suitable output format (Word/Excel/PDF) and why
-      2. The key focus areas based on the question types
-      3. What charts or visualizations would be most useful
-      4. The recommended report structure and tone (executive, technical, HR, etc.)
+      Write a focused 3-4 sentence context prompt (in #{lang_name}) that tells the AI analyst:
+      1. Who the report audience is (e.g. board, HR team, department heads) and the report tone
+      2. The most critical questions/themes to emphasize in written analysis
+      3. Any specific concerns, benchmarks, or action-oriented focus the report should highlight
+      4. What conclusions or recommendations matter most for this particular survey
 
-      The prompt should be ready to paste directly into a report context field. Write it as if the user is speaking to the AI directly.
+      Do NOT mention charts, file format, or layout — those are handled automatically.
+      The prompt should be ready to paste directly into the report context field.
     PROMPT
 
     current_workspace.active_subscription&.deduct_credits!(3)
