@@ -185,6 +185,7 @@ Rails.application.routes.draw do
         patch :update_submission_assignee
         patch :update_submission_data
         delete :destroy_submission
+        delete :bulk_destroy_submissions
       end
     end
 

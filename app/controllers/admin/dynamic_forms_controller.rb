@@ -1,7 +1,7 @@
 require "csv"
 class Admin::DynamicFormsController < Admin::BaseController
-  before_action :set_form,            only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee, :show_submission, :destroy_submission, :update_submission_data]
-  before_action :authorize_form_access!, only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee, :show_submission, :destroy_submission, :update_submission_data]
+  before_action :set_form,            only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee, :show_submission, :destroy_submission, :update_submission_data, :bulk_destroy_submissions]
+  before_action :authorize_form_access!, only: [:show, :edit, :update, :destroy, :close, :reopen, :submissions, :export_csv, :publish, :update_submission_status, :update_submission_assignee, :show_submission, :destroy_submission, :update_submission_data, :bulk_destroy_submissions]
 
   def index
     scope = if current_workspace_admin?
@@ -137,6 +137,15 @@ class Admin::DynamicFormsController < Admin::BaseController
     sub.destroy!
     @form.decrement!(:submissions_count)
     render json: { ok: true }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def bulk_destroy_submissions
+    ids = Array(params[:ids]).map(&:to_i).select(&:positive?)
+    deleted = @form.dynamic_form_submissions.where(id: ids).destroy_all
+    @form.update_column(:submissions_count, [@form.submissions_count - deleted.size, 0].max)
+    render json: { ok: true, deleted: deleted.map(&:id) }
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

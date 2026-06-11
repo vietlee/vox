@@ -86,7 +86,10 @@
         <table class="w-full border-collapse">
           <thead>
             <tr class="border-b border-slate-200" style="position:sticky;top:0;z-index:1;background:rgba(248,250,252,0.97);">
-              <th class="w-8 px-2 py-2.5"></th>
+              <th class="w-8 px-2 py-2.5">
+                <input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this.checked)"
+                  class="w-3.5 h-3.5 accent-indigo-600 cursor-pointer">
+              </th>
               <th class="w-8 px-2 py-2.5"></th>
               <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5 whitespace-nowrap">
                 <%= link_to submissions_dynamic_form_path(@form,
@@ -112,26 +115,30 @@
           </thead>
           <tbody>
             <% @submissions.each_with_index do |sub, i| %>
-              <tr class="border-b border-slate-200 hover:bg-white/70 transition-colors" id="sub-row-<%= sub.id %>">
+              <tr class="border-b border-slate-200 hover:bg-white/70 transition-colors sub-row" id="sub-row-<%= sub.id %>" data-sub-id="<%= sub.id %>">
                 <td class="px-2 py-3">
-                  <button type="button"
-                    onclick="confirmDeleteSubmission(<%= sub.id %>, '<%= j destroy_submission_dynamic_form_path(@form) %>')"
-                    class="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                    title="Xoá phản hồi">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                  </button>
+                  <input type="checkbox" class="row-cb w-3.5 h-3.5 accent-indigo-600 cursor-pointer"
+                    data-sub-id="<%= sub.id %>" onchange="onRowCbChange()">
                 </td>
                 <td class="px-2 py-3">
-                  <%= link_to show_submission_dynamic_form_path(@form, submission_id: sub.id),
-                        class: "w-6 h-6 flex items-center justify-center text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors",
-                        title: "Xem chi tiết" do %>
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                  <% end %>
+                  <div class="flex items-center gap-1">
+                    <%= link_to show_submission_dynamic_form_path(@form, submission_id: sub.id),
+                          class: "w-6 h-6 flex items-center justify-center text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors",
+                          title: "Xem chi tiết" do %>
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      </svg>
+                    <% end %>
+                    <button type="button"
+                      onclick="confirmDeleteSubmission(<%= sub.id %>, '<%= j destroy_submission_dynamic_form_path(@form) %>')"
+                      class="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                      title="Xoá phản hồi">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                    </button>
+                  </div>
                 </td>
                 <td class="px-4 py-3 text-[12px] text-slate-500 whitespace-nowrap">
                   <%= link_to show_submission_dynamic_form_path(@form, submission_id: sub.id),
@@ -231,9 +238,29 @@
   </div>
 </div>
 
+<!-- Floating bulk action bar -->
+<div id="bulk-bar" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40
+  flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl border border-indigo-100"
+  style="background:rgba(255,255,255,0.97);backdrop-filter:blur(8px);min-width:300px;">
+  <span id="bulk-count-label" class="text-[13px] font-semibold text-slate-700 flex-1"></span>
+  <button type="button" onclick="confirmBulkDelete()"
+    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold text-white border-0 cursor-pointer transition-colors"
+    style="background:#ef4444;" onmouseenter="this.style.background='#dc2626'" onmouseleave="this.style.background='#ef4444'">
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+    </svg>
+    Xoá đã chọn
+  </button>
+  <button type="button" onclick="clearSelection()"
+    class="px-3 py-2 rounded-xl text-[12px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 cursor-pointer transition-colors">
+    Bỏ chọn
+  </button>
+</div>
+
 <script>
 (function() {
 const SUBMISSION_CSRF    = document.querySelector('meta[name="csrf-token"]')?.content;
+const BULK_DESTROY_URL   = '<%= j bulk_destroy_submissions_dynamic_form_path(@form) %>';
 const NOTIFY_ASSIGNEE    = <%= @form.notify_assignee?.to_json %>;
 const FORM_TITLE         = <%= @form.title.to_json.html_safe %>;
 
@@ -427,10 +454,108 @@ window._confirmDeleteSub = async function() {
   window._cancelDeleteSub();
 };
 
+// ── Multi-select & bulk delete ──────────────────────────────────────────────
+function getSelectedIds() {
+  return Array.from(document.querySelectorAll('.row-cb:checked')).map(cb => parseInt(cb.dataset.subId));
+}
+
+function updateBulkBar() {
+  const ids = getSelectedIds();
+  const bar = document.getElementById('bulk-bar');
+  const lbl = document.getElementById('bulk-count-label');
+  if (ids.length > 0) {
+    lbl.textContent = `Đã chọn ${ids.length} phản hồi`;
+    bar.classList.remove('hidden');
+  } else {
+    bar.classList.add('hidden');
+  }
+  // sync select-all indeterminate state
+  const allCbs = document.querySelectorAll('.row-cb');
+  const selectAll = document.getElementById('select-all-cb');
+  if (selectAll) {
+    selectAll.checked = ids.length === allCbs.length && allCbs.length > 0;
+    selectAll.indeterminate = ids.length > 0 && ids.length < allCbs.length;
+  }
+}
+
+window.toggleSelectAll = function(checked) {
+  document.querySelectorAll('.row-cb').forEach(cb => cb.checked = checked);
+  updateBulkBar();
+};
+
+window.onRowCbChange = function() { updateBulkBar(); };
+
+window.clearSelection = function() {
+  document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false);
+  const sa = document.getElementById('select-all-cb');
+  if (sa) { sa.checked = false; sa.indeterminate = false; }
+  updateBulkBar();
+};
+
+window.confirmBulkDelete = function() {
+  const ids = getSelectedIds();
+  if (!ids.length) return;
+  document.getElementById('bulk-delete-count').textContent = ids.length;
+  document.getElementById('bulk-delete-modal').classList.remove('hidden');
+};
+
+window._cancelBulkDelete = function() {
+  document.getElementById('bulk-delete-modal').classList.add('hidden');
+};
+
+window._confirmBulkDelete = async function() {
+  const ids = getSelectedIds();
+  if (!ids.length) return;
+  const btn = document.getElementById('bulk-delete-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Đang xoá...';
+  try {
+    const res = await fetch(BULK_DESTROY_URL, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': SUBMISSION_CSRF },
+      body: JSON.stringify({ ids })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      (data.deleted || ids).forEach(id => document.getElementById('sub-row-' + id)?.remove());
+      const countEl = document.querySelector('[data-submissions-count]');
+      if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent) - (data.deleted?.length || ids.length));
+      clearSelection();
+    }
+  } finally {
+    btn.disabled = false; btn.textContent = 'Xoá';
+    window._cancelBulkDelete();
+  }
+};
+
 // Expose functions called from inline onclick attributes
-Object.assign(window, { toggleStatusMenu, setStatus, toggleAssigneeMenu, setAssignee, showAssigneeNotifyConfirm, confirmDeleteSubmission, _cancelDeleteSub, _confirmDeleteSub });
+Object.assign(window, { toggleStatusMenu, setStatus, toggleAssigneeMenu, setAssignee, showAssigneeNotifyConfirm, confirmDeleteSubmission, _cancelDeleteSub, _confirmDeleteSub, toggleSelectAll, onRowCbChange, clearSelection, confirmBulkDelete, _cancelBulkDelete, _confirmBulkDelete });
 })(); // end IIFE
 </script>
+
+<!-- Bulk delete confirm modal -->
+<div id="bulk-delete-modal" class="hidden fixed inset-0 z-50"
+     onclick="if(event.target===this) _cancelBulkDelete()">
+  <div class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-[380px] max-w-full mx-4 p-6" onclick="event.stopPropagation()">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 text-xl" style="background:#fee2e2;">🗑️</div>
+      <h3 class="text-[16px] font-bold text-slate-900 text-center mb-1">Xoá nhiều phản hồi?</h3>
+      <p class="text-[13px] text-slate-500 text-center mb-5">
+        Bạn sắp xoá <strong id="bulk-delete-count" class="text-red-600">0</strong> phản hồi. Hành động này không thể hoàn tác.
+      </p>
+      <div class="flex gap-3">
+        <button onclick="_cancelBulkDelete()"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 cursor-pointer transition-colors">
+          Huỷ
+        </button>
+        <button id="bulk-delete-confirm-btn" onclick="_confirmBulkDelete()"
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white border-0 cursor-pointer transition-colors"
+          style="background:#ef4444;" onmouseenter="this.style.background='#dc2626'" onmouseleave="this.style.background='#ef4444'">
+          Xoá
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Delete submission confirm modal -->
 <div id="delete-sub-modal" class="hidden fixed inset-0 z-50"
