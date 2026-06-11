@@ -602,22 +602,37 @@ function makeProgressRing(containerId, phases, intervalMs) {
   let   phase = 0, pct = 0, timer = null;
 
   const html = `
-    <div class="flex flex-col items-center justify-center py-6 gap-3">
-      <svg width="72" height="72" viewBox="0 0 72 72">
-        <circle cx="36" cy="36" r="30" fill="none" stroke="#ede9fe" stroke-width="5"/>
-        <circle id="${containerId}-ring" cx="36" cy="36" r="30" fill="none"
-          stroke="url(#rg-${containerId})" stroke-width="5" stroke-linecap="round"
-          stroke-dasharray="188.5" stroke-dashoffset="188.5"
-          transform="rotate(-90 36 36)" style="transition:stroke-dashoffset 0.6s ease;"/>
-        <defs>
-          <linearGradient id="rg-${containerId}" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#6366f1"/>
-            <stop offset="100%" stop-color="#a855f7"/>
-          </linearGradient>
-        </defs>
-        <text x="36" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#6366f1" id="${containerId}-pct">0%</text>
-      </svg>
-      <p class="text-[12px] text-violet-600 font-medium text-center" id="${containerId}-phase">${phases[0]}</p>
+    <div class="flex flex-col items-center justify-center py-6 vox-pulse-loader">
+      <div class="vox-pulse-ring-wrap" style="width:80px;height:80px;margin-bottom:10px;">
+        <svg viewBox="0 0 80 80" fill="none" style="transform:rotate(-90deg);">
+          <circle cx="40" cy="40" r="34" stroke="#ede9fe" stroke-width="6"/>
+          <circle id="${containerId}-ring" cx="40" cy="40" r="34"
+            stroke="url(#rg-${containerId})" stroke-width="6" stroke-linecap="round"
+            stroke-dasharray="213.6" stroke-dashoffset="213.6"
+            style="transition:stroke-dashoffset 0.6s ease;"/>
+          <defs>
+            <linearGradient id="rg-${containerId}" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#6366f1"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="vox-pulse-icon">
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <path d="M16 3C16 3 19.5 8 24 10C19.5 12 16 17 16 17C16 17 12.5 12 8 10C12.5 8 16 3 16 3Z" fill="url(#vg-top-${containerId})"/>
+            <path d="M16 17C16 17 19.5 22 24 24C19.5 26 16 31 16 31C16 31 12.5 26 8 24C12.5 22 16 17 16 17Z" fill="url(#vg-bot-${containerId})" opacity="0.7"/>
+            <defs>
+              <linearGradient id="vg-top-${containerId}" x1="8" y1="3" x2="24" y2="17" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/>
+              </linearGradient>
+              <linearGradient id="vg-bot-${containerId}" x1="8" y1="17" x2="24" y2="31" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#c4b5fd"/><stop offset="1" stop-color="#818cf8"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span id="${containerId}-pct" class="vox-pulse-pct" style="position:absolute;bottom:4px;left:0;right:0;text-align:center;">0%</span>
+      </div>
+      <p class="vox-pulse-label" id="${containerId}-phase">${phases[0]}</p>
     </div>`;
 
   document.getElementById(containerId).innerHTML = html;
@@ -627,7 +642,7 @@ function makeProgressRing(containerId, phases, intervalMs) {
   const phEl  = document.getElementById(`${containerId}-phase`);
 
   function setProgress(p) {
-    const offset = 188.5 * (1 - p / 100);
+    const offset = 213.6 * (1 - p / 100);
     if (ring)  ring.style.strokeDashoffset = offset;
     if (pctEl) pctEl.textContent = Math.round(p) + '%';
   }

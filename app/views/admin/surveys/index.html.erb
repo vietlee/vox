@@ -210,28 +210,40 @@
         <button onclick="document.getElementById('ai-builder-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg hover:bg-slate-200"><%= t("surveys.ai_builder_cancel") %></button>
       </div>
     </div>
-    <div id="ai-builder-loading" class="hidden text-center py-6">
-      <div class="relative inline-flex items-center justify-center mb-4">
-        <svg width="96" height="96" class="-rotate-90">
-          <circle cx="48" cy="48" r="40" fill="none" stroke="#e2e8f0" stroke-width="7"/>
-          <circle id="ai-progress-ring" cx="48" cy="48" r="40" fill="none"
-            stroke="url(#ai-grad)" stroke-width="7" stroke-linecap="round"
-            stroke-dasharray="251.2" stroke-dashoffset="251.2"
-            style="transition: stroke-dashoffset 0.6s ease"/>
-          <defs>
-            <linearGradient id="ai-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%"   stop-color="#8b5cf6"/>
-              <stop offset="100%" stop-color="#6366f1"/>
-            </linearGradient>
-          </defs>
-        </svg>
-        <span id="ai-progress-pct"
-          class="absolute text-[20px] font-extrabold bg-gradient-to-r from-violet-500 to-indigo-500 bg-clip-text text-transparent">
-          0%
-        </span>
+    <div id="ai-builder-loading" class="hidden text-center py-8">
+      <div class="vox-pulse-loader">
+        <div class="vox-pulse-ring-wrap" style="width:88px;height:88px;">
+          <svg viewBox="0 0 88 88" fill="none" style="-webkit-transform:rotate(-90deg);transform:rotate(-90deg);">
+            <circle cx="44" cy="44" r="38" stroke="#ede9fe" stroke-width="6"/>
+            <circle id="ai-progress-ring" cx="44" cy="44" r="38" stroke="url(#ai-grad)" stroke-width="6"
+              stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="238.8"
+              style="transition:stroke-dashoffset 0.6s ease;"/>
+            <defs>
+              <linearGradient id="ai-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#8b5cf6"/>
+                <stop offset="100%" stop-color="#6366f1"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="vox-pulse-icon">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <path d="M16 3C16 3 19.5 8 24 10C19.5 12 16 17 16 17C16 17 12.5 12 8 10C12.5 8 16 3 16 3Z" fill="url(#vox-g1)"/>
+              <path d="M16 17C16 17 19.5 22 24 24C19.5 26 16 31 16 31C16 31 12.5 26 8 24C12.5 22 16 17 16 17Z" fill="url(#vox-g2)" opacity="0.7"/>
+              <defs>
+                <linearGradient id="vox-g1" x1="8" y1="3" x2="24" y2="17" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/>
+                </linearGradient>
+                <linearGradient id="vox-g2" x1="8" y1="17" x2="24" y2="31" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#c4b5fd"/><stop offset="1" stop-color="#818cf8"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <span id="ai-progress-pct" class="vox-pulse-pct" style="position:absolute;bottom:6px;left:0;right:0;text-align:center;">0%</span>
+        </div>
+        <p id="ai-progress-label" class="vox-pulse-label"></p>
+        <p class="vox-pulse-sub"><%= t("surveys.ai_builder_loading") %></p>
       </div>
-      <p id="ai-progress-label" class="text-[13px] font-semibold text-slate-700 mb-1"></p>
-      <p class="text-[11px] text-slate-400"><%= t("surveys.ai_builder_loading") %></p>
     </div>
   </div>
   </div>
@@ -390,7 +402,7 @@ const AI_STEPS = [
   { pct: 74, label: "<%= j t('surveys.ai_progress.validating') %>" },
   { pct: 88, label: "<%= j t('surveys.ai_progress.finalizing') %>" }
 ];
-const RING_CIRCUMFERENCE = 251.2;
+const RING_CIRCUMFERENCE = 238.8;
 let _progressTimer = null, _currentStep = 0;
 
 function setProgress(pct, label) {
