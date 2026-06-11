@@ -46,7 +46,9 @@ class Admin::DynamicFormsController < Admin::BaseController
   end
 
   def edit
-    @members              = current_workspace.members.order(:name, :email)
+    ws_admins = current_workspace.admin_users
+    ws_members = current_workspace.members
+    @members = (ws_admins + ws_members).uniq(&:id).sort_by { |u| u.name.presence || u.email }
     @assignee_ids         = @form.assignees.pluck(:id)
     @form_assignees       = @form.assignees.order(:name, :email)
     @notification_user_ids = Array(@form.settings["notification_user_ids"]).map(&:to_i)
@@ -300,7 +302,8 @@ class Admin::DynamicFormsController < Admin::BaseController
 
   def save_assignees!
     assignee_ids = Array(params[:assignee_ids]).map(&:to_i).select(&:positive?)
-    valid_ids    = current_workspace.members.where(id: assignee_ids).pluck(:id)
+    all_eligible = (current_workspace.admin_users + current_workspace.members).uniq(&:id)
+    valid_ids    = all_eligible.map(&:id) & assignee_ids
     @form.dynamic_form_assignments.where.not(user_id: valid_ids).destroy_all
     valid_ids.each { |uid| @form.dynamic_form_assignments.find_or_create_by!(user_id: uid) }
   end
