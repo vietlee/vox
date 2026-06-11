@@ -245,7 +245,11 @@ const FORM_TITLE         = <%= @form.title.to_json.html_safe %>;
     timer = setTimeout(() => input.closest('form').submit(), 450);
   });
   // Restore focus & cursor position after Turbo reload
-  if (input.value) input.focus();
+  if (input.value) {
+    input.focus();
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  }
 })();
 
 function toggleStatusMenu(id) {
