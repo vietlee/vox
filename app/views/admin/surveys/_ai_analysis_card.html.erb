@@ -8,74 +8,209 @@
 <% q_insights = result["question_insights"] || [] %>
 <% key_metrics= result["key_metrics"] || {} %>
 
-<div class="space-y-5 text-[13px]">
+<%# Unique ID per card to support multiple on page %>
+<% card_id = "ai-#{analysis.id}" %>
 
-  <!-- Executive summary -->
+<div class="space-y-4 text-[13px]">
+
+  <!-- ① Executive Summary — 2 sentences max visible -->
   <% if result["executive_summary"].present? %>
     <% summary = result["executive_summary"] %>
-    <div>
-      <p class="text-slate-800 leading-relaxed" id="summary-text">
-        <%= summary.length > 400 ? summary.first(400) + "…" : summary %>
-      </p>
-      <% if summary.length > 400 %>
-        <div id="summary-full" class="hidden">
-          <p class="text-slate-800 leading-relaxed whitespace-pre-line"><%= summary %></p>
-        </div>
-        <button onclick="document.getElementById('summary-full').classList.toggle('hidden'); document.getElementById('summary-text').classList.toggle('hidden'); this.textContent = this.textContent.includes('▼') ? '▲ Thu gọn' : '▼ Xem thêm'"
-          class="text-[11px] text-violet-500 font-semibold mt-1 border-0 bg-transparent cursor-pointer p-0">▼ Xem thêm</button>
+    <% short = summary.split(/(?<=[.!?])\s+/).first(2).join(" ") %>
+    <div class="rounded-xl p-3.5" style="background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.12);">
+      <p class="text-[12px] text-slate-700 leading-relaxed" id="<%= card_id %>-short"><%= short %></p>
+      <div id="<%= card_id %>-full" class="hidden mt-2 pt-2 border-t border-indigo-100">
+        <p class="text-[12px] text-slate-600 leading-relaxed whitespace-pre-line"><%= summary %></p>
+      </div>
+      <% if summary != short %>
+        <button onclick="document.getElementById('<%= card_id %>-full').classList.toggle('hidden'); this.textContent = this.textContent.includes('▼') ? '▲ Thu gọn' : '▼ Đọc thêm'"
+          class="text-[10px] text-indigo-400 font-semibold mt-1.5 border-0 bg-transparent cursor-pointer p-0 hover:text-indigo-600">▼ Đọc thêm</button>
       <% end %>
     </div>
   <% end %>
 
-  <!-- Key Metrics row -->
+  <!-- ② Key metrics — 2-col chips -->
   <% if key_metrics.any? %>
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-2 gap-2">
       <% if key_metrics["standout_high"].present? %>
-        <div class="rounded-lg px-3 py-2.5" style="background:rgba(16,185,129,0.07); border:1px solid rgba(16,185,129,0.2);">
-          <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-1">▲ Điểm sáng</div>
-          <p class="text-[12px] text-slate-700 leading-snug"><%= key_metrics["standout_high"] %></p>
+        <div class="rounded-lg px-3 py-2" style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.18);">
+          <div class="text-[9px] font-bold text-emerald-600 uppercase tracking-wide mb-1">▲ Điểm sáng</div>
+          <p class="text-[11px] text-slate-700 leading-snug"><%= key_metrics["standout_high"] %></p>
         </div>
       <% end %>
       <% if key_metrics["standout_low"].present? %>
-        <div class="rounded-lg px-3 py-2.5" style="background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.15);">
-          <div class="text-[10px] font-bold text-red-500 uppercase tracking-wide mb-1">▼ Cần cải thiện</div>
-          <p class="text-[12px] text-slate-700 leading-snug"><%= key_metrics["standout_low"] %></p>
+        <div class="rounded-lg px-3 py-2" style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.15);">
+          <div class="text-[9px] font-bold text-red-500 uppercase tracking-wide mb-1">▼ Cần cải thiện</div>
+          <p class="text-[11px] text-slate-700 leading-snug"><%= key_metrics["standout_low"] %></p>
         </div>
       <% end %>
     </div>
   <% end %>
 
-  <!-- Sentiment -->
-  <% if sentiment.any? %>
-    <div>
-      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2"><%= t("surveys.results.ai_sentiment") %></div>
-      <div class="flex gap-2 flex-wrap items-center">
-        <% pos = sentiment["positive"].to_s; neu = sentiment["neutral"].to_s; neg = sentiment["negative"].to_s %>
-        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">▲ Tích cực: <%= pos %></span>
-        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500">● Trung lập: <%= neu %></span>
-        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-50 text-red-500">▼ Tiêu cực: <%= neg %></span>
-        <% if sentiment["sentiment_note"].present? %>
-          <span class="text-[11px] text-slate-400 italic"><%= sentiment["sentiment_note"] %></span>
-        <% end %>
-      </div>
+  <!-- ③ Sentiment donut + themes bar — side by side -->
+  <% has_sentiment = sentiment["positive"].present? || sentiment["negative"].present? %>
+  <% has_themes    = themes.any? %>
+  <% if has_sentiment || has_themes %>
+    <div class="grid <%= (has_sentiment && has_themes) ? 'grid-cols-2' : 'grid-cols-1' %> gap-3">
+
+      <!-- Sentiment donut -->
+      <% if has_sentiment %>
+        <%
+          pos_val = sentiment["positive"].to_s.gsub(/[^0-9.]/, '').to_f
+          neu_val = sentiment["neutral"].to_s.gsub(/[^0-9.]/, '').to_f
+          neg_val = sentiment["negative"].to_s.gsub(/[^0-9.]/, '').to_f
+          total_s = pos_val + neu_val + neg_val
+          total_s = 100.0 if total_s.zero?
+        %>
+        <div class="rounded-xl border border-slate-100 bg-white p-3">
+          <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Cảm xúc tổng thể</div>
+          <div class="flex items-center gap-3">
+            <canvas id="<%= card_id %>-sentiment" width="80" height="80" style="flex-shrink:0;"></canvas>
+            <div class="space-y-1 flex-1">
+              <div class="flex items-center gap-1.5 text-[10px] text-slate-600">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                <span class="flex-1">Tích cực</span>
+                <strong class="text-emerald-600"><%= "#{pos_val.round}%" %></strong>
+              </div>
+              <div class="flex items-center gap-1.5 text-[10px] text-slate-600">
+                <span class="w-2.5 h-2.5 rounded-full bg-slate-300 flex-shrink-0"></span>
+                <span class="flex-1">Trung lập</span>
+                <strong class="text-slate-500"><%= "#{neu_val.round}%" %></strong>
+              </div>
+              <div class="flex items-center gap-1.5 text-[10px] text-slate-600">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-400 flex-shrink-0"></span>
+                <span class="flex-1">Tiêu cực</span>
+                <strong class="text-red-500"><%= "#{neg_val.round}%" %></strong>
+              </div>
+              <% if sentiment["sentiment_note"].present? %>
+                <p class="text-[9px] text-slate-400 italic pt-0.5 leading-snug"><%= sentiment["sentiment_note"] %></p>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        <script>
+        (function(){
+          function drawSentimentDonut_<%= card_id.gsub('-','_') %>() {
+            const canvas = document.getElementById('<%= card_id %>-sentiment');
+            if (!canvas || canvas._drawn) return;
+            canvas._drawn = true;
+            const ctx = canvas.getContext('2d');
+            const data = [<%= pos_val %>, <%= neu_val %>, neg_val = <%= neg_val %>];
+            const colors = ['#34d399','#cbd5e1','#f87171'];
+            const total = data.reduce((a,b)=>a+b,0)||100;
+            const cx = 40, cy = 40, r = 32, innerR = 20;
+            let angle = -Math.PI/2;
+            data.forEach((val,i)=>{
+              const slice = (val/total)*2*Math.PI;
+              ctx.beginPath();
+              ctx.moveTo(cx,cy);
+              ctx.arc(cx,cy,r,angle,angle+slice);
+              ctx.closePath();
+              ctx.fillStyle = colors[i];
+              ctx.fill();
+              angle += slice;
+            });
+            // Inner white circle (donut hole)
+            ctx.beginPath();
+            ctx.arc(cx,cy,innerR,0,2*Math.PI);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            // Center text
+            const dominant = data.indexOf(Math.max(...data));
+            const domVal = Math.round(data[dominant]);
+            ctx.fillStyle = colors[dominant];
+            ctx.font = 'bold 14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(domVal+'%', cx, cy);
+          }
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', drawSentimentDonut_<%= card_id.gsub('-','_') %>);
+          } else {
+            drawSentimentDonut_<%= card_id.gsub('-','_') %>();
+          }
+          document.addEventListener('turbo:load', drawSentimentDonut_<%= card_id.gsub('-','_') %>);
+        })();
+        </script>
+      <% end %>
+
+      <!-- Themes horizontal bar chart -->
+      <% if has_themes %>
+        <div class="rounded-xl border border-slate-100 bg-white p-3">
+          <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Chủ đề nổi bật</div>
+          <canvas id="<%= card_id %>-themes" height="<%= [themes.first(6).size * 22, 44].max %>"></canvas>
+        </div>
+        <script>
+        (function(){
+          function drawThemesBar_<%= card_id.gsub('-','_') %>() {
+            const canvas = document.getElementById('<%= card_id %>-themes');
+            if (!canvas || canvas._drawn) return;
+            canvas._drawn = true;
+            const ctx = canvas.getContext('2d');
+            const labels = [<%= themes.first(6).map { |t| t["theme"].to_s.truncate(28).to_json }.join(',') %>];
+            const values = [<%= themes.first(6).map { |t| (t["percentage"]&.to_f || 0).round(1) }.join(',') %>];
+            const sentColors = {
+              'positive':'#34d399','positive_color':'rgba(52,211,153,0.15)',
+              'neutral':'#94a3b8','neutral_color':'rgba(148,163,184,0.15)',
+              'negative':'#f87171','negative_color':'rgba(248,113,113,0.15)'
+            };
+            const themeColors = [<%= themes.first(6).map { |t|
+              c = t["sentiment"] == "positive" ? "'#6366f1'" : t["sentiment"] == "negative" ? "'#f87171'" : "'#94a3b8'"
+              c
+            }.join(',') %>];
+            const w = canvas.width; const rowH = 22;
+            canvas.height = Math.max(labels.length * rowH, 44);
+            const maxVal = Math.max(...values, 1);
+            const labelW = 110; const barAreaW = w - labelW - 36;
+            ctx.clearRect(0,0,w,canvas.height);
+            labels.forEach((lbl,i)=>{
+              const y = i*rowH + rowH/2;
+              // Label
+              ctx.fillStyle='#64748b'; ctx.font='10px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='middle';
+              ctx.fillText(lbl.length>16?lbl.slice(0,16)+'…':lbl, labelW-6, y);
+              // Bar bg
+              const barW = (values[i]/maxVal)*barAreaW;
+              ctx.fillStyle='rgba(99,102,241,0.08)'; ctx.beginPath();
+              ctx.roundRect?ctx.roundRect(labelW,y-7,barAreaW,14,3):ctx.rect(labelW,y-7,barAreaW,14);
+              ctx.fill();
+              // Bar fill
+              ctx.fillStyle=themeColors[i]||'#6366f1'; ctx.beginPath();
+              ctx.roundRect?ctx.roundRect(labelW,y-7,barW,14,3):ctx.rect(labelW,y-7,barW,14);
+              ctx.fill();
+              // Value
+              ctx.fillStyle='#475569'; ctx.font='bold 9px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
+              ctx.fillText(values[i]+'%', labelW+barAreaW+4, y);
+            });
+          }
+          if (document.readyState==='loading') {
+            document.addEventListener('DOMContentLoaded', drawThemesBar_<%= card_id.gsub('-','_') %>);
+          } else {
+            drawThemesBar_<%= card_id.gsub('-','_') %>();
+          }
+          document.addEventListener('turbo:load', drawThemesBar_<%= card_id.gsub('-','_') %>);
+        })();
+        </script>
+      <% end %>
+
     </div>
   <% end %>
 
-  <!-- Per-question insights (high/medium concern only) -->
-  <% flagged = q_insights.select { |qi| %w[high medium].include?(qi["concern_level"]) } %>
-  <% if flagged.any? %>
+  <!-- ④ Question insights — compact, high concern only by default -->
+  <% flagged_high = q_insights.select { |qi| qi["concern_level"] == "high" } %>
+  <% flagged_med  = q_insights.select { |qi| qi["concern_level"] == "medium" } %>
+  <% if flagged_high.any? || flagged_med.any? %>
     <div>
-      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">NHẬN XÉT THEO CÂU HỎI</div>
-      <div class="space-y-2">
-        <% flagged.each do |qi| %>
-          <% badge_cls = qi["concern_level"] == "high" ? "bg-red-50 text-red-600 border-red-200" : "bg-amber-50 text-amber-600 border-amber-200" %>
-          <div class="flex gap-2 items-start rounded-lg px-3 py-2 bg-slate-50 border border-slate-100">
-            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 mt-0.5 <%= badge_cls %>">
-              <%= qi["concern_level"] == "high" ? "CAO" : "TB" %>
+      <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Điểm cần chú ý</div>
+      <div class="space-y-1.5">
+        <% (flagged_high + flagged_med).first(5).each do |qi| %>
+          <% is_high = qi["concern_level"] == "high" %>
+          <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 <%= is_high ? 'bg-red-50 border border-red-100' : 'bg-amber-50 border border-amber-100' %>">
+            <span class="text-[8px] font-black px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 <%= is_high ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600' %>">
+              <%= is_high ? "!" : "~" %>
             </span>
             <div class="flex-1 min-w-0">
-              <div class="text-[11px] font-semibold text-slate-700 truncate"><%= qi["question"] %></div>
-              <div class="text-[11px] text-slate-500 mt-0.5 leading-snug"><%= qi["finding"] %></div>
+              <div class="text-[10px] font-semibold text-slate-700 leading-snug"><%= qi["question"].to_s.truncate(60) %></div>
+              <div class="text-[10px] text-slate-500 mt-0.5 leading-snug"><%= qi["finding"] %></div>
             </div>
           </div>
         <% end %>
@@ -83,74 +218,58 @@
     </div>
   <% end %>
 
-  <!-- Highlights -->
+  <!-- ⑤ Highlights — compact bullets -->
   <% if highlights.any? %>
-    <div>
-      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2"><%= t("surveys.results.ai_highlights") %></div>
-      <ul class="space-y-1.5">
-        <% highlights.each do |h| %>
-          <li class="flex gap-2 text-[12px] text-slate-700 leading-snug">
-            <span class="text-emerald-400 flex-shrink-0 mt-0.5">✦</span><%= h %>
+    <div class="rounded-xl p-3" style="background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.12);">
+      <div class="text-[9px] font-bold text-emerald-600 uppercase tracking-wide mb-1.5">✦ Điểm tích cực</div>
+      <ul class="space-y-1">
+        <% highlights.first(4).each do |h| %>
+          <li class="text-[11px] text-slate-700 leading-snug flex gap-1.5">
+            <span class="text-emerald-400 flex-shrink-0">·</span><%= h %>
           </li>
         <% end %>
       </ul>
     </div>
   <% end %>
 
-  <!-- Themes -->
-  <% if themes.any? %>
-    <div>
-      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2"><%= t("surveys.results.ai_themes") %></div>
-      <div class="space-y-2">
-        <% themes.first(6).each do |t| %>
-          <% pct = t["percentage"]&.to_f || 0 %>
-          <div class="flex items-center gap-2 text-[11px]">
-            <span class="text-slate-700 min-w-[120px] flex-shrink-0 truncate"><%= t["theme"] || t["name"] %></span>
-            <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div class="h-full rounded-full" style="width:<%= [pct, 100].min %>%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
-            </div>
-            <span class="text-slate-400 flex-shrink-0 w-8 text-right"><%= pct.round %>%</span>
-          </div>
-        <% end %>
-      </div>
-    </div>
-  <% end %>
-
-  <!-- Anomalies -->
+  <!-- ⑥ Anomalies — compact -->
   <% if anomalies.any? %>
     <div>
-      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2"><%= t("surveys.results.ai_anomalies") %></div>
-      <ul class="space-y-1.5">
-        <% anomalies.each do |a| %>
-          <li class="flex gap-2 text-[12px] text-slate-700 leading-snug">
-            <span class="text-amber-400 flex-shrink-0 mt-0.5">⚡</span><%= a %>
+      <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">⚡ Bất thường</div>
+      <ul class="space-y-1">
+        <% anomalies.first(3).each do |a| %>
+          <li class="text-[11px] text-slate-600 leading-snug flex gap-1.5">
+            <span class="text-amber-400 flex-shrink-0">⚡</span><%= a %>
           </li>
         <% end %>
       </ul>
     </div>
   <% end %>
 
-  <!-- Recommendations -->
+  <!-- ⑦ Recommendations — action only, priority badge, rationale collapsed -->
   <% if recs.any? %>
-    <div class="pt-3 border-t border-violet-100">
-      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2"><%= t("surveys.results.ai_recommendations") %></div>
-      <div class="space-y-2">
-        <% recs.first(6).each do |rec| %>
+    <div class="pt-3 border-t border-slate-100">
+      <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">→ Khuyến nghị</div>
+      <div class="space-y-1.5">
+        <% recs.first(5).each_with_index do |rec, ri| %>
           <% pri = rec.is_a?(Hash) ? rec["priority"].to_s : "" %>
-          <% pri_color = pri == "high" ? "bg-red-50 text-red-600 border-red-200" : pri == "medium" ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-slate-50 text-slate-500 border-slate-200" %>
-          <div class="flex gap-2 items-start rounded-lg px-3 py-2.5 bg-slate-50 border border-slate-100">
-            <% if pri.present? %>
-              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 mt-0.5 <%= pri_color %>"><%= pri.upcase %></span>
-            <% else %>
-              <span class="text-violet-400 flex-shrink-0 mt-1">→</span>
-            <% end %>
-            <div class="flex-1 min-w-0">
-              <div class="text-[12px] text-slate-800 font-medium leading-snug"><%= rec.is_a?(Hash) ? rec["action"] : rec %></div>
+          <% pri_cls = pri=="high" ? "bg-red-100 text-red-600" : pri=="medium" ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-400" %>
+          <% rec_id = "#{card_id}-rec-#{ri}" %>
+          <div class="rounded-lg border border-slate-100 bg-white overflow-hidden">
+            <button type="button" onclick="(function(el){el.nextElementSibling.classList.toggle('hidden');el.querySelector('.rec-arrow').textContent=el.nextElementSibling.classList.contains('hidden')?'▾':'▴'})(this)"
+              class="w-full flex items-start gap-2 px-2.5 py-2 text-left bg-transparent border-0 cursor-pointer hover:bg-slate-50 transition-colors">
+              <% if pri.present? %>
+                <span class="text-[8px] font-black px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 <%= pri_cls %>"><%= pri.upcase %></span>
+              <% end %>
+              <span class="text-[11px] text-slate-800 font-medium leading-snug flex-1"><%= rec.is_a?(Hash) ? rec["action"] : rec %></span>
+              <span class="rec-arrow text-slate-300 text-[10px] flex-shrink-0 mt-0.5">▾</span>
+            </button>
+            <div class="hidden px-2.5 pb-2 border-t border-slate-50">
               <% if rec.is_a?(Hash) && rec["rationale"].present? %>
-                <div class="text-[11px] text-slate-500 mt-0.5 leading-snug"><%= rec["rationale"] %></div>
+                <p class="text-[10px] text-slate-500 leading-snug mt-1.5"><%= rec["rationale"] %></p>
               <% end %>
               <% if rec.is_a?(Hash) && rec["impact"].present? %>
-                <div class="text-[10px] text-violet-500 mt-0.5 font-medium">→ <%= rec["impact"] %></div>
+                <p class="text-[10px] text-indigo-500 font-medium mt-1">→ <%= rec["impact"] %></p>
               <% end %>
             </div>
           </div>
