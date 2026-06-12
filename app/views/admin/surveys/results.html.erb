@@ -362,7 +362,7 @@
             </div>
           </div>
           <div style="position:relative;">
-            <div class="vox-richtext-wrap" id="report-context-wrap">
+            <div class="vox-richtext-wrap" id="report-context-wrap" style="max-height:220px;overflow-y:auto;">
               <div id="report-context-editor" style="min-height:110px;font-size:13px;padding-right:36px;"></div>
             </div>
             <button type="button" id="copy-prompt-btn"
@@ -914,6 +914,8 @@ async function requestReport() {
   if (btn) { btn.disabled = true; }
   if (spinner) spinner.classList.remove('hidden');
   const progress = makeProgressRing('report-progress', I18N.report_phases, 600);
+  // Scroll to loading area so user sees progress
+  statusEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   try {
     const resp = await fetch(REPORT_URL, {
