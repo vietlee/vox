@@ -199,24 +199,50 @@
     </div>
   <% end %>
 
-  <!-- ④ Question insights — compact, high concern only by default -->
-  <% flagged_high = q_insights.select { |qi| qi["concern_level"] == "high" } %>
-  <% flagged_med  = q_insights.select { |qi| qi["concern_level"] == "medium" } %>
-  <% if flagged_high.any? || flagged_med.any? %>
+  <!-- ④ Question insights — all questions, sorted by concern level -->
+  <% if q_insights.any? %>
+    <%
+      concern_order = { "high" => 0, "medium" => 1, "low" => 2 }
+      sorted_insights = q_insights.sort_by { |qi| concern_order[qi["concern_level"].to_s] || 3 }
+      flagged = sorted_insights.select { |qi| %w[high medium].include?(qi["concern_level"].to_s) }
+      low_insights = sorted_insights.select { |qi| qi["concern_level"].to_s == "low" }
+    %>
     <div>
-      <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Điểm cần chú ý</div>
-      <div class="space-y-1.5">
-        <% (flagged_high + flagged_med).first(5).each do |qi| %>
+      <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Phân tích từng câu hỏi</div>
+      <div class="space-y-1.5" id="<%= card_id %>-insights">
+        <!-- High/medium always visible -->
+        <% flagged.each do |qi| %>
           <% is_high = qi["concern_level"] == "high" %>
           <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 <%= is_high ? 'bg-red-50 border border-red-100' : 'bg-amber-50 border border-amber-100' %>">
             <span class="text-[8px] font-black px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 <%= is_high ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600' %>">
               <%= is_high ? "!" : "~" %>
             </span>
             <div class="flex-1 min-w-0">
-              <div class="text-[10px] font-semibold text-slate-700 leading-snug"><%= qi["question"].to_s.truncate(60) %></div>
+              <div class="text-[10px] font-semibold text-slate-700 leading-snug"><%= qi["question"].to_s.truncate(70) %></div>
               <div class="text-[10px] text-slate-500 mt-0.5 leading-snug"><%= qi["finding"] %></div>
             </div>
           </div>
+        <% end %>
+        <!-- Low concern: collapsed by default -->
+        <% if low_insights.any? %>
+          <div id="<%= card_id %>-low-insights" class="hidden space-y-1.5">
+            <% low_insights.each do |qi| %>
+              <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 bg-slate-50 border border-slate-100">
+                <span class="text-[8px] font-black px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 bg-slate-100 text-slate-400">·</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[10px] font-semibold text-slate-600 leading-snug"><%= qi["question"].to_s.truncate(70) %></div>
+                  <div class="text-[10px] text-slate-400 mt-0.5 leading-snug"><%= qi["finding"] %></div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+          <button onclick="
+            const el = document.getElementById('<%= card_id %>-low-insights');
+            el.classList.toggle('hidden');
+            this.textContent = el.classList.contains('hidden') ? '▼ Xem thêm <%= low_insights.size %> câu hỏi' : '▲ Thu gọn';
+          " class="text-[10px] text-slate-400 hover:text-slate-600 font-medium bg-transparent border-0 cursor-pointer p-0 mt-0.5">
+            ▼ Xem thêm <%= low_insights.size %> câu hỏi
+          </button>
         <% end %>
       </div>
     </div>
