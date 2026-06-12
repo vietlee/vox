@@ -248,10 +248,25 @@ class AiExecutiveReportJob < ApplicationJob
           "avg" => avg, "max" => max_val, "distribution" => dist }
 
       when :short_text, :long_text
-        count = base.where.not(text_value: [nil, ""]).count
-        next if count == 0
-        { "question_id" => q.id, "question" => q.title,
-          "type" => q.question_type.to_s, "total" => count }
+        texts = base.where.not(text_value: [nil, ""]).pluck(:text_value)
+        next if texts.empty?
+        # Try to extract leading numeric values (e.g. "50%", "50-60%", "~40%")
+        nums = texts.filter_map { |t| t.to_s.gsub(/[~≈]/, "").scan(/\d+(?:\.\d+)?/).first&.to_f }
+                    .select { |n| n > 0 && n <= 100 }
+        if nums.size >= texts.size * 0.5
+          # Numeric text question (e.g. % time saved) — render as scale chart
+          avg     = (nums.sum / nums.size).round(1)
+          max_val = 100
+          dist    = [[0,20],[21,40],[41,60],[61,80],[81,100]].map do |lo, hi|
+            { "value" => "#{lo}–#{hi}%", "count" => nums.count { |n| n >= lo && n <= hi } }
+          end
+          { "question_id" => q.id, "question" => q.title,
+            "type" => "nps", "total" => nums.size,
+            "avg" => avg, "max" => max_val, "distribution" => dist }
+        else
+          { "question_id" => q.id, "question" => q.title,
+            "type" => q.question_type.to_s, "total" => texts.size }
+        end
       end
     end.compact
   end
@@ -272,7 +287,7 @@ class AiExecutiveReportJob < ApplicationJob
       target_q = questions_by_pos[tp]
       group_q  = questions_by_pos[gp]
       return unless target_q && group_q
-      return unless %w[rating nps linear_scale].include?(target_q.question_type)
+      return unless %w[rating nps linear_scale short_text long_text].include?(target_q.question_type)
       return unless %w[single_choice dropdown].include?(group_q.question_type)
       key = "#{target_q.id}_#{group_q.id}"
       return if seen.include?(key)
@@ -318,6 +333,8 @@ class AiExecutiveReportJob < ApplicationJob
                   10
                 elsif target_q.question_type == "linear_scale"
                   target_q.settings&.dig("max_value")&.to_i.then { |v| v&.positive? ? v : 10 }
+                elsif %w[short_text long_text].include?(target_q.question_type)
+                  100  # percentage questions
                 else
                   5
                 end
@@ -345,6 +362,15 @@ class AiExecutiveReportJob < ApplicationJob
             { "option" => topt.label.truncate(30), "pct" => (cnt.to_f / total * 100).round(1) }
           end.max_by { |o| o["pct"] }
           { "label" => opt.label.truncate(30), "top_option" => top_opts["option"], "pct" => top_opts["pct"], "total" => total }
+        when :short_text, :long_text
+          # Numeric text (% estimates): extract leading number from each answer
+          texts = target_base.where.not(text_value: [nil, ""]).pluck(:text_value)
+          next if texts.empty?
+          nums = texts.filter_map { |t| t.to_s.gsub(/[~≈]/, "").scan(/\d+(?:\.\d+)?/).first&.to_f }
+                      .select { |n| n > 0 && n <= 100 }
+          next if nums.size < texts.size * 0.4  # skip if not mostly numeric
+          avg = (nums.sum / nums.size).round(1)
+          { "label" => opt.label.truncate(30), "avg" => avg, "total" => nums.size, "max" => 100 }
         end
       end.compact
 
