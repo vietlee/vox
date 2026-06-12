@@ -83,28 +83,69 @@ class AiExecutiveReportJob < ApplicationJob
       - Return ONLY valid JSON. Use \\n\\n for paragraph breaks. No markdown fences.
     SYS
 
+    # ── Build all chart + cross-tab data BEFORE the AI call ────────────────
+    # AI must see actual DB numbers to write an accurate, non-hallucinated analysis.
+    completed_response_ids = survey.responses.completed.where(excluded: [false, nil]).pluck(:id)
+    all_chart_data         = build_question_chart_data(survey, completed_response_ids)
+
+    valid_q_ids     = survey.questions.pluck(:id).map(&:to_i).to_set
+    choice_type_ids = survey.questions
+                            .where(question_type: %w[single_choice dropdown])
+                            .pluck(:id).map(&:to_i).to_set
+
+    # Pre-extract cross-tab pairs from user context and build their data early
+    pre_pairs         = pre_extracted_cross_tab_pairs(user_context, survey)
+    pre_cross_tab_map = pre_pairs.any? ?
+      build_cross_tab_data(survey, pre_pairs, completed_response_ids) : {}
+
+    # Build compact per-question data summary for the AI prompt
+    questions_data_summary = all_chart_data.map do |qd|
+      q = questions_list.find { |qq| qq.id == qd["question_id"].to_i }
+      next unless q
+      pos  = questions_list.index(q) + 1
+      line = "Q#{pos} (ID #{q.id}) [#{q.question_type}#{qd['subtype'] == 'pct' ? '/pct%' : ''}] #{q.title.truncate(70)}"
+      case qd["type"]
+      when "rating", "linear_scale", "nps"
+        line += "\n  data: avg=#{qd['avg']}/#{qd['max']}, n=#{qd['total']}"
+        dist = qd["distribution"]&.map { |d| "#{d['value']}:#{d['count']}" }&.join(", ")
+        line += ", dist=[#{dist}]" if dist
+      when "single_choice", "multiple_choice", "dropdown"
+        top = qd["distribution"]&.sort_by { |d| -d["count"].to_i }&.first(5)
+        line += "\n  data: n=#{qd['total']}, choices=#{top&.map { |d| "#{d['value'].to_s.truncate(30)}(#{d['count']})" }&.join(', ')}"
+      end
+      xt = pre_cross_tab_map[qd["question_id"].to_i]
+      if xt
+        groups_str = xt["groups"]&.map { |g|
+          val = g["avg"] || g["pct"]
+          "#{g['label'].to_s.truncate(20)}=#{val}"
+        }&.join(", ")
+        line += "\n  by #{xt['group_question'].to_s.truncate(30)}: #{groups_str}" if groups_str
+      end
+      line
+    end.compact.join("\n\n")
+
     user_prompt = <<~PROMPT
       ## Survey to analyze
       Title: #{survey.title}
       #{survey.description.present? ? "Description: #{survey.description}" : ""}
       Responses: #{responses.count} | Date: #{Date.current.strftime("%d/%m/%Y")}
 
-      ## Pre-computed data (use these exact numbers — do not estimate)
-      #{analysis.to_json.truncate(4000)}
+      ## Actual response data — USE THESE EXACT NUMBERS (computed from DB, not estimated)
+      #{questions_data_summary.truncate(5000)}
 
-      ## All survey questions
+      ## All survey questions (reference)
       #{questions_ref}
 
       #{context_block}
 
       ---
-      Now apply the 4-step analysis above, then produce this JSON (ALL text in #{lang_name}):
+      Apply the 4-step analysis above using the actual data provided, then produce this JSON (ALL text in #{lang_name}):
 
       {
         "title": "Report title derived from survey purpose (not generic)",
         "subtitle": "#{Date.current.strftime("%m/%Y")} — #{responses.count} phản hồi",
 
-        "executive_summary": "2 paragraphs. Para 1: the most important finding that requires combining data across questions — NOT a restatement of an individual question's average. Para 2: what this means and what should happen next. Use \\n\\n between paragraphs.",
+        "executive_summary": "EXACTLY 2 paragraphs separated by \\n\\n. They must be DIFFERENT — never repeat the same sentence.\\nPara 1 (THE KEY FINDING): The single most important cross-question or cross-group insight with exact numbers from the data above. Must reference at least 2 questions together.\\nPara 2 (THE IMPLICATION): What should the reader DO with this finding? Who acts, how, and why now?",
 
         "key_metrics": {
           "response_count": #{responses.count},
@@ -151,11 +192,12 @@ class AiExecutiveReportJob < ApplicationJob
         }
       }
 
-      Constraints:
-      - Sections: #{questions_list.size <= 4 ? "1–2 only (small survey)" : "2–4 only"}. Each section answers a DIFFERENT analytical question. No padding.
-      - Recommendations: #{questions_list.size <= 4 ? "1–2" : "2–3"} only, ordered by impact.
-      - sentiment % must be numeric (from pre-computed data).
-      - #{user_context ? "Additional focus requested: \"#{user_context.truncate(600)}\"" : "No additional focus specified — derive the most important insights from the data itself."}
+      Hard constraints:
+      - Sections: #{questions_list.size <= 4 ? "1–2 only (small survey — do NOT pad)" : "2–4 only"}. Each answers a DIFFERENT analytical question. No repetition.
+      - Recommendations: #{questions_list.size <= 4 ? "1–2" : "2–3"} only, by impact.
+      - executive_summary paragraphs must NOT be identical or near-identical.
+      - Every number you write MUST appear in the "Actual response data" section above. Do not invent numbers.
+      - #{user_context ? "Requester's focus: \"#{user_context.truncate(600)}\"" : "No additional focus — derive insights from the data."}
     PROMPT
 
     result_text = ClaudeService.opus_long.call(
@@ -166,30 +208,20 @@ class AiExecutiveReportJob < ApplicationJob
 
     result = parse_json_response(result_text)
 
-    # Attach real per-question chart data from DB, filtered by AI-selected relevant questions
-    completed_response_ids = survey.responses.completed.where(excluded: [false, nil]).pluck(:id)
-    all_chart_data = build_question_chart_data(survey, completed_response_ids)
-    relevant_ids   = Array(result["relevant_question_ids"]).map(&:to_i).select(&:positive?)
-    chart_data = relevant_ids.any? ?
+    # Filter chart_data to AI-selected relevant questions
+    relevant_ids = Array(result["relevant_question_ids"]).map(&:to_i).select(&:positive?)
+    chart_data   = relevant_ids.any? ?
       all_chart_data.select { |d| relevant_ids.include?(d["question_id"].to_i) } :
-      all_chart_data
+      all_chart_data.dup
 
-    # Merge AI-provided chart insights into each chart entry
+    # Merge AI-provided chart insights
     chart_insights = result.delete("chart_insights") || {}
     chart_data.each do |qd|
       insight = chart_insights[qd["question_id"].to_s] || chart_insights[qd["question_id"].to_i.to_s]
       qd["insight"] = insight if insight.present?
     end
 
-    # Build cross-tab breakdowns:
-    # 1. Pre-extract from user context (regex — reliable, doesn't depend on AI)
-    # 2. Merge with AI-provided pairs
-    pre_pairs = pre_extracted_cross_tab_pairs(user_context, survey)
-
-    valid_q_ids      = survey.questions.pluck(:id).map(&:to_i).to_set
-    choice_type_ids  = survey.questions
-                             .where(question_type: %w[single_choice dropdown])
-                             .pluck(:id).map(&:to_i).to_set
+    # Merge AI-suggested cross-tab pairs with pre-extracted ones (validated)
     ai_pairs = Array(result.delete("cross_tab_pairs")).select { |p|
       p.is_a?(Hash) &&
         p["target_id"].present? && p["group_by_id"].present? &&
@@ -201,13 +233,16 @@ class AiExecutiveReportJob < ApplicationJob
                       .uniq { |p| "#{p['target_id']}_#{p['group_by_id']}" }
                       .first(5)
 
-    # Ensure cross-tab target questions are included in chart_data even if AI omitted them
+    # Ensure cross-tab target questions are in chart_data
     if cross_tab_pairs.any?
       extra_ids = cross_tab_pairs.map { |p| p["target_id"].to_i }
-      missing   = all_chart_data.select { |d| extra_ids.include?(d["question_id"].to_i) && chart_data.none? { |c| c["question_id"] == d["question_id"] } }
+      missing   = all_chart_data.select { |d|
+        extra_ids.include?(d["question_id"].to_i) && chart_data.none? { |c| c["question_id"] == d["question_id"] }
+      }
       chart_data += missing
     end
 
+    # Build cross-tab data for ALL final pairs (covers newly AI-suggested pairs too)
     if cross_tab_pairs.any? && completed_response_ids.any?
       cross_tab_map = build_cross_tab_data(survey, cross_tab_pairs, completed_response_ids)
       chart_data.each do |qd|
