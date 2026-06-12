@@ -178,6 +178,15 @@ class AiExecutiveReportJob < ApplicationJob
       end
     end
 
+    # Remove grouping questions from standalone charts (they only serve as cross-tab axis)
+    group_q_ids = cross_tab_pairs.map { |p| p["group_by_id"].to_i }.uniq
+    chart_data.reject! { |d| group_q_ids.include?(d["question_id"].to_i) }
+
+    # Order: cross-tab target questions first (money charts), then remaining in relevant_ids order
+    cross_tab_target_ids = cross_tab_pairs.map { |p| p["target_id"].to_i }
+    priority_order       = (cross_tab_target_ids + relevant_ids).uniq
+    chart_data.sort_by! { |d| priority_order.index(d["question_id"].to_i) || 999 }
+
     result["chart_data"] = chart_data
 
     # Store metadata alongside the report content
@@ -261,8 +270,8 @@ class AiExecutiveReportJob < ApplicationJob
             { "value" => "#{lo}–#{hi}%", "count" => nums.count { |n| n >= lo && n <= hi } }
           end
           { "question_id" => q.id, "question" => q.title,
-            "type" => "nps", "total" => nums.size,
-            "avg" => avg, "max" => max_val, "distribution" => dist }
+            "type" => "linear_scale", "subtype" => "pct",
+            "total" => nums.size, "avg" => avg, "max" => max_val, "distribution" => dist }
         else
           { "question_id" => q.id, "question" => q.title,
             "type" => q.question_type.to_s, "total" => texts.size }
