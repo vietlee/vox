@@ -361,19 +361,23 @@
               <div id="suggest-loading-sub" style="font-size:11px;color:#7c3aed;opacity:0.8;">AI đang đọc dữ liệu và tạo gợi ý</div>
             </div>
           </div>
-          <div style="position:relative;">
-            <div class="vox-richtext-wrap" id="report-context-wrap" style="max-height:220px;overflow-y:auto;">
-              <div id="report-context-editor" style="min-height:110px;font-size:13px;padding-right:36px;"></div>
+          <div style="border:1px solid #e9ecef;border-radius:10px;overflow:hidden;">
+            <!-- Header row: copy button anchored here, never scrolls away -->
+            <div id="copy-prompt-header" style="display:none;justify-content:flex-end;padding:3px 6px;background:#fafbfc;border-bottom:1px solid #f1f3f5;min-height:32px;align-items:center;">
+              <button type="button" id="copy-prompt-btn"
+                onclick="voxCopy(document.getElementById('report-context').value || (window.reportQuill &amp;&amp; window.reportQuill.getText().trim()) || '', this)"
+                title="Sao chép prompt"
+                data-icon-only="true"
+                style="display:flex;width:28px;height:28px;padding:0;border-radius:7px;border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8;cursor:pointer;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s,border-color 0.15s;"
+                onmouseenter="this.style.background='#f1f5f9';this.style.color='#475569';this.style.borderColor='#cbd5e1'"
+                onmouseleave="this.style.background='#f8fafc';this.style.color='#94a3b8';this.style.borderColor='#e2e8f0'">
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="none" style="display:block;"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              </button>
             </div>
-            <button type="button" id="copy-prompt-btn"
-              onclick="voxCopy(document.getElementById('report-context').value || (window.reportQuill &amp;&amp; window.reportQuill.getText().trim()) || '', this)"
-              title="Sao chép prompt"
-              data-icon-only="true"
-              style="display:none;position:absolute;top:2px;right:8px;width:28px;height:28px;padding:0;border-radius:7px;border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8;cursor:pointer;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s,border-color 0.15s;flex-shrink:0;"
-              onmouseenter="this.style.background='#f1f5f9';this.style.color='#475569';this.style.borderColor='#cbd5e1'"
-              onmouseleave="this.style.background='#f8fafc';this.style.color='#94a3b8';this.style.borderColor='#e2e8f0'">
-              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" style="display:block;"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-            </button>
+            <!-- Scrollable editor -->
+            <div class="vox-richtext-wrap" id="report-context-wrap" style="max-height:220px;overflow-y:auto;border:none;border-radius:0;">
+              <div id="report-context-editor" style="min-height:110px;font-size:13px;"></div>
+            </div>
           </div>
           <p class="text-[10px] text-slate-400 mt-1">Mô tả mục đích báo cáo, đối tượng nhận, trọng tâm phân tích...</p>
           <!-- Truncation warning — shown only when AI output was cut off -->
@@ -1264,8 +1268,8 @@ async function suggestReportPrompt() {
     if (data.suggestion) {
       if (window.setReportContext) window.setReportContext(data.suggestion);
       // Show copy button
-      const copyBtn = document.getElementById('copy-prompt-btn');
-      if (copyBtn) { copyBtn.style.display = 'flex'; }
+      const copyHdr = document.getElementById('copy-prompt-header');
+      if (copyHdr) copyHdr.style.display = 'flex';
 
       // Show truncation warning if content was cut off
       const truncWarn = document.getElementById('suggest-truncation-warn');
@@ -1500,9 +1504,9 @@ document.addEventListener('keydown', function(e) {
       q.setText(saved);
       input.value = saved.trim();
       updateReportBtn();
-      // Show copy button if there's content
-      const copyBtn = document.getElementById('copy-prompt-btn');
-      if (copyBtn) copyBtn.style.display = 'flex';
+      // Show copy button header if there's content
+      const copyHdr2 = document.getElementById('copy-prompt-header');
+      if (copyHdr2) copyHdr2.style.display = 'flex';
     }
 
     // Sync plain text → hidden input + save to localStorage on every change
