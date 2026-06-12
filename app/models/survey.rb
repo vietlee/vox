@@ -68,7 +68,7 @@ class Survey < ApplicationRecord
   end
 
   def latest_ai_analysis
-    ai_analysis_results.order(created_at: :desc).first
+    ai_analysis_results.where(result_type: "executive_summary").order(created_at: :desc).first
   end
 
   private
