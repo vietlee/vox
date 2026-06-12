@@ -43,90 +43,104 @@ class AiExecutiveReportJob < ApplicationJob
     CTX
 
     system_prompt = <<~SYS.strip
-      You are a senior analyst writing concise, board-ready executive reports.
-      Reports go directly into leadership meetings — executives skim, they do NOT read long paragraphs.
+      You are a senior strategic analyst writing board-ready executive reports from survey data.
+      Reports go directly into leadership decision meetings — every sentence must earn its place.
 
-      CRITICAL STYLE RULES:
+      ## HOW TO THINK (do this before writing anything)
+      Step 1 — Understand the survey's PURPOSE: What decision does leadership need to make? What question is this survey trying to answer?
+      Step 2 — Find CROSS-CUTTING INSIGHTS: What do you learn by combining multiple questions that no single question shows alone? (e.g. "Department X saves 2× more time than Y — and they also rate AI quality 1.5 points higher. That's not coincidence.")
+      Step 3 — Identify the STRATEGIC GAP: What is the single most important thing leadership doesn't know yet, but needs to?
+      Step 4 — Write with that framing. Sections = strategic questions answered with data, NOT question-by-question summaries.
+
+      ## STYLE RULES
       - Write ALL content in #{lang_name}
-      - Be ruthlessly concise: each paragraph = 2-3 sentences max. No fluff, no padding.
-      - Every sentence must contain a specific number, percentage, or finding. Never write vague generalities.
-      - Recommendations must name WHO does WHAT by WHEN — not generic advice.
-      - IMPORTANT: Return ONLY valid JSON. Use \\n\\n for paragraph breaks inside strings. No literal newlines inside JSON string values.
-      - Do not include markdown, code fences, or any text outside the JSON object.
+      - Ruthlessly concise: each paragraph = 2-3 sentences. No fluff.
+      - Every sentence must contain a specific number or finding. Zero vague generalities.
+      - Recommendations must name WHO does WHAT by WHEN with measurable outcome.
+      - Return ONLY valid JSON. Use \\n\\n for paragraph breaks. No markdown, no code fences.
     SYS
 
     user_prompt = <<~PROMPT
-      Create a professional executive report for the following survey.
-
-      ## Survey Information
+      ## Survey
       Title: #{survey.title}
-      #{survey.description.present? ? "Description: #{survey.description}" : ""}
-      Report date: #{Date.current.strftime("%d/%m/%Y")}
-      Total completed responses: #{responses.count}
+      #{survey.description.present? ? "Purpose: #{survey.description}" : ""}
+      Responses: #{responses.count} | Date: #{Date.current.strftime("%d/%m/%Y")}
 
-      ## AI Analysis Data (use this as the factual foundation)
+      ## Pre-computed Analysis Data (factual foundation — use exact numbers)
       #{analysis.to_json.truncate(4000)}
+
+      ## Survey Questions (for cross-tab and ID reference)
+      #{survey.questions.order(:position).map { |q| "ID #{q.id} Q#{survey.questions.order(:position).index(q)+1}: [#{q.question_type}] #{q.title}" }.join("\n")}
 
       #{context_block}
 
-      ## Report Requirements
-      Write a comprehensive executive report with the following JSON structure.
-      ALL text values must be in #{lang_name}.
+      ## Your task
+      Before selecting cross_tab_pairs and writing sections, ask yourself:
+      - What is the most important comparison this survey enables? (e.g. outcome metric × demographic group)
+      - Which two questions, when combined, reveal something that neither shows alone?
+      - What would a CEO want to know that requires looking across multiple questions?
+
+      Then write the report JSON. ALL text in #{lang_name}.
 
       {
-        "title": "Professional report title in #{lang_name}",
-        "subtitle": "Short subtitle in #{lang_name}, e.g. period or scope of the survey — #{Date.current.strftime("%m/%Y")}",
-        "executive_summary": "EXACTLY 2 short paragraphs (each 2-3 sentences). Para 1: the single headline number/finding. Para 2: what it means and the top priority action. Use \\n\\n between paragraphs. NO filler sentences.",
+        "title": "Professional report title",
+        "subtitle": "Scope/period — #{Date.current.strftime("%m/%Y")}",
+
+        "executive_summary": "EXACTLY 2 paragraphs. Para 1: the single most important cross-cutting finding with exact numbers (NOT just the overall average — find the insight that requires combining data). Para 2: what it means for leadership action. Use \\n\\n between paragraphs.",
+
         "key_metrics": {
           "response_count": #{responses.count},
-          "sentiment_positive": "<USE EXACT VALUE FROM ANALYSIS: #{pos_from_analysis.presence || 'derive from data'}%>",
-          "sentiment_negative": "<USE EXACT VALUE FROM ANALYSIS: #{neg_from_analysis.presence || 'derive from data'}%>",
-          "top_concern": "The most critical issue in one sentence — be specific with data"
+          "sentiment_positive": "#{pos_from_analysis.presence || 'derive from data'}%",
+          "sentiment_negative": "#{neg_from_analysis.presence || 'derive from data'}%",
+          "top_concern": "Most critical issue — specific, with data"
         },
+
         "sections": [
           {
-            "heading": "Section title",
-            "content": "2 paragraphs MAX. Each paragraph: 1-2 sentences with specific data. No padding.",
-            "key_finding": "The single most important finding from this section, or null"
+            "heading": "Section title — name the INSIGHT, not the question topic",
+            "content": "2 paragraphs MAX. Lead with the cross-cutting finding. Cite specific numbers. Explain what it means strategically.",
+            "key_finding": "One sentence — the 'so what' of this section"
           }
         ],
+
         "recommendations": [
           {
             "priority": "high|medium|low",
-            "action": "Specific, assignable action — who does what",
-            "rationale": "Why this is important, tied to specific data",
-            "expected_impact": "What improvement is expected"
+            "action": "WHO does WHAT by WHEN",
+            "rationale": "Why — cite specific question IDs and findings",
+            "expected_impact": "Measurable outcome expected"
           }
         ],
-        "conclusion": "1 sentence only — forward-looking and action-oriented.",
 
-        "relevant_question_ids": [<IDs of choice/rating/scale questions that have chart value for this report. ONLY include questions explicitly mentioned or directly related to the report focus. Skip text questions, name fields, demographics. No hard max — include what the prompt actually needs.>],
+        "conclusion": "1 forward-looking sentence.",
+
+        "relevant_question_ids": [
+          <IDs of questions worth charting. Rules:
+           - Include outcome metrics (ratings, scales, numeric estimates) and multi-choice breakdowns
+           - SKIP: name/identity questions, pure grouping variables (e.g. department) — those appear as cross-tab axis, not standalone
+           - SKIP: binary yes/no questions with 100% one answer (no variance = no insight)
+           - Include questions where cross-tab comparison reveals something meaningful>
+        ],
 
         "cross_tab_pairs": [
-          <If the user context asks to compare a metric BY a grouping (e.g. "compare time savings by department", "compare Q6/Q7 by Q2"):
-           List objects: {"target_id": <rating/choice question ID>, "group_by_id": <grouping question ID>, "label": "short description e.g. 'Tiết kiệm thời gian theo bộ phận'"}
-           Max 3 pairs. Only include when user context explicitly requests cross-tab comparison.
-           If no comparison requested, return [].>
+          <PROACTIVELY identify the most strategically valuable comparisons. Do NOT wait to be asked.
+           Ask: "What grouping variable (department, role, experience level) would most change leadership's decision if one subgroup looked very different?"
+           For each valuable comparison: {"target_id": <outcome question ID>, "group_by_id": <grouping question ID>, "label": "Tên insight ngắn gọn"}
+           Max 5 pairs. group_by_id MUST be a single_choice or dropdown question.
+           Good examples: time savings × department, satisfaction × department, barrier frequency × department>
         ],
 
         "chart_insights": {
-          "<question_id as string>": "1-2 sentence insight about this specific question's data — mention the most important number and what it implies. NOT a description of the chart."
+          "<question_id as string>": "1-2 sentences: most important number + strategic implication. If cross-tab exists, mention the biggest gap between subgroups."
         }
       }
 
       Hard constraints:
-      - EXACTLY 3-4 sections (not 5). Each section: 2 short paragraphs max.
-      - EXACTLY 3 recommendations (most impactful only).
-      - Section headings and ALL text in #{lang_name}.
-      - Sections = survey DATA only. Zero meta-commentary about the report itself.
-      - #{user_context ? "Directly address: \"#{user_context}\" — weave into the sections, not as a separate section." : "Focus only on the most statistically significant findings."}
-      - sentiment_positive/negative in key_metrics MUST be numeric percentages (e.g. "72%"), not "N/A" or placeholders.
-      - relevant_question_ids: ONLY choice/rating/NPS/scale questions. Never text/name/demographic. If user prompt mentions specific question numbers, those MUST be included.
-      - cross_tab_pairs: only when user context explicitly asks for group comparison. group_by_id must be a single_choice/dropdown question.
-      - chart_insights: provide for every question in relevant_question_ids.
-
-      ## Survey questions for reference:
-      #{survey.questions.order(:position).map { |q| "ID #{q.id}: [#{q.question_type}] #{q.title}" }.join("\n")}
+      - EXACTLY 3-4 sections. Each = 2 paragraphs max.
+      - EXACTLY 3 recommendations, ordered by impact.
+      - sentiment values: use exact % from analysis data, numeric only.
+      - Sections must be insight-driven (answer a strategic question), NOT question-by-question summaries.
+      - #{user_context ? "The requester's focus: \"#{user_context.truncate(500)}\" — address these points directly in the analysis." : "Derive the most important strategic insights from the data."}
     PROMPT
 
     result_text = ClaudeService.opus_long.call(
