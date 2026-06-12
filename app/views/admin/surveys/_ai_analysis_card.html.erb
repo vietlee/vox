@@ -19,14 +19,23 @@
     pos_label = qi["q_position"].to_s.downcase.strip
     q_title_map[pos_label] = qi["question"].to_s if qi["question"].present?
   end
-  # Helper: replace "Câu hỏi số N" in text with "Câu hỏi số N — [title]"
-  inject_q_title = ->(text) {
-    text.to_s.gsub(/[Cc]âu hỏi số (\d+)/i) do |match|
+  # Helper: replace "Câu hỏi số N" with "Câu hỏi số N — [title]", expandable if long
+  inject_q_title = ->(text, prefix_id) {
+    out = text.to_s.dup
+    out.gsub!(/[Cc]âu hỏi số (\d+)/i) do |match|
       n = $1
       key = "câu hỏi số #{n}"
       title = q_title_map[key]
-      title.present? ? "#{match} — #{title.truncate(60)}" : match
+      next match unless title.present?
+      if title.length > 50
+        uid = "#{prefix_id}-qt#{n}"
+        short = title.truncate(50)
+        %(<span>#{match} — <span id="#{uid}-s">#{short}<button onclick="document.getElementById('#{uid}-s').style.display='none';document.getElementById('#{uid}-f').style.display='inline'" style="background:none;border:0;cursor:pointer;padding:0;color:#818cf8;font-size:9px;margin-left:3px">...xem thêm</button></span><span id="#{uid}-f" style="display:none">#{title}<button onclick="document.getElementById('#{uid}-f').style.display='none';document.getElementById('#{uid}-s').style.display='inline'" style="background:none;border:0;cursor:pointer;padding:0;color:#94a3b8;font-size:9px;margin-left:3px">thu gọn</button></span></span>)
+      else
+        "#{match} — #{title}"
+      end
     end
+    out.html_safe
   }
 %>
 
@@ -256,9 +265,9 @@
     <div class="rounded-xl p-3" style="background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.12);">
       <div class="text-[9px] font-bold text-emerald-600 uppercase tracking-wide mb-1.5">✦ Điểm tích cực</div>
       <ul class="space-y-1">
-        <% highlights.first(4).each do |h| %>
+        <% highlights.first(4).each_with_index do |h, hi| %>
           <li class="text-[11px] text-slate-700 leading-snug flex gap-1.5">
-            <span class="text-emerald-400 flex-shrink-0">·</span><%= inject_q_title.call(h) %>
+            <span class="text-emerald-400 flex-shrink-0">·</span><%= inject_q_title.call(h, "#{card_id}-hl#{hi}") %>
           </li>
         <% end %>
       </ul>
@@ -270,9 +279,9 @@
     <div>
       <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">⚡ Bất thường</div>
       <ul class="space-y-1">
-        <% anomalies.first(3).each do |a| %>
+        <% anomalies.first(3).each_with_index do |a, ai| %>
           <li class="text-[11px] text-slate-600 leading-snug flex gap-1.5">
-            <span class="text-amber-400 flex-shrink-0">⚡</span><%= inject_q_title.call(a) %>
+            <span class="text-amber-400 flex-shrink-0">⚡</span><%= inject_q_title.call(a, "#{card_id}-an#{ai}") %>
           </li>
         <% end %>
       </ul>
