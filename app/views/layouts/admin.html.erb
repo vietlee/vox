@@ -57,6 +57,17 @@
     .vox-richtext-wrap .ql-snow.ql-toolbar button,
     .vox-richtext-wrap .ql-snow .ql-toolbar button { width:22px; height:22px; padding:2px; }
     .vox-richtext-wrap .ql-snow .ql-picker { font-size:11px; }
+
+    /* ── VOX Copy Button ─────────────────────────────────────────── */
+    .vox-copy-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 5px; padding: 5px 10px; border-radius: 7px; border: 1px solid #e2e8f0;
+      background: #f8fafc; color: #64748b; font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0;
+    }
+    .vox-copy-btn:hover { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+    .vox-copy-btn.copied { background: #f0fdf4; border-color: #86efac; color: #16a34a; }
+    .vox-copy-btn svg { flex-shrink: 0; }
   </style>
 </head>
 <body class="h-full font-inter antialiased bg-slate-100">
@@ -476,6 +487,28 @@
   document.addEventListener('turbo:frame-load', function(e) { initRichtextAreas(e.target); });
   window.initRichtextAreas = initRichtextAreas;
 })();
+</script>
+<script>
+// ── Global VOX Copy Helper ────────────────────────────────────────────
+// voxCopy(text, btn) — copies text, animates btn to "Đã sao chép" state
+window.voxCopy = function(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    if (!btn) return;
+    const orig = btn.innerHTML;
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M13.5 5.5L6.5 12.5L2.5 8.5" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Đã sao chép</span>`;
+    btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+};
+// Copy SVG icon snippet (for inline use)
+window.VOX_COPY_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11H2.5A1.5 1.5 0 0 1 1 9.5V2.5A1.5 1.5 0 0 1 2.5 1H9.5A1.5 1.5 0 0 1 11 2.5V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 </script>
 </body>
 </html>

@@ -119,9 +119,9 @@
       <div class="flex gap-1 mb-3">
         <input id="vote-link" readonly value="<%= participate_vote_url(@vote.slug) %>"
           class="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] font-mono text-slate-600 min-w-0">
-        <button onclick="const btn=this; navigator.clipboard.writeText(document.getElementById('vote-link').value); btn.textContent='<%= j t("votes.show.copied") %>'; setTimeout(()=>btn.textContent='<%= j t("votes.show.copy") %>',2000)"
-          class="px-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-semibold rounded hover:bg-indigo-100 border-0 cursor-pointer flex-shrink-0">
-          <%= t("votes.show.copy") %>
+        <button onclick="voxCopy(document.getElementById('vote-link').value, this)" class="vox-copy-btn">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11H2.5A1.5 1.5 0 0 1 1 9.5V2.5A1.5 1.5 0 0 1 2.5 1H9.5A1.5 1.5 0 0 1 11 2.5V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>Sao chép</span>
         </button>
       </div>
       <% if @vote.qr_code %>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_11_100002) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_11_100004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -176,6 +176,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_11_100002) do
     t.integer "max_size_mb"
     t.boolean "multiple", default: false, null: false
     t.jsonb "conditional_logic", default: {}, null: false
+    t.boolean "admin_only", default: false, null: false
+    t.boolean "admin_editable", default: false, null: false
     t.index ["dynamic_form_id"], name: "index_dynamic_form_fields_on_dynamic_form_id"
   end
 

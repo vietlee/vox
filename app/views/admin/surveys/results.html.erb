@@ -310,6 +310,11 @@
             <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
               Ngữ cảnh & Trọng tâm báo cáo
             </label>
+            <button type="button" id="copy-prompt-btn" onclick="voxCopy(document.getElementById('report-context').value || (window.reportQuill && window.reportQuill.getText().trim()) || '', this)" title="Sao chép prompt"
+              class="vox-copy-btn" style="display:none;">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11H2.5A1.5 1.5 0 0 1 1 9.5V2.5A1.5 1.5 0 0 1 2.5 1H9.5A1.5 1.5 0 0 1 11 2.5V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <span>Sao chép</span>
+            </button>
             <button type="button" id="suggest-prompt-btn" onclick="suggestReportPrompt()"
               style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;outline:none;color:#fff;background:linear-gradient(135deg,#7c3aed,#6366f1);box-shadow:0 2px 8px rgba(124,58,237,0.35),inset 0 1px 0 rgba(255,255,255,0.15);transition:box-shadow 0.15s,transform 0.15s;position:relative;overflow:hidden;"
               onmouseenter="this.style.boxShadow='0 4px 16px rgba(124,58,237,0.5),inset 0 1px 0 rgba(255,255,255,0.2)';this.style.transform='translateY(-1px)'"
@@ -1242,6 +1247,9 @@ async function suggestReportPrompt() {
 
     if (data.suggestion) {
       if (window.setReportContext) window.setReportContext(data.suggestion);
+      // Show copy button
+      const copyBtn = document.getElementById('copy-prompt-btn');
+      if (copyBtn) copyBtn.style.display = 'inline-flex';
       icon.textContent = '✅';
       label.textContent = 'Đã gợi ý!';
       btn.style.background = 'linear-gradient(135deg,#059669,#10b981)';

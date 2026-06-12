@@ -266,7 +266,22 @@
       "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && RAILS_ENV=production /home/deploy/.rbenv/shims/bundle exec rails runner \\\\\"AiJob.order\\(created_at: :desc\\).limit\\(5\\).each { |j| puts [j.id, j.job_type, j.status, j.error_message&.first\\(300\\)].inspect }\\\\\"\")",
       "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && RAILS_ENV=production /home/deploy/.rbenv/shims/bundle exec rails runner \\\\\"AiJob.order\\(created_at: :desc\\).limit\\(3\\).each { |j| puts [j.id, j.status, j.error_message&.first\\(100\\)].inspect }\\\\\"\")",
       "Bash(ssh deploy@188.166.189.119 \"tail -100 /var/www/vox/current/log/production.log 2>/dev/null || tail -100 /var/www/vox/shared/log/production.log 2>/dev/null\")",
-      "Bash(ssh deploy@188.166.189.119 \"tail -50 /var/www/vox/shared/log/puma.log\")"
+      "Bash(ssh deploy@188.166.189.119 \"tail -50 /var/www/vox/shared/log/puma.log\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -100 /var/www/vox/shared/log/production.log\")",
+      "Bash(ssh deploy@188.166.189.119 \"journalctl -u vox_puma_production -n 80 --no-pager\")",
+      "Bash(ssh deploy@188.166.189.119 \"sudo journalctl -u vox_puma_production -n 100 --no-pager 2>/dev/null || sudo tail -100 /var/log/syslog | grep vox\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -100 /var/www/vox/current/log/puma.log\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -200 /var/www/vox/current/log/puma.log\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -50 /var/www/vox/current/log/puma.log\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -f /var/www/vox/current/log/puma.log\")",
+      "Bash(curl -s \"https://vox.czin.net/surveys/34/export_report?format_type=pdf&report_id=11\" -L -k -o /dev/null -w \"%{http_code}\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -200 /var/www/vox/current/log/puma.log | grep -E 'export_report|500|Error|error|exception|Grover|Chromium|grover'\")",
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && ~/.rbenv/shims/bundle exec rails runner 'puts Answer.where\\(\\\\\"option_ids != \\\\\\\\\\\\\"[]\\\\\\\\\\\\\"\\\\\"\\).limit\\(3\\).pluck\\(:option_ids\\).inspect'\")",
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && ~/.rbenv/shims/bundle exec rails runner 'p Answer.last\\(5\\).map\\(&:option_ids\\)' 2>&1\")",
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && ~/.rbenv/shims/bundle exec rails runner 'Answer.last\\(20\\).each{|a| next if a.option_ids.blank?; puts a.option_ids.inspect; break}' 2>&1\")",
+      "Bash(ssh deploy@188.166.189.119 'cd /var/www/vox/current && BUNDLE_GEMFILE=/var/www/vox/current/Gemfile ~/.rbenv/shims/ruby -e \" *)",
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && RAILS_ENV=production ~/.rbenv/shims/bundle exec rails runner 'a=Answer.where\\(\\\\\"option_ids::text != \\\\\\\\\\\\\"[]\\\\\\\\\\\\\"\\\\\"\\).first; puts a&.option_ids.inspect' 2>&1\")",
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && RAILS_ENV=production ~/.rbenv/shims/bundle exec rails runner 'a=Answer.where\\(\\\\\"jsonb_array_length\\(option_ids\\) > 0\\\\\"\\).first; puts a&.option_ids.inspect' 2>&1\")"
     ]
   }
 }
