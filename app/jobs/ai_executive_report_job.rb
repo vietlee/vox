@@ -42,105 +42,119 @@ class AiExecutiveReportJob < ApplicationJob
       Make sure the report directly addresses these points.
     CTX
 
+    # Build question reference list with position numbers
+    questions_list = survey.questions.order(:position)
+    questions_ref  = questions_list.each_with_index.map { |q, i|
+      "  Q#{i+1} (ID #{q.id}) [#{q.question_type}] #{q.title}"
+    }.join("\n")
+
     system_prompt = <<~SYS.strip
-      You are a senior strategic analyst writing board-ready executive reports from survey data.
-      Reports go directly into leadership decision meetings — every sentence must earn its place.
+      You are an expert survey analyst. Your job is to understand what a survey is actually measuring and deliver the most useful analysis for whoever commissioned it — not to apply a generic report template.
 
-      ## HOW TO THINK (do this before writing anything)
-      Step 1 — Understand the survey's PURPOSE: What decision does leadership need to make? What question is this survey trying to answer?
-      Step 2 — Find CROSS-CUTTING INSIGHTS: What do you learn by combining multiple questions that no single question shows alone? (e.g. "Department X saves 2× more time than Y — and they also rate AI quality 1.5 points higher. That's not coincidence.")
-      Step 3 — Identify the STRATEGIC GAP: What is the single most important thing leadership doesn't know yet, but needs to?
-      Step 4 — Write with that framing. Sections = strategic questions answered with data, NOT question-by-question summaries.
+      ## THE RIGHT WAY TO ANALYZE A SURVEY
 
-      ## STYLE RULES
+      Step 1 — READ THE SURVEY ITSELF.
+      Before anything else: read the title, description, and every question. Ask:
+      - What is the central metric this survey is trying to measure? (time saved, satisfaction level, adoption rate, pain points, etc.)
+      - Who will read this analysis? (team lead, HR, management, the respondents themselves?)
+      - What decision or action should the analysis enable?
+
+      Step 2 — FIND THE GROUPING VARIABLES.
+      Look for questions that capture segments (department, role, experience level, location, product used, etc.).
+      If grouping variables exist → cross-tabbing the central metric by those groups is ALWAYS valuable and should be done automatically, without being asked.
+      Reason: overall averages hide the most important patterns. "Frontend saves 70%, QC saves 35%" is far more useful than "average 55%."
+
+      Step 3 — FIND CROSS-QUESTION PATTERNS.
+      Ask: which two (or more) questions, when combined, reveal something that neither shows alone?
+      Examples:
+      - High time savings + low quality rating in the same department → AI tools may be fast but unreliable there
+      - High automation potential + low current usage → untapped opportunity
+      - High satisfaction + high willingness to recommend + low actual daily usage → adoption barrier, not satisfaction issue
+      Write ONE section per important cross-question pattern you find.
+
+      Step 4 — DERIVE RECOMMENDATIONS FROM THE DATA.
+      Recommendations must follow directly from the patterns found. No generic advice.
+      Each recommendation: WHO does WHAT, by WHEN, with what measurable outcome.
+
+      ## WRITING RULES
       - Write ALL content in #{lang_name}
-      - Ruthlessly concise: each paragraph = 2-3 sentences. No fluff.
-      - Every sentence must contain a specific number or finding. Zero vague generalities.
-      - Recommendations must name WHO does WHAT by WHEN with measurable outcome.
-      - Return ONLY valid JSON. Use \\n\\n for paragraph breaks. No markdown, no code fences.
+      - Every sentence must contain a specific number, name, or finding. Zero vague generalities.
+      - Concise: each paragraph = 2-3 sentences max.
+      - Return ONLY valid JSON. Use \\n\\n for paragraph breaks. No markdown fences.
     SYS
 
     user_prompt = <<~PROMPT
-      ## Survey
+      ## Survey to analyze
       Title: #{survey.title}
-      #{survey.description.present? ? "Purpose: #{survey.description}" : ""}
+      #{survey.description.present? ? "Description: #{survey.description}" : ""}
       Responses: #{responses.count} | Date: #{Date.current.strftime("%d/%m/%Y")}
 
-      ## Pre-computed Analysis Data (factual foundation — use exact numbers)
+      ## Pre-computed data (use these exact numbers — do not estimate)
       #{analysis.to_json.truncate(4000)}
 
-      ## Survey Questions (for cross-tab and ID reference)
-      #{survey.questions.order(:position).map { |q| "ID #{q.id} Q#{survey.questions.order(:position).index(q)+1}: [#{q.question_type}] #{q.title}" }.join("\n")}
+      ## All survey questions
+      #{questions_ref}
 
       #{context_block}
 
-      ## Your task
-      Before selecting cross_tab_pairs and writing sections, ask yourself:
-      - What is the most important comparison this survey enables? (e.g. outcome metric × demographic group)
-      - Which two questions, when combined, reveal something that neither shows alone?
-      - What would a CEO want to know that requires looking across multiple questions?
-
-      Then write the report JSON. ALL text in #{lang_name}.
+      ---
+      Now apply the 4-step analysis above, then produce this JSON (ALL text in #{lang_name}):
 
       {
-        "title": "Professional report title",
-        "subtitle": "Scope/period — #{Date.current.strftime("%m/%Y")}",
+        "title": "Report title derived from survey purpose (not generic)",
+        "subtitle": "#{Date.current.strftime("%m/%Y")} — #{responses.count} phản hồi",
 
-        "executive_summary": "EXACTLY 2 paragraphs. Para 1: the single most important cross-cutting finding with exact numbers (NOT just the overall average — find the insight that requires combining data). Para 2: what it means for leadership action. Use \\n\\n between paragraphs.",
+        "executive_summary": "2 paragraphs. Para 1: the most important finding that requires combining data across questions — NOT a restatement of an individual question's average. Para 2: what this means and what should happen next. Use \\n\\n between paragraphs.",
 
         "key_metrics": {
           "response_count": #{responses.count},
           "sentiment_positive": "#{pos_from_analysis.presence || 'derive from data'}%",
           "sentiment_negative": "#{neg_from_analysis.presence || 'derive from data'}%",
-          "top_concern": "Most critical issue — specific, with data"
+          "top_concern": "The most critical finding in one sentence — specific and data-backed"
         },
 
         "sections": [
           {
-            "heading": "Section title — name the INSIGHT, not the question topic",
-            "content": "2 paragraphs MAX. Lead with the cross-cutting finding. Cite specific numbers. Explain what it means strategically.",
-            "key_finding": "One sentence — the 'so what' of this section"
+            "heading": "Name the INSIGHT, not the topic. Good: 'Frontend tiết kiệm gấp đôi QC — khoảng cách 35%'. Bad: 'Mức tiết kiệm thời gian'.",
+            "content": "2 paragraphs max. Lead with the cross-question or cross-group finding. Cite exact numbers. Explain what it means in context.",
+            "key_finding": "The single 'so what' of this section — actionable."
           }
         ],
 
         "recommendations": [
           {
             "priority": "high|medium|low",
-            "action": "WHO does WHAT by WHEN",
-            "rationale": "Why — cite specific question IDs and findings",
-            "expected_impact": "Measurable outcome expected"
+            "action": "Specific: who + what + by when",
+            "rationale": "Cite which questions and what data led to this",
+            "expected_impact": "Measurable improvement expected"
           }
         ],
 
-        "conclusion": "1 forward-looking sentence.",
+        "conclusion": "1 sentence — forward-looking, tied to the survey's central purpose.",
 
         "relevant_question_ids": [
-          <IDs of questions worth charting. Rules:
-           - Include outcome metrics (ratings, scales, numeric estimates) and multi-choice breakdowns
-           - SKIP: name/identity questions, pure grouping variables (e.g. department) — those appear as cross-tab axis, not standalone
-           - SKIP: binary yes/no questions with 100% one answer (no variance = no insight)
-           - Include questions where cross-tab comparison reveals something meaningful>
+          <Question IDs to render as charts.
+           INCLUDE: outcome metrics (ratings, scales, %-estimates, multi-choice with real variance)
+           SKIP: name/identity fields, pure grouping variables (department etc. — they appear as cross-tab axis instead), questions with zero variance (e.g. 100% chose one option)>
         ],
 
         "cross_tab_pairs": [
-          <PROACTIVELY identify the most strategically valuable comparisons. Do NOT wait to be asked.
-           Ask: "What grouping variable (department, role, experience level) would most change leadership's decision if one subgroup looked very different?"
-           For each valuable comparison: {"target_id": <outcome question ID>, "group_by_id": <grouping question ID>, "label": "Tên insight ngắn gọn"}
-           Max 5 pairs. group_by_id MUST be a single_choice or dropdown question.
-           Good examples: time savings × department, satisfaction × department, barrier frequency × department>
+          <Based on Step 2 of your analysis: for EVERY grouping variable you found, pair it with each key outcome metric.
+           Do this automatically — do not wait to be asked.
+           Format: {"target_id": <outcome question ID>, "group_by_id": <grouping question ID>, "label": "Short label e.g. 'Tiết kiệm thời gian theo bộ phận'"}
+           Rules: group_by_id must be single_choice or dropdown. Max 5 pairs total. Prioritize the pairs that show the biggest expected variance.>
         ],
 
         "chart_insights": {
-          "<question_id as string>": "1-2 sentences: most important number + strategic implication. If cross-tab exists, mention the biggest gap between subgroups."
+          "<question_id string>": "1-2 sentences. Most important number + what it means. If cross-tab exists for this question, lead with the biggest gap between subgroups."
         }
       }
 
-      Hard constraints:
-      - EXACTLY 3-4 sections. Each = 2 paragraphs max.
-      - EXACTLY 3 recommendations, ordered by impact.
-      - sentiment values: use exact % from analysis data, numeric only.
-      - Sections must be insight-driven (answer a strategic question), NOT question-by-question summaries.
-      - #{user_context ? "The requester's focus: \"#{user_context.truncate(500)}\" — address these points directly in the analysis." : "Derive the most important strategic insights from the data."}
+      Constraints:
+      - 3-4 sections only. Each section answers a different analytical question from Step 3.
+      - 3 recommendations only, ordered by impact.
+      - sentiment % must be numeric (from pre-computed data).
+      - #{user_context ? "Additional focus requested: \"#{user_context.truncate(600)}\"" : "No additional focus specified — derive the most important insights from the data itself."}
     PROMPT
 
     result_text = ClaudeService.opus_long.call(
