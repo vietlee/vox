@@ -55,16 +55,27 @@ class AiSurveyAnalysisJob < ApplicationJob
       - No technical jargon visible to the reader. Write as if explaining to a manager, not a data analyst.
     SYSTEM
 
-    # Build Q-position reference (Q1, Q2...) for AI to use in citations
-    q_position_map = survey.questions.order(:position).each_with_index.to_h { |q, i| [q.id, "Q#{i+1}"] }
-    q_position_ref = survey.questions.order(:position).each_with_index.map { |q, i|
-      "Q#{i+1} (id=#{q.id}): #{q.title.truncate(60)}"
+    # Build Q-position reference for ALL questions (including open-text)
+    all_questions_ordered = survey.questions.order(:position).to_a
+    q_position_map = all_questions_ordered.each_with_index.to_h { |q, i| [q.id, "câu hỏi số #{i+1}"] }
+    q_position_ref = all_questions_ordered.each_with_index.map { |q, i|
+      "câu hỏi số #{i+1} (id=#{q.id}) [#{q.question_type}]: #{q.title.truncate(60)}"
     }.join("\n")
 
-    # Annotate structured data with Q-position so AI doesn't need to cross-reference
+    # Annotate structured data with q_position label
     structured_with_pos = structured.map { |e|
-      e.merge(q_position: q_position_map[e[:question_id]] || e[:question_id])
+      e.merge(q_position: q_position_map[e[:question_id]] || "id=#{e[:question_id]}")
     }
+
+    # All question IDs the AI MUST cover (structured + open-text, excluding name/identity fields)
+    open_text_q_ids = open_texts.map { |ot| ot[:question_id] || ot["question_id"] }
+    all_required_q_ids = (structured_with_pos.map { |e| e[:question_id] } + open_text_q_ids).uniq
+    required_q_list = all_required_q_ids.map { |qid|
+      q = all_questions_ordered.find { |qq| qq.id == qid }
+      next unless q
+      pos = all_questions_ordered.index(q) + 1
+      "câu hỏi số #{pos} (id=#{qid}): #{q.title.truncate(50)}"
+    }.compact.join(" | ")
 
     user_prompt = <<~PROMPT
       Analyze this survey data and write insights. All numbers are pre-computed — use them exactly.
@@ -107,9 +118,9 @@ class AiSurveyAnalysisJob < ApplicationJob
         },
 
         "question_insights": [
-          YOU MUST write exactly one entry for EACH of these question IDs (in order):
-          #{structured_with_pos.map { |e| "#{e[:q_position]} (id=#{e[:question_id]}): #{e[:question].to_s.truncate(50)}" }.join(" | ")}
-          No skipping, no merging. One entry per question above.
+          YOU MUST write exactly one entry for EACH of these questions (in order):
+          #{required_q_list}
+          No skipping, no merging. One entry per question. For open-text questions, summarize the main themes found in responses.
           {
             "question_id": <integer id>,
             "q_position": "câu hỏi số N",

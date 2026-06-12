@@ -1,7 +1,7 @@
 <%# Renders a persisted AiAnalysisResult for a survey %>
 <% result     = analysis.output %>
 <% sentiment  = result["sentiment"] || {} %>
-<% themes     = result["top_themes"] || result["themes"] || [] %>
+<% themes     = result["top_themes"] || result["themes"] || result["open_text_themes"] || [] %>
 <% anomalies  = result["anomalies"] || [] %>
 <% recs       = result["recommendations"] || [] %>
 <% highlights = result["highlights"] || [] %>
@@ -220,8 +220,8 @@
         <!-- High/medium always visible -->
         <% flagged.each do |qi| %>
           <% is_high = qi["concern_level"] == "high" %>
-          <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 <%= is_high ? 'bg-red-50 border border-red-100' : 'bg-amber-50 border border-amber-100' %>">
-            <span class="text-[8px] font-black px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 <%= is_high ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600' %>">
+          <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 bg-white border border-slate-100">
+            <span class="text-[8px] font-black w-4 h-4 flex items-center justify-center rounded flex-shrink-0 mt-0.5 <%= is_high ? 'bg-red-100 text-red-500' : 'bg-amber-100 text-amber-500' %>">
               <%= is_high ? "!" : "~" %>
             </span>
             <div class="flex-1 min-w-0">
@@ -234,8 +234,8 @@
         <% if low_insights.any? %>
           <div id="<%= card_id %>-low-insights" class="hidden space-y-1.5">
             <% low_insights.each do |qi| %>
-              <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 bg-slate-50 border border-slate-100">
-                <span class="text-[8px] font-black px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 bg-slate-100 text-slate-400">·</span>
+              <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 bg-white border border-slate-100">
+                <span class="text-[8px] w-4 h-4 flex items-center justify-center rounded flex-shrink-0 mt-0.5 bg-slate-100 text-slate-400">·</span>
                 <div class="flex-1 min-w-0">
                   <div class="text-[10px] font-semibold text-slate-600 leading-snug"><%= qi["question"].to_s.truncate(70) %></div>
                   <div class="text-[10px] text-slate-400 mt-0.5 leading-snug"><%= qi["finding"] %></div>
