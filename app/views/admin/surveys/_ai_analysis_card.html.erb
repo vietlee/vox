@@ -65,22 +65,29 @@
           neg_val = sentiment["negative"].to_s.gsub(/[^0-9.]/, '').to_f
           total_s = pos_val + neu_val + neg_val
           total_s = 100.0 if total_s.zero?
+          # Largest remainder rounding — guarantees sum = 100
+          raw   = [pos_val, neu_val, neg_val].map { |v| v / total_s * 100 }
+          floors = raw.map(&:floor)
+          remainders = raw.each_with_index.map { |v, i| [v - floors[i], i] }.sort_by { |r, _| -r }
+          deficit = 100 - floors.sum
+          deficit.times { |k| floors[remainders[k][1]] += 1 }
+          pos_r, neu_r, neg_r = floors
         %>
         <div class="rounded-xl border border-slate-100 bg-white p-3">
           <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Cảm xúc tổng thể</div>
           <!-- Donut + legend side by side, compact -->
           <div class="flex items-center gap-3">
             <canvas id="<%= card_id %>-sentiment" width="72" height="72" style="width:72px;height:72px;flex-shrink:0;"></canvas>
-            <div class="space-y-1.5 flex-1 min-w-0">
-              <% [["Tích cực", pos_val, "#34d399", "text-emerald-600"], ["Trung lập", neu_val, "#cbd5e1", "text-slate-400"], ["Tiêu cực", neg_val, "#f87171", "text-red-500"]].each do |label, val, color, text_cls| %>
+            <div class="space-y-1.5">
+              <% [["Tích cực", pos_r, "#34d399", "text-emerald-600"], ["Trung lập", neu_r, "#cbd5e1", "text-slate-400"], ["Tiêu cực", neg_r, "#f87171", "text-red-500"]].each do |label, val, color, text_cls| %>
                 <div class="flex items-center gap-1.5 text-[10px]">
                   <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:<%= color %>;"></span>
-                  <span class="text-slate-500 flex-1"><%= label %></span>
-                  <strong class="<%= text_cls %>"><%= "#{val.round}%" %></strong>
+                  <span class="text-slate-500"><%= label %></span>
+                  <strong class="<%= text_cls %> ml-1"><%= "#{val}%" %></strong>
                 </div>
               <% end %>
               <% if sentiment["sentiment_note"].present? %>
-                <p class="text-[9px] text-slate-400 italic leading-snug pt-0.5"><%= sentiment["sentiment_note"] %></p>
+                <p class="text-[9px] text-slate-400 italic leading-snug pt-0.5 max-w-[140px]"><%= sentiment["sentiment_note"] %></p>
               <% end %>
             </div>
           </div>
