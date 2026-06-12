@@ -152,10 +152,24 @@ class AiExecutiveReportJob < ApplicationJob
       qd["insight"] = insight if insight.present?
     end
 
-    # Build cross-tab breakdowns for requested comparison pairs
-    cross_tab_pairs = Array(result.delete("cross_tab_pairs")).select { |p|
+    # Build cross-tab breakdowns:
+    # 1. Pre-extract from user context (regex — reliable, doesn't depend on AI)
+    # 2. Merge with AI-provided pairs
+    pre_pairs = pre_extracted_cross_tab_pairs(user_context, survey)
+    ai_pairs  = Array(result.delete("cross_tab_pairs")).select { |p|
       p.is_a?(Hash) && p["target_id"].present? && p["group_by_id"].present?
     }
+    cross_tab_pairs = (pre_pairs + ai_pairs)
+                      .uniq { |p| "#{p['target_id']}_#{p['group_by_id']}" }
+                      .first(5)
+
+    # Ensure cross-tab target questions are included in chart_data even if AI omitted them
+    if cross_tab_pairs.any?
+      extra_ids = cross_tab_pairs.map { |p| p["target_id"].to_i }
+      missing   = all_chart_data.select { |d| extra_ids.include?(d["question_id"].to_i) && chart_data.none? { |c| c["question_id"] == d["question_id"] } }
+      chart_data += missing
+    end
+
     if cross_tab_pairs.any? && completed_response_ids.any?
       cross_tab_map = build_cross_tab_data(survey, cross_tab_pairs, completed_response_ids)
       chart_data.each do |qd|
@@ -220,7 +234,13 @@ class AiExecutiveReportJob < ApplicationJob
       when :rating, :nps, :linear_scale
         nums = base.where.not(numeric_value: nil).pluck(:numeric_value).map(&:to_i)
         next if nums.empty?
-        max_val = q.nps? ? 10 : 5
+        max_val = if q.nps?
+                    10
+                  elsif q.question_type == "linear_scale"
+                    q.settings&.dig("max_value")&.to_i.then { |v| v&.positive? ? v : 10 }
+                  else
+                    5
+                  end
         avg = (nums.sum.to_f / nums.size).round(1)
         dist = (1..max_val).map { |v| { "value" => v, "count" => nums.count(v) } }
         { "question_id" => q.id, "question" => q.title,
@@ -236,6 +256,54 @@ class AiExecutiveReportJob < ApplicationJob
     end.compact
   end
 
+  # Parse cross-tab requests directly from user_context string.
+  # Handles patterns: "Q7 × Q2", "Q7 x Q2", "Cross-tab theo Q2", "theo Q2 (bộ phận)"
+  # Returns [{target_id, group_by_id, label}] ready for build_cross_tab_data.
+  def pre_extracted_cross_tab_pairs(context, survey)
+    return [] unless context.present?
+
+    questions_by_pos = survey.questions.order(:position)
+                             .each_with_index.to_h { |q, i| [i + 1, q] }
+    pairs = []
+    seen  = Set.new
+
+    # Helper to register a pair (target_pos × group_pos)
+    register = ->(tp, gp) {
+      target_q = questions_by_pos[tp]
+      group_q  = questions_by_pos[gp]
+      return unless target_q && group_q
+      return unless %w[rating nps linear_scale].include?(target_q.question_type)
+      return unless %w[single_choice dropdown].include?(group_q.question_type)
+      key = "#{target_q.id}_#{group_q.id}"
+      return if seen.include?(key)
+      seen << key
+      pairs << {
+        "target_id"   => target_q.id,
+        "group_by_id" => group_q.id,
+        "label"       => "#{target_q.title.truncate(35)} theo #{group_q.title.truncate(25)}"
+      }
+    }
+
+    # Pattern 1: explicit "Qx × Qy" or "Qx x Qy"
+    context.scan(/Q(\d+)\s*[×x]\s*Q(\d+)/i) do |a, b|
+      register.call(a.to_i, b.to_i)
+      register.call(b.to_i, a.to_i)  # try both directions
+    end
+
+    # Pattern 2: "theo Q\d+" — find most-mentioned grouping Q, pair with nearby Qs
+    group_counts = context.scan(/(?:theo|by)\s+Q(\d+)/i).flatten.map(&:to_i).tally
+    group_counts.sort_by { |_, c| -c }.first(2).each do |group_pos, _|
+      group_q = questions_by_pos[group_pos]
+      next unless group_q && %w[single_choice dropdown].include?(group_q.question_type)
+      # All Qs explicitly mentioned in context → try pairing with this group
+      context.scan(/\bQ(\d+)\b/).flatten.map(&:to_i).uniq.reject { |p| p == group_pos }.each do |tp|
+        register.call(tp, group_pos)
+      end
+    end
+
+    pairs.first(5)
+  end
+
   # Build cross-tab data: for each pair {target_id, group_by_id}, compute avg/distribution
   # of the target question broken down by each option of the grouping question.
   def build_cross_tab_data(survey, pairs, completed_response_ids)
@@ -246,7 +314,13 @@ class AiExecutiveReportJob < ApplicationJob
       next unless target_q && group_q
 
       group_options = group_q.question_options.order(:position)
-      max_val = target_q.nps? ? 10 : 5
+      max_val = if target_q.nps?
+                  10
+                elsif target_q.question_type == "linear_scale"
+                  target_q.settings&.dig("max_value")&.to_i.then { |v| v&.positive? ? v : 10 }
+                else
+                  5
+                end
 
       groups = group_options.filter_map do |opt|
         # Response IDs where respondent chose this option in the grouping question
