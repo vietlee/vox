@@ -13,16 +13,20 @@
 
 <div class="space-y-4 text-[13px]">
 
-  <!-- ① Executive Summary — 2 sentences max visible -->
+  <!-- ① Executive Summary — first paragraph visible, rest collapsible -->
   <% if result["executive_summary"].present? %>
     <% summary = result["executive_summary"] %>
-    <% short = summary.split(/(?<=[.!?])\s+/).first(2).join(" ") %>
+    <% paras = summary.split(/\n\n+/).map(&:strip).reject(&:blank?) %>
+    <% first_para = paras.first %>
+    <% rest_paras = paras[1..] %>
     <div class="rounded-xl p-3.5" style="background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.12);">
-      <p class="text-[12px] text-slate-700 leading-relaxed" id="<%= card_id %>-short"><%= short %></p>
-      <div id="<%= card_id %>-full" class="hidden mt-2 pt-2 border-t border-indigo-100">
-        <p class="text-[12px] text-slate-600 leading-relaxed whitespace-pre-line"><%= summary %></p>
-      </div>
-      <% if summary != short %>
+      <p class="text-[12px] text-slate-700 leading-relaxed"><%= first_para %></p>
+      <% if rest_paras.any? %>
+        <div id="<%= card_id %>-full" class="hidden mt-2 pt-2 border-t border-indigo-100 space-y-2">
+          <% rest_paras.each do |para| %>
+            <p class="text-[12px] text-slate-600 leading-relaxed"><%= para %></p>
+          <% end %>
+        </div>
         <button onclick="document.getElementById('<%= card_id %>-full').classList.toggle('hidden'); this.textContent = this.textContent.includes('▼') ? '▲ Thu gọn' : '▼ Đọc thêm'"
           class="text-[10px] text-indigo-400 font-semibold mt-1.5 border-0 bg-transparent cursor-pointer p-0 hover:text-indigo-600">▼ Đọc thêm</button>
       <% end %>
@@ -64,29 +68,26 @@
         %>
         <div class="rounded-xl border border-slate-100 bg-white p-3">
           <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Cảm xúc tổng thể</div>
-          <div class="flex items-center gap-3">
-            <canvas id="<%= card_id %>-sentiment" width="80" height="80" style="flex-shrink:0;"></canvas>
-            <div class="space-y-1 flex-1">
-              <div class="flex items-center gap-1.5 text-[10px] text-slate-600">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
-                <span class="flex-1">Tích cực</span>
-                <strong class="text-emerald-600"><%= "#{pos_val.round}%" %></strong>
-              </div>
-              <div class="flex items-center gap-1.5 text-[10px] text-slate-600">
-                <span class="w-2.5 h-2.5 rounded-full bg-slate-300 flex-shrink-0"></span>
-                <span class="flex-1">Trung lập</span>
-                <strong class="text-slate-500"><%= "#{neu_val.round}%" %></strong>
-              </div>
-              <div class="flex items-center gap-1.5 text-[10px] text-slate-600">
-                <span class="w-2.5 h-2.5 rounded-full bg-red-400 flex-shrink-0"></span>
-                <span class="flex-1">Tiêu cực</span>
-                <strong class="text-red-500"><%= "#{neg_val.round}%" %></strong>
-              </div>
-              <% if sentiment["sentiment_note"].present? %>
-                <p class="text-[9px] text-slate-400 italic pt-0.5 leading-snug"><%= sentiment["sentiment_note"] %></p>
-              <% end %>
-            </div>
+          <!-- Donut center -->
+          <div class="flex justify-center mb-2">
+            <canvas id="<%= card_id %>-sentiment" width="88" height="88" style="width:88px;height:88px;"></canvas>
           </div>
+          <!-- Legend as horizontal bars -->
+          <div class="space-y-1.5">
+            <% [["Tích cực", pos_val, "#34d399", "text-emerald-600"], ["Trung lập", neu_val, "#cbd5e1", "text-slate-400"], ["Tiêu cực", neg_val, "#f87171", "text-red-500"]].each do |label, val, color, text_cls| %>
+              <div class="flex items-center gap-1.5 text-[10px]">
+                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:<%= color %>;"></span>
+                <span class="flex-1 text-slate-500"><%= label %></span>
+                <div class="flex items-center gap-1">
+                  <div class="h-1.5 rounded-full" style="width:<%= [(val / [total_s, 1].max * 60).round, 2].max %>px;background:<%= color %>;opacity:0.7;"></div>
+                  <strong class="<%= text_cls %> w-8 text-right"><%= "#{val.round}%" %></strong>
+                </div>
+              </div>
+            <% end %>
+          </div>
+          <% if sentiment["sentiment_note"].present? %>
+            <p class="text-[9px] text-slate-400 italic mt-1.5 leading-snug"><%= sentiment["sentiment_note"] %></p>
+          <% end %>
         </div>
         <script>
         (function(){
@@ -94,13 +95,21 @@
             const canvas = document.getElementById('<%= card_id %>-sentiment');
             if (!canvas || canvas._drawn) return;
             canvas._drawn = true;
+            const dpr = window.devicePixelRatio || 1;
+            const size = 88;
+            canvas.width  = size * dpr;
+            canvas.height = size * dpr;
+            canvas.style.width  = size + 'px';
+            canvas.style.height = size + 'px';
             const ctx = canvas.getContext('2d');
-            const data = [<%= pos_val %>, <%= neu_val %>, neg_val = <%= neg_val %>];
+            ctx.scale(dpr, dpr);
+            const data   = [<%= pos_val %>, <%= neu_val %>, <%= neg_val %>];
             const colors = ['#34d399','#cbd5e1','#f87171'];
-            const total = data.reduce((a,b)=>a+b,0)||100;
-            const cx = 40, cy = 40, r = 32, innerR = 20;
+            const total  = data.reduce((a,b)=>a+b,0) || 100;
+            const cx = size/2, cy = size/2, r = 36, innerR = 22;
             let angle = -Math.PI/2;
             data.forEach((val,i)=>{
+              if (val <= 0) return;
               const slice = (val/total)*2*Math.PI;
               ctx.beginPath();
               ctx.moveTo(cx,cy);
@@ -110,19 +119,18 @@
               ctx.fill();
               angle += slice;
             });
-            // Inner white circle (donut hole)
+            // Donut hole
             ctx.beginPath();
             ctx.arc(cx,cy,innerR,0,2*Math.PI);
             ctx.fillStyle = '#fff';
             ctx.fill();
-            // Center text
+            // Center: dominant value
             const dominant = data.indexOf(Math.max(...data));
-            const domVal = Math.round(data[dominant]);
             ctx.fillStyle = colors[dominant];
-            ctx.font = 'bold 14px sans-serif';
+            ctx.font = 'bold 15px system-ui,sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(domVal+'%', cx, cy);
+            ctx.fillText(Math.round(data[dominant])+'%', cx, cy);
           }
           if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', drawSentimentDonut_<%= card_id.gsub('-','_') %>);
