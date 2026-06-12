@@ -366,10 +366,10 @@
               <div id="report-context-editor" style="min-height:110px;font-size:13px;padding-right:36px;"></div>
             </div>
             <button type="button" id="copy-prompt-btn"
-              onclick="voxCopy(document.getElementById('report-context').value || (window.reportQuill && window.reportQuill.getText().trim()) || '', this)"
+              onclick="voxCopy(document.getElementById('report-context').value || (window.reportQuill &amp;&amp; window.reportQuill.getText().trim()) || '', this)"
               title="Sao chép prompt"
               data-icon-only="true"
-              style="display:none;position:absolute;top:8px;right:8px;width:28px;height:28px;padding:0;border-radius:7px;border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8;cursor:pointer;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s,border-color 0.15s;flex-shrink:0;"
+              style="display:none;position:absolute;top:2px;right:8px;width:28px;height:28px;padding:0;border-radius:7px;border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8;cursor:pointer;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s,border-color 0.15s;flex-shrink:0;"
               onmouseenter="this.style.background='#f1f5f9';this.style.color='#475569';this.style.borderColor='#cbd5e1'"
               onmouseleave="this.style.background='#f8fafc';this.style.color='#94a3b8';this.style.borderColor='#e2e8f0'">
               <svg width="15" height="15" viewBox="0 0 20 20" fill="none" style="display:block;"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
@@ -632,7 +632,7 @@ const ALL_REPORTS = <%= raw(begin
       title:   r.output["title"].presence || @survey.title,
       fmt:     meta["format"] || "pdf",
       lang:    meta["language"] == "en" ? "EN" : "VI",
-      ctx:     meta["user_context"].to_s.truncate(60),
+      ctx:     meta["user_context"].to_s.truncate(60).gsub("&", "&amp;"),
       date:    r.created_at.in_time_zone.strftime("%d/%m/%Y %H:%M"),
       url:     export_report_survey_path(@survey, report_id: r.id, format_type: meta["format"] || "pdf")
     }
