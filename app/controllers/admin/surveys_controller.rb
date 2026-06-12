@@ -490,11 +490,12 @@ class Admin::SurveysController < Admin::BaseController
       toward the most strategically important insights. Do NOT list every question — pick the 5-8 that matter most.
 
       HARD METHODOLOGY RULES (violations corrupt the report):
-      1. NPS (Promoters ≥9 / Passives 7-8 / Detractors ≤6) applies ONLY to questions about recommending to others.
-      2. Rating/scale questions measuring quality or satisfaction → use mean + score groups Thấp(0-6)/Trung bình(7-8)/Cao(9-10). NEVER Promoters/Detractors.
+      1. "Độ hài lòng" questions (0-10 scale asking if respondent would recommend to others) → compute: điểm độ hài lòng TB, phân nhóm Hài lòng cao(≥9)/Trung lập(7-8)/Không hài lòng(≤6). NEVER call these "NPS" or use English terms.
+      2. Rating/scale questions measuring quality or satisfaction → use mean + score groups Thấp(0-6)/Trung bình(7-8)/Cao(9-10). NEVER use Promoters/Passives/Detractors labels.
       3. Cross-tab: if any subgroup has n < 3, write "cỡ mẫu quá nhỏ để kết luận" instead of %.
       4. Open-text questions → synthesize by theme clusters, cite 1-2 representative quotes per cluster.
       5. Questions asking for numeric estimates (%, hours, frequency) → treat as quantitative data (mean + distribution), NOT free text.
+      6. LANGUAGE: never use the term "NPS" in the output. Use "độ hài lòng" instead.
     SYS
 
     user_prompt = <<~PROMPT
