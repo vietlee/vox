@@ -168,10 +168,10 @@
   </div>
   <% end %>
 
-  <!-- Executive Summary -->
+  <!-- Nhận định chính (Executive Summary) -->
   <div class="section-header">
     <div class="section-num">✦</div>
-    <div class="section-title">Tóm tắt điều hành</div>
+    <div class="section-title">Nhận định chính</div>
   </div>
   <div class="exec-card">
     <% (out["executive_summary"] || "").split(/\\n\\n|\n\n/).each do |para| %>
@@ -182,13 +182,82 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════ -->
-<!-- PAGE 3: QUESTION-BY-QUESTION CHARTS                               -->
+<!-- PAGE 3: AI INSIGHTS (main content, prompt-driven)                 -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<% if sections.any? %>
+<div class="page page-break">
+  <div class="section-header" style="margin-bottom:20px;">
+    <div class="section-num">🔍</div>
+    <div class="section-title">Phân tích chuyên sâu</div>
+  </div>
+
+  <div class="insights-list">
+  <% sections.each_with_index do |s, i| %>
+    <div class="insight-item">
+      <div class="insight-heading"><%= i + 1 %>. <%= s["heading"] %></div>
+      <% (s["content"] || "").split(/\\n\\n|\n\n/).each do |para| %>
+        <div class="insight-body"><%= para.gsub(/\\n|\n/, ' ').strip %></div>
+      <% end %>
+      <% if s["key_finding"].present? %>
+        <div class="key-finding">💡 <%= s["key_finding"] %></div>
+      <% end %>
+    </div>
+  <% end %>
+  </div>
+</div>
+<% end %>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 4: RECOMMENDATIONS                                           -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<% if recs.any? %>
+<div class="page page-break">
+  <div class="section-header" style="margin-bottom:20px;">
+    <div class="section-num">🎯</div>
+    <div class="section-title">Khuyến nghị hành động</div>
+  </div>
+
+  <div class="recs-grid">
+  <% recs.each_with_index do |rec, i| %>
+    <% next unless rec.is_a?(Hash) %>
+    <% pri = rec["priority"].to_s %>
+    <% badge = pri == "high" ? "⬆ Ưu tiên cao" : pri == "medium" ? "→ Trung bình" : "⬇ Thấp" %>
+    <div class="rec-card <%= pri %>">
+      <div class="rec-num"><%= badge %></div>
+      <div class="rec-action"><%= i + 1 %>. <%= rec["action"] %></div>
+      <% if rec["rationale"].present? %>
+        <div class="rec-rationale"><%= rec["rationale"] %></div>
+      <% end %>
+      <% if rec["expected_impact"].present? %>
+        <div class="rec-impact">→ <%= rec["expected_impact"] %></div>
+      <% end %>
+    </div>
+  <% end %>
+  </div>
+
+  <% if out["conclusion"].present? %>
+    <div class="conclusion-card" style="margin-top:24px;">
+      <% out["conclusion"].split(/\\n\\n|\n\n/).each do |para| %>
+        <p><%= para.gsub(/\\n|\n/, ' ').strip %></p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="footer">
+    <span><%= survey.workspace.name %> · Báo cáo tạo lúc <%= report.created_at.strftime("%d/%m/%Y %H:%M") %></span>
+    <span class="vox-badge">✦ VOX AI</span>
+  </div>
+</div>
+<% end %>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 5: DATA APPENDIX — SUPPORTING CHARTS                        -->
 <!-- ══════════════════════════════════════════════════════════════════ -->
 <% if chart_data.any? %>
 <div class="page page-break">
   <div class="section-header" style="margin-bottom:20px;">
     <div class="section-num">📊</div>
-    <div class="section-title">Phân tích từng câu hỏi</div>
+    <div class="section-title">Dữ liệu hỗ trợ</div>
   </div>
 
   <div class="questions-grid">
@@ -292,72 +361,3 @@
 </div>
 <% end %>
 
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<!-- PAGE 4: AI INSIGHTS BY SECTION                                    -->
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<% if sections.any? %>
-<div class="page page-break">
-  <div class="section-header" style="margin-bottom:20px;">
-    <div class="section-num">🔍</div>
-    <div class="section-title">Phân tích chuyên sâu</div>
-  </div>
-
-  <div class="insights-list">
-  <% sections.each_with_index do |s, i| %>
-    <div class="insight-item">
-      <div class="insight-heading"><%= i + 1 %>. <%= s["heading"] %></div>
-      <% (s["content"] || "").split(/\\n\\n|\n\n/).each do |para| %>
-        <div class="insight-body"><%= para.gsub(/\\n|\n/, ' ').strip %></div>
-      <% end %>
-      <% if s["key_finding"].present? %>
-        <div class="key-finding">💡 <%= s["key_finding"] %></div>
-      <% end %>
-    </div>
-  <% end %>
-  </div>
-</div>
-<% end %>
-
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<!-- PAGE 5: RECOMMENDATIONS + CONCLUSION                              -->
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<% if recs.any? %>
-<div class="page page-break">
-  <div class="section-header" style="margin-bottom:20px;">
-    <div class="section-num">🎯</div>
-    <div class="section-title">Khuyến nghị hành động</div>
-  </div>
-
-  <div class="recs-grid">
-  <% recs.each_with_index do |rec, i| %>
-    <% next unless rec.is_a?(Hash) %>
-    <% pri = rec["priority"].to_s %>
-    <% badge = pri == "high" ? "⬆ Ưu tiên cao" : pri == "medium" ? "→ Trung bình" : "⬇ Thấp" %>
-    <div class="rec-card <%= pri %>">
-      <div class="rec-num"><%= badge %></div>
-      <div class="rec-action"><%= i + 1 %>. <%= rec["action"] %></div>
-      <% if rec["rationale"].present? %>
-        <div class="rec-rationale"><%= rec["rationale"] %></div>
-      <% end %>
-      <% if rec["expected_impact"].present? %>
-        <div class="rec-impact">→ <%= rec["expected_impact"] %></div>
-      <% end %>
-    </div>
-  <% end %>
-  </div>
-
-  <!-- Conclusion -->
-  <% if out["conclusion"].present? %>
-    <div class="conclusion-card" style="margin-top:24px;">
-      <% out["conclusion"].split(/\\n\\n|\n\n/).each do |para| %>
-        <p><%= para.gsub(/\\n|\n/, ' ').strip %></p>
-      <% end %>
-    </div>
-  <% end %>
-
-  <div class="footer">
-    <span><%= survey.workspace.name %> · Báo cáo tạo lúc <%= report.created_at.strftime("%d/%m/%Y %H:%M") %></span>
-    <span class="vox-badge">✦ VOX AI</span>
-  </div>
-</div>
-<% end %>
