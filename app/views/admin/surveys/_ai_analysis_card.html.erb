@@ -53,7 +53,7 @@
 
   <!-- ③ Sentiment donut + themes bar — side by side -->
   <% has_sentiment = sentiment["positive"].present? || sentiment["negative"].present? %>
-  <% has_themes    = themes.any? %>
+  <% has_themes    = themes.any? && themes.any? { |t| t["theme"].present? } %>
   <% if has_sentiment || has_themes %>
     <div class="grid <%= (has_sentiment && has_themes) ? 'grid-cols-2' : 'grid-cols-1' %> gap-3">
 
@@ -145,62 +145,27 @@
         </script>
       <% end %>
 
-      <!-- Themes horizontal bar chart -->
+      <!-- Themes list (open-text qualitative themes) -->
       <% if has_themes %>
         <div class="rounded-xl border border-slate-100 bg-white p-3">
           <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Chủ đề nổi bật</div>
-          <canvas id="<%= card_id %>-themes" height="<%= [themes.first(6).size * 22, 44].max %>"></canvas>
+          <div class="space-y-2">
+            <% themes.first(5).each do |t| %>
+              <% next unless t["theme"].present? %>
+              <% sent_cls = t["sentiment"] == "positive" ? "text-emerald-500" : t["sentiment"] == "negative" ? "text-red-400" : "text-slate-400" %>
+              <div>
+                <div class="flex items-center gap-1.5 mb-0.5">
+                  <span class="<%= sent_cls %> text-[10px]">●</span>
+                  <span class="text-[10px] font-semibold text-slate-700"><%= t["theme"] %></span>
+                </div>
+                <% quotes = t["representative_quotes"].presence || [] %>
+                <% if quotes.any? %>
+                  <p class="text-[9px] text-slate-400 italic leading-snug pl-3">"<%= quotes.first.to_s.truncate(100) %>"</p>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
         </div>
-        <script>
-        (function(){
-          function drawThemesBar_<%= card_id.gsub('-','_') %>() {
-            const canvas = document.getElementById('<%= card_id %>-themes');
-            if (!canvas || canvas._drawn) return;
-            canvas._drawn = true;
-            const ctx = canvas.getContext('2d');
-            const labels = [<%= themes.first(6).map { |t| t["theme"].to_s.truncate(28).to_json }.join(',') %>];
-            const values = [<%= themes.first(6).map { |t| (t["percentage"]&.to_f || 0).round(1) }.join(',') %>];
-            const sentColors = {
-              'positive':'#34d399','positive_color':'rgba(52,211,153,0.15)',
-              'neutral':'#94a3b8','neutral_color':'rgba(148,163,184,0.15)',
-              'negative':'#f87171','negative_color':'rgba(248,113,113,0.15)'
-            };
-            const themeColors = [<%= themes.first(6).map { |t|
-              c = t["sentiment"] == "positive" ? "'#6366f1'" : t["sentiment"] == "negative" ? "'#f87171'" : "'#94a3b8'"
-              c
-            }.join(',') %>];
-            const w = canvas.width; const rowH = 22;
-            canvas.height = Math.max(labels.length * rowH, 44);
-            const maxVal = Math.max(...values, 1);
-            const labelW = 110; const barAreaW = w - labelW - 36;
-            ctx.clearRect(0,0,w,canvas.height);
-            labels.forEach((lbl,i)=>{
-              const y = i*rowH + rowH/2;
-              // Label
-              ctx.fillStyle='#64748b'; ctx.font='10px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='middle';
-              ctx.fillText(lbl.length>16?lbl.slice(0,16)+'…':lbl, labelW-6, y);
-              // Bar bg
-              const barW = (values[i]/maxVal)*barAreaW;
-              ctx.fillStyle='rgba(99,102,241,0.08)'; ctx.beginPath();
-              ctx.roundRect?ctx.roundRect(labelW,y-7,barAreaW,14,3):ctx.rect(labelW,y-7,barAreaW,14);
-              ctx.fill();
-              // Bar fill
-              ctx.fillStyle=themeColors[i]||'#6366f1'; ctx.beginPath();
-              ctx.roundRect?ctx.roundRect(labelW,y-7,barW,14,3):ctx.rect(labelW,y-7,barW,14);
-              ctx.fill();
-              // Value
-              ctx.fillStyle='#475569'; ctx.font='bold 9px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
-              ctx.fillText(values[i]+'%', labelW+barAreaW+4, y);
-            });
-          }
-          if (document.readyState==='loading') {
-            document.addEventListener('DOMContentLoaded', drawThemesBar_<%= card_id.gsub('-','_') %>);
-          } else {
-            drawThemesBar_<%= card_id.gsub('-','_') %>();
-          }
-          document.addEventListener('turbo:load', drawThemesBar_<%= card_id.gsub('-','_') %>);
-        })();
-        </script>
       <% end %>
 
     </div>
