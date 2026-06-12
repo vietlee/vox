@@ -184,38 +184,40 @@
     <div>
       <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Phân tích từng câu hỏi</div>
       <div class="space-y-1.5" id="<%= card_id %>-insights">
-        <%# Helper: render one question insight row %>
-        <%
-          render_qi = ->(qi, badge_cls, badge_char, q_cls, f_cls) do
-            q_full = qi["question"].to_s
-            q_short = q_full.length > 60 ? q_full.truncate(60) : nil
-          %>
-          <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 bg-white border border-slate-100">
-            <span class="text-[8px] font-black w-4 h-4 flex items-center justify-center rounded flex-shrink-0 mt-0.5 <%= badge_cls %>"><%= badge_char %></span>
-            <div class="flex-1 min-w-0">
-              <div class="text-[10px] font-semibold <%= q_cls %> leading-snug">
-                <% if q_short %>
-                  <span class="qi-short"><%= q_short %><button onclick="const p=this.closest('div');p.querySelector('.qi-short').style.display='none';p.querySelector('.qi-full').style.display='inline'" class="text-indigo-400 hover:text-indigo-600 text-[9px] ml-1 bg-transparent border-0 cursor-pointer p-0">...xem thêm</button></span>
-                  <span class="qi-full" style="display:none"><%= q_full %><button onclick="const p=this.closest('div');p.querySelector('.qi-full').style.display='none';p.querySelector('.qi-short').style.display='inline'" class="text-slate-400 hover:text-slate-600 text-[9px] ml-1 bg-transparent border-0 cursor-pointer p-0">thu gọn</button></span>
-                <% else %>
-                  <%= q_full %>
-                <% end %>
-              </div>
-              <div class="text-[10px] <%= f_cls %> mt-0.5 leading-snug"><%= qi["finding"] %></div>
-            </div>
-          </div>
-        <% end %>
-
         <!-- High/medium always visible -->
         <% flagged.each do |qi| %>
           <% is_high = qi["concern_level"] == "high" %>
-          <%= render_qi.call(qi, is_high ? "bg-red-100 text-red-500" : "bg-amber-100 text-amber-500", is_high ? "!" : "~", "text-slate-700", "text-slate-500") %>
+          <% q_full = qi["question"].to_s; qi_id = "qi-#{card_id}-#{qi['question_id']}" %>
+          <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 bg-white border border-slate-100">
+            <span class="text-[8px] font-black w-4 h-4 flex items-center justify-center rounded flex-shrink-0 mt-0.5 <%= is_high ? 'bg-red-100 text-red-500' : 'bg-amber-100 text-amber-500' %>"><%= is_high ? "!" : "~" %></span>
+            <div class="flex-1 min-w-0">
+              <div class="text-[10px] font-semibold text-slate-700 leading-snug">
+                <% if q_full.length > 60 %>
+                  <span id="<%= qi_id %>-s"><%= q_full.truncate(60) %><button onclick="document.getElementById('<%= qi_id %>-s').style.display='none';document.getElementById('<%= qi_id %>-f').style.display='inline'" class="text-indigo-400 text-[9px] ml-1 bg-transparent border-0 cursor-pointer p-0">...xem thêm</button></span>
+                  <span id="<%= qi_id %>-f" style="display:none"><%= q_full %><button onclick="document.getElementById('<%= qi_id %>-f').style.display='none';document.getElementById('<%= qi_id %>-s').style.display='inline'" class="text-slate-400 text-[9px] ml-1 bg-transparent border-0 cursor-pointer p-0">thu gọn</button></span>
+                <% else %><%= q_full %><% end %>
+              </div>
+              <div class="text-[10px] text-slate-500 mt-0.5 leading-snug"><%= qi["finding"] %></div>
+            </div>
+          </div>
         <% end %>
         <!-- Low concern: collapsed by default -->
         <% if low_insights.any? %>
           <div id="<%= card_id %>-low-insights" class="hidden space-y-1.5">
             <% low_insights.each do |qi| %>
-              <%= render_qi.call(qi, "bg-slate-100 text-slate-400", "·", "text-slate-600", "text-slate-400") %>
+              <% q_full = qi["question"].to_s; qi_id = "qi-#{card_id}-#{qi['question_id']}-l" %>
+              <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 bg-white border border-slate-100">
+                <span class="text-[8px] w-4 h-4 flex items-center justify-center rounded flex-shrink-0 mt-0.5 bg-slate-100 text-slate-400">·</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[10px] font-semibold text-slate-600 leading-snug">
+                    <% if q_full.length > 60 %>
+                      <span id="<%= qi_id %>-s"><%= q_full.truncate(60) %><button onclick="document.getElementById('<%= qi_id %>-s').style.display='none';document.getElementById('<%= qi_id %>-f').style.display='inline'" class="text-indigo-400 text-[9px] ml-1 bg-transparent border-0 cursor-pointer p-0">...xem thêm</button></span>
+                      <span id="<%= qi_id %>-f" style="display:none"><%= q_full %><button onclick="document.getElementById('<%= qi_id %>-f').style.display='none';document.getElementById('<%= qi_id %>-s').style.display='inline'" class="text-slate-400 text-[9px] ml-1 bg-transparent border-0 cursor-pointer p-0">thu gọn</button></span>
+                    <% else %><%= q_full %><% end %>
+                  </div>
+                  <div class="text-[10px] text-slate-400 mt-0.5 leading-snug"><%= qi["finding"] %></div>
+                </div>
+              </div>
             <% end %>
           </div>
           <button onclick="
