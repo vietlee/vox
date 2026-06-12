@@ -110,7 +110,7 @@ class AiExecutiveReportJob < ApplicationJob
       - Sections = survey DATA only. Zero meta-commentary about the report itself.
       - #{user_context ? "Directly address: \"#{user_context}\" — weave into the sections, not as a separate section." : "Focus only on the most statistically significant findings."}
       - sentiment_positive/negative in key_metrics MUST be numeric percentages (e.g. "72%"), not "N/A" or placeholders.
-      - relevant_question_ids: pick only questions whose data directly supports the report focus. Skip name fields, open demographic questions, and low-signal questions.
+      - relevant_question_ids: pick ONLY choice/rating/NPS/scale questions. Never include short_text or long_text questions (they have no chart). Skip name fields and demographic questions. Max 6 IDs.
 
       ## Survey questions for reference (to populate relevant_question_ids):
       #{survey.questions.order(:position).map { |q| "ID #{q.id}: [#{q.question_type}] #{q.title}" }.join("\n")}
@@ -174,7 +174,8 @@ class AiExecutiveReportJob < ApplicationJob
         next if total == 0
         # option_ids is jsonb — use @> with a JSON array literal
         options = q.question_options.order(:position).map do |opt|
-          count = base.where("option_ids @> ?", [opt.id].to_json).count
+          # option_ids stores string IDs e.g. ["263"], not integers [263]
+          count = base.where("option_ids @> ?", [opt.id.to_s].to_json).count
           { "id" => opt.id, "label" => opt.label, "count" => count,
             "pct" => (count.to_f / total * 100).round(1) }
         end

@@ -106,7 +106,7 @@
     <% if rating_q %>
     <div class="kpi-card amber">
       <div class="kpi-val"><%= rating_q["avg"] %><span style="font-size:14px;font-weight:500;color:#92400e;">/<%= rating_q["max"] %></span></div>
-      <div class="kpi-lbl">Điểm TB</div>
+      <div class="kpi-lbl"><%= rating_q["type"] == "nps" ? "NPS TB" : "Điểm TB" %></div>
     </div>
     <% end %>
   </div>
@@ -260,8 +260,13 @@
     <div class="section-title">Dữ liệu hỗ trợ</div>
   </div>
 
+  <%# Skip text-only questions — they have no chart value in appendix %>
+  <% chart_data_viz = chart_data.reject { |d| %w[short_text long_text].include?(d["type"]) } %>
+  <% if chart_data_viz.empty? %>
+    <p style="color:#94a3b8;font-size:12px;">Không có dữ liệu biểu đồ cho báo cáo này.</p>
+  <% end %>
   <div class="questions-grid">
-  <% chart_data.each_with_index do |qd, qi| %>
+  <% chart_data_viz.each_with_index do |qd, qi| %>
     <% qtype = qd["type"] %>
 
     <% if %w[single_choice multiple_choice dropdown].include?(qtype) %>
@@ -347,14 +352,6 @@
         </div>
       </div>
 
-    <% elsif %w[short_text long_text].include?(qtype) %>
-      <div class="q-card">
-        <div class="q-title"><%= qd["question"].truncate(80) %></div>
-        <div class="text-q-stat">
-          <div class="text-q-num"><%= qd["total"] %></div>
-          <div class="text-q-lbl">phản hồi văn bản<br><span style="color:#94a3b8;font-size:10px;">Xem phân tích AI bên dưới</span></div>
-        </div>
-      </div>
     <% end %>
   <% end %>
   </div>
