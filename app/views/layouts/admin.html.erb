@@ -71,7 +71,7 @@
       background: #f0fdf4; border-color: #86efac; color: #16a34a;
       animation: vox-copy-success 0.35s ease;
     }
-    .vox-copy-btn svg { flex-shrink: 0; transition: transform 0.2s; }
+    .vox-copy-btn svg { flex-shrink: 0; display: block; transition: transform 0.2s; }
     .vox-copy-btn:active svg { transform: scale(0.88); }
     @keyframes vox-copy-success {
       0%   { transform: scale(1); }
@@ -518,7 +518,10 @@ window.voxCopy = function(text, btn) {
     if (!btn) return;
     const orig = btn.innerHTML;
     if (ok) {
-      btn.innerHTML = window.VOX_CHECK_ICON + `<span>Đã sao chép</span>`;
+      const iconOnly = btn.dataset.iconOnly === 'true' || !btn.querySelector('span');
+      // Icon-only buttons: show check icon only; text buttons: show check + text
+      const checkIcon = `<svg width="15" height="15" viewBox="0 0 20 20" fill="none" style="display:block;"><path d="M4 10.5L8.5 15L16 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      btn.innerHTML = iconOnly ? checkIcon : (checkIcon + `<span>Đã sao chép</span>`);
       btn.classList.add('copied');
       setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 2000);
     }
