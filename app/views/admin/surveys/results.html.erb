@@ -311,13 +311,14 @@
               Ngữ cảnh & Trọng tâm báo cáo
             </label>
             <button type="button" id="suggest-prompt-btn" onclick="suggestReportPrompt()"
-              class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border-0 cursor-pointer transition-all"
-              style="background:linear-gradient(135deg,rgba(139,92,246,0.12),rgba(99,102,241,0.12));color:#7c3aed;border:1px solid rgba(139,92,246,0.25);"
-              onmouseenter="this.style.background='linear-gradient(135deg,rgba(139,92,246,0.2),rgba(99,102,241,0.2))'"
-              onmouseleave="this.style.background='linear-gradient(135deg,rgba(139,92,246,0.12),rgba(99,102,241,0.12))'">
-              <span id="suggest-icon">✨</span>
+              style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;outline:none;color:#fff;background:linear-gradient(135deg,#7c3aed,#6366f1);box-shadow:0 2px 8px rgba(124,58,237,0.35),inset 0 1px 0 rgba(255,255,255,0.15);transition:box-shadow 0.15s,transform 0.15s;position:relative;overflow:hidden;"
+              onmouseenter="this.style.boxShadow='0 4px 16px rgba(124,58,237,0.5),inset 0 1px 0 rgba(255,255,255,0.2)';this.style.transform='translateY(-1px)'"
+              onmouseleave="this.style.boxShadow='0 2px 8px rgba(124,58,237,0.35),inset 0 1px 0 rgba(255,255,255,0.15)';this.style.transform='translateY(0)'"
+              onmousedown="this.style.transform='translateY(0) scale(0.97)'"
+              onmouseup="this.style.transform='translateY(-1px) scale(1)'">
+              <span id="suggest-icon" style="font-size:14px;line-height:1;">✨</span>
               <span id="suggest-label">AI gợi ý prompt</span>
-              <span class="text-[9px] text-slate-400 font-normal">3 credits</span>
+              <span style="font-size:10px;opacity:0.75;font-weight:500;background:rgba(255,255,255,0.18);border-radius:4px;padding:1px 5px;">3 credits</span>
             </button>
           </div>
           <!-- Hidden input synced with Quill — used by all JS reading #report-context -->
@@ -625,10 +626,11 @@ function makeProgressRing(containerId, phases, intervalMs) {
   let   phase = 0, pct = 0, timer = null;
 
   const html = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;gap:12px;">
-      <!-- Ring + icon stacked via relative/absolute -->
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;gap:8px;">
+      <!-- % on top -->
+      <span id="${containerId}-pct" style="font-size:13px;font-weight:800;color:#7c3aed;letter-spacing:-0.3px;">0%</span>
+      <!-- Ring + icon stacked -->
       <div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;">
-        <!-- Progress ring SVG -->
         <svg width="88" height="88" viewBox="0 0 88 88" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">
           <circle cx="44" cy="44" r="38" stroke="#ede9fe" stroke-width="6"/>
           <circle id="${containerId}-ring" cx="44" cy="44" r="38"
@@ -636,14 +638,17 @@ function makeProgressRing(containerId, phases, intervalMs) {
             stroke-dasharray="238.8" stroke-dashoffset="238.8"
             style="transition:stroke-dashoffset 0.6s ease;"/>
         </svg>
-        <!-- VOX icon pulsing in center -->
+        <!-- VOX logo pulsing in center -->
         <div style="position:relative;z-index:2;animation:vox-pulse 1.6s ease-in-out infinite;">
-          <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
-            <path d="M15 2 C15 2 18.5 7.5 23 9.5 C18.5 11.5 15 17 15 17 C15 17 11.5 11.5 7 9.5 C11.5 7.5 15 2 15 2Z" fill="#8b5cf6"/>
-            <path d="M15 17 C15 17 18.5 22.5 23 24.5 C18.5 26.5 15 32 15 32 C15 32 11.5 26.5 7 24.5 C11.5 22.5 15 17 15 17Z" fill="#a78bfa" opacity="0.65"/>
+          <svg width="32" height="32" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="36" height="36" rx="9" fill="#1A6BFF"/>
+            <polygon points="10,24 6,31 16,24" fill="white"/>
+            <rect x="6" y="6" width="24" height="19" rx="5" fill="white"/>
+            <rect x="10" y="11" width="4" height="7" rx="1" fill="#1A6BFF"/>
+            <rect x="16" y="8" width="4" height="13" rx="1" fill="#1A6BFF"/>
+            <rect x="23" y="10" width="4" height="9" rx="1" fill="#1A6BFF"/>
           </svg>
         </div>
-        <span id="${containerId}-pct" style="position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:11px;font-weight:700;color:#7c3aed;">0%</span>
       </div>
       <p id="${containerId}-phase" style="font-size:12px;font-weight:600;color:#6366f1;text-align:center;max-width:220px;margin:0;">${phases[0]}</p>
     </div>`;
@@ -1167,11 +1172,17 @@ async function suggestReportPrompt() {
   const label = document.getElementById('suggest-label');
   if (btn.disabled) return;
 
-  // Loading state
+  // Loading state — VOX pulse mini spinner inside button
   btn.disabled = true;
-  icon.textContent = '⏳';
-  label.textContent = 'Đang gợi ý...';
-  btn.style.opacity = '0.7';
+  btn.style.opacity = '0.85';
+  btn.style.cursor = 'not-allowed';
+  icon.innerHTML = `<span style="display:inline-block;width:14px;height:14px;position:relative;vertical-align:middle;">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="position:absolute;top:0;left:0;animation:spin 1s linear infinite;">
+      <circle cx="7" cy="7" r="5.5" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+      <path d="M7 1.5 A5.5 5.5 0 0 1 12.5 7" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </span>`;
+  label.textContent = 'Đang phân tích...';
 
   // Get selected language
   const langEl = document.querySelector('input[name="language"]:checked') ||
@@ -1191,19 +1202,32 @@ async function suggestReportPrompt() {
       if (wrap) { wrap.style.borderColor = '#8b5cf6'; setTimeout(() => { wrap.style.borderColor = ''; }, 2000); }
       icon.textContent = '✅';
       label.textContent = 'Đã gợi ý!';
-      setTimeout(() => { icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt'; }, 2500);
+      btn.style.background = 'linear-gradient(135deg,#059669,#10b981)';
+      setTimeout(() => {
+        icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt';
+        btn.style.background = 'linear-gradient(135deg,#7c3aed,#6366f1)';
+      }, 2500);
     } else {
       icon.textContent = '⚠️';
       label.textContent = data.error || 'Lỗi';
-      setTimeout(() => { icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt'; }, 3000);
+      btn.style.background = 'linear-gradient(135deg,#dc2626,#ef4444)';
+      setTimeout(() => {
+        icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt';
+        btn.style.background = 'linear-gradient(135deg,#7c3aed,#6366f1)';
+      }, 3000);
     }
   } catch(e) {
     icon.textContent = '⚠️';
     label.textContent = 'Lỗi kết nối';
-    setTimeout(() => { icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt'; }, 3000);
+    btn.style.background = 'linear-gradient(135deg,#dc2626,#ef4444)';
+    setTimeout(() => {
+      icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt';
+      btn.style.background = 'linear-gradient(135deg,#7c3aed,#6366f1)';
+    }, 3000);
   } finally {
     btn.disabled = false;
     btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
   }
 }
 
