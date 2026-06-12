@@ -460,42 +460,74 @@ class Admin::SurveysController < Admin::BaseController
     language = params[:language].presence_in(%w[vi en]) || current_workspace.language || "vi"
     lang_name = language == "vi" ? "Vietnamese" : "English"
 
-    # Build survey context for the AI
-    questions_text = @survey.questions.order(:position).map.with_index(1) do |q, i|
-      opts = q.question_options.any? ? " [#{q.question_options.pluck(:label).join(", ")}]" : ""
-      "#{i}. [#{q.question_type}] #{q.title}#{opts}"
+    # Build full question list with options for AI to reason about
+    qs = @survey.questions.order(:position).includes(:question_options)
+    questions_text = qs.map.with_index(1) do |q, i|
+      opts = q.question_options.any? ? "\n     Options: #{q.question_options.pluck(:label).join(" | ")}" : ""
+      "Q#{i} (ID #{q.id}) [#{q.question_type}] #{q.title}#{opts}"
     end.join("\n")
 
+    # Detect if there's a grouping/demographic question (single_choice, first few questions)
+    grouping_q = qs.first(5).find { |q| %w[single_choice dropdown].include?(q.question_type) }
+    grouping_hint = grouping_q ? "Note: Q#{qs.index(grouping_q)+1} (\"#{grouping_q.title.truncate(60)}\") appears to be a grouping/demographic question suitable for cross-tab comparisons." : ""
+
     system_prompt = <<~SYS.strip
-      You are an expert data analyst who specializes in crafting concise, targeted survey report briefs.
+      You are a senior analyst who writes structured, high-quality report briefs for AI-powered executive reports.
 
-      CONTEXT — The report system automatically handles:
-      - Charts for every question (bar charts for choice questions, score gauges for rating/NPS, distribution bars for scale questions) — pulled from real response data
-      - A sentiment donut chart and top-themes bar chart in the overview
-      - A dark cover page, KPI metrics row, 5-page PDF layout
-      The user's prompt is ONLY used to guide the AI's written analysis: tone, focus areas, audience, priorities.
+      The report system works in two layers:
+      1. AI ANALYSIS LAYER — reads your prompt and writes the narrative (sections, recommendations, executive summary)
+      2. DATA APPENDIX LAYER — renders charts for questions you specify
 
-      Respond ONLY with the suggested prompt text — no explanation, no preamble, no JSON wrapper.
+      Your prompt must guide BOTH layers clearly. Write in #{lang_name}.
+
+      RULES:
+      - Use structured markdown with ## headers and numbered priority lists
+      - Name questions explicitly (e.g. "câu 6", "Q6") — vague references get ignored
+      - For cross-tab comparisons (e.g. "by department"), name both questions explicitly
+      - Include a "## CHỈ THỊ PHẦN DỮ LIỆU HỖ TRỢ" section at the end listing exactly which questions need charts
+      - Recommendations must specify: action + who does it + expected outcome
+      - Output ONLY the prompt text. No explanation, no JSON, no preamble.
     SYS
 
     user_prompt = <<~PROMPT
-      A user wants to generate an AI executive report for the following survey. Based on the survey content, write the ideal context prompt in #{lang_name}.
+      Generate the ideal report prompt for this survey. The prompt will be used to instruct an AI analyst writing an executive PDF report.
 
-      Survey title: #{@survey.title}
+      Survey: #{@survey.title}
       #{@survey.description.present? ? "Description: #{@survey.description}" : ""}
-      Total responses: #{@survey.responses.completed.count}
+      Responses: #{@survey.responses.completed.count}
+      #{grouping_hint}
 
       Questions:
       #{questions_text}
 
-      Write a focused 3-4 sentence context prompt (in #{lang_name}) that tells the AI analyst:
-      1. Who the report audience is (e.g. board, HR team, department heads) and the report tone
-      2. The most critical questions/themes to emphasize in written analysis
-      3. Any specific concerns, benchmarks, or action-oriented focus the report should highlight
-      4. What conclusions or recommendations matter most for this particular survey
+      Write a structured prompt in #{lang_name} with this format:
 
-      Do NOT mention charts, file format, or layout — those are handled automatically.
-      The prompt should be ready to paste directly into the report context field.
+      **Line 1-2**: State the audience (who reads this report) and tone (e.g. professional, data-driven, action-oriented).
+
+      **## PHÂN TÍCH BẮT BUỘC (theo thứ tự ưu tiên)**
+      Number each analysis area [ƯU TIÊN CAO / TRUNG BÌNH]. For each:
+      - Name the specific question(s) by number
+      - State what insight to extract (not just "analyze Q6" — say "Q6: % tasks automated, ranked by department from Q2")
+      - If cross-tab is needed, write: "Cross-tab Q6 × Q2 để so sánh theo nhóm"
+      Include ALL questions that yield strategic insight. Typical coverage:
+        - Usage frequency / adoption rate questions
+        - The main metric questions (time savings, scores)
+        - Quality/satisfaction rating questions (all of them — don't skip)
+        - Barrier/pain point questions
+        - Open-text questions (instruct AI to cluster by theme: training / tools / process / security)
+        - NPS and team-level questions side by side for gap analysis
+
+      **## KHUYẾN NGHỊ HÀNH ĐỘNG**
+      List exactly 3 recommendations, each with: action name | who does it | expected outcome.
+      Base each recommendation on specific question numbers from the survey.
+
+      **## CHỈ THỊ PHẦN DỮ LIỆU HỖ TRỢ**
+      List the question numbers whose charts MUST appear in the data appendix.
+      For cross-tab charts: write "Q6 × Q2 (cross-tab)".
+      List questions to EXCLUDE (raw distributions that add no value to this report).
+      End with: "Mỗi chart cần 1–2 câu nhận xét insight."
+
+      Important: name every question by its number. Be specific, not generic. The final prompt should score 9/10 on completeness, specificity, and actionability.
     PROMPT
 
     current_workspace.active_subscription&.deduct_credits!(3)
@@ -503,7 +535,7 @@ class Admin::SurveysController < Admin::BaseController
     suggested = ClaudeService.opus.call(
       system_prompt: system_prompt,
       user_prompt:   user_prompt,
-      max_tokens:    600
+      max_tokens:    1400
     ).strip
 
     render json: { suggestion: suggested }
