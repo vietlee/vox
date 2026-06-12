@@ -34,13 +34,25 @@ class AiSurveyAnalysisJob < ApplicationJob
       You are a senior analyst writing executive-ready survey insights.
       Write entirely in #{lang_name}. Be direct, specific, and actionable.
 
-      CRITICAL DATA RULES — violations corrupt the report:
-      1. ALL percentages and counts MUST come from the "structured_data" JSON. Never compute or estimate numbers yourself.
-      2. When citing a percentage, it must EXACTLY match a value in the data (e.g. if data says 47.8%, write 47.8% — not "nearly half" without the number).
-      3. For open-text questions: identify themes and cite representative quotes. Do NOT assign percentages to themes.
-      4. NPS/satisfaction scoring: use the pre-computed nps_breakdown in the data — do not reclassify respondents.
-      5. If a subgroup has low_sample: true (n < 3), note "cỡ mẫu nhỏ" — do not draw conclusions from it.
-      6. Return ONLY valid JSON. Use \\n\\n for paragraph breaks. No markdown fences.
+      CRITICAL DATA RULES:
+      1. ALL percentages and counts MUST come from the provided data. Never compute or estimate.
+      2. Cite exact numbers (e.g. 47.8%, không được viết "gần một nửa" mà không có con số).
+      3. Open-text: identify themes and cite quotes. Do NOT assign percentages.
+      4. Low sample (low_sample: true, n < 3): ghi "cỡ mẫu nhỏ", không kết luận.
+      5. Return ONLY valid JSON. Use \\n\\n for paragraph breaks. No markdown fences.
+
+      LANGUAGE RULES — strictly #{lang_name}:
+      - Never mix in English terms. Use Vietnamese equivalents:
+        NPS / NPS Score → "điểm hài lòng"
+        adoption → "mức độ sử dụng" / "tỷ lệ áp dụng"
+        penetration → "độ phủ"
+        use case → "tình huống sử dụng"
+        insight → "nhận xét" / "phát hiện"
+        trend → "xu hướng"
+        highlight → "điểm nổi bật"
+        concern → "điểm cần chú ý"
+      - Never cite questions as "Q7" or "question_id 135". Always write "câu hỏi số 7".
+      - No technical jargon visible to the reader. Write as if explaining to a manager, not a data analyst.
     SYSTEM
 
     # Build Q-position reference (Q1, Q2...) for AI to use in citations
@@ -95,13 +107,14 @@ class AiSurveyAnalysisJob < ApplicationJob
         },
 
         "question_insights": [
-          MANDATORY: one entry for EVERY question that appears in Question Data above.
-          Do NOT skip any question — even if the finding seems obvious, include it.
+          YOU MUST write exactly one entry for EACH of these question IDs (in order):
+          #{structured_with_pos.map { |e| "#{e[:q_position]} (id=#{e[:question_id]}): #{e[:question].to_s.truncate(50)}" }.join(" | ")}
+          No skipping, no merging. One entry per question above.
           {
-            "question_id": <integer database id — from the data>,
-            "q_position": "Q1",
+            "question_id": <integer id>,
+            "q_position": "câu hỏi số N",
             "question": "question title",
-            "finding": "key finding — cite exact number (e.g. 'mean=7.2/10', '82.6% chọn X'). If cross-tab exists for this question, include the biggest gap between groups.",
+            "finding": "nhận xét ngắn gọn, trích số chính xác. Nếu có phân tích chéo theo nhóm, nêu khoảng cách lớn nhất.",
             "concern_level": "high|medium|low"
           }
         ],
@@ -121,22 +134,21 @@ class AiSurveyAnalysisJob < ApplicationJob
         "highlights": ["Specific positive finding with Q-number and exact % or score"],
 
         "recommendations": [
-          cite questions as Q1, Q2... NEVER as database IDs or 'câu hỏi 135'.
           {
-            "action": "Specific: who + what + by when",
-            "rationale": "Why — cite Q-number (e.g. 'Q6 cho thấy...', 'Q3 và Q7 kết hợp cho thấy...')",
-            "impact": "Measurable expected outcome",
+            "action": "Cụ thể: ai làm gì, vào khi nào",
+            "rationale": "Lý do — trích dẫn bằng 'câu hỏi số N cho thấy...' (KHÔNG dùng Q7 hay ID số)",
+            "impact": "Kết quả đo lường được khi thực hiện",
             "priority": "high|medium|low"
           }
         ]
       }
 
       HARD RULES:
-      - question_insights: MUST include every question from Question Data. No skipping.
-      - All question citations: use Q1, Q2... format. NEVER use raw database IDs like 135.
-      - Every number cited must come from the pre-computed data above.
-      - recommendations: 3-5 items, ordered by priority.
-      - sentiment values are PRE-FILLED above — copy them exactly into the output.
+      - question_insights: phải có đúng số lượng entry bằng số câu hỏi trong danh sách trên. Không bỏ qua câu nào.
+      - Tất cả trích dẫn câu hỏi: dùng "câu hỏi số N". KHÔNG dùng Q7, KHÔNG dùng database ID như 135.
+      - Mọi con số phải lấy từ dữ liệu được cung cấp.
+      - Recommendations: 3-5 mục, sắp xếp theo độ ưu tiên.
+      - Sentiment values đã được điền sẵn — copy chính xác vào output.
     PROMPT
 
     result_text = ClaudeService.opus_long.call(
