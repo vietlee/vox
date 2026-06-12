@@ -59,7 +59,7 @@ class AiSurveyAnalysisJob < ApplicationJob
 
       ## Required JSON output (ALL text in #{lang_name}):
       {
-        "executive_summary": "3-4 paragraphs. Start with the single most important finding with its exact number. Paragraph 2: patterns across questions. Paragraph 3: what this means for leadership decision. Use \\n\\n between paragraphs. Cite specific percentages from the data.",
+        "executive_summary": "3 paragraphs, each DIFFERENT in content — never repeat the same sentence. Use \\n\\n between paragraphs.\\nPara 1 (HEADLINE FINDING): The single most important result with its exact number. If there are questions with subtype='pct' (percentage estimates), these are the core metric of the survey — lead with them.\\nPara 2 (PATTERNS): What do multiple questions together reveal? Look for correlations, gaps, or contrasts between questions.\\nPara 3 (ACTION): What should the reader do with this? Who acts, how, by when?",
 
         "key_metrics": {
           "response_count": #{responses.count},
@@ -230,6 +230,35 @@ class AiSurveyAnalysisJob < ApplicationJob
         end.reject { |o| o[:count] == 0 && q.question_options.count > 5 }
 
         entry.merge!(answered: base_n, options: options)
+
+      when "short_text", "long_text"
+        # Detect numeric-percentage answers (e.g. "50%", "70") — treat as quantitative
+        texts = answers.where.not(text_value: [nil, ""]).pluck(:text_value)
+        next if texts.empty?
+        nums = texts.filter_map { |t|
+          t.to_s.gsub(/[~≈]/, "").scan(/\d+(?:\.\d+)?/).first&.to_f
+        }.select { |n| n > 0 && n <= 100 }
+
+        if nums.size >= texts.size * 0.5
+          # Majority numeric → treat as a percentage scale question
+          avg  = (nums.sum / nums.size).round(1)
+          dist = [[0,20],[21,40],[41,60],[61,80],[81,100]].map do |lo, hi|
+            cnt = nums.count { |n| n >= lo && n <= hi }
+            { range: "#{lo}–#{hi}%", count: cnt, pct: (cnt.to_f / nums.size * 100).round(1) }
+          end
+          numeric_avgs << avg
+          all_numeric_answers.concat(nums.map { |v| { value: v, max: 100 } })
+          entry.merge!(
+            subtype:      "pct",
+            answered:     nums.size,
+            mean:         avg,
+            max_val:      100,
+            distribution: dist,
+            note:         "Câu trả lời dạng % — được xử lý như thang đo định lượng"
+          )
+        else
+          next  # Pure text — handled by open_text_data
+        end
       end
 
       structured << entry
@@ -274,6 +303,11 @@ class AiSurveyAnalysisJob < ApplicationJob
                           .map { |t| t.gsub('"', "'").gsub(/[\x00-\x1F]/, " ").strip.truncate(300) }
                           .reject(&:blank?)
             next if texts.empty?
+
+            # Skip if majority numeric — already handled in build_computed_stats as quantitative data
+            nums = texts.filter_map { |t| t.gsub(/[~≈]/, "").scan(/\d+(?:\.\d+)?/).first&.to_f }.select { |n| n > 0 && n <= 100 }
+            next if nums.size >= texts.size * 0.5
+
             { question_id: q.id, question: q.title, response_count: texts.count, responses: texts.first(20) }
           end
   end
