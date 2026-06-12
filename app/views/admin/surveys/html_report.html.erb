@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo cáo: <%= @survey.title %></title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: white; padding: 36px 48px; }
+  .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; line-height: 1.3; }
+  .header p  { opacity: 0.65; font-size: 13px; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .kpi { background: white; border-radius: 12px; padding: 18px 16px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-top: 4px solid; }
+  .kpi-value { font-size: 32px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+  .kpi-label { font-size: 11px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .section-title { font-size: 16px; font-weight: 700; margin: 28px 0 14px; color: #1a1a2e; display: flex; align-items: center; gap: 10px; }
+  .section-title::before { content: ''; display: block; width: 4px; height: 20px; background: #4361ee; border-radius: 2px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  .card h3 { font-size: 13px; font-weight: 700; margin-bottom: 16px; color: #1a1a2e; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; }
+  .full-width { grid-column: 1 / -1; }
+
+  canvas { max-height: 260px; }
+
+  .bar-item { display: flex; align-items: center; margin-bottom: 9px; font-size: 12px; }
+  .bar-label { width: 190px; flex-shrink: 0; color: #444; line-height: 1.3; }
+  .bar-track { flex: 1; background: #e8eaf0; border-radius: 4px; height: 18px; overflow: hidden; margin: 0 8px; }
+  .bar-fill  { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; color: white; font-size: 11px; font-weight: 700; min-width: 24px; }
+  .bar-count { width: 28px; text-align: right; color: #888; font-weight: 600; }
+
+  .rating-row { display: flex; align-items: center; margin-bottom: 11px; }
+  .rating-label { width: 210px; font-size: 12px; color: #555; line-height: 1.3; }
+  .rating-bar { flex: 1; background: #e8eaf0; height: 22px; border-radius: 6px; overflow: hidden; margin: 0 10px; }
+  .rating-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; color: white; font-weight: 700; font-size: 11px; }
+  .rating-score { width: 36px; font-size: 14px; font-weight: 800; color: #1a1a2e; }
+
+  .insight-box { background: #f8f9ff; border-left: 4px solid #4361ee; border-radius: 0 8px 8px 0; padding: 12px 14px; margin-bottom: 10px; font-size: 12px; line-height: 1.6; }
+  .insight-box strong { color: #4361ee; }
+
+  .quote-card { background: #fffbf0; border: 1px solid #ffe082; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; font-size: 12px; line-height: 1.6; color: #555; }
+  .quote-card .author { font-weight: 700; color: #e65100; font-size: 11px; margin-bottom: 4px; }
+  .quote-card .q-title { color: #aaa; font-size: 10px; margin-bottom: 4px; }
+
+  .anomaly-item { display: flex; gap-8: 8px; padding: 8px 12px; border-left: 3px solid #f59e0b; border-radius: 0 6px 6px 0; background: #fffbf0; margin-bottom: 8px; font-size: 12px; line-height: 1.5; }
+  .highlight-item { display: flex; padding: 8px 12px; border-left: 3px solid #10b981; border-radius: 0 6px 6px 0; background: #f0fdf9; margin-bottom: 8px; font-size: 12px; line-height: 1.5; }
+  .rec-item { padding: 10px 14px; border-radius: 8px; background: #f8f9ff; border: 1px solid #e0e4ff; margin-bottom: 8px; font-size: 12px; line-height: 1.5; }
+  .rec-item .rec-title { font-weight: 600; color: #3730a3; margin-bottom: 3px; }
+  .rec-item .rec-rationale { color: #666; font-size: 11px; }
+
+  footer { text-align: center; padding: 20px; color: #aaa; font-size: 11px; margin-top: 12px; }
+  .print-btn { position: fixed; bottom: 24px; right: 24px; background: #4361ee; color: white; border: none; border-radius: 50px; padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(67,97,238,0.4); z-index: 100; }
+  .print-btn:hover { background: #3451d1; }
+  @media print { .print-btn { display: none; } }
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨 In / Lưu PDF</button>
+
+<div class="header">
+  <h1>📊 <%= @survey.title %></h1>
+  <p>Báo cáo phân tích · <%= @total_responses %> phản hồi · <%= Date.today.strftime("%d/%m/%Y") %></p>
+</div>
+
+<div class="container">
+
+  <!-- KPI Row -->
+  <%
+    kpi_defs = [
+      { val: @kpis[:total].to_s,          label: "Người tham gia",         color: "#4361ee" },
+      @kpis[:savings_task]  ? { val: @kpis[:savings_task],  label: "Tiết kiệm / task",       color: "#06b6d4" } : nil,
+      @kpis[:savings_daily] ? { val: @kpis[:savings_daily], label: "Tiết kiệm / ngày",        color: "#10b981" } : nil,
+      @kpis[:nps_avg]       ? { val: @kpis[:nps_avg],       label: "Điểm giới thiệu TB",      color: "#f59e0b" } : nil,
+      { val: @kpis[:adoption],            label: "Dùng AI hàng ngày",       color: "#8b5cf6" }
+    ].compact
+  %>
+  <div class="kpi-grid">
+    <% kpi_defs.each do |kpi| %>
+      <div class="kpi" style="border-color:<%= kpi[:color] %>">
+        <div class="kpi-value" style="color:<%= kpi[:color] %>"><%= kpi[:val] %></div>
+        <div class="kpi-label"><%= kpi[:label] %></div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# ─── SECTION: Thành phần ─────────────────────────────────── %>
+  <% if @dept_data.any? %>
+    <div class="section-title">Thành phần người tham gia</div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Phân bổ theo bộ phận</h3>
+        <canvas id="deptChart"></canvas>
+      </div>
+      <%# Find tool question %>
+      <% tool_q = @question_stats.find { |qs| qs[:subtype] == "text" && qs[:title].to_s.downcase.include?("ai nào") } ||
+                  @question_stats.find { |qs| qs[:type].in?(%w[single_choice multiple_choice]) && qs[:title].to_s.downcase.include?("ai") } %>
+      <% if tool_q && tool_q[:texts].present? %>
+        <div class="card">
+          <h3>Công cụ AI sử dụng</h3>
+          <%
+            tool_counts = Hash.new(0)
+            tool_q[:texts].each do |txt|
+              txt.to_s.split(/[,，、;；\n]/).each do |t|
+                name = t.strip.split(/\s+/).first(3).join(" ")
+                tool_counts[name] += 1 if name.length > 1
+              end
+            end
+            top_tools = tool_counts.sort_by { |_,c| -c }.first(8)
+            max_tool = top_tools.first&.last || 1
+          %>
+          <% top_tools.each_with_index do |(name, cnt), ti| %>
+            <% colors = %w[#4361ee #7c3aed #06b6d4 #10b981 #f59e0b #ef4444 #ec4899 #8b5cf6] %>
+            <div class="bar-item">
+              <div class="bar-label"><%= name %></div>
+              <div class="bar-track"><div class="bar-fill" style="width:<%= [(cnt.to_f/max_tool*100).round, 5].max %>%;background:<%= colors[ti % colors.size] %>"><%= cnt %></div></div>
+              <div class="bar-count"><%= cnt %></div>
+            </div>
+          <% end %>
+        </div>
+      <% elsif tool_q && tool_q[:counts].present? %>
+        <div class="card">
+          <h3>Công cụ AI sử dụng</h3>
+          <%
+            top_opts = tool_q[:counts].sort_by { |c| -c[:count] }.first(8)
+            max_opt = top_opts.first[:count].to_f
+          %>
+          <% top_opts.each_with_index do |opt, ti| %>
+            <% colors = %w[#4361ee #7c3aed #06b6d4 #10b981 #f59e0b #ef4444 #ec4899 #8b5cf6] %>
+            <div class="bar-item">
+              <div class="bar-label"><%= opt[:label] %></div>
+              <div class="bar-track"><div class="bar-fill" style="width:<%= [(opt[:count].to_f/max_opt*100).round, 5].max %>%;background:<%= colors[ti % colors.size] %>"><%= opt[:count] %></div></div>
+              <div class="bar-count"><%= opt[:count] %></div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# ─── SECTION: Ratings ────────────────────────────────────── %>
+  <% rating_qs = @question_stats.select { |qs| %w[rating linear_scale nps].include?(qs[:type]) && qs[:mean] } %>
+  <% if rating_qs.any? %>
+    <div class="section-title">Đánh giá & chỉ số chính</div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Điểm trung bình theo câu hỏi</h3>
+        <% rating_qs.each do |qs| %>
+          <%
+            max_scale = qs[:type] == "nps" ? 10.0 : (qs[:values]&.max || 10.0).clamp(1, 10)
+            pct = [(qs[:mean].to_f / max_scale * 100).round, 3].max
+            colors_r = ["linear-gradient(90deg,#4361ee,#7c3aed)",
+                        "linear-gradient(90deg,#06b6d4,#4361ee)",
+                        "linear-gradient(90deg,#10b981,#06b6d4)",
+                        "linear-gradient(90deg,#f59e0b,#10b981)",
+                        "linear-gradient(90deg,#8b5cf6,#ec4899)"]
+            ci = rating_qs.index(qs) % colors_r.size
+          %>
+          <div class="rating-row">
+            <div class="rating-label"><%= qs[:title].to_s.truncate(50) %></div>
+            <div class="rating-bar"><div class="rating-fill" style="width:<%= pct %>%;background:<%= colors_r[ci] %>"><%= qs[:mean] %></div></div>
+            <div class="rating-score"><%= qs[:mean] %></div>
+          </div>
+        <% end %>
+      </div>
+      <%# Distribution of first rating question %>
+      <% first_rating = rating_qs.first %>
+      <% if first_rating && first_rating[:values].any? %>
+        <div class="card">
+          <h3>Phân phối điểm: <%= first_rating[:title].to_s.truncate(60) %></h3>
+          <canvas id="ratingDistChart"></canvas>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# ─── SECTION: Percent questions ─────────────────────────── %>
+  <% pct_qs = @question_stats.select { |qs| qs[:subtype] == "pct" && qs[:values]&.any? } %>
+  <% if pct_qs.size >= 2 %>
+    <div class="section-title">Mức độ tiết kiệm thời gian</div>
+    <div class="grid-2">
+      <% pct_qs.first(2).each_with_index do |qs, pi| %>
+        <div class="card">
+          <h3><%= qs[:title].to_s.truncate(70) %></h3>
+          <canvas id="pctChart<%= pi %>"></canvas>
+        </div>
+      <% end %>
+    </div>
+  <% elsif pct_qs.size == 1 %>
+    <div class="section-title">Mức độ tiết kiệm thời gian</div>
+    <div class="card" style="margin-bottom:20px">
+      <h3><%= pct_qs.first[:title].to_s.truncate(70) %></h3>
+      <canvas id="pctChart0"></canvas>
+    </div>
+  <% end %>
+
+  <%# ─── SECTION: Choice questions ──────────────────────────── %>
+  <% choice_qs = @question_stats.select { |qs| %w[single_choice multiple_choice dropdown].include?(qs[:type]) && qs[:counts].present? } %>
+  <% if choice_qs.any? %>
+    <div class="section-title">Phân tích từng câu hỏi</div>
+    <% choice_qs.each_slice(2) do |pair| %>
+      <div class="grid-2" style="margin-bottom:16px">
+        <% pair.each do |qs| %>
+          <div class="card">
+            <h3><%= qs[:title].to_s.truncate(80) %></h3>
+            <%
+              max_c = (qs[:counts].map { |c| c[:count] }.max || 1).to_f
+              palette = %w[#4361ee #7c3aed #06b6d4 #10b981 #f59e0b #ef4444 #ec4899 #8b5cf6]
+            %>
+            <% qs[:counts].each_with_index do |opt, oi| %>
+              <div class="bar-item">
+                <div class="bar-label"><%= opt[:label].to_s.truncate(35) %></div>
+                <div class="bar-track"><div class="bar-fill" style="width:<%= [(opt[:count].to_f/max_c*100).round, 2].max %>%;background:<%= palette[oi % palette.size] %>"><%= opt[:count] > 0 ? opt[:count] : "" %></div></div>
+                <div class="bar-count"><%= opt[:count] %></div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <%# ─── SECTION: AI Insights (from stored analysis) ─────────── %>
+  <% if @ai_analysis.present? %>
+    <% ai = @ai_analysis.output %>
+    <% highlights = ai["highlights"] || [] %>
+    <% anomalies  = ai["anomalies"]  || [] %>
+    <% recs       = ai["recommendations"] || [] %>
+    <% q_insights = ai["question_insights"] || [] %>
+
+    <% if highlights.any? || anomalies.any? %>
+      <div class="section-title">Phân tích AI — Điểm nổi bật</div>
+      <div class="grid-2">
+        <% if highlights.any? %>
+          <div class="card">
+            <h3>✦ Điểm tích cực</h3>
+            <% highlights.each do |h| %>
+              <div class="highlight-item"><%= h %></div>
+            <% end %>
+          </div>
+        <% end %>
+        <% if anomalies.any? %>
+          <div class="card">
+            <h3>⚡ Điểm cần chú ý</h3>
+            <% anomalies.each do |a| %>
+              <div class="anomaly-item"><%= a %></div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if recs.any? %>
+      <div class="section-title">Khuyến nghị</div>
+      <div class="grid-2">
+        <% recs.first(6).each_slice(3) do |group| %>
+          <div class="card">
+            <h3>→ Hành động đề xuất</h3>
+            <% group.each do |rec| %>
+              <% if rec.is_a?(Hash) %>
+                <div class="rec-item">
+                  <div class="rec-title"><%= rec["action"] %></div>
+                  <div class="rec-rationale"><%= rec["rationale"] %></div>
+                </div>
+              <% else %>
+                <div class="rec-item"><%= rec %></div>
+              <% end %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <%# ─── SECTION: Notable quotes ─────────────────────────────── %>
+  <% if @notable_quotes.any? %>
+    <div class="section-title">Chia sẻ & đề xuất của nhân viên</div>
+    <div class="grid-2">
+      <% @notable_quotes.first(6).each_slice(3).with_index do |group, gi| %>
+        <div class="card">
+          <h3>💬 Phản hồi chi tiết</h3>
+          <% group.each do |q| %>
+            <div class="quote-card">
+              <div class="q-title"><%= q[:question].to_s.truncate(60) %></div>
+              "<%= q[:text] %>"
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+</div>
+
+<footer>Báo cáo tự động · <%= @total_responses %> phản hồi · <%= @survey.title %> · <%= Date.today.strftime("%d/%m/%Y") %></footer>
+
+<script>
+const COLORS = ['#4361ee','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6'];
+
+<% if @dept_data.any? %>
+// Department chart
+new Chart(document.getElementById('deptChart'), {
+  type: 'doughnut',
+  data: {
+    labels: <%= raw @dept_data.map { |d| d[:label] }.to_json %>,
+    datasets: [{ data: <%= raw @dept_data.map { |d| d[:count] }.to_json %>, backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: { plugins: { legend: { position: 'right', labels: { boxWidth: 14, font: { size: 12 } } } }, cutout: '55%' }
+});
+<% end %>
+
+<% if rating_qs.any? && rating_qs.first[:values].any? %>
+// Rating distribution chart
+<%
+  first_r = rating_qs.first
+  max_v = (first_r[:values].max || 10).to_i
+  dist_labels = (1..max_v).to_a
+  dist_data = dist_labels.map { |v| first_r[:values].count { |x| x.to_i == v } }
+%>
+new Chart(document.getElementById('ratingDistChart'), {
+  type: 'bar',
+  data: {
+    labels: <%= raw dist_labels.to_json %>,
+    datasets: [{ data: <%= raw dist_data.to_json %>, backgroundColor: COLORS[0]+'99', borderColor: COLORS[0], borderWidth: 2, borderRadius: 5 }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } } }
+});
+<% end %>
+
+<% pct_qs.first(2).each_with_index do |qs, pi| %>
+<%
+  buckets = [[0,29],[30,39],[40,49],[50,59],[60,69],[70,79],[80,89],[90,100]]
+  bucket_labels = buckets.map { |lo, hi| "#{lo}–#{hi}%" }
+  bucket_data   = buckets.map { |lo, hi| qs[:values].count { |v| v >= lo && v <= hi } }
+  pct_colors = ['#ef4444','#f97316','#f59e0b','#06b6d4','#10b981','#4361ee','#7c3aed','#8b5cf6']
+%>
+new Chart(document.getElementById('pctChart<%= pi %>'), {
+  type: 'bar',
+  data: {
+    labels: <%= raw bucket_labels.to_json %>,
+    datasets: [{ data: <%= raw bucket_data.to_json %>, backgroundColor: <%= raw pct_colors.to_json %>, borderRadius: 5 }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } } }
+});
+<% end %>
+</script>
+</body>
+</html>
