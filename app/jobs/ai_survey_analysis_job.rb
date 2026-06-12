@@ -23,10 +23,12 @@ class AiSurveyAnalysisJob < ApplicationJob
 
     # ─── LAYER 1: Deterministic calculator ───────────────────────────────
     # All numbers are computed in Ruby — AI will only read, never recalculate
-    computed     = build_computed_stats(survey, responses)
-    open_texts   = build_open_text_data(survey, responses)
-    structured   = computed[:structured_data]
-    global_stats = computed[:global_stats]
+    completed_ids = responses.map(&:id)
+    computed      = build_computed_stats(survey, responses)
+    open_texts    = build_open_text_data(survey, responses)
+    structured    = computed[:structured_data]
+    global_stats  = computed[:global_stats]
+    cross_tabs    = build_cross_tab_stats(survey, completed_ids, structured)
 
     system_prompt = <<~SYSTEM
       You are a senior analyst writing executive-ready survey insights.
@@ -53,13 +55,15 @@ class AiSurveyAnalysisJob < ApplicationJob
       #{global_stats.to_json}
 
       ## Question Data (structured)
-      #{structured.to_json.truncate(8000)}
+      #{structured.to_json.truncate(6000)}
 
-      #{open_texts.any? ? "## Open-text Responses (for qualitative clustering only — do NOT assign counts or %)\n#{open_texts.to_json.truncate(3000)}" : ""}
+      #{cross_tabs.any? ? "## Cross-tab Breakdowns (outcome metrics broken down by grouping questions — USE THESE for subgroup analysis)\n#{cross_tabs.to_json.truncate(3000)}" : ""}
+
+      #{open_texts.any? ? "## Open-text Responses (qualitative only — do NOT assign counts or %)\n#{open_texts.to_json.truncate(2000)}" : ""}
 
       ## Required JSON output (ALL text in #{lang_name}):
       {
-        "executive_summary": "3 paragraphs, each DIFFERENT in content — never repeat the same sentence. Use \\n\\n between paragraphs.\\nPara 1 (HEADLINE FINDING): The single most important result with its exact number. If there are questions with subtype='pct' (percentage estimates), these are the core metric of the survey — lead with them.\\nPara 2 (PATTERNS): What do multiple questions together reveal? Look for correlations, gaps, or contrasts between questions.\\nPara 3 (ACTION): What should the reader do with this? Who acts, how, by when?",
+        "executive_summary": "3 paragraphs, each DIFFERENT — never repeat. Use \\n\\n between paragraphs.\\nPara 1 (HEADLINE): The most important finding with its exact number. If questions have subtype='pct', they ARE the survey's core metric — lead with their avg and the biggest subgroup gap from the cross-tab data (e.g. 'Bộ phận X tiết kiệm 70% vs Bộ phận Y chỉ 40%').\\nPara 2 (PATTERNS): What do 2+ questions together reveal that no single question shows alone?\\nPara 3 (ACTION): Who should do what by when, and why now?",
 
         "key_metrics": {
           "response_count": #{responses.count},
@@ -290,6 +294,79 @@ class AiSurveyAnalysisJob < ApplicationJob
     }
 
     { structured_data: structured, global_stats: global_stats }
+  end
+
+  # Build cross-tab: for every grouping variable (single_choice/dropdown),
+  # compute avg of each numeric outcome question broken down by group option.
+  def build_cross_tab_stats(survey, completed_ids, structured)
+    return [] if completed_ids.empty?
+
+    # Identify grouping questions (demographic/segmentation variables)
+    group_questions = survey.questions.includes(:question_options)
+                            .where(question_type: %w[single_choice dropdown])
+                            .order(:position)
+    return [] if group_questions.empty?
+
+    # Identify numeric outcome questions from structured data
+    numeric_entries = structured.select { |e|
+      %w[rating linear_scale nps].include?(e[:type]) ||
+        (e[:type].in?(%w[short_text long_text]) && e[:subtype] == "pct")
+    }
+    return [] if numeric_entries.empty?
+
+    results = []
+
+    group_questions.each do |gq|
+      groups = gq.question_options.order(:position).map do |opt|
+        # Response IDs where respondent chose this option
+        resp_ids = Answer.where(question: gq, response_id: completed_ids)
+                         .where("option_ids @> ?", [opt.id.to_s].to_json)
+                         .pluck(:response_id)
+        next if resp_ids.empty?
+        { option_id: opt.id, label: opt.label, response_ids: resp_ids }
+      end.compact
+      next if groups.empty?
+
+      numeric_entries.each do |entry|
+        target_q = survey.questions.find_by(id: entry[:question_id])
+        next unless target_q
+
+        group_avgs = groups.map do |grp|
+          base = Answer.where(question: target_q, response_id: grp[:response_ids])
+
+          nums = if target_q.question_type.in?(%w[short_text long_text])
+            base.where.not(text_value: [nil, ""])
+                .pluck(:text_value)
+                .filter_map { |t| t.gsub(/[~≈]/, "").scan(/\d+(?:\.\d+)?/).first&.to_f }
+                .select { |n| n > 0 && n <= 100 }
+          else
+            base.where.not(numeric_value: nil).pluck(:numeric_value).map(&:to_f)
+          end
+
+          next if nums.empty?
+          avg = (nums.sum / nums.size).round(1)
+          { group: grp[:label], avg: avg, n: nums.size,
+            low_sample: nums.size < 3 }
+        end.compact
+
+        next if group_avgs.size < 2  # need at least 2 groups to compare
+
+        avgs_only = group_avgs.reject { |g| g[:low_sample] }.map { |g| g[:avg] }
+        gap = avgs_only.any? ? (avgs_only.max - avgs_only.min).round(1) : nil
+
+        results << {
+          target_question_id:   target_q.id,
+          target_question:      target_q.title.truncate(60),
+          group_by_question_id: gq.id,
+          group_by_question:    gq.title.truncate(40),
+          groups:               group_avgs,
+          gap_between_groups:   gap,
+          insight_flag:         gap && gap >= 15 ? "large_gap" : nil
+        }
+      end
+    end
+
+    results
   end
 
   def build_open_text_data(survey, responses)
