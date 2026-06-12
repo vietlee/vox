@@ -1490,9 +1490,25 @@ document.addEventListener('keydown', function(e) {
     });
     edEl._quill = q;
 
-    // Sync plain text → hidden input on every change
+    const STORAGE_KEY = 'vox_report_ctx_<%= @survey.id %>';
+
+    // Restore saved prompt on load
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved && saved.trim()) {
+      q.setText(saved);
+      input.value = saved.trim();
+      updateReportBtn();
+      // Show copy button if there's content
+      const copyBtn = document.getElementById('copy-prompt-btn');
+      if (copyBtn) copyBtn.style.display = 'flex';
+    }
+
+    // Sync plain text → hidden input + save to localStorage on every change
     q.on('text-change', () => {
-      input.value = q.getText().trim();
+      const txt = q.getText().trim();
+      input.value = txt;
+      if (txt) localStorage.setItem(STORAGE_KEY, txt);
+      else localStorage.removeItem(STORAGE_KEY);
       updateReportBtn();
     });
 
@@ -1518,13 +1534,14 @@ document.addEventListener('keydown', function(e) {
     }
   };
 
-  // Helper: set text in both hidden input AND Quill
+  // Helper: set text in both hidden input AND Quill, and persist to localStorage
   window.setReportContext = function(text) {
     const ta = document.getElementById('report-context');
     const edEl = document.getElementById('report-context-editor');
     const q = edEl?._quill;
     if (ta) ta.value = text;
     if (q)  q.setText(text);
+    if (text && text.trim()) localStorage.setItem('vox_report_ctx_<%= @survey.id %>', text.trim());
     updateReportBtn();
   };
 })();
