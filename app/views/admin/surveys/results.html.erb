@@ -625,37 +625,27 @@ function makeProgressRing(containerId, phases, intervalMs) {
   let   phase = 0, pct = 0, timer = null;
 
   const html = `
-    <div class="flex flex-col items-center justify-center py-6 vox-pulse-loader">
-      <div class="vox-pulse-ring-wrap" style="width:80px;height:80px;margin-bottom:10px;">
-        <svg viewBox="0 0 80 80" fill="none" style="transform:rotate(-90deg);">
-          <circle cx="40" cy="40" r="34" stroke="#ede9fe" stroke-width="6"/>
-          <circle id="${containerId}-ring" cx="40" cy="40" r="34"
-            stroke="url(#rg-${containerId})" stroke-width="6" stroke-linecap="round"
-            stroke-dasharray="213.6" stroke-dashoffset="213.6"
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;gap:12px;">
+      <!-- Ring + icon stacked via relative/absolute -->
+      <div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;">
+        <!-- Progress ring SVG -->
+        <svg width="88" height="88" viewBox="0 0 88 88" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">
+          <circle cx="44" cy="44" r="38" stroke="#ede9fe" stroke-width="6"/>
+          <circle id="${containerId}-ring" cx="44" cy="44" r="38"
+            stroke="#7c3aed" stroke-width="6" stroke-linecap="round"
+            stroke-dasharray="238.8" stroke-dashoffset="238.8"
             style="transition:stroke-dashoffset 0.6s ease;"/>
-          <defs>
-            <linearGradient id="rg-${containerId}" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#6366f1"/>
-            </linearGradient>
-          </defs>
         </svg>
-        <div class="vox-pulse-icon">
-          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-            <path d="M16 3C16 3 19.5 8 24 10C19.5 12 16 17 16 17C16 17 12.5 12 8 10C12.5 8 16 3 16 3Z" fill="url(#vg-top-${containerId})"/>
-            <path d="M16 17C16 17 19.5 22 24 24C19.5 26 16 31 16 31C16 31 12.5 26 8 24C12.5 22 16 17 16 17Z" fill="url(#vg-bot-${containerId})" opacity="0.7"/>
-            <defs>
-              <linearGradient id="vg-top-${containerId}" x1="8" y1="3" x2="24" y2="17" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/>
-              </linearGradient>
-              <linearGradient id="vg-bot-${containerId}" x1="8" y1="17" x2="24" y2="31" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#c4b5fd"/><stop offset="1" stop-color="#818cf8"/>
-              </linearGradient>
-            </defs>
+        <!-- VOX icon pulsing in center -->
+        <div style="position:relative;z-index:2;animation:vox-pulse 1.6s ease-in-out infinite;">
+          <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+            <path d="M15 2 C15 2 18.5 7.5 23 9.5 C18.5 11.5 15 17 15 17 C15 17 11.5 11.5 7 9.5 C11.5 7.5 15 2 15 2Z" fill="#8b5cf6"/>
+            <path d="M15 17 C15 17 18.5 22.5 23 24.5 C18.5 26.5 15 32 15 32 C15 32 11.5 26.5 7 24.5 C11.5 22.5 15 17 15 17Z" fill="#a78bfa" opacity="0.65"/>
           </svg>
         </div>
-        <span id="${containerId}-pct" class="vox-pulse-pct" style="position:absolute;bottom:4px;left:0;right:0;text-align:center;">0%</span>
+        <span id="${containerId}-pct" style="position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:11px;font-weight:700;color:#7c3aed;">0%</span>
       </div>
-      <p class="vox-pulse-label" id="${containerId}-phase">${phases[0]}</p>
+      <p id="${containerId}-phase" style="font-size:12px;font-weight:600;color:#6366f1;text-align:center;max-width:220px;margin:0;">${phases[0]}</p>
     </div>`;
 
   document.getElementById(containerId).innerHTML = html;
@@ -665,7 +655,7 @@ function makeProgressRing(containerId, phases, intervalMs) {
   const phEl  = document.getElementById(`${containerId}-phase`);
 
   function setProgress(p) {
-    const offset = 213.6 * (1 - p / 100);
+    const offset = 238.8 * (1 - p / 100);
     if (ring)  ring.style.strokeDashoffset = offset;
     if (pctEl) pctEl.textContent = Math.round(p) + '%';
   }
