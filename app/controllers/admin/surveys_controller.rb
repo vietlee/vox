@@ -524,10 +524,18 @@ class Admin::SurveysController < Admin::BaseController
       Exactly 3 recommendations. Format: **Tên** | Ai thực hiện | Timeline | Kết quả kỳ vọng | Căn cứ: Qx, Qy
 
       ## CHỈ THỊ DỮ LIỆU PHỤ LỤC
-      - Hiển thị chart: [question numbers worth visualizing, include cross-tab pairs]
-      - Bỏ qua: [questions with no chart value]
-      - Với nhóm n < 3: ghi "cỡ mẫu quá nhỏ" thay vì %
-      - Mỗi chart: 1–2 câu insight tập trung vào ý nghĩa, không mô tả lại số liệu
+      Think strategically: what are the 2-3 comparisons that would answer this survey's core question?
+      Lead with the "money chart" — the single visualization that most directly answers the survey purpose.
+      Then list only charts where comparison reveals something actionable (not single-question distributions unless they stand alone).
+
+      Format each chart as:
+      **[Tên chart]** — [Qx × Qy hoặc Qx alone]: [loại chart] | [1 câu: insight chiến lược cần thấy từ chart này, không mô tả số liệu]
+
+      Rules:
+      - Maximum 5 charts total. Cut any chart that doesn't change a decision.
+      - If there's a demographic/grouping question, every key outcome metric MUST be cross-tabbed against it.
+      - Với nhóm n < 3: ghi "cỡ mẫu quá nhỏ" thay vì %.
+      - End with: **Bỏ qua:** [list questions and why — e.g., "Q1 (định danh/bảo mật)", "Q3 (bối cảnh, không cần chart)"]
     PROMPT
 
     current_workspace.active_subscription&.deduct_credits!(3)
