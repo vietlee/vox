@@ -75,19 +75,21 @@
         %>
         <div class="rounded-xl border border-slate-100 bg-white p-3">
           <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Cảm xúc tổng thể</div>
-          <!-- Donut + legend side by side, compact -->
-          <div class="flex items-center gap-3">
-            <canvas id="<%= card_id %>-sentiment" width="72" height="72" style="width:72px;height:72px;flex-shrink:0;"></canvas>
-            <div class="space-y-1.5">
-              <% [["Tích cực", pos_r, "#34d399", "text-emerald-600"], ["Trung lập", neu_r, "#cbd5e1", "text-slate-400"], ["Tiêu cực", neg_r, "#f87171", "text-red-500"]].each do |label, val, color, text_cls| %>
-                <div class="flex items-center gap-1.5 text-[10px]">
-                  <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:<%= color %>;"></span>
-                  <span class="text-slate-500"><%= label %></span>
-                  <strong class="<%= text_cls %> ml-1"><%= "#{val}%" %></strong>
-                </div>
-              <% end %>
+          <!-- Donut left, legend + note fill remaining space -->
+          <div class="flex items-start gap-4">
+            <canvas id="<%= card_id %>-sentiment" width="96" height="96" style="width:96px;height:96px;flex-shrink:0;"></canvas>
+            <div class="flex-1 min-w-0">
+              <div class="space-y-2 mb-2">
+                <% [["Tích cực", pos_r, "#34d399", "text-emerald-600"], ["Trung lập", neu_r, "#cbd5e1", "text-slate-400"], ["Tiêu cực", neg_r, "#f87171", "text-red-500"]].each do |label, val, color, text_cls| %>
+                  <div class="flex items-center gap-2 text-[11px]">
+                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:<%= color %>;"></span>
+                    <span class="text-slate-600 flex-1"><%= label %></span>
+                    <strong class="<%= text_cls %>"><%= "#{val}%" %></strong>
+                  </div>
+                <% end %>
+              </div>
               <% if sentiment["sentiment_note"].present? %>
-                <p class="text-[9px] text-slate-400 italic leading-snug pt-0.5 max-w-[140px]"><%= sentiment["sentiment_note"] %></p>
+                <p class="text-[10px] text-slate-400 italic leading-relaxed"><%= sentiment["sentiment_note"] %></p>
               <% end %>
             </div>
           </div>
@@ -99,7 +101,7 @@
             if (!canvas || canvas._drawn) return;
             canvas._drawn = true;
             const dpr = window.devicePixelRatio || 1;
-            const size = 72;
+            const size = 96;
             canvas.width  = size * dpr;
             canvas.height = size * dpr;
             canvas.style.width  = size + 'px';
@@ -109,7 +111,7 @@
             const data   = [<%= pos_val %>, <%= neu_val %>, <%= neg_val %>];
             const colors = ['#34d399','#cbd5e1','#f87171'];
             const total  = data.reduce((a,b)=>a+b,0) || 100;
-            const cx = size/2, cy = size/2, r = 36, innerR = 22;
+            const cx = size/2, cy = size/2, r = 44, innerR = 28;
             let angle = -Math.PI/2;
             data.forEach((val,i)=>{
               if (val <= 0) return;
@@ -182,30 +184,38 @@
     <div>
       <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Phân tích từng câu hỏi</div>
       <div class="space-y-1.5" id="<%= card_id %>-insights">
+        <%# Helper: render one question insight row %>
+        <%
+          render_qi = ->(qi, badge_cls, badge_char, q_cls, f_cls) do
+            q_full = qi["question"].to_s
+            q_short = q_full.length > 60 ? q_full.truncate(60) : nil
+          %>
+          <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 bg-white border border-slate-100">
+            <span class="text-[8px] font-black w-4 h-4 flex items-center justify-center rounded flex-shrink-0 mt-0.5 <%= badge_cls %>"><%= badge_char %></span>
+            <div class="flex-1 min-w-0">
+              <div class="text-[10px] font-semibold <%= q_cls %> leading-snug">
+                <% if q_short %>
+                  <span class="qi-short"><%= q_short %><button onclick="const p=this.closest('div');p.querySelector('.qi-short').style.display='none';p.querySelector('.qi-full').style.display='inline'" class="text-indigo-400 hover:text-indigo-600 text-[9px] ml-1 bg-transparent border-0 cursor-pointer p-0">...xem thêm</button></span>
+                  <span class="qi-full" style="display:none"><%= q_full %><button onclick="const p=this.closest('div');p.querySelector('.qi-full').style.display='none';p.querySelector('.qi-short').style.display='inline'" class="text-slate-400 hover:text-slate-600 text-[9px] ml-1 bg-transparent border-0 cursor-pointer p-0">thu gọn</button></span>
+                <% else %>
+                  <%= q_full %>
+                <% end %>
+              </div>
+              <div class="text-[10px] <%= f_cls %> mt-0.5 leading-snug"><%= qi["finding"] %></div>
+            </div>
+          </div>
+        <% end %>
+
         <!-- High/medium always visible -->
         <% flagged.each do |qi| %>
           <% is_high = qi["concern_level"] == "high" %>
-          <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 bg-white border border-slate-100">
-            <span class="text-[8px] font-black w-4 h-4 flex items-center justify-center rounded flex-shrink-0 mt-0.5 <%= is_high ? 'bg-red-100 text-red-500' : 'bg-amber-100 text-amber-500' %>">
-              <%= is_high ? "!" : "~" %>
-            </span>
-            <div class="flex-1 min-w-0">
-              <div class="text-[10px] font-semibold text-slate-700 leading-snug"><%= qi["question"].to_s.truncate(70) %></div>
-              <div class="text-[10px] text-slate-500 mt-0.5 leading-snug"><%= qi["finding"] %></div>
-            </div>
-          </div>
+          <%= render_qi.call(qi, is_high ? "bg-red-100 text-red-500" : "bg-amber-100 text-amber-500", is_high ? "!" : "~", "text-slate-700", "text-slate-500") %>
         <% end %>
         <!-- Low concern: collapsed by default -->
         <% if low_insights.any? %>
           <div id="<%= card_id %>-low-insights" class="hidden space-y-1.5">
             <% low_insights.each do |qi| %>
-              <div class="flex gap-2 items-start rounded-lg px-2.5 py-2 bg-white border border-slate-100">
-                <span class="text-[8px] w-4 h-4 flex items-center justify-center rounded flex-shrink-0 mt-0.5 bg-slate-100 text-slate-400">·</span>
-                <div class="flex-1 min-w-0">
-                  <div class="text-[10px] font-semibold text-slate-600 leading-snug"><%= qi["question"].to_s.truncate(70) %></div>
-                  <div class="text-[10px] text-slate-400 mt-0.5 leading-snug"><%= qi["finding"] %></div>
-                </div>
-              </div>
+              <%= render_qi.call(qi, "bg-slate-100 text-slate-400", "·", "text-slate-600", "text-slate-400") %>
             <% end %>
           </div>
           <button onclick="
