@@ -17,8 +17,8 @@
   neu_pct  = [100.0 - pos_pct - neg_pct, 0].max.round(1)
   resp_cnt = report.response_count || survey.responses.completed.count
 
-  # SVG donut helper
-  def pdf_donut_segments(segments, cx, cy, r)
+  # SVG donut helper (lambda to avoid method redefinition error on re-render)
+  pdf_donut_segments = ->(segments, cx, cy, r) do
     angle = 0.0
     paths = segments.map do |pct, color|
       next "" if pct <= 0.5
@@ -125,7 +125,7 @@
       %>
       <div style="display:flex;align-items:center;gap:16px;">
         <svg width="160" height="160" viewBox="0 0 160 160">
-          <%== pdf_donut_segments(segs, cx, cy, r) %>
+          <%== pdf_donut_segments.call(segs, cx, cy, r) %>
           <circle cx="<%= cx %>" cy="<%= cy %>" r="<%= ri %>" fill="white"/>
           <text x="<%= cx %>" y="<%= cy - 5 %>" text-anchor="middle" font-size="18" font-weight="800" fill="#1e1b4b" font-family="Arial"><%= pos_pct.round %>%</text>
           <text x="<%= cx %>" y="<%= cy + 13 %>" text-anchor="middle" font-size="9" fill="#64748b" font-family="Arial">tích cực</text>
