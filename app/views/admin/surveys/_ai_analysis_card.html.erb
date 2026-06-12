@@ -11,6 +11,25 @@
 <%# Unique ID per card to support multiple on page %>
 <% card_id = "ai-#{analysis.id}" %>
 
+<%# Build "câu hỏi số N" → full title lookup from question_insights + _computed %>
+<%
+  q_title_map = {}
+  # From question_insights: q_position like "câu hỏi số 3" → question title
+  (result["question_insights"] || []).each do |qi|
+    pos_label = qi["q_position"].to_s.downcase.strip
+    q_title_map[pos_label] = qi["question"].to_s if qi["question"].present?
+  end
+  # Helper: replace "Câu hỏi số N" in text with "Câu hỏi số N — [title]"
+  inject_q_title = ->(text) {
+    text.to_s.gsub(/[Cc]âu hỏi số (\d+)/i) do |match|
+      n = $1
+      key = "câu hỏi số #{n}"
+      title = q_title_map[key]
+      title.present? ? "#{match} — #{title.truncate(60)}" : match
+    end
+  }
+%>
+
 <div class="space-y-4 text-[13px]">
 
   <!-- ① Executive Summary — first paragraph visible, rest collapsible -->
@@ -239,7 +258,7 @@
       <ul class="space-y-1">
         <% highlights.first(4).each do |h| %>
           <li class="text-[11px] text-slate-700 leading-snug flex gap-1.5">
-            <span class="text-emerald-400 flex-shrink-0">·</span><%= h %>
+            <span class="text-emerald-400 flex-shrink-0">·</span><%= inject_q_title.call(h) %>
           </li>
         <% end %>
       </ul>
@@ -253,7 +272,7 @@
       <ul class="space-y-1">
         <% anomalies.first(3).each do |a| %>
           <li class="text-[11px] text-slate-600 leading-snug flex gap-1.5">
-            <span class="text-amber-400 flex-shrink-0">⚡</span><%= a %>
+            <span class="text-amber-400 flex-shrink-0">⚡</span><%= inject_q_title.call(a) %>
           </li>
         <% end %>
       </ul>
