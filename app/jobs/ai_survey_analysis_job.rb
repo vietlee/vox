@@ -43,6 +43,17 @@ class AiSurveyAnalysisJob < ApplicationJob
       6. Return ONLY valid JSON. Use \\n\\n for paragraph breaks. No markdown fences.
     SYSTEM
 
+    # Build Q-position reference (Q1, Q2...) for AI to use in citations
+    q_position_map = survey.questions.order(:position).each_with_index.to_h { |q, i| [q.id, "Q#{i+1}"] }
+    q_position_ref = survey.questions.order(:position).each_with_index.map { |q, i|
+      "Q#{i+1} (id=#{q.id}): #{q.title.truncate(60)}"
+    }.join("\n")
+
+    # Annotate structured data with Q-position so AI doesn't need to cross-reference
+    structured_with_pos = structured.map { |e|
+      e.merge(q_position: q_position_map[e[:question_id]] || e[:question_id])
+    }
+
     user_prompt = <<~PROMPT
       Analyze this survey data and write insights. All numbers are pre-computed — use them exactly.
 
@@ -51,25 +62,28 @@ class AiSurveyAnalysisJob < ApplicationJob
       #{survey.description.present? ? "Purpose: #{survey.description}" : ""}
       Responses: #{responses.count}#{responses.count < 10 ? " ⚠️ small sample — be cautious with conclusions" : ""}
 
-      ## Pre-computed Stats (source of truth — cite these numbers directly)
+      ## Question Reference (ALWAYS cite questions as Q1, Q2... NOT as database IDs)
+      #{q_position_ref}
+
+      ## Pre-computed Stats
       #{global_stats.to_json}
 
-      ## Question Data (structured)
-      #{structured.to_json.truncate(6000)}
+      ## Question Data (each entry includes q_position — use this label when citing)
+      #{structured_with_pos.to_json.truncate(6000)}
 
-      #{cross_tabs.any? ? "## Cross-tab Breakdowns (outcome metrics broken down by grouping questions — USE THESE for subgroup analysis)\n#{cross_tabs.to_json.truncate(3000)}" : ""}
+      #{cross_tabs.any? ? "## Cross-tab Breakdowns by Group\n#{cross_tabs.to_json.truncate(3000)}" : ""}
 
       #{open_texts.any? ? "## Open-text Responses (qualitative only — do NOT assign counts or %)\n#{open_texts.to_json.truncate(2000)}" : ""}
 
       ## Required JSON output (ALL text in #{lang_name}):
       {
-        "executive_summary": "3 paragraphs, each DIFFERENT — never repeat. Use \\n\\n between paragraphs.\\nPara 1 (HEADLINE): The most important finding with its exact number. If questions have subtype='pct', they ARE the survey's core metric — lead with their avg and the biggest subgroup gap from the cross-tab data (e.g. 'Bộ phận X tiết kiệm 70% vs Bộ phận Y chỉ 40%').\\nPara 2 (PATTERNS): What do 2+ questions together reveal that no single question shows alone?\\nPara 3 (ACTION): Who should do what by when, and why now?",
+        "executive_summary": "3 paragraphs, each DIFFERENT — never repeat. Use \\n\\n between paragraphs.\\nPara 1 (HEADLINE): Most important finding with exact number. If any question has subtype='pct', it IS the core metric — lead with its avg AND the biggest subgroup gap from cross-tab (e.g. 'Q6: Frontend 70% vs QC 35%').\\nPara 2 (PATTERNS): What do 2+ questions together reveal that neither shows alone?\\nPara 3 (ACTION): Who does what by when?",
 
         "key_metrics": {
           "response_count": #{responses.count},
           "overall_avg": #{global_stats[:overall_numeric_avg] || "null"},
-          "standout_high": "question with best result — cite exact score from data",
-          "standout_low": "question with worst result — cite exact score from data",
+          "standout_high": "best result — cite Q-number and exact score",
+          "standout_low": "worst result — cite Q-number and exact score",
           "data_quality": "#{responses.count < 10 ? "small sample — interpret with caution" : "reliable"}"
         },
 
@@ -77,19 +91,23 @@ class AiSurveyAnalysisJob < ApplicationJob
           "positive": "#{global_stats[:sentiment_positive]}%",
           "neutral": "#{global_stats[:sentiment_neutral]}%",
           "negative": "#{global_stats[:sentiment_negative]}%",
-          "sentiment_note": "one sentence interpreting the sentiment pattern shown by the numeric data"
+          "sentiment_note": "one sentence interpreting the overall sentiment"
         },
 
         "question_insights": [
+          MANDATORY: one entry for EVERY question that appears in Question Data above.
+          Do NOT skip any question — even if the finding seems obvious, include it.
           {
-            "question_id": <integer id from data>,
+            "question_id": <integer database id — from the data>,
+            "q_position": "Q1",
             "question": "question title",
-            "finding": "key finding — MUST cite exact number from structured_data (e.g. 'X% chose Y', 'mean = Z')",
+            "finding": "key finding — cite exact number (e.g. 'mean=7.2/10', '82.6% chọn X'). If cross-tab exists for this question, include the biggest gap between groups.",
             "concern_level": "high|medium|low"
           }
         ],
 
         "open_text_themes": [
+          only for open-text questions — 2-4 themes max per question.
           {
             "theme": "theme name",
             "representative_quotes": ["quote 1", "quote 2"],
@@ -98,24 +116,26 @@ class AiSurveyAnalysisJob < ApplicationJob
           }
         ],
 
-        "anomalies": ["Specific outlier with exact data to back it up"],
+        "anomalies": ["Specific outlier with Q-number and exact data"],
 
-        "highlights": ["Specific positive finding with exact percentage or score from data"],
+        "highlights": ["Specific positive finding with Q-number and exact % or score"],
 
         "recommendations": [
+          cite questions as Q1, Q2... NEVER as database IDs or 'câu hỏi 135'.
           {
-            "action": "Specific action — who does what by when",
-            "rationale": "Why — cite specific question ID and finding",
-            "impact": "Expected outcome",
+            "action": "Specific: who + what + by when",
+            "rationale": "Why — cite Q-number (e.g. 'Q6 cho thấy...', 'Q3 và Q7 kết hợp cho thấy...')",
+            "impact": "Measurable expected outcome",
             "priority": "high|medium|low"
           }
         ]
       }
 
-      Rules:
-      - question_insights: one entry per structured question with meaningful data. question_id must be the integer ID from the data.
-      - open_text_themes: only for short_text/long_text questions. 2-4 themes max per question.
-      - recommendations: 3-5 items, ordered by priority. Each must cite a specific question ID.
+      HARD RULES:
+      - question_insights: MUST include every question from Question Data. No skipping.
+      - All question citations: use Q1, Q2... format. NEVER use raw database IDs like 135.
+      - Every number cited must come from the pre-computed data above.
+      - recommendations: 3-5 items, ordered by priority.
       - sentiment values are PRE-FILLED above — copy them exactly into the output.
     PROMPT
 
