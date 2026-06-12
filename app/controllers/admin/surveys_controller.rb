@@ -480,110 +480,62 @@ class Admin::SurveysController < Admin::BaseController
                   .map { |q, i| "Q#{i+1}: #{q.title.truncate(70)}" }
     total_responses = @survey.responses.completed.count
 
-    # Detect numeric short_text questions (user typed a %, number, or estimate)
-    numeric_text_pattern = /\b(%|phần trăm|bao nhiêu|ước tính|ước lượng|số giờ|giờ|ngày|lần|tháng|điểm|mức|tỉ lệ|tỷ lệ)\b/i
-
     grouping_idx = grouping_q ? qs.index(grouping_q) + 1 : nil
-    cross_note   = grouping_idx ? " | cross-tab ×Q#{grouping_idx} (n<3→cỡ mẫu nhỏ)" : ""
-
-    # Pre-build analysis rows in Ruby — deterministic, never truncates regardless of question count
-    analysis_rows = qs.each_with_index.map do |q, i|
-      qnum = "Q#{i + 1}"
-      is_grouping = (grouping_q && q.id == grouping_q.id)
-
-      metric = case q.question_type
-               when "nps"
-                 # NPS: only real advocacy questions
-                 "NPS score + Promoters(≥9)/Passives(7-8)/Detractors(≤6)#{cross_note}"
-               when "rating", "linear_scale"
-                 # Rating scales: NEVER NPS labels — use Thấp/Trung bình/Cao grouping
-                 "mean + phân bổ nhóm Thấp(0-6)/Trung bình(7-8)/Cao(9-10)#{cross_note}"
-               when "single_choice", "dropdown"
-                 is_grouping ? "nhóm phân tích (dùng để cross-tab)" : "% mỗi lựa chọn, xếp hạng#{cross_note}"
-               when "multiple_choice", "checkbox"
-                 "% chọn mỗi option (đa lựa chọn), top-3 phổ biến#{cross_note}"
-               when "short_text", "long_text"
-                 if q.title.match?(numeric_text_pattern)
-                   # Numeric estimate stored as text (e.g. "% thời gian tiết kiệm")
-                   "histogram phân bổ + mean + median#{cross_note} [dữ liệu số — KHÔNG phải text clustering]"
-                 else
-                   "phân nhóm theo chủ đề → trích dẫn 1-2 câu tiêu biểu/nhóm [open-text]"
-                 end
-               else
-                 "% distribution#{cross_note}"
-               end
-      "- #{qnum} **#{q.title.truncate(65)}**: #{metric}"
-    end.join("\n")
-
-    # Pre-build chart list in Ruby — eliminates Claude's chart-selection mistakes
-    chart_show = []
-    chart_skip = []
-    qs.each_with_index do |q, i|
-      qnum = "Q#{i + 1}"
-      case q.question_type
-      when "nps", "rating", "linear_scale"
-        chart_show << qnum
-        chart_show << "#{qnum} × Q#{grouping_idx} (cross-tab)" if grouping_idx && !grouping_q&.id == q.id
-      when "single_choice", "dropdown"
-        if grouping_q&.id == q.id
-          chart_skip << "#{qnum} (nhóm phân tích — hiển thị trong cross-tab, không cần chart riêng)"
-        else
-          chart_show << qnum
-          chart_show << "#{qnum} × Q#{grouping_idx} (cross-tab)" if grouping_idx
-        end
-      when "multiple_choice", "checkbox"
-        chart_show << qnum
-      when "short_text", "long_text"
-        if q.title.match?(numeric_text_pattern)
-          chart_show << "#{qnum} (histogram)"
-          chart_show << "#{qnum} × Q#{grouping_idx} (cross-tab)" if grouping_idx
-        else
-          chart_skip << "#{qnum} (open-text — tổng hợp trong văn bản, không chart)"
-        end
-      end
-    end
-    chart_section = <<~CHARTS.strip
-      ## CHỈ THỊ DỮ LIỆU PHỤ LỤC
-      - Hiển thị chart: #{chart_show.uniq.join(", ")}
-      - Bỏ qua chart: #{chart_skip.any? ? chart_skip.join("; ") : "không có"}
-      - Với nhóm cross-tab có n < 3: hiển thị ghi chú "cỡ mẫu quá nhỏ để kết luận" thay vì %
-      - Mỗi chart: 1–2 câu insight (không mô tả lại số liệu, tập trung vào ý nghĩa)
-    CHARTS
 
     system_prompt = <<~SYS.strip
-      You are a senior analyst completing a report brief. Write in #{lang_name}. Output ONLY the filled template — no preamble, no explanation.
-      CRITICAL: Never apply NPS Promoter/Detractor labels to rating or scale questions. Those use Thấp/Trung bình/Cao only.
+      You are a senior data analyst writing a focused report brief for an AI executive report system.
+      Write in #{lang_name}. Output ONLY the prompt text — no preamble, no explanation, no meta-commentary.
+
+      Your job: read the survey's purpose and questions, then write a FOCUSED brief that guides an AI analyst
+      toward the most strategically important insights. Do NOT list every question — pick the 5-8 that matter most.
+
+      HARD METHODOLOGY RULES (violations corrupt the report):
+      1. NPS (Promoters ≥9 / Passives 7-8 / Detractors ≤6) applies ONLY to questions about recommending to others.
+      2. Rating/scale questions measuring quality or satisfaction → use mean + score groups Thấp(0-6)/Trung bình(7-8)/Cao(9-10). NEVER Promoters/Detractors.
+      3. Cross-tab: if any subgroup has n < 3, write "cỡ mẫu quá nhỏ để kết luận" instead of %.
+      4. Open-text questions → synthesize by theme clusters, cite 1-2 representative quotes per cluster.
+      5. Questions asking for numeric estimates (%, hours, frequency) → treat as quantitative data (mean + distribution), NOT free text.
     SYS
 
     user_prompt = <<~PROMPT
-      Fill in the 2 marked [FILL] sections below. Do NOT modify any other section.
+      Write the ideal report prompt for this survey.
 
-      Survey: #{@survey.title}#{@survey.description.present? ? " — #{@survey.description.truncate(120)}" : ""}
-      Responses: #{total_responses}#{grouping_q ? " | Grouping: Q#{grouping_idx} #{grouping_q.title.truncate(50)}" : ""}
+      Survey: "#{@survey.title}"
+      #{@survey.description.present? ? "Purpose: #{@survey.description}" : ""}
+      Responses collected: #{total_responses}
+      #{grouping_q ? "Demographic/grouping variable: Q#{grouping_idx} — \"#{grouping_q.title.truncate(70)}\" (use for all cross-tab breakdowns)" : ""}
 
-      ---
-      ## AUDIENCE & TONE
-      [FILL: 2 sentences. Who reads this (role/level)? What is the tone and decision-making focus?]
+      All questions (for context):
+      #{questions_text}
 
-      ## PHÂN TÍCH BẮT BUỘC
-      #{analysis_rows}
+      Write a structured prompt with these 4 sections:
+
+      ## MỤC TIÊU & ĐỐI TƯỢNG
+      2 sentences: who reads this report + what decisions should it enable.
+
+      ## TRỌNG TÂM PHÂN TÍCH
+      Select the 5-8 most strategically important questions. For each, write:
+      - **[Topic]** (Qx[+Qy]): what to compute + what insight to extract + cross-tab if relevant
+      Group under: ### Ưu tiên cao / ### Ưu tiên trung bình
+      Skip demographic/identity questions. Prioritize: outcome metrics > adoption > quality ratings > barriers > open feedback.
 
       ## KHUYẾN NGHỊ HÀNH ĐỘNG
-      [FILL: exactly 3 items.
-      Format: **Tên hành động** | Ai thực hiện | Timeline | Kết quả kỳ vọng | Căn cứ: Q[x], Q[y]
-      Rules: cite specific Qs as evidence; if open-text exists, ≥1 recommendation must use it; be concrete not generic.]
+      Exactly 3 recommendations. Format: **Tên** | Ai thực hiện | Timeline | Kết quả kỳ vọng | Căn cứ: Qx, Qy
 
-      #{chart_section}
-      ---
+      ## CHỈ THỊ DỮ LIỆU PHỤ LỤC
+      - Hiển thị chart: [question numbers worth visualizing, include cross-tab pairs]
+      - Bỏ qua: [questions with no chart value]
+      - Với nhóm n < 3: ghi "cỡ mẫu quá nhỏ" thay vì %
+      - Mỗi chart: 1–2 câu insight tập trung vào ý nghĩa, không mô tả lại số liệu
     PROMPT
 
     current_workspace.active_subscription&.deduct_credits!(3)
 
-    # Claude only writes 2 short sections — 1200 tokens is always sufficient
+    # Focused selective prompt is naturally concise — 2500 tokens is more than enough
     result = ClaudeService.sonnet_long.call_full(
       system_prompt: system_prompt,
       user_prompt:   user_prompt,
-      max_tokens:    1200
+      max_tokens:    2500
     )
 
     render json: { suggestion: result[:text].strip, truncated: result[:truncated] }
