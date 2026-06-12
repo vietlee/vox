@@ -114,11 +114,12 @@ class AiExecutiveReportJob < ApplicationJob
         },
 
         "sections": [
-          {
-            "heading": "Name the INSIGHT, not the topic. Good: 'Frontend tiết kiệm gấp đôi QC — khoảng cách 35%'. Bad: 'Mức tiết kiệm thời gian'.",
-            "content": "2 paragraphs max. Lead with the cross-question or cross-group finding. Cite exact numbers. Explain what it means in context.",
-            "key_finding": "The single 'so what' of this section — actionable."
-          }
+          <Write ONLY as many sections as genuinely distinct insights the data supports.
+           Rule: 1 section per key cross-question pattern or subgroup gap found in Step 3.
+           #{questions_list.size <= 4 ? "This survey has #{questions_list.size} questions — write 1–2 sections max. Do NOT pad." : "Write 2–4 sections. Stop when you run out of real insights."}
+           Each section must answer a different analytical question. Never split one finding into two sections.
+           Format: {"heading": "Name the INSIGHT (e.g. 'Frontend tiết kiệm gấp đôi QC — khoảng cách 35%')", "content": "2 paragraphs max. Cross-group/cross-question finding with exact numbers.", "key_finding": "One-sentence 'so what' — actionable."}
+          >
         ],
 
         "recommendations": [
@@ -151,8 +152,8 @@ class AiExecutiveReportJob < ApplicationJob
       }
 
       Constraints:
-      - 3-4 sections only. Each section answers a different analytical question from Step 3.
-      - 3 recommendations only, ordered by impact.
+      - Sections: #{questions_list.size <= 4 ? "1–2 only (small survey)" : "2–4 only"}. Each section answers a DIFFERENT analytical question. No padding.
+      - Recommendations: #{questions_list.size <= 4 ? "1–2" : "2–3"} only, ordered by impact.
       - sentiment % must be numeric (from pre-computed data).
       - #{user_context ? "Additional focus requested: \"#{user_context.truncate(600)}\"" : "No additional focus specified — derive the most important insights from the data itself."}
     PROMPT
@@ -184,8 +185,17 @@ class AiExecutiveReportJob < ApplicationJob
     # 1. Pre-extract from user context (regex — reliable, doesn't depend on AI)
     # 2. Merge with AI-provided pairs
     pre_pairs = pre_extracted_cross_tab_pairs(user_context, survey)
-    ai_pairs  = Array(result.delete("cross_tab_pairs")).select { |p|
-      p.is_a?(Hash) && p["target_id"].present? && p["group_by_id"].present?
+
+    valid_q_ids      = survey.questions.pluck(:id).map(&:to_i).to_set
+    choice_type_ids  = survey.questions
+                             .where(question_type: %w[single_choice dropdown])
+                             .pluck(:id).map(&:to_i).to_set
+    ai_pairs = Array(result.delete("cross_tab_pairs")).select { |p|
+      p.is_a?(Hash) &&
+        p["target_id"].present? && p["group_by_id"].present? &&
+        valid_q_ids.include?(p["target_id"].to_i) &&
+        valid_q_ids.include?(p["group_by_id"].to_i) &&
+        choice_type_ids.include?(p["group_by_id"].to_i)
     }
     cross_tab_pairs = (pre_pairs + ai_pairs)
                       .uniq { |p| "#{p['target_id']}_#{p['group_by_id']}" }
