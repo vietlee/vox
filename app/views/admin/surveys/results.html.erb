@@ -323,6 +323,31 @@
           </div>
           <!-- Hidden input synced with Quill — used by all JS reading #report-context -->
           <input type="hidden" id="report-context">
+          <!-- Suggest loading overlay (shown while AI is working) -->
+          <div id="suggest-loading-overlay" style="display:none;align-items:center;justify-content:center;gap:14px;min-height:110px;border-radius:10px;background:linear-gradient(135deg,#f5f3ff,#eef2ff);border:1.5px solid #c4b5fd;padding:20px;">
+            <div style="position:relative;width:56px;height:56px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="56" height="56" viewBox="0 0 56 56" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">
+                <circle cx="28" cy="28" r="24" stroke="#ede9fe" stroke-width="4"/>
+                <circle id="suggest-ring" cx="28" cy="28" r="24" stroke="#7c3aed" stroke-width="4" stroke-linecap="round"
+                  stroke-dasharray="150.8" stroke-dashoffset="150.8"
+                  style="transition:stroke-dashoffset 0.8s ease;"/>
+              </svg>
+              <div style="position:relative;z-index:2;animation:vox-pulse 1.6s ease-in-out infinite;">
+                <svg width="22" height="22" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="0" width="36" height="36" rx="9" fill="#7c3aed"/>
+                  <polygon points="10,24 6,31 16,24" fill="white"/>
+                  <rect x="6" y="6" width="24" height="19" rx="5" fill="white"/>
+                  <rect x="10" y="11" width="4" height="7" rx="1" fill="#7c3aed"/>
+                  <rect x="16" y="8" width="4" height="13" rx="1" fill="#7c3aed"/>
+                  <rect x="23" y="10" width="4" height="9" rx="1" fill="#7c3aed"/>
+                </svg>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#5b21b6;margin-bottom:3px;">Đang phân tích khảo sát...</div>
+              <div id="suggest-loading-sub" style="font-size:11px;color:#7c3aed;opacity:0.8;">AI đang đọc dữ liệu và tạo gợi ý</div>
+            </div>
+          </div>
           <div class="vox-richtext-wrap" id="report-context-wrap">
             <div id="report-context-editor" style="min-height:110px;font-size:13px;"></div>
           </div>
@@ -1170,19 +1195,34 @@ async function suggestReportPrompt() {
   const btn = document.getElementById('suggest-prompt-btn');
   const icon = document.getElementById('suggest-icon');
   const label = document.getElementById('suggest-label');
+  const overlay = document.getElementById('suggest-loading-overlay');
+  const wrap = document.getElementById('report-context-wrap');
+  const ring = document.getElementById('suggest-ring');
+  const subText = document.getElementById('suggest-loading-sub');
   if (btn.disabled) return;
 
-  // Loading state — VOX pulse mini spinner inside button
+  // Show overlay, hide editor
   btn.disabled = true;
-  btn.style.opacity = '0.85';
+  btn.style.opacity = '0.75';
   btn.style.cursor = 'not-allowed';
-  icon.innerHTML = `<span style="display:inline-block;width:14px;height:14px;position:relative;vertical-align:middle;">
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="position:absolute;top:0;left:0;animation:spin 1s linear infinite;">
-      <circle cx="7" cy="7" r="5.5" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-      <path d="M7 1.5 A5.5 5.5 0 0 1 12.5 7" stroke="white" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-  </span>`;
+  icon.textContent = '✨';
   label.textContent = 'Đang phân tích...';
+  if (overlay) overlay.style.display = 'flex';
+  if (wrap) wrap.style.display = 'none';
+
+  // Animate progress ring: creep from 0→85% over ~12s
+  let ringPct = 0;
+  const phases = ['AI đang đọc dữ liệu khảo sát...', 'Phân tích xu hướng và trọng tâm...', 'Đang tạo gợi ý prompt...'];
+  let phaseIdx = 0;
+  const ringTimer = setInterval(() => {
+    ringPct = Math.min(ringPct + 1.2, 85);
+    if (ring) ring.style.strokeDashoffset = (150.8 * (1 - ringPct / 100)).toFixed(1);
+    const milestone = (phaseIdx + 1) / phases.length * 85;
+    if (ringPct >= milestone && phaseIdx < phases.length - 1) {
+      phaseIdx++;
+      if (subText) subText.textContent = phases[phaseIdx];
+    }
+  }, 200);
 
   // Get selected language
   const langEl = document.querySelector('input[name="language"]:checked') ||
@@ -1196,16 +1236,20 @@ async function suggestReportPrompt() {
       body: JSON.stringify({ language })
     });
     const data = await res.json();
+    // Finish ring to 100%
+    clearInterval(ringTimer);
+    if (ring) ring.style.strokeDashoffset = '0';
+
     if (data.suggestion) {
       if (window.setReportContext) window.setReportContext(data.suggestion);
-      const wrap = document.getElementById('report-context-wrap');
-      if (wrap) { wrap.style.borderColor = '#8b5cf6'; setTimeout(() => { wrap.style.borderColor = ''; }, 2000); }
       icon.textContent = '✅';
       label.textContent = 'Đã gợi ý!';
       btn.style.background = 'linear-gradient(135deg,#059669,#10b981)';
+      if (wrap) { wrap.style.borderColor = '#8b5cf6'; }
       setTimeout(() => {
         icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt';
         btn.style.background = 'linear-gradient(135deg,#7c3aed,#6366f1)';
+        if (wrap) wrap.style.borderColor = '';
       }, 2500);
     } else {
       icon.textContent = '⚠️';
@@ -1217,6 +1261,7 @@ async function suggestReportPrompt() {
       }, 3000);
     }
   } catch(e) {
+    clearInterval(ringTimer);
     icon.textContent = '⚠️';
     label.textContent = 'Lỗi kết nối';
     btn.style.background = 'linear-gradient(135deg,#dc2626,#ef4444)';
@@ -1228,6 +1273,9 @@ async function suggestReportPrompt() {
     btn.disabled = false;
     btn.style.opacity = '1';
     btn.style.cursor = 'pointer';
+    // Hide overlay, show editor
+    if (overlay) overlay.style.display = 'none';
+    if (wrap) wrap.style.display = '';
   }
 }
 
