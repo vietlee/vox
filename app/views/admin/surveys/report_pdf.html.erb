@@ -17,6 +17,11 @@
   neu_pct  = [100.0 - pos_pct - neg_pct, 0].max.round(1)
   resp_cnt = report.response_count || survey.responses.completed.count
 
+  # Chart insight block helper
+  render_chart_insight = ->(qd) do
+    %(<div style="margin-top:9px;padding:7px 10px;background:#f8f9ff;border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:10px;color:#3730a3;line-height:1.6;">#{ERB::Util.html_escape(qd["insight"])}</div>).html_safe
+  end
+
   # SVG donut helper (lambda to avoid method redefinition error on re-render)
   pdf_donut_segments = ->(segments, cx, cy, r) do
     angle = 0.0
@@ -292,6 +297,7 @@
             </div>
           </div>
         <% end %>
+        <%= render_chart_insight(qd) if qd["insight"].present? %>
       </div>
 
     <% elsif %w[rating linear_scale nps].include?(qtype) %>
@@ -350,6 +356,28 @@
             <% end %>
           </div>
         </div>
+        <%# Cross-tab breakdown (e.g. avg by department) %>
+        <% if (xt = qd["cross_tab"]) && (xt_groups = xt["groups"] || []).any? %>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #e2e8f0;">
+            <div style="font-size:9px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;">
+              📊 <%= xt["label"] || xt["group_question"] %>
+            </div>
+            <% xt_max = xt["max"].to_i.nonzero? || xt_groups.map { |g| g["avg"].to_f }.max.ceil %>
+            <% xt_groups.each do |g| %>
+              <% bar_w = xt_max > 0 ? (g["avg"].to_f / xt_max * 100).round(1) : 0 %>
+              <div class="bar-row" style="margin-bottom:6px;">
+                <div class="bar-label">
+                  <span style="font-size:9px;color:#475569;"><%= g["label"] %> <span style="color:#94a3b8;">(n=<%= g["total"] %>)</span></span>
+                  <span style="font-weight:700;color:#6366f1;font-size:10px;"><%= g["avg"] %>/<%= xt["max"] || xt_max %></span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:<%= bar_w %>%;background:linear-gradient(90deg,#6366f1,#8b5cf6);"></div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+        <%= render_chart_insight(qd) if qd["insight"].present? %>
       </div>
 
     <% end %>

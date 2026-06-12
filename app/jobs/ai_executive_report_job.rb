@@ -100,7 +100,18 @@ class AiExecutiveReportJob < ApplicationJob
         ],
         "conclusion": "1 sentence only — forward-looking and action-oriented.",
 
-        "relevant_question_ids": [<list of question IDs (integers) that are most relevant to the report focus — exclude demographics, names, or questions irrelevant to the prompt. Max 6 IDs.>]
+        "relevant_question_ids": [<IDs of choice/rating/scale questions that have chart value for this report. ONLY include questions explicitly mentioned or directly related to the report focus. Skip text questions, name fields, demographics. No hard max — include what the prompt actually needs.>],
+
+        "cross_tab_pairs": [
+          <If the user context asks to compare a metric BY a grouping (e.g. "compare time savings by department", "compare Q6/Q7 by Q2"):
+           List objects: {"target_id": <rating/choice question ID>, "group_by_id": <grouping question ID>, "label": "short description e.g. 'Tiết kiệm thời gian theo bộ phận'"}
+           Max 3 pairs. Only include when user context explicitly requests cross-tab comparison.
+           If no comparison requested, return [].>
+        ],
+
+        "chart_insights": {
+          "<question_id as string>": "1-2 sentence insight about this specific question's data — mention the most important number and what it implies. NOT a description of the chart."
+        }
       }
 
       Hard constraints:
@@ -110,9 +121,11 @@ class AiExecutiveReportJob < ApplicationJob
       - Sections = survey DATA only. Zero meta-commentary about the report itself.
       - #{user_context ? "Directly address: \"#{user_context}\" — weave into the sections, not as a separate section." : "Focus only on the most statistically significant findings."}
       - sentiment_positive/negative in key_metrics MUST be numeric percentages (e.g. "72%"), not "N/A" or placeholders.
-      - relevant_question_ids: pick ONLY choice/rating/NPS/scale questions. Never include short_text or long_text questions (they have no chart). Skip name fields and demographic questions. Max 6 IDs.
+      - relevant_question_ids: ONLY choice/rating/NPS/scale questions. Never text/name/demographic. If user prompt mentions specific question numbers, those MUST be included.
+      - cross_tab_pairs: only when user context explicitly asks for group comparison. group_by_id must be a single_choice/dropdown question.
+      - chart_insights: provide for every question in relevant_question_ids.
 
-      ## Survey questions for reference (to populate relevant_question_ids):
+      ## Survey questions for reference:
       #{survey.questions.order(:position).map { |q| "ID #{q.id}: [#{q.question_type}] #{q.title}" }.join("\n")}
     PROMPT
 
@@ -125,11 +138,33 @@ class AiExecutiveReportJob < ApplicationJob
     result = parse_json_response(result_text)
 
     # Attach real per-question chart data from DB, filtered by AI-selected relevant questions
-    all_chart_data = build_question_chart_data(survey)
+    completed_response_ids = survey.responses.completed.where(excluded: [false, nil]).pluck(:id)
+    all_chart_data = build_question_chart_data(survey, completed_response_ids)
     relevant_ids   = Array(result["relevant_question_ids"]).map(&:to_i).select(&:positive?)
-    result["chart_data"] = relevant_ids.any? ?
+    chart_data = relevant_ids.any? ?
       all_chart_data.select { |d| relevant_ids.include?(d["question_id"].to_i) } :
       all_chart_data
+
+    # Merge AI-provided chart insights into each chart entry
+    chart_insights = result.delete("chart_insights") || {}
+    chart_data.each do |qd|
+      insight = chart_insights[qd["question_id"].to_s] || chart_insights[qd["question_id"].to_i.to_s]
+      qd["insight"] = insight if insight.present?
+    end
+
+    # Build cross-tab breakdowns for requested comparison pairs
+    cross_tab_pairs = Array(result.delete("cross_tab_pairs")).select { |p|
+      p.is_a?(Hash) && p["target_id"].present? && p["group_by_id"].present?
+    }
+    if cross_tab_pairs.any? && completed_response_ids.any?
+      cross_tab_map = build_cross_tab_data(survey, cross_tab_pairs, completed_response_ids)
+      chart_data.each do |qd|
+        xt = cross_tab_map[qd["question_id"].to_i]
+        qd["cross_tab"] = xt if xt
+      end
+    end
+
+    result["chart_data"] = chart_data
 
     # Store metadata alongside the report content
     result["_meta"] = {
@@ -161,8 +196,8 @@ class AiExecutiveReportJob < ApplicationJob
 
   private
 
-  def build_question_chart_data(survey)
-    completed_response_ids = survey.responses.completed.where(excluded: [false, nil]).pluck(:id)
+  def build_question_chart_data(survey, completed_response_ids = nil)
+    completed_response_ids ||= survey.responses.completed.where(excluded: [false, nil]).pluck(:id)
     return [] if completed_response_ids.empty?
 
     survey.questions.order(:position).filter_map do |q|
@@ -199,6 +234,56 @@ class AiExecutiveReportJob < ApplicationJob
           "type" => q.question_type.to_s, "total" => count }
       end
     end.compact
+  end
+
+  # Build cross-tab data: for each pair {target_id, group_by_id}, compute avg/distribution
+  # of the target question broken down by each option of the grouping question.
+  def build_cross_tab_data(survey, pairs, completed_response_ids)
+    result = {}
+    pairs.each do |pair|
+      target_q = survey.questions.find_by(id: pair["target_id"].to_i)
+      group_q  = survey.questions.find_by(id: pair["group_by_id"].to_i)
+      next unless target_q && group_q
+
+      group_options = group_q.question_options.order(:position)
+      max_val = target_q.nps? ? 10 : 5
+
+      groups = group_options.filter_map do |opt|
+        # Response IDs where respondent chose this option in the grouping question
+        group_resp_ids = Answer.where(question: group_q, response_id: completed_response_ids)
+                               .where("option_ids @> ?", [opt.id.to_s].to_json)
+                               .pluck(:response_id)
+        next if group_resp_ids.empty?
+
+        target_base = Answer.where(question: target_q, response_id: group_resp_ids)
+
+        case target_q.question_type.to_sym
+        when :rating, :nps, :linear_scale
+          nums = target_base.where.not(numeric_value: nil).pluck(:numeric_value).map(&:to_i)
+          next if nums.empty?
+          avg = (nums.sum.to_f / nums.size).round(1)
+          { "label" => opt.label.truncate(30), "avg" => avg, "total" => nums.size, "max" => max_val }
+        when :single_choice, :multiple_choice, :dropdown
+          total = target_base.count
+          next if total == 0
+          top_opts = target_q.question_options.order(:position).map do |topt|
+            cnt = target_base.where("option_ids @> ?", [topt.id.to_s].to_json).count
+            { "option" => topt.label.truncate(30), "pct" => (cnt.to_f / total * 100).round(1) }
+          end.max_by { |o| o["pct"] }
+          { "label" => opt.label.truncate(30), "top_option" => top_opts["option"], "pct" => top_opts["pct"], "total" => total }
+        end
+      end.compact
+
+      next if groups.empty?
+      result[target_q.id] = {
+        "label"          => (pair["label"] || "So sánh theo nhóm").truncate(60),
+        "group_question" => group_q.title.truncate(60),
+        "type"           => target_q.question_type.to_s,
+        "max"            => max_val,
+        "groups"         => groups.sort_by { |g| -(g["avg"] || g["pct"] || 0) }
+      }
+    end
+    result
   end
 
   def parse_json_response(text)
