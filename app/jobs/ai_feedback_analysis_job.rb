@@ -36,89 +36,98 @@ class AiFeedbackAnalysisJob < ApplicationJob
     top_upvoted    = feedback_data.select { |f| f[:upvotes] > 0 }.first(5)
     recent         = feedback_data.select { |f| f[:days_ago] <= 14 }.first(10)
 
-    system_prompt = <<~SYSTEM
-      You are a senior HR consultant and employee experience expert.
-      Your job is to analyze employee feedback and turn it into leadership-ready insights that drive real action.
+    # ─── LAYER 1: Pre-compute deterministic stats ───────────────────────
+    total_upvoted    = feedback_data.count { |f| f[:upvotes] > 0 }
+    total_upvote_pts = feedback_data.sum { |f| f[:upvotes] }
+    anon_count       = feedback_data.count { |f| f[:anonymous] }
+    recent_count     = feedback_data.count { |f| f[:days_ago] <= 14 }
+    avg_upvotes      = analyzed_count > 0 ? (total_upvote_pts.to_f / analyzed_count).round(1) : 0
 
-      Core principles:
-      - Write entirely in #{lang_name}
-      - Upvoted feedback represents collective sentiment — weight it more heavily than single voices
-      - Recent feedback (last 14 days) reflects current pulse — flag if it differs from overall trend
-      - Be specific: cite numbers, quote actual feedback, name concrete problems
-      - Every recommendation must be something a manager can actually assign and track
-      - Do not soften findings — if something is a serious problem, say so clearly
+    computed_stats = {
+      total_feedbacks:    total_count,
+      analyzed:           analyzed_count,
+      with_upvotes:       total_upvoted,
+      total_upvote_pts:   total_upvote_pts,
+      avg_upvotes_per_fb: avg_upvotes,
+      anonymous_count:    anon_count,
+      anonymous_pct:      analyzed_count > 0 ? (anon_count.to_f / analyzed_count * 100).round(1) : 0,
+      recent_14d_count:   recent_count,
+      recent_14d_pct:     analyzed_count > 0 ? (recent_count.to_f / analyzed_count * 100).round(1) : 0
+    }
+
+    system_prompt = <<~SYSTEM
+      You are a senior HR consultant analyzing employee feedback for leadership action.
+      Write entirely in #{lang_name}. Be specific and direct.
+
+      CRITICAL RULES:
+      1. Do NOT invent counts or percentages. The only reliable counts are in "computed_stats".
+      2. For themes: identify theme names and cite direct quotes — do NOT assign fabricated counts.
+      3. Upvoted feedback = community-validated — weight it higher.
+      4. Every recommendation must be assignable (who does what).
+      5. Return ONLY valid JSON. No markdown fences.
     SYSTEM
 
     user_prompt = <<~PROMPT
-      Analyze employee feedback from the board: "#{board.title}"
-      #{board.description.present? ? "Board description: #{board.description}" : ""}
+      Analyze feedback for: "#{board.title}"
+      #{board.description.present? ? "Description: #{board.description}" : ""}
 
-      ## Dataset
-      - Total approved feedbacks: #{total_count}
-      - Analyzed in this batch: #{analyzed_count}
-      #{total_count > analyzed_count ? "- Note: showing top #{analyzed_count} by upvotes + recency (#{total_count - analyzed_count} additional feedbacks not shown)" : ""}
+      ## Pre-computed Stats (use these exact numbers — do not estimate)
+      #{computed_stats.to_json}
 
-      ## All Feedback (sorted by upvotes desc, then recent)
+      ## All Feedback (numbered, sorted by upvotes then recency)
       #{feedback_data.map.with_index(1) { |f, i|
         upvote_label = f[:upvotes] > 0 ? " [#{f[:upvotes]} upvotes]" : ""
-        recency_label = f[:days_ago] <= 7 ? " [this week]" : f[:days_ago] <= 14 ? " [this fortnight]" : ""
+        recency_label = f[:days_ago] <= 7 ? " [this week]" : f[:days_ago] <= 14 ? " [2 weeks]" : ""
         "#{i}. #{f[:content]}#{upvote_label}#{recency_label}"
       }.join("\n")}
 
-      #{top_upvoted.any? ? "## Most Upvoted (community-validated concerns)\n#{top_upvoted.map { |f| "• [#{f[:upvotes]} votes] #{f[:content]}" }.join("\n")}" : ""}
+      #{top_upvoted.any? ? "\n## Most Upvoted\n" + top_upvoted.map { |f| "• [#{f[:upvotes]} votes] #{f[:content]}" }.join("\n") : ""}
+      #{recent.any? && recent.count < analyzed_count ? "\n## Recent (last 14 days)\n" + recent.map { |f| "• #{f[:content]}" }.join("\n") : ""}
 
-      #{recent.any? && recent.count < analyzed_count ? "## Recent Feedback (last 14 days — #{recent.count} entries)\n#{recent.map { |f| "• #{f[:content]}" }.join("\n")}" : ""}
-
-      ## Your Task
-      Return a JSON object with ALL text in #{lang_name}:
-
+      Return JSON with ALL text in #{lang_name}:
       {
-        "summary": "2-3 paragraphs. Lead with the dominant pattern, cover key recurring issues and what leadership must act on. Cite specific upvote counts and quotes.",
+        "summary": "2-3 paragraphs. Lead with most impactful finding. Cite upvote counts and direct quotes. Use \\n\\n between paragraphs.",
 
         "sentiment": {
           "positive": "<X>%",
           "neutral": "<Y>%",
-          "negative": "<Z>%"
+          "negative": "<Z>%",
+          "note": "1 sentence on the overall tone — reference specific upvote-backed feedback"
         },
 
         "themes": [
           {
             "name": "Theme name",
-            "count": <estimated number of feedbacks touching this theme>,
             "sentiment": "positive|neutral|negative",
-            "examples": ["direct quote 1", "direct quote 2"],
-            "upvote_weight": "high|medium|low"
+            "upvote_weight": "high|medium|low",
+            "representative_quotes": ["exact quote from the data", "another exact quote"]
           }
         ],
 
         "priority_issues": [
-          "Specific issue with evidence — e.g. '7 feedbacks (3 upvoted) report the AC system breaking down repeatedly'"
+          "Specific issue with evidence — reference upvote count or feedback number if applicable"
         ],
 
-        "recent_trend": "Is recent feedback different from overall? Note any emerging issues or improvements. Write 1-2 sentences or null if no notable trend.",
+        "recent_trend": "Is recent feedback (last 14 days) different from overall? 1-2 sentences or null.",
 
-        "anonymous_pattern": "Any insight from the ratio of anonymous vs named submissions (psychological safety signal)? Write 1 sentence or null.",
+        "anonymous_pattern": "What does the #{computed_stats[:anonymous_pct]}% anonymous rate suggest about psychological safety? 1 sentence.",
 
-        "recommendations": [
-          "Specific, assignable action tied to the data"
-        ],
+        "recommendations": ["Specific, assignable action"],
 
         "action_items": [
           {
-            "title": "Short action title (max 80 chars)",
-            "description": "What to do, who should own it, why it matters — tied to specific feedback",
+            "title": "Short title (max 80 chars)",
+            "description": "What to do, who owns it, why it matters — cite specific feedback",
             "priority": "high|medium|low"
           }
         ]
       }
 
-      Requirements:
-      - Summary: 2-3 paragraphs max, concise
-      - Themes: list 3-6 themes only, ranked by frequency + upvote signal
-      - Priority issues: 3-5 specific, data-backed problems (1 sentence each)
-      - Action items: 3-5 concrete tasks max
-      - Be concise in all fields — do not pad or repeat information
-      - Do not invent issues not present in the data
+      Rules:
+      - themes: 3-6 only, ranked by upvote signal + frequency. Quotes must be verbatim from the data.
+      - priority_issues: 3-5 specific problems (1 sentence each)
+      - action_items: 3-5 max
+      - sentiment %: estimate based on overall tone of feedbacks (positive/constructive/critical)
     PROMPT
 
     result_text = ClaudeService.sonnet_long.call(
