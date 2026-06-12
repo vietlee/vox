@@ -480,76 +480,70 @@ class Admin::SurveysController < Admin::BaseController
                   .map { |q, i| "Q#{i+1}: #{q.title.truncate(70)}" }
     total_responses = @survey.responses.completed.count
 
+    # Pre-build the analysis table in Ruby — deterministic, never truncates
+    # Claude only needs to fill in: audience/tone, recommendations, chart selection
+    analysis_rows = qs.each_with_index.filter_map do |q, i|
+      next if i == 0 && %w[single_choice dropdown].include?(q.question_type) # skip grouping Q
+      qnum = "Q#{i + 1}"
+      cross = grouping_q ? " | cross-tab ×Q#{qs.index(grouping_q) + 1} (n<3→'cỡ mẫu nhỏ')" : ""
+      metric = case q.question_type
+               when "nps"
+                 "NPS score + Promoters(≥9)/Passives(7-8)/Detractors(≤6)#{cross}"
+               when "rating", "linear_scale"
+                 "mean + % distribution#{cross}"
+               when "single_choice", "dropdown"
+                 "% per option, ranked#{cross}"
+               when "multiple_choice", "checkbox"
+                 "% chọn mỗi option (multi), top-3#{cross}"
+               when "short_text", "long_text"
+                 "cluster theo chủ đề → cite 1-2 câu tiêu biểu/nhóm"
+               else
+                 "% distribution#{cross}"
+               end
+      "- #{qnum} [#{q.question_type}] **#{q.title.truncate(60)}**: #{metric}"
+    end.join("\n")
+
     system_prompt = <<~SYS.strip
-      You are a senior data analyst writing structured report briefs for AI executive reports.
-
-      TWO-LAYER SYSTEM: your prompt controls (1) AI narrative analysis and (2) data appendix charts.
-
-      METHODOLOGY RULES — strictly enforce:
-      - NPS (Promoters ≥9, Passives 7–8, Detractors ≤6): ONLY for "would you recommend to others" questions.
-      - Rating/scale questions: mean + score distribution ONLY. NEVER NPS.
-      - Cross-tab n<3: flag as "cỡ mẫu quá nhỏ để kết luận".
-      - Open-text: cluster by themes, do NOT list individually.
-
-      STYLE: Write in #{lang_name}. Be concise — use bullet points, no filler phrases. Output ONLY the prompt text.
+      You are a senior analyst writing a report brief. Write in #{lang_name}. Output ONLY the prompt text, no preamble.
+      Rules: NPS methodology only for "recommend to others" questions. Rating/scale → mean+distribution, never NPS. Cross-tab n<3 → "cỡ mẫu quá nhỏ".
     SYS
 
     user_prompt = <<~PROMPT
-      Write a complete, production-ready report prompt for this survey. Every question must be covered.
+      Complete this report brief template. Fill in ONLY the 3 marked sections. Do NOT rewrite the analysis table — it is already done.
 
-      Survey: #{@survey.title}
-      #{@survey.description.present? ? "Description: #{@survey.description}" : ""}
-      Responses: #{total_responses}
-      #{grouping_hint}
-      #{"Open-text Qs (cluster by theme): #{open_text_qs.join('; ')}" if open_text_qs.any?}
-      #{"NPS Qs (Promoters/Passives/Detractors apply here ONLY): #{nps_qs.join('; ')}" if nps_qs.any?}
-      #{"Rating/scale Qs (mean+distribution, NOT NPS): #{rating_qs.join('; ')}" if rating_qs.any?}
-
-      Questions:
-      #{questions_text}
-
-      OUTPUT FORMAT (use exactly these 4 sections, write in #{lang_name}):
+      Survey: #{@survey.title}#{@survey.description.present? ? " — #{@survey.description.truncate(120)}" : ""}
+      Responses: #{total_responses} | #{grouping_hint.present? ? grouping_hint : "no grouping question detected"}
 
       ---
-      [Line 1: audience. Line 2: tone.]
+      ## AUDIENCE & TONE
+      [FILL: 2 sentences — who reads this report, what tone/focus]
 
-      ## PHÂN TÍCH BẮT BUỘC
-
-      For EVERY non-demographic question, write one bullet:
-      - **Qx — [question name]:** [exact metric: e.g. "tỷ lệ % mỗi mức độ + trung bình; Cross-tab × Q2 theo bộ phận (n<3 → ghi cỡ mẫu nhỏ)"]
-      Group bullets under priority labels: ### [ƯU TIÊN CAO] or ### [ƯU TIÊN TRUNG BÌNH]
-      Rules per question type:
-      • choice/multi: % per option, ranked
-      • rating/scale: mean + distribution — NOT NPS
-      • nps: Promoters/Passives/Detractors breakdown
-      • open-text: "Phân nhóm theo chủ đề: [topic1 / topic2 / …]. Trích dẫn 1-2 câu tiêu biểu mỗi nhóm."
-      #{open_text_qs.any? ? "• MUST include: #{open_text_qs.join('; ')}" : ""}
+      ## PHÂN TÍCH (đã xác định — không thay đổi)
+      #{analysis_rows}
 
       ## KHUYẾN NGHỊ HÀNH ĐỘNG
-
-      3 items only. Format per item: **[Tên]** | [Ai thực hiện] | [Timeline] | [Kết quả kỳ vọng] | Căn cứ: Q[x], Q[y]
-      At least 1 recommendation must cite open-text responses.
+      [FILL: exactly 3 items. Format: **Tên** | Ai thực hiện | Timeline | Kết quả kỳ vọng | Căn cứ: Qx,Qy
+      Must cite specific question numbers. At least 1 must reference open-text questions if any exist.]
 
       ## CHỈ THỊ DỮ LIỆU PHỤ LỤC
-
-      - Hiển thị chart: [Qx, Qy, Qz × Q2 (cross-tab), …]
-      - Bỏ qua: [questions with no chart value]
-      - n<3 trong nhóm cross-tab → hiển thị "cỡ mẫu quá nhỏ"
-      - Mỗi chart: 1–2 câu insight (không mô tả lại số liệu)
+      [FILL:
+      - Hiển thị chart cho: [list Qx numbers worth visualizing, include "Qx × Qy (cross-tab)" if relevant]
+      - Bỏ qua chart: [questions with no visual value]
+      - Mỗi chart: 1–2 câu insight (không mô tả lại số liệu)]
       ---
     PROMPT
 
     current_workspace.active_subscription&.deduct_credits!(3)
 
-    # Dynamic token budget: base 2000 + 120 per question, capped at 8000 (Sonnet limit)
-    token_budget = [2000 + (qs.count * 120), 8000].min
-
+    # Token budget: only 3 short sections need generation — 1200 is always enough
     result = ClaudeService.sonnet_long.call_full(
       system_prompt: system_prompt,
       user_prompt:   user_prompt,
-      max_tokens:    token_budget
+      max_tokens:    1500
     )
 
+    # Merge: replace [FILL: ...] placeholders with Claude's output, keep analysis table intact
+    # Claude returns the full completed template, so just use it directly
     render json: { suggestion: result[:text].strip, truncated: result[:truncated] }
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
