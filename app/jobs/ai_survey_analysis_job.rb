@@ -94,8 +94,8 @@ class AiSurveyAnalysisJob < ApplicationJob
         "key_metrics": {
           "response_count": #{responses.count},
           "overall_avg": #{global_stats[:overall_numeric_avg] || "null"},
-          "standout_high": "best result — cite Q-number and exact score",
-          "standout_low": "worst result — cite Q-number and exact score",
+          "standout_high": "Mô tả ý nghĩa của điểm sáng, không nhắc số câu hỏi. Ví dụ: '100% thành viên sử dụng AI hàng ngày' thay vì 'câu hỏi số 3: 100%...'",
+          "standout_low": "Mô tả ý nghĩa của điểm cần cải thiện, không nhắc số câu hỏi. Ví dụ: 'Độ chính xác của AI còn thấp — chỉ 17% đánh giá cao'",
           "data_quality": "#{responses.count < 10 ? "small sample — interpret with caution" : "reliable"}"
         },
 

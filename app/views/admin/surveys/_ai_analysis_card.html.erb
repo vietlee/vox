@@ -68,26 +68,22 @@
         %>
         <div class="rounded-xl border border-slate-100 bg-white p-3">
           <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2">Cảm xúc tổng thể</div>
-          <!-- Donut center -->
-          <div class="flex justify-center mb-2">
-            <canvas id="<%= card_id %>-sentiment" width="88" height="88" style="width:88px;height:88px;"></canvas>
-          </div>
-          <!-- Legend as horizontal bars -->
-          <div class="space-y-1.5">
-            <% [["Tích cực", pos_val, "#34d399", "text-emerald-600"], ["Trung lập", neu_val, "#cbd5e1", "text-slate-400"], ["Tiêu cực", neg_val, "#f87171", "text-red-500"]].each do |label, val, color, text_cls| %>
-              <div class="flex items-center gap-1.5 text-[10px]">
-                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:<%= color %>;"></span>
-                <span class="flex-1 text-slate-500"><%= label %></span>
-                <div class="flex items-center gap-1">
-                  <div class="h-1.5 rounded-full" style="width:<%= [(val / [total_s, 1].max * 60).round, 2].max %>px;background:<%= color %>;opacity:0.7;"></div>
-                  <strong class="<%= text_cls %> w-8 text-right"><%= "#{val.round}%" %></strong>
+          <!-- Donut + legend side by side, compact -->
+          <div class="flex items-center gap-3">
+            <canvas id="<%= card_id %>-sentiment" width="72" height="72" style="width:72px;height:72px;flex-shrink:0;"></canvas>
+            <div class="space-y-1.5 flex-1 min-w-0">
+              <% [["Tích cực", pos_val, "#34d399", "text-emerald-600"], ["Trung lập", neu_val, "#cbd5e1", "text-slate-400"], ["Tiêu cực", neg_val, "#f87171", "text-red-500"]].each do |label, val, color, text_cls| %>
+                <div class="flex items-center gap-1.5 text-[10px]">
+                  <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:<%= color %>;"></span>
+                  <span class="text-slate-500 flex-1"><%= label %></span>
+                  <strong class="<%= text_cls %>"><%= "#{val.round}%" %></strong>
                 </div>
-              </div>
-            <% end %>
+              <% end %>
+              <% if sentiment["sentiment_note"].present? %>
+                <p class="text-[9px] text-slate-400 italic leading-snug pt-0.5"><%= sentiment["sentiment_note"] %></p>
+              <% end %>
+            </div>
           </div>
-          <% if sentiment["sentiment_note"].present? %>
-            <p class="text-[9px] text-slate-400 italic mt-1.5 leading-snug"><%= sentiment["sentiment_note"] %></p>
-          <% end %>
         </div>
         <script>
         (function(){
@@ -96,7 +92,7 @@
             if (!canvas || canvas._drawn) return;
             canvas._drawn = true;
             const dpr = window.devicePixelRatio || 1;
-            const size = 88;
+            const size = 72;
             canvas.width  = size * dpr;
             canvas.height = size * dpr;
             canvas.style.width  = size + 'px';
