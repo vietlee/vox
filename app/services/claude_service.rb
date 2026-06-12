@@ -38,6 +38,36 @@ class ClaudeService
     raise
   end
 
+  # Returns { text: String, truncated: Boolean }
+  def call_full(system_prompt:, user_prompt: nil, messages: nil, max_tokens: 2048)
+    actual_messages = messages || [{ role: "user", content: user_prompt }]
+    response = HTTParty.post(API_URL,
+      headers: {
+        "x-api-key"         => @api_key,
+        "anthropic-version" => "2023-06-01",
+        "content-type"      => "application/json"
+      },
+      body: {
+        model: @model,
+        max_tokens: max_tokens,
+        system: system_prompt,
+        messages: actual_messages
+      }.to_json,
+      timeout: @timeout
+    )
+
+    raise "Claude API error: #{response.body}" unless response.success?
+
+    parsed      = JSON.parse(response.body)
+    stop_reason = parsed["stop_reason"]
+    truncated   = (stop_reason == "max_tokens")
+    Rails.logger.warn "ClaudeService: stop_reason=#{stop_reason} (TRUNCATED)" if truncated
+    { text: parsed.dig("content", 0, "text").to_s, truncated: truncated }
+  rescue => e
+    Rails.logger.error "ClaudeService error: #{e.message}"
+    raise
+  end
+
   def self.haiku       = new(model: HAIKU_MODEL)
   def self.sonnet      = new(model: SONNET_MODEL, timeout: 90)
   def self.sonnet_long = new(model: SONNET_MODEL, timeout: 240)

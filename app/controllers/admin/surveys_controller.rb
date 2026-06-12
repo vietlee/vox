@@ -467,78 +467,90 @@ class Admin::SurveysController < Admin::BaseController
       "Q#{i} (ID #{q.id}) [#{q.question_type}] #{q.title}#{opts}"
     end.join("\n")
 
-    # Detect if there's a grouping/demographic question (single_choice, first few questions)
+    # Classify questions by type for smarter hinting
+    q_by_type = qs.each_with_index.group_by { |q, _| q.question_type }
     grouping_q = qs.first(5).find { |q| %w[single_choice dropdown].include?(q.question_type) }
-    grouping_hint = grouping_q ? "Note: Q#{qs.index(grouping_q)+1} (\"#{grouping_q.title.truncate(60)}\") appears to be a grouping/demographic question suitable for cross-tab comparisons." : ""
+    grouping_hint = grouping_q ?
+      "GROUPING QUESTION: Q#{qs.index(grouping_q)+1} (ID #{grouping_q.id}) \"#{grouping_q.title.truncate(70)}\" — use this for all cross-tab breakdowns." : ""
+    open_text_qs = qs.each_with_index.select { |q, _| %w[short_text long_text].include?(q.question_type) }
+                     .map { |q, i| "Q#{i+1}: #{q.title.truncate(70)}" }
+    nps_qs = qs.each_with_index.select { |q, _| q.question_type == "nps" }
+               .map { |q, i| "Q#{i+1}: #{q.title.truncate(70)}" }
+    rating_qs = qs.each_with_index.select { |q, _| %w[rating linear_scale].include?(q.question_type) }
+                  .map { |q, i| "Q#{i+1}: #{q.title.truncate(70)}" }
+    total_responses = @survey.responses.completed.count
 
     system_prompt = <<~SYS.strip
-      You are a senior analyst who writes structured, high-quality report briefs for AI-powered executive reports.
+      You are a senior data analyst writing structured report briefs for AI executive reports.
 
-      The report system works in two layers:
-      1. AI ANALYSIS LAYER — reads your prompt and writes the narrative (sections, recommendations, executive summary)
-      2. DATA APPENDIX LAYER — renders charts for questions you specify
+      TWO-LAYER SYSTEM: your prompt controls (1) AI narrative analysis and (2) data appendix charts.
 
-      Your prompt must guide BOTH layers clearly. Write in #{lang_name}.
+      METHODOLOGY RULES — strictly enforce:
+      - NPS (Promoters ≥9, Passives 7–8, Detractors ≤6): ONLY for "would you recommend to others" questions.
+      - Rating/scale questions: mean + score distribution ONLY. NEVER NPS.
+      - Cross-tab n<3: flag as "cỡ mẫu quá nhỏ để kết luận".
+      - Open-text: cluster by themes, do NOT list individually.
 
-      RULES:
-      - Use structured markdown with ## headers and numbered priority lists
-      - Name questions explicitly (e.g. "câu 6", "Q6") — vague references get ignored
-      - For cross-tab comparisons (e.g. "by department"), name both questions explicitly
-      - Include a "## CHỈ THỊ PHẦN DỮ LIỆU HỖ TRỢ" section at the end listing exactly which questions need charts
-      - Recommendations must specify: action + who does it + expected outcome
-      - Output ONLY the prompt text. No explanation, no JSON, no preamble.
+      STYLE: Write in #{lang_name}. Be concise — use bullet points, no filler phrases. Output ONLY the prompt text.
     SYS
 
     user_prompt = <<~PROMPT
-      Generate the ideal report prompt for this survey. The prompt will be used to instruct an AI analyst writing an executive PDF report.
+      Write a complete, production-ready report prompt for this survey. Every question must be covered.
 
       Survey: #{@survey.title}
       #{@survey.description.present? ? "Description: #{@survey.description}" : ""}
-      Responses: #{@survey.responses.completed.count}
+      Responses: #{total_responses}
       #{grouping_hint}
+      #{"Open-text Qs (cluster by theme): #{open_text_qs.join('; ')}" if open_text_qs.any?}
+      #{"NPS Qs (Promoters/Passives/Detractors apply here ONLY): #{nps_qs.join('; ')}" if nps_qs.any?}
+      #{"Rating/scale Qs (mean+distribution, NOT NPS): #{rating_qs.join('; ')}" if rating_qs.any?}
 
       Questions:
       #{questions_text}
 
-      Write a structured prompt in #{lang_name} with this format:
+      OUTPUT FORMAT (use exactly these 4 sections, write in #{lang_name}):
 
-      **Line 1-2**: State the audience (who reads this report) and tone (e.g. professional, data-driven, action-oriented).
+      ---
+      [Line 1: audience. Line 2: tone.]
 
-      **## PHÂN TÍCH BẮT BUỘC (theo thứ tự ưu tiên)**
-      Number each analysis area [ƯU TIÊN CAO / TRUNG BÌNH]. For each:
-      - Name the specific question(s) by number
-      - State what insight to extract (not just "analyze Q6" — say "Q6: % tasks automated, ranked by department from Q2")
-      - If cross-tab is needed, write: "Cross-tab Q6 × Q2 để so sánh theo nhóm"
-      Include ALL questions that yield strategic insight. Typical coverage:
-        - Usage frequency / adoption rate questions
-        - The main metric questions (time savings, scores)
-        - Quality/satisfaction rating questions (all of them — don't skip)
-        - Barrier/pain point questions
-        - Open-text questions (instruct AI to cluster by theme: training / tools / process / security)
-        - NPS and team-level questions side by side for gap analysis
+      ## PHÂN TÍCH BẮT BUỘC
 
-      **## KHUYẾN NGHỊ HÀNH ĐỘNG**
-      List exactly 3 recommendations, each with: action name | who does it | expected outcome.
-      Base each recommendation on specific question numbers from the survey.
+      For EVERY non-demographic question, write one bullet:
+      - **Qx — [question name]:** [exact metric: e.g. "tỷ lệ % mỗi mức độ + trung bình; Cross-tab × Q2 theo bộ phận (n<3 → ghi cỡ mẫu nhỏ)"]
+      Group bullets under priority labels: ### [ƯU TIÊN CAO] or ### [ƯU TIÊN TRUNG BÌNH]
+      Rules per question type:
+      • choice/multi: % per option, ranked
+      • rating/scale: mean + distribution — NOT NPS
+      • nps: Promoters/Passives/Detractors breakdown
+      • open-text: "Phân nhóm theo chủ đề: [topic1 / topic2 / …]. Trích dẫn 1-2 câu tiêu biểu mỗi nhóm."
+      #{open_text_qs.any? ? "• MUST include: #{open_text_qs.join('; ')}" : ""}
 
-      **## CHỈ THỊ PHẦN DỮ LIỆU HỖ TRỢ**
-      List the question numbers whose charts MUST appear in the data appendix.
-      For cross-tab charts: write "Q6 × Q2 (cross-tab)".
-      List questions to EXCLUDE (raw distributions that add no value to this report).
-      End with: "Mỗi chart cần 1–2 câu nhận xét insight."
+      ## KHUYẾN NGHỊ HÀNH ĐỘNG
 
-      Important: name every question by its number. Be specific, not generic. The final prompt should score 9/10 on completeness, specificity, and actionability.
+      3 items only. Format per item: **[Tên]** | [Ai thực hiện] | [Timeline] | [Kết quả kỳ vọng] | Căn cứ: Q[x], Q[y]
+      At least 1 recommendation must cite open-text responses.
+
+      ## CHỈ THỊ DỮ LIỆU PHỤ LỤC
+
+      - Hiển thị chart: [Qx, Qy, Qz × Q2 (cross-tab), …]
+      - Bỏ qua: [questions with no chart value]
+      - n<3 trong nhóm cross-tab → hiển thị "cỡ mẫu quá nhỏ"
+      - Mỗi chart: 1–2 câu insight (không mô tả lại số liệu)
+      ---
     PROMPT
 
     current_workspace.active_subscription&.deduct_credits!(3)
 
-    suggested = ClaudeService.opus.call(
+    # Dynamic token budget: base 2000 + 120 per question, capped at 8000 (Sonnet limit)
+    token_budget = [2000 + (qs.count * 120), 8000].min
+
+    result = ClaudeService.sonnet_long.call_full(
       system_prompt: system_prompt,
       user_prompt:   user_prompt,
-      max_tokens:    1400
-    ).strip
+      max_tokens:    token_budget
+    )
 
-    render json: { suggestion: suggested }
+    render json: { suggestion: result[:text].strip, truncated: result[:truncated] }
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

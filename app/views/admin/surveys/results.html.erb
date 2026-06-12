@@ -304,17 +304,25 @@
         <!-- Status area -->
         <div id="report-status"></div>
 
+        <!-- Language -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Ngôn ngữ</label>
+          <div class="relative w-48">
+            <select id="report-lang"
+              class="w-full appearance-none pl-3 pr-7 py-2 text-[12px] font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 focus:outline-none focus:border-violet-400 cursor-pointer">
+              <option value="vi" <%= current_workspace.language == "vi" ? "selected" : "" %>>🇻🇳 Tiếng Việt</option>
+              <option value="en" <%= current_workspace.language == "en" ? "selected" : "" %>>🇬🇧 English</option>
+            </select>
+            <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▾</span>
+          </div>
+        </div>
+
         <!-- Context input -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
             <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
               Ngữ cảnh & Trọng tâm báo cáo
             </label>
-            <button type="button" id="copy-prompt-btn" onclick="voxCopy(document.getElementById('report-context').value || (window.reportQuill && window.reportQuill.getText().trim()) || '', this)" title="Sao chép prompt"
-              class="vox-copy-btn" style="display:none;">
-              <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-              <span>Sao chép</span>
-            </button>
             <button type="button" id="suggest-prompt-btn" onclick="suggestReportPrompt()"
               style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;outline:none;color:#fff;background:linear-gradient(135deg,#7c3aed,#6366f1);box-shadow:0 2px 8px rgba(124,58,237,0.35),inset 0 1px 0 rgba(255,255,255,0.15);transition:box-shadow 0.15s,transform 0.15s;position:relative;overflow:hidden;"
               onmouseenter="this.style.boxShadow='0 4px 16px rgba(124,58,237,0.5),inset 0 1px 0 rgba(255,255,255,0.2)';this.style.transform='translateY(-1px)'"
@@ -353,22 +361,27 @@
               <div id="suggest-loading-sub" style="font-size:11px;color:#7c3aed;opacity:0.8;">AI đang đọc dữ liệu và tạo gợi ý</div>
             </div>
           </div>
-          <div class="vox-richtext-wrap" id="report-context-wrap">
-            <div id="report-context-editor" style="min-height:110px;font-size:13px;"></div>
+          <div style="position:relative;">
+            <div class="vox-richtext-wrap" id="report-context-wrap">
+              <div id="report-context-editor" style="min-height:110px;font-size:13px;padding-right:36px;"></div>
+            </div>
+            <button type="button" id="copy-prompt-btn"
+              onclick="voxCopy(document.getElementById('report-context').value || (window.reportQuill && window.reportQuill.getText().trim()) || '', this)"
+              title="Sao chép prompt"
+              style="display:none;position:absolute;top:8px;right:8px;width:28px;height:28px;padding:0;border-radius:7px;border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8;cursor:pointer;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s,border-color 0.15s;flex-shrink:0;"
+              onmouseenter="this.style.background='#f1f5f9';this.style.color='#475569';this.style.borderColor='#cbd5e1'"
+              onmouseleave="this.style.background='#f8fafc';this.style.color='#94a3b8';this.style.borderColor='#e2e8f0'">
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </button>
           </div>
           <p class="text-[10px] text-slate-400 mt-1">Mô tả mục đích báo cáo, đối tượng nhận, trọng tâm phân tích...</p>
-        </div>
-
-        <!-- Language -->
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Ngôn ngữ</label>
-          <div class="relative w-48">
-            <select id="report-lang"
-              class="w-full appearance-none pl-3 pr-7 py-2 text-[12px] font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 focus:outline-none focus:border-violet-400 cursor-pointer">
-              <option value="vi" <%= current_workspace.language == "vi" ? "selected" : "" %>>🇻🇳 Tiếng Việt</option>
-              <option value="en" <%= current_workspace.language == "en" ? "selected" : "" %>>🇬🇧 English</option>
-            </select>
-            <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▾</span>
+          <!-- Truncation warning — shown only when AI output was cut off -->
+          <div id="suggest-truncation-warn" style="display:none;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;">
+            <span style="font-size:15px;flex-shrink:0;">⚠️</span>
+            <div>
+              <span style="font-size:11px;font-weight:700;color:#92400e;">Prompt bị cắt do khảo sát có quá nhiều câu hỏi.</span>
+              <span style="font-size:11px;color:#b45309;"> Hãy kiểm tra phần cuối và bổ sung thủ công nếu cần.</span>
+            </div>
           </div>
         </div>
 
@@ -1249,16 +1262,23 @@ async function suggestReportPrompt() {
       if (window.setReportContext) window.setReportContext(data.suggestion);
       // Show copy button
       const copyBtn = document.getElementById('copy-prompt-btn');
-      if (copyBtn) copyBtn.style.display = 'inline-flex';
-      icon.textContent = '✅';
-      label.textContent = 'Đã gợi ý!';
-      btn.style.background = 'linear-gradient(135deg,#059669,#10b981)';
-      if (wrap) { wrap.style.borderColor = '#8b5cf6'; }
+      if (copyBtn) { copyBtn.style.display = 'flex'; }
+
+      // Show truncation warning if content was cut off
+      const truncWarn = document.getElementById('suggest-truncation-warn');
+      if (truncWarn) truncWarn.style.display = data.truncated ? 'flex' : 'none';
+
+      icon.textContent = data.truncated ? '⚠️' : '✅';
+      label.textContent = data.truncated ? 'Prompt bị cắt!' : 'Đã gợi ý!';
+      btn.style.background = data.truncated
+        ? 'linear-gradient(135deg,#d97706,#f59e0b)'
+        : 'linear-gradient(135deg,#059669,#10b981)';
+      if (wrap) { wrap.style.borderColor = data.truncated ? '#f59e0b' : '#8b5cf6'; }
       setTimeout(() => {
         icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt';
         btn.style.background = 'linear-gradient(135deg,#7c3aed,#6366f1)';
         if (wrap) wrap.style.borderColor = '';
-      }, 2500);
+      }, data.truncated ? 5000 : 2500);
     } else {
       icon.textContent = '⚠️';
       label.textContent = data.error || 'Lỗi';
