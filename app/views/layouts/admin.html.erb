@@ -63,11 +63,22 @@
       display: inline-flex; align-items: center; justify-content: center;
       gap: 5px; padding: 5px 10px; border-radius: 7px; border: 1px solid #e2e8f0;
       background: #f8fafc; color: #64748b; font-size: 11px; font-weight: 600;
-      cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s;
+      white-space: nowrap; flex-shrink: 0; position: relative; overflow: hidden;
     }
     .vox-copy-btn:hover { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
-    .vox-copy-btn.copied { background: #f0fdf4; border-color: #86efac; color: #16a34a; }
-    .vox-copy-btn svg { flex-shrink: 0; }
+    .vox-copy-btn.copied {
+      background: #f0fdf4; border-color: #86efac; color: #16a34a;
+      animation: vox-copy-success 0.35s ease;
+    }
+    .vox-copy-btn svg { flex-shrink: 0; transition: transform 0.2s; }
+    .vox-copy-btn:active svg { transform: scale(0.88); }
+    @keyframes vox-copy-success {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.1); }
+      70%  { transform: scale(0.96); }
+      100% { transform: scale(1); }
+    }
   </style>
 </head>
 <body class="h-full font-inter antialiased bg-slate-100">
@@ -490,25 +501,43 @@
 </script>
 <script>
 // ── Global VOX Copy Helper ────────────────────────────────────────────
-// voxCopy(text, btn) — copies text, animates btn to "Đã sao chép" state
+// Standard copy icon: 2 overlapping pages (back page offset top-right)
+window.VOX_COPY_ICON = `<svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/>
+  <path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+</svg>`;
+
+// Checkmark icon for success state
+window.VOX_CHECK_ICON = `<svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M4 10.5L8.5 15L16 6" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+// voxCopy(text, btn) — copies text, animates btn to success state
 window.voxCopy = function(text, btn) {
-  navigator.clipboard.writeText(text).then(() => {
+  const doAnim = (ok) => {
     if (!btn) return;
     const orig = btn.innerHTML;
-    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M13.5 5.5L6.5 12.5L2.5 8.5" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Đã sao chép</span>`;
-    btn.classList.add('copied');
-    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 2000);
-  }).catch(() => {
-    // Fallback for older browsers
-    const ta = document.createElement('textarea');
-    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-  });
+    if (ok) {
+      btn.innerHTML = window.VOX_CHECK_ICON + `<span>Đã sao chép</span>`;
+      btn.classList.add('copied');
+      setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 2000);
+    }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => doAnim(true)).catch(() => {
+      fallbackCopy(text); doAnim(true);
+    });
+  } else {
+    fallbackCopy(text); doAnim(true);
+  }
 };
-// Copy SVG icon snippet (for inline use)
-window.VOX_COPY_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11H2.5A1.5 1.5 0 0 1 1 9.5V2.5A1.5 1.5 0 0 1 2.5 1H9.5A1.5 1.5 0 0 1 11 2.5V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+}
 </script>
 </body>
 </html>
