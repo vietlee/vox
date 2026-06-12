@@ -1,7 +1,7 @@
 require "csv"
 
 class Admin::SurveysController < Admin::BaseController
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :export, :export_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :export, :export_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
