@@ -724,8 +724,19 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
           <%
             ct_labels  = ct_data[:labels]
             ct_n       = ct_labels.size
-            ct_datasets = ct_data[:datasets].map do |ds|
-              { label: ds[:label], data: Array(ds[:data]).first(ct_n),
+            # Build qid → short title map from structure cards
+            short_title_map = {}
+            @report_structure&.dig("sections")&.each do |sec|
+              sec["cards"]&.each do |c|
+                qid = c["question_id"]&.to_i
+                short_title_map[qid] = c["title"] if qid && c["title"].present?
+              end
+            end
+            # Map value_question_ids to short titles
+            val_qids = Array(card["value_question_ids"]).map(&:to_i)
+            ct_datasets = ct_data[:datasets].each_with_index.map do |ds, i|
+              short = short_title_map[val_qids[i]] || ds[:label]
+              { label: short, data: Array(ds[:data]).first(ct_n),
                 backgroundColor: ds[:color], borderRadius: 4 }
             end
           %>
