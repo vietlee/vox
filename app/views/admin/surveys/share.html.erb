@@ -25,15 +25,16 @@
           <img src="<%= qr_image_path(@survey.qr_code.token) %>"
                alt="QR Code"
                class="w-44 h-44 block"
-               id="qr-img">
+               id="qr-img"
+               crossorigin="anonymous">
         </div>
         <p class="text-[11px] text-slate-400 mt-2 mb-3"><%= t("surveys.qr_scans", count: @survey.qr_code.scan_count) %></p>
-        <div class="flex justify-center gap-2">
-          <a href="<%= qr_image_path(@survey.qr_code.token) %>"
-             download="qrcode-<%= @survey.slug %>.png"
-             class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-500 text-white text-[12px] font-semibold rounded-lg hover:bg-blue-600">
-            <%= t("surveys.share.download_svg") %>
-          </a>
+        <div class="flex justify-center gap-2 flex-wrap">
+          <button onclick="copyQrImage(document.getElementById('qr-img'), this)"
+            class="vox-copy-btn">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <span>Copy QR</span>
+          </button>
           <button onclick="downloadQrPng()"
             class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 text-[12px] font-semibold rounded-lg hover:bg-slate-200">
             <%= t("surveys.share.download_png") %>

@@ -541,6 +541,57 @@ function fallbackCopy(text) {
   try { document.execCommand('copy'); } catch(e) {}
   document.body.removeChild(ta);
 }
+
+// copyQrImage(imgEl, btn) — draw <img> to canvas, copy as PNG
+window.copyQrImage = function(imgEl, btn) {
+  if (!imgEl) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  const draw = () => {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 512, 512);
+    ctx.drawImage(imgEl, 0, 0, 512, 512);
+    canvas.toBlob(async blob => {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        if (btn) {
+          const orig = btn.innerHTML;
+          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8.5 15L16 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Đã copy!</span>`;
+          btn.classList.add('copied');
+          setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 2000);
+        }
+      } catch(e) { alert('Trình duyệt không hỗ trợ copy ảnh. Hãy tải về thay thế.'); }
+    }, 'image/png');
+  };
+  if (imgEl.complete && imgEl.naturalWidth) { draw(); }
+  else { imgEl.onload = draw; }
+};
+
+// voxConfirm(message, onOk) — HTML confirm popup instead of browser confirm()
+window.voxConfirm = function(message, onOk) {
+  let overlay = document.getElementById('vox-confirm-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'vox-confirm-overlay';
+    overlay.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99999;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:white;border-radius:16px;padding:28px 28px 20px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+        <p id="vox-confirm-msg" style="font-size:14px;color:#1e293b;line-height:1.6;margin-bottom:20px;font-weight:500;"></p>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button id="vox-confirm-cancel" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:white;color:#64748b;">Huỷ</button>
+          <button id="vox-confirm-ok" style="padding:8px 18px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#ef4444;color:white;">Xác nhận</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('vox-confirm-msg').textContent = message;
+  overlay.style.display = 'flex';
+  const close = () => { overlay.style.display = 'none'; };
+  document.getElementById('vox-confirm-cancel').onclick = close;
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  document.getElementById('vox-confirm-ok').onclick = () => { close(); onOk(); };
+};
 </script>
 </body>
 </html>

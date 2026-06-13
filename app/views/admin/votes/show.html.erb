@@ -126,12 +126,19 @@
       </div>
       <% if @vote.qr_code %>
         <div class="text-center">
-          <img src="<%= qr_image_path(@vote.qr_code.token) %>" alt="QR Code" class="w-32 h-32 mx-auto rounded-lg border border-slate-100">
+          <img id="vote-qr-img" src="<%= qr_image_path(@vote.qr_code.token) %>" alt="QR Code" class="w-32 h-32 mx-auto rounded-lg border border-slate-100" crossorigin="anonymous">
           <p class="text-[10px] text-slate-400 mt-1"><%= t("votes.show.scans", count: @vote.qr_code.scan_count) %></p>
-          <a href="<%= qr_image_path(@vote.qr_code.token) %>" download="qr-<%= @vote.slug %>.png"
-            class="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded hover:bg-slate-200">
-            <%= t("votes.show.download_qr") %>
-          </a>
+          <div class="flex items-center justify-center gap-2 mt-2">
+            <button onclick="copyQrImage(document.getElementById('vote-qr-img'), this)"
+              class="vox-copy-btn">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <span>Copy QR</span>
+            </button>
+            <a href="<%= qr_image_path(@vote.qr_code.token) %>" download="qr-<%= @vote.slug %>.png"
+              class="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded hover:bg-slate-200">
+              <%= t("votes.show.download_qr") %>
+            </a>
+          </div>
         </div>
       <% end %>
     </div>

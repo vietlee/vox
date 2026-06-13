@@ -1461,14 +1461,15 @@ function downloadQr() {
 }
 
 async function revokeShareLink() {
-  if (!confirm('Thu hồi link? Ai đang có link sẽ không xem được nữa.')) return;
-  await fetch('<%= revoke_report_token_survey_path(@survey) %>', {
-    method: 'DELETE',
-    headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+  voxConfirm('Thu hồi link chia sẻ? Ai đang có link sẽ không xem được nữa.', async () => {
+    await fetch('<%= revoke_report_token_survey_path(@survey) %>', {
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+    });
+    shareUrl = null;
+    document.getElementById('shareLinkInput').value = 'Link đã bị thu hồi';
+    document.getElementById('shareQrDiv').innerHTML = '';
   });
-  shareUrl = null;
-  document.getElementById('shareLinkInput').value = 'Link đã bị thu hồi';
-  document.getElementById('shareQrDiv').innerHTML = '';
 }
 
 function showCopyTip(msg) {
