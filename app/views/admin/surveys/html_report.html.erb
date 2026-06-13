@@ -36,10 +36,11 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .sortable-ghost{opacity:.3;background:#e0e7ff;border-radius:10px}
 .sortable-chosen{box-shadow:0 8px 24px rgba(67,97,238,.25)}
 
-/* ── Grids ── */
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px}
-@media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}}
+/* ── Grids (12-col base) ── */
+.grid-2,.grid-3{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;margin-bottom:20px}
+.grid-2>.cw{grid-column:span 6}
+.grid-3>.cw{grid-column:span 4}
+@media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}.grid-2>.cw,.grid-3>.cw{grid-column:span 1}}
 
 /* ── Card wrapper ── */
 .cw{position:relative}
@@ -161,7 +162,8 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
   .kpi{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid}
   .card{box-shadow:none!important;border:1px solid #e0e0e0;break-inside:avoid}
   .report-section,.grid-2,.grid-3{break-inside:avoid}
-  .resize-handle{display:none!important}
+  .grid-2>.cw{grid-column:span 6}.grid-3>.cw{grid-column:span 4}
+  .rh-right,.rh-bottom,.rh-corner{display:none!important}
 }
 </style>
 </head>
@@ -657,8 +659,9 @@ document.addEventListener('mousedown', e => {
   const cw = handle.closest('.cw');
   const grid = cw.parentElement;
   const dir = handle.dataset.dir;
-  const maxCols = grid.classList.contains('grid-3') ? 3 : 2;
-  const curSpan = parseInt(cw.style.gridColumn?.match(/span (\d)/)?.[1] || '1');
+  const maxCols = 12;
+  const defaultSpan = grid.classList.contains('grid-3') ? 4 : 6;
+  const curSpan = parseInt(cw.style.gridColumn?.match(/span (\d+)/)?.[1] || defaultSpan);
   const curH = cw.querySelector('.card')?.offsetHeight || 240;
   const gridRect = grid.getBoundingClientRect();
 
@@ -688,7 +691,7 @@ function doResize() {
   if (dir === 'e' || dir === 'se') {
     const colW = gridRect.width / maxCols;
     const newSpan = Math.max(1, Math.min(maxCols, startSpan + Math.round((e.clientX - startX) / colW)));
-    cw.style.gridColumn = newSpan > 1 ? `span ${newSpan}` : '';
+    cw.style.gridColumn = `span ${newSpan}`;
     rd._span = newSpan;
   }
   if (dir === 's' || dir === 'se') {
