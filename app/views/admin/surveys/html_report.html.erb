@@ -1445,6 +1445,24 @@ async function openShareModal() {
   }
 }
 
+// Inline voxConfirm (layout:false pages don't load admin layout)
+function voxConfirm(message, onOk) {
+  let overlay = document.getElementById('vox-confirm-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'vox-confirm-overlay';
+    overlay.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99999;align-items:center;justify-content:center;';
+    overlay.innerHTML = `<div style="background:white;border-radius:16px;padding:28px 28px 20px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);"><p id="vox-confirm-msg" style="font-size:14px;color:#1e293b;line-height:1.6;margin-bottom:20px;font-weight:500;"></p><div style="display:flex;gap:10px;justify-content:flex-end;"><button id="vox-confirm-cancel" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:white;color:#64748b;">Huỷ</button><button id="vox-confirm-ok" style="padding:8px 18px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#ef4444;color:white;">Xác nhận</button></div></div>`;
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('vox-confirm-msg').textContent = message;
+  overlay.style.display = 'flex';
+  const close = () => { overlay.style.display = 'none'; };
+  document.getElementById('vox-confirm-cancel').onclick = close;
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  document.getElementById('vox-confirm-ok').onclick = () => { close(); onOk(); };
+}
+
 function svgToCanvas(callback) {
   const svg = document.querySelector('#shareQrDiv svg');
   if (!svg) return callback(null);
