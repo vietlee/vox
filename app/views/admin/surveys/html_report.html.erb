@@ -8,7 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script><style>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
 
@@ -322,7 +322,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
     <h3>🔗 Chia sẻ báo cáo</h3>
     <p>Ai có link này đều có thể xem báo cáo mà không cần đăng nhập</p>
     <div class="share-qr" id="shareQrWrap">
-      <canvas id="shareQrCanvas"></canvas>
+      <div id="shareQrDiv"></div>
     </div>
     <div class="share-link-row">
       <input class="share-link-input" id="shareLinkInput" readonly type="text" value="Đang tạo link...">
@@ -1414,10 +1414,12 @@ async function openShareModal() {
 }
 
 function renderQr(url) {
-  const canvas = document.getElementById('shareQrCanvas');
-  QRCode.toCanvas(canvas, url, {
-    width: 200, margin: 2,
-    color: { dark: '#1e293b', light: '#ffffff' }
+  const div = document.getElementById('shareQrDiv');
+  div.innerHTML = '';
+  new QRCode(div, {
+    text: url, width: 200, height: 200,
+    colorDark: '#1e293b', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
   });
 }
 
@@ -1431,7 +1433,8 @@ function copyShareLink() {
 
 async function copyQrImage() {
   try {
-    const canvas = document.getElementById('shareQrCanvas');
+    const canvas = document.querySelector('#shareQrDiv canvas');
+    if (!canvas) return showCopyTip('QR chưa sẵn sàng');
     canvas.toBlob(async blob => {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
       showCopyTip('Đã copy ảnh QR!');
@@ -1440,7 +1443,8 @@ async function copyQrImage() {
 }
 
 function downloadQr() {
-  const canvas = document.getElementById('shareQrCanvas');
+  const canvas = document.querySelector('#shareQrDiv canvas');
+  if (!canvas) return showCopyTip('QR chưa sẵn sàng');
   const a = document.createElement('a');
   a.download = 'qr-bao-cao.png';
   a.href = canvas.toDataURL('image/png');
