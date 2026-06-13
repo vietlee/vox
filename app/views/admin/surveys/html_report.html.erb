@@ -304,6 +304,7 @@ const C = ['#4361ee','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'
 // Shared datalabels config for bar charts (label on top)
 const barDL = {
   anchor: 'end', align: 'end', offset: 2,
+  clip: false,
   font: { size: 11, weight: '700' },
   color: '#444',
   formatter: (v) => v > 0 ? v : ''
@@ -312,10 +313,14 @@ const barDL = {
 // Shared datalabels config for horizontal bar (label at end)
 const hbarDL = {
   anchor: 'end', align: 'end', offset: 4,
+  clip: false,
   font: { size: 11, weight: '700' },
   color: '#444',
   formatter: (v) => v > 0 ? v : ''
 };
+
+// Extra top padding so datalabels above tallest bar aren't clipped
+const barLayout = { padding: { top: 20 } };
 
 // Datalabels for pie/doughnut (count inside slice)
 const pieDL = {
@@ -355,6 +360,7 @@ new Chart(document.getElementById('taskSavingsChart'), {
     datasets: [{ data: <%= raw t_data.to_json %>, backgroundColor: C[0]+'99', borderColor: C[0], borderWidth:2, borderRadius:6 }]
   },
   options: {
+    layout: barLayout,
     plugins: { legend:{display:false}, datalabels: barDL },
     scales: { y: { beginAtZero:true, ticks:{stepSize:1,precision:0} } }
   }
@@ -373,6 +379,7 @@ new Chart(document.getElementById('dailySavingsChart'), {
     datasets: [{ data: <%= raw d_data.to_json %>, backgroundColor: C[2]+'99', borderColor: C[2], borderWidth:2, borderRadius:6 }]
   },
   options: {
+    layout: barLayout,
     plugins: { legend:{display:false}, datalabels: barDL },
     scales: { y: { beginAtZero:true, ticks:{stepSize:1,precision:0} } }
   }
@@ -390,6 +397,7 @@ new Chart(document.getElementById('deptSavingsChart'), {
     ]
   },
   options: {
+    layout: barLayout,
     plugins: {
       legend: { position:'top', labels:{ font:{size:12} } },
       datalabels: { ...barDL, formatter: (v) => v > 0 ? v + '%' : '' }
@@ -428,6 +436,7 @@ new Chart(document.getElementById('ratingDistChart'), {
     datasets: [{ data: <%= raw dist_dat.to_json %>, backgroundColor: C, borderRadius:6 }]
   },
   options: {
+    layout: barLayout,
     plugins: { legend:{display:false}, datalabels: barDL },
     scales: { y: { beginAtZero:true, ticks:{stepSize:1,precision:0} } }
   }
@@ -448,6 +457,7 @@ new Chart(document.getElementById('npsChart'), {
     datasets: [{ data: <%= raw nps_dat.to_json %>, backgroundColor: <%= raw nps_col.to_json %>, borderRadius:5 }]
   },
   options: {
+    layout: barLayout,
     plugins: { legend:{display:false}, datalabels: barDL },
     scales: { y: { beginAtZero:true, ticks:{stepSize:1,precision:0} } }
   }
