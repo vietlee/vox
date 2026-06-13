@@ -47,7 +47,7 @@ module HtmlReportSetup
     when "rating", "linear_scale", "nps"
       vals = answers.filter_map { |a| a.numeric_value&.to_f }
       if vals.any?
-        max_scale = q.question_options.maximum(:value)&.to_i || (q.question_type == "nps" ? 10 : 5)
+        max_scale = q.question_type == "nps" ? 10 : [vals.max.to_i, 5].max
         dist = (1..max_scale).map do |v|
           c = vals.count { |n| n.round == v }
           { label: v.to_s, count: c, pct: vals.size > 0 ? (c.to_f / vals.size * 100).round(1) : 0 }
