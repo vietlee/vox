@@ -1510,14 +1510,29 @@ function downloadQr() {
 }
 
 async function revokeShareLink() {
-  voxConfirm('Thu hồi link chia sẻ? Ai đang có link sẽ không xem được nữa.', async () => {
+  voxConfirm('Thu hồi link chia sẻ? Link cũ sẽ hết hiệu lực và một link mới sẽ được tạo ngay.', async () => {
+    // Revoke old token
     await fetch('<%= revoke_report_token_survey_path(@survey) %>', {
       method: 'DELETE',
       headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
     });
+    // Reset state then generate new token immediately
     shareUrl = null;
-    document.getElementById('shareLinkInput').value = 'Link đã bị thu hồi';
-    document.getElementById('shareQrDiv').innerHTML = '';
+    document.getElementById('shareLinkInput').value = 'Đang tạo link mới...';
+    document.getElementById('shareQrDiv').innerHTML = '<div style="width:220px;height:220px;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;">Đang tạo QR...</div>';
+    try {
+      const resp = await fetch('<%= generate_report_token_survey_path(@survey) %>', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+      });
+      const data = await resp.json();
+      shareUrl = data.url;
+      document.getElementById('shareLinkInput').value = shareUrl;
+      document.getElementById('shareQrDiv').innerHTML = data.qr_svg || '';
+    } catch(e) {
+      document.getElementById('shareLinkInput').value = 'Lỗi: ' + e.message;
+      document.getElementById('shareQrDiv').innerHTML = '';
+    }
   });
 }
 
