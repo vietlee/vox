@@ -1024,9 +1024,14 @@ function saveLayout() {
     hiddenCards: [],
     cardSpans: {},
     cardHeights: {},
+    cardOrder: {},   // gridId → [cid, cid, ...]
     chartData: {},
     textEdits: {}
   };
+  // Card order per grid
+  document.querySelectorAll('[id^="grid-"]').forEach(grid => {
+    layout.cardOrder[grid.id] = [...grid.querySelectorAll('.cw')].map(c => c.dataset.cid);
+  });
   // Cards
   document.querySelectorAll('.cw').forEach(cw => {
     const cid = cw.dataset.cid;
@@ -1074,6 +1079,17 @@ function loadLayout() {
       addRestoreChip(cid, label, 'card');
     }
   });
+  // Restore card order per grid
+  if (saved.cardOrder) {
+    Object.entries(saved.cardOrder).forEach(([gridId, cids]) => {
+      const grid = document.getElementById(gridId);
+      if (!grid) return;
+      cids.forEach(cid => {
+        const el = document.querySelector(`[data-cid="${cid}"]`);
+        if (el) grid.appendChild(el);
+      });
+    });
+  }
   // Restore card spans
   if (saved.cardSpans) {
     Object.entries(saved.cardSpans).forEach(([cid, col]) => {
@@ -1118,7 +1134,16 @@ document.querySelectorAll('[id^="grid-"]').forEach(grid => {
     ghostClass: 'sortable-ghost',
     chosenClass: 'sortable-chosen',
     group: 'cards',
-    onEnd: saveLayout
+    forceFallback: true,       // more reliable with CSS Grid
+    fallbackTolerance: 5,
+    fallbackOnBody: true,
+    onEnd(evt) {
+      // After drop: auto-exit move mode on the dragged card
+      const cw = evt.item;
+      cw.classList.remove('cw-move-mode');
+      cw.querySelectorAll('.ct-mode-btn').forEach(b => b.classList.remove('active'));
+      saveLayout();
+    }
   });
 });
 
