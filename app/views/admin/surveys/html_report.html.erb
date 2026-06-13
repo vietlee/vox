@@ -237,6 +237,7 @@ canvas{max-height:260px}
 #pdf-loading.show{display:flex}
 .pdf-spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
 
 /* ── Confirm modal ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
@@ -1820,23 +1821,105 @@ function hdrKey(e, which) {
 // ── i18n / Language switcher ──────────────────────────────────────
 // ── Rebuild structure ──────────────────────────────────────────
 function rebuildStructure() {
-  if (!confirm('AI sẽ phân tích lại câu hỏi và tạo cấu trúc báo cáo mới. Tiếp tục?')) return;
-  const btn = document.querySelector('.btn-rebuild');
-  if (btn) { btn.innerHTML = '⏳ Đang tạo...'; btn.disabled = true; }
-  // Clear localStorage so fresh layout loads after redirect
-  localStorage.removeItem(SK);
-  localStorage.removeItem(SK + '_sub_edited');
-  fetch('<%= @public_view ? "#" : build_report_structure_survey_path(@survey) %>', {
-    method: 'POST',
-    headers: { 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.content || '', 'Content-Type': 'application/json' }
-  }).then(() => {
-    // Remove structure version so next load clears localStorage
-    localStorage.removeItem(SK + '_structver');
-    window.location = '<%= html_report_survey_path(@survey) %>';
-  }).catch(() => {
-    if (btn) { btn.innerHTML = '✦ Tạo lại'; btn.disabled = false; }
-    alert('Có lỗi, vui lòng thử lại.');
+  voxConfirm({
+    title: '✦ Tạo lại báo cáo',
+    message: 'AI sẽ đọc toàn bộ câu hỏi, dữ liệu và tạo cấu trúc báo cáo mới.\nNhãn, tiêu đề sẽ được AI rút gọn thông minh.',
+    okText: 'Tạo lại ngay',
+    okColor: '#4361ee',
+    onOk: () => {
+      // Show full-page generating overlay
+      showRebuildOverlay();
+      localStorage.removeItem(SK);
+      localStorage.removeItem(SK + '_sub_edited');
+      fetch('<%= @public_view ? "#" : build_report_structure_survey_path(@survey) %>', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.content || '', 'Content-Type': 'application/json' }
+      }).then(() => {
+        localStorage.removeItem(SK + '_structver');
+        window.location = '<%= html_report_survey_path(@survey) %>';
+      }).catch(() => {
+        hideRebuildOverlay();
+        alert('Có lỗi, vui lòng thử lại.');
+      });
+    }
   });
+}
+
+function showRebuildOverlay() {
+  let el = document.getElementById('rebuild-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'rebuild-overlay';
+    el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,20,50,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;';
+    el.innerHTML = `
+      <div style="background:white;border-radius:20px;padding:40px 36px;max-width:420px;width:90%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.3);">
+        <div style="margin-bottom:20px">
+          <svg width="56" height="56" viewBox="0 0 56 56" style="margin:0 auto">
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#e0e7ff" stroke-width="4"/>
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#4361ee" stroke-width="4"
+              stroke-dasharray="40 112" stroke-linecap="round" transform="rotate(-90 28 28)">
+              <animateTransform attributeName="transform" type="rotate" from="−90 28 28" to="270 28 28" dur="1.2s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:#4361ee;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">✦ AI đang phân tích</div>
+        <h2 style="font-size:20px;font-weight:800;color:#1a1a2e;margin-bottom:10px">Đang tạo cấu trúc báo cáo</h2>
+        <p style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:24px">AI đang đọc nội dung khảo sát và thiết kế layout báo cáo phù hợp. Quá trình này mất khoảng 5–15 giây.</p>
+        <div style="background:#f8fafc;border-radius:12px;padding:16px 20px;text-align:left">
+          <div id="rb-step-1" class="rb-step done" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:#10b981;font-weight:500">
+            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;flex-shrink:0"></span> Đọc danh sách câu hỏi
+          </div>
+          <div id="rb-step-2" class="rb-step done" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:#10b981;font-weight:500">
+            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;flex-shrink:0"></span> Phân tích dữ liệu thực tế
+          </div>
+          <div id="rb-step-3" class="rb-step active" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:#4361ee;font-weight:700">
+            <span style="width:8px;height:8px;border-radius:50%;background:#4361ee;flex-shrink:0;animation:pulse-dot 1s infinite"></span> AI rút gọn nhãn & thiết kế layout
+          </div>
+          <div id="rb-step-4" class="rb-step" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:#94a3b8">
+            <span style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;flex-shrink:0"></span> Tạo báo cáo hoàn chỉnh
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+    // Animate steps
+    setTimeout(() => {
+      const s3 = document.getElementById('rb-step-3');
+      const s4 = document.getElementById('rb-step-4');
+      if(s3){ s3.style.color='#10b981'; s3.querySelector('span').style.background='#10b981'; s3.querySelector('span').style.animation=''; }
+      if(s4){ s4.style.color='#4361ee'; s4.style.fontWeight='700'; s4.querySelector('span').style.background='#4361ee'; }
+    }, 4000);
+  }
+  el.style.display = 'flex';
+}
+function hideRebuildOverlay() {
+  const el = document.getElementById('rebuild-overlay');
+  if (el) el.style.display = 'none';
+}
+
+function voxConfirm({ title, message, okText = 'Xác nhận', okColor = '#ef4444', onOk }) {
+  let overlay = document.getElementById('vox-confirm-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'vox-confirm-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)';
+    overlay.innerHTML = `<div style="background:white;border-radius:16px;padding:28px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+      <div id="vc-title" style="font-size:16px;font-weight:800;color:#1a1a2e;margin-bottom:10px"></div>
+      <p id="vc-msg" style="font-size:13px;color:#475569;line-height:1.7;margin-bottom:22px;white-space:pre-line"></p>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button id="vc-cancel" style="padding:9px 20px;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:white;color:#64748b">Huỷ</button>
+        <button id="vc-ok" style="padding:9px 20px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;color:white"></button>
+      </div></div>`;
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('vc-title').textContent = title || '';
+  document.getElementById('vc-msg').textContent = message;
+  document.getElementById('vc-ok').textContent = okText;
+  document.getElementById('vc-ok').style.background = okColor;
+  const close = () => { overlay.style.display = 'none'; };
+  document.getElementById('vc-cancel').onclick = close;
+  document.getElementById('vc-ok').onclick = () => { close(); onOk(); };
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  overlay.style.display = 'flex';
 }
 
 const TRANSLATIONS = {
