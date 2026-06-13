@@ -6,9 +6,7 @@
 <title>Báo cáo: <%= @survey.title %></title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<style>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
 
@@ -198,16 +196,41 @@ canvas{max-height:260px}
 
 footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
 
-/* ── Print ── */
+/* ── Print / PDF ── */
 @media print{
-  .action-bar,.section-controls,.card-toolbar,.restore-bar,.cw-gear,.rh-right,.rh-bottom,.rh-corner{display:none!important}
-  body{background:white}
-  .header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .kpi{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid}
-  .card{box-shadow:none!important;border:1px solid #e0e0e0;break-inside:avoid}
-  .report-section,.grid-2,.grid-3{break-inside:avoid}
-  .grid-2>.cw{grid-column:span 6}.grid-3>.cw{grid-column:span 4}
-  .rh-right,.rh-bottom,.rh-corner{display:none!important}
+  @page{size:A4 landscape;margin:10mm 12mm}
+
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+
+  /* Hide all UI chrome */
+  .action-bar,.section-controls,.card-toolbar,.restore-bar,
+  .cw-gear,.cw-mode-bar,.rh-right,.rh-bottom,.rh-corner,
+  .modal-overlay,.btn-sec-drag{display:none!important}
+
+  body{background:white!important;font-size:12px}
+  .report-body{max-width:100%!important;padding:0!important}
+
+  /* Header full width */
+  .header{border-radius:0!important;margin-bottom:8mm}
+
+  /* KPI row: keep together */
+  .kpi-row{break-inside:avoid;page-break-inside:avoid;display:flex!important;flex-wrap:nowrap!important;gap:8px!important}
+  .kpi{flex:1;min-width:0;break-inside:avoid;page-break-inside:avoid}
+
+  /* Sections: try to keep together, break before new section if needed */
+  .report-section{break-inside:avoid;page-break-inside:avoid;margin-bottom:6mm}
+  .section-header{break-after:avoid;page-break-after:avoid}
+
+  /* Grids & cards */
+  .grid-2,.grid-3{break-inside:avoid;page-break-inside:avoid;display:grid!important}
+  .grid-2>.cw{grid-column:span 6!important}
+  .grid-3>.cw{grid-column:span 4!important}
+  .cw.hidden-section{display:none!important}
+  .cw{break-inside:avoid;page-break-inside:avoid}
+  .card{box-shadow:none!important;border:1px solid #e2e8f0!important;break-inside:avoid;page-break-inside:avoid;border-radius:8px!important}
+
+  /* Charts: never cut a canvas */
+  canvas{break-inside:avoid;page-break-inside:avoid;max-width:100%!important}
 }
 </style>
 </head>
@@ -776,51 +799,20 @@ document.addEventListener('mousedown', e => {
 });
 
 // ── Print / PDF ──
-function viToAscii(str) {
-  const m={'à':'a','á':'a','ả':'a','ã':'a','ạ':'a','ă':'a','ắ':'a','ặ':'a','ằ':'a','ẳ':'a','ẵ':'a','â':'a','ấ':'a','ầ':'a','ẩ':'a','ẫ':'a','ậ':'a','đ':'d','è':'e','é':'e','ẻ':'e','ẽ':'e','ẹ':'e','ê':'e','ế':'e','ề':'e','ể':'e','ễ':'e','ệ':'e','ì':'i','í':'i','ỉ':'i','ĩ':'i','ị':'i','ò':'o','ó':'o','ỏ':'o','õ':'o','ọ':'o','ô':'o','ố':'o','ồ':'o','ổ':'o','ỗ':'o','ộ':'o','ơ':'o','ớ':'o','ờ':'o','ở':'o','ỡ':'o','ợ':'o','ù':'u','ú':'u','ủ':'u','ũ':'u','ụ':'u','ư':'u','ứ':'u','ừ':'u','ử':'u','ữ':'u','ự':'u','ỳ':'y','ý':'y','ỷ':'y','ỹ':'y','ỵ':'y','À':'A','Á':'A','Ả':'A','Ã':'A','Ạ':'A','Ă':'A','Ắ':'A','Ặ':'A','Ằ':'A','Ẳ':'A','Ẵ':'A','Â':'A','Ấ':'A','Ầ':'A','Ẩ':'A','Ẫ':'A','Ậ':'A','Đ':'D','È':'E','É':'E','Ẻ':'E','Ẽ':'E','Ẹ':'E','Ê':'E','Ế':'E','Ề':'E','Ể':'E','Ễ':'E','Ệ':'E','Ì':'I','Í':'I','Ỉ':'I','Ĩ':'I','Ị':'I','Ò':'O','Ó':'O','Ỏ':'O','Õ':'O','Ọ':'O','Ô':'O','Ố':'O','Ồ':'O','Ổ':'O','Ỗ':'O','Ộ':'O','Ơ':'O','Ớ':'O','Ờ':'O','Ở':'O','Ỡ':'O','Ợ':'O','Ù':'U','Ú':'U','Ủ':'U','Ũ':'U','Ụ':'U','Ư':'U','Ứ':'U','Ừ':'U','Ử':'U','Ữ':'U','Ự':'U','Ỳ':'Y','Ý':'Y','Ỷ':'Y','Ỹ':'Y','Ỵ':'Y'};
-  return str.split('').map(c=>m[c]||c).join('');
-}
-
 function printPdf() {
   deactivateAllCards();
-
-  // Hide all UI chrome before capture
-  const hide = document.querySelectorAll('.action-bar,.cw-gear,.card-toolbar,.cw-mode-bar,.restore-bar,.section-controls,.rh-right,.rh-bottom,.rh-corner');
-  hide.forEach(el => el.style.visibility = 'hidden');
-
-  const btn = document.querySelector('.btn-pdf');
-  btn.textContent = '⏳ Đang xuất...';
-  btn.disabled = true;
-
-  const safeName = viToAscii('<%= j @survey.title %>').replace(/[^\w\s\-]/g,'').trim().replace(/\s+/g,'-').substring(0,80) || 'bao-cao';
-
-  // Wait for repaint
-  requestAnimationFrame(() => setTimeout(() => {
-    html2pdf()
-      .set({
-        margin: [8, 8, 8, 8],
-        filename: safeName + '.pdf',
-        image: { type: 'png' },
-        html2canvas: {
-          scale: 3,
-          useCORS: true,
-          logging: false,
-          allowTaint: true,
-          windowWidth: 1440,
-          scrollX: 0,
-          scrollY: -window.scrollY
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-        pagebreak: { avoid: ['.card', '.kpi-row', 'canvas'] }
-      })
-      .from(document.body)
-      .save()
-      .finally(() => {
-        hide.forEach(el => el.style.visibility = '');
-        btn.textContent = '⬇ Tải PDF';
-        btn.disabled = false;
-      });
-  }, 150));
+  // Show toast then trigger native print-to-PDF
+  let toast = document.getElementById('pdf-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'pdf-toast';
+    toast.style.cssText = 'position:fixed;bottom:80px;right:24px;background:#1e293b;color:white;padding:14px 18px;border-radius:12px;font-size:13px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.35);line-height:1.7;max-width:290px';
+    toast.innerHTML = '📄 Trong hộp thoại in:<br><b>Chọn "Lưu dưới dạng PDF"</b><br><span style="opacity:.65;font-size:11px">Khổ giấy: A4 Ngang · Bỏ Header &amp; Footers</span>';
+    document.body.appendChild(toast);
+  }
+  toast.style.display = 'block';
+  setTimeout(() => { if(toast) toast.style.display='none'; }, 9000);
+  setTimeout(() => window.print(), 400);
 }
 
 // ── Inject gear icons + resize handles into each .cw ──
