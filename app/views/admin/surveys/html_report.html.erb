@@ -51,8 +51,8 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .cd-ghost{position:fixed;z-index:1000;pointer-events:none;opacity:.85;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);transform:rotate(1.5deg);overflow:hidden;background:white}
 
 /* ── Drop zones ── */
-.cd-zone{border:2px dashed #c7d2fe;border-radius:12px;background:#f8f9ff;min-height:80px;transition:background .1s,border-color .1s,transform .1s}
-.cd-zone-over{border-color:#4361ee;background:#eef2ff;transform:scale(1.02)}
+.cd-zone{border:2px dashed #93c5fd;border-radius:12px;background:rgba(239,246,255,.7);min-height:80px;transition:background .15s,border-color .15s,transform .15s;box-sizing:border-box}
+.cd-zone-over{border-color:#4361ee;background:#dbeafe;transform:scale(1.02);box-shadow:0 0 0 3px rgba(67,97,238,.15)}
 
 /* ── Placeholder while dragging ── */
 .cd-placeholder{border:2px dashed #e2e8f0;border-radius:12px;background:#fafafa;min-height:80px}
@@ -1172,22 +1172,32 @@ function startCardDrag(e, cw) {
   };
 }
 
+function getCardSpan(cw) {
+  // Prefer inline style
+  if (cw.style.gridColumn) return cw.style.gridColumn;
+  // Compute from actual rendered columns
+  const cs = window.getComputedStyle(cw);
+  const start = parseInt(cs.gridColumnStart);
+  const end   = parseInt(cs.gridColumnEnd);
+  if (!isNaN(start) && !isNaN(end) && end > start) return 'span ' + (end - start);
+  // Fallback: count from parent class
+  const parent = cw.parentElement;
+  if (parent?.classList.contains('grid-3')) return 'span 4';
+  return 'span 6';
+}
+
 function injectDropZones(dragCw) {
-  const span = dragCw.style.gridColumn || '';
+  const span = getCardSpan(dragCw);
   document.querySelectorAll('[id^="grid-"]').forEach(grid => {
     const cards = [...grid.querySelectorAll(':scope > .cw:not(.cd-source)')];
-    // Insert zone before each card and at the end
-    const positions = [...cards.map(c => ({ before: c })), { before: null, grid }];
-    positions.forEach(({ before, grid: g }) => {
+    // Insert zone before each card AND at the end of each grid
+    [...cards.map(c => ({ before: c })), { before: null }].forEach(({ before }) => {
       const zone = document.createElement('div');
       zone.className = 'cd-zone';
       zone.style.gridColumn = span;
       zone.dataset.grid = grid.id;
-      if (before) {
-        grid.insertBefore(zone, before);
-      } else {
-        grid.appendChild(zone);
-      }
+      if (before) grid.insertBefore(zone, before);
+      else         grid.appendChild(zone);
     });
   });
 }
@@ -1198,12 +1208,13 @@ document.addEventListener('mousemove', e => {
   cdrag.ghost.style.left = (e.clientX - cdrag.offX) + 'px';
   cdrag.ghost.style.top  = (e.clientY - cdrag.offY) + 'px';
 
-  // Find nearest drop zone
+  // Find nearest drop zone (by cursor distance to zone center)
   let nearest = null, nearDist = Infinity;
   document.querySelectorAll('.cd-zone').forEach(zone => {
     const r = zone.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) return; // skip invisible
     const cx = r.left + r.width / 2;
-    const cy = r.top + r.height / 2;
+    const cy = r.top  + r.height / 2;
     const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
     if (dist < nearDist) { nearDist = dist; nearest = zone; }
   });
