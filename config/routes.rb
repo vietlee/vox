@@ -101,6 +101,7 @@ Rails.application.routes.draw do
         post  :save_report_layout
         get   :export
         get    :export_report
+        get    :view_ai_report
         delete :delete_report
         post   :ai_analyze
         post   :ai_report

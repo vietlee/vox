@@ -3,7 +3,7 @@ require "csv"
 class Admin::SurveysController < Admin::BaseController
   include HtmlReportSetup
 
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :generate_report_token, :revoke_report_token, :save_report_layout, :export, :export_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :generate_report_token, :revoke_report_token, :save_report_layout, :export, :export_report, :view_ai_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
@@ -279,6 +279,16 @@ class Admin::SurveysController < Admin::BaseController
 
     filename = "#{vi_parameterize(@survey.title)}-#{Date.today}.csv"
     send_data "\xEF\xBB\xBF#{csv_data}", filename: filename, type: "text/csv; charset=utf-8", disposition: "attachment"
+  end
+
+  def view_ai_report
+    @ai_result = if params[:report_id].present?
+                   @survey.ai_analysis_results.find_by(id: params[:report_id], result_type: "executive_report")
+                 else
+                   @survey.ai_analysis_results.where(result_type: "executive_report").order(created_at: :desc).first
+                 end
+    redirect_to results_survey_path(@survey, tab: "report") unless @ai_result
+    render layout: false
   end
 
   def export_report

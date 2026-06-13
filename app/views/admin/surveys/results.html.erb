@@ -70,7 +70,7 @@
     <!-- HTML Report (full-page dashboard) -->
     <a href="<%= html_report_survey_path(@survey) %>" target="_blank"
        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 transition-colors">
-      📊 Báo cáo đầy đủ
+      📊 Báo cáo đầy đủ từ AI
     </a>
     <!-- Export CSV -->
     <a href="<%= export_survey_path(@survey) %>"
@@ -411,7 +411,7 @@
           class="w-full py-2.5 text-[13px] font-bold text-white rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
           style="background:linear-gradient(135deg,#7c3aed,#6366f1);">
           <span id="report-spinner" class="hidden w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-          ✨ Tạo báo cáo với AI
+          ✨ Tạo báo cáo với AI theo nhu cầu
         </button>
       </div>
     </div>
@@ -470,12 +470,11 @@
 
               <!-- Actions -->
               <div class="flex gap-1.5 flex-wrap">
-                <a href="<%= export_report_survey_path(@survey, report_id: rpt.id, format_type: rpt_fmt) %>"
-                   data-turbo="false"
-                   onclick="btnDownloadLoading(this)"
+                <a href="<%= view_ai_report_survey_path(@survey, report_id: rpt.id) %>"
+                   target="_blank"
                    class="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg text-white hover:opacity-90 transition-opacity"
                    style="background:linear-gradient(135deg,#7c3aed,#6366f1);min-width:0;">
-                  ⬇ Tải <%= rpt_fmt == 'word' ? 'WORD' : rpt_fmt.upcase %>
+                  📊 Xem báo cáo
                 </a>
                 <% if rpt_ctx.present? %>
                 <button onclick="regenReport('<%= j rpt_ctx %>', '<%= rpt_lang.downcase %>', '<%= rpt_fmt %>')"
