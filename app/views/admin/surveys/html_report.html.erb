@@ -10,6 +10,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+// ── Chart helpers — must be defined BEFORE any chart <script> blocks ──
+Chart.register(ChartDataLabels);
+const C=['#4361ee','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#0ea5e9','#14b8a6'];
+const barDL  ={anchor:'end',align:'end',offset:2,clip:false,font:{size:11,weight:'700'},color:'#444',formatter:v=>v>0?v:''};
+const hbarDL ={anchor:'end',align:'end',offset:4,clip:false,font:{size:11,weight:'700'},color:'#374151',formatter:v=>v>0?v:''};
+const pieDL  ={display:ctx=>ctx.dataset.data[ctx.dataIndex]>0,color:'#fff',font:{size:12,weight:'700'},formatter:v=>v};
+const barLayout={padding:{top:20}};
+const chartReg={};
+function mkChart(id,cfg){
+  const el=document.getElementById(id);
+  if(!el){console.warn('mkChart: canvas not found:',id);return null;}
+  if(chartReg[id]){chartReg[id].destroy();}
+  const ch=new Chart(el,cfg);
+  chartReg[id]=ch;
+  return ch;
+}
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
@@ -849,21 +867,6 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 <footer>Báo cáo tự động · VOX · <%= @total_responses %> phản hồi · <%= @survey.title %></footer>
 
 <script>
-Chart.register(ChartDataLabels);
-const C=['#4361ee','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#0ea5e9','#14b8a6'];
-const barDL  ={anchor:'end',align:'end',offset:2,clip:false,font:{size:11,weight:'700'},color:'#444',formatter:v=>v>0?v:''};
-const hbarDL ={anchor:'end',align:'end',offset:4,clip:false,font:{size:11,weight:'700'},color:'#374151',formatter:v=>v>0?v:''};
-const pieDL  ={display:ctx=>ctx.dataset.data[ctx.dataIndex]>0,color:'#fff',font:{size:12,weight:'700'},formatter:v=>v};
-const barLayout={padding:{top:20}};
-const chartReg={}; // chartId → Chart instance
-
-function mkChart(id,cfg){
-  const ch=new Chart(document.getElementById(id),cfg);
-  chartReg[id]=ch;
-  return ch;
-}
-
-
 // ══════════════════════════════════════════════════════════
 // Layout editor
 // ══════════════════════════════════════════════════════════
