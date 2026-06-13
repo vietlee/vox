@@ -223,7 +223,13 @@ canvas{max-height:260px}
 .share-btn:hover{background:#f1f5f9;border-color:#cbd5e1}
 .share-btn .icon{font-size:20px}
 .share-footer{display:flex;justify-content:space-between;align-items:center}
-.share-revoke{font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;text-decoration:underline}
+.share-revoke{font-size:12px;color:#ef4444;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:7px 14px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:5px;transition:all .15s}
+.share-revoke:hover{background:#fee2e2;border-color:#fca5a5}
+/* Copy tick */
+.share-btn.copied{background:#f0fdf4;border-color:#86efac;color:#16a34a}
+.share-btn.copied .icon{display:none}
+.share-btn.copied .copy-tick{display:block}
+.copy-tick{display:none;font-size:20px}
 .share-close{background:#4361ee;color:white;border:none;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer}
 .btn-edit.active{background:#10b981}
 .btn-rebuild{background:rgba(124,58,237,.12);color:#7c3aed;border:1px solid rgba(124,58,237,.25)!important}
@@ -396,12 +402,12 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
       <input class="share-link-input" id="shareLinkInput" readonly type="text" value="Đang tạo link...">
     </div>
     <div class="share-actions">
-      <button class="share-btn" onclick="copyShareLink()"><span class="icon">📋</span>Copy link</button>
-      <button class="share-btn" onclick="copyQrImage()"><span class="icon">🖼</span>Copy QR</button>
+      <button id="btn-copy-link" class="share-btn" onclick="copyShareLink(this)"><span class="icon">📋</span><span class="copy-tick">✅</span>Copy link</button>
+      <button id="btn-copy-qr"   class="share-btn" onclick="copyQrImage(this)"><span class="icon">🖼</span><span class="copy-tick">✅</span>Copy QR</button>
       <button class="share-btn" onclick="downloadQr()"><span class="icon">⬇️</span>Tải QR</button>
     </div>
     <div class="share-footer">
-      <button class="share-revoke" onclick="revokeShareLink()">Thu hồi link</button>
+      <button class="share-revoke" onclick="revokeShareLink()">🗑 Thu hồi link</button>
       <button class="share-close" onclick="closeShareModal()">Đóng</button>
     </div>
   </div>
@@ -1727,18 +1733,25 @@ function closeShareModal() {
   document.getElementById('shareModal').classList.remove('open');
 }
 
-function copyShareLink() {
-  navigator.clipboard.writeText(shareUrl).then(() => showCopyTip('Đã copy link!'));
+function showCopyTick(btn) {
+  if (!btn) return;
+  btn.classList.add('copied');
+  setTimeout(() => btn.classList.remove('copied'), 2000);
 }
 
-async function copyQrImage() {
+function copyShareLink(btn) {
+  navigator.clipboard.writeText(shareUrl).then(() => showCopyTick(btn || document.getElementById('btn-copy-link')));
+}
+
+async function copyQrImage(btn) {
+  const b = btn || document.getElementById('btn-copy-qr');
   try {
-    if (!document.querySelector('#shareQrDiv svg')) return showCopyTip('QR chưa sẵn sàng');
+    if (!document.querySelector('#shareQrDiv svg')) return;
     svgToCanvas(async canvas => {
-      if (!canvas) return showCopyTip('Không thể tạo ảnh QR');
+      if (!canvas) return;
       canvas.toBlob(async blob => {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        showCopyTip('Đã copy ảnh QR!');
+        showCopyTick(b);
       });
     });
   } catch(e) { showCopyTip('Trình duyệt không hỗ trợ copy ảnh'); }
