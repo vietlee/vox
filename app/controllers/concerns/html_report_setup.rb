@@ -337,7 +337,7 @@ module HtmlReportSetup
         end
       end
 
-      { label: vq.title.truncate(40), data: avgs, color: color }
+      { label: vq.title, data: avgs, color: color }
     end
 
     group_counts = group_options.map do |opt_id, _|

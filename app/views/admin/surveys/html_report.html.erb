@@ -703,7 +703,13 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
               options: {
                 responsive: true,
                 plugins: {
-                  legend: { position:'top', labels:{ font:{size:11} } },
+                  legend: { position:'top', labels:{ font:{size:11}, boxWidth:14, padding:12,
+                    generateLabels: function(chart){
+                      return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(function(item){
+                        item.text = item.text; return item;
+                      });
+                    }
+                  } },
                   datalabels: {
                     anchor: 'end', align: 'end', offset: 2, clip: false,
                     font: { size: 11, weight: '700' }, color: '#374151',
