@@ -6,6 +6,7 @@
 <title>Báo cáo: <%= @survey.title %></title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: #f0f2f5; color: #1a1a2e; font-size: 14px; }
@@ -63,16 +64,22 @@ canvas { max-height: 260px; }
 .quote-card .author { font-weight: 700; color: #e65100; font-size: 11px; margin-bottom: 3px; }
 
 /* Print button */
-.print-btn { position: fixed; bottom: 24px; right: 24px; background: #4361ee; color: white; border: none; border-radius: 50px; padding: 10px 22px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(67,97,238,.4); z-index: 100; }
-.print-btn:hover { background: #3451d1; }
-@media print { .print-btn { display: none; } body { background: white; } .card { box-shadow: none; border: 1px solid #e0e0e0; } }
+.action-bar { position: fixed; bottom: 24px; right: 24px; display: flex; gap: 8px; z-index: 100; }
+.action-bar button { display: flex; align-items: center; gap: 6px; border: none; border-radius: 50px; padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.15); transition: opacity .15s; }
+.action-bar button:hover { opacity: .88; }
+.btn-print { background: #fff; color: #374151; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+.btn-pdf   { background: #4361ee; color: #fff; }
+@media print { .action-bar { display: none; } body { background: white; } .card { box-shadow: none; border: 1px solid #e0e0e0; } }
 
 footer { text-align: center; padding: 20px; color: #bbb; font-size: 11px; }
 </style>
 </head>
 <body>
 
-<button class="print-btn" onclick="window.print()">🖨 In / Lưu PDF</button>
+<div class="action-bar" id="actionBar">
+  <button class="btn-print" onclick="window.print()">🖨 In</button>
+  <button class="btn-pdf" id="btnPdf" onclick="downloadPdf()">⬇ Tải PDF</button>
+</div>
 
 <%# ─── HEADER ─────────────────────────────────────────────────── %>
 <div class="header">
@@ -478,6 +485,33 @@ new Chart(document.getElementById('challengeChart'), {
   }
 });
 <% end %>
+
+function downloadPdf() {
+  const btn = document.getElementById('btnPdf');
+  const bar = document.getElementById('actionBar');
+  btn.textContent = '⏳ Đang tạo...';
+  btn.disabled = true;
+  bar.style.display = 'none';
+
+  const filename = '<%= @survey.title.to_s.gsub(/[^a-zA-Z0-9À-ɏḀ-ỿ\s_-]/i, "").strip.gsub(/\s+/, "_").truncate(60, omission: "") %>_bao_cao.pdf';
+
+  html2pdf()
+    .set({
+      margin:      [10, 10, 10, 10],
+      filename:    filename,
+      image:       { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF:       { unit: 'mm', format: 'a4', orientation: 'landscape' },
+      pagebreak:   { mode: ['avoid-all', 'css', 'legacy'] }
+    })
+    .from(document.body)
+    .save()
+    .then(() => {
+      bar.style.display = 'flex';
+      btn.textContent = '⬇ Tải PDF';
+      btn.disabled = false;
+    });
+}
 </script>
 </body>
 </html>
