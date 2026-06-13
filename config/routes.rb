@@ -92,6 +92,7 @@ Rails.application.routes.draw do
         patch :archive
         get   :results
         get   :html_report
+        get   :pdf_report
         get   :export
         get    :export_report
         delete :delete_report

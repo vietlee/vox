@@ -196,6 +196,15 @@ canvas{max-height:260px}
 
 footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
 
+/* ── PDF mode (Grover ?pdf=1) ── */
+<% if params[:pdf] == "1" %>
+body.pdf-mode .action-bar,body.pdf-mode .cw-gear,body.pdf-mode .card-toolbar,
+body.pdf-mode .cw-mode-bar,body.pdf-mode .restore-bar,body.pdf-mode .section-controls,
+body.pdf-mode .rh-right,body.pdf-mode .rh-bottom,body.pdf-mode .rh-corner{display:none!important}
+body.pdf-mode{background:white!important}
+body.pdf-mode .report-body{max-width:100%!important;padding:16px!important}
+<% end %>
+
 /* ── Print / PDF ── */
 @media print{
   @page{size:A4 landscape;margin:10mm 12mm}
@@ -271,7 +280,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
 <%# ── Action bar ── %>
 <div class="action-bar" id="actionBar">
   <button class="btn-print" onclick="window.print()">🖨 In</button>
-  <button class="btn-pdf"   onclick="printPdf()">⬇ Tải PDF</button>
+  <a class="btn-pdf" href="<%= pdf_report_survey_path(@survey) %>" target="_blank" style="text-decoration:none;display:flex;align-items:center;gap:6px">⬇ Tải PDF</a>
   <button class="btn-edit"  id="btnEdit" onclick="toggleEdit()">⠿ Sắp xếp sections</button>
 </div>
 
@@ -797,6 +806,11 @@ document.addEventListener('mousedown', e => {
   if (e.target.closest('#deleteModal,#chartModal')) return; // modals
   if (!e.target.closest('.cw-active')) deactivateAllCards();
 });
+
+// Apply pdf-mode class if Grover is rendering
+if (new URLSearchParams(location.search).get('pdf') === '1') {
+  document.body.classList.add('pdf-mode');
+}
 
 // ── Print / PDF ──
 function printPdf() {

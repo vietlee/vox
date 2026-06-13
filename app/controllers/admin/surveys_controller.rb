@@ -28,7 +28,7 @@ class Admin::SurveysController < Admin::BaseController
     { label: "Hỗ trợ tài chính",               kws: ["tài chính", "chi phí", "tài trợ"] },
     { label: "Nguyên tắc bảo mật",             kws: ["bảo mật", "security", "nguyên tắc"] },
   ].freeze
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :export, :export_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :export, :export_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
@@ -353,6 +353,47 @@ class Admin::SurveysController < Admin::BaseController
     end
 
     render layout: false
+  end
+
+  def pdf_report
+    # Build the html_report URL with a special param so Grover skips UI chrome
+    report_url = html_report_survey_url(@survey, pdf: "1", host: request.host_with_port, protocol: request.protocol)
+
+    # Smart layout: choose orientation based on number of visible sections/cards
+    section_count = @survey.questions.count rescue 0
+    orientation   = "landscape" # landscape fits dashboards better
+
+    filename = @survey.title.to_s
+      .unicode_normalize rescue @survey.title.to_s
+    filename = filename.gsub(/[àáảãạăắặằẳẵâấầẩẫậ]/i, "a")
+      .gsub(/đ/i, "d")
+      .gsub(/[èéẻẽẹêếềểễệ]/i, "e")
+      .gsub(/[ìíỉĩị]/i, "i")
+      .gsub(/[òóỏõọôốồổỗộơớờởỡợ]/i, "o")
+      .gsub(/[ùúủũụưứừửữự]/i, "u")
+      .gsub(/[ỳýỷỹỵ]/i, "y")
+      .gsub(/[^a-zA-Z0-9\s\-]/, "")
+      .strip.gsub(/\s+/, "-")[0..79]
+    filename = "bao-cao" if filename.blank?
+
+    pdf = Grover.new(report_url,
+      format:           "A4",
+      landscape:        true,
+      print_background: true,
+      margin:           { top: "10mm", bottom: "10mm", left: "10mm", right: "10mm" },
+      emulate_media:    "print",
+      viewport:         { width: 1440, height: 900 },
+      wait_until:       "networkidle2",
+      timeout:          60_000
+    ).to_pdf
+
+    send_data pdf,
+      filename:    "#{filename}.pdf",
+      type:        "application/pdf",
+      disposition: "attachment"
+  rescue => e
+    Rails.logger.error "pdf_report error: #{e.message}"
+    redirect_to html_report_survey_path(@survey), alert: "Không thể xuất PDF: #{e.message}"
   end
 
   def results
