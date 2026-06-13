@@ -1134,14 +1134,20 @@ document.querySelectorAll('[id^="grid-"]').forEach(grid => {
     ghostClass: 'sortable-ghost',
     chosenClass: 'sortable-chosen',
     group: 'cards',
-    forceFallback: true,       // more reliable with CSS Grid
-    fallbackTolerance: 5,
+    forceFallback: true,
+    fallbackTolerance: 3,
     fallbackOnBody: true,
+    swapThreshold: 0.5,
+    invertSwap: true,
+    direction(evt, target, dragEl) {
+      // Detect direction based on grid: if target and dragEl are on same row → horizontal
+      if (!target) return 'vertical';
+      const tRect = target.getBoundingClientRect();
+      const dRect = dragEl.getBoundingClientRect();
+      const sameRow = Math.abs(tRect.top - dRect.top) < tRect.height * 0.5;
+      return sameRow ? 'horizontal' : 'vertical';
+    },
     onEnd(evt) {
-      // After drop: auto-exit move mode on the dragged card
-      const cw = evt.item;
-      cw.classList.remove('cw-move-mode');
-      cw.querySelectorAll('.ct-mode-btn').forEach(b => b.classList.remove('active'));
       saveLayout();
     }
   });
