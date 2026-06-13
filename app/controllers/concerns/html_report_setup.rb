@@ -347,10 +347,20 @@ module HtmlReportSetup
       }
     end
 
+    # ── Filter out groups with zero respondents ──────────────────────────
+    active_indices = group_counts.each_with_index.filter_map { |cnt, i| i if cnt > 0 }
+    return nil if active_indices.empty?
+
+    filtered_labels = group_options.map(&:last).values_at(*active_indices)
+    filtered_counts = group_counts.values_at(*active_indices)
+    filtered_datasets = datasets.map do |ds|
+      ds.merge(data: ds[:data].values_at(*active_indices))
+    end
+
     {
-      labels:       group_options.map(&:last),
-      datasets:     datasets,
-      group_counts: group_counts
+      labels:       filtered_labels,
+      datasets:     filtered_datasets,
+      group_counts: filtered_counts
     }
   end
 
