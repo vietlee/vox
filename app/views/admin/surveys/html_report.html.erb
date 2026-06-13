@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Báo cáo: <%= @survey.title %></title>
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="icon" type="image/png" href="/icon.png">
 <%= csrf_meta_tags %>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -251,33 +253,35 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 
-  /* Hide all UI chrome + footer (prevents orphan footer page) */
+  /* Hide all UI chrome */
   .action-bar,.section-controls,.card-toolbar,.restore-bar,
   .cw-gear,.cw-mode-bar,.rh-right,.rh-bottom,.rh-corner,
-  .modal-overlay,.btn-sec-drag,#pdf-loading,footer{display:none!important}
+  .modal-overlay,.btn-sec-drag,#pdf-loading,footer,
+  .hdr-edit-icon,#shareModal,#vox-confirm-overlay{display:none!important}
 
-  body{background:white!important;font-size:12px}
+  html,body{height:auto!important;overflow:visible!important;background:white!important;font-size:12px}
+  /* Remove any trailing padding/margin that creates blank last page */
+  body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
+  .container{padding-bottom:0!important;max-width:100%!important}
   .report-body{max-width:100%!important;padding:0!important}
 
-  /* Header full width */
+  /* Header */
   .header{border-radius:0!important;margin-bottom:8mm}
 
-  /* KPI row: keep together */
+  /* KPI: keep on one line */
   .kpi-row{break-inside:avoid;page-break-inside:avoid;display:flex!important;flex-wrap:nowrap!important;gap:8px!important}
   .kpi{flex:1;min-width:0;break-inside:avoid;page-break-inside:avoid}
 
-  /* Sections: try to keep together, break before new section if needed */
-  .report-section{break-inside:avoid;page-break-inside:avoid;margin-bottom:6mm}
+  /* Sections: ALLOW breaking inside (prevents forced blank pages from oversized sections) */
+  .report-section{break-inside:auto;page-break-inside:auto;margin-bottom:6mm}
   .section-header{break-after:avoid;page-break-after:avoid}
 
-  /* Grids & cards */
-  .grid-2,.grid-3{break-inside:avoid;page-break-inside:avoid;display:grid!important}
-  /* Do NOT force grid-column here — inline styles from user layout must win */
+  /* Grids: allow breaking across pages */
+  .grid-2,.grid-3{break-inside:auto;page-break-inside:auto;display:grid!important}
   .cw.hidden-section{display:none!important}
+  /* Cards & canvases: never split mid-element */
   .cw{break-inside:avoid;page-break-inside:avoid}
   .card{box-shadow:none!important;border:1px solid #e2e8f0!important;break-inside:avoid;page-break-inside:avoid;border-radius:8px!important}
-
-  /* Charts: never cut a canvas */
   canvas{break-inside:avoid;page-break-inside:avoid;max-width:100%!important}
 }
 </style>

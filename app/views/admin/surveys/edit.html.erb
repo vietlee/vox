@@ -5,8 +5,18 @@
 <div class="flex-shrink-0 px-6 pt-5 pb-3 bg-slate-100">
   <div class="flex items-start justify-between gap-3 flex-wrap">
     <%= render "admin/shared/back_btn" %>
-    <div class="min-w-0 flex-1">
-      <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight"><%= @survey.title %></h1>
+    <div class="min-w-0 flex-1 group">
+      <div class="flex items-center gap-1.5">
+        <h1 id="survey-hdr-title"
+            contenteditable="true"
+            spellcheck="false"
+            data-original="<%= j @survey.title %>"
+            class="text-[19px] font-extrabold text-slate-900 tracking-tight outline-none rounded px-1 -mx-1 cursor-text hover:bg-white/70 focus:bg-white focus:shadow-[0_0_0_2px_#6366f1] transition-all min-w-[120px]"
+            onkeydown="surveyHdrKey(event)"
+            onblur="saveSurveyTitle(this)"
+            title="Click để chỉnh sửa tên khảo sát"><%= @survey.title %></h1>
+        <svg class="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 pointer-events-none" viewBox="0 0 20 20" fill="none"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
       <p class="text-[12px] text-slate-500 mt-0.5"><%= t("surveys.builder_subtitle", count: @survey.questions.count) %></p>
     </div>
     <div class="flex gap-2 flex-wrap flex-shrink-0">
@@ -475,3 +485,41 @@ function hideSurveyCloseConfirm() {
     </div>
   </div>
 </div>
+
+<script>
+function surveyHdrKey(e) {
+  if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+  if (e.key === 'Escape') {
+    e.target.textContent = e.target.dataset.original;
+    e.target.blur();
+  }
+}
+async function saveSurveyTitle(el) {
+  const newTitle = el.textContent.trim();
+  const original = el.dataset.original;
+  if (!newTitle || newTitle === original) { if (!newTitle) el.textContent = original; return; }
+  try {
+    const resp = await fetch('<%= survey_path(@survey) %>', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ survey: { title: newTitle } })
+    });
+    if (resp.ok) {
+      el.dataset.original = newTitle;
+      document.title = newTitle;
+      // Also sync the title field in the form below
+      const formTitle = document.querySelector('input[name="survey[title]"]');
+      if (formTitle) formTitle.value = newTitle;
+      // Flash brief green outline
+      el.style.boxShadow = '0 0 0 2px #10b981';
+      setTimeout(() => { el.style.boxShadow = ''; }, 1200);
+    } else {
+      el.textContent = original;
+    }
+  } catch(e) { el.textContent = original; }
+}
+</script>
