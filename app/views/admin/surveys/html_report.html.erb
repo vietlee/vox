@@ -737,7 +737,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
           })();
           </script>
           <% if stats[:quotes]&.any? %>
-            <% stats[:quotes].first(2).each do |q_text| %>
+            <% stats[:quotes].each do |q_text| %>
             <div class="quote-card" style="margin-top:8px"><div style="font-size:12px;line-height:1.6;color:#374151"><%= q_text %></div></div>
             <% end %>
           <% end %>
@@ -751,7 +751,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
         <% plain_qs = stats[:quotes] || [] %>
         <% display_quotes = rich_qs.any? ? rich_qs : plain_qs.map{|t| {text: t}} %>
         <% if display_quotes.any? %>
-          <% display_quotes.first(5).each_with_index do |q_obj, qi| %>
+          <% display_quotes.each_with_index do |q_obj, qi| %>
           <% q_text = q_obj.is_a?(Hash) ? q_obj[:text] : q_obj %>
           <% q_name = q_obj.is_a?(Hash) ? q_obj[:name] : nil %>
           <% q_dept = q_obj.is_a?(Hash) ? q_obj[:dept] : nil %>
@@ -765,9 +765,6 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
             <% end %>
             <div style="font-size:12px;line-height:1.7;color:#374151"><%= q_text %></div>
           </div>
-          <% end %>
-          <% if display_quotes.size > 5 %>
-          <p style="font-size:11px;color:#94a3b8;text-align:right;margin-top:6px">+<%= display_quotes.size - 5 %> câu trả lời khác</p>
           <% end %>
         <% else %>
           <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có phản hồi</p>
@@ -800,7 +797,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
           </div>
           <% end %>
         <% elsif stats[:quotes]&.any? %>
-          <% stats[:quotes].first(3).each do |q_text| %>
+          <% stats[:quotes].each do |q_text| %>
           <div class="quote-card"><div style="font-size:12px;line-height:1.7;color:#374151"><%= q_text %></div></div>
           <% end %>
         <% else %>
