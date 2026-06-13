@@ -511,14 +511,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
       <div class="ct-divider"></div>
       <button class="ct-mode-btn danger" onclick="hideCard('<%= cid %>')"><span class="icon">👁</span>Ẩn block này</button>
     </div>
-    <div class="cw-mode-bar">
-      <div class="mode-label" id="modeLabel-<%= cid %>"></div>
-      <button class="btn-done" onclick="setCwMode(null,'none','<%= cid %>')">Xong</button>
-    </div>
-    <div class="rh-right"><div class="rh-right-bar"></div></div>
-    <div class="rh-bottom"><div class="rh-bottom-bar"></div></div>
-    <div class="rh-corner"></div>
-    <div class="snap-guide"></div>
+    <%# cw-mode-bar, resize handles, snap-guide injected by JS below %>
     <div class="card">
       <h3 data-editable contenteditable="false"><%= card_title.to_s.truncate(100) %></h3>
 
@@ -975,7 +968,9 @@ function deactivateAllCards() {
 // ── Mode toggle per card ──
 // mode: 'text' | 'resize' | 'move'
 function setCwMode(btn, mode) {
+  if (!btn) return; // guard: called with null (old ERB remnant)
   const cw = btn.closest('.cw');
+  if (!cw) return;
   const modeClass = 'cw-' + mode + '-mode';
   const wasActive = btn.classList.contains('active');
 
