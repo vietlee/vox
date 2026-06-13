@@ -782,20 +782,34 @@ function printPdf() {
   const orig = btn.textContent;
   btn.textContent = '⏳ Đang xuất...';
   btn.disabled = true;
+
+  // Give browser time to repaint without UI overlays
   setTimeout(() => {
+    const surveyTitle = '<%= j @survey.title %>';
+    const safeName = surveyTitle.replace(/[^\w\s\-]/g,'').trim().replace(/\s+/g,'-').substring(0,60) || 'bao-cao';
+
     html2pdf()
       .set({
-        margin: [10, 10, 10, 10],
-        filename: 'bao-cao-<%= @survey.id %>.pdf',
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        margin: 0,
+        filename: safeName + '.pdf',
+        image: { type: 'png' },
+        html2canvas: {
+          scale: 3,
+          useCORS: true,
+          logging: false,
+          allowTaint: true,
+          windowWidth: 1440,
+          scrollX: 0,
+          scrollY: 0
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-        pagebreak: { mode: ['avoid-all', 'css'] }
+        pagebreak: { mode: 'css', before: '.page-break' }
       })
       .from(document.querySelector('.report-body') || document.body)
       .save()
-      .then(() => { btn.textContent = orig; btn.disabled = false; });
-  }, 100);
+      .then(() => { btn.textContent = orig; btn.disabled = false; })
+      .catch(() => { btn.textContent = orig; btn.disabled = false; });
+  }, 200);
 }
 
 // ── Inject gear icons + resize handles into each .cw ──
