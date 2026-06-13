@@ -53,9 +53,14 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 
 /* ── KPI ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:4px}
-.kpi{background:white;border-radius:12px;padding:18px 14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid}
+.kpi{background:white;border-radius:12px;padding:18px 14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid;position:relative}
 .kpi-value{font-size:34px;font-weight:800;line-height:1;margin-bottom:5px}
 .kpi-label{font-size:11px;color:#666;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+/* KPI inline editing */
+.kpi-editable{cursor:pointer;border-radius:4px;transition:background .15s;display:inline-block;width:100%;padding:2px 4px;margin:-2px -4px}
+.kpi-editable:hover{background:rgba(67,97,238,.07);outline:1px dashed #c7d2fe}
+.kpi-editable:focus{outline:2px solid #4361ee;background:#eef2ff;cursor:text}
+@media print{.kpi-editable{pointer-events:none}}
 
 /* ── Sections ── */
 .report-section{position:relative;margin-top:28px}
@@ -430,10 +435,19 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 <%# ── KPI grid — driven by report_structure kpis ── %>
 <% if @kpi_values.any? %>
 <div class="kpi-grid" style="margin-top:24px">
-  <% @kpi_values.each do |k| %>
+  <% @kpi_values.each_with_index do |k, ki| %>
     <div class="kpi" style="border-color:<%= k[:color] %>">
       <div class="kpi-value" style="color:<%= k[:color] %>"><%= k[:value] %></div>
-      <div class="kpi-label"><%= k[:label] %></div>
+      <div class="kpi-label"
+           contenteditable="true"
+           spellcheck="false"
+           data-kpi-idx="<%= ki %>"
+           data-kpi-default="<%= j k[:label] %>"
+           class="kpi-label kpi-editable"
+           title="Nhấp để sửa nhãn"
+           onblur="saveKpiLabel(this)"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"
+      ><%= k[:label] %></div>
     </div>
   <% end %>
 </div>
@@ -873,6 +887,29 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 const SURVEY_ID = '<%= @survey.id %>';
 const SK = 'report_layout_' + SURVEY_ID;
 const IS_PUBLIC = <%= @public_view ? 'true' : 'false' %>;
+
+// ── KPI label inline editing ──────────────────────────────────────────────
+const KPI_SK = 'report_kpi_labels_' + SURVEY_ID;
+function saveKpiLabel(el) {
+  const idx  = el.dataset.kpiIdx;
+  const text = el.innerText.trim();
+  if (!text) { el.innerText = el.dataset.kpiDefault; return; }
+  try {
+    const saved = JSON.parse(localStorage.getItem(KPI_SK) || '{}');
+    saved[idx] = text;
+    localStorage.setItem(KPI_SK, JSON.stringify(saved));
+  } catch(e) {}
+}
+function loadKpiLabels() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(KPI_SK) || '{}');
+    document.querySelectorAll('.kpi-editable[data-kpi-idx]').forEach(el => {
+      const v = saved[el.dataset.kpiIdx];
+      if (v) el.innerText = v;
+    });
+  } catch(e) {}
+}
+document.addEventListener('DOMContentLoaded', loadKpiLabels);
 
 // ── Structure version check: clear stale localStorage if structure changed ──
 (function(){
