@@ -441,14 +441,29 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   </div>
   <div class="<%= section['layout'] || 'grid-2' %>" id="grid-<%= sid %>">
   <% (section["cards"] || []).each do |card| %>
-  <% qid = card["question_id"].to_i %>
-  <% stats = @question_stats[qid] %>
-  <% next unless stats %>
-  <% chart_type = card["chart_type"].to_s %>
-  <% span = card["span"] || 6 %>
-  <% cid = "card-#{qid}" %>
-  <% card_idx += 1 %>
-  <% ci = card_idx - 1 %>
+  <%
+    chart_type = card["chart_type"].to_s
+    is_cross_tab = chart_type == "cross_tab_grouped_bar"
+    qid  = is_cross_tab ? nil : card["question_id"]&.to_i
+    stats = is_cross_tab ? nil : @question_stats[qid]
+    next unless stats || is_cross_tab
+
+    # For cross-tab, look up pre-computed data
+    ct_data = nil
+    if is_cross_tab
+      grp_qid  = card["group_by_question_id"]&.to_i
+      val_qids = Array(card["value_question_ids"]).map(&:to_i)
+      ct_key   = "ct_#{grp_qid}_#{val_qids.join('_')}"
+      ct_data  = @cross_tab_data[ct_key]
+      next unless ct_data
+    end
+
+    span     = card["span"] || 6
+    cid      = is_cross_tab ? "card-ct-#{grp_qid.to_i}-#{card_idx}" : "card-#{qid}"
+    card_title = card["title"].presence || stats&.dig(:title).to_s
+    card_idx += 1
+    ci = card_idx - 1
+  %>
   <div class="cw" data-cid="<%= cid %>" style="grid-column:span <%= span %>">
     <div class="cw-gear" onclick="toggleCardMenu(this)">⚙</div>
     <div class="card-toolbar">
@@ -467,8 +482,9 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
     <div class="rh-corner"></div>
     <div class="snap-guide"></div>
     <div class="card">
-      <h3 data-editable contenteditable="false"><%= stats[:title].to_s.truncate(100) %></h3>
+      <h3 data-editable contenteditable="false"><%= card_title.to_s.truncate(100) %></h3>
 
+      <%# ═══ DOUGHNUT ═══ %>
       <% if chart_type == "doughnut" || chart_type == "pie" %>
         <% opts = stats[:options] || [] %>
         <% if opts.any? %>
@@ -477,7 +493,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
           (function(){
             var ctx = document.getElementById('ch_<%= cid %>');
             if(!ctx) return;
-            new Chart(ctx, {
+            mkChart('ch_<%= cid %>', {
               type: 'doughnut',
               data: {
                 labels: <%= raw opts.map{|o| o[:label]}.to_json %>,
@@ -499,14 +515,40 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
           <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
         <% end %>
 
+      <%# ═══ VERTICAL BAR (choice questions / tool bar) ═══ %>
       <% elsif chart_type == "bar" %>
-        <% opts = stats[:options] || [] %>
-        <% total_r = stats[:total].to_i %>
+        <% opts = (stats[:options] || []).sort_by{|o| -o[:count]} %>
         <% if opts.any? %>
-          <% opts.sort_by{|o| -o[:count]}.each do |o| %>
+          <canvas id="ch_<%= cid %>"></canvas>
+          <script>
+          (function(){
+            mkChart('ch_<%= cid %>', {
+              type: 'bar',
+              data: {
+                labels: <%= raw opts.map{|o| o[:label]}.to_json %>,
+                datasets: [{ data: <%= raw opts.map{|o| o[:count]}.to_json %>,
+                  backgroundColor: <%= raw opts.map.with_index{|_,i| palette[i % palette.size]}.to_json %>,
+                  borderRadius: 4 }]
+              },
+              options: { responsive:true, plugins:{ legend:{display:false}, datalabels: barDL },
+                scales:{ y:{beginAtZero:true,ticks:{precision:0}}, x:{ticks:{maxRotation:30,font:{size:10}}} },
+                layout: barLayout },
+              plugins:[ChartDataLabels]
+            });
+          })();
+          </script>
+        <% else %>
+          <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
+        <% end %>
+
+      <%# ═══ HORIZONTAL BAR (challenges / multiple-choice) ═══ %>
+      <% elsif chart_type == "horizontal_bar" %>
+        <% opts = (stats[:options] || []).sort_by{|o| -o[:count]} %>
+        <% if opts.any? %>
+          <% opts.each_with_index do |o, oi| %>
           <div class="bar-item">
-            <span class="bar-label <%= opts.size > 5 ? 'w200' : 'w160' %>" title="<%= o[:label] %>"><%= o[:label].to_s.truncate(32) %></span>
-            <div class="bar-track"><div class="bar-fill" style="width:<%= o[:pct].clamp(0,100) %>%;background:<%= palette[opts.index(o) % palette.size] %>"><%= o[:pct] > 10 ? "#{o[:pct]}%" : '' %></div></div>
+            <span class="bar-label w200" title="<%= o[:label] %>"><%= o[:label].to_s.truncate(36) %></span>
+            <div class="bar-track"><div class="bar-fill" style="width:<%= o[:pct].clamp(0,100) %>%;background:<%= palette[oi % palette.size] %>"><%= o[:pct] > 8 ? "#{o[:pct]}%" : '' %></div></div>
             <span class="bar-count"><%= o[:count] %></span>
           </div>
           <% end %>
@@ -514,6 +556,83 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
           <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
         <% end %>
 
+      <%# ═══ DISTRIBUTION BAR (parse_percent questions: % savings histogram) ═══ %>
+      <% elsif chart_type == "distribution_bar" %>
+        <% dist = stats[:distribution] || [] %>
+        <% if dist.any? %>
+          <canvas id="ch_<%= cid %>"></canvas>
+          <script>
+          (function(){
+            mkChart('ch_<%= cid %>', {
+              type: 'bar',
+              data: {
+                labels: <%= raw dist.map{|d| d[:label]}.to_json %>,
+                datasets: [{ data: <%= raw dist.map{|d| d[:count]}.to_json %>,
+                  backgroundColor: '#4361ee', borderRadius: 4,
+                  hoverBackgroundColor: '#3451d1' }]
+              },
+              options: { responsive:true, plugins:{ legend:{display:false}, datalabels: barDL },
+                scales:{ y:{beginAtZero:true,ticks:{precision:0}}, x:{ticks:{font:{size:10}}} },
+                layout: barLayout },
+              plugins:[ChartDataLabels]
+            });
+          })();
+          </script>
+          <% if stats[:avg] %>
+          <div style="margin-top:10px;font-size:12px;color:#6b7280;text-align:center">
+            Trung bình: <strong style="color:#4361ee;font-size:15px"><%= stats[:avg] %>%</strong>
+            <% if stats[:min] && stats[:max] %>
+              &nbsp;·&nbsp; Min: <strong><%= stats[:min] %>%</strong> / Max: <strong><%= stats[:max] %>%</strong>
+            <% end %>
+          </div>
+          <% end %>
+        <% else %>
+          <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
+        <% end %>
+
+      <%# ═══ NPS BAR (0-10 distribution with red/cyan/green colors) ═══ %>
+      <% elsif chart_type == "nps_bar" %>
+        <% dist = stats[:distribution] || [] %>
+        <% if dist.any? %>
+          <canvas id="ch_<%= cid %>"></canvas>
+          <script>
+          (function(){
+            var labels = <%= raw dist.map{|d| d[:label]}.to_json %>;
+            var counts = <%= raw dist.map{|d| d[:count]}.to_json %>;
+            var npsColors = labels.map(function(v){
+              var n = parseInt(v);
+              return n >= 9 ? '#10b981' : n >= 7 ? '#06b6d4' : '#ef4444';
+            });
+            mkChart('ch_<%= cid %>', {
+              type: 'bar',
+              data: {
+                labels: labels,
+                datasets: [{ data: counts, backgroundColor: npsColors, borderRadius: 4 }]
+              },
+              options: { responsive:true, plugins:{ legend:{display:false}, datalabels: barDL },
+                scales:{ y:{beginAtZero:true,ticks:{precision:0}}, x:{ticks:{font:{size:11}}} },
+                layout: barLayout },
+              plugins:[ChartDataLabels]
+            });
+          })();
+          </script>
+          <% detractors = (dist.select{|d| d[:label].to_i <= 6}.sum{|d| d[:count]}) %>
+          <% passives   = (dist.select{|d| [7,8].include?(d[:label].to_i)}.sum{|d| d[:count]}) %>
+          <% promoters  = (dist.select{|d| d[:label].to_i >= 9}.sum{|d| d[:count]}) %>
+          <% total_nps  = stats[:total].to_i %>
+          <% if total_nps > 0 %>
+          <div style="display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:12px">
+            <div style="text-align:center"><div style="font-size:18px;font-weight:800;color:#ef4444"><%= ((promoters - detractors).to_f / total_nps * 100).round %>%</div><div style="color:#94a3b8">NPS Score</div></div>
+            <div style="text-align:center"><div style="font-size:15px;font-weight:700;color:#10b981"><%= promoters %></div><div style="color:#94a3b8">Promoters</div></div>
+            <div style="text-align:center"><div style="font-size:15px;font-weight:700;color:#06b6d4"><%= passives %></div><div style="color:#94a3b8">Passives</div></div>
+            <div style="text-align:center"><div style="font-size:15px;font-weight:700;color:#ef4444"><%= detractors %></div><div style="color:#94a3b8">Detractors</div></div>
+          </div>
+          <% end %>
+        <% else %>
+          <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
+        <% end %>
+
+      <%# ═══ RATING BAR (rating/linear_scale) ═══ %>
       <% elsif chart_type == "rating_bar" %>
         <% vals = stats[:values] || [] %>
         <% dist = stats[:distribution] || [] %>
@@ -531,36 +650,111 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
           <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
         <% end %>
 
+      <%# ═══ CROSS-TAB GROUPED BAR (dept × savings etc.) ═══ %>
+      <% elsif chart_type == "cross_tab_grouped_bar" %>
+        <% if ct_data && ct_data[:labels].any? %>
+          <canvas id="ch_<%= cid %>"></canvas>
+          <script>
+          (function(){
+            var datasets = <%= raw ct_data[:datasets].map{|ds|
+              { label: ds[:label], data: ds[:data],
+                backgroundColor: ds[:color],
+                borderRadius: 3 }
+            }.to_json %>;
+            mkChart('ch_<%= cid %>', {
+              type: 'bar',
+              data: { labels: <%= raw ct_data[:labels].to_json %>, datasets: datasets },
+              options: { responsive:true,
+                plugins:{ legend:{position:'top',labels:{font:{size:11}}}, datalabels:{display:false} },
+                scales:{ y:{beginAtZero:true,ticks:{callback:function(v){ return v+'%'; }}},
+                         x:{ticks:{font:{size:10}}} } }
+            });
+          })();
+          </script>
+          <% if ct_data[:group_counts]&.any? %>
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px">
+            <% ct_data[:labels].each_with_index do |lbl, i| %>
+            <span style="font-size:10px;color:#94a3b8"><%= lbl %>: <strong style="color:#374151"><%= ct_data[:group_counts][i] %></strong></span>
+            <% end %>
+          </div>
+          <% end %>
+        <% else %>
+          <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
+        <% end %>
+
+      <%# ═══ THEME BAR (extract_themes: keyword-grouped bar) ═══ %>
+      <% elsif chart_type == "theme_bar" %>
+        <% opts = (stats[:options] || []).sort_by{|o| -o[:count]} %>
+        <% if opts.any? %>
+          <canvas id="ch_<%= cid %>"></canvas>
+          <script>
+          (function(){
+            mkChart('ch_<%= cid %>', {
+              type: 'bar',
+              data: {
+                labels: <%= raw opts.map{|o| o[:label]}.to_json %>,
+                datasets: [{ data: <%= raw opts.map{|o| o[:count]}.to_json %>,
+                  backgroundColor: <%= raw opts.map.with_index{|_,i| palette[i % palette.size]}.to_json %>,
+                  borderRadius: 4 }]
+              },
+              options: { responsive:true, indexAxis:'y',
+                plugins:{ legend:{display:false}, datalabels: hbarDL },
+                scales:{ x:{beginAtZero:true,ticks:{precision:0}}, y:{ticks:{font:{size:10}}} },
+                layout:{padding:{right:30}} },
+              plugins:[ChartDataLabels]
+            });
+          })();
+          </script>
+          <% if stats[:quotes]&.any? %>
+            <% stats[:quotes].first(2).each do |q_text| %>
+            <div class="quote-card" style="margin-top:8px"><div style="font-size:12px;line-height:1.6;color:#374151"><%= q_text %></div></div>
+            <% end %>
+          <% end %>
+        <% else %>
+          <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
+        <% end %>
+
+      <%# ═══ QUOTES ═══ %>
       <% elsif chart_type == "quotes" %>
         <% quotes = stats[:quotes] || [] %>
         <% if quotes.any? %>
-          <% quotes.first(4).each do |q_text| %>
+          <% quotes.first(5).each_with_index do |q_text, qi| %>
           <div class="quote-card">
+            <div class="author">💬 Phản hồi <%= qi + 1 %></div>
             <div style="font-size:12px;line-height:1.7;color:#374151"><%= q_text %></div>
           </div>
           <% end %>
-          <% if quotes.size > 4 %>
-          <p style="font-size:11px;color:#94a3b8;text-align:right;margin-top:6px">+<%= quotes.size - 4 %> câu trả lời khác</p>
+          <% if quotes.size > 5 %>
+          <p style="font-size:11px;color:#94a3b8;text-align:right;margin-top:6px">+<%= quotes.size - 5 %> câu trả lời khác</p>
           <% end %>
         <% else %>
           <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có phản hồi</p>
         <% end %>
 
+      <%# ═══ NUMBER ═══ %>
       <% elsif chart_type == "number" %>
         <div style="text-align:center;padding:16px 0">
           <div style="font-size:52px;font-weight:800;color:#4361ee;line-height:1"><%= stats[:avg] || stats[:total] %></div>
           <div style="font-size:12px;color:#94a3b8;margin-top:6px"><%= stats[:count] %> phản hồi</div>
         </div>
 
+      <%# ═══ FALLBACK: auto-detect from stats ═══ %>
       <% else %>
-        <%# Fallback: auto-detect %>
         <% if stats[:options]&.any? %>
-          <% opts = stats[:options] %>
-          <% opts.sort_by{|o| -o[:count]}.each do |o| %>
+          <% opts = (stats[:options] || []).sort_by{|o| -o[:count]} %>
+          <% opts.each_with_index do |o, oi| %>
           <div class="bar-item">
             <span class="bar-label w160" title="<%= o[:label] %>"><%= o[:label].to_s.truncate(28) %></span>
-            <div class="bar-track"><div class="bar-fill" style="width:<%= o[:pct].clamp(0,100) %>%;background:<%= palette[opts.index(o) % palette.size] %>"><%= o[:pct] > 10 ? "#{o[:pct]}%" : '' %></div></div>
+            <div class="bar-track"><div class="bar-fill" style="width:<%= o[:pct].clamp(0,100) %>%;background:<%= palette[oi % palette.size] %>"><%= o[:pct] > 10 ? "#{o[:pct]}%" : '' %></div></div>
             <span class="bar-count"><%= o[:count] %></span>
+          </div>
+          <% end %>
+        <% elsif stats[:distribution]&.any? %>
+          <% stats[:distribution].each do |d| %>
+          <div class="rating-row">
+            <div class="rating-label"><%= d[:label] %></div>
+            <div class="rating-bar"><div class="rating-fill" style="width:<%= d[:pct].clamp(0,100) %>%;background:#4361ee"><%= d[:count] > 0 ? d[:count] : '' %></div></div>
+            <div class="rating-score"><%= d[:pct] %>%</div>
           </div>
           <% end %>
         <% elsif stats[:quotes]&.any? %>
@@ -599,7 +793,6 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 <% end %>
 
 </div><%# /sortableContainer %>
-</div><%# /container %>
 </div><%# /container %>
 <footer>Báo cáo tự động · VOX · <%= @total_responses %> phản hồi · <%= @survey.title %></footer>
 
@@ -768,28 +961,32 @@ async function downloadPdf() {
   }
 }
 
-// ── Inject gear icons + resize handles into each .cw ──
-document.querySelectorAll('.cw').forEach(cw => {
-  // Gear button
-  const gear = document.createElement('button');
-  gear.className = 'cw-gear';
-  gear.textContent = '⚙';
-  gear.title = 'Tuỳ chỉnh block';
-  gear.addEventListener('click', e => {
-    e.stopPropagation();
-    const hasMode = cw.classList.contains('cw-resize-mode') || cw.classList.contains('cw-text-mode') || cw.classList.contains('cw-move-mode');
-    if (cw.classList.contains('cw-active')) {
-      deactivateAllCards();
-    } else if (hasMode) {
-      // Already in a mode — show dropdown again to let user switch
-      deactivateAllCards();
-      activateCard(cw);
-    } else {
-      activateCard(cw);
-    }
-  });
-  cw.appendChild(gear);
-});
+// ── Gear icon click handler (called from ERB onclick) ──
+function toggleCardMenu(el) {
+  const cw = el.closest('.cw');
+  if (!cw) return;
+  const hasMode = cw.classList.contains('cw-resize-mode') || cw.classList.contains('cw-text-mode') || cw.classList.contains('cw-move-mode');
+  if (cw.classList.contains('cw-active')) {
+    deactivateAllCards();
+  } else if (hasMode) {
+    deactivateAllCards();
+    activateCard(cw);
+  } else {
+    activateCard(cw);
+  }
+}
+
+// ── Hide card (ẩn block) ──
+function hideCard(cid) {
+  deactivateAllCards();
+  const el = document.querySelector(`[data-cid="${cid}"]`);
+  if (!el) return;
+  const label = el.querySelector('h3')?.textContent?.trim() || cid;
+  el.classList.add('hidden-section');
+  addRestoreChip(cid, label, 'card');
+  autoHideEmptySections();
+  saveLayout();
+}
 
 // ── Drag Resize ──
 const tip = document.createElement('div');
