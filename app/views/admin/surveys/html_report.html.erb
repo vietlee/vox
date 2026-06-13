@@ -43,7 +43,6 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 
 /* ── Card wrapper ── */
 .cw{position:relative}
-.cw.span-full{grid-column:1/-1}
 
 /* Card toolbar — only in edit mode */
 .card-toolbar{display:none;align-items:center;gap:4px;padding:6px 8px 0;margin-bottom:4px}
@@ -53,8 +52,16 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .ct-btn:hover{background:#f1f5f9}
 .ct-btn.danger{color:#ef4444;border-color:#fecaca}
 .ct-btn.danger:hover{background:#fef2f2}
-.ct-span-full .ct-btn.resize-btn::before{content:'↔ Thu nhỏ'}
-.ct-btn.resize-btn::before{content:'↔ Mở rộng'}
+
+/* ── Resize handle ── */
+.resize-handle{display:none;position:absolute;top:0;right:-9px;width:18px;height:100%;cursor:ew-resize;z-index:20;align-items:center;justify-content:center}
+.edit-mode .resize-handle{display:flex}
+.resize-handle-bar{width:6px;height:48px;background:#6366f1;border-radius:3px;opacity:.5;transition:opacity .15s,width .15s}
+.resize-handle:hover .resize-handle-bar{opacity:1;width:8px}
+.resize-dragging .resize-handle-bar{opacity:1;width:8px}
+/* span indicator tooltip */
+.resize-tip{display:none;position:absolute;top:50%;right:14px;transform:translateY(-50%);background:#1a1a2e;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;pointer-events:none}
+.resize-dragging .resize-tip{display:block}
 
 /* ── Card ── */
 .card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);height:100%}
@@ -144,7 +151,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
   .kpi{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid}
   .card{box-shadow:none!important;border:1px solid #e0e0e0;break-inside:avoid}
   .report-section,.grid-2,.grid-3{break-inside:avoid}
-  .cw.span-full{grid-column:1/-1}
+  .resize-handle{display:none!important}
 }
 </style>
 </head>
@@ -241,7 +248,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-dept">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn" onclick="openChartModal('card-dept','Phân bổ bộ phận','deptChart')">✎ Sửa</button>
         <button class="ct-btn danger" onclick="askDelete('card-dept','Phân bổ bộ phận')">🗑 Xoá</button>
       </div>
@@ -252,7 +259,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-tools">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn danger" onclick="askDelete('card-tools','Công cụ AI')">🗑 Xoá</button>
       </div>
       <div class="card">
@@ -288,7 +295,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-task-sv">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn" onclick="openChartModal('card-task-sv','Tiết kiệm/task','taskSavingsChart')">✎ Sửa</button>
         <button class="ct-btn danger" onclick="askDelete('card-task-sv','Tiết kiệm/task')">🗑 Xoá</button>
       </div>
@@ -299,7 +306,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-daily-sv">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn" onclick="openChartModal('card-daily-sv','Tiết kiệm/ngày','dailySavingsChart')">✎ Sửa</button>
         <button class="ct-btn danger" onclick="askDelete('card-daily-sv','Tiết kiệm/ngày')">🗑 Xoá</button>
       </div>
@@ -310,7 +317,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-dept-sv">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn" onclick="openChartModal('card-dept-sv','Tiết kiệm theo bộ phận','deptSavingsChart')">✎ Sửa</button>
         <button class="ct-btn danger" onclick="askDelete('card-dept-sv','Tiết kiệm theo bộ phận')">🗑 Xoá</button>
       </div>
@@ -336,7 +343,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-stage">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn" onclick="openChartModal('card-stage','Giai đoạn hữu ích','stageChart')">✎ Sửa</button>
         <button class="ct-btn danger" onclick="askDelete('card-stage','Giai đoạn')">🗑 Xoá</button>
       </div>
@@ -347,7 +354,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-task-type">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn danger" onclick="askDelete('card-task-type','Loại công việc')">🗑 Xoá</button>
       </div>
       <div class="card">
@@ -382,7 +389,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-ratings-bar">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn danger" onclick="askDelete('card-ratings-bar','Điểm TB')">🗑 Xoá</button>
       </div>
       <div class="card">
@@ -402,7 +409,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-rating-dist">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn" onclick="openChartModal('card-rating-dist','Phân phối điểm','ratingDistChart')">✎ Sửa</button>
         <button class="ct-btn danger" onclick="askDelete('card-rating-dist','Phân phối điểm')">🗑 Xoá</button>
       </div>
@@ -413,7 +420,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-nps">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn" onclick="openChartModal('card-nps','NPS','npsChart')">✎ Sửa</button>
         <button class="ct-btn danger" onclick="askDelete('card-nps','NPS chart')">🗑 Xoá</button>
       </div>
@@ -439,7 +446,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-challenges">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn" onclick="openChartModal('card-challenges','Khó khăn','challengeChart')">✎ Sửa</button>
         <button class="ct-btn danger" onclick="askDelete('card-challenges','Khó khăn chart')">🗑 Xoá</button>
       </div>
@@ -450,7 +457,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-quotes">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn danger" onclick="askDelete('card-quotes','Nhận xét')">🗑 Xoá</button>
       </div>
       <div class="card">
@@ -484,7 +491,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
     <div class="cw" data-cid="card-themes">
       <div class="card-toolbar">
         <span class="ct-drag">⠿</span>
-        <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+
         <button class="ct-btn danger" onclick="askDelete('card-themes','Đề xuất')">🗑 Xoá</button>
       </div>
       <div class="card">
@@ -506,7 +513,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
       <div class="cw" data-cid="card-ai-insights">
         <div class="card-toolbar">
           <span class="ct-drag">⠿</span>
-          <button class="ct-btn resize-btn" onclick="toggleSpan(this)"></button>
+  
           <button class="ct-btn danger" onclick="askDelete('card-ai-insights','AI Insights')">🗑 Xoá</button>
         </div>
         <div class="card">
@@ -613,13 +620,51 @@ function printPdf() {
   if (wasEdit) setTimeout(toggleEdit, 500);
 }
 
-// ── Resize card ──
-function toggleSpan(btn) {
-  const cw = btn.closest('.cw');
-  const full = cw.classList.toggle('span-full');
-  btn.closest('.card-toolbar').classList.toggle('ct-span-full', full);
+// ── Drag Resize ──
+// Inject resize handles into all .cw
+document.querySelectorAll('.cw').forEach(cw => {
+  const h = document.createElement('div');
+  h.className = 'resize-handle';
+  h.innerHTML = '<div class="resize-handle-bar"></div><span class="resize-tip"></span>';
+  cw.appendChild(h);
+});
+
+let resizeDrag = null;
+
+document.addEventListener('mousedown', e => {
+  const handle = e.target.closest('.resize-handle');
+  if (!handle || !editMode) return;
+  e.preventDefault();
+  const cw = handle.closest('.cw');
+  const grid = cw.parentElement;
+  if (!grid) return;
+  const maxCols = grid.classList.contains('grid-3') ? 3 : 2;
+  const curSpan = parseInt(getComputedStyle(cw).gridColumn?.match(/span (\d)/)?.[1] || cw.style.gridColumn?.match(/span (\d)/)?.[1] || '1');
+  resizeDrag = { cw, handle, maxCols, startX: e.clientX, startSpan: curSpan, gridWidth: grid.getBoundingClientRect().width };
+  cw.classList.add('resize-dragging');
+  document.body.style.cursor = 'ew-resize';
+  document.body.style.userSelect = 'none';
+});
+
+document.addEventListener('mousemove', e => {
+  if (!resizeDrag) return;
+  const { cw, handle, maxCols, startX, startSpan, gridWidth } = resizeDrag;
+  const colWidth = gridWidth / maxCols;
+  const delta = e.clientX - startX;
+  const newSpan = Math.max(1, Math.min(maxCols, startSpan + Math.round(delta / colWidth)));
+  cw.style.gridColumn = newSpan > 1 ? `span ${newSpan}` : '';
+  const tip = handle.querySelector('.resize-tip');
+  if (tip) tip.textContent = `${newSpan}/${maxCols} cột`;
+});
+
+document.addEventListener('mouseup', () => {
+  if (!resizeDrag) return;
+  resizeDrag.cw.classList.remove('resize-dragging');
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+  resizeDrag = null;
   saveLayout();
-}
+});
 
 // ── Delete card ──
 function askDelete(cid, label) {
@@ -744,14 +789,14 @@ function saveLayout() {
       label: el.querySelector('.btn-sec-hide')?.textContent?.replace('Ẩn section','').trim() || el.dataset.id
     })),
     hiddenCards: [],
-    fullCards: [],
+    cardSpans: {},
     chartData: {},
     textEdits: {}
   };
   // Cards
   document.querySelectorAll('.cw').forEach(cw => {
     if (cw.classList.contains('hidden-section')) layout.hiddenCards.push(cw.dataset.cid);
-    if (cw.classList.contains('span-full')) layout.fullCards.push(cw.dataset.cid);
+    if (cw.style.gridColumn) layout.cardSpans[cw.dataset.cid] = cw.style.gridColumn;
   });
   // Text edits
   document.querySelectorAll('[data-editable]').forEach(el => {
@@ -792,11 +837,13 @@ function loadLayout() {
       addRestoreChip(cid, label, 'card');
     }
   });
-  // Restore full-width cards
-  (saved.fullCards || []).forEach(cid => {
-    const el = document.querySelector(`[data-cid="${cid}"]`);
-    if (el) { el.classList.add('span-full'); el.querySelector('.card-toolbar')?.classList.add('ct-span-full'); }
-  });
+  // Restore card spans
+  if (saved.cardSpans) {
+    Object.entries(saved.cardSpans).forEach(([cid, col]) => {
+      const el = document.querySelector(`[data-cid="${cid}"]`);
+      if (el) el.style.gridColumn = col;
+    });
+  }
   // Restore chart data
   if (saved.chartData) {
     Object.entries(saved.chartData).forEach(([cid, data]) => {
