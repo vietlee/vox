@@ -197,11 +197,12 @@ canvas{max-height:260px}
 .share-revoke{font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;text-decoration:underline}
 .share-close{background:#4361ee;color:white;border:none;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer}
 .btn-edit.active{background:#10b981}
-/* Lang switcher */
-.lang-switcher{display:flex;background:rgba(255,255,255,.15);border-radius:50px;padding:2px;gap:2px;border:1px solid rgba(255,255,255,.2)}
-.lang-btn{background:transparent;border:none;border-radius:50px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;color:rgba(255,255,255,.7);transition:all .15s;line-height:1}
+/* Lang switcher — in header top-right */
+.header-lang-switcher{position:absolute;top:20px;right:24px;display:flex;background:rgba(255,255,255,.12);border-radius:50px;padding:2px;gap:2px;border:1px solid rgba(255,255,255,.18);z-index:10}
+.lang-btn{background:transparent;border:none;border-radius:50px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;color:rgba(255,255,255,.65);transition:all .15s;line-height:1}
 .lang-btn.active{background:white;color:#374151;box-shadow:0 2px 6px rgba(0,0,0,.15)}
 .lang-btn:not(.active):hover{color:white;background:rgba(255,255,255,.15)}
+@media print{.header-lang-switcher{display:none!important}}
 /* PDF loading overlay */
 #pdf-loading{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:white;font-size:15px;font-weight:600;backdrop-filter:blur(3px)}
 #pdf-loading.show{display:flex}
@@ -346,10 +347,6 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   <% unless @public_view %>
     <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">⠿ <span data-i18n="arrange">Sắp xếp sections</span></button>
   <% end %>
-  <div class="lang-switcher" id="langSwitcher">
-    <button class="lang-btn active" id="langVI" onclick="setLang('vi')">🇻🇳 VI</button>
-    <button class="lang-btn" id="langEN" onclick="setLang('en')">🇬🇧 EN</button>
-  </div>
 </div>
 
 <%# ── Share modal ── %>
@@ -382,7 +379,11 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 </div>
 
 <%# ── Header ── %>
-<div class="header">
+<div class="header" style="position:relative">
+  <div class="header-lang-switcher" id="headerLangSwitcher">
+    <button class="lang-btn active" id="langVI" onclick="setLang('vi')">🇻🇳 VI</button>
+    <button class="lang-btn" id="langEN" onclick="setLang('en')">🇬🇧 EN</button>
+  </div>
   <h1>
     <span class="hdr-editable" id="hdrTitleWrap" onclick="startHdrEdit('title')" title="Click để chỉnh sửa tiêu đề">
       <span class="hdr-text" id="hdrTitleText">📊 <%= @survey.title %></span>
@@ -1310,12 +1311,13 @@ function loadLayout() {
       if (el) container.appendChild(el);
     });
   }
-  // Restore hidden sections
+  // Restore hidden sections — always read label from DOM (ignore stale localStorage label)
   (saved.hiddenSections || []).forEach(({ id, label }) => {
     const el = container.querySelector(`[data-id="${id}"]`);
     if (!el) return;
     el.classList.add('hidden-section');
-    if (!IS_PUBLIC) addRestoreChip(id, label, 'section');
+    const domLabel = el.querySelector('.section-title')?.textContent?.trim() || label || id;
+    if (!IS_PUBLIC) addRestoreChip(id, domLabel, 'section');
   });
   // Restore hidden cards
   (saved.hiddenCards || []).forEach(cid => {

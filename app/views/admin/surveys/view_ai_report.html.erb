@@ -104,11 +104,12 @@ canvas{max-height:240px}
 .btn-back{background:#fff;color:#374151}
 .btn-print{background:#fff;color:#374151}
 .btn-pdf{background:#374151;color:#fff}
-/* Lang switcher */
-.lang-switcher{display:flex;background:rgba(55,65,81,.85);border-radius:50px;padding:2px;gap:2px;border:1px solid rgba(255,255,255,.1);box-shadow:0 4px 14px rgba(0,0,0,.15)}
-.lang-btn{background:transparent;border:none;border-radius:50px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;color:rgba(255,255,255,.6);transition:all .15s;line-height:1}
+/* Lang switcher — in header top-right */
+.header-lang-switcher{position:absolute;top:20px;right:24px;display:flex;background:rgba(255,255,255,.12);border-radius:50px;padding:2px;gap:2px;border:1px solid rgba(255,255,255,.18);z-index:10}
+.lang-btn{background:transparent;border:none;border-radius:50px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;color:rgba(255,255,255,.65);transition:all .15s;line-height:1}
 .lang-btn.active{background:white;color:#374151;box-shadow:0 2px 6px rgba(0,0,0,.15)}
-.lang-btn:not(.active):hover{color:white}
+.lang-btn:not(.active):hover{color:white;background:rgba(255,255,255,.15)}
+@media print{.header-lang-switcher{display:none!important}}
 
 /* Print */
 @media print{
@@ -125,7 +126,11 @@ canvas{max-height:240px}
 <body>
 
 <!-- Header -->
-<div class="header">
+<div class="header" style="position:relative">
+  <div class="header-lang-switcher">
+    <button class="lang-btn active" id="langVI" onclick="setLang('vi')">🇻🇳 VI</button>
+    <button class="lang-btn" id="langEN" onclick="setLang('en')">🇬🇧 EN</button>
+  </div>
   <div class="ai-badge" data-i18n-badge>✨ Báo cáo AI</div>
   <h1><%= rpt_title %></h1>
   <p><%= rpt_sub %></p>
@@ -357,10 +362,6 @@ canvas{max-height:240px}
   <button class="btn-pdf" onclick="downloadPdf()">
     ⬇ <span data-i18n="download_pdf">Tải PDF</span>
   </button>
-  <div class="lang-switcher">
-    <button class="lang-btn active" id="langVI" onclick="setLang('vi')">🇻🇳 VI</button>
-    <button class="lang-btn" id="langEN" onclick="setLang('en')">🇬🇧 EN</button>
-  </div>
 </div>
 
 <script>
