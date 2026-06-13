@@ -45,32 +45,36 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 /* ── Card wrapper ── */
 .cw{position:relative}
 
-/* Card toolbar — only in edit mode */
-.card-toolbar{display:none;align-items:center;gap:4px;padding:6px 8px 0;margin-bottom:4px}
-.edit-mode .card-toolbar{display:flex}
-.ct-drag{cursor:grab;background:#e0e7ff;border:1px solid #c7d2fe;border-radius:6px;padding:3px 7px;font-size:13px;color:#6366f1;user-select:none;line-height:1}
-.ct-btn{background:white;border:1px solid #e2e8f0;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;color:#374151;transition:background .1s}
+/* ── Gear icon (always visible, per card) ── */
+.cw-gear{position:absolute;top:6px;right:6px;z-index:40;width:26px;height:26px;border-radius:50%;border:1px solid #e2e8f0;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;opacity:0;transition:opacity .15s,box-shadow .15s;box-shadow:0 1px 4px rgba(0,0,0,.08);line-height:1}
+.cw:hover .cw-gear{opacity:.7}
+.cw-active>.cw-gear,.cw-gear:hover{opacity:1!important;background:#4361ee;color:white;border-color:#4361ee;box-shadow:0 2px 8px rgba(67,97,238,.35)}
+
+/* Card controls panel — shown only when .cw-active */
+.card-toolbar{display:none;align-items:center;gap:5px;padding:0 0 6px 0;margin-bottom:2px;flex-wrap:wrap}
+.cw-active>.card-toolbar{display:flex}
+.ct-drag{cursor:grab;background:#e0e7ff;border:1px solid #c7d2fe;border-radius:6px;padding:4px 8px;font-size:13px;color:#6366f1;user-select:none;line-height:1}
+.ct-btn{background:white;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;color:#374151;transition:background .1s;white-space:nowrap}
 .ct-btn:hover{background:#f1f5f9}
 .ct-btn.danger{color:#ef4444;border-color:#fecaca}
 .ct-btn.danger:hover{background:#fef2f2}
 
-/* ── Resize handles ── */
-/* right edge — wide hit area */
+/* ── Resize handles — only when .cw-active ── */
 .rh-right{display:none;position:absolute;top:0;right:-10px;width:20px;height:100%;cursor:ew-resize;z-index:25;align-items:center;justify-content:center}
-.edit-mode .rh-right{display:flex}
-.rh-right-bar{width:4px;height:100%;max-height:100%;background:linear-gradient(180deg,transparent 0%,#6366f1 20%,#6366f1 80%,transparent 100%);border-radius:2px;opacity:.35;transition:opacity .1s,width .1s}
+.cw-active .rh-right{display:flex}
+.rh-right-bar{width:4px;height:100%;max-height:100%;background:linear-gradient(180deg,transparent 0%,#6366f1 20%,#6366f1 80%,transparent 100%);border-radius:2px;opacity:.45;transition:opacity .1s,width .1s}
 .rh-right:hover .rh-right-bar,.rh-right.dragging .rh-right-bar{opacity:1;width:6px}
 /* bottom edge */
 .rh-bottom{display:none;position:absolute;bottom:-10px;left:0;width:100%;height:20px;cursor:ns-resize;z-index:25;align-items:center;justify-content:center}
-.edit-mode .rh-bottom{display:flex}
-.rh-bottom-bar{height:4px;width:100%;background:linear-gradient(90deg,transparent 0%,#6366f1 20%,#6366f1 80%,transparent 100%);border-radius:2px;opacity:.35;transition:opacity .1s,height .1s}
+.cw-active .rh-bottom{display:flex}
+.rh-bottom-bar{height:4px;width:100%;background:linear-gradient(90deg,transparent 0%,#6366f1 20%,#6366f1 80%,transparent 100%);border-radius:2px;opacity:.45;transition:opacity .1s,height .1s}
 .rh-bottom:hover .rh-bottom-bar,.rh-bottom.dragging .rh-bottom-bar{opacity:1;height:6px}
 /* corner */
 .rh-corner{display:none;position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;cursor:nwse-resize;z-index:26}
-.rh-corner::after{content:'';position:absolute;bottom:5px;right:5px;width:10px;height:10px;border-right:3px solid #6366f1;border-bottom:3px solid #6366f1;border-radius:0 0 3px 0;opacity:.4;transition:opacity .1s}
-.edit-mode .rh-corner{display:block}
+.rh-corner::after{content:'';position:absolute;bottom:5px;right:5px;width:10px;height:10px;border-right:3px solid #6366f1;border-bottom:3px solid #6366f1;border-radius:0 0 3px 0;opacity:.5;transition:opacity .1s}
+.cw-active .rh-corner{display:block}
 .rh-corner:hover::after,.rh-corner.dragging::after{opacity:1}
-/* snap ghost line — shows where card will snap */
+/* snap guide */
 .snap-guide{display:none;position:absolute;top:0;right:0;width:3px;height:100%;background:#6366f1;border-radius:2px;opacity:.7;pointer-events:none;z-index:30}
 .cw.is-resizing .snap-guide{display:block}
 /* tooltip */
@@ -79,13 +83,13 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 
 /* ── Card ── */
 .card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);height:100%}
-.edit-mode .card{outline:2px dashed #c7d2fe;outline-offset:2px}
+.cw-active>.card-toolbar+.card,.cw-active>.card{outline:2px solid #c7d2fe;outline-offset:2px}
 .card h3{font-size:13px;font-weight:700;margin-bottom:16px;color:#1a1a2e;border-bottom:2px solid #f0f2f5;padding-bottom:10px}
 canvas{max-height:260px}
 
-/* Editable text in edit mode */
-.edit-mode [data-editable]{outline:none;border-bottom:1px dashed #a5b4fc;cursor:text;min-width:20px}
-.edit-mode [data-editable]:focus{background:#eef2ff;border-radius:3px;border-bottom-color:#6366f1}
+/* Editable text — only on active card */
+.cw-active [data-editable]{outline:none;border-bottom:1px dashed #a5b4fc;cursor:text;min-width:20px}
+.cw-active [data-editable]:focus{background:#eef2ff;border-radius:3px;border-bottom-color:#6366f1}
 
 /* Bar items */
 .bar-item{display:flex;align-items:center;margin-bottom:9px;font-size:12px}
@@ -159,7 +163,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
 
 /* ── Print ── */
 @media print{
-  .action-bar,.section-controls,.card-toolbar,.restore-bar{display:none!important}
+  .action-bar,.section-controls,.card-toolbar,.restore-bar,.cw-gear,.rh-right,.rh-bottom,.rh-corner{display:none!important}
   body{background:white}
   .header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .kpi{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid}
@@ -208,7 +212,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
 <div class="action-bar" id="actionBar">
   <button class="btn-print" onclick="window.print()">🖨 In</button>
   <button class="btn-pdf"   onclick="printPdf()">⬇ Tải PDF</button>
-  <button class="btn-edit"  id="btnEdit" onclick="toggleEdit()">✏️ Chỉnh sửa</button>
+  <button class="btn-edit"  id="btnEdit" onclick="toggleEdit()">⠿ Sắp xếp sections</button>
 </div>
 
 <%# ── Header ── %>
@@ -614,33 +618,73 @@ let editMode = false;
 let pendingDeleteCid = null;
 let currentChartModal = null; // { chartId, cardTitle }
 
-// ── Toggle edit mode ──
+// ── Section-level edit mode (drag/hide sections) ──
 function toggleEdit() {
   editMode = !editMode;
   document.body.classList.toggle('edit-mode', editMode);
   const btn = document.getElementById('btnEdit');
   btn.classList.toggle('active', editMode);
-  btn.textContent = editMode ? '✅ Xong' : '✏️ Chỉnh sửa';
-  // Toggle contenteditable on all [data-editable]
-  document.querySelectorAll('[data-editable]').forEach(el => {
-    el.contentEditable = editMode ? 'true' : 'false';
-  });
+  btn.textContent = editMode ? '✅ Xong' : '⠿ Sắp xếp sections';
+  // Close any active card when toggling
+  deactivateAllCards();
 }
+
+// ── Per-card gear activation ──
+let activeCw = null;
+
+function activateCard(cw) {
+  if (activeCw === cw) return;
+  deactivateAllCards();
+  activeCw = cw;
+  cw.classList.add('cw-active');
+  // Enable contenteditable on this card's editable elements
+  cw.querySelectorAll('[data-editable]').forEach(el => el.contentEditable = 'true');
+}
+
+function deactivateAllCards() {
+  document.querySelectorAll('.cw-active').forEach(c => {
+    c.classList.remove('cw-active');
+    c.querySelectorAll('[data-editable]').forEach(el => el.contentEditable = 'false');
+  });
+  activeCw = null;
+}
+
+// Click outside any .cw → deactivate
+document.addEventListener('mousedown', e => {
+  if (rd) return; // ignore during resize
+  if (e.target.closest('.cw-gear')) return; // handled by gear click
+  if (e.target.closest('[data-dir]')) return; // resize handle
+  if (e.target.closest('#deleteModal,#chartModal')) return; // modals
+  if (!e.target.closest('.cw-active')) deactivateAllCards();
+});
 
 // ── Print / PDF ──
 function printPdf() {
-  const wasEdit = editMode;
-  if (wasEdit) toggleEdit(); // exit edit mode before print
+  deactivateAllCards();
   window.print();
-  if (wasEdit) setTimeout(toggleEdit, 500);
 }
+
+// ── Inject gear icons + resize handles into each .cw ──
+document.querySelectorAll('.cw').forEach(cw => {
+  // Gear button
+  const gear = document.createElement('button');
+  gear.className = 'cw-gear';
+  gear.textContent = '⚙';
+  gear.title = 'Tuỳ chỉnh block';
+  gear.addEventListener('click', e => {
+    e.stopPropagation();
+    if (cw.classList.contains('cw-active')) { deactivateAllCards(); }
+    else { activateCard(cw); }
+  });
+  cw.appendChild(gear);
+});
 
 // ── Drag Resize ──
 const tip = document.createElement('div');
 tip.className = 'resize-tip';
 document.body.appendChild(tip);
 
-// Inject resize handles + snap guide into all .cw
+// Inject resize handles + snap guide into all .cw (append after gear)
 document.querySelectorAll('.cw').forEach(cw => {
   cw.insertAdjacentHTML('beforeend',
     '<div class="rh-right"  data-dir="e"><div class="rh-right-bar"></div></div>' +
@@ -656,7 +700,9 @@ let latestE = null;
 
 document.addEventListener('mousedown', e => {
   const handle = e.target.closest('[data-dir]');
-  if (!handle || !editMode) return;
+  if (!handle) return;
+  const cw = handle.closest('.cw');
+  if (!cw?.classList.contains('cw-active')) return; // only active cards
   e.preventDefault();
   e.stopPropagation();
 
