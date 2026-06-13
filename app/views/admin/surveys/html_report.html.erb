@@ -13,9 +13,21 @@
 body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
 
 /* ── Header ── */
-.header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:white;padding:36px 48px}
+.header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:white;padding:36px 48px;position:relative}
 .header h1{font-size:22px;font-weight:700;margin-bottom:6px;line-height:1.35}
 .header p{opacity:.6;font-size:13px}
+/* Editable header fields */
+.hdr-editable{position:relative;display:inline-block;max-width:100%;cursor:pointer;border-radius:6px;transition:background .15s}
+.hdr-editable:hover{background:rgba(255,255,255,.08)}
+.hdr-editable:hover .hdr-edit-icon{opacity:1}
+.hdr-edit-icon{position:absolute;top:50%;right:-24px;transform:translateY(-50%);opacity:0;transition:opacity .15s;cursor:pointer;color:rgba(255,255,255,.7);padding:2px}
+.hdr-input{display:none;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:white;outline:none;font-family:inherit;width:100%}
+.hdr-input.title-input{font-size:22px;font-weight:700;line-height:1.35;padding:4px 10px}
+.hdr-input.sub-input{font-size:13px;padding:3px 8px;opacity:.9}
+.hdr-editable.editing .hdr-text{display:none}
+.hdr-editable.editing .hdr-edit-icon{display:none}
+.hdr-editable.editing .hdr-input{display:block}
+@media print{.hdr-edit-icon{display:none!important}}
 .container{max-width:1200px;margin:0 auto;padding:28px 24px 120px}
 
 /* ── KPI ── */
@@ -347,8 +359,20 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 
 <%# ── Header ── %>
 <div class="header">
-  <h1>📊 <%= @survey.title %></h1>
-  <p>Báo cáo phân tích · <%= @total_responses %> phản hồi<% if @survey_date_range %> · <%= @survey_date_range %><% end %></p>
+  <h1>
+    <span class="hdr-editable" id="hdrTitleWrap" onclick="startHdrEdit('title')" title="Click để chỉnh sửa tiêu đề">
+      <span class="hdr-text" id="hdrTitleText">📊 <%= @survey.title %></span>
+      <svg class="hdr-edit-icon" width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <input class="hdr-input title-input" id="hdrTitleInput" type="text" value="📊 <%= @survey.title %>" onblur="endHdrEdit('title')" onkeydown="hdrKey(event,'title')">
+    </span>
+  </h1>
+  <p>
+    <span class="hdr-editable" id="hdrSubWrap" onclick="startHdrEdit('sub')" title="Click để chỉnh sửa mô tả">
+      <span class="hdr-text" id="hdrSubText">Báo cáo phân tích · <%= @total_responses %> phản hồi<% if @survey_date_range %> · <%= @survey_date_range %><% end %></span>
+      <svg class="hdr-edit-icon" width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <input class="hdr-input sub-input" id="hdrSubInput" type="text" value="Báo cáo phân tích · <%= @total_responses %> phản hồi<% if @survey_date_range %> · <%= @survey_date_range %><% end %>" onblur="endHdrEdit('sub')" onkeydown="hdrKey(event,'sub')">
+    </span>
+  </p>
 </div>
 
 <div class="container">
@@ -1190,6 +1214,9 @@ function saveLayout() {
   Object.entries(chartReg).forEach(([id, ch]) => {
     layout.chartData[id] = { labels: ch.data.labels, datasets: ch.data.datasets.map(d => ({ label: d.label, data: [...d.data] })) };
   });
+  // Header edits
+  const ht = document.getElementById('hdrTitleText'); if (ht) layout.hdrTitle = ht.textContent;
+  const hs = document.getElementById('hdrSubText');   if (hs) layout.hdrSub   = hs.textContent;
   localStorage.setItem(SK, JSON.stringify(layout));
 }
 
@@ -1198,6 +1225,10 @@ function loadLayout() {
   try { saved = JSON.parse(localStorage.getItem(SK) || 'null'); } catch(e) {}
   if (!saved) return;
   const container = document.getElementById('sortableContainer');
+
+  // Restore header edits
+  if (saved.hdrTitle) { const el = document.getElementById('hdrTitleText'); if (el) { el.textContent = saved.hdrTitle; document.getElementById('hdrTitleInput').value = saved.hdrTitle; } }
+  if (saved.hdrSub)   { const el = document.getElementById('hdrSubText');   if (el) { el.textContent = saved.hdrSub;   document.getElementById('hdrSubInput').value   = saved.hdrSub; } }
 
   // Restore section order
   if (saved.sectionOrder) {
@@ -1488,6 +1519,36 @@ function showCopyTip(msg) {
 document.getElementById('shareModal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeShareModal();
 });
+
+// ── Editable header ──────────────────────────────────────────────
+function startHdrEdit(which) {
+  const wrap  = document.getElementById(which === 'title' ? 'hdrTitleWrap' : 'hdrSubWrap');
+  const input = document.getElementById(which === 'title' ? 'hdrTitleInput' : 'hdrSubInput');
+  wrap.classList.add('editing');
+  input.style.width = Math.max(wrap.offsetWidth, 200) + 'px';
+  input.focus();
+  input.select();
+}
+function endHdrEdit(which) {
+  const wrap  = document.getElementById(which === 'title' ? 'hdrTitleWrap' : 'hdrSubWrap');
+  const text  = document.getElementById(which === 'title' ? 'hdrTitleText' : 'hdrSubText');
+  const input = document.getElementById(which === 'title' ? 'hdrTitleInput' : 'hdrSubInput');
+  wrap.classList.remove('editing');
+  const val = input.value.trim();
+  if (val) text.textContent = val;
+  else input.value = text.textContent; // revert if empty
+  saveLayout();
+}
+function hdrKey(e, which) {
+  if (e.key === 'Enter') { e.preventDefault(); endHdrEdit(which); }
+  if (e.key === 'Escape') {
+    const wrap  = document.getElementById(which === 'title' ? 'hdrTitleWrap' : 'hdrSubWrap');
+    const input = document.getElementById(which === 'title' ? 'hdrTitleInput' : 'hdrSubInput');
+    const text  = document.getElementById(which === 'title' ? 'hdrTitleText' : 'hdrSubText');
+    input.value = text.textContent;
+    wrap.classList.remove('editing');
+  }
+}
 
 loadLayout();
 </script>
