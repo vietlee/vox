@@ -1837,8 +1837,8 @@ function rebuildStructure() {
         method: 'POST',
         headers: { 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.content || '', 'Content-Type': 'application/json' }
       }).then(() => {
-        localStorage.removeItem(SK + '_structver');
-        window.location = '<%= html_report_survey_path(@survey) %>';
+        // Poll until structure is ready, then reload
+        pollUntilReady();
       }).catch(() => {
         hideRebuildOverlay();
         alert('Có lỗi, vui lòng thử lại.');
@@ -1896,6 +1896,34 @@ function showRebuildOverlay() {
 function hideRebuildOverlay() {
   const el = document.getElementById('rebuild-overlay');
   if (el) el.style.display = 'none';
+}
+
+function pollUntilReady(attempts) {
+  attempts = attempts || 0;
+  if (attempts > 60) { // max 60s
+    hideRebuildOverlay();
+    alert('Quá thời gian chờ. Vui lòng reload trang.');
+    return;
+  }
+  // Step 4 active after 8s
+  if (attempts === 8) {
+    const s4 = document.getElementById('rb-step-4');
+    if (s4) { s4.style.color='#4361ee'; s4.style.fontWeight='700'; s4.querySelector('span').style.background='#4361ee'; }
+  }
+  fetch('<%= html_report_survey_path(@survey) %>?check_structure=1', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ready) {
+        // Mark step 4 done then reload
+        const s4 = document.getElementById('rb-step-4');
+        if (s4) { s4.style.color='#10b981'; s4.querySelector('span').style.background='#10b981'; }
+        localStorage.removeItem(SK + '_structver');
+        setTimeout(() => { window.location.reload(); }, 600);
+      } else {
+        setTimeout(() => pollUntilReady(attempts + 1), 1000);
+      }
+    })
+    .catch(() => setTimeout(() => pollUntilReady(attempts + 1), 2000));
 }
 
 function voxConfirm({ title, message, okText = 'Xác nhận', okColor = '#ef4444', onOk }) {
