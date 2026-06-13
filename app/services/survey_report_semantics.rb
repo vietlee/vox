@@ -432,9 +432,13 @@ class SurveyReportSemantics
                 "question_id" => q.id, "color" => "#f59e0b" }
     end
 
-    # Frequency question → top option as KPI (e.g. "100% Hàng ngày")
+    # Frequency question → show top option % + its label
     qs_for(:frequency).first(1).each do |q|
-      kpis << { "label" => q.title.truncate(22), "source" => "question_top_option",
+      sem = @semantics[q.id]
+      top = sem[:options]&.max_by { |o| o[:count] }
+      next unless top && top[:pct].to_f > 0
+      # label = "Hàng ngày" (top option name), value = "87%" shown by question_top_option
+      kpis << { "label" => top[:label].truncate(24), "source" => "question_top_option",
                 "question_id" => q.id, "color" => "#8b5cf6" }
     end
 

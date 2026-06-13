@@ -378,8 +378,10 @@ module HtmlReportSetup
                 avg   = stats&.dig(:avg)
                 avg ? "#{avg}%" : "—"
               when "question_top_option"
+                # Show percentage of top option (e.g. "87%") not raw text
                 stats = question_stats[kpi["question_id"]&.to_i]
-                stats&.dig(:options)&.max_by { |o| o[:count] }&.dig(:label)&.truncate(30) || "—"
+                top   = stats&.dig(:options)&.max_by { |o| o[:count] }
+                top ? "#{top[:pct]}%" : "—"
               else
                 "—"
               end
