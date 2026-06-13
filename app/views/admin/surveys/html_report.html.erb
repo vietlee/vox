@@ -162,6 +162,18 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .resize-tip{display:none;position:fixed;background:#1a1a2e;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap;pointer-events:none;z-index:999;transform:translate(12px,-50%)}
 .resize-tip.visible{display:block}
 
+/* ── AI Insights ── */
+.insights-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.insights-col{background:white;border-radius:12px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.insights-col-header{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #f0f2f5}
+.insight-item{border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:10px;font-size:12px;line-height:1.65}
+.insight-stat{background:#f0f4ff;border-left:4px solid #4361ee;color:#374151}
+.insight-plus{color:#4361ee;font-weight:700}
+.insight-rec{border-left:4px solid #7c3aed;background:#faf5ff}
+.insight-rec-title{font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:5px;line-height:1.4}
+.insight-rec-detail{font-size:11px;color:#6b7280;line-height:1.6}
+@media(max-width:700px){.insights-grid{grid-template-columns:1fr}}
+
 /* ── Card ── */
 .card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);height:100%}
 .card h3{font-size:13px;font-weight:700;margin-bottom:16px;color:#1a1a2e;border-bottom:2px solid #f0f2f5;padding-bottom:10px;display:flex;align-items:center;gap:10px}
@@ -340,6 +352,11 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   .cw{break-inside:avoid;page-break-inside:avoid}
   .card{box-shadow:none!important;border:1px solid #e2e8f0!important;break-inside:avoid;page-break-inside:avoid;border-radius:8px!important}
   canvas{break-inside:avoid;page-break-inside:avoid;max-width:100%!important}
+  /* Insights: 1 col on print, each item avoids page break */
+  .insights-grid{grid-template-columns:1fr!important;gap:12px!important}
+  .insights-col{box-shadow:none!important;border:1px solid #e2e8f0!important;break-inside:avoid;page-break-inside:avoid}
+  .insight-item{break-inside:avoid;page-break-inside:avoid}
+  #ai-insights-section{break-before:auto;page-break-before:auto}
 }
 </style>
 </head>
@@ -916,34 +933,34 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 <%# ── AI Insights & Recommendations panel ── %>
 <% ai_insights = @report_structure&.dig("ai_insights") || [] %>
 <% if ai_insights.any? %>
+<% stat_insights = ai_insights.select{|i| i["type"] == "stat" || (i["text"].present? && i["type"] != "recommendation")} %>
+<% rec_insights  = ai_insights.select{|i| i["type"] == "recommendation" && i["title"].present?} %>
 <div style="margin-top:28px" id="ai-insights-section">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:16px;font-weight:700;color:#1a1a2e">
-    <span style="display:block;width:4px;height:20px;background:#7c3aed;border-radius:2px"></span>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:16px;font-weight:700;color:#1a1a2e;break-after:avoid;page-break-after:avoid">
+    <span style="display:block;width:4px;height:20px;background:#7c3aed;border-radius:2px;flex-shrink:0"></span>
     ✦ Insights & Khuyến nghị (AI)
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-    <%# Stat insights %>
-    <% stat_insights = ai_insights.select{|i| i["type"] == "stat" || i["text"].present?} %>
-    <% rec_insights  = ai_insights.select{|i| i["type"] == "recommendation" && i["title"].present?} %>
+
+  <%# ── Screen: 2-col grid | Print: single column each item avoids break ── %>
+  <div class="insights-grid">
     <% if stat_insights.any? %>
-    <div style="background:white;border-radius:12px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
-      <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #f0f2f5">📊 Phát hiện từ dữ liệu</div>
+    <div class="insights-col">
+      <div class="insights-col-header">📊 Phát hiện từ dữ liệu</div>
       <% stat_insights.each do |ins| %>
-      <div style="background:#f0f4ff;border-left:4px solid #4361ee;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:10px;font-size:12px;line-height:1.65;color:#374151">
-        <strong style="color:#4361ee">+ </strong><%= ins["text"] %>
+      <div class="insight-item insight-stat">
+        <strong class="insight-plus">+</strong> <%= ins["text"] %>
       </div>
       <% end %>
     </div>
     <% end %>
-    <%# Recommendation insights %>
     <% if rec_insights.any? %>
-    <div style="background:white;border-radius:12px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
-      <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #f0f2f5">🎯 Khuyến nghị hành động</div>
+    <div class="insights-col">
+      <div class="insights-col-header">🎯 Khuyến nghị hành động</div>
       <% rec_insights.each do |ins| %>
-      <div style="border-left:4px solid #7c3aed;padding:10px 14px;margin-bottom:10px;background:#faf5ff;border-radius:0 8px 8px 0">
-        <div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:5px;line-height:1.4">→ <%= ins["title"] %></div>
+      <div class="insight-item insight-rec">
+        <div class="insight-rec-title">→ <%= ins["title"] %></div>
         <% if ins["detail"].present? %>
-        <div style="font-size:11px;color:#6b7280;line-height:1.6"><%= ins["detail"] %></div>
+        <div class="insight-rec-detail"><%= ins["detail"] %></div>
         <% end %>
       </div>
       <% end %>
