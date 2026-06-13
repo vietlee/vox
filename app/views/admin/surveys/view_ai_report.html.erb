@@ -98,12 +98,17 @@ canvas{max-height:240px}
 .key-finding{background:#f8f9ff;border-left:3px solid #6366f1;padding:8px 12px;border-radius:0 6px 6px 0;font-size:11px;font-weight:600;color:#4361ee;margin-top:10px}
 
 /* Action bar */
-.action-bar{position:fixed;bottom:24px;right:24px;display:flex;gap:8px;z-index:300}
+.action-bar{position:fixed;bottom:24px;right:24px;display:flex;gap:8px;z-index:300;align-items:center}
 .action-bar button,.action-bar a{display:flex;align-items:center;gap:6px;border:none;border-radius:50px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.15);transition:all .15s;text-decoration:none}
 .action-bar button:hover,.action-bar a:hover{opacity:.88}
 .btn-back{background:#fff;color:#374151}
 .btn-print{background:#fff;color:#374151}
 .btn-pdf{background:#374151;color:#fff}
+/* Lang switcher */
+.lang-switcher{display:flex;background:rgba(55,65,81,.85);border-radius:50px;padding:2px;gap:2px;border:1px solid rgba(255,255,255,.1);box-shadow:0 4px 14px rgba(0,0,0,.15)}
+.lang-btn{background:transparent;border:none;border-radius:50px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;color:rgba(255,255,255,.6);transition:all .15s;line-height:1}
+.lang-btn.active{background:white;color:#374151;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.lang-btn:not(.active):hover{color:white}
 
 /* Print */
 @media print{
@@ -121,7 +126,7 @@ canvas{max-height:240px}
 
 <!-- Header -->
 <div class="header">
-  <div class="ai-badge">✨ Báo cáo AI</div>
+  <div class="ai-badge" data-i18n-badge>✨ Báo cáo AI</div>
   <h1><%= rpt_title %></h1>
   <p><%= rpt_sub %></p>
   <% if meta["generated_at"].present? %>
@@ -137,25 +142,25 @@ canvas{max-height:240px}
   <% if key_met["response_count"].present? %>
   <div class="kpi" style="border-top-color:#4361ee">
     <div class="kpi-value" style="color:#4361ee"><%= key_met["response_count"] %></div>
-    <div class="kpi-label">Phản hồi</div>
+    <div class="kpi-label" data-kpi-label="responses">Phản hồi</div>
   </div>
   <% end %>
   <% if key_met["sentiment_positive"].present? %>
   <div class="kpi" style="border-top-color:#10b981">
     <div class="kpi-value" style="color:#10b981"><%= key_met["sentiment_positive"] %></div>
-    <div class="kpi-label">Tích cực</div>
+    <div class="kpi-label" data-kpi-label="positive">Tích cực</div>
   </div>
   <% end %>
   <% if key_met["sentiment_negative"].present? %>
   <div class="kpi" style="border-top-color:#ef4444">
     <div class="kpi-value" style="color:#ef4444"><%= key_met["sentiment_negative"] %></div>
-    <div class="kpi-label">Tiêu cực</div>
+    <div class="kpi-label" data-kpi-label="negative">Tiêu cực</div>
   </div>
   <% end %>
   <% if key_met["top_concern"].present? %>
   <div class="kpi" style="border-top-color:#f59e0b;grid-column:span 2">
     <div class="kpi-value" style="color:#f59e0b;font-size:16px;margin-bottom:6px"><%= key_met["top_concern"] %></div>
-    <div class="kpi-label">Vấn đề nổi bật</div>
+    <div class="kpi-label" data-kpi-label="top_concern">Vấn đề nổi bật</div>
   </div>
   <% end %>
 </div>
@@ -164,7 +169,7 @@ canvas{max-height:240px}
 <!-- Executive summary -->
 <% if exec_sum.present? %>
 <div class="ai-section" style="margin-bottom:20px">
-  <h2>Tóm tắt điều hành</h2>
+  <h2><span data-section="executive_summary">Tóm tắt điều hành</span></h2>
   <% exec_sum.split(/\n\n+/).each do |para| %>
     <% next if para.strip.empty? %>
     <p><%= para.strip %></p>
@@ -175,7 +180,7 @@ canvas{max-height:240px}
 <!-- Charts -->
 <% if chart_data.any? %>
 <div class="ai-section" style="padding-bottom:8px;margin-bottom:0">
-  <h2>Dữ liệu biểu đồ</h2>
+  <h2><span data-section="chart_data">Dữ liệu biểu đồ</span></h2>
 </div>
 <div class="chart-grid" style="margin-top:0">
 <%
@@ -270,7 +275,7 @@ canvas{max-height:240px}
   <% end %>
 
   <% if insight.present? %>
-  <div class="insight-box"><strong>💡 Nhận xét:</strong> <%= insight %></div>
+  <div class="insight-box"><strong data-insight-label>💡 Nhận xét:</strong> <%= insight %></div>
   <% end %>
 </div>
 <% end %>
@@ -280,7 +285,7 @@ canvas{max-height:240px}
 <!-- AI Text sections -->
 <% if sections.any? %>
 <div class="ai-section" style="margin-bottom:12px;padding-bottom:8px">
-  <h2>Phân tích chi tiết</h2>
+  <h2><span data-section="detail_analysis">Phân tích chi tiết</span></h2>
 </div>
 <div class="text-section-grid">
   <% sections.each do |sec| %>
@@ -301,12 +306,12 @@ canvas{max-height:240px}
 <!-- Recommendations -->
 <% if recs.any? %>
 <div class="ai-section" style="margin-bottom:12px;padding-bottom:8px">
-  <h2>Khuyến nghị</h2>
+  <h2><span data-section="recommendations">Khuyến nghị</span></h2>
 </div>
 <% priority_order = {"high"=>0,"medium"=>1,"low"=>2} %>
 <% recs.sort_by{|r| priority_order[r["priority"].to_s] || 9}.each do |rec| %>
 <div class="rec-card <%= rec['priority'] %>">
-  <div class="rec-priority <%= rec['priority'] %>">
+  <div class="rec-priority <%= rec['priority'] %>" data-priority="<%= rec['priority'] %>">
     <%= rec["priority"] == "high" ? "🔴 Ưu tiên cao" : rec["priority"] == "medium" ? "🟡 Ưu tiên trung bình" : "🟢 Ưu tiên thấp" %>
   </div>
   <div class="rec-action"><%= rec["action"] %></div>
@@ -323,7 +328,7 @@ canvas{max-height:240px}
 <!-- Conclusion -->
 <% if conclusion.present? %>
 <div class="conclusion-box">
-  <h2>Kết luận</h2>
+  <h2><span data-section="conclusion">Kết luận</span></h2>
   <% conclusion.split(/\n\n+/).each do |para| %>
     <% next if para.strip.empty? %>
     <p><%= para.strip %></p>
@@ -334,7 +339,7 @@ canvas{max-height:240px}
 <!-- User prompt context -->
 <% if meta["user_context"].present? %>
 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin-bottom:20px">
-  <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Prompt người dùng</div>
+  <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px" data-section="user_prompt_label">Prompt người dùng</div>
   <p style="font-size:12px;color:#64748b;font-style:italic;line-height:1.6">"<%= meta["user_context"] %>"</p>
 </div>
 <% end %>
@@ -343,20 +348,103 @@ canvas{max-height:240px}
 
 <!-- Action bar -->
 <div class="action-bar">
-  <a href="<%= results_survey_path(@survey, tab: 'report') %>" class="btn-back">
-    ← Quay lại
+  <a href="<%= results_survey_path(@survey, tab: 'report') %>" class="btn-back" id="btnBack">
+    ← <span data-i18n="back">Quay lại</span>
   </a>
   <button class="btn-print" onclick="window.print()">
-    🖨️ In
+    🖨️ <span data-i18n="print">In</span>
   </button>
   <button class="btn-pdf" onclick="downloadPdf()">
-    ⬇ Tải PDF
+    ⬇ <span data-i18n="download_pdf">Tải PDF</span>
   </button>
+  <div class="lang-switcher">
+    <button class="lang-btn active" id="langVI" onclick="setLang('vi')">🇻🇳 VI</button>
+    <button class="lang-btn" id="langEN" onclick="setLang('en')">🇬🇧 EN</button>
+  </div>
 </div>
 
 <script>
+const AI_TRANSLATIONS = {
+  vi: {
+    back: 'Quay lại', print: 'In', download_pdf: 'Tải PDF',
+    executive_summary: 'Tóm tắt điều hành',
+    chart_data: 'Dữ liệu biểu đồ',
+    detail_analysis: 'Phân tích chi tiết',
+    recommendations: 'Khuyến nghị',
+    conclusion: 'Kết luận',
+    insight_label: '💡 Nhận xét:',
+    priority_high: '🔴 Ưu tiên cao', priority_medium: '🟡 Ưu tiên trung bình', priority_low: '🟢 Ưu tiên thấp',
+    ai_badge: '✨ Báo cáo AI',
+    user_prompt_label: 'Prompt người dùng',
+    no_data: 'Không có dữ liệu biểu đồ',
+    responses: 'phản hồi', positive: 'Tích cực', negative: 'Tiêu cực', top_concern: 'Vấn đề nổi bật',
+    key_finding_icon: '🔑',
+  },
+  en: {
+    back: 'Back', print: 'Print', download_pdf: 'Download PDF',
+    executive_summary: 'Executive Summary',
+    chart_data: 'Chart Data',
+    detail_analysis: 'Detailed Analysis',
+    recommendations: 'Recommendations',
+    conclusion: 'Conclusion',
+    insight_label: '💡 Insight:',
+    priority_high: '🔴 High priority', priority_medium: '🟡 Medium priority', priority_low: '🟢 Low priority',
+    ai_badge: '✨ AI Report',
+    user_prompt_label: 'User Prompt',
+    no_data: 'No chart data',
+    responses: 'responses', positive: 'Positive', negative: 'Negative', top_concern: 'Top concern',
+    key_finding_icon: '🔑',
+  }
+};
+
+let aiLang = '<%= I18n.locale %>';
+function at(key) { return (AI_TRANSLATIONS[aiLang] || AI_TRANSLATIONS['vi'])[key] || key; }
+
+function applyAiTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = at(el.getAttribute('data-i18n'));
+  });
+  // Section headings
+  const sectionH2s = document.querySelectorAll('.ai-section h2');
+  const sectionKeys = ['executive_summary','chart_data','detail_analysis','recommendations','conclusion'];
+  // Map by index (order is fixed in template)
+  // Instead use data-section attr
+  document.querySelectorAll('[data-section]').forEach(el => {
+    el.textContent = at(el.getAttribute('data-section'));
+  });
+  // Insight boxes
+  document.querySelectorAll('[data-insight-label]').forEach(el => {
+    el.textContent = at('insight_label');
+  });
+  // Priority badges
+  document.querySelectorAll('[data-priority]').forEach(el => {
+    const p = el.getAttribute('data-priority');
+    el.textContent = at('priority_' + p);
+  });
+  // AI badge
+  document.querySelectorAll('[data-i18n-badge]').forEach(el => { el.textContent = at('ai_badge'); });
+  // KPI labels
+  document.querySelectorAll('[data-kpi-label]').forEach(el => {
+    el.textContent = at(el.getAttribute('data-kpi-label'));
+  });
+  // Lang btn active
+  document.getElementById('langVI')?.classList.toggle('active', aiLang === 'vi');
+  document.getElementById('langEN')?.classList.toggle('active', aiLang === 'en');
+}
+
+function setLang(lang) {
+  aiLang = lang;
+  localStorage.setItem('report_lang', lang);
+  applyAiTranslations();
+}
+
+(function(){
+  const saved = localStorage.getItem('report_lang');
+  if (saved && ['vi','en'].includes(saved)) aiLang = saved;
+  applyAiTranslations();
+})();
+
 function downloadPdf() {
-  // Use export_report which already handles AI report PDFs via Grover
   window.location = '<%= export_report_survey_path(@survey, report_id: @ai_result.id, format_type: "pdf") %>';
 }
 </script>

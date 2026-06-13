@@ -197,6 +197,11 @@ canvas{max-height:260px}
 .share-revoke{font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;text-decoration:underline}
 .share-close{background:#4361ee;color:white;border:none;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer}
 .btn-edit.active{background:#10b981}
+/* Lang switcher */
+.lang-switcher{display:flex;background:rgba(255,255,255,.15);border-radius:50px;padding:2px;gap:2px;border:1px solid rgba(255,255,255,.2)}
+.lang-btn{background:transparent;border:none;border-radius:50px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;color:rgba(255,255,255,.7);transition:all .15s;line-height:1}
+.lang-btn.active{background:white;color:#374151;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.lang-btn:not(.active):hover{color:white;background:rgba(255,255,255,.15)}
 /* PDF loading overlay */
 #pdf-loading{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:white;font-size:15px;font-weight:600;backdrop-filter:blur(3px)}
 #pdf-loading.show{display:flex}
@@ -334,13 +339,17 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 <%# ── Action bar ── %>
 <div class="action-bar" id="actionBar">
   <% unless @public_view %>
-    <button class="btn-share" onclick="openShareModal()">🔗 Chia sẻ</button>
+    <button class="btn-share" onclick="openShareModal()">🔗 <span data-i18n="share">Chia sẻ</span></button>
   <% end %>
-  <button class="btn-print" onclick="window.print()">🖨 In</button>
-  <button class="btn-pdf" onclick="downloadPdf()">⬇ Tải PDF</button>
+  <button class="btn-print" onclick="window.print()">🖨 <span data-i18n="print">In</span></button>
+  <button class="btn-pdf" onclick="downloadPdf()">⬇ <span data-i18n="download_pdf">Tải PDF</span></button>
   <% unless @public_view %>
-    <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">⠿ Sắp xếp sections</button>
+    <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">⠿ <span data-i18n="arrange">Sắp xếp sections</span></button>
   <% end %>
+  <div class="lang-switcher" id="langSwitcher">
+    <button class="lang-btn active" id="langVI" onclick="setLang('vi')">🇻🇳 VI</button>
+    <button class="lang-btn" id="langEN" onclick="setLang('en')">🇬🇧 EN</button>
+  </div>
 </div>
 
 <%# ── Share modal ── %>
@@ -1237,7 +1246,7 @@ function saveLayout() {
     sectionOrder: sections.map(el => el.dataset.id),
     hiddenSections: sections.filter(el => el.classList.contains('hidden-section')).map(el => ({
       id: el.dataset.id,
-      label: el.querySelector('.btn-sec-hide')?.textContent?.replace('Ẩn section','').trim() || el.dataset.id
+      label: el.querySelector('.section-title')?.textContent?.trim() || el.dataset.id
     })),
     hiddenCards: [],
     cardSpans: {},
@@ -1292,7 +1301,7 @@ function loadLayout() {
 
   // Restore header edits
   if (saved.hdrTitle) { const el = document.getElementById('hdrTitleText'); if (el) { el.textContent = saved.hdrTitle; document.getElementById('hdrTitleInput').value = saved.hdrTitle; } }
-  if (saved.hdrSub)   { const el = document.getElementById('hdrSubText');   if (el) { el.textContent = saved.hdrSub;   document.getElementById('hdrSubInput').value   = saved.hdrSub; } }
+  if (saved.hdrSub)   { const el = document.getElementById('hdrSubText');   if (el) { el.textContent = saved.hdrSub;   document.getElementById('hdrSubInput').value   = saved.hdrSub; localStorage.setItem(SK + '_sub_edited', '1'); } }
 
   // Restore section order
   if (saved.sectionOrder) {
@@ -1640,8 +1649,12 @@ function endHdrEdit(which) {
   const input = document.getElementById(which === 'title' ? 'hdrTitleInput' : 'hdrSubInput');
   wrap.classList.remove('editing');
   const val = input.value.trim();
-  if (val) text.textContent = val;
-  else input.value = text.textContent; // revert if empty
+  if (val) {
+    text.textContent = val;
+    if (which === 'sub') localStorage.setItem(SK + '_sub_edited', '1');
+  } else {
+    input.value = text.textContent; // revert if empty
+  }
   saveLayout();
 }
 function hdrKey(e, which) {
@@ -1654,6 +1667,129 @@ function hdrKey(e, which) {
     wrap.classList.remove('editing');
   }
 }
+
+// ── i18n / Language switcher ──────────────────────────────────────
+const TRANSLATIONS = {
+  vi: {
+    share: 'Chia sẻ', print: 'In', download_pdf: 'Tải PDF', arrange: 'Sắp xếp sections',
+    hidden_label: 'Đã ẩn:', hide_section: 'Ẩn section', restore: 'Khôi phục',
+    pdf_loading: 'Đang tạo PDF, vui lòng chờ...',
+    share_title: '🔗 Chia sẻ báo cáo',
+    share_desc: 'Ai có link này đều có thể xem báo cáo mà không cần đăng nhập',
+    copy_link: 'Copy link', copy_qr: 'Copy QR', download_qr: 'Tải QR',
+    revoke_link: 'Thu hồi link', close: 'Đóng',
+    generating_link: 'Đang tạo link...',
+    confirm_revoke: 'Thu hồi link chia sẻ này? Link cũ sẽ không còn hoạt động.',
+    revoke_ok: 'Thu hồi', revoke_cancel: 'Huỷ',
+    copied: 'Đã copy!', copy_qr_ok: 'Đã copy QR!',
+    participants: 'Người tham gia',
+    section_participants: 'Thành phần người tham gia',
+    section_savings: 'Mức độ tiết kiệm thời gian',
+    section_usage: 'Cách sử dụng AI',
+    section_ratings: 'Đánh giá chất lượng & trải nghiệm',
+    section_challenges: 'Khó khăn & ý kiến người dùng',
+    section_recs: 'Đề xuất & khuyến nghị',
+    responses: 'phản hồi',
+    analysis_report: 'Báo cáo phân tích',
+  },
+  en: {
+    share: 'Share', print: 'Print', download_pdf: 'Download PDF', arrange: 'Arrange sections',
+    hidden_label: 'Hidden:', hide_section: 'Hide section', restore: 'Restore',
+    pdf_loading: 'Generating PDF, please wait...',
+    share_title: '🔗 Share Report',
+    share_desc: 'Anyone with this link can view the report without logging in',
+    copy_link: 'Copy link', copy_qr: 'Copy QR', download_qr: 'Download QR',
+    revoke_link: 'Revoke link', close: 'Close',
+    generating_link: 'Generating link...',
+    confirm_revoke: 'Revoke this share link? The old link will no longer work.',
+    revoke_ok: 'Revoke', revoke_cancel: 'Cancel',
+    copied: 'Copied!', copy_qr_ok: 'QR copied!',
+    participants: 'Participants',
+    section_participants: 'Participant breakdown',
+    section_savings: 'Time savings',
+    section_usage: 'How AI is used',
+    section_ratings: 'Quality & experience ratings',
+    section_challenges: 'Challenges & feedback',
+    section_recs: 'Suggestions & recommendations',
+    responses: 'responses',
+    analysis_report: 'Analytics report',
+  }
+};
+
+const SECTION_I18N_MAP = {
+  's-demo': { vi: 'Thành phần người tham gia', en: 'Participant breakdown' },
+  's-savings': { vi: 'Mức độ tiết kiệm thời gian', en: 'Time savings' },
+  's-usage': { vi: 'Cách sử dụng AI', en: 'How AI is used' },
+  's-ratings': { vi: 'Đánh giá chất lượng & trải nghiệm', en: 'Quality & experience ratings' },
+  's-challenges': { vi: 'Khó khăn & ý kiến người dùng', en: 'Challenges & feedback' },
+  's-recs': { vi: 'Đề xuất & khuyến nghị', en: 'Suggestions & recommendations' },
+};
+
+let currentLang = '<%= I18n.locale %>';
+
+function t(key) { return (TRANSLATIONS[currentLang] || TRANSLATIONS['vi'])[key] || key; }
+
+function applyTranslations() {
+  // data-i18n elements in action bar
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+  // Restore bar label
+  const hiddenSpan = document.querySelector('#restoreBar > span');
+  if (hiddenSpan) hiddenSpan.textContent = t('hidden_label');
+  // Share modal static text
+  const st = document.querySelector('.share-box h3'); if (st) st.textContent = t('share_title');
+  const sd = document.querySelector('.share-box > p'); if (sd) sd.textContent = t('share_desc');
+  const sl = document.querySelector('.share-link-input');
+  if (sl && sl.value === 'Đang tạo link...' || sl?.value === 'Generating link...') sl.value = t('generating_link');
+  document.querySelectorAll('.share-btn .icon + span, .share-btn').forEach(btn => {
+    const icon = btn.querySelector?.('.icon');
+    if (!icon) return;
+    const txt = btn.childNodes[btn.childNodes.length - 1];
+    // identify by icon
+    const ic = icon.textContent;
+    if (ic === '📋') { if (txt.nodeType === 3) txt.textContent = t('copy_link'); }
+    else if (ic === '🖼') { if (txt.nodeType === 3) txt.textContent = t('copy_qr'); }
+    else if (ic === '⬇️') { if (txt.nodeType === 3) txt.textContent = t('download_qr'); }
+  });
+  document.querySelector('.share-revoke') && (document.querySelector('.share-revoke').textContent = t('revoke_link'));
+  document.querySelector('.share-close') && (document.querySelector('.share-close').textContent = t('close'));
+  // PDF loading
+  const pdfSpan = document.querySelector('#pdf-loading span'); if (pdfSpan) pdfSpan.textContent = t('pdf_loading');
+  // Section titles via SECTION_I18N_MAP
+  Object.entries(SECTION_I18N_MAP).forEach(([sid, labels]) => {
+    const sec = document.querySelector(`[data-id="${sid}"]`);
+    if (!sec) return;
+    const titleEl = sec.querySelector('.section-title');
+    if (titleEl) titleEl.textContent = labels[currentLang] || labels['vi'];
+  });
+  // Lang button active state
+  document.getElementById('langVI')?.classList.toggle('active', currentLang === 'vi');
+  document.getElementById('langEN')?.classList.toggle('active', currentLang === 'en');
+  // Header subtitle "Báo cáo phân tích · N phản hồi" — only if not custom-edited
+  const subEl = document.getElementById('hdrSubText');
+  if (subEl && !localStorage.getItem(SK + '_sub_edited')) {
+    const totalRes = <%= @total_responses %>;
+    const dateRange = '<%= @survey_date_range.to_s %>';
+    let sub = t('analysis_report') + ' · ' + totalRes + ' ' + t('responses');
+    if (dateRange) sub += ' · ' + dateRange;
+    subEl.textContent = sub;
+  }
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('report_lang', lang);
+  applyTranslations();
+}
+
+// Init lang from localStorage or Rails locale
+(function(){
+  const saved = localStorage.getItem('report_lang');
+  if (saved && ['vi','en'].includes(saved)) currentLang = saved;
+  applyTranslations();
+})();
 
 loadLayout();
 </script>
