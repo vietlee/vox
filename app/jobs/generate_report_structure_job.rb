@@ -1,6 +1,12 @@
 class GenerateReportStructureJob < ApplicationJob
   queue_as :default
 
+  INSIGHTS_SYSTEM_PROMPT = <<~PROMPT.freeze
+    Bạn là chuyên gia phân tích dữ liệu khảo sát. Nhiệm vụ duy nhất của bạn là sinh ra
+    các insights thông minh, súc tích dựa trên dữ liệu thực. Chỉ trả về JSON array thuần túy.
+  PROMPT
+
+  # Legacy — kept for reference but no longer used for structure generation
   SYSTEM_PROMPT = <<~PROMPT.freeze
     You are an expert survey data visualization & analysis designer.
     Given a survey's questions AND their actual aggregated response data, you will:
@@ -81,51 +87,44 @@ class GenerateReportStructureJob < ApplicationJob
     questions = survey.questions.includes(:question_options).order(:position)
     return if questions.empty?
 
-    # ── Step 1: Compute actual data from DB BEFORE calling AI ──────────────
     completed_ids = survey.responses.completed.where(excluded: [false, nil]).pluck(:id)
-    data_summary  = build_data_summary(survey, questions, completed_ids)
 
-    # ── Step 2: Build AI prompt with real data ──────────────────────────────
-    questions_payload = questions.map.with_index do |q, i|
-      {
-        position: i + 1,
-        id:       q.id,
-        title:    q.title,
-        type:     q.question_type,
-        options:  q.question_options.order(:position).map(&:label).first(12)
-      }
-    end
+    # ── Step 1: Ruby semantic detection builds structure deterministically ──
+    semantics_builder = SurveyReportSemantics.new(survey, completed_ids)
+    structure         = semantics_builder.build_structure
+    data_summary      = semantics_builder.data_summary_for_ai
 
-    user_prompt = <<~MSG
+    Rails.logger.info "GenerateReportStructureJob: survey #{survey_id} — Ruby built #{structure['sections']&.length} sections, now calling AI for insights"
+
+    # ── Step 2: AI generates ONLY insights (not structure) ─────────────────
+    insights_prompt = <<~MSG
       Survey: "#{survey.title}"
-      #{survey.description.present? ? "Description: #{survey.description}" : ""}
-      Total responses: #{completed_ids.size}
+      #{survey.description.present? ? "Mô tả: #{survey.description}" : ""}
+      Tổng số phản hồi: #{completed_ids.size}
 
-      ## ACTUAL RESPONSE DATA (computed from database — use these exact numbers):
+      ## Dữ liệu thực từ database:
       #{data_summary}
 
-      ## Questions reference:
-      #{JSON.pretty_generate(questions_payload)}
+      Dựa trên tiêu đề, mô tả và dữ liệu khảo sát trên, hãy sinh ra 4–6 insights thông minh.
+      Hai loại:
+      - type "stat": phát hiện quan trọng có số liệu cụ thể (ví dụ: "78% nhân viên Frontend tiết kiệm trên 60% thời gian")
+      - type "recommendation": đề xuất hành động cụ thể với WHO + WHAT + số liệu dẫn chứng
 
-      Design the best visual report AND generate smart insights:
-      - Use cross_tab_grouped_bar if there's a grouping question (dept/role) + numeric/percent questions
-      - Use distribution_bar for any question asking "how much %" in free text
-      - Use normalize_tools for questions asking which software/tools/AI are used
-      - Use horizontal_bar for challenges/pain-points
-      - Use theme_bar or quotes for open suggestions
-      - Generate ai_insights with EXACT numbers from the data above
+      Trả về JSON array (chỉ array, không có wrapper):
+      [
+        {"type": "stat", "text": "..."},
+        {"type": "recommendation", "title": "...", "detail": "..."}
+      ]
+
+      Quan trọng: dùng đúng ngôn ngữ của survey, trích dẫn số liệu thực từ dữ liệu.
     MSG
 
-    raw = ClaudeService.sonnet.call(
-      system_prompt: SYSTEM_PROMPT,
-      user_prompt:   user_prompt,
-      max_tokens:    4000
-    )
-
-    # Strip markdown fences if present
-    json_str  = raw.to_s.gsub(/\A```(?:json)?\s*|\s*```\z/, "").strip
-    structure = JSON.parse(json_str)
-    validate_structure!(structure, questions.map(&:id))
+    raw      = ClaudeService.sonnet.call(system_prompt: INSIGHTS_SYSTEM_PROMPT,
+                                         user_prompt:   insights_prompt, max_tokens: 2000)
+    json_str = raw.to_s.gsub(/\A```(?:json)?\s*|\s*```\z/, "").strip
+    insights = JSON.parse(json_str)
+    insights = insights["ai_insights"] if insights.is_a?(Hash) # unwrap if AI wrapped it
+    structure["ai_insights"] = Array(insights).select { |i| i["text"].present? || i["title"].present? }
 
     settings = survey.settings.to_h.merge(
       "report_structure"         => structure,
@@ -136,7 +135,14 @@ class GenerateReportStructureJob < ApplicationJob
 
   rescue JSON::ParserError => e
     Rails.logger.error "GenerateReportStructureJob JSON error survey #{survey_id}: #{e.message}\nRaw: #{raw.to_s.first(500)}"
-    save_fallback_structure(survey)
+    # Save structure without insights rather than full fallback
+    if defined?(structure) && structure["sections"].present?
+      structure["ai_insights"] = []
+      survey.update_columns(settings: survey.settings.to_h.merge("report_structure" => structure,
+                                                                   "report_structure_version" => Time.current.to_i.to_s))
+    else
+      save_fallback_structure(survey)
+    end
   rescue => e
     Rails.logger.error "GenerateReportStructureJob error survey #{survey_id}: #{e.class} #{e.message}"
     save_fallback_structure(survey)
