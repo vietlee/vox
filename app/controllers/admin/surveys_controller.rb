@@ -384,15 +384,16 @@ class Admin::SurveysController < Admin::BaseController
       .strip.gsub(/\s+/, "-")[0..79]
     filename = "bao-cao" if filename.blank?
 
+    # A4 landscape at 96dpi = 1122×794px. Match viewport exactly → no scaling distortion.
     pdf = Grover.new(html,
       format:           "A4",
       landscape:        true,
       print_background: true,
-      margin:           { top: "10mm", bottom: "10mm", left: "10mm", right: "10mm" },
+      margin:           { top: "10mm", bottom: "10mm", left: "12mm", right: "12mm" },
       emulate_media:    "print",
-      viewport:         { width: 1440, height: 900 },
+      viewport:         { width: 1122, height: 794 },
       wait_until:       "networkidle2",
-      timeout:          60_000
+      timeout:          90_000
     ).to_pdf
 
     send_data pdf,

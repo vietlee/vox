@@ -162,6 +162,11 @@ canvas{max-height:260px}
 .btn-pdf{background:#374151;color:#fff}
 .btn-edit{background:#4361ee;color:#fff}
 .btn-edit.active{background:#10b981}
+/* PDF loading overlay */
+#pdf-loading{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:white;font-size:15px;font-weight:600;backdrop-filter:blur(3px)}
+#pdf-loading.show{display:flex}
+.pdf-spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* ── Confirm modal ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
@@ -214,7 +219,7 @@ body.pdf-mode .report-body{max-width:100%!important;padding:16px!important}
   /* Hide all UI chrome */
   .action-bar,.section-controls,.card-toolbar,.restore-bar,
   .cw-gear,.cw-mode-bar,.rh-right,.rh-bottom,.rh-corner,
-  .modal-overlay,.btn-sec-drag{display:none!important}
+  .modal-overlay,.btn-sec-drag,#pdf-loading{display:none!important}
 
   body{background:white!important;font-size:12px}
   .report-body{max-width:100%!important;padding:0!important}
@@ -280,8 +285,14 @@ body.pdf-mode .report-body{max-width:100%!important;padding:16px!important}
 <%# ── Action bar ── %>
 <div class="action-bar" id="actionBar">
   <button class="btn-print" onclick="window.print()">🖨 In</button>
-  <a class="btn-pdf" href="<%= pdf_report_survey_path(@survey) %>" target="_blank" style="text-decoration:none;display:flex;align-items:center;gap:6px">⬇ Tải PDF</a>
+  <button class="btn-pdf" onclick="downloadPdf()">⬇ Tải PDF</button>
   <button class="btn-edit"  id="btnEdit" onclick="toggleEdit()">⠿ Sắp xếp sections</button>
+</div>
+
+<%# ── PDF loading overlay ── %>
+<div id="pdf-loading">
+  <div class="pdf-spinner"></div>
+  <span>Đang tạo PDF, vui lòng chờ...</span>
 </div>
 
 <%# ── Header ── %>
@@ -812,21 +823,30 @@ if (new URLSearchParams(location.search).get('pdf') === '1') {
   document.body.classList.add('pdf-mode');
 }
 
-// ── Print / PDF ──
-function printPdf() {
+// ── PDF download via Grover (server-side) ──
+async function downloadPdf() {
   deactivateAllCards();
-  // Show toast then trigger native print-to-PDF
-  let toast = document.getElementById('pdf-toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'pdf-toast';
-    toast.style.cssText = 'position:fixed;bottom:80px;right:24px;background:#1e293b;color:white;padding:14px 18px;border-radius:12px;font-size:13px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.35);line-height:1.7;max-width:290px';
-    toast.innerHTML = '📄 Trong hộp thoại in:<br><b>Chọn "Lưu dưới dạng PDF"</b><br><span style="opacity:.65;font-size:11px">Khổ giấy: A4 Ngang · Bỏ Header &amp; Footers</span>';
-    document.body.appendChild(toast);
+  const overlay = document.getElementById('pdf-loading');
+  overlay.classList.add('show');
+  try {
+    const resp = await fetch('<%= pdf_report_survey_path(@survey) %>', {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = resp.headers.get('Content-Disposition')
+                   ?.match(/filename="?([^";\n]+)"?/)?.[1] || 'bao-cao.pdf';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  } catch(err) {
+    alert('Không thể tạo PDF: ' + err.message);
+  } finally {
+    overlay.classList.remove('show');
   }
-  toast.style.display = 'block';
-  setTimeout(() => { if(toast) toast.style.display='none'; }, 9000);
-  setTimeout(() => window.print(), 400);
 }
 
 // ── Inject gear icons + resize handles into each .cw ──
