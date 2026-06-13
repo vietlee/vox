@@ -28,7 +28,7 @@ class Admin::SurveysController < Admin::BaseController
     { label: "Hỗ trợ tài chính",               kws: ["tài chính", "chi phí", "tài trợ"] },
     { label: "Nguyên tắc bảo mật",             kws: ["bảo mật", "security", "nguyên tắc"] },
   ].freeze
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :export, :export_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :generate_report_token, :revoke_report_token, :export, :export_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
@@ -356,6 +356,17 @@ class Admin::SurveysController < Admin::BaseController
       dates = responses.map(&:completed_at).compact
       "#{dates.min.strftime('%d/%m/%Y')} – #{dates.max.strftime('%d/%m/%Y')}" if dates.any?
     end
+  end
+
+  def generate_report_token
+    token = @survey.settings["report_token"].presence || SecureRandom.urlsafe_base64(16)
+    @survey.update!(settings: @survey.settings.merge("report_token" => token))
+    render json: { token: token, url: public_report_url(token) }
+  end
+
+  def revoke_report_token
+    @survey.update!(settings: @survey.settings.except("report_token"))
+    render json: { ok: true }
   end
 
   def pdf_report # rubocop:disable Metrics/MethodLength

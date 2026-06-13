@@ -36,6 +36,9 @@ Rails.application.routes.draw do
   # PayOS webhook (no CSRF)
   post "webhooks/payos" => "webhooks/payos#receive", as: :payos_webhook
 
+  # Public report share (no login required)
+  get  "/r/:token", to: "public/reports#show", as: :public_report
+
   # Public participation (End User — no login required)
   get  "/s/:slug",              to: "participate/surveys#show",    as: :participate_survey
   post "/s/:slug/submit",       to: "participate/surveys#submit",  as: :submit_survey
@@ -93,6 +96,8 @@ Rails.application.routes.draw do
         get   :results
         get   :html_report
         post  :pdf_report
+        post  :generate_report_token
+        delete :revoke_report_token
         get   :export
         get    :export_report
         delete :delete_report

@@ -7,7 +7,8 @@
 <%= csrf_meta_tags %>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script><style>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
 
@@ -159,9 +160,27 @@ canvas{max-height:260px}
 .action-bar{position:fixed;bottom:24px;right:24px;display:flex;gap:8px;z-index:300}
 .action-bar button{display:flex;align-items:center;gap:6px;border:none;border-radius:50px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.15);transition:all .15s}
 .action-bar button:hover{opacity:.88}
+.btn-share{background:linear-gradient(135deg,#4361ee,#7c3aed);color:#fff}
 .btn-print{background:#fff;color:#374151}
 .btn-pdf{background:#374151;color:#fff}
 .btn-edit{background:#4361ee;color:#fff}
+/* Share modal */
+#shareModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#shareModal.open{display:flex}
+.share-box{background:white;border-radius:20px;padding:28px 28px 24px;max-width:420px;width:90%;box-shadow:0 24px 60px rgba(0,0,0,.2)}
+.share-box h3{font-size:17px;font-weight:700;color:#1e293b;margin-bottom:4px}
+.share-box p{font-size:13px;color:#64748b;margin-bottom:20px}
+.share-qr{display:flex;justify-content:center;margin-bottom:20px}
+.share-qr canvas{border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.share-link-row{display:flex;gap:8px;margin-bottom:16px}
+.share-link-input{flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:9px 12px;font-size:12px;color:#374151;background:#f8fafc;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.share-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+.share-btn{border:1px solid #e2e8f0;background:white;border-radius:10px;padding:10px 8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;color:#374151;transition:all .15s}
+.share-btn:hover{background:#f1f5f9;border-color:#cbd5e1}
+.share-btn .icon{font-size:20px}
+.share-footer{display:flex;justify-content:space-between;align-items:center}
+.share-revoke{font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;text-decoration:underline}
+.share-close{background:#4361ee;color:white;border:none;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer}
 .btn-edit.active{background:#10b981}
 /* PDF loading overlay */
 #pdf-loading{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:white;font-size:15px;font-weight:600;backdrop-filter:blur(3px)}
@@ -284,9 +303,37 @@ body.pdf-mode .report-body{max-width:100%!important;padding:16px!important}
 
 <%# ── Action bar ── %>
 <div class="action-bar" id="actionBar">
+  <% unless @public_view %>
+    <button class="btn-share" onclick="openShareModal()">🔗 Chia sẻ</button>
+  <% end %>
   <button class="btn-print" onclick="window.print()">🖨 In</button>
   <button class="btn-pdf" onclick="downloadPdf()">⬇ Tải PDF</button>
-  <button class="btn-edit"  id="btnEdit" onclick="toggleEdit()">⠿ Sắp xếp sections</button>
+  <% unless @public_view %>
+    <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">⠿ Sắp xếp sections</button>
+  <% end %>
+</div>
+
+<%# ── Share modal ── %>
+<div id="shareModal">
+  <div class="share-box">
+    <h3>🔗 Chia sẻ báo cáo</h3>
+    <p>Ai có link này đều có thể xem báo cáo mà không cần đăng nhập</p>
+    <div class="share-qr" id="shareQrWrap">
+      <canvas id="shareQrCanvas"></canvas>
+    </div>
+    <div class="share-link-row">
+      <input class="share-link-input" id="shareLinkInput" readonly type="text" value="Đang tạo link...">
+    </div>
+    <div class="share-actions">
+      <button class="share-btn" onclick="copyShareLink()"><span class="icon">📋</span>Copy link</button>
+      <button class="share-btn" onclick="copyQrImage()"><span class="icon">🖼</span>Copy QR</button>
+      <button class="share-btn" onclick="downloadQr()"><span class="icon">⬇️</span>Tải QR</button>
+    </div>
+    <div class="share-footer">
+      <button class="share-revoke" onclick="revokeShareLink()">Thu hồi link</button>
+      <button class="share-close" onclick="closeShareModal()">Đóng</button>
+    </div>
+  </div>
 </div>
 
 <%# ── PDF loading overlay ── %>
@@ -1341,6 +1388,88 @@ document.addEventListener('mousedown', e => {
   const cw = bar.closest('.cw');
   if (!cw?.classList.contains('cw-move-mode')) return;
   startCardDrag(e, cw);
+});
+
+// ── Share modal ──
+let shareUrl = null;
+
+async function openShareModal() {
+  document.getElementById('shareModal').classList.add('open');
+  if (shareUrl) return; // already generated
+  try {
+    const resp = await fetch('<%= generate_report_token_survey_path(@survey) %>', {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+    });
+    const data = await resp.json();
+    shareUrl = data.url;
+    document.getElementById('shareLinkInput').value = shareUrl;
+    renderQr(shareUrl);
+  } catch(e) {
+    document.getElementById('shareLinkInput').value = 'Lỗi: ' + e.message;
+  }
+}
+
+function renderQr(url) {
+  const canvas = document.getElementById('shareQrCanvas');
+  QRCode.toCanvas(canvas, url, {
+    width: 200, margin: 2,
+    color: { dark: '#1e293b', light: '#ffffff' }
+  });
+}
+
+function closeShareModal() {
+  document.getElementById('shareModal').classList.remove('open');
+}
+
+function copyShareLink() {
+  navigator.clipboard.writeText(shareUrl).then(() => showCopyTip('Đã copy link!'));
+}
+
+async function copyQrImage() {
+  try {
+    const canvas = document.getElementById('shareQrCanvas');
+    canvas.toBlob(async blob => {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      showCopyTip('Đã copy ảnh QR!');
+    });
+  } catch(e) { showCopyTip('Trình duyệt không hỗ trợ copy ảnh'); }
+}
+
+function downloadQr() {
+  const canvas = document.getElementById('shareQrCanvas');
+  const a = document.createElement('a');
+  a.download = 'qr-bao-cao.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+async function revokeShareLink() {
+  if (!confirm('Thu hồi link? Ai đang có link sẽ không xem được nữa.')) return;
+  await fetch('<%= revoke_report_token_survey_path(@survey) %>', {
+    method: 'DELETE',
+    headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+  });
+  shareUrl = null;
+  document.getElementById('shareLinkInput').value = 'Link đã bị thu hồi';
+  document.getElementById('shareQrCanvas').getContext('2d').clearRect(0,0,200,200);
+}
+
+function showCopyTip(msg) {
+  let t = document.getElementById('copy-tip');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'copy-tip';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e293b;color:white;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:99999;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 2000);
+}
+
+// Close share modal on backdrop click
+document.getElementById('shareModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeShareModal();
 });
 
 loadLayout();
