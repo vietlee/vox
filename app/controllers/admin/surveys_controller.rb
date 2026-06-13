@@ -3,7 +3,7 @@ require "csv"
 class Admin::SurveysController < Admin::BaseController
   include HtmlReportSetup
 
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :generate_report_token, :revoke_report_token, :save_report_layout, :export, :export_report, :view_ai_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :generate_report_token, :revoke_report_token, :save_report_layout, :build_report_structure, :reset_report_structure, :export, :export_report, :view_ai_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
@@ -109,7 +109,20 @@ class Admin::SurveysController < Admin::BaseController
     end
   end
 
-  def html_report # rubocop:disable Metrics/MethodLength
+  def html_report
+    structure = @survey.settings&.dig("report_structure")
+
+    # JSON polling check: ?check_structure=1
+    if params[:check_structure]
+      render json: { ready: structure.present? } and return
+    end
+
+    # No structure yet → trigger job + show loading page
+    unless structure.present?
+      GenerateReportStructureJob.perform_later(@survey.id)
+      render template: "admin/surveys/report_building", layout: false and return
+    end
+
     call_html_report_setup
     render layout: false
   end
@@ -136,6 +149,18 @@ class Admin::SurveysController < Admin::BaseController
     return render json: { error: "invalid" }, status: :bad_request unless layout_data
     @survey.update!(settings: @survey.settings.merge("report_layout" => layout_data))
     render json: { ok: true }
+  end
+
+  def build_report_structure
+    # Clear existing structure so job regenerates it
+    @survey.update!(settings: @survey.settings.merge("report_structure" => nil))
+    GenerateReportStructureJob.perform_later(@survey.id)
+    render json: { ok: true, message: "Đang tạo cấu trúc báo cáo..." }
+  end
+
+  def reset_report_structure
+    @survey.update!(settings: @survey.settings.except("report_structure"))
+    redirect_to html_report_survey_path(@survey), notice: "Đã xóa cấu trúc báo cáo. Trang sẽ tự tạo lại."
   end
 
   def pdf_report # rubocop:disable Metrics/MethodLength

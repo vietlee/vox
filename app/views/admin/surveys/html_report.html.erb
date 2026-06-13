@@ -401,380 +401,202 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 </div>
 
 <div class="container">
-<%
-  palette = %w[#4361ee #7c3aed #06b6d4 #10b981 #f59e0b #ef4444 #ec4899 #8b5cf6 #0ea5e9 #14b8a6]
-  all_buckets = ["<40%","40–49%","50–59%","60–69%","70–79%","80–89%","≥90%"]
-%>
+<% palette = %w[#4361ee #7c3aed #06b6d4 #10b981 #f59e0b #ef4444 #ec4899 #8b5cf6 #0ea5e9 #14b8a6] %>
 
 <%# ── Restore bar ── %>
 <div class="restore-bar" id="restoreBar"><span>Đã ẩn:</span></div>
 
-<%# ── KPI grid (fixed, not editable) ── %>
-<%
-  kpi_list = [
-    {val:@kpis[:total].to_s, label:"Người tham gia", color:"#4361ee"},
-    (@kpis[:savings_task]  ? {val:@kpis[:savings_task],  label:"Tiết kiệm / task",  color:"#06b6d4"} : nil),
-    (@kpis[:savings_daily] ? {val:@kpis[:savings_daily], label:"Tiết kiệm / ngày",   color:"#10b981"} : nil),
-    (@kpis[:nps_avg]       ? {val:@kpis[:nps_avg],       label:"Điểm giới thiệu TB", color:"#f59e0b"} : nil),
-    (@kpis[:daily_pct]     ? {val:@kpis[:daily_pct],     label:"Dùng AI hàng ngày",  color:"#8b5cf6"} : nil),
-  ].compact
-%>
+<%# ── KPI grid — driven by report_structure kpis ── %>
+<% if @kpi_values.any? %>
 <div class="kpi-grid" style="margin-top:24px">
-  <% kpi_list.each do |k| %>
+  <% @kpi_values.each do |k| %>
     <div class="kpi" style="border-color:<%= k[:color] %>">
-      <div class="kpi-value" style="color:<%= k[:color] %>"><%= k[:val] %></div>
+      <div class="kpi-value" style="color:<%= k[:color] %>"><%= k[:value] %></div>
       <div class="kpi-label"><%= k[:label] %></div>
     </div>
   <% end %>
 </div>
+<% end %>
 
-<%# ── Sortable sections ── %>
+<%# ── Sortable sections — DYNAMIC from report_structure ── %>
 <div id="sortableContainer">
-
-<%# ─────────── S1: Thành phần ─────────── %>
-<% if @dept_data.any? || @tool_counts.any? %>
-<div class="report-section" data-id="s-demo">
+<% if @report_structure && @report_structure["sections"].present? %>
+<%
+  sections_data = @report_structure["sections"]
+  card_idx = 0
+%>
+<% sections_data.each do |section| %>
+<% sid = section["id"] || "s#{sections_data.index(section)+1}" %>
+<% sec_title = section["title"].to_s %>
+<div class="report-section" data-id="<%= sid %>">
   <div class="section-header">
     <div class="section-controls">
       <span class="btn-sec-drag">⠿</span>
-      <button class="btn-sec-hide" onclick="hideSection('s-demo','Thành phần')">Ẩn section</button>
+      <button class="btn-sec-hide" onclick="hideSection('<%= sid %>','<%= j sec_title %>')">Ẩn section</button>
     </div>
-    <div class="section-title">Thành phần người tham gia</div>
+    <div class="section-title"><%= sec_title %></div>
   </div>
-  <div class="grid-2" id="grid-s-demo">
-    <% if @dept_data.any? %>
-    <div class="cw" data-cid="card-dept">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn chart-btn" onclick="openChartModal('card-dept','Phân bổ bộ phận','deptChart')"><span class="icon">📊</span>Sửa dữ liệu</button>
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-dept','Phân bổ bộ phận')">🗑 Xoá</button>
-      </div>
-      <div class="card"><h3 data-editable contenteditable="false">Phân bổ theo bộ phận</h3><canvas id="deptChart"></canvas></div>
+  <div class="<%= section['layout'] || 'grid-2' %>" id="grid-<%= sid %>">
+  <% (section["cards"] || []).each do |card| %>
+  <% qid = card["question_id"].to_i %>
+  <% stats = @question_stats[qid] %>
+  <% next unless stats %>
+  <% chart_type = card["chart_type"].to_s %>
+  <% span = card["span"] || 6 %>
+  <% cid = "card-#{qid}" %>
+  <% card_idx += 1 %>
+  <% ci = card_idx - 1 %>
+  <div class="cw" data-cid="<%= cid %>" style="grid-column:span <%= span %>">
+    <div class="cw-gear" onclick="toggleCardMenu(this)">⚙</div>
+    <div class="card-toolbar">
+      <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
+      <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤢</span>Thay đổi kích thước</button>
+      <button class="ct-mode-btn" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
+      <div class="ct-divider"></div>
+      <button class="ct-mode-btn danger" onclick="hideCard('<%= cid %>')"><span class="icon">👁</span>Ẩn block này</button>
     </div>
-    <% end %>
-    <% if @tool_counts.any? %>
-    <div class="cw" data-cid="card-tools">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
+    <div class="cw-mode-bar">
+      <div class="mode-label" id="modeLabel-<%= cid %>"></div>
+      <button class="btn-done" onclick="setCwMode(null,'none','<%= cid %>')">Xong</button>
+    </div>
+    <div class="rh-right"><div class="rh-right-bar"></div></div>
+    <div class="rh-bottom"><div class="rh-bottom-bar"></div></div>
+    <div class="rh-corner"></div>
+    <div class="snap-guide"></div>
+    <div class="card">
+      <h3 data-editable contenteditable="false"><%= stats[:title].to_s.truncate(100) %></h3>
 
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-tools','Công cụ AI')">🗑 Xoá</button>
-      </div>
-      <div class="card">
-        <h3 data-editable contenteditable="false">Công cụ AI được sử dụng</h3>
-        <% max_tc = @tool_counts.first[:count].to_f %>
-        <% @tool_counts.each_with_index do |t, i| %>
+      <% if chart_type == "doughnut" || chart_type == "pie" %>
+        <% opts = stats[:options] || [] %>
+        <% if opts.any? %>
+          <canvas id="ch_<%= cid %>"></canvas>
+          <script>
+          (function(){
+            var ctx = document.getElementById('ch_<%= cid %>');
+            if(!ctx) return;
+            new Chart(ctx, {
+              type: 'doughnut',
+              data: {
+                labels: <%= raw opts.map{|o| o[:label]}.to_json %>,
+                datasets: [{ data: <%= raw opts.map{|o| o[:count]}.to_json %>, backgroundColor: C.slice(0, <%= opts.size %>), borderWidth:2, borderColor:'#fff' }]
+              },
+              options: { responsive:true, maintainAspectRatio:true,
+                plugins: { legend:{position:'right',labels:{font:{size:11},padding:10}},
+                  datalabels:{ color:'#fff',font:{weight:'bold',size:10},
+                    formatter:(v,ctx2)=>{ var s=ctx2.chart.data.datasets[0].data.reduce((a,b)=>a+b,0); return s>0?Math.round(v/s*100)+'%':''; },
+                    display: ctx2=>{ var s=ctx2.chart.data.datasets[0].data.reduce((a,b)=>a+b,0); return s>0&&ctx2.dataset.data[ctx2.dataIndex]/s>0.04; }
+                  }
+                }
+              },
+              plugins:[ChartDataLabels]
+            });
+          })();
+          </script>
+        <% else %>
+          <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
+        <% end %>
+
+      <% elsif chart_type == "bar" %>
+        <% opts = stats[:options] || [] %>
+        <% total_r = stats[:total].to_i %>
+        <% if opts.any? %>
+          <% opts.sort_by{|o| -o[:count]}.each do |o| %>
           <div class="bar-item">
-            <div class="bar-label w160"><%= t[:label] %></div>
-            <div class="bar-track"><div class="bar-fill" style="width:<%= [(t[:count].to_f/max_tc*100).round,4].max %>%;background:<%= palette[i%palette.size] %>"><%= t[:count] %></div></div>
-            <div class="bar-count"><%= t[:count] %></div>
+            <span class="bar-label <%= opts.size > 5 ? 'w200' : 'w160' %>" title="<%= o[:label] %>"><%= o[:label].to_s.truncate(32) %></span>
+            <div class="bar-track"><div class="bar-fill" style="width:<%= o[:pct].clamp(0,100) %>%;background:<%= palette[opts.index(o) % palette.size] %>"><%= o[:pct] > 10 ? "#{o[:pct]}%" : '' %></div></div>
+            <span class="bar-count"><%= o[:count] %></span>
           </div>
-        <% end %>
-      </div>
-    </div>
-    <% end %>
-  </div>
-</div>
-<% end %>
-
-<%# ─────────── S2: Tiết kiệm TG ─────────── %>
-<% has_savings = @task_savings_dist.any? || @daily_savings_dist.any? || (@dept_savings.any? && @dept_savings.any?{|d|d[:savings_task]||d[:savings_daily]}) %>
-<% if has_savings %>
-<div class="report-section" data-id="s-savings">
-  <div class="section-header">
-    <div class="section-controls">
-      <span class="btn-sec-drag">⠿</span>
-      <button class="btn-sec-hide" onclick="hideSection('s-savings','Tiết kiệm TG')">Ẩn section</button>
-    </div>
-    <div class="section-title">Mức độ tiết kiệm thời gian</div>
-  </div>
-  <div class="grid-2" id="grid-s-savings">
-    <% if @task_savings_dist.any? %>
-    <div class="cw" data-cid="card-task-sv">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn chart-btn" onclick="openChartModal('card-task-sv','Tiết kiệm/task','taskSavingsChart')"><span class="icon">📊</span>Sửa dữ liệu</button>
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-task-sv','Tiết kiệm/task')">🗑 Xoá</button>
-      </div>
-      <div class="card"><h3 data-editable contenteditable="false">Phân bổ % tiết kiệm mỗi task</h3><canvas id="taskSavingsChart"></canvas></div>
-    </div>
-    <% end %>
-    <% if @daily_savings_dist.any? %>
-    <div class="cw" data-cid="card-daily-sv">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn chart-btn" onclick="openChartModal('card-daily-sv','Tiết kiệm/ngày','dailySavingsChart')"><span class="icon">📊</span>Sửa dữ liệu</button>
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-daily-sv','Tiết kiệm/ngày')">🗑 Xoá</button>
-      </div>
-      <div class="card"><h3 data-editable contenteditable="false">Phân bổ % tiết kiệm mỗi ngày</h3><canvas id="dailySavingsChart"></canvas></div>
-    </div>
-    <% end %>
-    <% if @dept_savings.any? && @dept_savings.any?{|d|d[:savings_task]||d[:savings_daily]} %>
-    <div class="cw" data-cid="card-dept-sv">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn chart-btn" onclick="openChartModal('card-dept-sv','Tiết kiệm theo bộ phận','deptSavingsChart')"><span class="icon">📊</span>Sửa dữ liệu</button>
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-dept-sv','Tiết kiệm theo bộ phận')">🗑 Xoá</button>
-      </div>
-      <div class="card"><h3 data-editable contenteditable="false">Tiết kiệm thời gian theo bộ phận</h3><canvas id="deptSavingsChart" style="max-height:200px"></canvas></div>
-    </div>
-    <% end %>
-  </div>
-</div>
-<% end %>
-
-<%# ─────────── S3: Cách dùng AI ─────────── %>
-<% if @stage_counts.any? || @task_type_counts.any? %>
-<div class="report-section" data-id="s-usage">
-  <div class="section-header">
-    <div class="section-controls">
-      <span class="btn-sec-drag">⠿</span>
-      <button class="btn-sec-hide" onclick="hideSection('s-usage','Cách dùng AI')">Ẩn section</button>
-    </div>
-    <div class="section-title">Cách sử dụng AI</div>
-  </div>
-  <div class="grid-2" id="grid-s-usage">
-    <% if @stage_counts.any? %>
-    <div class="cw" data-cid="card-stage">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn chart-btn" onclick="openChartModal('card-stage','Giai đoạn hữu ích','stageChart')"><span class="icon">📊</span>Sửa dữ liệu</button>
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-stage','Giai đoạn')">🗑 Xoá</button>
-      </div>
-      <div class="card"><h3 data-editable contenteditable="false">Giai đoạn AI hữu ích nhất</h3><canvas id="stageChart"></canvas></div>
-    </div>
-    <% end %>
-    <% if @task_type_counts.any? %>
-    <div class="cw" data-cid="card-task-type">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-task-type','Loại công việc')">🗑 Xoá</button>
-      </div>
-      <div class="card">
-        <h3 data-editable contenteditable="false">Loại công việc dùng AI</h3>
-        <% max_tt = @task_type_counts.first[:count].to_f %>
-        <% @task_type_counts.each_with_index do |t, i| %>
-          <div class="bar-item">
-            <div class="bar-label w200"><%= t[:label].to_s.truncate(38) %></div>
-            <div class="bar-track"><div class="bar-fill" style="width:<%= [(t[:count].to_f/max_tt*100).round,4].max %>%;background:<%= palette[i%palette.size] %>"><%= t[:count] %></div></div>
-            <div class="bar-count"><%= t[:count] %></div>
-          </div>
-        <% end %>
-      </div>
-    </div>
-    <% end %>
-  </div>
-</div>
-<% end %>
-
-<%# ─────────── S4: Đánh giá ─────────── %>
-<% all_rating_data = (@rating_stats + [@nps_stats&.merge(title:"Sẵn sàng giới thiệu (NPS)")]).compact %>
-<% if all_rating_data.any? %>
-<div class="report-section" data-id="s-ratings">
-  <div class="section-header">
-    <div class="section-controls">
-      <span class="btn-sec-drag">⠿</span>
-      <button class="btn-sec-hide" onclick="hideSection('s-ratings','Đánh giá')">Ẩn section</button>
-    </div>
-    <div class="section-title">Đánh giá chất lượng & trải nghiệm</div>
-  </div>
-  <div class="grid-3" id="grid-s-ratings">
-    <div class="cw" data-cid="card-ratings-bar">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-ratings-bar','Điểm TB')">🗑 Xoá</button>
-      </div>
-      <div class="card">
-        <h3 data-editable contenteditable="false">Điểm trung bình các chỉ số</h3>
-        <% r_gradients = ["linear-gradient(90deg,#4361ee,#7c3aed)","linear-gradient(90deg,#06b6d4,#4361ee)","linear-gradient(90deg,#10b981,#06b6d4)","linear-gradient(90deg,#f59e0b,#10b981)","linear-gradient(90deg,#8b5cf6,#ec4899)"] %>
-        <% all_rating_data.each_with_index do |rs, ri| %>
-          <% max_scale = (rs[:max]||10).to_f; pct = [(rs[:mean].to_f/max_scale*100).round,3].max %>
-          <div class="rating-row">
-            <div class="rating-label" data-editable contenteditable="false"><%= rs[:title].to_s.truncate(45) %></div>
-            <div class="rating-bar"><div class="rating-fill" style="width:<%= pct %>%;background:<%= r_gradients[ri%r_gradients.size] %>"><%= rs[:mean] %></div></div>
-            <div class="rating-score"><%= rs[:mean] %></div>
-          </div>
-        <% end %>
-      </div>
-    </div>
-    <% if (first_r = @rating_stats.first) %>
-    <div class="cw" data-cid="card-rating-dist">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn chart-btn" onclick="openChartModal('card-rating-dist','Phân phối điểm','ratingDistChart')"><span class="icon">📊</span>Sửa dữ liệu</button>
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-rating-dist','Phân phối điểm')">🗑 Xoá</button>
-      </div>
-      <div class="card"><h3 data-editable contenteditable="false">Phân phối: <%= first_r[:title].to_s.truncate(40) %></h3><canvas id="ratingDistChart"></canvas></div>
-    </div>
-    <% end %>
-    <% if @nps_stats %>
-    <div class="cw" data-cid="card-nps">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn chart-btn" onclick="openChartModal('card-nps','NPS','npsChart')"><span class="icon">📊</span>Sửa dữ liệu</button>
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-nps','NPS chart')">🗑 Xoá</button>
-      </div>
-      <div class="card"><h3 data-editable contenteditable="false">Phân phối NPS (0–10)</h3><canvas id="npsChart"></canvas></div>
-    </div>
-    <% end %>
-  </div>
-</div>
-<% end %>
-
-<%# ─────────── S5: Khó khăn ─────────── %>
-<% if @challenge_counts.any? || @notable_quotes.any? %>
-<div class="report-section" data-id="s-challenges">
-  <div class="section-header">
-    <div class="section-controls">
-      <span class="btn-sec-drag">⠿</span>
-      <button class="btn-sec-hide" onclick="hideSection('s-challenges','Khó khăn')">Ẩn section</button>
-    </div>
-    <div class="section-title">Khó khăn & ý kiến người dùng</div>
-  </div>
-  <div class="grid-2" id="grid-s-challenges">
-    <% if @challenge_counts.any? %>
-    <div class="cw" data-cid="card-challenges">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn chart-btn" onclick="openChartModal('card-challenges','Khó khăn','challengeChart')"><span class="icon">📊</span>Sửa dữ liệu</button>
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-challenges','Khó khăn chart')">🗑 Xoá</button>
-      </div>
-      <div class="card"><h3 data-editable contenteditable="false">Tỷ lệ các khó khăn gặp phải</h3><canvas id="challengeChart"></canvas></div>
-    </div>
-    <% end %>
-    <% if @notable_quotes.any? %>
-    <div class="cw" data-cid="card-quotes">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-quotes','Nhận xét')">🗑 Xoá</button>
-      </div>
-      <div class="card">
-        <h3 data-editable contenteditable="false">Nhận xét đáng chú ý</h3>
-        <% @notable_quotes.first(4).each do |q| %>
-          <div class="quote-card">
-            <div class="author"><%= q[:name].present? && q[:name]!="Ẩn danh" ? q[:name] : "Người dùng" %><% if q[:dept].present? %> · <%= q[:dept] %><% end %></div>
-            "<%= q[:text] %>"
-          </div>
-        <% end %>
-      </div>
-    </div>
-    <% end %>
-  </div>
-</div>
-<% end %>
-
-<%# ─────────── S6: Đề xuất ─────────── %>
-<% has_s6 = @request_themes.any? || (@ai_analysis.present? && (@ai_analysis.output["highlights"].present? || @ai_analysis.output["recommendations"].present?)) %>
-<% if has_s6 %>
-<div class="report-section" data-id="s-recs">
-  <div class="section-header">
-    <div class="section-controls">
-      <span class="btn-sec-drag">⠿</span>
-      <button class="btn-sec-hide" onclick="hideSection('s-recs','Đề xuất')">Ẩn section</button>
-    </div>
-    <div class="section-title">Đề xuất & khuyến nghị</div>
-  </div>
-  <div class="grid-2" id="grid-s-recs">
-    <% if @request_themes.any? %>
-    <div class="cw" data-cid="card-themes">
-      <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-
-        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-themes','Đề xuất')">🗑 Xoá</button>
-      </div>
-      <div class="card">
-        <h3 data-editable contenteditable="false">Nhóm đề xuất từ nhân viên</h3>
-        <% max_rt = @request_themes.first[:count].to_f; rt_colors=%w[#4361ee #7c3aed #06b6d4 #10b981 #f59e0b] %>
-        <% @request_themes.each_with_index do |t,i| %>
-          <div class="bar-item">
-            <div class="bar-label w220"><%= t[:label] %></div>
-            <div class="bar-track"><div class="bar-fill" style="width:<%= [(t[:count].to_f/max_rt*100).round,4].max %>%;background:<%= rt_colors[i%rt_colors.size] %>"><%= t[:count] %></div></div>
-            <div class="bar-count"><%= t[:count] %></div>
-          </div>
-        <% end %>
-      </div>
-    </div>
-    <% end %>
-    <% if @ai_analysis.present? %>
-      <% ai=@ai_analysis.output; ai_h=ai["highlights"]||[]; ai_r=ai["recommendations"]||[] %>
-      <% if ai_h.any? || ai_r.any? %>
-      <div class="cw" data-cid="card-ai-insights">
-        <div class="card-toolbar">
-          <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
-  
-          <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤡</span>Thay đổi kích thước</button>
-        <button class="ct-mode-btn ct-drag" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
-        <div class="ct-divider"></div>
-        <button class="ct-mode-btn danger" onclick="askDelete('card-ai-insights','AI Insights')">🗑 Xoá</button>
-        </div>
-        <div class="card">
-          <h3 data-editable contenteditable="false">Insights & Khuyến nghị (AI)</h3>
-          <% ai_h.first(3).each do |h| %><div class="insight-box"><strong>✦</strong> <%= h %></div><% end %>
-          <% ai_r.first(3).each do |rec| %>
-            <% if rec.is_a?(Hash) %>
-              <div class="insight-box"><strong>→ <%= rec["action"] %></strong><br><span style="color:#666;font-size:11px"><%= rec["rationale"] %></span></div>
-            <% else %>
-              <div class="insight-box"><strong>→</strong> <%= rec %></div>
-            <% end %>
           <% end %>
+        <% else %>
+          <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
+        <% end %>
+
+      <% elsif chart_type == "rating_bar" %>
+        <% vals = stats[:values] || [] %>
+        <% dist = stats[:distribution] || [] %>
+        <% max_s = stats[:max_scale] || 5 %>
+        <% if vals.any? %>
+          <% dist.each do |d| %>
+          <div class="rating-row">
+            <div class="rating-label"><%= d[:label] %></div>
+            <div class="rating-bar"><div class="rating-fill" style="width:<%= d[:pct].clamp(0,100) %>%;background:<%= palette[(d[:label].to_i - 1) % palette.size] %>"><%= d[:count] > 0 ? d[:count] : '' %></div></div>
+            <div class="rating-score"><%= d[:pct] %>%</div>
+          </div>
+          <% end %>
+          <div style="margin-top:10px;font-size:12px;color:#6b7280">Trung bình: <strong style="color:#4361ee"><%= stats[:avg] %></strong> / <%= max_s %></div>
+        <% else %>
+          <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
+        <% end %>
+
+      <% elsif chart_type == "quotes" %>
+        <% quotes = stats[:quotes] || [] %>
+        <% if quotes.any? %>
+          <% quotes.first(4).each do |q_text| %>
+          <div class="quote-card">
+            <div style="font-size:12px;line-height:1.7;color:#374151"><%= q_text %></div>
+          </div>
+          <% end %>
+          <% if quotes.size > 4 %>
+          <p style="font-size:11px;color:#94a3b8;text-align:right;margin-top:6px">+<%= quotes.size - 4 %> câu trả lời khác</p>
+          <% end %>
+        <% else %>
+          <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có phản hồi</p>
+        <% end %>
+
+      <% elsif chart_type == "number" %>
+        <div style="text-align:center;padding:16px 0">
+          <div style="font-size:52px;font-weight:800;color:#4361ee;line-height:1"><%= stats[:avg] || stats[:total] %></div>
+          <div style="font-size:12px;color:#94a3b8;margin-top:6px"><%= stats[:count] %> phản hồi</div>
+        </div>
+
+      <% else %>
+        <%# Fallback: auto-detect %>
+        <% if stats[:options]&.any? %>
+          <% opts = stats[:options] %>
+          <% opts.sort_by{|o| -o[:count]}.each do |o| %>
+          <div class="bar-item">
+            <span class="bar-label w160" title="<%= o[:label] %>"><%= o[:label].to_s.truncate(28) %></span>
+            <div class="bar-track"><div class="bar-fill" style="width:<%= o[:pct].clamp(0,100) %>%;background:<%= palette[opts.index(o) % palette.size] %>"><%= o[:pct] > 10 ? "#{o[:pct]}%" : '' %></div></div>
+            <span class="bar-count"><%= o[:count] %></span>
+          </div>
+          <% end %>
+        <% elsif stats[:quotes]&.any? %>
+          <% stats[:quotes].first(3).each do |q_text| %>
+          <div class="quote-card"><div style="font-size:12px;line-height:1.7;color:#374151"><%= q_text %></div></div>
+          <% end %>
+        <% else %>
+          <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
+        <% end %>
+      <% end %>
+
+    </div><%# /card %>
+  </div><%# /cw %>
+  <% end %><%# /cards.each %>
+  </div><%# /grid %>
+</div><%# /report-section %>
+<% end %><%# /sections.each %>
+<% else %>
+  <%# Fallback: structure missing, show all questions in 1 section %>
+  <div class="report-section" data-id="s-all">
+    <div class="section-header">
+      <div class="section-controls"><span class="btn-sec-drag">⠿</span></div>
+      <div class="section-title">Tất cả câu hỏi</div>
+    </div>
+    <div class="grid-2" id="grid-s-all">
+      <% @question_stats.each_value do |stats| %>
+      <div class="cw" data-cid="card-<%= stats[:id] %>">
+        <div class="card">
+          <h3><%= stats[:title].to_s.truncate(80) %></h3>
+          <p style="color:#94a3b8;font-size:12px"><%= stats[:question_type] %> · <%= stats[:count] %> phản hồi</p>
         </div>
       </div>
       <% end %>
-    <% end %>
+    </div>
   </div>
-</div>
 <% end %>
 
 </div><%# /sortableContainer %>
+</div><%# /container %>
 </div><%# /container %>
 <footer>Báo cáo tự động · VOX · <%= @total_responses %> phản hồi · <%= @survey.title %></footer>
 
@@ -793,42 +615,6 @@ function mkChart(id,cfg){
   return ch;
 }
 
-<%# ── Charts ── %>
-<% if @dept_data.any? %>
-mkChart('deptChart',{type:'doughnut',data:{labels:<%= raw @dept_data.map{|d|d[:label]}.to_json %>,datasets:[{data:<%= raw @dept_data.map{|d|d[:count]}.to_json %>,backgroundColor:C,borderWidth:2,borderColor:'#fff'}]},options:{cutout:'50%',plugins:{legend:{position:'right',labels:{boxWidth:14,font:{size:12}}},datalabels:pieDL}}});
-<% end %>
-
-<% if @task_savings_dist.any? %>
-<% bmt=@task_savings_dist.each_with_object({}){|b,h|h[b[:label]]=b[:count]}; td=all_buckets.map{|l|bmt[l]||0} %>
-mkChart('taskSavingsChart',{type:'bar',data:{labels:<%= raw all_buckets.to_json %>,datasets:[{data:<%= raw td.to_json %>,backgroundColor:C[0]+'99',borderColor:C[0],borderWidth:2,borderRadius:6}]},options:{layout:barLayout,plugins:{legend:{display:false},datalabels:barDL},scales:{y:{beginAtZero:true,ticks:{stepSize:1,precision:0}}}}});
-<% end %>
-
-<% if @daily_savings_dist.any? %>
-<% bmd=@daily_savings_dist.each_with_object({}){|b,h|h[b[:label]]=b[:count]}; dd=all_buckets.map{|l|bmd[l]||0} %>
-mkChart('dailySavingsChart',{type:'bar',data:{labels:<%= raw all_buckets.to_json %>,datasets:[{data:<%= raw dd.to_json %>,backgroundColor:C[2]+'99',borderColor:C[2],borderWidth:2,borderRadius:6}]},options:{layout:barLayout,plugins:{legend:{display:false},datalabels:barDL},scales:{y:{beginAtZero:true,ticks:{stepSize:1,precision:0}}}}});
-<% end %>
-
-<% if @dept_savings.any? && @dept_savings.any?{|d|d[:savings_task]||d[:savings_daily]} %>
-mkChart('deptSavingsChart',{type:'bar',data:{labels:<%= raw @dept_savings.map{|d|"#{d[:label]} (#{d[:count]})"}.to_json %>,datasets:[{label:'Tiết kiệm/task (%)',data:<%= raw @dept_savings.map{|d|d[:savings_task]||0}.to_json %>,backgroundColor:C[0]+'99',borderColor:C[0],borderWidth:2,borderRadius:4},{label:'Tiết kiệm/ngày (%)',data:<%= raw @dept_savings.map{|d|d[:savings_daily]||0}.to_json %>,backgroundColor:C[3]+'99',borderColor:C[3],borderWidth:2,borderRadius:4}]},options:{layout:barLayout,plugins:{legend:{position:'top',labels:{font:{size:12}}},datalabels:{...barDL,formatter:v=>v>0?v+'%':''}},scales:{y:{beginAtZero:true,max:100}}}});
-<% end %>
-
-<% if @stage_counts.any? %>
-mkChart('stageChart',{type:'pie',data:{labels:<%= raw @stage_counts.map{|s|s[:label]}.to_json %>,datasets:[{data:<%= raw @stage_counts.map{|s|s[:count]}.to_json %>,backgroundColor:C,borderWidth:2,borderColor:'#fff'}]},options:{plugins:{legend:{position:'bottom',labels:{boxWidth:14,font:{size:12}}},datalabels:pieDL}}});
-<% end %>
-
-<% if (first_r=@rating_stats.first) && first_r[:values].any? %>
-<% mv=(first_r[:values].max||10).ceil; dl=(1..mv).to_a; dd2=dl.map{|v|first_r[:values].count{|x|x.round==v}} %>
-mkChart('ratingDistChart',{type:'bar',data:{labels:<%= raw dl.to_json %>,datasets:[{data:<%= raw dd2.to_json %>,backgroundColor:C,borderRadius:6}]},options:{layout:barLayout,plugins:{legend:{display:false},datalabels:barDL},scales:{y:{beginAtZero:true,ticks:{stepSize:1,precision:0}}}}});
-<% end %>
-
-<% if @nps_stats && @nps_stats[:values].any? %>
-<% nv=@nps_stats[:values]; nl=(0..10).to_a; nd=nl.map{|v|nv.count{|x|x.round==v}}; nc=nl.map{|v|v>=9?'#10b981':v>=7?'#06b6d4':'#ef4444'} %>
-mkChart('npsChart',{type:'bar',data:{labels:<%= raw nl.to_json %>,datasets:[{data:<%= raw nd.to_json %>,backgroundColor:<%= raw nc.to_json %>,borderRadius:5}]},options:{layout:barLayout,plugins:{legend:{display:false},datalabels:barDL},scales:{y:{beginAtZero:true,ticks:{stepSize:1,precision:0}}}}});
-<% end %>
-
-<% if @challenge_counts.any? %>
-mkChart('challengeChart',{type:'bar',data:{labels:<%= raw @challenge_counts.map{|c|c[:label].to_s.truncate(45)}.to_json %>,datasets:[{data:<%= raw @challenge_counts.map{|c|c[:count]}.to_json %>,backgroundColor:C,borderRadius:5}]},options:{indexAxis:'y',layout:{padding:{right:36}},plugins:{legend:{display:false},datalabels:hbarDL},scales:{x:{beginAtZero:true,ticks:{stepSize:1,precision:0}}}}});
-<% end %>
 
 // ══════════════════════════════════════════════════════════
 // Layout editor

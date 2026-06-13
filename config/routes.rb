@@ -99,6 +99,8 @@ Rails.application.routes.draw do
         post  :generate_report_token
         delete :revoke_report_token
         post  :save_report_layout
+        post  :build_report_structure
+        delete :reset_report_structure
         get   :export
         get    :export_report
         get    :view_ai_report
