@@ -175,22 +175,33 @@ class Admin::SurveysController < Admin::BaseController
     suggest_q      = find_q.call(["đề xuất"]) || find_q.call(["chia sẻ"])
     support_q      = find_q.call(["hỗ trợ"]) || find_q.call(["mong muốn"])
 
+    # ── Build option_id → label lookup for all questions ─────────
+    opt_label = @questions.flat_map(&:question_options)
+                          .each_with_object({}) { |o, h| h[o.id] = o.label }
+
+    # Helper: does an answer select a given option?
+    ans_has_opt = ->(a, opt_id) { Array(a.option_ids).map(&:to_i).include?(opt_id.to_i) }
+
     # ── Per-response lookup: response_id → {name, dept, savings_task, savings_daily} ──
     resp_meta = {}
     responses.each do |r|
       ans = all_answers.select { |a| a.response_id == r.id }
       meta = { email: r.respondent_email.to_s }
-      meta[:name]           = ans.find { |a| a.question_id == name_q.id }&.text_value.to_s.strip if name_q
-      meta[:dept]           = ans.find { |a| a.question_id == dept_q.id }&.option&.label.to_s if dept_q
-      meta[:savings_task]   = parse_pct.call(ans.find { |a| a.question_id == task_savings_q.id }&.text_value.to_s)  if task_savings_q
-      meta[:savings_daily]  = parse_pct.call(ans.find { |a| a.question_id == daily_savings_q.id }&.text_value.to_s) if daily_savings_q
+      meta[:name] = ans.find { |a| a.question_id == name_q.id }&.text_value.to_s.strip if name_q
+      if dept_q
+        dept_ans = ans.find { |a| a.question_id == dept_q.id }
+        dept_opt_id = Array(dept_ans&.option_ids).map(&:to_i).first
+        meta[:dept] = opt_label[dept_opt_id].to_s if dept_opt_id
+      end
+      meta[:savings_task]  = parse_pct.call(ans.find { |a| a.question_id == task_savings_q.id }&.text_value.to_s)  if task_savings_q
+      meta[:savings_daily] = parse_pct.call(ans.find { |a| a.question_id == daily_savings_q.id }&.text_value.to_s) if daily_savings_q
       resp_meta[r.id] = meta
     end
 
     # ── Department breakdown ──────────────────────────────────────
     @dept_data = if dept_q
       dept_q.question_options.order(:position).filter_map do |opt|
-        count = all_answers.count { |a| a.question_id == dept_q.id && a.option_id == opt.id }
+        count = all_answers.count { |a| a.question_id == dept_q.id && ans_has_opt.call(a, opt.id) }
         count > 0 ? { label: opt.label, count: count } : nil
       end
     else
@@ -216,7 +227,7 @@ class Admin::SurveysController < Admin::BaseController
     # ── Task types (multiple_choice counts) ──────────────────────
     @task_type_counts = if task_type_q
       task_type_q.question_options.order(:position).filter_map do |opt|
-        count = all_answers.count { |a| a.question_id == task_type_q.id && a.option_id == opt.id }
+        count = all_answers.count { |a| a.question_id == task_type_q.id && ans_has_opt.call(a, opt.id) }
         count > 0 ? { label: opt.label, count: count } : nil
       end.sort_by { |c| -c[:count] }
     else
@@ -226,7 +237,7 @@ class Admin::SurveysController < Admin::BaseController
     # ── Stage breakdown ───────────────────────────────────────────
     @stage_counts = if stage_q
       stage_q.question_options.order(:position).filter_map do |opt|
-        count = all_answers.count { |a| a.question_id == stage_q.id && a.option_id == opt.id }
+        count = all_answers.count { |a| a.question_id == stage_q.id && ans_has_opt.call(a, opt.id) }
         count > 0 ? { label: opt.label.gsub(/Giai đoạn /i, ""), count: count } : nil
       end
     else
@@ -282,7 +293,7 @@ class Admin::SurveysController < Admin::BaseController
     # ── Challenges distribution ───────────────────────────────────
     @challenge_counts = if challenge_q
       challenge_q.question_options.order(:position).filter_map do |opt|
-        count = all_answers.count { |a| a.question_id == challenge_q.id && a.option_id == opt.id }
+        count = all_answers.count { |a| a.question_id == challenge_q.id && ans_has_opt.call(a, opt.id) }
         count > 0 ? { label: opt.label, count: count } : nil
       end.sort_by { |c| -c[:count] }
     else
@@ -323,7 +334,7 @@ class Admin::SurveysController < Admin::BaseController
     adoption_q = @questions.find { |q| q.title.to_s.downcase.include?("có đang sử dụng") || q.title.to_s.downcase.include?("tần suất") }
     daily_users = if adoption_q
       opts = adoption_q.question_options.select { |o| o.label.to_s.downcase.include?("hàng ngày") || o.label.to_s.downcase.include?("thường xuyên") }
-      opts.sum { |o| all_answers.count { |a| a.question_id == adoption_q.id && a.option_id == o.id } }
+      opts.sum { |o| all_answers.count { |a| a.question_id == adoption_q.id && ans_has_opt.call(a, o.id) } }
     else
       @total_responses
     end
