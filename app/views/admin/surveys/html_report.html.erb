@@ -20,6 +20,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .header p{opacity:.6;font-size:13px}
 /* Editable header fields */
 .hdr-editable{position:relative;display:inline-block;max-width:100%;cursor:pointer;border-radius:6px;transition:background .15s}
+.hdr-editable.editing{display:block}
 .hdr-editable:hover{background:rgba(255,255,255,.08)}
 .hdr-editable:hover .hdr-edit-icon{opacity:1}
 .hdr-edit-icon{position:absolute;top:50%;right:-24px;transform:translateY(-50%);opacity:0;transition:opacity .15s;cursor:pointer;color:rgba(255,255,255,.7);padding:2px}
@@ -1626,7 +1627,10 @@ function startHdrEdit(which) {
   const wrap  = document.getElementById(which === 'title' ? 'hdrTitleWrap' : 'hdrSubWrap');
   const input = document.getElementById(which === 'title' ? 'hdrTitleInput' : 'hdrSubInput');
   wrap.classList.add('editing');
-  input.style.width = Math.max(wrap.offsetWidth, 200) + 'px';
+  // Use full header width minus padding, so input spans the whole header
+  const header = document.querySelector('.header');
+  const availW = header ? (header.clientWidth - 96) : 800; // 96 = 2×48px padding
+  input.style.width = Math.max(availW, 300) + 'px';
   input.focus();
   input.select();
 }
