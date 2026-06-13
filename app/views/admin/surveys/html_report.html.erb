@@ -79,19 +79,20 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 /* Resize mode: just the handles, no extra border */
 .cw-resize-mode .card{box-shadow:0 2px 8px rgba(0,0,0,.07)}
 /* ── Mode bar: floats next to gear icon, no layout shift ── */
-.cw-mode-bar{display:none;align-items:center;gap:8px;position:absolute;top:4px;right:44px;z-index:41;border-radius:20px;padding:5px 6px 5px 12px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.12)}
-.cw-mode-bar .mode-label{display:flex;align-items:center;gap:5px}
-.cw-mode-bar .btn-done{background:white;border:none;border-radius:14px;padding:3px 11px;font-size:11px;font-weight:700;cursor:pointer;line-height:1.5;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.cw-mode-bar{display:none;align-items:center;gap:6px;position:absolute;top:4px;right:44px;z-index:41;white-space:nowrap}
+.cw-mode-bar .mode-label{display:flex;align-items:center;gap:5px;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.cw-mode-bar .btn-done{background:white;border:1px solid #e2e8f0;border-radius:20px;padding:5px 13px;font-size:12px;font-weight:700;cursor:pointer;line-height:1.4;box-shadow:0 2px 8px rgba(0,0,0,.1);color:#374151}
+.cw-mode-bar .btn-done:hover{background:#f9fafb;border-color:#6366f1;color:#4361ee}
 /* text mode */
-.cw-text-mode  .cw-mode-bar{display:flex;background:#4361ee;color:white}
-.cw-text-mode  .btn-done{color:#4361ee}
+.cw-text-mode  .cw-mode-bar{display:flex}
+.cw-text-mode  .mode-label{background:#4361ee;color:white}
 /* resize mode */
-.cw-resize-mode .cw-mode-bar{display:flex;background:#059669;color:white}
-.cw-resize-mode .btn-done{color:#059669}
+.cw-resize-mode .cw-mode-bar{display:flex}
+.cw-resize-mode .mode-label{background:#059669;color:white}
 /* move mode */
-.cw-move-mode  .cw-mode-bar{display:flex;background:#6366f1;color:white;cursor:grab}
-.cw-move-mode  .cw-mode-bar:active{cursor:grabbing}
-.cw-move-mode  .btn-done{color:#6366f1}
+.cw-move-mode  .cw-mode-bar{display:flex}
+.cw-move-mode  .mode-label{background:#6366f1;color:white;cursor:grab}
+.cw-move-mode  .mode-label:active{cursor:grabbing}
 /* Resize mode: show handles */
 .cw-resize-mode .rh-right{display:flex}
 .cw-resize-mode .rh-bottom{display:flex}
@@ -1137,112 +1138,119 @@ new Sortable(document.getElementById('sortableContainer'), {
   onEnd: saveLayout
 });
 
-// ── Custom card drag (CSS-Grid aware) ──
-let cdrag = null; // current drag state
+// ── Custom card drag (CSS-Grid aware, free placement) ──
+let cdrag = null;
+
+function getCardSpan(cw) {
+  if (cw.style.gridColumn) {
+    const m = cw.style.gridColumn.match(/span\s+(\d+)/);
+    if (m) return parseInt(m[1]);
+  }
+  const cs = window.getComputedStyle(cw);
+  const s = parseInt(cs.gridColumnStart), en = parseInt(cs.gridColumnEnd);
+  if (!isNaN(s) && !isNaN(en) && en > s) return en - s;
+  return cw.closest('.grid-3') ? 4 : 6;
+}
 
 function startCardDrag(e, cw) {
   if (e.target.closest('.btn-done')) return;
-  e.preventDefault();
-  e.stopPropagation();
+  e.preventDefault(); e.stopPropagation();
 
   const rect = cw.getBoundingClientRect();
+  const spanNum = getCardSpan(cw);
 
-  // Ghost: clone card, fixed position, follows mouse
+  // Ghost
   const ghost = document.createElement('div');
   ghost.className = 'cd-ghost';
   ghost.style.cssText = `width:${rect.width}px;height:${rect.height}px;left:${rect.left}px;top:${rect.top}px`;
   ghost.innerHTML = cw.querySelector('.card')?.outerHTML || '';
   document.body.appendChild(ghost);
 
-  // Placeholder in place of card
+  // Placeholder
   const ph = document.createElement('div');
   ph.className = 'cd-placeholder';
-  ph.style.gridColumn = cw.style.gridColumn || '';
+  ph.style.gridColumn = cw.style.gridColumn || `span ${spanNum}`;
   cw.parentElement.insertBefore(ph, cw);
   cw.classList.add('cd-source');
 
-  // Show drop zones across all grids
-  injectDropZones(cw);
+  // Single dynamic preview zone (created on first mousemove)
+  const preview = document.createElement('div');
+  preview.className = 'cd-zone cd-zone-over';
+  preview.style.gridColumn = `span ${spanNum}`;
 
   cdrag = {
-    cw, ghost, ph,
+    cw, ghost, ph, preview, spanNum,
     offX: e.clientX - rect.left,
     offY: e.clientY - rect.top,
-    activeZone: null
+    lastGrid: null, lastBefore: null, lastCol: null
   };
-}
-
-function getCardSpan(cw) {
-  // Prefer inline style
-  if (cw.style.gridColumn) return cw.style.gridColumn;
-  // Compute from actual rendered columns
-  const cs = window.getComputedStyle(cw);
-  const start = parseInt(cs.gridColumnStart);
-  const end   = parseInt(cs.gridColumnEnd);
-  if (!isNaN(start) && !isNaN(end) && end > start) return 'span ' + (end - start);
-  // Fallback: count from parent class
-  const parent = cw.parentElement;
-  if (parent?.classList.contains('grid-3')) return 'span 4';
-  return 'span 6';
-}
-
-function injectDropZones(dragCw) {
-  const span = getCardSpan(dragCw);
-  document.querySelectorAll('[id^="grid-"]').forEach(grid => {
-    const cards = [...grid.querySelectorAll(':scope > .cw:not(.cd-source)')];
-    // Insert zone before each card AND at the end of each grid
-    [...cards.map(c => ({ before: c })), { before: null }].forEach(({ before }) => {
-      const zone = document.createElement('div');
-      zone.className = 'cd-zone';
-      zone.style.gridColumn = span;
-      zone.dataset.grid = grid.id;
-      if (before) grid.insertBefore(zone, before);
-      else         grid.appendChild(zone);
-    });
-  });
 }
 
 document.addEventListener('mousemove', e => {
   if (!cdrag) return;
+
   // Move ghost
   cdrag.ghost.style.left = (e.clientX - cdrag.offX) + 'px';
-  cdrag.ghost.style.top  = (e.clientY - cdrag.offY) + 'px';
+  cdrag.ghost.style.top  = (e.clientY - cdrag.offY)  + 'px';
 
-  // Find nearest drop zone (by cursor distance to zone center)
-  let nearest = null, nearDist = Infinity;
-  document.querySelectorAll('.cd-zone').forEach(zone => {
-    const r = zone.getBoundingClientRect();
-    if (r.width === 0 && r.height === 0) return; // skip invisible
-    const cx = r.left + r.width / 2;
-    const cy = r.top  + r.height / 2;
-    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
-    if (dist < nearDist) { nearDist = dist; nearest = zone; }
+  // Find which grid the cursor is over (with 50px vertical tolerance)
+  let targetGrid = null;
+  document.querySelectorAll('[id^="grid-"]').forEach(grid => {
+    const r = grid.getBoundingClientRect();
+    if (e.clientX >= r.left && e.clientX <= r.right &&
+        e.clientY >= r.top - 50 && e.clientY <= r.bottom + 50) {
+      targetGrid = grid;
+    }
   });
 
-  if (cdrag.activeZone !== nearest) {
-    cdrag.activeZone?.classList.remove('cd-zone-over');
-    nearest?.classList.add('cd-zone-over');
-    cdrag.activeZone = nearest;
+  if (!targetGrid) {
+    cdrag.preview.remove();
+    cdrag.lastGrid = null;
+    return;
+  }
+
+  // Snap column start (1-based) based on cursor X in grid
+  const gr = targetGrid.getBoundingClientRect();
+  const colW = gr.width / 12;
+  let colStart = Math.round((e.clientX - gr.left) / colW) - Math.floor(cdrag.spanNum / 2) + 1;
+  colStart = Math.max(1, Math.min(13 - cdrag.spanNum, colStart));
+
+  // Insertion point: find the first card whose vertical midpoint is below cursor
+  const items = [...targetGrid.querySelectorAll(':scope > *:not(.cd-source):not(.cd-zone)')];
+  let insertBefore = null;
+  for (const item of items) {
+    const cr = item.getBoundingClientRect();
+    if (e.clientY < cr.top + cr.height * 0.55) { insertBefore = item; break; }
+  }
+
+  // Only re-insert preview if grid/position changed (avoid flicker)
+  if (targetGrid !== cdrag.lastGrid || insertBefore !== cdrag.lastBefore || colStart !== cdrag.lastCol) {
+    cdrag.preview.style.gridColumn = `${colStart} / span ${cdrag.spanNum}`;
+    if (insertBefore) targetGrid.insertBefore(cdrag.preview, insertBefore);
+    else              targetGrid.appendChild(cdrag.preview);
+    cdrag.lastGrid = targetGrid;
+    cdrag.lastBefore = insertBefore;
+    cdrag.lastCol = colStart;
   }
 }, { passive: true });
 
 document.addEventListener('mouseup', e => {
   if (!cdrag) return;
-  const { cw, ghost, ph, activeZone } = cdrag;
+  const { cw, ghost, ph, preview, lastGrid, lastCol, spanNum } = cdrag;
 
   ghost.remove();
   cw.classList.remove('cd-source');
 
-  if (activeZone) {
-    const targetGrid = document.getElementById(activeZone.dataset.grid);
-    targetGrid.insertBefore(cw, activeZone);
+  if (lastGrid && preview.parentElement) {
+    // Set explicit column start so card lands exactly where preview was
+    cw.style.gridColumn = `${lastCol} / span ${spanNum}`;
+    lastGrid.insertBefore(cw, preview);
   } else {
-    // No zone found: restore to placeholder position
     ph.parentElement.insertBefore(cw, ph);
   }
 
+  preview.remove();
   ph.remove();
-  document.querySelectorAll('.cd-zone').forEach(z => z.remove());
   cdrag = null;
   saveLayout();
 });
