@@ -123,8 +123,8 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .cw-active .card{box-shadow:0 0 0 2px #c7d2fe,0 2px 8px rgba(0,0,0,.07)}
 /* Resize mode: just the handles, no extra border */
 .cw-resize-mode .card{box-shadow:0 2px 8px rgba(0,0,0,.07)}
-/* ── Mode bar: floats next to gear icon, no layout shift ── */
-.cw-mode-bar{display:none;align-items:center;gap:6px;position:absolute;top:4px;right:44px;z-index:41;white-space:nowrap}
+/* ── Mode bar: inline in card header, same row as h3 ── */
+.cw-mode-bar{display:none;align-items:center;gap:6px;white-space:nowrap;margin-left:auto;flex-shrink:0}
 .cw-mode-bar .mode-label{display:flex;align-items:center;gap:5px;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .cw-mode-bar .btn-done{background:white;border:1px solid #e2e8f0;border-radius:20px;padding:5px 13px;font-size:12px;font-weight:700;cursor:pointer;line-height:1.4;box-shadow:0 2px 8px rgba(0,0,0,.1);color:#374151}
 .cw-mode-bar .btn-done:hover{background:#f9fafb;border-color:#6366f1;color:#4361ee}
@@ -164,7 +164,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 
 /* ── Card ── */
 .card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);height:100%}
-.card h3{font-size:13px;font-weight:700;margin-bottom:16px;color:#1a1a2e;border-bottom:2px solid #f0f2f5;padding-bottom:10px}
+.card h3{font-size:13px;font-weight:700;margin-bottom:16px;color:#1a1a2e;border-bottom:2px solid #f0f2f5;padding-bottom:10px;display:flex;align-items:center;gap:10px}
 canvas{max-height:260px}
 
 /* Editable text — only in text mode */
@@ -1155,19 +1155,22 @@ const tip = document.createElement('div');
 tip.className = 'resize-tip';
 document.body.appendChild(tip);
 
-// Inject move banner (before card) + resize handles (after card) into all .cw
+// Inject mode-bar inside h3 + resize handles into all .cw
 document.querySelectorAll('.cw').forEach(cw => {
-  // Mode bar goes FIRST in .cw (above the card, in normal flow)
-  cw.insertAdjacentHTML('afterbegin',
-    '<div class="cw-mode-bar ct-drag">' +
-      '<span class="mode-label">' +
-        '<span class="lbl-text" style="display:none">✏️ Đang sửa nội dung</span>' +
-        '<span class="lbl-resize" style="display:none">⤡ Đang thay đổi kích thước</span>' +
-        '<span class="lbl-move" style="display:none">⠿ Kéo để di chuyển</span>' +
-      '</span>' +
-      '<button class="btn-done" onclick="cancelMode(event,this)">✓ Xong</button>' +
-    '</div>'
-  );
+  // Mode bar injected INSIDE h3 so it shares the same line & padding as the title
+  const h3 = cw.querySelector('.card h3');
+  if (h3) {
+    h3.insertAdjacentHTML('beforeend',
+      '<div class="cw-mode-bar">' +
+        '<span class="mode-label">' +
+          '<span class="lbl-text" style="display:none">✏️ Đang sửa</span>' +
+          '<span class="lbl-resize" style="display:none">⤡ Thay đổi kích thước</span>' +
+          '<span class="lbl-move" style="display:none">⠿ Di chuyển</span>' +
+        '</span>' +
+        '<button class="btn-done" onclick="cancelMode(event,this)">✓ Xong</button>' +
+      '</div>'
+    );
+  }
   // Resize handles + snap guide go after card (absolute positioned)
   cw.insertAdjacentHTML('beforeend',
     '<div class="rh-right"  data-dir="e"><div class="rh-right-bar"></div></div>' +
