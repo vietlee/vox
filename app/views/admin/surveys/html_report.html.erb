@@ -716,16 +716,27 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 
       <%# ═══ QUOTES ═══ %>
       <% elsif chart_type == "quotes" %>
-        <% quotes = stats[:quotes] || [] %>
-        <% if quotes.any? %>
-          <% quotes.first(5).each_with_index do |q_text, qi| %>
+        <% rich_qs = stats[:rich_quotes] || [] %>
+        <% plain_qs = stats[:quotes] || [] %>
+        <% display_quotes = rich_qs.any? ? rich_qs : plain_qs.map{|t| {text: t}} %>
+        <% if display_quotes.any? %>
+          <% display_quotes.first(5).each_with_index do |q_obj, qi| %>
+          <% q_text = q_obj.is_a?(Hash) ? q_obj[:text] : q_obj %>
+          <% q_name = q_obj.is_a?(Hash) ? q_obj[:name] : nil %>
+          <% q_dept = q_obj.is_a?(Hash) ? q_obj[:dept] : nil %>
           <div class="quote-card">
+            <% if q_name.present? || q_dept.present? %>
+            <div class="author" style="font-weight:700;font-size:11px;color:#b45309;margin-bottom:4px">
+              <%= [q_name, q_dept].compact.join(" · ") %>
+            </div>
+            <% else %>
             <div class="author">💬 Phản hồi <%= qi + 1 %></div>
+            <% end %>
             <div style="font-size:12px;line-height:1.7;color:#374151"><%= q_text %></div>
           </div>
           <% end %>
-          <% if quotes.size > 5 %>
-          <p style="font-size:11px;color:#94a3b8;text-align:right;margin-top:6px">+<%= quotes.size - 5 %> câu trả lời khác</p>
+          <% if display_quotes.size > 5 %>
+          <p style="font-size:11px;color:#94a3b8;text-align:right;margin-top:6px">+<%= display_quotes.size - 5 %> câu trả lời khác</p>
           <% end %>
         <% else %>
           <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có phản hồi</p>
@@ -793,6 +804,47 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 <% end %>
 
 </div><%# /sortableContainer %>
+
+<%# ── AI Insights & Recommendations panel ── %>
+<% ai_insights = @report_structure&.dig("ai_insights") || [] %>
+<% if ai_insights.any? %>
+<div style="margin-top:28px" id="ai-insights-section">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:16px;font-weight:700;color:#1a1a2e">
+    <span style="display:block;width:4px;height:20px;background:#7c3aed;border-radius:2px"></span>
+    ✦ Insights & Khuyến nghị (AI)
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <%# Stat insights %>
+    <% stat_insights = ai_insights.select{|i| i["type"] == "stat" || i["text"].present?} %>
+    <% rec_insights  = ai_insights.select{|i| i["type"] == "recommendation" && i["title"].present?} %>
+    <% if stat_insights.any? %>
+    <div style="background:white;border-radius:12px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+      <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #f0f2f5">📊 Phát hiện từ dữ liệu</div>
+      <% stat_insights.each do |ins| %>
+      <div style="background:#f0f4ff;border-left:4px solid #4361ee;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:10px;font-size:12px;line-height:1.65;color:#374151">
+        <strong style="color:#4361ee">+ </strong><%= ins["text"] %>
+      </div>
+      <% end %>
+    </div>
+    <% end %>
+    <%# Recommendation insights %>
+    <% if rec_insights.any? %>
+    <div style="background:white;border-radius:12px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+      <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #f0f2f5">🎯 Khuyến nghị hành động</div>
+      <% rec_insights.each do |ins| %>
+      <div style="border-left:4px solid #7c3aed;padding:10px 14px;margin-bottom:10px;background:#faf5ff;border-radius:0 8px 8px 0">
+        <div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:5px;line-height:1.4">→ <%= ins["title"] %></div>
+        <% if ins["detail"].present? %>
+        <div style="font-size:11px;color:#6b7280;line-height:1.6"><%= ins["detail"] %></div>
+        <% end %>
+      </div>
+      <% end %>
+    </div>
+    <% end %>
+  </div>
+</div>
+<% end %>
+
 </div><%# /container %>
 <footer>Báo cáo tự động · VOX · <%= @total_responses %> phản hồi · <%= @survey.title %></footer>
 

@@ -65,6 +65,39 @@ module HtmlReportSetup
       h[resp.id] = resp.answers.index_by(&:question_id)
     end
 
+    # Try to identify name question and dept question from structure semantic hints
+    # (AI may flag these via chart_type "hidden" + semantic key)
+    name_qid = nil; dept_qid = nil
+    @report_structure&.dig("sections")&.each do |sec|
+      sec["cards"]&.each do |c|
+        case c["semantic"]
+        when "respondent_name" then name_qid = c["question_id"]&.to_i
+        when "respondent_dept" then dept_qid = c["question_id"]&.to_i
+        end
+      end
+    end
+    # Fallback: guess name/dept from question titles
+    unless name_qid
+      name_q = @questions.find { |q| q.title.match?(/\b(họ tên|tên|name)\b/i) && q.question_type.in?(%w[short_text long_text]) }
+      name_qid = name_q&.id
+    end
+    unless dept_qid
+      dept_q = @questions.find { |q| q.title.match?(/\b(bộ phận|phòng ban|team|department)\b/i) && q.question_type.in?(%w[single_choice dropdown]) }
+      dept_qid = dept_q&.id
+    end
+
+    # Build respondent meta: response_id → {name, dept}
+    @resp_meta = responses.each_with_object({}) do |resp, h|
+      ans_map = resp_answers[resp.id] || {}
+      name = ans_map[name_qid]&.text_value&.presence if name_qid
+      dept_ans = ans_map[dept_qid] if dept_qid
+      dept = if dept_ans && dept_qid
+               dept_q2 = @questions.find { |q| q.id == dept_qid }
+               opt_label[Array(dept_ans.option_ids).map(&:to_i).first]
+             end
+      h[resp.id] = { name: name, dept: dept }.compact
+    end
+
     # Per-question stats (with optional processing hints from structure)
     processing_map = build_processing_map(@report_structure)
 
@@ -73,7 +106,7 @@ module HtmlReportSetup
       answers    = all_answers.select { |a| a.question_id == q.id }
       processing = processing_map[q.id]
       @question_stats[q.id] = compute_question_stats(q, answers, opt_label, @total_responses,
-                                                      processing: processing)
+                                                      processing: processing, resp_meta: @resp_meta)
     end
 
     # Cross-tab stats (one key per cross-tab card in structure)
@@ -121,7 +154,7 @@ module HtmlReportSetup
   end
 
   # ── Core per-question stats ───────────────────────────────────────────────
-  def compute_question_stats(q, answers, opt_label, total_responses, processing: nil) # rubocop:disable Metrics/MethodLength
+  def compute_question_stats(q, answers, opt_label, total_responses, processing: nil, resp_meta: {}) # rubocop:disable Metrics/MethodLength
     base = { id: q.id, title: q.title, question_type: q.question_type, count: answers.size }
 
     # ── Special processing overrides ──
@@ -162,10 +195,16 @@ module HtmlReportSetup
 
     when "short_text", "long_text"
       texts  = answers.map(&:text_value).compact.reject(&:blank?)
-      quotes = texts.select { |t| t.length >= 40 }
-                    .sort_by(&:length).last(8)
-                    .map { |t| t.truncate(300) }
-      base.merge(texts: texts, quotes: quotes, total: texts.size)
+      # Build rich quotes with author metadata when available
+      rich_quotes = answers.select { |a| a.text_value.to_s.length >= 40 }
+                           .sort_by { |a| a.text_value.to_s.length }
+                           .last(8)
+                           .map do |a|
+        meta = resp_meta[a.response_id] || {}
+        { text: a.text_value.to_s.truncate(300), name: meta[:name], dept: meta[:dept] }
+      end
+      quotes = rich_quotes.map { |q| q[:text] }  # backward compat
+      base.merge(texts: texts, quotes: quotes, rich_quotes: rich_quotes, total: texts.size)
 
     when "matrix"
       rows = q.question_options.where(option_type: "row").order(:position)

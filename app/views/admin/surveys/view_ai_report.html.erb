@@ -1,7 +1,7 @@
 <%
   data      = @ai_result.output || {}
   rpt_title = data["title"].presence || @survey.title
-  rpt_sub   = data["subtitle"].presence || @survey.title
+  rpt_sub   = data["subtitle"].presence || ""
   exec_sum  = data["executive_summary"].to_s
   key_met   = data["key_metrics"] || {}
   sections  = data["sections"] || []
@@ -9,6 +9,22 @@
   conclusion= data["conclusion"].to_s
   chart_data= data["chart_data"] || []
   meta      = data["_meta"] || {}
+
+  palette = %w[#4361ee #7c3aed #06b6d4 #10b981 #f59e0b #ef4444 #ec4899 #8b5cf6 #0ea5e9 #14b8a6]
+
+  # Group cross-tabs by group_question so multiple targets per group merge into one grouped bar
+  cross_tab_groups = {}
+  chart_data.each do |cd|
+    next unless cd["cross_tab"].is_a?(Hash) && cd["cross_tab"]["groups"].present?
+    xt  = cd["cross_tab"]
+    key = xt["group_question"].to_s
+    cross_tab_groups[key] ||= { label: xt["label"], datasets: [] }
+    cross_tab_groups[key][:datasets] << {
+      title: cd["question"].to_s.truncate(40),
+      groups: xt["groups"],
+      max: xt["max"].to_i
+    }
+  end
 %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -17,7 +33,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><%= rpt_title %></title>
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
-<link rel="icon" type="image/png" href="/icon.png">
 <%= csrf_meta_tags %>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -26,155 +41,191 @@
 body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
 
 /* Header */
-.header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:white;padding:36px 48px;position:relative}
-.header h1{font-size:22px;font-weight:700;margin-bottom:6px;line-height:1.35}
-.header p{opacity:.6;font-size:13px}
+.header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:white;padding:36px 48px 32px;position:relative}
 .header .ai-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,.35);border:1px solid rgba(167,139,250,.4);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:#c4b5fd;margin-bottom:12px}
+.header h1{font-size:22px;font-weight:700;margin-bottom:6px;line-height:1.35}
+.header p{opacity:.65;font-size:13px}
+.header-lang-switcher{position:absolute;top:20px;right:24px;display:flex;background:rgba(255,255,255,.12);border-radius:50px;padding:2px;gap:2px;border:1px solid rgba(255,255,255,.18)}
+.lang-btn{background:transparent;border:none;border-radius:50px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;color:rgba(255,255,255,.65);transition:all .15s;line-height:1}
+.lang-btn.active{background:white;color:#374151;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.lang-btn:not(.active):hover{color:white;background:rgba(255,255,255,.15)}
+
 .container{max-width:1200px;margin:0 auto;padding:28px 24px 120px}
 
 /* KPI */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:28px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px}
 .kpi{background:white;border-radius:12px;padding:18px 14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid}
 .kpi-value{font-size:32px;font-weight:800;line-height:1;margin-bottom:5px}
-.kpi-label{font-size:11px;color:#666;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.kpi-label{font-size:10px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 
-/* Section blocks */
-.ai-section{background:white;border-radius:12px;padding:22px 24px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:20px}
-.ai-section h2{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:14px;display:flex;align-items:center;gap:10px;border-bottom:2px solid #f0f2f5;padding-bottom:10px}
-.ai-section h2::before{content:'';display:block;width:4px;height:20px;background:#4361ee;border-radius:2px;flex-shrink:0}
-.ai-section p{font-size:13px;line-height:1.7;color:#374151;margin-bottom:10px}
-.ai-section p:last-child{margin-bottom:0}
+/* Section title */
+.section-heading{display:flex;align-items:center;gap:10px;margin:28px 0 16px;font-size:16px;font-weight:700;color:#1a1a2e}
+.section-heading::before{content:'';display:block;width:4px;height:20px;background:#4361ee;border-radius:2px}
 
-/* Chart grid */
-.chart-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;margin-bottom:20px}
+/* Executive summary */
+.exec-card{background:white;border-radius:12px;padding:22px 24px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:24px}
+.exec-card h2{font-size:14px;font-weight:700;color:#4361ee;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.exec-card p{font-size:13px;line-height:1.75;color:#374151;margin-bottom:10px}
+.exec-card p:last-child{margin-bottom:0}
+
+/* 12-col chart grid */
+.chart-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;margin-bottom:4px}
 .chart-card{grid-column:span 6;background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
 .chart-card.full{grid-column:span 12}
 .chart-card h3{font-size:13px;font-weight:700;margin-bottom:14px;color:#1a1a2e;border-bottom:2px solid #f0f2f5;padding-bottom:10px}
-canvas{max-height:240px}
+canvas{max-height:250px}
 @media(max-width:900px){.chart-card{grid-column:span 12!important}}
 
 /* Insight box */
-.insight-box{background:#f8f9ff;border-left:4px solid #4361ee;border-radius:0 8px 8px 0;padding:10px 14px;margin-top:12px;font-size:12px;line-height:1.65;color:#374151}
+.insight-box{background:#f0f4ff;border-left:4px solid #4361ee;border-radius:0 8px 8px 0;padding:10px 14px;margin-top:14px;font-size:12px;line-height:1.65;color:#374151}
 .insight-box strong{color:#4361ee}
 
-/* Bar chart */
+/* Bar items (CSS) */
 .bar-item{display:flex;align-items:center;margin-bottom:8px;font-size:12px}
-.bar-label{flex-shrink:0;color:#444;padding-right:8px;width:180px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar-track{flex:1;background:#e8eaf0;border-radius:4px;height:18px;overflow:hidden;margin-right:8px}
-.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;color:white;font-size:11px;font-weight:700;min-width:18px}
-.bar-count{width:26px;text-align:right;color:#888;font-weight:600}
+.bar-label{flex-shrink:0;color:#444;padding-right:8px;width:190px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;background:#e8eaf0;border-radius:4px;height:20px;overflow:hidden;margin-right:8px}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;color:white;font-size:11px;font-weight:700;min-width:18px;transition:width .4s}
+.bar-count{width:28px;text-align:right;color:#888;font-weight:600;font-size:12px}
 
-/* Rating row */
+/* Rating rows */
 .rating-row{display:flex;align-items:center;margin-bottom:10px}
 .rating-label{width:200px;font-size:12px;color:#555;flex-shrink:0;line-height:1.3}
-.rating-bar{flex:1;background:#e8eaf0;height:20px;border-radius:6px;overflow:hidden;margin-right:10px}
+.rating-bar{flex:1;background:#e8eaf0;height:22px;border-radius:6px;overflow:hidden;margin-right:10px}
 .rating-fill{height:100%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:white;font-weight:700;font-size:11px}
 .rating-score{width:36px;font-size:14px;font-weight:800;color:#1a1a2e;text-align:right}
 
-/* Recommendations */
-.rec-card{background:white;border-radius:12px;padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:14px;border-left:4px solid #e2e8f0}
-.rec-card.high{border-left-color:#ef4444}
-.rec-card.medium{border-left-color:#f59e0b}
-.rec-card.low{border-left-color:#10b981}
-.rec-priority{display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:8px}
+/* NPS pills */
+.nps-pills{display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:12px}
+.nps-pill{text-align:center;min-width:70px}
+.nps-pill .nv{font-size:20px;font-weight:800;line-height:1.1}
+.nps-pill .nl{color:#94a3b8;font-size:10px;text-transform:uppercase}
+.nps-score-big{text-align:center;padding:12px 0 4px;font-size:36px;font-weight:800}
+
+/* Analysis sections */
+.analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-bottom:20px}
+.analysis-card{background:white;border-radius:12px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.analysis-card h3{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:10px;line-height:1.4}
+.analysis-card p{font-size:12px;line-height:1.75;color:#4b5563;margin-bottom:8px}
+.analysis-card p:last-child{margin-bottom:0}
+.key-finding{background:#f0f4ff;border-left:3px solid #6366f1;padding:9px 12px;border-radius:0 6px 6px 0;font-size:12px;font-weight:600;color:#4361ee;margin-top:12px;line-height:1.5}
+
+/* Recommendations + Insights: 2-column layout */
+.rec-insight-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+@media(max-width:800px){.rec-insight-grid{grid-template-columns:1fr}}
+.rec-panel,.insight-panel{background:white;border-radius:12px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.panel-title{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #f0f2f5}
+
+/* Recommendation cards (inside panel) */
+.rec-card{border-left:4px solid #e2e8f0;padding:12px 14px;border-radius:0 8px 8px 0;margin-bottom:12px;background:#fafafa}
+.rec-card.high{border-left-color:#ef4444;background:#fff8f8}
+.rec-card.medium{border-left-color:#f59e0b;background:#fffdf5}
+.rec-card.low{border-left-color:#10b981;background:#f5fffb}
+.rec-card:last-child{margin-bottom:0}
+.rec-priority{display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:7px}
 .rec-priority.high{background:#fef2f2;color:#ef4444}
 .rec-priority.medium{background:#fffbeb;color:#d97706}
 .rec-priority.low{background:#f0fdf4;color:#16a34a}
-.rec-action{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:6px}
-.rec-rationale{font-size:12px;color:#6b7280;line-height:1.6}
-.rec-impact{font-size:11px;color:#4361ee;font-weight:600;margin-top:6px}
+.rec-action{font-size:12px;font-weight:700;color:#1a1a2e;margin-bottom:5px;line-height:1.4}
+.rec-rationale{font-size:11px;color:#6b7280;line-height:1.6}
+.rec-impact{font-size:11px;color:#4361ee;font-weight:600;margin-top:5px}
+
+/* Insight items (inside panel) */
+.insight-item{border-left:4px solid #4361ee;padding:10px 14px;margin-bottom:10px;background:#f8f9ff;border-radius:0 8px 8px 0}
+.insight-item:last-child{margin-bottom:0}
+.insight-item.stat{border-left-color:#06b6d4;background:#f0fdfe}
+.insight-item p{font-size:12px;line-height:1.65;color:#374151}
+.insight-item .rec-head{font-size:12px;font-weight:700;color:#1a1a2e;margin-bottom:5px;line-height:1.4}
+.insight-item .rec-detail{font-size:11px;color:#6b7280;line-height:1.6}
+.insight-link{color:#4361ee;font-size:11px;text-decoration:none;font-weight:600}
 
 /* Conclusion */
 .conclusion-box{background:linear-gradient(135deg,#f0f4ff,#e8eeff);border:1px solid #c7d2fe;border-radius:12px;padding:22px 24px;margin-bottom:20px}
-.conclusion-box h2{font-size:15px;font-weight:700;color:#3730a3;margin-bottom:12px}
-.conclusion-box p{font-size:13px;line-height:1.75;color:#374151;margin-bottom:8px}
-.conclusion-box p:last-child{margin-bottom:0}
+.conclusion-box h2{font-size:14px;font-weight:700;color:#3730a3;margin-bottom:10px}
+.conclusion-box p{font-size:13px;line-height:1.75;color:#374151}
 
-/* Section text cards */
-.text-section-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:20px}
-.text-sec-card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
-.text-sec-card h3{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:10px}
-.text-sec-card p{font-size:12px;line-height:1.7;color:#4b5563}
-.key-finding{background:#f8f9ff;border-left:3px solid #6366f1;padding:8px 12px;border-radius:0 6px 6px 0;font-size:11px;font-weight:600;color:#4361ee;margin-top:10px}
+/* User prompt */
+.prompt-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin-bottom:20px}
+.prompt-label{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.prompt-text{font-size:12px;color:#64748b;font-style:italic;line-height:1.6}
 
 /* Action bar */
-.action-bar{position:fixed;bottom:24px;right:24px;display:flex;gap:8px;z-index:300;align-items:center}
+.action-bar{position:fixed;bottom:24px;right:24px;display:flex;gap:8px;z-index:300}
 .action-bar button,.action-bar a{display:flex;align-items:center;gap:6px;border:none;border-radius:50px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.15);transition:all .15s;text-decoration:none}
 .action-bar button:hover,.action-bar a:hover{opacity:.88}
 .btn-back{background:#fff;color:#374151}
 .btn-print{background:#fff;color:#374151}
 .btn-pdf{background:#374151;color:#fff}
-/* Lang switcher — in header top-right */
-.header-lang-switcher{position:absolute;top:20px;right:24px;display:flex;background:rgba(255,255,255,.12);border-radius:50px;padding:2px;gap:2px;border:1px solid rgba(255,255,255,.18);z-index:10}
-.lang-btn{background:transparent;border:none;border-radius:50px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;color:rgba(255,255,255,.65);transition:all .15s;line-height:1}
-.lang-btn.active{background:white;color:#374151;box-shadow:0 2px 6px rgba(0,0,0,.15)}
-.lang-btn:not(.active):hover{color:white;background:rgba(255,255,255,.15)}
-@media print{.header-lang-switcher{display:none!important}}
 
-/* Print */
 @media print{
-  .action-bar{display:none!important}
+  .action-bar,.header-lang-switcher{display:none!important}
   body{background:white}
   .header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .kpi{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid}
-  .chart-card{break-inside:avoid}
-  .rec-card{break-inside:avoid}
+  @page{size:A4 landscape;margin:10mm 12mm}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .chart-card,.analysis-card,.rec-panel,.insight-panel{break-inside:avoid}
   canvas{max-height:200px}
 }
 </style>
 </head>
 <body>
 
-<!-- Header -->
-<div class="header" style="position:relative">
+<div class="header">
   <div class="header-lang-switcher">
     <button class="lang-btn active" id="langVI" onclick="setLang('vi')">🇻🇳 VI</button>
     <button class="lang-btn" id="langEN" onclick="setLang('en')">🇬🇧 EN</button>
   </div>
-  <div class="ai-badge" data-i18n-badge>✨ Báo cáo AI</div>
+  <div class="ai-badge">✨ <span data-t="ai_badge">Báo cáo AI</span></div>
   <h1><%= rpt_title %></h1>
-  <p><%= rpt_sub %></p>
+  <p><%= rpt_sub.present? ? rpt_sub : "#{@survey.title} · #{@total_responses rescue @ai_result.response_count} phản hồi" %></p>
   <% if meta["generated_at"].present? %>
-  <p style="margin-top:4px;font-size:11px;opacity:.4">Tạo lúc: <%= Time.parse(meta["generated_at"]).in_time_zone.strftime("%H:%M %d/%m/%Y") rescue meta["generated_at"] %></p>
+  <p style="margin-top:4px;font-size:11px;opacity:.4"><span data-t="generated_at_label">Tạo lúc:</span> <%= Time.parse(meta["generated_at"]).in_time_zone.strftime("%H:%M %d/%m/%Y") rescue meta["generated_at"] %></p>
   <% end %>
 </div>
 
 <div class="container">
 
-<!-- KPI metrics -->
-<% if key_met.present? %>
-<div class="kpi-grid">
+<%# ── KPI ── %>
+<% if key_met.any? %>
+<div class="kpi-grid" style="margin-top:24px">
   <% if key_met["response_count"].present? %>
-  <div class="kpi" style="border-top-color:#4361ee">
+  <div class="kpi" style="border-color:#4361ee">
     <div class="kpi-value" style="color:#4361ee"><%= key_met["response_count"] %></div>
-    <div class="kpi-label" data-kpi-label="responses">Phản hồi</div>
+    <div class="kpi-label" data-t="kpi_responses">Người tham gia</div>
   </div>
   <% end %>
   <% if key_met["sentiment_positive"].present? %>
-  <div class="kpi" style="border-top-color:#10b981">
+  <div class="kpi" style="border-color:#10b981">
     <div class="kpi-value" style="color:#10b981"><%= key_met["sentiment_positive"] %></div>
-    <div class="kpi-label" data-kpi-label="positive">Tích cực</div>
+    <div class="kpi-label" data-t="kpi_positive">Tích cực</div>
   </div>
   <% end %>
   <% if key_met["sentiment_negative"].present? %>
-  <div class="kpi" style="border-top-color:#ef4444">
+  <div class="kpi" style="border-color:#ef4444">
     <div class="kpi-value" style="color:#ef4444"><%= key_met["sentiment_negative"] %></div>
-    <div class="kpi-label" data-kpi-label="negative">Tiêu cực</div>
+    <div class="kpi-label" data-t="kpi_negative">Tiêu cực</div>
+  </div>
+  <% end %>
+  <%# Extra KPIs from chart_data (NPS avg, key pct averages) %>
+  <% chart_data.select{|cd| cd["avg"].present? && %w[nps linear_scale rating].include?(cd["type"])}.first(2).each_with_index do |cd, i| %>
+  <% kpi_colors = %w[#f59e0b #8b5cf6] %>
+  <div class="kpi" style="border-color:<%= kpi_colors[i] %>">
+    <div class="kpi-value" style="color:<%= kpi_colors[i] %>"><%= cd["subtype"] == "pct" ? "#{cd['avg']}%" : cd["avg"] %></div>
+    <div class="kpi-label"><%= cd["question"].to_s.truncate(28) %></div>
   </div>
   <% end %>
   <% if key_met["top_concern"].present? %>
-  <div class="kpi" style="border-top-color:#f59e0b;grid-column:span 2">
-    <div class="kpi-value" style="color:#f59e0b;font-size:16px;margin-bottom:6px"><%= key_met["top_concern"] %></div>
-    <div class="kpi-label" data-kpi-label="top_concern">Vấn đề nổi bật</div>
+  <div class="kpi" style="border-color:#f59e0b;grid-column:span 2">
+    <div class="kpi-value" style="color:#f59e0b;font-size:15px;font-weight:700;line-height:1.3;margin-bottom:6px"><%= key_met["top_concern"] %></div>
+    <div class="kpi-label" data-t="kpi_concern">Vấn đề nổi bật</div>
   </div>
   <% end %>
 </div>
 <% end %>
 
-<!-- Executive summary -->
+<%# ── Executive summary ── %>
 <% if exec_sum.present? %>
-<div class="ai-section" style="margin-bottom:20px">
-  <h2><span data-section="executive_summary">Tóm tắt điều hành</span></h2>
+<div class="exec-card">
+  <h2>📋 <span data-t="exec_summary">Tóm tắt điều hành</span></h2>
   <% exec_sum.split(/\n\n+/).each do |para| %>
     <% next if para.strip.empty? %>
     <p><%= para.strip %></p>
@@ -182,118 +233,178 @@ canvas{max-height:240px}
 </div>
 <% end %>
 
-<!-- Charts -->
-<% if chart_data.any? %>
-<div class="ai-section" style="padding-bottom:8px;margin-bottom:0">
-  <h2><span data-section="chart_data">Dữ liệu biểu đồ</span></h2>
-</div>
-<div class="chart-grid" style="margin-top:0">
+<%# ── Charts ── %>
+<% main_charts = chart_data.reject{|cd| %w[short_text long_text].include?(cd["type"]) && cd["distribution"].blank? && cd["options"].blank?} %>
+<% if main_charts.any? %>
+<div class="section-heading" data-t="section_charts">Dữ liệu & Biểu đồ</div>
+<div class="chart-grid">
+<% main_charts.each_with_index do |cd, idx| %>
 <%
-  palette = %w[#4361ee #7c3aed #10b981 #f59e0b #ef4444 #06b6d4 #8b5cf6 #ec4899 #14b8a6 #f97316]
+  qtype  = cd["type"].to_s
+  opts   = cd["options"] || []
+  dist   = cd["distribution"] || []
+  total  = cd["total"].to_i
+  avg_v  = cd["avg"]
+  max_v  = cd["max"].to_f
+  sub    = cd["subtype"].to_s
+  insight= cd["insight"].to_s
+  chid   = "vc_#{idx}"
+
+  # Determine chart type
+  vtype = if qtype == "nps" then "nps"
+  elsif qtype == "rating" then "rating_dist"
+  elsif qtype == "linear_scale" || sub == "pct" then "dist_bar"
+  elsif %w[single_choice dropdown].include?(qtype) && opts.size <= 7 then "doughnut"
+  elsif %w[single_choice dropdown multiple_choice].include?(qtype) then "hbar"
+  elsif qtype.in?(%w[short_text long_text]) && dist.any? then "dist_bar"
+  else "hbar"
+  end
+
+  is_full = %w[nps dist_bar rating_dist].include?(vtype) || opts.size > 6 || (dist.any? && dist.size > 6)
 %>
-<% chart_data.each_with_index do |cd, idx| %>
-<%
-  qtype   = cd["type"].to_s
-  opts    = cd["options"] || []
-  labels  = opts.map{|o| o["label"].to_s}
-  counts  = opts.map{|o| o["count"].to_i}
-  pcts    = opts.map{|o| o["pct"].to_f}
-  total   = cd["total"].to_i
-  avg_val = cd["avg"]
-  insight = cd["insight"].to_s
-  use_bar = %w[single_choice multiple_choice].include?(qtype)
-  use_pie = qtype == "pie"
-  use_rating = %w[rating linear_scale].include?(qtype)
-  use_donut  = qtype == "nps"
-  dist       = cd["distribution"] || []
-  span_full  = labels.length > 6 || use_rating
-%>
-<div class="chart-card <%= span_full ? 'full' : '' %>">
+<div class="chart-card <%= is_full ? 'full' : '' %>">
   <h3><%= cd["question"].to_s.truncate(90) %></h3>
 
-  <% if use_bar && labels.any? %>
-    <% labels.each_with_index do |lbl, i| %>
-    <div class="bar-item">
-      <span class="bar-label" title="<%= lbl %>"><%= lbl.truncate(30) %></span>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:<%= pcts[i].clamp(0,100) %>%;background:<%= palette[i % palette.size] %>"><%= pcts[i] > 8 ? "#{pcts[i].round(1)}%" : '' %></div>
-      </div>
-      <span class="bar-count"><%= counts[i] %></span>
-    </div>
-    <% end %>
-
-  <% elsif use_rating && opts.any? %>
-    <% max_score = cd["max"].to_f > 0 ? cd["max"].to_f : 5.0 %>
-    <% opts.each_with_index do |o, i| %>
-    <div class="rating-row">
-      <div class="rating-label" title="<%= o['label'] %>"><%= o["label"].to_s.truncate(35) %></div>
-      <div class="rating-bar">
-        <div class="rating-fill" style="width:<%= ((o['count'].to_f / total.to_f)*100).clamp(0,100).round(1) %>%;background:<%= palette[i % palette.size] %>">
-          <%= o['count'].to_i > 0 ? o['count'] : '' %>
-        </div>
-      </div>
-      <div class="rating-score"><%= pcts[i].round(1) %>%</div>
-    </div>
-    <% end %>
-    <% if avg_val %>
-    <div style="margin-top:8px;font-size:12px;color:#6b7280">Trung bình: <strong style="color:#4361ee"><%= avg_val.round(2) %></strong></div>
-    <% end %>
-
-  <% elsif (use_pie || use_donut || labels.any?) %>
-    <canvas id="chart_<%= idx %>"></canvas>
+  <% if vtype == "doughnut" && opts.any? %>
+    <canvas id="<%= chid %>"></canvas>
     <script>
     (function(){
-      var ctx = document.getElementById('chart_<%= idx %>');
-      if (!ctx) return;
-      new Chart(ctx, {
-        type: '<%= use_donut ? "doughnut" : "doughnut" %>',
-        data: {
-          labels: <%= raw labels.to_json %>,
-          datasets: [{
-            data: <%= raw counts.to_json %>,
-            backgroundColor: <%= raw palette.first(labels.size).to_json %>,
-            borderWidth: 2, borderColor: '#fff'
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: true,
-          plugins: {
-            legend: { position: 'right', labels: { font: { size: 11 }, padding: 12 } },
-            datalabels: {
-              color: '#fff', font: { weight: 'bold', size: 10 },
-              formatter: (v, ctx2) => {
-                var sum = ctx2.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
-                return sum > 0 ? Math.round(v/sum*100)+'%' : '';
-              },
-              display: ctx2 => { var sum = ctx2.chart.data.datasets[0].data.reduce((a,b)=>a+b,0); return sum > 0 && ctx2.dataset.data[ctx2.dataIndex]/sum > 0.04; }
-            }
-          }
-        },
-        plugins: [ChartDataLabels]
-      });
+      var labels = <%= raw opts.map{|o| o["label"].to_s}.to_json %>;
+      var counts = <%= raw opts.map{|o| o["count"].to_i}.to_json %>;
+      mkChart('<%= chid %>', {type:'doughnut', data:{labels:labels, datasets:[{data:counts, backgroundColor:C.slice(0,labels.length), borderWidth:2, borderColor:'#fff'}]},
+        options:{responsive:true, plugins:{legend:{position:'right',labels:{font:{size:11},padding:10}},
+          datalabels:{color:'#fff',font:{weight:'bold',size:10}, display:ctx=>{ var s=ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0); return s>0&&ctx.dataset.data[ctx.dataIndex]/s>0.04; },
+            formatter:(v,ctx)=>{ var s=ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0); return s>0?Math.round(v/s*100)+'%':''; }}}},
+        plugins:[ChartDataLabels]});
     })();
     </script>
 
+  <% elsif vtype == "hbar" && opts.any? %>
+    <% sorted = opts.sort_by{|o| -o["count"].to_i} %>
+    <% sorted.each_with_index do |o, oi| %>
+    <div class="bar-item">
+      <span class="bar-label" title="<%= o['label'] %>"><%= o["label"].to_s.truncate(32) %></span>
+      <div class="bar-track"><div class="bar-fill" style="width:<%= o['pct'].to_f.clamp(0,100) %>%;background:<%= palette[oi % palette.size] %>"><%= o["pct"].to_f > 8 ? "#{o['pct'].round(1)}%" : "" %></div></div>
+      <span class="bar-count"><%= o["count"] %></span>
+    </div>
+    <% end %>
+
+  <% elsif vtype == "dist_bar" && dist.any? %>
+    <%# Histogram: distribution buckets %>
+    <canvas id="<%= chid %>"></canvas>
+    <script>
+    (function(){
+      var labels = <%= raw dist.map{|d| d["value"].to_s}.to_json %>;
+      var counts = <%= raw dist.map{|d| d["count"].to_i}.to_json %>;
+      mkChart('<%= chid %>', {type:'bar', data:{labels:labels, datasets:[{data:counts, backgroundColor:'#4361ee', borderRadius:4}]},
+        options:{responsive:true, plugins:{legend:{display:false}, datalabels:{anchor:'end',align:'top',offset:2,font:{size:11,weight:'700'},color:'#444',formatter:v=>v>0?v:''}},
+          scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{ticks:{font:{size:10}}}}, layout:{padding:{top:20}}},
+        plugins:[ChartDataLabels]});
+    })();
+    </script>
+    <% if avg_v %>
+    <div style="margin-top:10px;text-align:center;font-size:12px;color:#6b7280">
+      <span data-t="average">Trung bình</span>: <strong style="color:#4361ee;font-size:15px"><%= avg_v %><%='%' if sub == 'pct' %></strong>
+    </div>
+    <% end %>
+
+  <% elsif vtype == "nps" && dist.any? %>
+    <%# NPS: 0-10 bar with red/cyan/green coloring %>
+    <canvas id="<%= chid %>"></canvas>
+    <script>
+    (function(){
+      var labels = <%= raw dist.map{|d| d["value"].to_s}.to_json %>;
+      var counts = <%= raw dist.map{|d| d["count"].to_i}.to_json %>;
+      var colors = labels.map(function(v){ var n=parseInt(v); return n>=9?'#10b981':n>=7?'#06b6d4':'#ef4444'; });
+      mkChart('<%= chid %>', {type:'bar', data:{labels:labels, datasets:[{data:counts, backgroundColor:colors, borderRadius:4}]},
+        options:{responsive:true, plugins:{legend:{display:false}, datalabels:{anchor:'end',align:'top',offset:2,font:{size:12,weight:'700'},color:'#444',formatter:v=>v>0?v:''}},
+          scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{ticks:{font:{size:11}}}}, layout:{padding:{top:20}}},
+        plugins:[ChartDataLabels]});
+    })();
+    </script>
+    <% promoters  = dist.select{|d| d["value"].to_i >= 9}.sum{|d| d["count"].to_i} %>
+    <% passives   = dist.select{|d| [7,8].include?(d["value"].to_i)}.sum{|d| d["count"].to_i} %>
+    <% detractors = dist.select{|d| d["value"].to_i <= 6}.sum{|d| d["count"].to_i} %>
+    <% nps_score  = total > 0 ? ((promoters - detractors).to_f / total * 100).round : 0 %>
+    <div class="nps-pills">
+      <div class="nps-pill"><div class="nv" style="color:#4361ee"><%= nps_score %>%</div><div class="nl">NPS Score</div></div>
+      <div class="nps-pill"><div class="nv" style="color:#10b981"><%= promoters %></div><div class="nl">Promoters</div></div>
+      <div class="nps-pill"><div class="nv" style="color:#06b6d4"><%= passives %></div><div class="nl">Passives</div></div>
+      <div class="nps-pill"><div class="nv" style="color:#ef4444"><%= detractors %></div><div class="nl">Detractors</div></div>
+      <% if avg_v %><div class="nps-pill"><div class="nv" style="color:#f59e0b"><%= avg_v %></div><div class="nl">Điểm TB</div></div><% end %>
+    </div>
+
+  <% elsif vtype == "rating_dist" && dist.any? %>
+    <%# Rating: horizontal CSS bars with score %>
+    <% max_s = max_v > 0 ? max_v : 5.0 %>
+    <% dist.each_with_index do |d, di| %>
+    <% cnt = d["count"].to_i; pct = total > 0 ? (cnt.to_f / total * 100).round(1) : 0 %>
+    <div class="rating-row">
+      <div class="rating-label"><%= d["value"] %></div>
+      <div class="rating-bar"><div class="rating-fill" style="width:<%= pct.clamp(0,100) %>%;background:<%= palette[di % palette.size] %>"><%= cnt > 0 ? cnt : '' %></div></div>
+      <div class="rating-score"><%= pct %>%</div>
+    </div>
+    <% end %>
+    <% if avg_v %><div style="margin-top:10px;font-size:12px;color:#6b7280"><span data-t="average">Trung bình</span>: <strong style="color:#4361ee"><%= avg_v %></strong> / <%= max_s.to_i %></div><% end %>
+
   <% else %>
-    <p style="font-size:12px;color:#9ca3af;text-align:center;padding:30px 0">Không có dữ liệu biểu đồ</p>
+    <p style="color:#9ca3af;text-align:center;padding:32px 0;font-size:13px" data-t="no_data">Chưa có dữ liệu biểu đồ</p>
   <% end %>
 
   <% if insight.present? %>
-  <div class="insight-box"><strong data-insight-label>💡 Nhận xét:</strong> <%= insight %></div>
+  <div class="insight-box">💡 <strong data-t="insight_label">Nhận xét:</strong> <%= insight %></div>
   <% end %>
 </div>
 <% end %>
-</div><!-- /chart-grid -->
+</div><%# /chart-grid %>
 <% end %>
 
-<!-- AI Text sections -->
-<% if sections.any? %>
-<div class="ai-section" style="margin-bottom:12px;padding-bottom:8px">
-  <h2><span data-section="detail_analysis">Phân tích chi tiết</span></h2>
+<%# ── Cross-tab grouped bar charts (one per group_question) ── %>
+<% if cross_tab_groups.any? %>
+<div class="section-heading" data-t="section_crosstab">Phân tích theo nhóm</div>
+<div class="chart-grid">
+<% cross_tab_groups.each_with_index do |(group_q_title, ct), cti| %>
+<% chid = "ct_#{cti}" %>
+<div class="chart-card full">
+  <h3><%= ct[:label].present? ? ct[:label] : "#{group_q_title} — phân tích theo nhóm" %></h3>
+  <canvas id="<%= chid %>"></canvas>
+  <script>
+  (function(){
+    var groupLabels = <%= raw ct[:datasets].first[:groups].map{|g| g["label"].to_s}.to_json %>;
+    var datasets = <%= raw ct[:datasets].map.with_index{|ds, i|
+      {
+        label: ds[:title],
+        data: ds[:groups].map{|g| (g["avg"] || g["pct"] || 0).to_f},
+        backgroundColor: palette[i % palette.size],
+        borderRadius: 4
+      }
+    }.to_json %>;
+    var isPercent = <%= raw (ct[:datasets].first[:max].to_i >= 50 ? 'true' : 'false') %>;
+    mkChart('<%= chid %>', {type:'bar', data:{labels:groupLabels, datasets:datasets},
+      options:{responsive:true,
+        plugins:{legend:{position:'top',labels:{font:{size:11}}}, datalabels:{anchor:'end',align:'top',offset:2,font:{size:11,weight:'700'},color:'#444',
+          formatter:function(v){ return isPercent ? v+'%' : v; }}},
+        scales:{y:{beginAtZero:true, ticks:{callback:function(v){ return isPercent?v+'%':v; }}},x:{ticks:{font:{size:11}}}},
+        layout:{padding:{top:24}}},
+      plugins:[ChartDataLabels]});
+  })();
+  </script>
+  <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px">
+    <% ct[:datasets].first[:groups].each do |g| %>
+    <span style="font-size:11px;color:#94a3b8"><%= g["label"] %>: <strong style="color:#374151"><%= g["total"] || "?" %></strong> phản hồi</span>
+    <% end %>
+  </div>
 </div>
-<div class="text-section-grid">
+<% end %>
+</div>
+<% end %>
+
+<%# ── AI Analysis sections ── %>
+<% if sections.any? %>
+<div class="section-heading" data-t="section_analysis">Phân tích chi tiết</div>
+<div class="analysis-grid">
   <% sections.each do |sec| %>
-  <div class="text-sec-card">
+  <div class="analysis-card">
     <h3><%= sec["heading"] %></h3>
     <% sec["content"].to_s.split(/\n\n+/).each do |para| %>
       <% next if para.strip.empty? %>
@@ -307,32 +418,58 @@ canvas{max-height:240px}
 </div>
 <% end %>
 
-<!-- Recommendations -->
+<%# ── Recommendations + AI Insights: 2-column (PDF page 4 style) ── %>
 <% if recs.any? %>
-<div class="ai-section" style="margin-bottom:12px;padding-bottom:8px">
-  <h2><span data-section="recommendations">Khuyến nghị</span></h2>
-</div>
-<% priority_order = {"high"=>0,"medium"=>1,"low"=>2} %>
-<% recs.sort_by{|r| priority_order[r["priority"].to_s] || 9}.each do |rec| %>
-<div class="rec-card <%= rec['priority'] %>">
-  <div class="rec-priority <%= rec['priority'] %>" data-priority="<%= rec['priority'] %>">
-    <%= rec["priority"] == "high" ? "🔴 Ưu tiên cao" : rec["priority"] == "medium" ? "🟡 Ưu tiên trung bình" : "🟢 Ưu tiên thấp" %>
+<div class="section-heading" data-t="section_recs">Đề xuất & Khuyến nghị</div>
+<div class="rec-insight-grid">
+
+  <%# Left: Priority recommendations %>
+  <div class="rec-panel">
+    <div class="panel-title" data-t="recs_from_analysis">Khuyến nghị hành động</div>
+    <% priority_order = {"high"=>0,"medium"=>1,"low"=>2} %>
+    <% recs.sort_by{|r| priority_order[r["priority"].to_s] || 9}.each do |rec| %>
+    <div class="rec-card <%= rec['priority'] %>">
+      <div class="rec-priority <%= rec['priority'] %>">
+        <%= rec["priority"] == "high" ? "🔴 Ưu tiên cao" : rec["priority"] == "medium" ? "🟡 Trung bình" : "🟢 Thấp" %>
+      </div>
+      <div class="rec-action"><%= rec["action"] %></div>
+      <% if rec["rationale"].present? %>
+      <div class="rec-rationale"><%= rec["rationale"] %></div>
+      <% end %>
+      <% if rec["expected_impact"].present? %>
+      <div class="rec-impact">→ <%= rec["expected_impact"] %></div>
+      <% end %>
+    </div>
+    <% end %>
   </div>
-  <div class="rec-action"><%= rec["action"] %></div>
-  <% if rec["rationale"].present? %>
-  <div class="rec-rationale"><%= rec["rationale"] %></div>
-  <% end %>
-  <% if rec["expected_impact"].present? %>
-  <div class="rec-impact">→ <%= rec["expected_impact"] %></div>
-  <% end %>
+
+  <%# Right: Key findings from sections as insight boxes %>
+  <div class="insight-panel">
+    <div class="panel-title" data-t="key_insights">Insights từ dữ liệu</div>
+    <%# Stat insight boxes: from chart insights %>
+    <% chart_data.select{|cd| cd["insight"].present?}.first(3).each do |cd| %>
+    <div class="insight-item stat">
+      <p><strong>+ </strong><%= cd["insight"] %></p>
+    </div>
+    <% end %>
+    <%# Recommendation detail insights (action + rationale from recommendations) %>
+    <% recs.each do |rec| %>
+    <div class="insight-item">
+      <div class="rec-head">→ <%= rec["action"] %></div>
+      <% if rec["rationale"].present? %>
+      <div class="rec-detail"><%= rec["rationale"] %></div>
+      <% end %>
+    </div>
+    <% end %>
+  </div>
+
 </div>
-<% end %>
 <% end %>
 
-<!-- Conclusion -->
+<%# ── Conclusion ── %>
 <% if conclusion.present? %>
 <div class="conclusion-box">
-  <h2><span data-section="conclusion">Kết luận</span></h2>
+  <h2 data-t="conclusion">Kết luận</h2>
   <% conclusion.split(/\n\n+/).each do |para| %>
     <% next if para.strip.empty? %>
     <p><%= para.strip %></p>
@@ -340,109 +477,65 @@ canvas{max-height:240px}
 </div>
 <% end %>
 
-<!-- User prompt context -->
+<%# ── User prompt context ── %>
 <% if meta["user_context"].present? %>
-<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin-bottom:20px">
-  <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px" data-section="user_prompt_label">Prompt người dùng</div>
-  <p style="font-size:12px;color:#64748b;font-style:italic;line-height:1.6">"<%= meta["user_context"] %>"</p>
+<div class="prompt-box">
+  <div class="prompt-label" data-t="user_prompt_label">Prompt của bạn</div>
+  <div class="prompt-text">"<%= meta["user_context"] %>"</div>
 </div>
 <% end %>
 
-</div><!-- /container -->
+</div><%# /container %>
 
-<!-- Action bar -->
 <div class="action-bar">
-  <a href="<%= results_survey_path(@survey, tab: 'report') %>" class="btn-back" id="btnBack">
-    ← <span data-i18n="back">Quay lại</span>
-  </a>
-  <button class="btn-print" onclick="window.print()">
-    🖨️ <span data-i18n="print">In</span>
-  </button>
-  <button class="btn-pdf" onclick="downloadPdf()">
-    ⬇ <span data-i18n="download_pdf">Tải PDF</span>
-  </button>
+  <a href="<%= results_survey_path(@survey, tab: 'report') %>" class="btn-back">← <span data-t="back">Quay lại</span></a>
+  <button class="btn-print" onclick="window.print()">🖨️ <span data-t="print">In</span></button>
+  <button class="btn-pdf" onclick="downloadPdf()">⬇ <span data-t="download_pdf">Tải PDF</span></button>
 </div>
 
 <script>
-const AI_TRANSLATIONS = {
+Chart.register(ChartDataLabels);
+const C = ['#4361ee','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#0ea5e9','#14b8a6'];
+const chartReg = {};
+function mkChart(id, cfg) { const ch = new Chart(document.getElementById(id), cfg); chartReg[id] = ch; return ch; }
+
+// ── i18n ──
+const T = {
   vi: {
-    back: 'Quay lại', print: 'In', download_pdf: 'Tải PDF',
-    executive_summary: 'Tóm tắt điều hành',
-    chart_data: 'Dữ liệu biểu đồ',
-    detail_analysis: 'Phân tích chi tiết',
-    recommendations: 'Khuyến nghị',
-    conclusion: 'Kết luận',
-    insight_label: '💡 Nhận xét:',
-    priority_high: '🔴 Ưu tiên cao', priority_medium: '🟡 Ưu tiên trung bình', priority_low: '🟢 Ưu tiên thấp',
-    ai_badge: '✨ Báo cáo AI',
-    user_prompt_label: 'Prompt người dùng',
-    no_data: 'Không có dữ liệu biểu đồ',
-    responses: 'phản hồi', positive: 'Tích cực', negative: 'Tiêu cực', top_concern: 'Vấn đề nổi bật',
-    key_finding_icon: '🔑',
+    ai_badge:'✨ Báo cáo AI', back:'Quay lại', print:'In', download_pdf:'Tải PDF',
+    exec_summary:'Tóm tắt điều hành', section_charts:'Dữ liệu & Biểu đồ',
+    section_crosstab:'Phân tích theo nhóm', section_analysis:'Phân tích chi tiết',
+    section_recs:'Đề xuất & Khuyến nghị', recs_from_analysis:'Khuyến nghị hành động',
+    key_insights:'Insights từ dữ liệu', conclusion:'Kết luận',
+    user_prompt_label:'Prompt của bạn', generated_at_label:'Tạo lúc:',
+    average:'Trung bình', insight_label:'Nhận xét:', no_data:'Chưa có dữ liệu biểu đồ',
+    kpi_responses:'Người tham gia', kpi_positive:'Tích cực', kpi_negative:'Tiêu cực',
+    kpi_concern:'Vấn đề nổi bật',
   },
   en: {
-    back: 'Back', print: 'Print', download_pdf: 'Download PDF',
-    executive_summary: 'Executive Summary',
-    chart_data: 'Chart Data',
-    detail_analysis: 'Detailed Analysis',
-    recommendations: 'Recommendations',
-    conclusion: 'Conclusion',
-    insight_label: '💡 Insight:',
-    priority_high: '🔴 High priority', priority_medium: '🟡 Medium priority', priority_low: '🟢 Low priority',
-    ai_badge: '✨ AI Report',
-    user_prompt_label: 'User Prompt',
-    no_data: 'No chart data',
-    responses: 'responses', positive: 'Positive', negative: 'Negative', top_concern: 'Top concern',
-    key_finding_icon: '🔑',
+    ai_badge:'✨ AI Report', back:'Back', print:'Print', download_pdf:'Download PDF',
+    exec_summary:'Executive Summary', section_charts:'Data & Charts',
+    section_crosstab:'Group Analysis', section_analysis:'Detailed Analysis',
+    section_recs:'Suggestions & Recommendations', recs_from_analysis:'Action Recommendations',
+    key_insights:'Data Insights', conclusion:'Conclusion',
+    user_prompt_label:'Your Prompt', generated_at_label:'Generated at:',
+    average:'Average', insight_label:'Insight:', no_data:'No chart data',
+    kpi_responses:'Participants', kpi_positive:'Positive', kpi_negative:'Negative',
+    kpi_concern:'Top concern',
   }
 };
 
-let aiLang = '<%= I18n.locale %>';
-function at(key) { return (AI_TRANSLATIONS[aiLang] || AI_TRANSLATIONS['vi'])[key] || key; }
-
-function applyAiTranslations() {
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    el.textContent = at(el.getAttribute('data-i18n'));
-  });
-  // Section headings
-  const sectionH2s = document.querySelectorAll('.ai-section h2');
-  const sectionKeys = ['executive_summary','chart_data','detail_analysis','recommendations','conclusion'];
-  // Map by index (order is fixed in template)
-  // Instead use data-section attr
-  document.querySelectorAll('[data-section]').forEach(el => {
-    el.textContent = at(el.getAttribute('data-section'));
-  });
-  // Insight boxes
-  document.querySelectorAll('[data-insight-label]').forEach(el => {
-    el.textContent = at('insight_label');
-  });
-  // Priority badges
-  document.querySelectorAll('[data-priority]').forEach(el => {
-    const p = el.getAttribute('data-priority');
-    el.textContent = at('priority_' + p);
-  });
-  // AI badge
-  document.querySelectorAll('[data-i18n-badge]').forEach(el => { el.textContent = at('ai_badge'); });
-  // KPI labels
-  document.querySelectorAll('[data-kpi-label]').forEach(el => {
-    el.textContent = at(el.getAttribute('data-kpi-label'));
-  });
-  // Lang btn active
-  document.getElementById('langVI')?.classList.toggle('active', aiLang === 'vi');
-  document.getElementById('langEN')?.classList.toggle('active', aiLang === 'en');
+let lang = '<%= I18n.locale %>';
+function t(k) { return (T[lang]||T.vi)[k] || k; }
+function applyTranslations() {
+  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
+  document.getElementById('langVI')?.classList.toggle('active', lang==='vi');
+  document.getElementById('langEN')?.classList.toggle('active', lang==='en');
 }
-
-function setLang(lang) {
-  aiLang = lang;
-  localStorage.setItem('report_lang', lang);
-  applyAiTranslations();
+function setLang(l) {
+  lang = l; localStorage.setItem('report_lang', l); applyTranslations();
 }
-
-(function(){
-  const saved = localStorage.getItem('report_lang');
-  if (saved && ['vi','en'].includes(saved)) aiLang = saved;
-  applyAiTranslations();
-})();
+(function(){ const s = localStorage.getItem('report_lang'); if (s && T[s]) lang = s; applyTranslations(); })();
 
 function downloadPdf() {
   window.location = '<%= export_report_survey_path(@survey, report_id: @ai_result.id, format_type: "pdf") %>';

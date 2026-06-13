@@ -2,58 +2,49 @@ class GenerateReportStructureJob < ApplicationJob
   queue_as :default
 
   SYSTEM_PROMPT = <<~PROMPT.freeze
-    You are an expert survey data visualization designer. Given survey questions, design the optimal visual report structure.
+    You are an expert survey data visualization & analysis designer.
+    Given a survey's questions AND their actual aggregated response data, you will:
+    1. Design the optimal visual report structure (sections + charts)
+    2. Generate smart, data-backed insights and recommendations
 
-    Respond ONLY with valid JSON — no markdown, no explanation.
+    Respond ONLY with valid JSON — no markdown fences, no explanation.
 
     === CHART TYPES ===
-    - "doughnut"              — choice question ≤8 options → pie/donut chart
-    - "bar"                   — choice question >8 options OR tool/multi-select → vertical bar
-    - "horizontal_bar"        — multiple_choice for pain points / challenges (horizontal easier to read)
-    - "distribution_bar"      — short_text where answers are PERCENTAGES (e.g. "Bạn tiết kiệm bao % thời gian?") → histogram by bucket
-    - "rating_bar"            — rating/linear_scale questions → horizontal bars with avg score
-    - "nps_bar"               — NPS (0-10) question → colored bar chart (red=detractor, cyan=passive, green=promoter)
-    - "quotes"                — long_text / open-ended → notable quote cards
-    - "theme_bar"             — long_text asking for suggestions/recommendations → auto-group by keyword themes
-    - "number"                — single numeric summary
+    - "doughnut"              — single_choice/dropdown ≤8 options
+    - "bar"                   — choice question >8 options OR any multi-select/tool question
+    - "horizontal_bar"        — multiple_choice pain points / challenges
+    - "distribution_bar"      — questions where answers are PERCENTAGES (savings, rates) — uses histogram buckets
+    - "rating_bar"            — rating/linear_scale (horizontal bars, shows avg score)
+    - "nps_bar"               — NPS 0–10 with colored bars (red=detractor, cyan=passive, green=promoter)
+    - "quotes"                — long_text notable responses
+    - "theme_bar"             — long_text suggestions → keyword-grouped bar
+    - "number"                — single summary metric
 
-    === PROCESSING HINTS (add "processing" key when applicable) ===
-    - "normalize_tools"       — free-text question asking WHICH AI tools/software used → normalize & aggregate tool names
-    - "parse_percent"         — short_text where answer is a % number (savings, completion rate, etc.)
-    - "extract_themes"        — long_text suggestions → keyword-group into themes
+    === PROCESSING HINTS ===
+    - "normalize_tools"  — question asking which AI/software tools are used
+    - "parse_percent"    — short_text where answer is a % number (savings, completion rate)
+    - "extract_themes"   — long_text suggestions → group into themes
 
-    === CROSS-TAB CARDS (special: no question_id, placed at end of a section) ===
-    Use when there is a GROUPING question (department, role, team) AND one or more numeric questions
-    that can be broken down by group. Add as a card with question_id = null:
-    {
-      "question_id": null,
-      "chart_type": "cross_tab_grouped_bar",
-      "title": "Cross-tab title",
-      "group_by_question_id": <id of dept/role question>,
-      "value_question_ids": [<id1>, <id2>],
-      "processing": "parse_percent",
-      "span": 12
-    }
+    === CROSS-TAB CARDS (question_id = null) ===
+    Use when a grouping question (dept, role) + numeric/percent questions exist.
+    Add as a card:
+    {"question_id": null, "chart_type": "cross_tab_grouped_bar", "title": "...",
+     "group_by_question_id": <dept_q_id>, "value_question_ids": [<id1>, <id2>],
+     "processing": "parse_percent", "span": 12}
+
+    === AI INSIGHTS ===
+    Generate 2–5 data-backed insights. Two types:
+    - type "stat": a key finding with exact numbers from the data
+    - type "recommendation": an actionable step with title + rationale citing exact data
 
     === KPI SOURCES ===
-    - "total_responses"       — total count
-    - "question_avg"          — numeric average of a rating/NPS question
-    - "question_avg_pct"      — average of a parse_percent question (shown as %)
-    - "question_top_option"   — most selected option label
-
-    === LAYOUT RULES ===
-    - span 6 = half width, span 12 = full width
-    - layout "grid-2" (default), "grid-3" (only for 3+ short charts)
-    - distribution_bar: span 6; cross_tab: span 12; quotes: span 12; theme_bar: span 6 or 12
-    - 2–5 questions per section, max 7 sections
-    - All text in same language as survey questions
+    - "total_responses", "question_avg", "question_avg_pct", "question_top_option"
 
     === OUTPUT FORMAT ===
     {
       "kpis": [
         {"label": "...", "source": "total_responses", "color": "#4361ee"},
-        {"label": "...", "source": "question_avg_pct", "question_id": 5, "color": "#06b6d4"},
-        {"label": "...", "source": "question_avg", "question_id": 8, "color": "#f59e0b"}
+        {"label": "...", "source": "question_avg_pct", "question_id": 5, "color": "#06b6d4"}
       ],
       "sections": [
         {
@@ -62,13 +53,25 @@ class GenerateReportStructureJob < ApplicationJob
           "layout": "grid-2",
           "cards": [
             {"question_id": 2, "chart_type": "doughnut", "title": "Card title", "span": 6},
-            {"question_id": 3, "chart_type": "bar", "title": "Card title", "processing": "normalize_tools", "span": 6},
-            {"question_id": null, "chart_type": "cross_tab_grouped_bar", "title": "Cross-tab title",
+            {"question_id": 3, "chart_type": "bar", "processing": "normalize_tools", "title": "Card title", "span": 6},
+            {"question_id": null, "chart_type": "cross_tab_grouped_bar", "title": "...",
              "group_by_question_id": 2, "value_question_ids": [5, 6], "processing": "parse_percent", "span": 12}
           ]
         }
+      ],
+      "ai_insights": [
+        {"type": "stat", "text": "Exact number + what it means — cite the data"},
+        {"type": "recommendation", "title": "Who does what by when", "detail": "Cite which question data led to this recommendation"}
       ]
     }
+
+    Rules:
+    - All text in same language as survey questions
+    - span 6 = half width, span 12 = full width
+    - distribution_bar/cross_tab/quotes → span 12 preferred; doughnut/bar → span 6
+    - 2–6 sections, 2–5 cards per section
+    - Every insight MUST reference actual numbers from the data provided
+    - Recommendations must be specific: WHO + WHAT + concrete basis from data
   PROMPT
 
   def perform(survey_id)
@@ -78,36 +81,49 @@ class GenerateReportStructureJob < ApplicationJob
     questions = survey.questions.includes(:question_options).order(:position)
     return if questions.empty?
 
-    questions_payload = questions.map do |q|
+    # ── Step 1: Compute actual data from DB BEFORE calling AI ──────────────
+    completed_ids = survey.responses.completed.where(excluded: [false, nil]).pluck(:id)
+    data_summary  = build_data_summary(survey, questions, completed_ids)
+
+    # ── Step 2: Build AI prompt with real data ──────────────────────────────
+    questions_payload = questions.map.with_index do |q, i|
       {
-        id:      q.id,
-        title:   q.title,
-        type:    q.question_type,
-        options: q.question_options.order(:position).map(&:label).first(12)
+        position: i + 1,
+        id:       q.id,
+        title:    q.title,
+        type:     q.question_type,
+        options:  q.question_options.order(:position).map(&:label).first(12)
       }
     end
 
     user_prompt = <<~MSG
       Survey: "#{survey.title}"
+      #{survey.description.present? ? "Description: #{survey.description}" : ""}
+      Total responses: #{completed_ids.size}
 
-      Questions:
+      ## ACTUAL RESPONSE DATA (computed from database — use these exact numbers):
+      #{data_summary}
+
+      ## Questions reference:
       #{JSON.pretty_generate(questions_payload)}
 
-      Design the best visual report. Use cross-tab if there's a grouping question + numeric/percent questions.
-      Use distribution_bar for any question asking "how much %" in free text.
-      Use normalize_tools for any question asking which software/tools/AI are used.
-      Use horizontal_bar for challenges/pain-points.
-      Use theme_bar or quotes for open suggestions.
+      Design the best visual report AND generate smart insights:
+      - Use cross_tab_grouped_bar if there's a grouping question (dept/role) + numeric/percent questions
+      - Use distribution_bar for any question asking "how much %" in free text
+      - Use normalize_tools for questions asking which software/tools/AI are used
+      - Use horizontal_bar for challenges/pain-points
+      - Use theme_bar or quotes for open suggestions
+      - Generate ai_insights with EXACT numbers from the data above
     MSG
 
-    raw = ClaudeService.haiku.call(
+    raw = ClaudeService.sonnet.call(
       system_prompt: SYSTEM_PROMPT,
       user_prompt:   user_prompt,
-      max_tokens:    3000
+      max_tokens:    4000
     )
 
-    # Strip markdown code fences if present
-    json_str = raw.to_s.gsub(/\A```(?:json)?\s*|\s*```\z/, "").strip
+    # Strip markdown fences if present
+    json_str  = raw.to_s.gsub(/\A```(?:json)?\s*|\s*```\z/, "").strip
     structure = JSON.parse(json_str)
     validate_structure!(structure, questions.map(&:id))
 
@@ -116,17 +132,69 @@ class GenerateReportStructureJob < ApplicationJob
       "report_structure_version" => Time.current.to_i.to_s
     )
     survey.update_columns(settings: settings)
-    Rails.logger.info "GenerateReportStructureJob: survey #{survey_id} done (#{structure['sections']&.length} sections)"
+    Rails.logger.info "GenerateReportStructureJob: survey #{survey_id} done — #{structure['sections']&.length} sections, #{structure['ai_insights']&.length} insights"
 
   rescue JSON::ParserError => e
     Rails.logger.error "GenerateReportStructureJob JSON error survey #{survey_id}: #{e.message}\nRaw: #{raw.to_s.first(500)}"
     save_fallback_structure(survey)
   rescue => e
-    Rails.logger.error "GenerateReportStructureJob error survey #{survey_id}: #{e.message}"
+    Rails.logger.error "GenerateReportStructureJob error survey #{survey_id}: #{e.class} #{e.message}"
     save_fallback_structure(survey)
   end
 
   private
+
+  # ── Compute actual aggregated data from DB ─────────────────────────────────
+  def build_data_summary(survey, questions, completed_ids)
+    return "No responses yet." if completed_ids.empty?
+
+    lines = []
+    questions.each_with_index do |q, i|
+      pos  = i + 1
+      base = Answer.where(question: q, response_id: completed_ids)
+      n    = base.count
+      next if n == 0
+
+      line = "Q#{pos} (ID #{q.id}) [#{q.question_type}] #{q.title.truncate(70)}"
+
+      case q.question_type.to_sym
+      when :single_choice, :multiple_choice, :dropdown
+        top_opts = q.question_options.order(:position).filter_map do |opt|
+          cnt = base.where("option_ids @> ?", [opt.id.to_s].to_json).count
+          cnt > 0 ? "#{opt.label}=#{cnt}(#{(cnt.to_f/n*100).round(1)}%)" : nil
+        end.first(8)
+        line += "\n  n=#{n}, options: #{top_opts.join(', ')}"
+
+      when :rating, :nps, :linear_scale
+        nums = base.where.not(numeric_value: nil).pluck(:numeric_value).map(&:to_f)
+        if nums.any?
+          avg = (nums.sum / nums.size).round(2)
+          max_v = q.nps? ? 10 : (q.settings&.dig("max_value")&.to_i || 5)
+          dist  = (q.nps? ? (0..10) : (1..max_v)).map { |v| c = nums.count{|n2| n2.round == v}; c > 0 ? "#{v}:#{c}" : nil }.compact
+          line += "\n  n=#{nums.size}, avg=#{avg}/#{max_v}, dist=[#{dist.join(', ')}]"
+        end
+
+      when :short_text, :long_text
+        texts = base.where.not(text_value: [nil, ""]).pluck(:text_value)
+        if texts.any?
+          nums = texts.filter_map { |t| t.gsub(/[~≈%\s]/, "").scan(/\d+(?:\.\d+)?/).first&.to_f }
+                      .select { |v| v > 0 && v <= 100 }
+          if nums.size >= texts.size * 0.4
+            avg = (nums.sum / nums.size).round(1)
+            line += "\n  n=#{texts.size}, numeric_pct: avg=#{avg}%, range=#{nums.min.round}–#{nums.max.round}%"
+            buckets = [[0,19,"<20"],[20,39,"20-39"],[40,59,"40-59"],[60,79,"60-79"],[80,100,"80-100"]]
+            dist_str = buckets.filter_map{|lo,hi,lbl| c=nums.count{|v|v>=lo&&v<=hi}; c>0 ? "#{lbl}%:#{c}" : nil}
+            line += ", dist=[#{dist_str.join(', ')}]" if dist_str.any?
+          else
+            samples = texts.select{|t| t.length >= 20}.sample(3).map{|t| t.truncate(60)}
+            line += "\n  n=#{texts.size}, samples: #{samples.inspect}"
+          end
+        end
+      end
+      lines << line
+    end
+    lines.join("\n\n")
+  end
 
   def validate_structure!(structure, valid_ids)
     raise "Missing sections" unless structure["sections"].is_a?(Array)
@@ -134,7 +202,6 @@ class GenerateReportStructureJob < ApplicationJob
       sec["cards"]&.select! do |c|
         c["question_id"].nil? || valid_ids.include?(c["question_id"].to_i)
       end
-      # Validate cross-tab references
       sec["cards"]&.each do |c|
         next unless c["chart_type"] == "cross_tab_grouped_bar"
         c["value_question_ids"] = Array(c["value_question_ids"]).map(&:to_i).select { |id| valid_ids.include?(id) }
@@ -144,6 +211,8 @@ class GenerateReportStructureJob < ApplicationJob
     structure["kpis"]&.select! do |kpi|
       kpi["source"] == "total_responses" || valid_ids.include?(kpi["question_id"].to_i)
     end
+    # Ensure ai_insights is an array
+    structure["ai_insights"] = Array(structure["ai_insights"]).select { |i| i["text"].present? || i["title"].present? }
   end
 
   def save_fallback_structure(survey)
@@ -173,8 +242,7 @@ class GenerateReportStructureJob < ApplicationJob
       sections << { "id" => "s#{i+1}", "title" => titles[type] || "Câu hỏi", "layout" => "grid-2", "cards" => cards }
     end
     kpis = [{ "label" => "Người tham gia", "source" => "total_responses", "color" => "#4361ee" }]
-    structure = { "kpis" => kpis, "sections" => sections, "_fallback" => true,
-                  "report_structure_version" => Time.current.to_i.to_s }
+    structure = { "kpis" => kpis, "sections" => sections, "ai_insights" => [], "_fallback" => true }
     survey.update_columns(settings: survey.settings.to_h.merge("report_structure" => structure,
                                                                 "report_structure_version" => Time.current.to_i.to_s))
   end
