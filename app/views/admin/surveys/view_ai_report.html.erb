@@ -189,8 +189,7 @@ canvas{max-height:240px}
 </div>
 <div class="chart-grid" style="margin-top:0">
 <%
-  PALETTE = %w[#4361ee #7c3aed #10b981 #f59e0b #ef4444 #06b6d4 #8b5cf6 #ec4899 #14b8a6 #f97316]
-  def pct_label(p); p ? "#{p.round(1)}%" : ""; end
+  palette = %w[#4361ee #7c3aed #10b981 #f59e0b #ef4444 #06b6d4 #8b5cf6 #ec4899 #14b8a6 #f97316]
 %>
 <% chart_data.each_with_index do |cd, idx| %>
 <%
@@ -217,7 +216,7 @@ canvas{max-height:240px}
     <div class="bar-item">
       <span class="bar-label" title="<%= lbl %>"><%= lbl.truncate(30) %></span>
       <div class="bar-track">
-        <div class="bar-fill" style="width:<%= pcts[i].clamp(0,100) %>%;background:<%= PALETTE[i % PALETTE.size] %>"><%= pcts[i] > 8 ? "#{pcts[i].round(1)}%" : '' %></div>
+        <div class="bar-fill" style="width:<%= pcts[i].clamp(0,100) %>%;background:<%= palette[i % palette.size] %>"><%= pcts[i] > 8 ? "#{pcts[i].round(1)}%" : '' %></div>
       </div>
       <span class="bar-count"><%= counts[i] %></span>
     </div>
@@ -229,7 +228,7 @@ canvas{max-height:240px}
     <div class="rating-row">
       <div class="rating-label" title="<%= o['label'] %>"><%= o["label"].to_s.truncate(35) %></div>
       <div class="rating-bar">
-        <div class="rating-fill" style="width:<%= ((o['count'].to_f / total.to_f)*100).clamp(0,100).round(1) %>%;background:<%= PALETTE[i % PALETTE.size] %>">
+        <div class="rating-fill" style="width:<%= ((o['count'].to_f / total.to_f)*100).clamp(0,100).round(1) %>%;background:<%= palette[i % palette.size] %>">
           <%= o['count'].to_i > 0 ? o['count'] : '' %>
         </div>
       </div>
@@ -252,7 +251,7 @@ canvas{max-height:240px}
           labels: <%= raw labels.to_json %>,
           datasets: [{
             data: <%= raw counts.to_json %>,
-            backgroundColor: <%= raw PALETTE.first(labels.size).to_json %>,
+            backgroundColor: <%= raw palette.first(labels.size).to_json %>,
             borderWidth: 2, borderColor: '#fff'
           }]
         },
