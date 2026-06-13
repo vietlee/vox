@@ -1103,7 +1103,23 @@ function confirmDelete() {
   if (el) el.classList.add('hidden-section');
   addRestoreChip(pendingDeleteCid, label, 'card');
   closeDeleteModal();
+  autoHideEmptySections();
   saveLayout();
+}
+
+// ── Auto-hide section if all its cards are hidden ──
+function autoHideEmptySections() {
+  document.querySelectorAll('.report-section:not(.hidden-section)').forEach(sec => {
+    const allCards = sec.querySelectorAll('.cw');
+    if (allCards.length === 0) return; // section has no cards (text-only sections)
+    const allHidden = [...allCards].every(cw => cw.classList.contains('hidden-section'));
+    if (allHidden) {
+      const sid = sec.dataset.id;
+      const label = sec.querySelector('.section-title')?.textContent?.trim() || sid;
+      sec.classList.add('hidden-section');
+      addRestoreChip(sid, label, 'section');
+    }
+  });
 }
 
 // ── Hide/show section ──
@@ -1122,7 +1138,19 @@ function addRestoreChip(id, label, type) {
   btn.textContent = '👁 ' + label;
   btn.onclick = () => {
     const sel = type === 'card' ? `[data-cid="${id}"]` : `[data-id="${id}"]`;
-    document.querySelector(sel)?.classList.remove('hidden-section');
+    const el = document.querySelector(sel);
+    if (el) {
+      el.classList.remove('hidden-section');
+      // If restoring a card, also un-hide its parent section if it was auto-hidden
+      if (type === 'card') {
+        const sec = el.closest('.report-section');
+        if (sec && sec.classList.contains('hidden-section')) {
+          sec.classList.remove('hidden-section');
+          const secChip = document.querySelector(`[data-restore="${sec.dataset.id}"]`);
+          if (secChip) secChip.remove();
+        }
+      }
+    }
     btn.remove();
     updateRestoreBar();
     saveLayout();
@@ -1275,17 +1303,22 @@ function loadLayout() {
   // Restore hidden sections
   (saved.hiddenSections || []).forEach(({ id, label }) => {
     const el = container.querySelector(`[data-id="${id}"]`);
-    if (el) { el.classList.add('hidden-section'); addRestoreChip(id, label, 'section'); }
+    if (!el) return;
+    el.classList.add('hidden-section');
+    if (!IS_PUBLIC) addRestoreChip(id, label, 'section');
   });
   // Restore hidden cards
   (saved.hiddenCards || []).forEach(cid => {
     const el = document.querySelector(`[data-cid="${cid}"]`);
-    if (el) {
-      el.classList.add('hidden-section');
+    if (!el) return;
+    el.classList.add('hidden-section');
+    if (!IS_PUBLIC) {
       const label = el.querySelector('h3')?.textContent?.trim() || cid;
       addRestoreChip(cid, label, 'card');
     }
   });
+  // Auto-hide sections where all cards are hidden (respects card-level hiding)
+  if (!IS_PUBLIC) autoHideEmptySections();
   // Restore card order per grid
   if (saved.cardOrder) {
     Object.entries(saved.cardOrder).forEach(([gridId, cids]) => {
