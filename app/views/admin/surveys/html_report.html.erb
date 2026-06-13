@@ -822,14 +822,22 @@ if (new URLSearchParams(location.search).get('pdf') === '1') {
   document.body.classList.add('pdf-mode');
 }
 
-// ── PDF download via Grover (server-side) ──
+// ── PDF download via Grover (server-side, with current layout) ──
 async function downloadPdf() {
   deactivateAllCards();
   const overlay = document.getElementById('pdf-loading');
   overlay.classList.add('show');
   try {
+    // Read current layout from localStorage so Grover renders same as browser
+    const layoutJson = localStorage.getItem('<%= "report_layout_#{@survey.id}" %>') || '{}';
+
     const resp = await fetch('<%= pdf_report_survey_path(@survey) %>', {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      method:  'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+      },
+      body: JSON.stringify({ layout: layoutJson })
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const blob = await resp.blob();

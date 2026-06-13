@@ -364,11 +364,22 @@ class Admin::SurveysController < Admin::BaseController
 
     # Render view to HTML string (with pdf=1 so UI chrome is hidden)
     params[:pdf] = "1"
-    html = render_to_string(
-      template:  "admin/surveys/html_report",
-      layout:    false,
-      locals:    {}
-    )
+    html = render_to_string(template: "admin/surveys/html_report", layout: false)
+
+    # Inject the browser's localStorage layout so Grover renders the same layout
+    layout_json = params[:layout].presence || "{}"
+    layout_script = <<~JS
+      <script>
+        (function(){
+          try {
+            var data = #{layout_json.to_s.html_safe};
+            if (typeof data === 'string') data = JSON.parse(data);
+            localStorage.setItem('report_layout_#{@survey.id}', typeof data === 'string' ? data : JSON.stringify(data));
+          } catch(e) {}
+        })();
+      </script>
+    JS
+    html = html.sub("</head>", "#{layout_script}</head>")
 
     # Vietnamese → ASCII filename
     filename = @survey.title.to_s
