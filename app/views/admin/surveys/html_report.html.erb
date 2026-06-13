@@ -66,10 +66,15 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .cw-active .card{box-shadow:0 0 0 2px #c7d2fe,0 2px 8px rgba(0,0,0,.07)}
 /* Resize mode: just the handles, no extra border */
 .cw-resize-mode .card{box-shadow:0 2px 8px rgba(0,0,0,.07)}
-/* Move mode overlay */
-.cw-drag-overlay{display:none;position:absolute;inset:0;background:rgba(99,102,241,.06);border:2px dashed #6366f1;border-radius:12px;z-index:35;align-items:center;justify-content:center;cursor:grab;font-size:13px;font-weight:700;color:#6366f1;gap:8px;letter-spacing:.3px}
+/* Move mode overlay — header strip only */
+.cw-drag-overlay{display:none;position:absolute;top:0;left:0;right:0;height:44px;background:linear-gradient(90deg,#eef2ff,#e0e7ff);border-radius:12px 12px 0 0;z-index:35;align-items:center;justify-content:space-between;cursor:grab;padding:0 12px 0 14px}
 .cw-move-mode .cw-drag-overlay{display:flex}
 .cw-move-mode .cw-drag-overlay:active{cursor:grabbing}
+.cw-drag-overlay .drag-label{font-size:12px;font-weight:700;color:#4361ee;display:flex;align-items:center;gap:6px}
+.cw-drag-overlay .drag-cancel{background:white;border:1px solid #c7d2fe;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;color:#6366f1;cursor:pointer;line-height:1.4}
+.cw-drag-overlay .drag-cancel:hover{background:#eef2ff}
+/* Push card content down when drag overlay shown */
+.cw-move-mode .card{padding-top:52px}
 /* Resize mode: show handles */
 .cw-resize-mode .rh-right{display:flex}
 .cw-resize-mode .rh-bottom{display:flex}
@@ -726,6 +731,15 @@ function setCwMode(btn, mode) {
   activeCw = null;
 }
 
+function cancelMode(e, btn) {
+  e.stopPropagation();
+  e.preventDefault();
+  const cw = btn.closest('.cw');
+  cw.classList.remove('cw-text-mode','cw-resize-mode','cw-move-mode');
+  cw.querySelectorAll('[data-editable]').forEach(el => el.contentEditable = 'false');
+  cw.querySelectorAll('.ct-mode-btn').forEach(b => b.classList.remove('active'));
+}
+
 // Click outside any .cw → deactivate
 document.addEventListener('mousedown', e => {
   if (rd) return; // ignore during resize
@@ -772,7 +786,7 @@ document.body.appendChild(tip);
 // Inject resize handles + move overlay + snap guide into all .cw
 document.querySelectorAll('.cw').forEach(cw => {
   cw.insertAdjacentHTML('beforeend',
-    '<div class="cw-drag-overlay ct-drag">⠿ Kéo để di chuyển</div>' +
+    '<div class="cw-drag-overlay ct-drag"><span class="drag-label">⠿ Kéo để di chuyển</span><button class="drag-cancel" onclick="cancelMode(event,this)">✕ Huỷ</button></div>' +
     '<div class="rh-right"  data-dir="e"><div class="rh-right-bar"></div></div>' +
     '<div class="rh-bottom" data-dir="s"><div class="rh-bottom-bar"></div></div>' +
     '<div class="rh-corner" data-dir="se"></div>' +
