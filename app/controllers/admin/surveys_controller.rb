@@ -406,9 +406,10 @@ class Admin::SurveysController < Admin::BaseController
       .strip.gsub(/\s+/, "-")[0..79]
     filename = "bao-cao" if filename.blank?
 
-    # Render at same width as browser (matches max-width:1200px container),
-    # then scale=0.86 to fit A4 landscape content area (273mm = 1032px at 96dpi).
-    # This preserves identical layout/proportions vs the HTML report.
+    # Render at same width as browser (matches max-width:1200px container).
+    # deviceScaleFactor:2 → charts/canvas render at 2x resolution → crisp in PDF.
+    # scale:0.86 → shrinks 1200px layout to fit A4 landscape content (277mm).
+    # Net canvas sharpness: 2 * 0.86 = 1.72x vs default → significantly crisper.
     pdf = Grover.new(html,
       format:           "A4",
       landscape:        true,
@@ -416,7 +417,7 @@ class Admin::SurveysController < Admin::BaseController
       scale:            0.86,
       margin:           { top: "8mm", bottom: "8mm", left: "8mm", right: "8mm" },
       emulate_media:    "print",
-      viewport:         { width: 1200, height: 900 },
+      viewport:         { width: 1200, height: 900, device_scale_factor: 2 },
       wait_until:       "networkidle2",
       timeout:          90_000
     ).to_pdf
