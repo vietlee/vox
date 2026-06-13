@@ -135,6 +135,11 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   def html_report # rubocop:disable Metrics/MethodLength
+    call_html_report_setup
+    render layout: false
+  end
+
+  def call_html_report_setup # rubocop:disable Metrics/MethodLength
     @questions       = @survey.questions.includes(:question_options).order(:position)
     @total_responses = @survey.responses.completed.count
     @ai_analysis     = @survey.latest_ai_analysis
@@ -351,32 +356,35 @@ class Admin::SurveysController < Admin::BaseController
       dates = responses.map(&:completed_at).compact
       "#{dates.min.strftime('%d/%m/%Y')} – #{dates.max.strftime('%d/%m/%Y')}" if dates.any?
     end
-
-    render layout: false
   end
 
-  def pdf_report
-    # Build the html_report URL with a special param so Grover skips UI chrome
-    report_url = html_report_survey_url(@survey, pdf: "1", host: request.host_with_port, protocol: request.protocol)
+  def pdf_report # rubocop:disable Metrics/MethodLength
+    # Reuse html_report instance variables
+    call_html_report_setup
 
-    # Smart layout: choose orientation based on number of visible sections/cards
-    section_count = @survey.questions.count rescue 0
-    orientation   = "landscape" # landscape fits dashboards better
+    # Render view to HTML string (with pdf=1 so UI chrome is hidden)
+    params[:pdf] = "1"
+    html = render_to_string(
+      template:  "admin/surveys/html_report",
+      layout:    false,
+      locals:    {}
+    )
 
+    # Vietnamese → ASCII filename
     filename = @survey.title.to_s
-      .unicode_normalize rescue @survey.title.to_s
-    filename = filename.gsub(/[àáảãạăắặằẳẵâấầẩẫậ]/i, "a")
-      .gsub(/đ/i, "d")
-      .gsub(/[èéẻẽẹêếềểễệ]/i, "e")
-      .gsub(/[ìíỉĩị]/i, "i")
-      .gsub(/[òóỏõọôốồổỗộơớờởỡợ]/i, "o")
-      .gsub(/[ùúủũụưứừửữự]/i, "u")
-      .gsub(/[ỳýỷỹỵ]/i, "y")
-      .gsub(/[^a-zA-Z0-9\s\-]/, "")
+    begin
+      filename = filename.unicode_normalize
+    rescue
+    end
+    filename = filename
+      .gsub(/[àáảãạăắặằẳẵâấầẩẫậ]/i, "a").gsub(/[đĐ]/, "d")
+      .gsub(/[èéẻẽẹêếềểễệ]/i, "e").gsub(/[ìíỉĩị]/i, "i")
+      .gsub(/[òóỏõọôốồổỗộơớờởỡợ]/i, "o").gsub(/[ùúủũụưứừửữự]/i, "u")
+      .gsub(/[ỳýỷỹỵ]/i, "y").gsub(/[^a-zA-Z0-9\s\-]/, "")
       .strip.gsub(/\s+/, "-")[0..79]
     filename = "bao-cao" if filename.blank?
 
-    pdf = Grover.new(report_url,
+    pdf = Grover.new(html,
       format:           "A4",
       landscape:        true,
       print_background: true,
@@ -392,7 +400,7 @@ class Admin::SurveysController < Admin::BaseController
       type:        "application/pdf",
       disposition: "attachment"
   rescue => e
-    Rails.logger.error "pdf_report error: #{e.message}"
+    Rails.logger.error "pdf_report error: #{e.message}\n#{e.backtrace.first(5).join("\n")}"
     redirect_to html_report_survey_path(@survey), alert: "Không thể xuất PDF: #{e.message}"
   end
 
