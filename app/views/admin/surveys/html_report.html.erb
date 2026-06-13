@@ -8,7 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><style>
+<style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
 
@@ -1407,20 +1407,25 @@ async function openShareModal() {
     const data = await resp.json();
     shareUrl = data.url;
     document.getElementById('shareLinkInput').value = shareUrl;
-    renderQr(shareUrl);
+    // Render server-generated SVG QR (same style as vote QR)
+    document.getElementById('shareQrDiv').innerHTML = data.qr_svg || '';
   } catch(e) {
     document.getElementById('shareLinkInput').value = 'Lỗi: ' + e.message;
   }
 }
 
-function renderQr(url) {
-  const div = document.getElementById('shareQrDiv');
-  div.innerHTML = '';
-  new QRCode(div, {
-    text: url, width: 200, height: 200,
-    colorDark: '#1e293b', colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.H
-  });
+function svgToCanvas(callback) {
+  const svg = document.querySelector('#shareQrDiv svg');
+  if (!svg) return callback(null);
+  const xml = new XMLSerializer().serializeToString(svg);
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = 220; c.height = 220;
+    c.getContext('2d').drawImage(img, 0, 0, 220, 220);
+    callback(c);
+  };
+  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(xml)));
 }
 
 function closeShareModal() {
@@ -1433,22 +1438,26 @@ function copyShareLink() {
 
 async function copyQrImage() {
   try {
-    const canvas = document.querySelector('#shareQrDiv canvas');
-    if (!canvas) return showCopyTip('QR chưa sẵn sàng');
-    canvas.toBlob(async blob => {
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      showCopyTip('Đã copy ảnh QR!');
+    if (!document.querySelector('#shareQrDiv svg')) return showCopyTip('QR chưa sẵn sàng');
+    svgToCanvas(async canvas => {
+      if (!canvas) return showCopyTip('Không thể tạo ảnh QR');
+      canvas.toBlob(async blob => {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        showCopyTip('Đã copy ảnh QR!');
+      });
     });
   } catch(e) { showCopyTip('Trình duyệt không hỗ trợ copy ảnh'); }
 }
 
 function downloadQr() {
-  const canvas = document.querySelector('#shareQrDiv canvas');
-  if (!canvas) return showCopyTip('QR chưa sẵn sàng');
-  const a = document.createElement('a');
-  a.download = 'qr-bao-cao.png';
-  a.href = canvas.toDataURL('image/png');
-  a.click();
+  if (!document.querySelector('#shareQrDiv svg')) return showCopyTip('QR chưa sẵn sàng');
+  svgToCanvas(canvas => {
+    if (!canvas) return showCopyTip('Không thể tạo ảnh QR');
+    const a = document.createElement('a');
+    a.download = 'qr-bao-cao.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  });
 }
 
 async function revokeShareLink() {
@@ -1459,7 +1468,7 @@ async function revokeShareLink() {
   });
   shareUrl = null;
   document.getElementById('shareLinkInput').value = 'Link đã bị thu hồi';
-  document.getElementById('shareQrCanvas').getContext('2d').clearRect(0,0,200,200);
+  document.getElementById('shareQrDiv').innerHTML = '';
 }
 
 function showCopyTip(msg) {

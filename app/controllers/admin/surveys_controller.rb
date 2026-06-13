@@ -361,7 +361,11 @@ class Admin::SurveysController < Admin::BaseController
   def generate_report_token
     token = @survey.settings["report_token"].presence || SecureRandom.urlsafe_base64(16)
     @survey.update!(settings: @survey.settings.merge("report_token" => token))
-    render json: { token: token, url: public_report_url(token) }
+    public_url = public_report_url(token)
+    # Generate QR SVG server-side (same style as vote QR)
+    qr_code = RQRCode::QRCode.new(public_url, level: :h)
+    qr_svg  = build_report_qr_svg(qr_code)
+    render json: { token: token, url: public_url, qr_svg: qr_svg }
   end
 
   def revoke_report_token
@@ -899,6 +903,33 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   private
+
+  def build_report_qr_svg(qr_code)
+    mod_size = 6; pad = 24; radius = 16
+    total    = qr_code.modules.size * mod_size + pad * 2
+    inner    = qr_code.as_svg(color: "4338ca", shape_rendering: "crispEdges",
+                               module_size: mod_size, standalone: false, use_path: true, offset: 0)
+    logo_bg  = (total * 0.22).round; logo_sz = logo_bg - 8
+    logo_x   = (total - logo_bg) / 2; logo_y = (total - logo_bg) / 2
+    icon_x   = (total - logo_sz) / 2; icon_y = (total - logo_sz) / 2
+    sc       = (logo_sz / 36.0).round(4)
+    <<~SVG
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 #{total} #{total}" width="220" height="220" shape-rendering="crispEdges">
+        <rect width="#{total}" height="#{total}" rx="#{radius}" ry="#{radius}" fill="#fff"/>
+        <rect width="#{total}" height="#{total}" rx="#{radius}" ry="#{radius}" fill="none" stroke="#e0e7ff" stroke-width="2"/>
+        <g transform="translate(#{pad},#{pad})">#{inner}</g>
+        <rect x="#{logo_x}" y="#{logo_y}" width="#{logo_bg}" height="#{logo_bg}" rx="#{(logo_bg*0.22).round}" ry="#{(logo_bg*0.22).round}" fill="#fff" stroke="#e0e7ff" stroke-width="1.5"/>
+        <g transform="translate(#{icon_x},#{icon_y}) scale(#{sc})">
+          <rect x="0" y="0" width="36" height="36" rx="9" fill="#1A6BFF"/>
+          <polygon points="10,24 6,31 16,24" fill="white"/>
+          <rect x="6" y="6" width="24" height="19" rx="5" fill="white"/>
+          <rect x="10" y="11" width="4" height="7" rx="1" fill="#1A6BFF"/>
+          <rect x="16" y="8" width="4" height="13" rx="1" fill="#1A6BFF"/>
+          <rect x="23" y="10" width="4" height="9" rx="1" fill="#1A6BFF"/>
+        </g>
+      </svg>
+    SVG
+  end
 
   VIET_MAP = {
     # a

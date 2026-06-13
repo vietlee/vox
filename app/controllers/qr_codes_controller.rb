@@ -35,11 +35,9 @@ class QrCodesController < ActionController::Base
     mod_size   = 6
     pad        = 24
     radius     = 16
-    text_h     = 32
     modules    = qr_code.modules.size
     qr_px      = modules * mod_size
     total      = qr_px + pad * 2
-    full_h     = total + text_h
 
     inner_svg = qr_code.as_svg(
       color:           "4338ca",
@@ -58,13 +56,11 @@ class QrCodesController < ActionController::Base
     icon_y  = (total - logo_sz) / 2
 
     <<~SVG
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 #{total} #{full_h}" width="#{total}" height="#{full_h}" shape-rendering="crispEdges">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 #{total} #{total}" width="#{total}" height="#{total}" shape-rendering="crispEdges">
         <!-- White background -->
-        <rect width="#{total}" height="#{full_h}" rx="#{radius}" ry="#{radius}" fill="#ffffff"/>
+        <rect width="#{total}" height="#{total}" rx="#{radius}" ry="#{radius}" fill="#ffffff"/>
         <!-- Border -->
-        <rect width="#{total}" height="#{full_h}" rx="#{radius}" ry="#{radius}" fill="none" stroke="#e0e7ff" stroke-width="2"/>
-        <!-- Separator -->
-        <line x1="#{pad}" y1="#{total}" x2="#{total - pad}" y2="#{total}" stroke="#e0e7ff" stroke-width="1"/>
+        <rect width="#{total}" height="#{total}" rx="#{radius}" ry="#{radius}" fill="none" stroke="#e0e7ff" stroke-width="2"/>
 
         <!-- QR modules -->
         <g transform="translate(#{pad}, #{pad})">#{inner_svg}</g>
@@ -72,7 +68,7 @@ class QrCodesController < ActionController::Base
         <!-- Logo white background -->
         <rect x="#{logo_x}" y="#{logo_y}" width="#{logo_bg}" height="#{logo_bg}" rx="#{(logo_bg * 0.22).round}" ry="#{(logo_bg * 0.22).round}" fill="#ffffff" stroke="#e0e7ff" stroke-width="1.5"/>
 
-        <!-- VOX icon -->
+        <!-- Icon only (no VOX text) -->
         <g transform="translate(#{icon_x}, #{icon_y}) scale(#{(logo_sz / 36.0).round(4)})">
           <rect x="0" y="0" width="36" height="36" rx="9" fill="#1A6BFF"/>
           <polygon points="10,24 6,31 16,24" fill="white"/>
@@ -81,12 +77,6 @@ class QrCodesController < ActionController::Base
           <rect x="16" y="8" width="4" height="13" rx="1" fill="#1A6BFF"/>
           <rect x="23" y="10" width="4" height="9" rx="1" fill="#1A6BFF"/>
         </g>
-
-        <!-- VOX label -->
-        <text x="#{total / 2}" y="#{total + text_h / 2 + 5}"
-          font-family="system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif"
-          font-size="13" font-weight="800" letter-spacing="3"
-          fill="#1A6BFF" text-anchor="middle">VOX</text>
       </svg>
     SVG
   end
