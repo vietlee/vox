@@ -9,81 +9,131 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;min-height:100vh;display:flex;align-items:center;justify-content:center}
-.card{background:white;border-radius:20px;padding:48px 40px;max-width:420px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.1)}
-.spinner-wrap{width:72px;height:72px;margin:0 auto 24px;position:relative}
-.spinner{width:72px;height:72px;border-radius:50%;border:4px solid #e0e7ff;border-top-color:#4361ee;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.ai-badge{display:inline-flex;align-items:center;gap:6px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;color:#4361ee;margin-bottom:16px}
-h2{font-size:20px;font-weight:700;color:#1a1a2e;margin-bottom:10px}
-p{font-size:14px;color:#64748b;line-height:1.6;margin-bottom:24px}
-.steps{text-align:left;background:#f8fafc;border-radius:12px;padding:16px 20px;margin-bottom:28px}
-.step{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px;color:#64748b;border-bottom:1px solid #f1f5f9}
+.card{background:white;border-radius:24px;padding:44px 36px 32px;max-width:400px;width:90%;text-align:center;box-shadow:0 12px 48px rgba(0,0,0,.12)}
+
+/* VOX icon */
+.vox-icon-wrap{width:88px;height:88px;margin:0 auto 24px;position:relative;display:flex;align-items:center;justify-content:center}
+.vox-orbit{position:absolute;inset:-8px;border-radius:50%;border:2px dashed #c7d2fe;animation:rb-orbit 3s linear infinite}
+.vox-img{width:72px;height:72px;border-radius:18px;box-shadow:0 4px 20px rgba(67,97,238,.25);animation:vox-pulse 1.6s ease-in-out infinite;object-fit:contain}
+.vox-fallback{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,#4361ee,#7c3aed);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(67,97,238,.25);animation:vox-pulse 1.6s ease-in-out infinite}
+
+.ai-badge{display:inline-flex;align-items:center;gap:6px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;color:#4361ee;letter-spacing:.8px;text-transform:uppercase;margin-bottom:14px}
+h2{font-size:20px;font-weight:800;color:#1a1a2e;margin-bottom:8px}
+p{font-size:13px;color:#64748b;line-height:1.65;margin-bottom:20px}
+
+/* Progress */
+.progress-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.progress-label{font-size:12px;color:#64748b}
+.progress-pct{font-size:13px;font-weight:700;color:#4361ee}
+.progress-track{height:6px;background:#e0e7ff;border-radius:99px;overflow:hidden;margin-bottom:20px}
+.progress-bar{height:100%;width:15%;background:linear-gradient(90deg,#4361ee,#7c3aed);border-radius:99px;transition:width .7s ease}
+
+/* Steps */
+.steps{text-align:left;background:#f8fafc;border-radius:12px;padding:14px 18px;margin-bottom:24px}
+.step{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12px;color:#94a3b8;border-bottom:1px solid #f1f5f9;transition:color .3s}
 .step:last-child{border-bottom:none}
-.step .dot{width:8px;height:8px;border-radius:50%;background:#c7d2fe;flex-shrink:0;transition:background .3s}
-.step.active .dot{background:#4361ee;box-shadow:0 0 0 3px rgba(67,97,238,.2)}
+.step .dot{width:8px;height:8px;border-radius:50%;background:#e2e8f0;flex-shrink:0;transition:background .3s}
+.step.active{color:#4361ee;font-weight:700}
+.step.active .dot{background:#4361ee;box-shadow:0 0 0 3px rgba(67,97,238,.2);animation:pulse-dot 1s infinite}
+.step.done{color:#10b981;font-weight:500}
 .step.done .dot{background:#10b981}
-.step.active{color:#1a1a2e;font-weight:600}
-.step.done{color:#10b981}
-.btn-back{display:inline-flex;align-items:center;gap:6px;color:#94a3b8;font-size:13px;text-decoration:none;margin-top:8px}
+
+.btn-back{display:inline-flex;align-items:center;gap:6px;color:#94a3b8;font-size:13px;text-decoration:none}
 .btn-back:hover{color:#4361ee}
 .error-box{display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#dc2626}
+
+@keyframes vox-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.75;transform:scale(.93)}}
+@keyframes rb-orbit{to{transform:rotate(360deg)}}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.5)}}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="ai-badge">✨ AI đang phân tích</div>
-  <div class="spinner-wrap"><div class="spinner"></div></div>
-  <h2>Đang tạo cấu trúc báo cáo</h2>
-  <p>AI đang đọc nội dung khảo sát và thiết kế layout báo cáo phù hợp. Quá trình này mất khoảng 5–15 giây.</p>
+  <!-- Icon -->
+  <div class="vox-icon-wrap">
+    <div class="vox-orbit"></div>
+    <img src="/icon.svg" class="vox-img" onerror="this.style.display='none';document.getElementById('vox-fb').style.display='flex'">
+    <div id="vox-fb" class="vox-fallback" style="display:none">
+      <svg width="36" height="36" viewBox="0 0 36 36"><rect x="0" y="0" width="36" height="36" rx="9" fill="white" fill-opacity=".9"/><polygon points="10,24 6,31 16,24" fill="white"/><rect x="6" y="6" width="24" height="19" rx="5" fill="white"/><rect x="10" y="11" width="4" height="7" rx="1" fill="#4361ee"/><rect x="16" y="8" width="4" height="13" rx="1" fill="#4361ee"/><rect x="23" y="10" width="4" height="9" rx="1" fill="#4361ee"/></svg>
+    </div>
+  </div>
 
+  <div class="ai-badge">✦ AI đang phân tích</div>
+  <h2>Đang tạo cấu trúc báo cáo</h2>
+  <p>AI đọc câu hỏi, phân tích dữ liệu và thiết kế layout báo cáo phù hợp.</p>
+
+  <!-- Progress -->
+  <div class="progress-row">
+    <span class="progress-label" id="progress-text">Đang khởi động...</span>
+    <span class="progress-pct" id="progress-pct">15%</span>
+  </div>
+  <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+  <!-- Steps -->
   <div class="steps">
     <div class="step done" id="step1"><div class="dot"></div> Đọc danh sách câu hỏi</div>
     <div class="step active" id="step2"><div class="dot"></div> AI phân tích & gom nhóm</div>
-    <div class="step" id="step3"><div class="dot"></div> Thiết kế layout sections</div>
+    <div class="step" id="step3"><div class="dot"></div> Thiết kế layout & rút gọn nhãn</div>
     <div class="step" id="step4"><div class="dot"></div> Tạo báo cáo hoàn chỉnh</div>
   </div>
 
   <div class="error-box" id="errorBox">Có lỗi xảy ra. <a href="<%= html_report_survey_path(@survey) %>" style="color:#dc2626;font-weight:600">Thử lại</a></div>
-
   <a href="<%= results_survey_path(@survey) %>" class="btn-back">← Quay lại kết quả</a>
 </div>
 
 <script>
-const CHECK_URL = '<%= html_report_survey_path(@survey, check_structure: 1) %>';
+const CHECK_URL  = '<%= html_report_survey_path(@survey, check_structure: 1) %>';
 const REPORT_URL = '<%= html_report_survey_path(@survey) %>';
 let attempt = 0;
-const steps = [null, document.getElementById('step2'), document.getElementById('step3'), document.getElementById('step4')];
 
-function advanceStep(n) {
-  if (n > 0 && n <= steps.length - 1 && steps[n]) {
-    steps[n].classList.remove('active');
-    steps[n].classList.add('done');
-    if (steps[n+1]) { steps[n+1].classList.add('active'); }
-  }
+const stepsData = [
+  { id:'step2', pct:40, text:'AI phân tích & gom nhóm dữ liệu...',   delay:0 },
+  { id:'step3', pct:75, text:'Thiết kế layout & rút gọn nhãn...',      delay:4000 },
+  { id:'step4', pct:92, text:'Đang hoàn thiện báo cáo...',             delay:9000 },
+];
+
+function setProgress(pct, text) {
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  if (text) document.getElementById('progress-text').textContent = text;
 }
+
+function activateStep(activeId) {
+  ['step1','step2','step3','step4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const idx  = ['step1','step2','step3','step4'].indexOf(id);
+    const aIdx = ['step1','step2','step3','step4'].indexOf(activeId);
+    el.className = 'step ' + (idx < aIdx ? 'done' : idx === aIdx ? 'active' : '');
+  });
+}
+
+stepsData.forEach(({ id, pct, text, delay }) => {
+  setTimeout(() => { activateStep(id); setProgress(pct, text); }, delay);
+});
 
 function checkReady() {
   attempt++;
-  if (attempt === 3) advanceStep(1);
-  if (attempt === 6) advanceStep(2);
-
   fetch(CHECK_URL, { headers: { 'Accept': 'application/json' } })
     .then(r => r.json())
     .then(data => {
       if (data.ready) {
-        advanceStep(3);
-        setTimeout(() => { window.location = REPORT_URL; }, 600);
-      } else if (attempt < 30) {
+        activateStep('done-all');
+        setProgress(100, 'Hoàn thành! Đang tải báo cáo...');
+        ['step1','step2','step3','step4'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) { el.className = 'step done'; }
+        });
+        setTimeout(() => { window.location = REPORT_URL; }, 700);
+      } else if (attempt < 40) {
         setTimeout(checkReady, 2000);
       } else {
         document.getElementById('errorBox').style.display = 'block';
       }
     })
-    .catch(() => {
-      if (attempt < 30) setTimeout(checkReady, 3000);
-    });
+    .catch(() => { if (attempt < 40) setTimeout(checkReady, 3000); });
 }
-
 setTimeout(checkReady, 2000);
 </script>
 </body>
