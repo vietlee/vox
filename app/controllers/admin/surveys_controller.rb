@@ -3,7 +3,7 @@ require "csv"
 class Admin::SurveysController < Admin::BaseController
   include HtmlReportSetup
 
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :generate_report_token, :revoke_report_token, :export, :export_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :generate_report_token, :revoke_report_token, :save_report_layout, :export, :export_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
@@ -127,6 +127,14 @@ class Admin::SurveysController < Admin::BaseController
 
   def revoke_report_token
     @survey.update!(settings: @survey.settings.except("report_token"))
+    render json: { ok: true }
+  end
+
+  def save_report_layout
+    layout_json = request.body.read
+    layout_data = JSON.parse(layout_json) rescue nil
+    return render json: { error: "invalid" }, status: :bad_request unless layout_data
+    @survey.update!(settings: @survey.settings.merge("report_layout" => layout_data))
     render json: { ok: true }
   end
 

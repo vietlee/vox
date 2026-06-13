@@ -98,6 +98,7 @@ Rails.application.routes.draw do
         post  :pdf_report
         post  :generate_report_token
         delete :revoke_report_token
+        post  :save_report_layout
         get   :export
         get    :export_report
         delete :delete_report

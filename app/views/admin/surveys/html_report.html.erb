@@ -243,8 +243,18 @@ body.pdf-mode .rh-right,body.pdf-mode .rh-bottom,body.pdf-mode .rh-corner,
 body.pdf-mode #shareModal,body.pdf-mode #pdf-loading{display:none!important}
 body.pdf-mode{background:white!important}
 body.pdf-mode .card{box-shadow:none!important;border:1px solid #e2e8f0!important}
-/* Sharper text in PDF */
 body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+<% end %>
+/* ── Public view mode ── */
+<% if @public_view %>
+.cw-gear,.card-toolbar,.cw-mode-bar,.restore-bar,.section-controls,
+.rh-right,.rh-bottom,.rh-corner,.btn-sec-drag,.btn-sec-hide,
+#shareModal,#deleteModal,#chartModal,.hdr-edit-icon,
+.hdr-editable{pointer-events:none;cursor:default}
+.cw-gear,.card-toolbar,.cw-mode-bar,.restore-bar,.section-controls,
+.rh-right,.rh-bottom,.rh-corner,.btn-sec-drag,.btn-sec-hide,
+#shareModal,#deleteModal,#chartModal,.hdr-edit-icon{display:none!important}
+.hdr-editable{cursor:default!important}
 <% end %>
 
 /* ── Print / PDF ── */
@@ -814,6 +824,16 @@ mkChart('challengeChart',{type:'bar',data:{labels:<%= raw @challenge_counts.map{
 // ══════════════════════════════════════════════════════════
 const SURVEY_ID = '<%= @survey.id %>';
 const SK = 'report_layout_' + SURVEY_ID;
+const IS_PUBLIC = <%= @public_view ? 'true' : 'false' %>;
+<% if @public_view && @survey.settings["report_layout"].present? %>
+// Inject server-saved layout for public view
+(function(){
+  try {
+    const serverLayout = <%= raw @survey.settings["report_layout"].to_json %>;
+    localStorage.setItem(SK, JSON.stringify(serverLayout));
+  } catch(e) {}
+})();
+<% end %>
 let editMode = false;
 let pendingDeleteCid = null;
 let currentChartModal = null; // { chartId, cardTitle }
@@ -1222,6 +1242,17 @@ function saveLayout() {
   const ht = document.getElementById('hdrTitleText'); if (ht) layout.hdrTitle = ht.textContent;
   const hs = document.getElementById('hdrSubText');   if (hs) layout.hdrSub   = hs.textContent;
   localStorage.setItem(SK, JSON.stringify(layout));
+  // Sync layout to server so public link shows same layout
+  if (!IS_PUBLIC) {
+    clearTimeout(saveLayout._t);
+    saveLayout._t = setTimeout(() => {
+      fetch('<%= @public_view ? "#" : save_report_layout_survey_path(@survey) %>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+        body: JSON.stringify(layout)
+      }).catch(() => {});
+    }, 1500); // debounce 1.5s
+  }
 }
 
 function loadLayout() {
