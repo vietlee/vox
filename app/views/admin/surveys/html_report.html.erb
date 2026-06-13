@@ -240,6 +240,8 @@ canvas{max-height:260px}
 .pdf-spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+@keyframes vox-pulse{0%,100%{opacity:1;transform:scale(1);box-shadow:0 4px 20px rgba(67,97,238,.3)}50%{opacity:.75;transform:scale(.93);box-shadow:0 2px 10px rgba(67,97,238,.15)}}
+@keyframes rb-orbit{to{transform:rotate(360deg)}}
 
 /* ── Confirm modal ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
@@ -1863,50 +1865,97 @@ function rebuildStructure() {
 
 function showRebuildOverlay() {
   let el = document.getElementById('rebuild-overlay');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'rebuild-overlay';
-    el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,20,50,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;';
-    el.innerHTML = `
-      <div style="background:white;border-radius:20px;padding:40px 36px;max-width:420px;width:90%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.3);">
-        <div style="margin-bottom:20px">
-          <svg width="56" height="56" viewBox="0 0 56 56" style="margin:0 auto">
-            <circle cx="28" cy="28" r="24" fill="none" stroke="#e0e7ff" stroke-width="4"/>
-            <circle cx="28" cy="28" r="24" fill="none" stroke="#4361ee" stroke-width="4"
-              stroke-dasharray="40 112" stroke-linecap="round" transform="rotate(-90 28 28)">
-              <animateTransform attributeName="transform" type="rotate" from="−90 28 28" to="270 28 28" dur="1.2s" repeatCount="indefinite"/>
-            </circle>
-          </svg>
+  if (el) { el.style.display = 'flex'; return; }
+  el = document.createElement('div');
+  el.id = 'rebuild-overlay';
+  el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(10,14,40,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;';
+  el.innerHTML = `
+    <div style="background:white;border-radius:24px;padding:40px 36px 32px;max-width:400px;width:90%;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.35);">
+
+      <!-- VOX icon blinking -->
+      <div id="rb-icon-wrap" style="width:72px;height:72px;margin:0 auto 20px;position:relative">
+        <img src="/icon.svg" id="rb-vox-icon"
+             style="width:72px;height:72px;border-radius:18px;box-shadow:0 4px 20px rgba(67,97,238,.3);animation:vox-pulse 1.6s ease-in-out infinite"
+             onerror="this.style.display='none';document.getElementById('rb-icon-fallback').style.display='flex'">
+        <div id="rb-icon-fallback"
+             style="display:none;width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,#4361ee,#7c3aed);align-items:center;justify-content:center;font-size:28px;font-weight:900;color:white;letter-spacing:-1px;box-shadow:0 4px 20px rgba(67,97,238,.3);animation:vox-pulse 1.6s ease-in-out infinite">
+          V
         </div>
-        <div style="font-size:11px;font-weight:700;color:#4361ee;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">✦ AI đang phân tích</div>
-        <h2 style="font-size:20px;font-weight:800;color:#1a1a2e;margin-bottom:10px">Đang tạo cấu trúc báo cáo</h2>
-        <p style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:24px">AI đang đọc nội dung khảo sát và thiết kế layout báo cáo phù hợp. Quá trình này mất khoảng 5–15 giây.</p>
-        <div style="background:#f8fafc;border-radius:12px;padding:16px 20px;text-align:left">
-          <div id="rb-step-1" class="rb-step done" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:#10b981;font-weight:500">
-            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;flex-shrink:0"></span> Đọc danh sách câu hỏi
-          </div>
-          <div id="rb-step-2" class="rb-step done" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:#10b981;font-weight:500">
-            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;flex-shrink:0"></span> Phân tích dữ liệu thực tế
-          </div>
-          <div id="rb-step-3" class="rb-step active" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:#4361ee;font-weight:700">
-            <span style="width:8px;height:8px;border-radius:50%;background:#4361ee;flex-shrink:0;animation:pulse-dot 1s infinite"></span> AI rút gọn nhãn & thiết kế layout
-          </div>
-          <div id="rb-step-4" class="rb-step" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:#94a3b8">
-            <span style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;flex-shrink:0"></span> Tạo báo cáo hoàn chỉnh
-          </div>
+        <!-- Orbiting dot -->
+        <div style="position:absolute;inset:-6px;border-radius:50%;border:2px dashed #c7d2fe;animation:rb-orbit 3s linear infinite"></div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:#4361ee;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px">✦ AI đang phân tích</div>
+      <h2 style="font-size:20px;font-weight:800;color:#1a1a2e;margin-bottom:8px">Đang tạo cấu trúc báo cáo</h2>
+      <p style="font-size:13px;color:#64748b;line-height:1.6;margin-bottom:20px">AI đọc câu hỏi, phân tích dữ liệu và thiết kế layout phù hợp.</p>
+
+      <!-- Progress bar + % -->
+      <div style="margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span id="rb-status-text" style="font-size:12px;color:#64748b">Đang khởi động...</span>
+          <span id="rb-pct" style="font-size:13px;font-weight:700;color:#4361ee">0%</span>
         </div>
-      </div>`;
-    document.body.appendChild(el);
-    // Animate steps
+        <div style="height:6px;background:#e0e7ff;border-radius:99px;overflow:hidden">
+          <div id="rb-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#4361ee,#7c3aed);border-radius:99px;transition:width .6s ease"></div>
+        </div>
+      </div>
+
+      <!-- Steps -->
+      <div style="background:#f8fafc;border-radius:12px;padding:14px 18px;text-align:left">
+        ${[
+          ['rb-s1','Đọc danh sách câu hỏi','done'],
+          ['rb-s2','Phân tích dữ liệu thực tế','done'],
+          ['rb-s3','AI rút gọn nhãn & thiết kế layout','active'],
+          ['rb-s4','Tạo báo cáo hoàn chỉnh',''],
+        ].map(([id,label,cls])=>`
+          <div id="${id}" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:12px;
+            color:${cls==='done'?'#10b981':cls==='active'?'#4361ee':'#94a3b8'};
+            font-weight:${cls==='active'?'700':'500'};border-bottom:1px solid #f1f5f9">
+            <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;
+              background:${cls==='done'?'#10b981':cls==='active'?'#4361ee':'#e2e8f0'};
+              ${cls==='active'?'animation:pulse-dot 1s infinite':''}"></span>
+            ${label}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+
+  // Animate progress
+  const steps = [
+    { id:'rb-s1', pct:15, text:'Đọc danh sách câu hỏi...', delay:0 },
+    { id:'rb-s2', pct:40, text:'Phân tích dữ liệu thực tế...', delay:800 },
+    { id:'rb-s3', pct:75, text:'AI rút gọn nhãn & thiết kế layout...', delay:2500 },
+    { id:'rb-s4', pct:95, text:'Đang hoàn thiện báo cáo...', delay:6000 },
+  ];
+  steps.forEach(({ id, pct, text, delay }) => {
     setTimeout(() => {
-      const s3 = document.getElementById('rb-step-3');
-      const s4 = document.getElementById('rb-step-4');
-      if(s3){ s3.style.color='#10b981'; s3.querySelector('span').style.background='#10b981'; s3.querySelector('span').style.animation=''; }
-      if(s4){ s4.style.color='#4361ee'; s4.style.fontWeight='700'; s4.querySelector('span').style.background='#4361ee'; }
-    }, 4000);
-  }
-  el.style.display = 'flex';
+      // Mark previous done
+      const prev = document.getElementById(id);
+      if (prev) {
+        // done style for previous steps, active for current
+        steps.forEach(s => {
+          const el2 = document.getElementById(s.id);
+          if (!el2) return;
+          const dot = el2.querySelector('span');
+          if (s.id === id) {
+            el2.style.color = '#4361ee'; el2.style.fontWeight = '700';
+            dot.style.background = '#4361ee'; dot.style.animation = 'pulse-dot 1s infinite';
+          } else if (steps.indexOf(s) < steps.findIndex(x=>x.id===id)) {
+            el2.style.color = '#10b981'; el2.style.fontWeight = '500';
+            dot.style.background = '#10b981'; dot.style.animation = '';
+          }
+        });
+      }
+      const bar = document.getElementById('rb-bar');
+      const pctEl = document.getElementById('rb-pct');
+      const txt = document.getElementById('rb-status-text');
+      if (bar) bar.style.width = pct + '%';
+      if (pctEl) pctEl.textContent = pct + '%';
+      if (txt) txt.textContent = text;
+    }, delay);
+  });
 }
+
 function hideRebuildOverlay() {
   const el = document.getElementById('rebuild-overlay');
   if (el) el.style.display = 'none';
@@ -1928,11 +1977,17 @@ function pollUntilReady(attempts) {
     .then(r => r.json())
     .then(data => {
       if (data.ready) {
-        // Mark step 4 done then reload
-        const s4 = document.getElementById('rb-step-4');
-        if (s4) { s4.style.color='#10b981'; s4.querySelector('span').style.background='#10b981'; }
+        // 100% done
+        const bar = document.getElementById('rb-bar');
+        const pct = document.getElementById('rb-pct');
+        const txt = document.getElementById('rb-status-text');
+        const s4  = document.getElementById('rb-s4');
+        if (bar) bar.style.width = '100%';
+        if (pct) pct.textContent = '100%';
+        if (txt) txt.textContent = 'Hoàn thành! Đang tải báo cáo...';
+        if (s4)  { s4.style.color='#10b981'; s4.style.fontWeight='500'; s4.querySelector('span').style.background='#10b981'; s4.querySelector('span').style.animation=''; }
         localStorage.removeItem(SK + '_structver');
-        setTimeout(() => { window.location.reload(); }, 600);
+        setTimeout(() => { window.location.reload(); }, 700);
       } else {
         setTimeout(() => pollUntilReady(attempts + 1), 1000);
       }
