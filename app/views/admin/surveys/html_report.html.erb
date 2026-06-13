@@ -640,31 +640,7 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px}
 Chart.register(ChartDataLabels);
 const C=['#4361ee','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#0ea5e9','#14b8a6'];
 const barDL  ={anchor:'end',align:'end',offset:2,clip:false,font:{size:11,weight:'700'},color:'#444',formatter:v=>v>0?v:''};
-const hbarDL ={
-  clip:false,
-  font:{size:11,weight:'700'},
-  formatter:v=>v>0?v:'',
-  anchor: ctx => {
-    const ds = ctx.chart.data.datasets[ctx.datasetIndex].data;
-    const max = Math.max(...ds.filter(Number.isFinite));
-    return ctx.dataset.data[ctx.dataIndex] / max > 0.85 ? 'end' : 'end';
-  },
-  align: ctx => {
-    const ds = ctx.chart.data.datasets[ctx.datasetIndex].data;
-    const max = Math.max(...ds.filter(Number.isFinite));
-    return ctx.dataset.data[ctx.dataIndex] / max > 0.85 ? 'start' : 'end';
-  },
-  color: ctx => {
-    const ds = ctx.chart.data.datasets[ctx.datasetIndex].data;
-    const max = Math.max(...ds.filter(Number.isFinite));
-    return ctx.dataset.data[ctx.dataIndex] / max > 0.85 ? '#fff' : '#444';
-  },
-  offset: ctx => {
-    const ds = ctx.chart.data.datasets[ctx.datasetIndex].data;
-    const max = Math.max(...ds.filter(Number.isFinite));
-    return ctx.dataset.data[ctx.dataIndex] / max > 0.85 ? 6 : 4;
-  }
-};
+const hbarDL ={anchor:'end',align:'end',offset:4,clip:false,font:{size:11,weight:'700'},color:'#374151',formatter:v=>v>0?v:''};
 const pieDL  ={display:ctx=>ctx.dataset.data[ctx.dataIndex]>0,color:'#fff',font:{size:12,weight:'700'},formatter:v=>v};
 const barLayout={padding:{top:20}};
 const chartReg={}; // chartId → Chart instance
@@ -709,7 +685,7 @@ mkChart('npsChart',{type:'bar',data:{labels:<%= raw nl.to_json %>,datasets:[{dat
 <% end %>
 
 <% if @challenge_counts.any? %>
-mkChart('challengeChart',{type:'bar',data:{labels:<%= raw @challenge_counts.map{|c|c[:label].to_s.truncate(45)}.to_json %>,datasets:[{data:<%= raw @challenge_counts.map{|c|c[:count]}.to_json %>,backgroundColor:C,borderRadius:5}]},options:{indexAxis:'y',layout:{padding:{right:30}},plugins:{legend:{display:false},datalabels:hbarDL},scales:{x:{beginAtZero:true,ticks:{stepSize:1,precision:0}}}}});
+mkChart('challengeChart',{type:'bar',data:{labels:<%= raw @challenge_counts.map{|c|c[:label].to_s.truncate(45)}.to_json %>,datasets:[{data:<%= raw @challenge_counts.map{|c|c[:count]}.to_json %>,backgroundColor:C,borderRadius:5}]},options:{indexAxis:'y',layout:{padding:{right:36}},plugins:{legend:{display:false},datalabels:hbarDL},scales:{x:{beginAtZero:true,ticks:{stepSize:1,precision:0}}}}});
 <% end %>
 
 // ══════════════════════════════════════════════════════════
