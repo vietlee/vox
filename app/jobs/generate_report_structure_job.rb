@@ -96,10 +96,15 @@ class GenerateReportStructureJob < ApplicationJob
 
     Rails.logger.info "GenerateReportStructureJob: survey #{survey_id} — Ruby built #{structure['sections']&.length} sections, now calling AI for insights"
 
-    # ── Step 2: AI generates insights + short KPI labels ──────────────────
-    kpi_labels_payload = structure["kpis"].map.with_index do |kpi, i|
-      { index: i, current_label: kpi["label"] }
-    end
+    # ── Step 2: AI shortens labels + generates insights ───────────────────
+    # Collect all texts needing shortening
+    kpi_texts = structure["kpis"].map { |k| k["label"] }
+
+    section_titles = structure["sections"].map { |s| s["title"] }
+
+    card_texts = structure["sections"].flat_map { |s|
+      s["cards"].map { |c| c["title"].to_s }
+    }
 
     insights_prompt = <<~MSG
       Survey: "#{survey.title}"
@@ -109,41 +114,62 @@ class GenerateReportStructureJob < ApplicationJob
       ## Dữ liệu thực từ database:
       #{data_summary}
 
-      ## Nhiệm vụ 1 — KPI labels ngắn gọn:
-      Các KPI hiện tại có label dài. Hãy viết lại MỖI label thành tối đa 4 từ, súc tích, dễ hiểu.
-      KPIs: #{kpi_labels_payload.to_json}
+      ---
+      ## Nhiệm vụ 1 — Rút gọn nhãn KPI (tối đa 4 từ, súc tích, dễ hiểu):
+      #{kpi_texts.map.with_index { |t, i| "#{i}: #{t}" }.join("\n")}
 
-      ## Nhiệm vụ 2 — Insights thông minh:
-      Sinh ra 4–6 insights dựa trên tiêu đề survey, mô tả và dữ liệu.
-      - type "stat": phát hiện quan trọng với số liệu cụ thể
-      - type "recommendation": đề xuất hành động với WHO + WHAT + dữ liệu dẫn chứng
+      ## Nhiệm vụ 2 — Rút gọn tiêu đề section (tối đa 5 từ, rõ ý):
+      #{section_titles.map.with_index { |t, i| "#{i}: #{t}" }.join("\n")}
 
-      Trả về JSON object (không markdown):
+      ## Nhiệm vụ 3 — Rút gọn tiêu đề card/chart (tối đa 6 từ, giữ nguyên ý nghĩa):
+      #{card_texts.map.with_index { |t, i| "#{i}: #{t}" }.join("\n")}
+
+      ## Nhiệm vụ 4 — Insights thông minh (4–6 insights):
+      - type "stat": phát hiện quan trọng với số liệu cụ thể từ dữ liệu
+      - type "recommendation": đề xuất hành động WHO + WHAT + dẫn chứng số liệu
+
+      Trả về JSON (không markdown):
       {
-        "kpi_labels": ["label 0 ngắn", "label 1 ngắn", ...],
+        "kpi_labels": ["label 0", "label 1", ...],
+        "section_titles": ["title 0", "title 1", ...],
+        "card_titles": ["title 0", "title 1", ...],
         "ai_insights": [
           {"type": "stat", "text": "..."},
           {"type": "recommendation", "title": "...", "detail": "..."}
         ]
       }
 
-      Dùng ngôn ngữ của survey. Số liệu phải chính xác từ dữ liệu trên.
+      Dùng ngôn ngữ của survey. Giữ đủ ý nghĩa khi rút gọn.
     MSG
 
     raw      = ClaudeService.sonnet.call(system_prompt: INSIGHTS_SYSTEM_PROMPT,
-                                         user_prompt:   insights_prompt, max_tokens: 2000)
+                                         user_prompt:   insights_prompt, max_tokens: 3000)
     json_str = raw.to_s.gsub(/\A```(?:json)?\s*|\s*```\z/, "").strip
     result   = JSON.parse(json_str)
 
-    # Apply AI-shortened KPI labels
-    if result["kpi_labels"].is_a?(Array)
-      result["kpi_labels"].each_with_index do |short_label, i|
-        structure["kpis"][i]["label"] = short_label.to_s.strip if structure["kpis"][i] && short_label.present?
+    # Apply shortened KPI labels
+    Array(result["kpi_labels"]).each_with_index do |lbl, i|
+      structure["kpis"][i]["label"] = lbl.to_s.strip if structure["kpis"][i] && lbl.present?
+    end
+
+    # Apply shortened section titles
+    Array(result["section_titles"]).each_with_index do |ttl, i|
+      structure["sections"][i]["title"] = ttl.to_s.strip if structure["sections"][i] && ttl.present?
+    end
+
+    # Apply shortened card titles (flat index across all sections)
+    if result["card_titles"].is_a?(Array)
+      idx = 0
+      structure["sections"].each do |sec|
+        sec["cards"].each do |card|
+          short = result["card_titles"][idx].to_s.strip
+          card["title"] = short if short.present?
+          idx += 1
+        end
       end
     end
 
-    insights = result["ai_insights"] || result
-    insights = insights["ai_insights"] if insights.is_a?(Hash)
+    insights = result["ai_insights"] || []
     structure["ai_insights"] = Array(insights).select { |i| i["text"].present? || i["title"].present? }
 
     settings = survey.settings.to_h.merge(
