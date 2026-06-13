@@ -652,11 +652,45 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
           <% promoters  = (dist.select{|d| d[:label].to_i >= 9}.sum{|d| d[:count]}) %>
           <% total_nps  = stats[:total].to_i %>
           <% if total_nps > 0 %>
-          <div style="display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:12px">
-            <div style="text-align:center"><div style="font-size:18px;font-weight:800;color:#ef4444"><%= ((promoters - detractors).to_f / total_nps * 100).round %>%</div><div style="color:#94a3b8">NPS Score</div></div>
-            <div style="text-align:center"><div style="font-size:15px;font-weight:700;color:#10b981"><%= promoters %></div><div style="color:#94a3b8">Promoters</div></div>
-            <div style="text-align:center"><div style="font-size:15px;font-weight:700;color:#06b6d4"><%= passives %></div><div style="color:#94a3b8">Passives</div></div>
-            <div style="text-align:center"><div style="font-size:15px;font-weight:700;color:#ef4444"><%= detractors %></div><div style="color:#94a3b8">Detractors</div></div>
+          <% nps_score  = ((promoters - detractors).to_f / total_nps * 100).round %>
+          <% det_pct = (detractors.to_f / total_nps * 100).round %>
+          <% pas_pct = (passives.to_f   / total_nps * 100).round %>
+          <% pro_pct = (promoters.to_f  / total_nps * 100).round %>
+          <div style="margin-top:14px">
+            <%# ── Progress bar ── %>
+            <div style="display:flex;height:10px;border-radius:6px;overflow:hidden;gap:2px">
+              <div style="width:<%= det_pct %>%;background:#ef4444;min-width:<%= detractors>0 ? 2 : 0 %>px"></div>
+              <div style="width:<%= pas_pct %>%;background:#06b6d4;min-width:<%= passives>0 ? 2 : 0 %>px"></div>
+              <div style="width:<%= pro_pct %>%;background:#10b981;min-width:<%= promoters>0 ? 2 : 0 %>px"></div>
+            </div>
+            <%# ── Labels ── %>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:10px;gap:8px">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block"></span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:#ef4444"><%= detractors %> người <span style="font-weight:400;color:#94a3b8">(<%= det_pct %>%)</span></div>
+                  <div style="font-size:10px;color:#94a3b8">Không hài lòng (0–6)</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="width:10px;height:10px;border-radius:50%;background:#06b6d4;flex-shrink:0;display:inline-block"></span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:#06b6d4"><%= passives %> người <span style="font-weight:400;color:#94a3b8">(<%= pas_pct %>%)</span></div>
+                  <div style="font-size:10px;color:#94a3b8">Trung lập (7–8)</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="width:10px;height:10px;border-radius:50%;background:#10b981;flex-shrink:0;display:inline-block"></span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:#10b981"><%= promoters %> người <span style="font-weight:400;color:#94a3b8">(<%= pro_pct %>%)</span></div>
+                  <div style="font-size:10px;color:#94a3b8">Hài lòng cao (9–10)</div>
+                </div>
+              </div>
+              <div style="text-align:right;border-left:2px solid #e5e7eb;padding-left:12px">
+                <div style="font-size:22px;font-weight:800;color:<%= nps_score >= 50 ? '#10b981' : nps_score >= 0 ? '#f59e0b' : '#ef4444' %>"><%= nps_score > 0 ? '+' : '' %><%= nps_score %></div>
+                <div style="font-size:10px;color:#94a3b8;font-weight:600">Điểm NPS</div>
+              </div>
+            </div>
           </div>
           <% end %>
         <% else %>
