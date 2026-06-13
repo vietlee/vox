@@ -55,23 +55,26 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .ct-btn.danger:hover{background:#fef2f2}
 
 /* ── Resize handles ── */
-/* right edge */
-.rh-right{display:none;position:absolute;top:50%;right:-8px;transform:translateY(-50%);width:16px;height:56px;cursor:ew-resize;z-index:25;align-items:center;justify-content:center}
+/* right edge — wide hit area */
+.rh-right{display:none;position:absolute;top:0;right:-10px;width:20px;height:100%;cursor:ew-resize;z-index:25;align-items:center;justify-content:center}
 .edit-mode .rh-right{display:flex}
-.rh-right-bar{width:5px;height:40px;background:#6366f1;border-radius:3px;opacity:.45;transition:opacity .12s,width .12s}
-.rh-right:hover .rh-right-bar,.rh-right.active .rh-right-bar{opacity:1;width:7px}
+.rh-right-bar{width:4px;height:100%;max-height:100%;background:linear-gradient(180deg,transparent 0%,#6366f1 20%,#6366f1 80%,transparent 100%);border-radius:2px;opacity:.35;transition:opacity .1s,width .1s}
+.rh-right:hover .rh-right-bar,.rh-right.dragging .rh-right-bar{opacity:1;width:6px}
 /* bottom edge */
-.rh-bottom{display:none;position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:56px;height:16px;cursor:ns-resize;z-index:25;align-items:center;justify-content:center}
+.rh-bottom{display:none;position:absolute;bottom:-10px;left:0;width:100%;height:20px;cursor:ns-resize;z-index:25;align-items:center;justify-content:center}
 .edit-mode .rh-bottom{display:flex}
-.rh-bottom-bar{height:5px;width:40px;background:#6366f1;border-radius:3px;opacity:.45;transition:opacity .12s,height .12s}
-.rh-bottom:hover .rh-bottom-bar,.rh-bottom.active .rh-bottom-bar{opacity:1;height:7px}
-/* corner (bottom-right) */
-.rh-corner{display:none;position:absolute;bottom:0;right:0;width:18px;height:18px;cursor:nwse-resize;z-index:26}
-.rh-corner::after{content:'';position:absolute;bottom:4px;right:4px;width:9px;height:9px;border-right:3px solid #6366f1;border-bottom:3px solid #6366f1;border-radius:0 0 3px 0;opacity:.5;transition:opacity .12s}
+.rh-bottom-bar{height:4px;width:100%;background:linear-gradient(90deg,transparent 0%,#6366f1 20%,#6366f1 80%,transparent 100%);border-radius:2px;opacity:.35;transition:opacity .1s,height .1s}
+.rh-bottom:hover .rh-bottom-bar,.rh-bottom.dragging .rh-bottom-bar{opacity:1;height:6px}
+/* corner */
+.rh-corner{display:none;position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;cursor:nwse-resize;z-index:26}
+.rh-corner::after{content:'';position:absolute;bottom:5px;right:5px;width:10px;height:10px;border-right:3px solid #6366f1;border-bottom:3px solid #6366f1;border-radius:0 0 3px 0;opacity:.4;transition:opacity .1s}
 .edit-mode .rh-corner{display:block}
-.rh-corner:hover::after,.rh-corner.active::after{opacity:1}
+.rh-corner:hover::after,.rh-corner.dragging::after{opacity:1}
+/* snap ghost line — shows where card will snap */
+.snap-guide{display:none;position:absolute;top:0;right:0;width:3px;height:100%;background:#6366f1;border-radius:2px;opacity:.7;pointer-events:none;z-index:30}
+.cw.is-resizing .snap-guide{display:block}
 /* tooltip */
-.resize-tip{display:none;position:fixed;background:#1a1a2e;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap;pointer-events:none;z-index:999;transform:translate(-50%,-130%)}
+.resize-tip{display:none;position:fixed;background:#1a1a2e;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap;pointer-events:none;z-index:999;transform:translate(12px,-50%)}
 .resize-tip.visible{display:block}
 
 /* ── Card ── */
@@ -637,18 +640,19 @@ const tip = document.createElement('div');
 tip.className = 'resize-tip';
 document.body.appendChild(tip);
 
-// Inject resize handles into all .cw
+// Inject resize handles + snap guide into all .cw
 document.querySelectorAll('.cw').forEach(cw => {
   cw.insertAdjacentHTML('beforeend',
     '<div class="rh-right"  data-dir="e"><div class="rh-right-bar"></div></div>' +
     '<div class="rh-bottom" data-dir="s"><div class="rh-bottom-bar"></div></div>' +
-    '<div class="rh-corner" data-dir="se"></div>'
+    '<div class="rh-corner" data-dir="se"></div>' +
+    '<div class="snap-guide"></div>'
   );
 });
 
-let rd = null;  // resize drag state
+let rd = null;
 let rafId = null;
-let pendingE = null;
+let latestE = null;
 
 document.addEventListener('mousedown', e => {
   const handle = e.target.closest('[data-dir]');
@@ -659,16 +663,15 @@ document.addEventListener('mousedown', e => {
   const cw = handle.closest('.cw');
   const grid = cw.parentElement;
   const dir = handle.dataset.dir;
-  const maxCols = 12;
   const defaultSpan = grid.classList.contains('grid-3') ? 4 : 6;
-  const curSpan = parseInt(cw.style.gridColumn?.match(/span (\d+)/)?.[1] || defaultSpan);
-  const curH = cw.querySelector('.card')?.offsetHeight || 240;
+  const startSpan = parseInt(cw.style.gridColumn?.match(/span (\d+)/)?.[1] || defaultSpan);
+  const startH = cw.querySelector('.card')?.offsetHeight || 240;
   const gridRect = grid.getBoundingClientRect();
 
-  handle.classList.add('active');
-  rd = { cw, handle, dir, maxCols, gridRect,
-         startX: e.clientX, startY: e.clientY,
-         startSpan: curSpan, startH: curH };
+  handle.classList.add('dragging');
+  cw.classList.add('is-resizing');
+  rd = { cw, handle, dir, gridRect, startH,
+         startSpan, startY: e.clientY, _span: startSpan, _h: startH };
 
   document.body.style.userSelect = 'none';
   document.body.style.cursor = dir === 'e' ? 'ew-resize' : dir === 's' ? 'ns-resize' : 'nwse-resize';
@@ -677,33 +680,40 @@ document.addEventListener('mousedown', e => {
 
 document.addEventListener('mousemove', e => {
   if (!rd) return;
-  pendingE = e;
-  if (!rafId) rafId = requestAnimationFrame(doResize);
-});
+  latestE = e;
+  if (!rafId) rafId = requestAnimationFrame(applyResize);
+}, { passive: true });
 
-function doResize() {
+function applyResize() {
   rafId = null;
-  if (!rd || !pendingE) return;
-  const e = pendingE;
-  const { cw, dir, maxCols, gridRect, startX, startY, startSpan, startH } = rd;
+  if (!rd || !latestE) return;
+  const e = latestE;
+  const { cw, dir, gridRect, startH, startY, startSpan } = rd;
   const card = cw.querySelector('.card');
+  const MAXCOLS = 12;
 
   if (dir === 'e' || dir === 'se') {
-    const colW = gridRect.width / maxCols;
-    const newSpan = Math.max(1, Math.min(maxCols, startSpan + Math.round((e.clientX - startX) / colW)));
-    cw.style.gridColumn = `span ${newSpan}`;
-    rd._span = newSpan;
+    // Snap based on absolute cursor position within grid
+    const colW = gridRect.width / MAXCOLS;
+    const offsetInGrid = e.clientX - gridRect.left;
+    const newSpan = Math.max(1, Math.min(MAXCOLS, Math.round(offsetInGrid / colW)));
+    if (newSpan !== rd._span) {
+      cw.style.gridColumn = `span ${newSpan}`;
+      rd._span = newSpan;
+    }
   }
   if (dir === 's' || dir === 'se') {
     const newH = Math.max(120, startH + (e.clientY - startY));
-    if (card) { card.style.minHeight = newH + 'px'; card.style.height = newH + 'px'; }
-    rd._h = newH;
+    if (card && Math.abs(newH - (rd._h||0)) > 2) {
+      card.style.minHeight = newH + 'px';
+      card.style.height = newH + 'px';
+      rd._h = newH;
+    }
   }
 
-  // tooltip
   const parts = [];
-  if (rd._span) parts.push(`${rd._span}/${maxCols} cột`);
-  if (rd._h)    parts.push(`${Math.round(rd._h)}px`);
+  if (dir !== 's') parts.push(`${rd._span}/12`);
+  if (dir !== 'e') parts.push(`${Math.round(rd._h||startH)}px`);
   tip.textContent = parts.join(' · ');
   tip.style.left = e.clientX + 'px';
   tip.style.top  = e.clientY + 'px';
@@ -711,11 +721,12 @@ function doResize() {
 
 document.addEventListener('mouseup', () => {
   if (!rd) return;
-  rd.handle.classList.remove('active');
+  rd.handle.classList.remove('dragging');
+  rd.cw.classList.remove('is-resizing');
   document.body.style.cursor = '';
   document.body.style.userSelect = '';
   tip.classList.remove('visible');
-  rd = null; pendingE = null; rafId = null;
+  rd = null; latestE = null; rafId = null;
   saveLayout();
 });
 
