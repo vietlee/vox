@@ -384,14 +384,17 @@ class Admin::SurveysController < Admin::BaseController
       .strip.gsub(/\s+/, "-")[0..79]
     filename = "bao-cao" if filename.blank?
 
-    # A4 landscape at 96dpi = 1122×794px. Match viewport exactly → no scaling distortion.
+    # Render at same width as browser (matches max-width:1200px container),
+    # then scale=0.86 to fit A4 landscape content area (273mm = 1032px at 96dpi).
+    # This preserves identical layout/proportions vs the HTML report.
     pdf = Grover.new(html,
       format:           "A4",
       landscape:        true,
       print_background: true,
-      margin:           { top: "10mm", bottom: "10mm", left: "12mm", right: "12mm" },
+      scale:            0.86,
+      margin:           { top: "8mm", bottom: "8mm", left: "8mm", right: "8mm" },
       emulate_media:    "print",
-      viewport:         { width: 1122, height: 794 },
+      viewport:         { width: 1200, height: 900 },
       wait_until:       "networkidle2",
       timeout:          90_000
     ).to_pdf
