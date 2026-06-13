@@ -45,6 +45,17 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 /* ── Card wrapper ── */
 .cw{position:relative}
 .cw.hidden-section{display:none}
+.cw.cd-source{opacity:.25;pointer-events:none}
+
+/* ── Custom drag ghost ── */
+.cd-ghost{position:fixed;z-index:1000;pointer-events:none;opacity:.85;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);transform:rotate(1.5deg);overflow:hidden;background:white}
+
+/* ── Drop zones ── */
+.cd-zone{border:2px dashed #c7d2fe;border-radius:12px;background:#f8f9ff;min-height:80px;transition:background .1s,border-color .1s,transform .1s}
+.cd-zone-over{border-color:#4361ee;background:#eef2ff;transform:scale(1.02)}
+
+/* ── Placeholder while dragging ── */
+.cd-placeholder{border:2px dashed #e2e8f0;border-radius:12px;background:#fafafa;min-height:80px}
 
 /* ── Gear icon (always visible, per card) ── */
 .cw-gear{position:absolute;top:6px;right:6px;z-index:40;width:28px;height:28px;border-radius:50%;border:1px solid #c7d2fe;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;opacity:1;transition:background .15s,box-shadow .15s;box-shadow:0 1px 4px rgba(0,0,0,.1);line-height:1;color:#6366f1}
@@ -1126,31 +1137,112 @@ new Sortable(document.getElementById('sortableContainer'), {
   onEnd: saveLayout
 });
 
-// ── Sortable: card grids ──
-document.querySelectorAll('[id^="grid-"]').forEach(grid => {
-  new Sortable(grid, {
-    animation: 150,
-    handle: '.cw-mode-bar',
-    ghostClass: 'sortable-ghost',
-    chosenClass: 'sortable-chosen',
-    group: 'cards',
-    forceFallback: true,
-    fallbackTolerance: 3,
-    fallbackOnBody: true,
-    swapThreshold: 0.5,
-    invertSwap: true,
-    direction(evt, target, dragEl) {
-      // Detect direction based on grid: if target and dragEl are on same row → horizontal
-      if (!target) return 'vertical';
-      const tRect = target.getBoundingClientRect();
-      const dRect = dragEl.getBoundingClientRect();
-      const sameRow = Math.abs(tRect.top - dRect.top) < tRect.height * 0.5;
-      return sameRow ? 'horizontal' : 'vertical';
-    },
-    onEnd(evt) {
-      saveLayout();
-    }
+// ── Custom card drag (CSS-Grid aware) ──
+let cdrag = null; // current drag state
+
+function startCardDrag(e, cw) {
+  if (e.target.closest('.btn-done')) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  const rect = cw.getBoundingClientRect();
+
+  // Ghost: clone card, fixed position, follows mouse
+  const ghost = document.createElement('div');
+  ghost.className = 'cd-ghost';
+  ghost.style.cssText = `width:${rect.width}px;height:${rect.height}px;left:${rect.left}px;top:${rect.top}px`;
+  ghost.innerHTML = cw.querySelector('.card')?.outerHTML || '';
+  document.body.appendChild(ghost);
+
+  // Placeholder in place of card
+  const ph = document.createElement('div');
+  ph.className = 'cd-placeholder';
+  ph.style.gridColumn = cw.style.gridColumn || '';
+  cw.parentElement.insertBefore(ph, cw);
+  cw.classList.add('cd-source');
+
+  // Show drop zones across all grids
+  injectDropZones(cw);
+
+  cdrag = {
+    cw, ghost, ph,
+    offX: e.clientX - rect.left,
+    offY: e.clientY - rect.top,
+    activeZone: null
+  };
+}
+
+function injectDropZones(dragCw) {
+  const span = dragCw.style.gridColumn || '';
+  document.querySelectorAll('[id^="grid-"]').forEach(grid => {
+    const cards = [...grid.querySelectorAll(':scope > .cw:not(.cd-source)')];
+    // Insert zone before each card and at the end
+    const positions = [...cards.map(c => ({ before: c })), { before: null, grid }];
+    positions.forEach(({ before, grid: g }) => {
+      const zone = document.createElement('div');
+      zone.className = 'cd-zone';
+      zone.style.gridColumn = span;
+      zone.dataset.grid = grid.id;
+      if (before) {
+        grid.insertBefore(zone, before);
+      } else {
+        grid.appendChild(zone);
+      }
+    });
   });
+}
+
+document.addEventListener('mousemove', e => {
+  if (!cdrag) return;
+  // Move ghost
+  cdrag.ghost.style.left = (e.clientX - cdrag.offX) + 'px';
+  cdrag.ghost.style.top  = (e.clientY - cdrag.offY) + 'px';
+
+  // Find nearest drop zone
+  let nearest = null, nearDist = Infinity;
+  document.querySelectorAll('.cd-zone').forEach(zone => {
+    const r = zone.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+    if (dist < nearDist) { nearDist = dist; nearest = zone; }
+  });
+
+  if (cdrag.activeZone !== nearest) {
+    cdrag.activeZone?.classList.remove('cd-zone-over');
+    nearest?.classList.add('cd-zone-over');
+    cdrag.activeZone = nearest;
+  }
+}, { passive: true });
+
+document.addEventListener('mouseup', e => {
+  if (!cdrag) return;
+  const { cw, ghost, ph, activeZone } = cdrag;
+
+  ghost.remove();
+  cw.classList.remove('cd-source');
+
+  if (activeZone) {
+    const targetGrid = document.getElementById(activeZone.dataset.grid);
+    targetGrid.insertBefore(cw, activeZone);
+  } else {
+    // No zone found: restore to placeholder position
+    ph.parentElement.insertBefore(cw, ph);
+  }
+
+  ph.remove();
+  document.querySelectorAll('.cd-zone').forEach(z => z.remove());
+  cdrag = null;
+  saveLayout();
+});
+
+// Attach drag start to mode bars
+document.addEventListener('mousedown', e => {
+  const bar = e.target.closest('.cw-mode-bar');
+  if (!bar) return;
+  const cw = bar.closest('.cw');
+  if (!cw?.classList.contains('cw-move-mode')) return;
+  startCardDrag(e, cw);
 });
 
 loadLayout();
