@@ -155,16 +155,23 @@
           <p class="text-[11px] text-slate-400 mb-3"><%= t("dynamic_forms.qr_hint") %></p>
           <div class="flex justify-center mb-3">
             <div class="inline-block p-3 bg-white border-2 border-slate-100 rounded-xl shadow-sm">
-              <img src="<%= qr_image_path(@form.qr_code.token) %>" alt="QR Code" class="w-40 h-40">
+              <img id="dynform-qr-img" src="<%= qr_image_path(@form.qr_code.token) %>" alt="QR Code" class="w-40 h-40" crossorigin="anonymous">
             </div>
           </div>
           <p class="text-[11px] text-slate-400 text-center mb-3">
             <%= t("dynamic_forms.qr_scanned", count: @form.qr_code.scan_count) %>
           </p>
-          <a href="<%= qr_image_path(@form.qr_code.token) %>" download="qr-<%= @form.slug %>.png"
-            class="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[12px] font-semibold rounded-lg transition-colors">
-            ⬇ <%= t("dynamic_forms.qr_download") %>
-          </a>
+          <div class="flex gap-2">
+            <button onclick="copyQrImage(document.getElementById('dynform-qr-img'), this)"
+              class="vox-copy-btn flex-1 justify-center">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <span>Copy QR</span>
+            </button>
+            <a href="<%= qr_image_path(@form.qr_code.token) %>" download="qr-<%= @form.slug %>.png"
+              class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[12px] font-semibold rounded-lg transition-colors">
+              ⬇ <%= t("dynamic_forms.qr_download") %>
+            </a>
+          </div>
         </div>
       <% end %>
 
