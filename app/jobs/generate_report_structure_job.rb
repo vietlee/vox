@@ -96,7 +96,11 @@ class GenerateReportStructureJob < ApplicationJob
 
     Rails.logger.info "GenerateReportStructureJob: survey #{survey_id} — Ruby built #{structure['sections']&.length} sections, now calling AI for insights"
 
-    # ── Step 2: AI generates ONLY insights (not structure) ─────────────────
+    # ── Step 2: AI generates insights + short KPI labels ──────────────────
+    kpi_labels_payload = structure["kpis"].map.with_index do |kpi, i|
+      { index: i, current_label: kpi["label"] }
+    end
+
     insights_prompt = <<~MSG
       Survey: "#{survey.title}"
       #{survey.description.present? ? "Mô tả: #{survey.description}" : ""}
@@ -105,25 +109,41 @@ class GenerateReportStructureJob < ApplicationJob
       ## Dữ liệu thực từ database:
       #{data_summary}
 
-      Dựa trên tiêu đề, mô tả và dữ liệu khảo sát trên, hãy sinh ra 4–6 insights thông minh.
-      Hai loại:
-      - type "stat": phát hiện quan trọng có số liệu cụ thể (ví dụ: "78% nhân viên Frontend tiết kiệm trên 60% thời gian")
-      - type "recommendation": đề xuất hành động cụ thể với WHO + WHAT + số liệu dẫn chứng
+      ## Nhiệm vụ 1 — KPI labels ngắn gọn:
+      Các KPI hiện tại có label dài. Hãy viết lại MỖI label thành tối đa 4 từ, súc tích, dễ hiểu.
+      KPIs: #{kpi_labels_payload.to_json}
 
-      Trả về JSON array (chỉ array, không có wrapper):
-      [
-        {"type": "stat", "text": "..."},
-        {"type": "recommendation", "title": "...", "detail": "..."}
-      ]
+      ## Nhiệm vụ 2 — Insights thông minh:
+      Sinh ra 4–6 insights dựa trên tiêu đề survey, mô tả và dữ liệu.
+      - type "stat": phát hiện quan trọng với số liệu cụ thể
+      - type "recommendation": đề xuất hành động với WHO + WHAT + dữ liệu dẫn chứng
 
-      Quan trọng: dùng đúng ngôn ngữ của survey, trích dẫn số liệu thực từ dữ liệu.
+      Trả về JSON object (không markdown):
+      {
+        "kpi_labels": ["label 0 ngắn", "label 1 ngắn", ...],
+        "ai_insights": [
+          {"type": "stat", "text": "..."},
+          {"type": "recommendation", "title": "...", "detail": "..."}
+        ]
+      }
+
+      Dùng ngôn ngữ của survey. Số liệu phải chính xác từ dữ liệu trên.
     MSG
 
     raw      = ClaudeService.sonnet.call(system_prompt: INSIGHTS_SYSTEM_PROMPT,
                                          user_prompt:   insights_prompt, max_tokens: 2000)
     json_str = raw.to_s.gsub(/\A```(?:json)?\s*|\s*```\z/, "").strip
-    insights = JSON.parse(json_str)
-    insights = insights["ai_insights"] if insights.is_a?(Hash) # unwrap if AI wrapped it
+    result   = JSON.parse(json_str)
+
+    # Apply AI-shortened KPI labels
+    if result["kpi_labels"].is_a?(Array)
+      result["kpi_labels"].each_with_index do |short_label, i|
+        structure["kpis"][i]["label"] = short_label.to_s.strip if structure["kpis"][i] && short_label.present?
+      end
+    end
+
+    insights = result["ai_insights"] || result
+    insights = insights["ai_insights"] if insights.is_a?(Hash)
     structure["ai_insights"] = Array(insights).select { |i| i["text"].present? || i["title"].present? }
 
     settings = survey.settings.to_h.merge(
