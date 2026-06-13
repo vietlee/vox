@@ -684,21 +684,39 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
       <%# ═══ CROSS-TAB GROUPED BAR (dept × savings etc.) ═══ %>
       <% elsif chart_type == "cross_tab_grouped_bar" %>
         <% if ct_data && ct_data[:labels].any? %>
+          <%
+            ct_labels  = ct_data[:labels]
+            ct_n       = ct_labels.size
+            ct_datasets = ct_data[:datasets].map do |ds|
+              { label: ds[:label], data: Array(ds[:data]).first(ct_n),
+                backgroundColor: ds[:color], borderRadius: 4 }
+            end
+          %>
           <canvas id="ch_<%= cid %>"></canvas>
           <script>
           (function(){
-            var datasets = <%= raw ct_data[:datasets].map{|ds|
-              { label: ds[:label], data: ds[:data],
-                backgroundColor: ds[:color],
-                borderRadius: 3 }
-            }.to_json %>;
+            var labels   = <%= raw ct_labels.to_json %>;
+            var datasets = <%= raw ct_datasets.to_json %>;
             mkChart('ch_<%= cid %>', {
               type: 'bar',
-              data: { labels: <%= raw ct_data[:labels].to_json %>, datasets: datasets },
-              options: { responsive:true,
-                plugins:{ legend:{position:'top',labels:{font:{size:11}}}, datalabels:{display:false} },
-                scales:{ y:{beginAtZero:true,ticks:{callback:function(v){ return v+'%'; }}},
-                         x:{ticks:{font:{size:10}}} } }
+              data: { labels: labels, datasets: datasets },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: { position:'top', labels:{ font:{size:11} } },
+                  datalabels: {
+                    anchor: 'end', align: 'end', offset: 2, clip: false,
+                    font: { size: 11, weight: '700' }, color: '#374151',
+                    formatter: function(v){ return v > 0 ? v + '%' : ''; }
+                  }
+                },
+                scales: {
+                  y: { beginAtZero:true, max: 100,
+                       ticks:{ callback: function(v){ return v+'%'; } } },
+                  x: { ticks:{ font:{ size:10 } } }
+                },
+                layout: { padding:{ top: 18 } }
+              }
             });
           })();
           </script>
