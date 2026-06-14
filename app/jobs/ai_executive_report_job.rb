@@ -33,7 +33,8 @@ class AiExecutiveReportJob < ApplicationJob
     survey = Survey.find(job.resource_id)
     job.start!
 
-    language     = job.input_data["language"] || "vi"
+    @language    = job.input_data["language"] || "vi"
+    language     = @language
     lang_name    = language == "vi" ? "Vietnamese" : "English"
     user_context = job.input_data["user_context"].presence
     report_format= job.input_data["format"].presence || "pdf"
@@ -378,7 +379,7 @@ class AiExecutiveReportJob < ApplicationJob
     bot_v  = bot["avg"] || bot["pct"]
     gap    = ((top_v.to_f - bot_v.to_f).abs).round(1)
 
-    if language == "en"
+    if @language == "en"
       "#{top['label']} leads with #{top_v}#{unit}, #{gap}#{unit} above #{bot['label']}. " \
       "Overall average: #{first_chart.dig('data', 'avg')}#{unit} across #{first_chart.dig('data', 'total')} responses."
     else
@@ -400,7 +401,7 @@ class AiExecutiveReportJob < ApplicationJob
     {
       "report_mode"  => "full",
       "report_title" => survey.title,
-      "sections"     => [{ "title" => language == "en" ? "Overview" : "Tổng quan", "charts" => charts }]
+      "sections"     => [{ "title" => @language == "en" ? "Overview" : "Tổng quan", "charts" => charts }]
     }
   end
 
