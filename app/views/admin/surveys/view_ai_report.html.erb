@@ -93,8 +93,8 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .kpi-rb::after{content:'';display:block;width:30px;height:4px;background:#6366f1;border-radius:2px;opacity:.5;transition:opacity .15s,height .15s}
 .kpi-rb:hover::after,.kpi-rb.dragging::after{opacity:1;height:6px}
 .kpi-rh.dragging,.kpi-rb.dragging{background:rgba(99,102,241,.12)}
-.float-edit-icon{position:fixed;display:none;align-items:center;justify-content:center;width:36px;height:36px;background:#4361ee;color:white;border:none;border-radius:9px;cursor:pointer;z-index:500;box-shadow:0 3px 12px rgba(67,97,238,.5);padding:0;line-height:0}
-.float-edit-icon:hover{background:#3451d1}
+.float-edit-icon{position:fixed;display:none;align-items:center;justify-content:center;width:auto;height:auto;background:#eef2ff;color:#818cf8;border:none;border-radius:7px;cursor:pointer;z-index:500;box-shadow:0 1px 4px rgba(99,102,241,.15);padding:5px;line-height:0;transition:background .15s,transform .15s}
+.float-edit-icon:hover{background:#e0e7ff;color:#4361ee;transform:scale(1.08)}
 @media print{.kpi-toolbar,.kpi-rh,.float-edit-icon{display:none!important}}
 
 /* ── Sections ── */
@@ -1124,12 +1124,13 @@ function _kpiGridCols() {
     const idx = kpiDrag.handle.dataset.kpiIdx;
     try {
       const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
-      if (!saved[idx]) saved[idx] = {};
+      if (!saved[idx] || typeof saved[idx] !== 'object') saved[idx] = {};
       if (kpiDrag.dir === 'h') {
-        const span = kpiDrag.pendingSpan || 1;
+        const span = kpiDrag.pendingSpan != null ? kpiDrag.pendingSpan : kpiDrag.startSpan;
         if (span > 1) saved[idx].span = span; else delete saved[idx].span;
       } else {
-        if (kpiDrag.pendingH) saved[idx].h = Math.round(kpiDrag.pendingH);
+        const h = kpiDrag.pendingH != null ? Math.round(kpiDrag.pendingH) : Math.round(kpiDrag.startH);
+        if (h > 80) saved[idx].h = h; else delete saved[idx].h;
       }
       if (!Object.keys(saved[idx]).length) delete saved[idx];
       localStorage.setItem(KPI_SIZE_SK, JSON.stringify(saved));
