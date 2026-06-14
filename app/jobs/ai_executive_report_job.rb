@@ -208,10 +208,13 @@ class AiExecutiveReportJob < ApplicationJob
       ## Question type hints
       #{q_types_hint.map { |k,v| "- #{k}: #{v}" }.join("\n")}
 
+      ## Language
+      Output language: #{lang_name}. ALL text fields (report_title, section title, chart title) MUST be written in #{lang_name}. Do NOT use English if the language is Vietnamese.
+
       ## Your task
       Design the report structure. Determine:
       1. report_mode: "focused" (user wants 1-2 specific charts, quick answer) OR "full" (user wants comprehensive analysis)
-      2. report_title: concise title reflecting exactly what this report shows
+      2. report_title: concise title in #{lang_name} reflecting exactly what the user asked for (NOT the survey title)
       3. sections: array of sections, each with charts
 
       Rules for report_mode:
@@ -223,9 +226,11 @@ class AiExecutiveReportJob < ApplicationJob
       - full mode: 2-5 sections, each covering a different analytical angle
 
       Rules for charts:
-      - Each chart: {question_id, chart_type, title (≤6 words), span ("full"|"half"), cross_tab_by (optional)}
+      - Each chart: {question_id, chart_type, title (≤6 words in #{lang_name}), span ("full"|"half"), cross_tab_by (optional)}
       - cross_tab_by: ID of a single_choice/dropdown question used to group the metric
       - If user wants "X theo/giữa Y": chart_type="grouped_bar", cross_tab_by=Y_question_id
+      - If user says "biểu đồ hình tròn" or "pie chart" or "doughnut": use chart_type="doughnut"
+      - If user says "biểu đồ cột" or "bar chart": use chart_type="hbar" or "dist_bar"
       - SKIP: identity/name questions, grouping-only questions (they appear as cross_tab_by axis)
       - span "full" for: grouped_bar, dist_bar, hbar with many options, quotes
       - span "half" for: doughnut, number, rating_dist, nps
@@ -441,9 +446,19 @@ class AiExecutiveReportJob < ApplicationJob
             "type" => "linear_scale", "subtype" => "pct",
             "total" => nums.size, "avg" => avg, "max" => 100, "distribution" => dist }
         else
-          { "question_id" => q.id, "question" => q.title,
-            "type" => q.question_type.to_s, "total" => texts.size,
-            "texts" => texts.sample(6) }
+          # Check for tool-name data (people typed AI tool names)
+          tool_hits = texts.select { |t| t.match?(/claude|chatgpt|gemini|gpt|cursor|copilot|codex|deepseek|midjourney|perplexity|trae|antigravity/i) }
+          if tool_hits.size >= [texts.size * 0.2, 2].min
+            opts = SurveyReportSemantics.aggregate_tools(texts, texts.size)
+            { "question_id" => q.id, "question" => q.title,
+              "type" => "multiple_choice", "total" => texts.size,
+              "options" => opts.map { |o| { "label" => o[:label], "count" => o[:count], "pct" => o[:pct] } },
+              "texts" => texts.sample(6) }
+          else
+            { "question_id" => q.id, "question" => q.title,
+              "type" => q.question_type.to_s, "total" => texts.size,
+              "texts" => texts.sample(6) }
+          end
         end
       end
     end.compact
