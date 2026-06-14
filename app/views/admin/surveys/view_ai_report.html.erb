@@ -12,19 +12,28 @@
 
   palette = %w[#4361ee #7c3aed #06b6d4 #10b981 #f59e0b #ef4444 #ec4899 #8b5cf6 #0ea5e9 #14b8a6]
 
-  # Group cross-tabs by group_question so multiple targets per group merge into one grouped bar
+  # Track which charts are rendered inline as grouped_bar (to avoid duplicate cross-tab section)
+  inline_cross_tab_qids = chart_data.select { |cd|
+    cd["cross_tab"].present? && (cd["ai_chart_type"] == "grouped_bar" || cd["cross_tab"].present?)
+  }.map { |cd| cd["question_id"].to_i }.to_set
+
+  # Group cross-tabs that are NOT already rendered inline, for legacy fallback section
   cross_tab_groups = {}
   chart_data.each do |cd|
+    next if inline_cross_tab_qids.include?(cd["question_id"].to_i)
     next unless cd["cross_tab"].is_a?(Hash) && cd["cross_tab"]["groups"].present?
     xt  = cd["cross_tab"]
     key = xt["group_question"].to_s
     cross_tab_groups[key] ||= { label: xt["label"], datasets: [] }
     cross_tab_groups[key][:datasets] << {
-      title: cd["question"].to_s.truncate(40),
+      title: (cd["ai_title"].presence || cd["question"].to_s).truncate(40),
       groups: xt["groups"],
       max: xt["max"].to_i
     }
   end
+
+  # Separate main charts (to render in grid) from those with inline cross-tab
+  main_charts = chart_data
 %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -234,36 +243,51 @@ canvas{max-height:250px}
 <% end %>
 
 <%# ── Charts ── %>
-<% main_charts = chart_data.reject{|cd| %w[short_text long_text].include?(cd["type"]) && cd["distribution"].blank? && cd["options"].blank?} %>
+<%# main_charts already set in header block above — just filter empties %>
+<% main_charts = chart_data.reject{|cd| %w[short_text long_text].include?(cd["type"]) && cd["distribution"].blank? && cd["options"].blank? && cd["ai_chart_type"] != "quotes"} %>
 <% if main_charts.any? %>
 <div class="section-heading" data-t="section_charts">Dữ liệu & Biểu đồ</div>
 <div class="chart-grid">
 <% main_charts.each_with_index do |cd, idx| %>
 <%
-  qtype  = cd["type"].to_s
-  opts   = cd["options"] || []
-  dist   = cd["distribution"] || []
-  total  = cd["total"].to_i
-  avg_v  = cd["avg"]
-  max_v  = cd["max"].to_f
-  sub    = cd["subtype"].to_s
-  insight= cd["insight"].to_s
-  chid   = "vc_#{idx}"
+  qtype   = cd["type"].to_s
+  opts    = cd["options"] || []
+  dist    = cd["distribution"] || []
+  total   = cd["total"].to_i
+  avg_v   = cd["avg"]
+  max_v   = cd["max"].to_f
+  sub     = cd["subtype"].to_s
+  insight = cd["insight"].to_s
+  chid    = "vc_#{idx}"
+  xt      = cd["cross_tab"]
 
-  # Determine chart type
-  vtype = if qtype == "nps" then "nps"
+  # AI-specified overrides take priority; fall back to data-driven defaults
+  ai_type = cd["ai_chart_type"].to_s.presence
+  ai_span = cd["ai_span"].to_s.presence || "half"
+
+  vtype = if ai_type.present?
+    ai_type   # Trust AI specification
+  elsif xt.present?
+    "grouped_bar"   # Has cross-tab data → show grouped bar
+  elsif qtype == "nps" then "nps"
   elsif qtype == "rating" then "rating_dist"
   elsif qtype == "linear_scale" || sub == "pct" then "dist_bar"
-  elsif %w[single_choice dropdown].include?(qtype) && opts.size <= 7 then "doughnut"
+  elsif %w[single_choice dropdown].include?(qtype) && opts.size <= 6 then "doughnut"
   elsif %w[single_choice dropdown multiple_choice].include?(qtype) then "hbar"
   elsif qtype.in?(%w[short_text long_text]) && dist.any? then "dist_bar"
   else "hbar"
   end
 
-  is_full = %w[nps dist_bar rating_dist].include?(vtype) || opts.size > 6 || (dist.any? && dist.size > 6)
+  is_full = ai_span == "full" ||
+            %w[grouped_bar nps dist_bar].include?(vtype) ||
+            opts.size > 6 ||
+            (dist.any? && dist.size > 6) ||
+            qtype.in?(%w[short_text long_text])
+
+  card_title = cd["ai_title"].presence || cd["question"].to_s
 %>
 <div class="chart-card <%= is_full ? 'full' : '' %>">
-  <h3><%= cd["question"].to_s.truncate(90) %></h3>
+  <h3><%= card_title.truncate(90) %></h3>
 
   <% if vtype == "doughnut" && opts.any? %>
     <canvas id="<%= chid %>"></canvas>
@@ -346,6 +370,58 @@ canvas{max-height:250px}
     </div>
     <% end %>
     <% if avg_v %><div style="margin-top:10px;font-size:12px;color:#6b7280"><span data-t="average">Trung bình</span>: <strong style="color:#4361ee"><%= avg_v %></strong> / <%= max_s.to_i %></div><% end %>
+
+  <% elsif vtype == "number" %>
+    <%# Single KPI number %>
+    <div style="text-align:center;padding:24px 0">
+      <div style="font-size:52px;font-weight:800;color:#4361ee;line-height:1">
+        <%= avg_v || opts.first&.dig("pct").then { |p| "#{p}%" } || total %>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:8px;text-transform:uppercase">
+        <%= total %> phản hồi
+      </div>
+    </div>
+
+  <% elsif vtype == "quotes" %>
+    <%# Long-text quotes section %>
+    <% texts = cd["texts"] || [] %>
+    <% if texts.any? %>
+      <% texts.first(6).each do |t| %>
+      <div style="border-left:3px solid #e0e7ff;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#374151;line-height:1.65;font-style:italic">"<%= t.to_s.truncate(200) %>"</div>
+      <% end %>
+    <% else %>
+      <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Phân tích định tính — xem phần phân tích chi tiết bên dưới</p>
+    <% end %>
+
+  <% elsif vtype == "grouped_bar" && xt.present? && xt["groups"].present? %>
+    <%# Inline grouped bar chart — cross-tab data attached to this chart card %>
+    <% xt_groups = xt["groups"] %>
+    <% xt_is_pct = xt["max"].to_i >= 50 %>
+    <canvas id="<%= chid %>"></canvas>
+    <script>
+    (function(){
+      var labels   = <%= raw xt_groups.map{|g| g["label"].to_s}.to_json %>;
+      var values   = <%= raw xt_groups.map{|g| (g["avg"] || g["pct"] || 0).to_f}.to_json %>;
+      var isPercent= <%= raw xt_is_pct ? 'true' : 'false' %>;
+      var colors   = <%= raw palette.cycle.first(labels.length).to_json %>;
+      mkChart('<%= chid %>', {type:'bar',
+        data:{labels:labels, datasets:[{data:values, backgroundColor:colors, borderRadius:5, borderSkipped:false}]},
+        options:{indexAxis:'y', responsive:true,
+          plugins:{legend:{display:false},
+            datalabels:{anchor:'end', align:'right', offset:4, font:{size:12,weight:'700'}, color:'#374151',
+              formatter:function(v){ return isPercent ? v+'%' : v; }}},
+          scales:{
+            x:{beginAtZero:true, ticks:{callback:function(v){ return isPercent?v+'%':v; }}, grid:{color:'#f3f4f6'}},
+            y:{ticks:{font:{size:11}}}},
+          layout:{padding:{right:40}}},
+        plugins:[ChartDataLabels]});
+    })();
+    </script>
+    <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px">
+      <% xt_groups.each do |g| %>
+      <span style="font-size:11px;color:#94a3b8"><%= g["label"] %>: <strong style="color:#374151"><%= g["total"] || "?" %></strong> phản hồi</span>
+      <% end %>
+    </div>
 
   <% else %>
     <p style="color:#9ca3af;text-align:center;padding:32px 0;font-size:13px" data-t="no_data">Chưa có dữ liệu biểu đồ</p>

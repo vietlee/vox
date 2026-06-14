@@ -195,30 +195,53 @@ class AiExecutiveReportJob < ApplicationJob
 
         "conclusion": "1 sentence — forward-looking, tied to the survey's central purpose.",
 
-        "relevant_question_ids": [
-          <Question IDs to render as charts.
-           INCLUDE: outcome metrics (ratings, scales, %-estimates, multi-choice with real variance)
-           SKIP: name/identity fields, pure grouping variables (department etc. — they appear as cross-tab axis instead), questions with zero variance (e.g. 100% chose one option)>
-        ],
+        "charts": [
+          <VISUAL PLAN — you decide which charts to show, what type, what order.
+           This replaces the old relevant_question_ids + cross_tab_pairs approach.
 
-        "cross_tab_pairs": [
-          <Based on Step 2 of your analysis: for EVERY grouping variable you found, pair it with each key outcome metric.
-           Do this automatically — do not wait to be asked.
-           Format: {"target_id": <outcome question ID>, "group_by_id": <grouping question ID>, "label": "Short label e.g. 'Tiết kiệm thời gian theo bộ phận'"}
-           Rules: group_by_id must be single_choice or dropdown. Max 5 pairs total. Prioritize the pairs that show the biggest expected variance.>
-        ],
+           For each chart, output one object:
+           {
+             "question_id": <int — the question whose data to plot. null if this is a pure cross-tab comparison>,
+             "chart_type": <see CHART TYPE GUIDE below>,
+             "title": "Short AI-written title ≤7 words (not the raw question text)",
+             "span": "full|half",
+             "insight": "1-2 sentences: most important number + what it means",
+             "cross_tab_by": <group_by question ID (single_choice/dropdown) — OR null if no cross-tab>
+           }
 
-        "chart_insights": {
-          "<question_id string>": "1-2 sentences. Most important number + what it means. If cross-tab exists for this question, lead with the biggest gap between subgroups."
-        }
+           CHART TYPE GUIDE — pick the most insightful, not the default:
+           - "doughnut"    — best for: single_choice with ≤6 options when proportions are the story
+           - "hbar"        — best for: multi-choice, ranking, top-N options, or any choice >6 options
+           - "bar"         — best for: distributions where order/trend matters (e.g. 1-10 scores)
+           - "dist_bar"    — best for: numeric % estimates grouped into buckets (pct savings, automation)
+           - "rating_dist" — best for: rating/linear_scale 1-5 or 1-10 when individual score distribution matters
+           - "nps"         — ONLY for 0-10 satisfaction/recommendation questions (groups into 3 colored zones)
+           - "grouped_bar" — best for: comparing a metric across departments/roles — REQUIRES cross_tab_by
+           - "number"      — best for: single KPI where one number tells the story (avg, %, count)
+           - "quotes"      — best for: long_text open responses where themes/quotes convey meaning
+
+           CROSS-TAB RULE: if a grouping question exists (department, role, etc.) AND a key metric exists,
+           ALWAYS create a "grouped_bar" chart showing that metric broken down by group.
+           This is the "money chart" — put it first or second in the array.
+
+           SELECTION RULES:
+           - Order charts from most to least important for the requester's question
+           - "half" span for charts that stand alone well (doughnut, number, rating_dist)
+           - "full" span for complex charts (grouped_bar, hbar with many options, dist_bar, quotes)
+           - SKIP: pure identity fields (name, email), grouping-only questions, zero-variance questions
+           - MAX 8 charts total. Cut anything that doesn't change a decision.
+           #{focus_intent[:matched_target_q] ? "- FIRST CHART MUST be about question ID #{focus_intent[:matched_target_q].id}#{focus_intent[:matched_group_q] ? " with cross_tab_by=#{focus_intent[:matched_group_q].id}" : ""}" : ""}
+          >
+        ]
       }
 
       Hard constraints:
-      - Sections: #{questions_list.size <= 4 ? "1–2 only (small survey — do NOT pad)" : "2–4 only"}. Each answers a DIFFERENT analytical question. No repetition.
+      - Sections: #{focus_intent[:quick_report] ? "1 only (quick report requested)" : questions_list.size <= 4 ? "1–2 only (small survey — do NOT pad)" : "2–4 only"}. Each answers a DIFFERENT analytical question. No repetition.
       - Recommendations: #{focus_intent[:quick_report] ? "1–2" : questions_list.size <= 4 ? "1–2" : "2–3"} only, by impact.
       - executive_summary paragraphs must NOT be identical or near-identical.
       - Every number you write MUST appear in the "Actual response data" section above. Do not invent numbers.
-      - #{focus_intent[:matched_target_q] ? "relevant_question_ids MUST include question ID #{focus_intent[:matched_target_q].id} as first priority." : user_context ? "Requester's focus: \"#{user_context.truncate(300)}\"" : "No additional focus — derive insights from the data."}
+      - charts array must use actual question IDs from the survey (check ## All survey questions above).
+      - cross_tab_by must be a single_choice or dropdown question ID.
     PROMPT
 
     result_text = ClaudeService.opus_long.call(
@@ -229,57 +252,93 @@ class AiExecutiveReportJob < ApplicationJob
 
     result = parse_json_response(result_text)
 
-    # Filter chart_data to AI-selected relevant questions
-    relevant_ids = Array(result["relevant_question_ids"]).map(&:to_i).select(&:positive?)
-    chart_data   = relevant_ids.any? ?
-      all_chart_data.select { |d| relevant_ids.include?(d["question_id"].to_i) } :
-      all_chart_data.dup
+    # ── Process new "charts" visual plan from AI ──────────────────────────────
+    ai_charts = Array(result.delete("charts")).select { |c| c.is_a?(Hash) }
 
-    # Merge AI-provided chart insights
-    chart_insights = result.delete("chart_insights") || {}
-    chart_data.each do |qd|
-      insight = chart_insights[qd["question_id"].to_s] || chart_insights[qd["question_id"].to_i.to_s]
-      qd["insight"] = insight if insight.present?
-    end
-
-    # Merge AI-suggested cross-tab pairs with pre-extracted ones (validated)
-    ai_pairs = Array(result.delete("cross_tab_pairs")).select { |p|
-      p.is_a?(Hash) &&
-        p["target_id"].present? && p["group_by_id"].present? &&
-        valid_q_ids.include?(p["target_id"].to_i) &&
-        valid_q_ids.include?(p["group_by_id"].to_i) &&
-        choice_type_ids.include?(p["group_by_id"].to_i)
-    }
-    cross_tab_pairs = (pre_pairs + ai_pairs)
-                      .uniq { |p| "#{p['target_id']}_#{p['group_by_id']}" }
-                      .first(5)
-
-    # Ensure cross-tab target questions are in chart_data
-    if cross_tab_pairs.any?
-      extra_ids = cross_tab_pairs.map { |p| p["target_id"].to_i }
-      missing   = all_chart_data.select { |d|
-        extra_ids.include?(d["question_id"].to_i) && chart_data.none? { |c| c["question_id"] == d["question_id"] }
+    # Also handle legacy format (relevant_question_ids) if AI returns old format
+    if ai_charts.empty? && result["relevant_question_ids"].present?
+      ai_charts = Array(result.delete("relevant_question_ids")).map(&:to_i).select(&:positive?).map { |id|
+        { "question_id" => id, "chart_type" => nil, "title" => nil, "span" => "half", "insight" => nil }
       }
-      chart_data += missing
     end
 
-    # Build cross-tab data for ALL final pairs (covers newly AI-suggested pairs too)
-    if cross_tab_pairs.any? && completed_response_ids.any?
-      cross_tab_map = build_cross_tab_data(survey, cross_tab_pairs, completed_response_ids)
-      chart_data.each do |qd|
-        xt = cross_tab_map[qd["question_id"].to_i]
-        qd["cross_tab"] = xt if xt
+    # Validate question IDs in charts
+    ai_charts.select! { |c| c["question_id"].nil? || valid_q_ids.include?(c["question_id"].to_i) }
+
+    # Inject semantic focus intent as first chart if AI missed it
+    if focus_intent[:matched_target_q] && focus_intent[:matched_group_q]
+      fi_qid = focus_intent[:matched_target_q].id
+      fi_gid = focus_intent[:matched_group_q].id
+      unless ai_charts.any? { |c| c["question_id"].to_i == fi_qid && c["cross_tab_by"].to_i == fi_gid }
+        ai_charts.unshift(
+          "question_id"  => fi_qid,
+          "chart_type"   => "grouped_bar",
+          "title"        => "#{focus_intent[:matched_target_q].title.truncate(40)} theo #{focus_intent[:matched_group_q].title.truncate(25)}",
+          "span"         => "full",
+          "cross_tab_by" => fi_gid
+        )
       end
     end
 
-    # Remove grouping questions from standalone charts (they only serve as cross-tab axis)
-    group_q_ids = cross_tab_pairs.map { |p| p["group_by_id"].to_i }.uniq
-    chart_data.reject! { |d| group_q_ids.include?(d["question_id"].to_i) }
+    # Collect all cross-tab pairs needed from the visual plan
+    plan_cross_tab_pairs = ai_charts.filter_map { |c|
+      next unless c["cross_tab_by"].present? && c["question_id"].present?
+      tid = c["question_id"].to_i
+      gid = c["cross_tab_by"].to_i
+      next unless valid_q_ids.include?(tid) && valid_q_ids.include?(gid) && choice_type_ids.include?(gid)
+      { "target_id" => tid, "group_by_id" => gid, "label" => c["title"].to_s }
+    }.uniq { |p| "#{p['target_id']}_#{p['group_by_id']}" }
 
-    # Order: cross-tab target questions first (money charts), then remaining in relevant_ids order
-    cross_tab_target_ids = cross_tab_pairs.map { |p| p["target_id"].to_i }
-    priority_order       = (cross_tab_target_ids + relevant_ids).uniq
-    chart_data.sort_by! { |d| priority_order.index(d["question_id"].to_i) || 999 }
+    # Merge with pre_pairs from semantic intent
+    all_cross_tab_pairs = (pre_pairs + plan_cross_tab_pairs)
+                          .uniq { |p| "#{p['target_id']}_#{p['group_by_id']}" }
+                          .first(8)
+
+    # Build cross-tab data for all pairs
+    cross_tab_map = {}
+    if all_cross_tab_pairs.any? && completed_response_ids.any?
+      cross_tab_map = build_cross_tab_data(survey, all_cross_tab_pairs, completed_response_ids)
+    end
+
+    # Build chart_data in AI-specified order, applying AI overrides
+    chart_data_by_qid = all_chart_data.index_by { |d| d["question_id"].to_i }
+
+    chart_data = ai_charts.filter_map { |c|
+      qid = c["question_id"]&.to_i
+      next if qid.nil? || qid == 0  # skip pure cross-tab-only specs (handled via cross_tab_by)
+
+      base = chart_data_by_qid[qid]&.dup || next
+
+      # Apply AI overrides
+      base["ai_chart_type"] = c["chart_type"].presence
+      base["ai_title"]      = c["title"].presence
+      base["ai_span"]       = c["span"].presence || "half"
+      base["insight"]       = c["insight"].presence if c["insight"].present?
+
+      # Attach cross-tab data if requested
+      if c["cross_tab_by"].present?
+        gid = c["cross_tab_by"].to_i
+        xt  = cross_tab_map[qid]
+        # cross_tab_map is keyed by target_id; find matching group
+        if xt.nil?
+          # Try to find in all_cross_tab_pairs
+          pair_key = all_cross_tab_pairs.find { |p| p["target_id"].to_i == qid && p["group_by_id"].to_i == gid }
+          xt = cross_tab_map[qid] if pair_key
+        end
+        base["cross_tab"] = xt if xt
+      end
+
+      base
+    }.compact
+
+    # If AI returned nothing useful, fall back to all chart data
+    chart_data = all_chart_data.dup if chart_data.empty?
+
+    # Merge pre-built cross-tab from pre_pairs (for any charts not already handled above)
+    pre_cross_tab_map.each do |qid, xt|
+      cd = chart_data.find { |d| d["question_id"].to_i == qid }
+      cd["cross_tab"] ||= xt if cd
+    end
 
     result["chart_data"] = chart_data
 
