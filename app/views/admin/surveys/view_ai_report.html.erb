@@ -141,9 +141,8 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .rh-right:hover,.rh-right.dragging{background:linear-gradient(to left,rgba(99,102,241,.35),transparent)}
 .rh-bottom{display:none;position:absolute;bottom:0;left:0;width:100%;height:10px;cursor:ns-resize;z-index:50;align-items:center;justify-content:center;background:linear-gradient(to top,rgba(99,102,241,.15),transparent)}
 .rh-bottom:hover,.rh-bottom.dragging{background:linear-gradient(to top,rgba(99,102,241,.35),transparent)}
-.rh-corner{display:none;position:absolute;bottom:0;right:0;width:20px;height:20px;cursor:nwse-resize;z-index:51;align-items:flex-end;justify-content:flex-end;padding:3px}
-.rh-corner::after{content:'⤡';font-size:14px;color:#6366f1;line-height:1;opacity:.7}
-.rh-corner:hover::after{opacity:1}
+.rh-corner{display:none;position:absolute;bottom:0;right:0;width:20px;height:20px;cursor:nwse-resize;z-index:51;background:linear-gradient(135deg,transparent 50%,rgba(99,102,241,.25) 50%);border-radius:0 0 12px 0}
+.rh-corner:hover{background:linear-gradient(135deg,transparent 50%,rgba(99,102,241,.5) 50%)}
 .resize-tip{display:none;position:fixed;background:#1a1a2e;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap;pointer-events:none;z-index:999;transform:translate(12px,-50%)}
 .resize-tip.visible{display:block}
 
@@ -710,19 +709,42 @@ function setCwMode(btn, mode) {
   activeCw = null;
 }
 
+const LAYOUT_KEY = '<%= "ai_report_layout_#{@survey.id}_#{@ai_result.id}" %>';
+
+function saveTextEdits() {
+  const edits = {};
+  document.querySelectorAll('[data-cid] [data-editable]').forEach(el => {
+    const cid = el.closest('[data-cid]')?.dataset.cid;
+    if (cid && el.textContent.trim()) edits[cid] = el.textContent.trim();
+  });
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    saved.textEdits = edits;
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+  } catch(e) {}
+}
+
+function loadTextEdits() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    if (!saved.textEdits) return;
+    Object.entries(saved.textEdits).forEach(([cid, text]) => {
+      const el = document.querySelector(`[data-cid="${cid}"] [data-editable]`);
+      if (el && text) el.textContent = text;
+    });
+  } catch(e) {}
+}
+
 function cancelMode(e, btn) {
   e.stopPropagation(); e.preventDefault();
   const cw = btn.closest('.cw');
+  const wasTextMode = cw.classList.contains('cw-text-mode');
   cw.classList.remove('cw-text-mode','cw-resize-mode','cw-move-mode');
   cw.querySelectorAll('[data-editable]').forEach(el => { el.contentEditable = 'false'; });
   cw.querySelectorAll('.ct-mode-btn').forEach(b => b.classList.remove('active'));
   cw.querySelectorAll('.lbl-text,.lbl-resize,.lbl-move').forEach(el => el.style.display='none');
+  if (wasTextMode) saveTextEdits();
 }
-
-// ULTRA DEBUG: log every mousedown on page
-document.addEventListener('mousedown', e => {
-  console.log('[GLOBAL MD]', e.target.tagName, (e.target.className||'').toString().substring(0,60));
-}, true); // capture phase
 
 // Click outside → close active card menu
 document.addEventListener('mousedown', e => {
@@ -901,6 +923,9 @@ document.addEventListener('mouseup', () => {
   tip.classList.remove('visible');
   rd = null; latestE = null; rafId = null;
 });
+
+// Load saved text edits from localStorage
+loadTextEdits();
 
 // ── SortableJS: sections drag ──
 <% unless @public_view %>
