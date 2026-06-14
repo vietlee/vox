@@ -116,16 +116,8 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .cw-move-mode   .cw-mode-bar{display:flex}
 .cw-move-mode   .mode-label{background:#6366f1;color:white;cursor:grab}
 
-/* ── Resize handles (inside card, no overflow clip issue) ── */
-.rh-right{display:none;position:absolute;top:0;right:0;width:10px;height:100%;cursor:ew-resize;z-index:30;background:linear-gradient(90deg,transparent 50%,rgba(99,102,241,.18) 100%);border-radius:0 12px 12px 0}
-.rh-bottom{display:none;position:absolute;bottom:0;left:0;width:100%;height:10px;cursor:ns-resize;z-index:30;background:linear-gradient(180deg,transparent 50%,rgba(99,102,241,.18) 100%);border-radius:0 0 12px 12px}
-.rh-corner{display:none;position:absolute;bottom:4px;right:4px;width:20px;height:20px;cursor:nwse-resize;z-index:31}
-.rh-corner::after{content:'⤡';font-size:14px;color:#6366f1;opacity:.7;position:absolute;bottom:0;right:2px;line-height:1}
-.rh-corner:hover::after{opacity:1;color:#4361ee}
-.cw-resize-mode .rh-right{display:block}
-.cw-resize-mode .rh-bottom{display:block}
-.cw-resize-mode .rh-corner{display:block}
-.cw-resize-mode .card{outline:2px solid #a5b4fc;outline-offset:-2px}
+/* ── Resize mode: outline + cursor hints via JS ── */
+.cw-resize-mode .card{outline:2px dashed #a5b4fc;outline-offset:-2px}
 .resize-tip{display:none;position:fixed;background:#1a1a2e;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap;pointer-events:none;z-index:999;transform:translate(12px,-50%)}
 .resize-tip.visible{display:block}
 
@@ -687,11 +679,9 @@ function cancelMode(e, btn) {
   cw.querySelectorAll('.lbl-text,.lbl-resize,.lbl-move').forEach(el => el.style.display='none');
 }
 
-// Click outside → close
+// Click outside → close active card menu
 document.addEventListener('mousedown', e => {
-  if (rd) return;
   if (e.target.closest('.cw-gear')) return;
-  if (e.target.closest('[data-dir]')) return;
   if (!e.target.closest('.cw-active')) deactivateAllCards();
 });
 
@@ -782,65 +772,77 @@ document.querySelectorAll('.cw').forEach(cw => {
       '</div>'
     );
   }
-  cw.insertAdjacentHTML('beforeend',
-    '<div class="rh-right"  data-dir="e"></div>' +
-    '<div class="rh-bottom" data-dir="s"></div>' +
-    '<div class="rh-corner" data-dir="se"></div>'
-  );
 });
 
-// ── Resize drag ──
+// ── Resize drag (edge-detection — no injected handles needed) ──
 const tip = document.createElement('div');
 tip.className = 'resize-tip';
 document.body.appendChild(tip);
 let rd = null, rafId = null, latestE = null;
+const ZONE = 18; // px from edge that counts as drag zone
 
+function getResizeCw() {
+  return document.querySelector('.cw.cw-resize-mode');
+}
+function edgeDir(cw, x, y) {
+  const r = cw.getBoundingClientRect();
+  const inBox = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  if (!inBox) return null;
+  const right  = r.right  - x <= ZONE;
+  const bottom = r.bottom - y <= ZONE;
+  if (right && bottom) return 'se';
+  if (right)  return 'e';
+  if (bottom) return 's';
+  return null;
+}
+
+// Cursor hint on mousemove
+document.addEventListener('mousemove', e => {
+  if (rd) { latestE = e; if (!rafId) rafId = requestAnimationFrame(applyResize); return; }
+  const cw = getResizeCw();
+  if (!cw) return;
+  const dir = edgeDir(cw, e.clientX, e.clientY);
+  document.body.style.cursor = dir === 'se' ? 'nwse-resize' : dir === 'e' ? 'ew-resize' : dir === 's' ? 'ns-resize' : '';
+}, { passive: true });
+
+// Start resize on mousedown in edge zone
 document.addEventListener('mousedown', e => {
-  const handle = e.target.closest('[data-dir]');
-  if (!handle) return;
-  const cw = handle.closest('.cw');
-  if (!cw?.classList.contains('cw-resize-mode')) return;
+  if (rd) return;
+  const cw = getResizeCw();
+  if (!cw) return;
+  if (e.target.closest('.cw-gear,.card-toolbar,.cw-mode-bar,.btn-done')) return;
+  const dir = edgeDir(cw, e.clientX, e.clientY);
+  if (!dir) return;
   e.preventDefault(); e.stopPropagation();
   const grid = cw.parentElement;
-  const dir = handle.dataset.dir;
-  const defaultSpan = 6;
-  const startSpan = parseInt(cw.style.gridColumn?.match(/span (\d+)/)?.[1] || defaultSpan);
+  const startSpan = parseInt(cw.style.gridColumn?.match(/span (\d+)/)?.[1] || 6);
   const startH = cw.querySelector('.card')?.offsetHeight || 240;
   const gridRect = grid.getBoundingClientRect();
-  handle.classList.add('dragging');
-  cw.classList.add('is-resizing');
-  rd = { cw, handle, dir, gridRect, startH, startSpan, startY: e.clientY, _span: startSpan, _h: startH };
+  rd = { cw, dir, gridRect, startH, startSpan, startY: e.clientY, _span: startSpan, _h: startH };
   document.body.style.userSelect = 'none';
-  document.body.style.cursor = dir==='e'?'ew-resize':dir==='s'?'ns-resize':'nwse-resize';
   tip.classList.add('visible');
 });
-
-document.addEventListener('mousemove', e => {
-  if (!rd) return; latestE = e;
-  if (!rafId) rafId = requestAnimationFrame(applyResize);
-}, { passive: true });
 
 function applyResize() {
   rafId = null; if (!rd || !latestE) return;
   const e = latestE;
-  const { cw, dir, gridRect, startH, startY, startSpan } = rd;
+  const { cw, dir, gridRect, startH, startY } = rd;
   const card = cw.querySelector('.card');
   const MAXCOLS = 12;
   if (dir === 'e' || dir === 'se') {
     const colW = gridRect.width / MAXCOLS;
-    const offsetInGrid = e.clientX - gridRect.left;
-    const newSpan = Math.max(1, Math.min(MAXCOLS, Math.round(offsetInGrid / colW)));
+    const newSpan = Math.max(2, Math.min(MAXCOLS, Math.round((e.clientX - gridRect.left) / colW)));
     if (newSpan !== rd._span) { cw.style.gridColumn = `span ${newSpan}`; rd._span = newSpan; }
   }
   if (dir === 's' || dir === 'se') {
     const newH = Math.max(120, startH + (e.clientY - startY));
-    if (card && Math.abs(newH - (rd._h||0)) > 2) { card.style.minHeight = newH+'px'; card.style.height = newH+'px'; rd._h = newH; }
+    if (card && Math.abs(newH - (rd._h || 0)) > 2) { card.style.minHeight = newH + 'px'; card.style.height = newH + 'px'; rd._h = newH; }
   }
   const parts = [];
-  if (dir !== 's') parts.push(`${rd._span}/12`);
-  if (dir !== 'e') parts.push(`${Math.round(rd._h||startH)}px`);
+  if (dir !== 's') parts.push(`${rd._span}/12 cột`);
+  if (dir !== 'e') parts.push(`${Math.round(rd._h || startH)}px`);
   tip.textContent = parts.join(' · ');
-  tip.style.left = e.clientX+'px'; tip.style.top = e.clientY+'px';
+  tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px';
 }
 
 document.addEventListener('mouseup', () => {
