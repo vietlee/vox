@@ -103,13 +103,14 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .cd-placeholder{border:2px dashed #e2e8f0;border-radius:12px;background:#fafafa;min-height:80px}
 
 /* ── Gear icon (always visible, per card) ── */
-.cw-gear{position:absolute;top:14px;right:14px;z-index:40;width:32px;height:32px;border-radius:50%;border:1px solid #c7d2fe;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;opacity:1;transition:background .15s,box-shadow .15s;box-shadow:0 1px 4px rgba(0,0,0,.1);line-height:1;color:#6366f1}
-.cw-gear:hover{background:#eef2ff;box-shadow:0 2px 8px rgba(99,102,241,.25)}
-.cw-active>.cw-gear,.cw-resize-mode>.cw-gear,.cw-text-mode>.cw-gear,.cw-move-mode>.cw-gear{background:#4361ee;color:white;border-color:#4361ee;box-shadow:0 2px 8px rgba(67,97,238,.4)}
+.h3-spacer{flex:1}
+.cw-gear{flex-shrink:0;margin-left:8px;width:32px;height:32px;border-radius:50%;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;color:#6366f1;transition:background .15s;box-shadow:none;padding:0;line-height:1}
+.cw-gear:hover{background:rgba(99,102,241,.1)}
+.cw-active .cw-gear,.cw-resize-mode .cw-gear,.cw-text-mode .cw-gear,.cw-move-mode .cw-gear{background:#4361ee;color:white;box-shadow:none}
 
 /* Card controls — floating dropdown below gear */
-.card-toolbar{display:none;flex-direction:column;gap:3px;position:absolute;top:40px;right:6px;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.13);min-width:185px}
-.cw-active>.card-toolbar{display:flex}
+.card-toolbar{display:none;flex-direction:column;gap:3px;position:absolute;top:56px;right:14px;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.13);min-width:185px}
+.cw-active .card-toolbar{display:flex}
 .ct-mode-btn{display:flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:7px;padding:8px 10px;font-size:12px;font-weight:500;cursor:pointer;color:#374151;text-align:left;width:100%;transition:background .1s}
 .ct-mode-btn:hover{background:#f1f5f9}
 .ct-mode-btn .icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
@@ -124,7 +125,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 /* Resize mode: dashed outline */
 .cw-resize-mode .card{box-shadow:0 2px 8px rgba(0,0,0,.07);outline:2px dashed #a5b4fc;outline-offset:-2px}
 /* ── Mode bar: inline in card header, same row as h3 ── */
-.cw-mode-bar{display:none;align-items:center;gap:8px;white-space:nowrap;margin-left:auto;flex-shrink:0;padding-right:46px}
+.cw-mode-bar{display:none;align-items:center;gap:8px;white-space:nowrap;flex-shrink:0}
 .cw-mode-bar .mode-label{display:flex;align-items:center;gap:5px;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .cw-mode-bar .btn-done{background:white;border:1px solid #e2e8f0;border-radius:20px;padding:5px 13px;font-size:12px;font-weight:700;cursor:pointer;line-height:1.4;box-shadow:0 2px 8px rgba(0,0,0,.1);color:#374151}
 .cw-mode-bar .btn-done:hover{background:#f9fafb;border-color:#6366f1;color:#4361ee}
@@ -531,7 +532,6 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
     ci = card_idx - 1
   %>
   <div class="cw" data-cid="<%= cid %>" style="grid-column:span <%= span %>">
-    <div class="cw-gear" onclick="toggleCardMenu(this)">⚙</div>
     <div class="card-toolbar">
       <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
       <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤢</span>Thay đổi kích thước</button>
@@ -541,7 +541,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
     </div>
     <%# cw-mode-bar, resize handles, snap-guide injected by JS below %>
     <div class="card">
-      <h3 data-editable contenteditable="false"><%= card_title.to_s.truncate(100) %></h3>
+      <h3><span data-editable contenteditable="false"><%= card_title.to_s.truncate(100) %></span><span class="h3-spacer"></span><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button></h3>
 
       <%# ═══ DOUGHNUT ═══ %>
       <% if chart_type == "doughnut" || chart_type == "pie" %>
@@ -1191,16 +1191,18 @@ document.querySelectorAll('.cw').forEach(cw => {
   // Mode bar injected INSIDE h3 so it shares the same line & padding as the title
   const h3 = cw.querySelector('.card h3');
   if (h3) {
-    h3.insertAdjacentHTML('beforeend',
+    const gear = h3.querySelector('.cw-gear');
+    const modeBarHtml =
       '<div class="cw-mode-bar">' +
         '<span class="mode-label">' +
           '<span class="lbl-text" style="display:none">✏️ Đang sửa</span>' +
-          '<span class="lbl-resize" style="display:none">⤡ Thay đổi kích thước</span>' +
+          '<span class="lbl-resize" style="display:none">⤡ Kích thước</span>' +
           '<span class="lbl-move" style="display:none">⠿ Di chuyển</span>' +
         '</span>' +
         '<button class="btn-done" onclick="cancelMode(event,this)">✓ Xong</button>' +
-      '</div>'
-    );
+      '</div>';
+    if (gear) gear.insertAdjacentHTML('beforebegin', modeBarHtml);
+    else h3.insertAdjacentHTML('beforeend', modeBarHtml);
   }
   // Resize handles + snap guide go after card (absolute positioned)
   cw.insertAdjacentHTML('beforeend',
@@ -1305,7 +1307,7 @@ function closeDeleteModal() {
 function confirmDelete() {
   if (!pendingDeleteCid) return;
   const el = document.querySelector(`[data-cid="${pendingDeleteCid}"]`);
-  const label = el?.querySelector('h3')?.textContent?.trim() || pendingDeleteCid;
+  const label = el?.querySelector('h3 [data-editable]')?.textContent?.trim() || el?.querySelector('h3')?.childNodes?.[0]?.textContent?.trim() || pendingDeleteCid;
   if (el) el.classList.add('hidden-section');
   addRestoreChip(pendingDeleteCid, label, 'card');
   closeDeleteModal();
