@@ -835,8 +835,10 @@ let rd = null, rafId = null, latestE = null;
 document.addEventListener('mousedown', e => {
   const handle = e.target.closest('[data-dir]');
   if (!handle) return;
+  console.log('[resize] handle clicked, dir=', handle.dataset.dir, 'target=', e.target);
   const cw = handle.closest('.cw');
-  if (!cw?.classList.contains('cw-resize-mode')) return;
+  console.log('[resize] cw classes=', cw?.className);
+  if (!cw?.classList.contains('cw-resize-mode')) { console.log('[resize] BLOCKED: no cw-resize-mode'); return; }
   e.preventDefault(); e.stopPropagation();
   const grid = cw.parentElement;
   const dir = handle.dataset.dir;
