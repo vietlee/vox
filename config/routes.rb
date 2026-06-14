@@ -105,6 +105,7 @@ Rails.application.routes.draw do
         get   :export
         get    :export_report
         get    :view_ai_report
+        post   :save_ai_report_layout
         post   :generate_ai_report_token
         delete :revoke_ai_report_token
         delete :delete_report

@@ -710,6 +710,11 @@ function setCwMode(btn, mode) {
 }
 
 const LAYOUT_KEY = '<%= "ai_report_layout_#{@survey.id}_#{@ai_result.id}" %>';
+<% server_layout = @survey.settings["ai_report_layout_#{@ai_result.id}"] %>
+<% if server_layout.present? %>
+// Inject server layout into localStorage for both admin and public
+(function(){try{localStorage.setItem(LAYOUT_KEY,JSON.stringify(<%= raw server_layout.to_json %>));}catch(e){}})();
+<% end %>
 
 function saveTextEdits() {
   const edits = {};
@@ -720,7 +725,17 @@ function saveTextEdits() {
   try {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
     saved.textEdits = edits;
+    saved.report_id = '<%= @ai_result.id %>';
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+    // Sync to server so public link shows same data
+    clearTimeout(saveTextEdits._t);
+    saveTextEdits._t = setTimeout(() => {
+      fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+        body: JSON.stringify(saved)
+      }).catch(() => {});
+    }, 1500);
   } catch(e) {}
 }
 
@@ -1027,12 +1042,21 @@ function endHdrEdit(which) {
   const val = input.value.trim();
   if (val) text.textContent = val;
   else input.value = text.textContent;
-  // Save to localStorage
+  // Save to localStorage + server
   try {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
     if (which === 'title') saved.hdrTitle = text.textContent;
     else saved.hdrSub = text.textContent;
+    saved.report_id = '<%= @ai_result.id %>';
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+    clearTimeout(endHdrEdit._t);
+    endHdrEdit._t = setTimeout(() => {
+      fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+        body: JSON.stringify(saved)
+      }).catch(() => {});
+    }, 1500);
   } catch(e) {}
 }
 function hdrKey(e, which) {
