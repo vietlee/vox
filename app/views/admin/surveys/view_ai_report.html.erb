@@ -855,11 +855,36 @@ function updateRestoreBar() {
   if (bar) bar.classList.toggle('has-hidden', bar.querySelectorAll('.btn-restore').length > 0);
 }
 
-// ── Inject mode-bar + resize handles (same as html_report) ──
+// ── Resize drag ──
+const tip = document.createElement('div');
+tip.className = 'resize-tip';
+document.body.appendChild(tip);
+let rd = null, rafId = null, latestE = null;
+
+function attachResizeHandle(handle, cw) {
+  handle.addEventListener('mousedown', function(e) {
+    const cwEl = cw;
+    if (!cwEl.classList.contains('cw-resize-mode')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const grid = cwEl.parentElement;
+    const dir = handle.dataset.dir;
+    const startSpan = parseInt(cwEl.style.gridColumn?.match(/span (\d+)/)?.[1] || 6);
+    const startH = cwEl.querySelector('.card')?.offsetHeight || 240;
+    const gridRect = grid.getBoundingClientRect();
+    handle.classList.add('dragging');
+    cwEl.classList.add('is-resizing');
+    rd = { cw: cwEl, handle, dir, gridRect, startH, startSpan, startY: e.clientY, _span: startSpan, _h: startH };
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = dir === 'e' ? 'ew-resize' : dir === 's' ? 'ns-resize' : 'nwse-resize';
+    tip.classList.add('visible');
+  });
+}
+
+// ── Inject mode-bar + resize handles ──
 document.querySelectorAll('.cw').forEach(cw => {
   const h3 = cw.querySelector('.card h3');
   if (h3) {
-    // Insert mode-bar BEFORE gear so order is: [title][mode-bar][gear]
     const gear = h3.querySelector('.cw-gear');
     const modeBarHtml =
       '<div class="cw-mode-bar">' +
@@ -873,7 +898,6 @@ document.querySelectorAll('.cw').forEach(cw => {
     if (gear) gear.insertAdjacentHTML('beforebegin', modeBarHtml);
     else h3.insertAdjacentHTML('beforeend', modeBarHtml);
   }
-  // Handles go INSIDE .card so they're always in viewport
   const card = cw.querySelector('.card');
   if (card) {
     card.insertAdjacentHTML('beforeend',
@@ -881,38 +905,8 @@ document.querySelectorAll('.cw').forEach(cw => {
       '<div class="rh-bottom" data-dir="s"></div>' +
       '<div class="rh-corner" data-dir="se"></div>'
     );
+    card.querySelectorAll('[data-dir]').forEach(handle => attachResizeHandle(handle, cw));
   }
-});
-
-// ── Resize drag (same as html_report) ──
-const tip = document.createElement('div');
-tip.className = 'resize-tip';
-document.body.appendChild(tip);
-let rd = null, rafId = null, latestE = null;
-
-document.addEventListener('mousedown', e => {
-  // DEBUG: log everything
-  if (e.target.closest('.cw-resize-mode')) {
-    console.log('[DEBUG] click inside resize-mode card, target=', e.target.className, e.target.tagName, 'data-dir=', e.target.dataset?.dir);
-  }
-  const handle = e.target.closest('[data-dir]');
-  if (!handle) return;
-  console.log('[resize] handle clicked, dir=', handle.dataset.dir, 'target=', e.target);
-  const cw = handle.closest('.cw');
-  console.log('[resize] cw classes=', cw?.className);
-  if (!cw?.classList.contains('cw-resize-mode')) { console.log('[resize] BLOCKED: no cw-resize-mode'); return; }
-  e.preventDefault(); e.stopPropagation();
-  const grid = cw.parentElement;
-  const dir = handle.dataset.dir;
-  const startSpan = parseInt(cw.style.gridColumn?.match(/span (\d+)/)?.[1] || 6);
-  const startH = cw.querySelector('.card')?.offsetHeight || 240;
-  const gridRect = grid.getBoundingClientRect();
-  handle.classList.add('dragging');
-  cw.classList.add('is-resizing');
-  rd = { cw, handle, dir, gridRect, startH, startSpan, startY: e.clientY, _span: startSpan, _h: startH };
-  document.body.style.userSelect = 'none';
-  document.body.style.cursor = dir === 'e' ? 'ew-resize' : dir === 's' ? 'ns-resize' : 'nwse-resize';
-  tip.classList.add('visible');
 });
 
 document.addEventListener('mousemove', e => {
