@@ -205,7 +205,7 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   def pdf_report # rubocop:disable Metrics/MethodLength
-    # Reuse html_report instance variables
+    @report_lang = params[:lang].presence_in(%w[vi en]) || "vi"
     call_html_report_setup
 
     # Render view to HTML string (with pdf=1 so UI chrome is hidden)
@@ -214,13 +214,14 @@ class Admin::SurveysController < Admin::BaseController
 
     # Inject the browser's localStorage layout so Grover renders the same layout
     layout_json = params[:layout].presence || "{}"
+    sk = "report_layout_#{@survey.id}_#{@report_lang}"
     layout_script = <<~JS
       <script>
         (function(){
           try {
             var data = #{layout_json.to_s.html_safe};
             if (typeof data === 'string') data = JSON.parse(data);
-            localStorage.setItem('report_layout_#{@survey.id}', typeof data === 'string' ? data : JSON.stringify(data));
+            localStorage.setItem('#{sk}', typeof data === 'string' ? data : JSON.stringify(data));
           } catch(e) {}
         })();
       </script>
