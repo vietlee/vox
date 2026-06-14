@@ -361,11 +361,14 @@ class Admin::SurveysController < Admin::BaseController
           layout: "pdf"
         )
       end
-      pdf = Grover.new(html, format: "A4", print_background: true,
-                       launch_args: ["--no-sandbox", "--disable-setuid-sandbox"],
-                       wait_for_selector: "canvas",
-                       timeout: 30_000).to_pdf rescue Grover.new(html, format: "A4", print_background: true).to_pdf
-      set_download_cookie
+      pdf = Grover.new(html,
+                       format: "A4",
+                       print_background: true,
+                       launch_args: ["--no-sandbox", "--disable-setuid-sandbox", "--font-render-hinting=none"],
+                       viewport: { width: 2400, height: 1600, device_scale_factor: 2 },
+                       wait_for_selector: ".container",
+                       timeout: 45_000).to_pdf rescue Grover.new(html, format: "A4", print_background: true,
+                                                                  launch_args: ["--no-sandbox", "--disable-setuid-sandbox"]).to_pdf
       send_data pdf, filename: "#{filename_base}-ai-report-#{Date.today}.pdf", type: "application/pdf", disposition: "attachment"
     elsif format_type == "word"
       html = render_to_string(
