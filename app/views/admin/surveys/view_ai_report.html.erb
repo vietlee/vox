@@ -103,13 +103,13 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .cw.hidden-section{display:none}
 
 /* ── Gear icon ── */
-.cw-gear{position:absolute;top:20px;right:14px;z-index:40;width:32px;height:32px;border-radius:50%;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;color:#6366f1;transition:background .15s;box-shadow:none}
+.cw-gear{flex-shrink:0;margin-left:auto;width:32px;height:32px;border-radius:50%;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;color:#6366f1;transition:background .15s;box-shadow:none;padding:0;line-height:1}
 .cw-gear:hover{background:rgba(99,102,241,.1)}
-.cw-active>.cw-gear,.cw-resize-mode>.cw-gear,.cw-text-mode>.cw-gear,.cw-move-mode>.cw-gear{background:#4361ee;color:white;box-shadow:none}
+.cw-active .cw-gear,.cw-resize-mode .cw-gear,.cw-text-mode .cw-gear,.cw-move-mode .cw-gear{background:#4361ee;color:white;box-shadow:none}
 
 /* ── Card toolbar dropdown ── */
-.card-toolbar{display:none;flex-direction:column;gap:3px;position:absolute;top:40px;right:6px;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.13);min-width:185px}
-.cw-active>.card-toolbar{display:flex}
+.card-toolbar{display:none;flex-direction:column;gap:3px;position:absolute;top:56px;right:14px;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.13);min-width:185px}
+.cw-active .card-toolbar{display:flex}
 .ct-mode-btn{display:flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:7px;padding:8px 10px;font-size:12px;font-weight:500;cursor:pointer;color:#374151;text-align:left;width:100%;transition:background .1s}
 .ct-mode-btn:hover{background:#f1f5f9}
 .ct-mode-btn .icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
@@ -120,7 +120,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .cw-active .card{box-shadow:0 0 0 2px #c7d2fe,0 2px 8px rgba(0,0,0,.07)}
 
 /* ── Mode bar ── */
-.cw-mode-bar{display:none;align-items:center;gap:8px;white-space:nowrap;margin-left:auto;flex-shrink:0;padding-right:46px}
+.cw-mode-bar{display:none;align-items:center;gap:8px;white-space:nowrap;margin-left:auto;flex-shrink:0}
 .cw-mode-bar .mode-label{display:flex;align-items:center;gap:5px;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .cw-mode-bar .btn-done{background:white;border:1px solid #e2e8f0;border-radius:20px;padding:5px 13px;font-size:12px;font-weight:700;cursor:pointer;line-height:1.4;box-shadow:0 2px 8px rgba(0,0,0,.1);color:#374151}
 .cw-mode-bar .btn-done:hover{background:#f9fafb;border-color:#6366f1;color:#4361ee}
@@ -348,7 +348,6 @@ canvas{max-height:250px}
   card_title = (c["title"].presence || cd["question"].to_s).truncate(90)
 %>
 <div class="cw" data-cid="<%= chid %>" style="grid-column:span <%= col_span %>">
-  <div class="cw-gear" onclick="toggleCardMenu(this)">⚙</div>
   <div class="card-toolbar">
     <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
     <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤢</span>Thay đổi kích thước</button>
@@ -357,7 +356,7 @@ canvas{max-height:250px}
     <button class="ct-mode-btn danger" onclick="hideCard('<%= chid %>')"><span class="icon">👁</span>Ẩn block này</button>
   </div>
   <div class="card">
-    <h3><span data-editable contenteditable="false"><%= card_title %></span></h3>
+    <h3><span data-editable contenteditable="false"><%= card_title %></span><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button></h3>
 
     <% if vtype == "grouped_bar" && xt.present? && xt["groups"].present? %>
       <% xt_groups = xt["groups"]; xt_pct = xt["max"].to_i >= 50 %>
@@ -807,7 +806,9 @@ function updateRestoreBar() {
 document.querySelectorAll('.cw').forEach(cw => {
   const h3 = cw.querySelector('.card h3');
   if (h3) {
-    h3.insertAdjacentHTML('beforeend',
+    // Insert mode-bar BEFORE gear so order is: [title][mode-bar][gear]
+    const gear = h3.querySelector('.cw-gear');
+    const modeBarHtml =
       '<div class="cw-mode-bar">' +
         '<span class="mode-label">' +
           '<span class="lbl-text"  style="display:none">✏️ Đang sửa</span>' +
@@ -815,8 +816,9 @@ document.querySelectorAll('.cw').forEach(cw => {
           '<span class="lbl-move"  style="display:none">⠿ Di chuyển</span>' +
         '</span>' +
         '<button class="btn-done" onclick="cancelMode(event,this)">✓ Xong</button>' +
-      '</div>'
-    );
+      '</div>';
+    if (gear) gear.insertAdjacentHTML('beforebegin', modeBarHtml);
+    else h3.insertAdjacentHTML('beforeend', modeBarHtml);
   }
   cw.insertAdjacentHTML('beforeend',
     '<div class="rh-right"  data-dir="e"><div class="rh-right-bar"></div></div>' +
