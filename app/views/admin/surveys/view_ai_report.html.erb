@@ -45,6 +45,19 @@
 <%= csrf_meta_tags %>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script>
+// Must be defined BEFORE any inline chart scripts run
+Chart.register(ChartDataLabels);
+const C = ['#4361ee','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#0ea5e9','#14b8a6'];
+const chartReg = {};
+function mkChart(id, cfg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const ch = new Chart(el, cfg);
+  chartReg[id] = ch;
+  return ch;
+}
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
@@ -570,11 +583,6 @@ canvas{max-height:250px}
 </div>
 
 <script>
-Chart.register(ChartDataLabels);
-const C = ['#4361ee','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#0ea5e9','#14b8a6'];
-const chartReg = {};
-function mkChart(id, cfg) { const ch = new Chart(document.getElementById(id), cfg); chartReg[id] = ch; return ch; }
-
 // ── i18n ──
 const T = {
   vi: {
