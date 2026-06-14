@@ -437,8 +437,8 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 <%# ── Header ── %>
 <div class="header" style="position:relative">
   <div class="header-lang-switcher" id="headerLangSwitcher">
-    <button class="lang-btn active" id="langVI" onclick="setLang('vi')">🇻🇳 VI</button>
-    <button class="lang-btn" id="langEN" onclick="setLang('en')">🇬🇧 EN</button>
+    <button class="lang-btn<%= ' active' if (@report_lang || 'vi') == 'vi' %>" id="langVI" onclick="setLang('vi')">🇻🇳 VI</button>
+    <button class="lang-btn<%= ' active' if @report_lang == 'en' %>" id="langEN" onclick="setLang('en')">🇬🇧 EN</button>
   </div>
   <h1>
     <span class="hdr-editable" id="hdrTitleWrap" onclick="startHdrEdit('title')" title="Click để chỉnh sửa tiêu đề">
@@ -992,7 +992,7 @@ const SK = 'report_layout_' + SURVEY_ID + '_' + REPORT_LANG;
 const IS_PUBLIC = <%= @public_view ? 'true' : 'false' %>;
 
 // ── KPI label inline editing ──────────────────────────────────────────────
-const KPI_SK = 'report_kpi_labels_' + SURVEY_ID;
+const KPI_SK = 'report_kpi_labels_' + SURVEY_ID + '_' + REPORT_LANG;
 function saveKpiLabel(el) {
   const idx  = el.dataset.kpiIdx;
   const text = el.innerText.trim();
@@ -2185,15 +2185,16 @@ function applyTranslations() {
 }
 
 function setLang(lang) {
-  currentLang = lang;
-  localStorage.setItem('report_lang', lang);
-  applyTranslations();
+  if (lang === REPORT_LANG) return;
+  // Data is server-rendered per language — reload with correct lang param
+  const url = new URL(window.location.href);
+  url.searchParams.set('lang', lang);
+  window.location.href = url.toString();
 }
 
-// Init lang from localStorage or Rails locale
+// Init — apply translations using REPORT_LANG (server-authoritative)
 (function(){
-  const saved = localStorage.getItem('report_lang');
-  if (saved && ['vi','en'].includes(saved)) currentLang = saved;
+  currentLang = REPORT_LANG;
   applyTranslations();
 })();
 
