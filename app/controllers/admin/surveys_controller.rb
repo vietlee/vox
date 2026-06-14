@@ -117,10 +117,15 @@ class Admin::SurveysController < Admin::BaseController
       render json: { ready: structure.present? } and return
     end
 
-    # No structure yet OR stale (text cards missing ai_options) → trigger job + show loading page
-    stale = structure.present? && structure_needs_ai_options?(structure)
+    # No structure yet OR stale (old structure predates ai_options feature) → trigger job once
+    already_upgraded = @survey.settings&.dig("report_structure_ai_options_v1").present?
+    stale = structure.present? && !already_upgraded && structure_needs_ai_options?(structure)
     unless structure.present? && !stale
-      @survey.update_columns(settings: @survey.settings.merge("report_structure" => nil)) if stale
+      if stale
+        @survey.update_columns(settings: @survey.settings.merge(
+          "report_structure" => nil, "report_structure_ai_options_v1" => true
+        ))
+      end
       GenerateReportStructureJob.perform_later(@survey.id)
       render template: "admin/surveys/report_building", layout: false and return
     end
