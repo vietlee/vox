@@ -726,6 +726,32 @@ const LAYOUT_KEY = '<%= "ai_report_layout_#{@survey.id}_#{@ai_result.id}" %>';
 (function(){try{var d=<%= raw server_layout.to_json.gsub('</', '<\/') %>;localStorage.setItem(LAYOUT_KEY,JSON.stringify(d));}catch(e){}})();
 <% end %>
 
+function saveLayout() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    saved.report_id = '<%= @ai_result.id %>';
+    // Card spans and heights
+    saved.cardSpans = {}; saved.cardHeights = {};
+    document.querySelectorAll('.cw[data-cid]').forEach(cw => {
+      const cid = cw.dataset.cid;
+      if (cw.style.gridColumn) saved.cardSpans[cid] = cw.style.gridColumn;
+      const card = cw.querySelector('.card');
+      if (card?.style.minHeight) saved.cardHeights[cid] = card.style.minHeight;
+    });
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+    <% unless @public_view %>
+    clearTimeout(saveLayout._t);
+    saveLayout._t = setTimeout(() => {
+      fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+        body: JSON.stringify(saved)
+      }).catch(() => {});
+    }, 1500);
+    <% end %>
+  } catch(e) {}
+}
+
 function saveTextEdits() {
   const edits = {};
   document.querySelectorAll('[data-cid] [data-editable]').forEach(el => {
@@ -764,6 +790,19 @@ function loadTextEdits() {
       const i = document.getElementById('hdrSubInput');
       if (t) t.textContent = saved.hdrSub;
       if (i) i.value = saved.hdrSub;
+    }
+    // Restore card spans & heights
+    if (saved.cardSpans) {
+      Object.entries(saved.cardSpans).forEach(([cid, col]) => {
+        const el = document.querySelector(`[data-cid="${cid}"]`);
+        if (el) el.style.gridColumn = col;
+      });
+    }
+    if (saved.cardHeights) {
+      Object.entries(saved.cardHeights).forEach(([cid, h]) => {
+        const card = document.querySelector(`[data-cid="${cid}"] .card`);
+        if (card) { card.style.minHeight = h; card.style.height = h; }
+      });
     }
     // Restore card titles
     if (!saved.textEdits) return;
