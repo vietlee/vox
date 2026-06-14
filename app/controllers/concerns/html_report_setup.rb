@@ -160,7 +160,7 @@ module HtmlReportSetup
     base = { id: q.id, title: q.title, question_type: q.question_type, count: answers.size }
 
     # ── AI pre-computed options (stored in report structure) ──
-    if ai_options.present? && %w[short_text long_text].include?(q.question_type)
+    if ai_options.present? && %w[short_text long_text open_ended text].include?(q.question_type)
       opts = ai_options.map { |o| { label: o["label"], count: o["count"].to_i, pct: o["pct"].to_f } }
       texts = answers.map(&:text_value).compact.reject(&:blank?)
       rich_quotes = answers.select { |a| a.text_value.to_s.length >= 40 }

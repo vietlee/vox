@@ -117,8 +117,10 @@ class Admin::SurveysController < Admin::BaseController
       render json: { ready: structure.present? } and return
     end
 
-    # No structure yet → trigger job + show loading page
-    unless structure.present?
+    # No structure yet OR stale (text cards missing ai_options) → trigger job + show loading page
+    stale = structure.present? && structure_needs_ai_options?(structure)
+    unless structure.present? && !stale
+      @survey.update_columns(settings: @survey.settings.merge("report_structure" => nil)) if stale
       GenerateReportStructureJob.perform_later(@survey.id)
       render template: "admin/surveys/report_building", layout: false and return
     end
@@ -745,6 +747,14 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   private
+
+  def structure_needs_ai_options?(structure)
+    (structure["sections"] || []).any? do |sec|
+      (sec["cards"] || []).any? do |card|
+        card["processing"].in?(%w[normalize_tools extract_themes]) && card["ai_options"].blank?
+      end
+    end
+  end
 
   def build_report_qr_svg(qr_code)
     mod_size = 6; pad = 24; radius = 16

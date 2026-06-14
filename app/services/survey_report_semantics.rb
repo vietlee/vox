@@ -131,6 +131,7 @@ class SurveyReportSemantics
     tc = Hash.new(0)
     texts.each do |raw|
       raw.to_s.split(/[,，、;；\n\/＋\+]+/).map(&:strip).reject(&:blank?).each do |part|
+        next if part.split(/\s+/).size > 5  # skip sentences, only short tool-name-like fragments
         tc[normalize_tool(part)] += 1 if part.length > 1
       end
     end
