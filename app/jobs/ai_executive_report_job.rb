@@ -35,11 +35,23 @@ class AiExecutiveReportJob < ApplicationJob
       "sentiment_positive: \"#{pos_from_analysis}%\", sentiment_negative: \"#{neg_from_analysis}%\"" :
       "sentiment_positive: \"derive from data\", sentiment_negative: \"derive from data\""
 
+    # Parse semantic intent from user_context to inject as hard directives
+    focus_intent  = user_context ? parse_focus_intent(user_context, survey) : {}
+
     context_block = user_context ? <<~CTX : ""
-      ## Additional Focus from Report Requester
-      The person requesting this report has provided the following context and focus areas:
-      "#{user_context}"
-      Make sure the report directly addresses these points.
+      ## ⚡ PRIORITY DIRECTIVE — FROM REPORT REQUESTER
+      The person who commissioned this report wrote: "#{user_context}"
+
+      #{focus_intent[:metric_desc].present? ? "FOCUS METRIC: They want to see \"#{focus_intent[:metric_desc]}\"#{focus_intent[:dimension_desc].present? ? " broken down by \"#{focus_intent[:dimension_desc]}\"" : ""}." : ""}
+      #{focus_intent[:quick_report] ? "SCOPE: They asked for a QUICK report — write only 1–2 sections max, 2 recommendations max. Do not pad." : ""}
+      #{focus_intent[:matched_target_q].present? ? "MATCHED QUESTION: Q#{focus_intent[:matched_target_pos]} (\"#{focus_intent[:matched_target_q].title.truncate(60)}\") is the primary metric to highlight." : ""}
+      #{focus_intent[:matched_group_q].present? ? "MATCHED GROUPING: Q#{focus_intent[:matched_group_pos]} (\"#{focus_intent[:matched_group_q].title.truncate(60)}\") is the grouping dimension to cross-tab against." : ""}
+
+      HARD RULES based on this request:
+      - The executive summary MUST open with the specific insight they asked for.
+      - Sections must center on this focus — deprioritize unrelated questions.
+      - relevant_question_ids MUST include the matched metric question ID(s) above.
+      - cross_tab_pairs MUST include the matched target × group pair above (if both found).
     CTX
 
     # Build question reference list with position numbers
@@ -94,7 +106,17 @@ class AiExecutiveReportJob < ApplicationJob
                             .pluck(:id).map(&:to_i).to_set
 
     # Pre-extract cross-tab pairs from user context and build their data early
-    pre_pairs         = pre_extracted_cross_tab_pairs(user_context, survey)
+    # Also inject pair from semantic focus_intent if found
+    pre_pairs = pre_extracted_cross_tab_pairs(user_context, survey)
+    if focus_intent[:matched_target_q] && focus_intent[:matched_group_q]
+      intent_pair = {
+        "target_id"   => focus_intent[:matched_target_q].id,
+        "group_by_id" => focus_intent[:matched_group_q].id,
+        "label"       => "#{focus_intent[:matched_target_q].title.truncate(35)} theo #{focus_intent[:matched_group_q].title.truncate(25)}"
+      }
+      key = "#{intent_pair['target_id']}_#{intent_pair['group_by_id']}"
+      pre_pairs.unshift(intent_pair) unless pre_pairs.any? { |p| "#{p['target_id']}_#{p['group_by_id']}" == key }
+    end
     pre_cross_tab_map = pre_pairs.any? ?
       build_cross_tab_data(survey, pre_pairs, completed_response_ids) : {}
 
@@ -125,6 +147,7 @@ class AiExecutiveReportJob < ApplicationJob
     end.compact.join("\n\n")
 
     user_prompt = <<~PROMPT
+      #{context_block}
       ## Survey to analyze
       Title: #{survey.title}
       #{survey.description.present? ? "Description: #{survey.description}" : ""}
@@ -135,8 +158,6 @@ class AiExecutiveReportJob < ApplicationJob
 
       ## All survey questions (reference)
       #{questions_ref}
-
-      #{context_block}
 
       ---
       Apply the 4-step analysis above using the actual data provided, then produce this JSON (ALL text in #{lang_name}):
@@ -194,10 +215,10 @@ class AiExecutiveReportJob < ApplicationJob
 
       Hard constraints:
       - Sections: #{questions_list.size <= 4 ? "1–2 only (small survey — do NOT pad)" : "2–4 only"}. Each answers a DIFFERENT analytical question. No repetition.
-      - Recommendations: #{questions_list.size <= 4 ? "1–2" : "2–3"} only, by impact.
+      - Recommendations: #{focus_intent[:quick_report] ? "1–2" : questions_list.size <= 4 ? "1–2" : "2–3"} only, by impact.
       - executive_summary paragraphs must NOT be identical or near-identical.
       - Every number you write MUST appear in the "Actual response data" section above. Do not invent numbers.
-      - #{user_context ? "Requester's focus: \"#{user_context.truncate(600)}\"" : "No additional focus — derive insights from the data."}
+      - #{focus_intent[:matched_target_q] ? "relevant_question_ids MUST include question ID #{focus_intent[:matched_target_q].id} as first priority." : user_context ? "Requester's focus: \"#{user_context.truncate(300)}\"" : "No additional focus — derive insights from the data."}
     PROMPT
 
     result_text = ClaudeService.opus_long.call(
@@ -356,6 +377,108 @@ class AiExecutiveReportJob < ApplicationJob
   # Parse cross-tab requests directly from user_context string.
   # Handles patterns: "Q7 × Q2", "Q7 x Q2", "Cross-tab theo Q2", "theo Q2 (bộ phận)"
   # Returns [{target_id, group_by_id, label}] ready for build_cross_tab_data.
+  # ── Semantic intent parser ─────────────────────────────────────────────────
+  # Parses natural language user_context to extract focus metric + grouping dimension
+  # Returns hash with matched questions and descriptors for prompt injection
+  def parse_focus_intent(context, survey)
+    return {} unless context.present?
+
+    questions = survey.questions.includes(:question_options).order(:position)
+    metric_qs = questions.select { |q| %w[rating nps linear_scale short_text long_text].include?(q.question_type) }
+    group_qs  = questions.select { |q| %w[single_choice dropdown].include?(q.question_type) }
+
+    norm = ->(s) {
+      s.to_s.downcase
+       .gsub(/[àáạảãâầấậẩẫăằắặẳẵ]/, 'a')
+       .gsub(/[èéẹẻẽêềếệểễ]/, 'e')
+       .gsub(/[ìíịỉĩ]/, 'i')
+       .gsub(/[òóọỏõôồốộổỗơờớợởỡ]/, 'o')
+       .gsub(/[ùúụủũưừứựửữ]/, 'u')
+       .gsub(/[ỳýỵỷỹ]/, 'y')
+       .gsub(/đ/, 'd')
+       .gsub(/[^a-z0-9\s]/, ' ')
+       .gsub(/\s+/, ' ').strip
+    }
+
+    ctx_norm = norm.call(context)
+
+    # Detect "quick report" intent
+    quick_report = ctx_norm.match?(/\b(nhanh|toc do|tom tat|ngan gon|brief|quick|summary)\b/)
+
+    # Extract target and dimension phrases from intent patterns:
+    # "X giữa [các] Y", "X theo Y", "chart/biểu đồ X theo Y", "so sánh X [theo/giữa] Y"
+    target_phrase = nil
+    group_phrase  = nil
+
+    intent_patterns = [
+      /(?:chart|bieu do|so sanh|hien thi|xem|phan tich)\s+(.+?)\s+(?:giua(?: cac)?|theo|phan chia theo|breakdown)\s+(.+)/,
+      /(.+?)\s+(?:giua(?: cac)?|theo tung|theo)\s+(.+?)\s*$/,
+      /(.+?)\s+(?:phan loai|chia)\s+(?:theo|by)\s+(.+)/,
+    ]
+    intent_patterns.each do |pat|
+      m = ctx_norm.match(pat)
+      if m
+        target_phrase = m[1].strip.gsub(/^(cua|ve|cho)\s+/, '')
+        group_phrase  = m[2].strip.gsub(/^(cac|cua|moi)\s+/, '')
+        break
+      end
+    end
+
+    # Score function: count matching words between phrase and question title
+    score_q = ->(q, phrase) {
+      return 0 unless phrase
+      q_norm = norm.call(q.title)
+      words  = phrase.split(/\s+/).select { |w| w.length >= 3 }
+      words.count { |w| q_norm.include?(w) }
+    }
+
+    # Find best matching metric question
+    matched_target_q = if target_phrase
+      best = metric_qs.max_by { |q| score_q.call(q, target_phrase) }
+      best if best && score_q.call(best, target_phrase) > 0
+    end
+
+    # Find best matching group question — also check dimension keywords
+    dept_keywords = %w[bo phan phong ban department nhom team vai tro role]
+    matched_group_q = if group_phrase
+      # First try phrase matching
+      best = group_qs.max_by { |q| score_q.call(q, group_phrase) }
+      if best && score_q.call(best, group_phrase) > 0
+        best
+      else
+        # Fallback: check if group_phrase contains department-like keywords
+        is_dept = dept_keywords.any? { |kw| group_phrase.include?(kw) }
+        if is_dept
+          group_qs.find { |q| dept_keywords.any? { |kw| norm.call(q.title).include?(kw) } }
+        end
+      end
+    else
+      # No explicit group phrase — check context for dept keywords
+      if dept_keywords.any? { |kw| ctx_norm.include?(kw) }
+        group_qs.find { |q| dept_keywords.any? { |kw| norm.call(q.title).include?(kw) } }
+      end
+    end
+
+    # If we have a group but no target yet, find best metric from context keywords
+    if matched_group_q && !matched_target_q
+      ctx_words = ctx_norm.split(/\s+/).select { |w| w.length >= 4 }
+      best = metric_qs.max_by { |q| q_norm = norm.call(q.title); ctx_words.count { |w| q_norm.include?(w) } }
+      matched_target_q = best if best && ctx_words.any? { |w| norm.call(best.title).include?(w) }
+    end
+
+    positions = questions.each_with_index.to_h { |q, i| [q.id, i + 1] }
+
+    {
+      quick_report:        quick_report,
+      metric_desc:         target_phrase,
+      dimension_desc:      group_phrase,
+      matched_target_q:    matched_target_q,
+      matched_group_q:     matched_group_q,
+      matched_target_pos:  matched_target_q ? positions[matched_target_q.id] : nil,
+      matched_group_pos:   matched_group_q  ? positions[matched_group_q.id]  : nil,
+    }
+  end
+
   def pre_extracted_cross_tab_pairs(context, survey)
     return [] unless context.present?
 
@@ -364,7 +487,6 @@ class AiExecutiveReportJob < ApplicationJob
     pairs = []
     seen  = Set.new
 
-    # Helper to register a pair (target_pos × group_pos)
     register = ->(tp, gp) {
       target_q = questions_by_pos[tp]
       group_q  = questions_by_pos[gp]
@@ -384,15 +506,14 @@ class AiExecutiveReportJob < ApplicationJob
     # Pattern 1: explicit "Qx × Qy" or "Qx x Qy"
     context.scan(/Q(\d+)\s*[×x]\s*Q(\d+)/i) do |a, b|
       register.call(a.to_i, b.to_i)
-      register.call(b.to_i, a.to_i)  # try both directions
+      register.call(b.to_i, a.to_i)
     end
 
-    # Pattern 2: "theo Q\d+" — find most-mentioned grouping Q, pair with nearby Qs
+    # Pattern 2: "theo Q\d+"
     group_counts = context.scan(/(?:theo|by)\s+Q(\d+)/i).flatten.map(&:to_i).tally
     group_counts.sort_by { |_, c| -c }.first(2).each do |group_pos, _|
       group_q = questions_by_pos[group_pos]
       next unless group_q && %w[single_choice dropdown].include?(group_q.question_type)
-      # All Qs explicitly mentioned in context → try pairing with this group
       context.scan(/\bQ(\d+)\b/).flatten.map(&:to_i).uniq.reject { |p| p == group_pos }.each do |tp|
         register.call(tp, group_pos)
       end
