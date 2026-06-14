@@ -182,7 +182,8 @@ class GenerateReportStructureJob < ApplicationJob
         texts = sem&.dig(:texts) || []
         next if texts.size < 3
 
-        ai_options = generate_ai_theme_labels(texts, card["title"].to_s, language)
+        lang = survey.respond_to?(:language) ? (survey.language.presence || "vi") : "vi"
+        ai_options = generate_ai_theme_labels(texts, card["title"].to_s, lang)
         card["ai_options"] = ai_options if ai_options.present?
       rescue => e
         Rails.logger.warn "AI theme labels failed for Q#{qid}: #{e.message}"
