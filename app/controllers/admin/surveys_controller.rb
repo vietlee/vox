@@ -355,6 +355,7 @@ class Admin::SurveysController < Admin::BaseController
                    @survey.ai_analysis_results.where(result_type: "executive_report").order(created_at: :desc).first
                  end
     redirect_to results_survey_path(@survey, tab: "report") unless @ai_result
+    @report_lang = @ai_result&.ai_job&.input_data&.dig("language").presence_in(%w[vi en]) || "vi"
     render layout: false
   end
 

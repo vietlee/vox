@@ -300,7 +300,9 @@ canvas{max-height:250px}
 <body>
 
 <%
-  hdr_sub_default = rpt_sub.present? ? rpt_sub : "#{@survey.title} · #{@total_responses rescue @ai_result.response_count} phản hồi"
+  _resp_count = @total_responses rescue @ai_result.response_count
+  _resp_label = @report_lang == "en" ? "#{_resp_count} responses" : "#{_resp_count} phản hồi"
+  hdr_sub_default = rpt_sub.present? ? rpt_sub : "#{@survey.title} · #{_resp_label}"
 %>
 <div class="header">
   <div class="header-lang-switcher" style="display:none">
@@ -381,7 +383,7 @@ canvas{max-height:250px}
             layout:{padding:{right:44}}},plugins:[ChartDataLabels]});
       })();</script>
       <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px">
-        <% xt_groups.each do |g| %><span style="font-size:11px;color:#94a3b8"><%= g["label"] %>: <strong style="color:#374151"><%= g["total"]||"?" %></strong> phản hồi</span><% end %>
+        <% xt_groups.each do |g| %><span style="font-size:11px;color:#94a3b8"><%= g["label"] %>: <strong style="color:#374151"><%= g["total"]||"?" %></strong> <%= @report_lang == "en" ? "responses" : "phản hồi" %></span><% end %>
       </div>
 
     <% elsif vtype == "doughnut" && opts.any? %>
@@ -451,7 +453,7 @@ canvas{max-height:250px}
     <% elsif vtype == "number" %>
       <div style="text-align:center;padding:24px 0">
         <div style="font-size:52px;font-weight:800;color:#4361ee;line-height:1"><%= avg_v || total %></div>
-        <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:8px;text-transform:uppercase"><%= total %> phản hồi</div>
+        <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:8px;text-transform:uppercase"><%= total %> <%= @report_lang == "en" ? "responses" : "phản hồi" %></div>
       </div>
 
     <% elsif vtype == "quotes" %>

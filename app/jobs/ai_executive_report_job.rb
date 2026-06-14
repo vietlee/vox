@@ -126,7 +126,7 @@ class AiExecutiveReportJob < ApplicationJob
 
     # ── Save ────────────────────────────────────────────────────────────────
     output = plan.merge(
-      "subtitle"     => "#{Date.current.strftime('%m/%Y')} — #{responses.count} phản hồi",
+      "subtitle"     => language == "en" ? "#{Date.current.strftime('%m/%Y')} — #{responses.count} responses" : "#{Date.current.strftime('%m/%Y')} — #{responses.count} phản hồi",
       "response_count" => responses.count,
       "_meta"        => { "format" => report_format, "focused" => (report_mode == "focused") }
     )
@@ -378,8 +378,13 @@ class AiExecutiveReportJob < ApplicationJob
     bot_v  = bot["avg"] || bot["pct"]
     gap    = ((top_v.to_f - bot_v.to_f).abs).round(1)
 
-    "#{top['label']} dẫn đầu với #{top_v}#{unit}, cao hơn #{bot['label']} #{gap}#{unit}. " \
-    "Trung bình chung: #{first_chart.dig('data', 'avg')}#{unit} trên #{first_chart.dig('data', 'total')} phản hồi."
+    if language == "en"
+      "#{top['label']} leads with #{top_v}#{unit}, #{gap}#{unit} above #{bot['label']}. " \
+      "Overall average: #{first_chart.dig('data', 'avg')}#{unit} across #{first_chart.dig('data', 'total')} responses."
+    else
+      "#{top['label']} dẫn đầu với #{top_v}#{unit}, cao hơn #{bot['label']} #{gap}#{unit}. " \
+      "Trung bình chung: #{first_chart.dig('data', 'avg')}#{unit} trên #{first_chart.dig('data', 'total')} phản hồi."
+    end
   end
 
   def fallback_plan(survey, questions, user_context)
@@ -395,7 +400,7 @@ class AiExecutiveReportJob < ApplicationJob
     {
       "report_mode"  => "full",
       "report_title" => survey.title,
-      "sections"     => [{ "title" => "Tổng quan", "charts" => charts }]
+      "sections"     => [{ "title" => language == "en" ? "Overview" : "Tổng quan", "charts" => charts }]
     }
   end
 
