@@ -1553,6 +1553,15 @@ function loadLayout() {
       if (card) { card.style.minHeight = h; card.style.height = h; }
     });
   }
+  // Restore text edits
+  if (saved.textEdits) {
+    Object.entries(saved.textEdits).forEach(([key, text]) => {
+      // key = cid_className (e.g. "abc123_h3")
+      const cid = key.replace(/_[^_]*$/, '');
+      const el = document.querySelector(`[data-cid="${cid}"] [data-editable]`);
+      if (el && text) el.textContent = text;
+    });
+  }
   // Restore chart data
   if (saved.chartData) {
     Object.entries(saved.chartData).forEach(([cid, data]) => {
