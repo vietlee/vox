@@ -219,8 +219,8 @@ class GenerateReportStructureJob < ApplicationJob
     sample = texts.map(&:to_s).reject(&:blank?).first(30).map { |t| t.truncate(200) }
     return [] if sample.empty?
 
-    lang_name = language == "vi" ? "Vietnamese" : "English"
-    system_prompt = "You are a survey analyst. Analyze text responses and group them into themes. Return ONLY valid JSON array. No markdown."
+    lang_name = language == "vi" ? "Vietnamese (tiếng Việt)" : "English"
+    system_prompt = "You are a survey analyst. Analyze text responses and group them into themes. Return ONLY valid JSON array. No markdown. ALL label text MUST be written in #{lang_name} — never use another language."
 
     user_prompt = <<~PROMPT
       Survey question: "#{question_title}"
@@ -230,13 +230,14 @@ class GenerateReportStructureJob < ApplicationJob
       #{sample.each_with_index.map { |t, i| "#{i+1}. #{t}" }.join("\n")}
 
       Task: Group these responses into 4-8 meaningful themes/categories.
-      - Each theme label must be SHORT (2-5 words max), clear, and meaningful in #{lang_name}
+      - IMPORTANT: Every "label" value MUST be in #{lang_name}. Do NOT use English if the language is Vietnamese.
+      - Each theme label must be SHORT (2-5 words max), clear, descriptive
       - Count how many of the #{texts.size} total responses fit each theme (estimate based on sample)
       - Cover the most common topics; themes should not overlap heavily
 
       Return JSON array:
       [
-        {"label": "short theme name", "count": <estimated count>, "pct": <estimated %>},
+        {"label": "nhãn ngắn bằng #{language == "vi" ? "tiếng Việt" : "English"}", "count": <estimated count>, "pct": <estimated %>},
         ...
       ]
       Order by count descending.
