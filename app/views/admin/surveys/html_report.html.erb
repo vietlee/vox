@@ -416,6 +416,9 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
     <div class="share-link-row">
       <input class="share-link-input" id="shareLinkInput" readonly type="text" value="Đang tạo link...">
     </div>
+    <div id="shareShortRow" style="display:none;font-size:11px;color:#64748b;margin-bottom:10px;padding:0 2px">
+      Full link: <span id="shareFullUrl" style="font-family:monospace;word-break:break-all"></span>
+    </div>
     <div class="share-actions">
       <button id="btn-copy-link" class="share-btn" onclick="copyShareLink(this)"><span class="icon">📋</span><span class="copy-tick">✅</span>Copy link</button>
       <button id="btn-copy-qr"   class="share-btn" onclick="copyQrImage(this)"><span class="icon">🖼</span><span class="copy-tick">✅</span>Copy QR</button>
@@ -1733,8 +1736,12 @@ async function openShareModal() {
       headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
     });
     const data = await resp.json();
-    shareUrl = data.url;
+    shareUrl = data.short_url || data.url;
     document.getElementById('shareLinkInput').value = shareUrl;
+    if (data.short_url && data.url !== data.short_url) {
+      document.getElementById('shareFullUrl').textContent = data.url;
+      document.getElementById('shareShortRow').style.display = '';
+    }
     // Render server-generated SVG QR (same style as vote QR)
     document.getElementById('shareQrDiv').innerHTML = data.qr_svg || '';
   } catch(e) {
@@ -1830,8 +1837,12 @@ async function revokeShareLink() {
         headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
       });
       const data = await resp.json();
-      shareUrl = data.url;
+      shareUrl = data.short_url || data.url;
       document.getElementById('shareLinkInput').value = shareUrl;
+      if (data.short_url && data.url !== data.short_url) {
+        document.getElementById('shareFullUrl').textContent = data.url;
+        document.getElementById('shareShortRow').style.display = '';
+      }
       document.getElementById('shareQrDiv').innerHTML = data.qr_svg || '';
     } catch(e) {
       document.getElementById('shareLinkInput').value = 'Lỗi: ' + e.message;

@@ -147,9 +147,10 @@ class Admin::SurveysController < Admin::BaseController
     token = @survey.settings[token_key].presence || SecureRandom.urlsafe_base64(16)
     @survey.update!(settings: @survey.settings.merge(token_key => token))
     public_url = public_report_url(token)
-    qr_code = RQRCode::QRCode.new(public_url, level: :h)
+    short_url  = short_url_for(public_url, workspace: current_workspace)
+    qr_code = RQRCode::QRCode.new(short_url, level: :h)
     qr_svg  = build_report_qr_svg(qr_code)
-    render json: { token: token, url: public_url, qr_svg: qr_svg }
+    render json: { token: token, url: public_url, short_url: short_url, qr_svg: qr_svg }
   end
 
   def revoke_report_token
@@ -163,9 +164,10 @@ class Admin::SurveysController < Admin::BaseController
     token = @survey.settings["ai_report_token"].presence || SecureRandom.urlsafe_base64(16)
     @survey.update!(settings: @survey.settings.merge("ai_report_token" => token, "ai_report_id" => report_id))
     public_url = public_ai_report_url(token)
-    qr_code = RQRCode::QRCode.new(public_url, level: :h)
+    short_url  = short_url_for(public_url, workspace: current_workspace)
+    qr_code = RQRCode::QRCode.new(short_url, level: :h)
     qr_svg  = build_report_qr_svg(qr_code)
-    render json: { token: token, url: public_url, qr_svg: qr_svg }
+    render json: { token: token, url: public_url, short_url: short_url, qr_svg: qr_svg }
   end
 
   def revoke_ai_report_token

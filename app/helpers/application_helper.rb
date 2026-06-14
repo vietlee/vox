@@ -1,5 +1,13 @@
 module ApplicationHelper
 
+  def short_url_for(full_url, workspace: nil)
+    sl = ShortLink.for_url(full_url, workspace: workspace)
+    short_link_url(sl.code)
+  rescue => e
+    Rails.logger.warn "short_url_for failed: #{e.message}"
+    full_url
+  end
+
   def survey_status_class(status)
     {
       "draft"    => "bg-slate-100 text-slate-600",

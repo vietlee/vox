@@ -6,16 +6,19 @@
   </div>
   <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6 space-y-5">
 
+    <% _full_url  = request.base_url + participate_survey_path(@survey.slug) %>
+    <% _short_url = short_url_for(_full_url, workspace: current_workspace) rescue _full_url %>
     <div>
       <label class="block text-[12px] font-semibold text-slate-500 mb-1.5"><%= t("surveys.share.link_label") %></label>
-      <div class="flex gap-2">
-        <input id="survey-link" readonly value="<%= request.base_url + participate_survey_path(@survey.slug) %>"
+      <div class="flex gap-2 mb-2">
+        <input id="survey-link" readonly value="<%= _short_url %>"
           class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-[12px] bg-slate-50 font-mono">
         <button onclick="voxCopy(document.getElementById('survey-link').value, this)" class="vox-copy-btn">
           <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           <span>Sao chép</span>
         </button>
       </div>
+      <p class="text-[11px] text-slate-400">Full link: <span class="font-mono"><%= _full_url %></span></p>
     </div>
 
     <div class="text-center">

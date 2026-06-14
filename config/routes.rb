@@ -36,6 +36,9 @@ Rails.application.routes.draw do
   # PayOS webhook (no CSRF)
   post "webhooks/payos" => "webhooks/payos#receive", as: :payos_webhook
 
+  # Short links
+  get  "/l/:code", to: "public/short_links#show", as: :short_link
+
   # Public report share (no login required)
   get  "/r/:token",    to: "public/reports#show",    as: :public_report
   get  "/ai-r/:token", to: "public/ai_reports#show", as: :public_ai_report
