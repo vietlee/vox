@@ -130,9 +130,15 @@ class AiExecutiveReportJob < ApplicationJob
       "_meta"        => { "format" => report_format, "focused" => (report_mode == "focused") }
     )
 
-    ai_result = survey.ai_analysis_results.create!(
-      result_type: "executive_report",
-      output:      output
+    ai_result = AiAnalysisResult.create!(
+      workspace:      job.workspace,
+      ai_job:         job,
+      result_type:    "executive_report",
+      resource_type:  "Survey",
+      resource_id:    survey.id,
+      output:         output,
+      credits_cost:   job.credits_cost,
+      response_count: responses.count
     )
     job.complete!(ai_result.id)
 
