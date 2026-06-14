@@ -777,6 +777,14 @@ function switchTab(tab) {
 
 // Restore tab from URL hash on load
 (function() {
+  // Restore report language after reload (preserves user's EN/VI choice)
+  const savedLang = sessionStorage.getItem('vox_report_lang');
+  if (savedLang) {
+    const sel = document.getElementById('report-lang');
+    if (sel) sel.value = savedLang;
+    sessionStorage.removeItem('vox_report_lang');
+  }
+
   const hash = location.hash.replace('#', '');
   const urlParams = new URLSearchParams(location.search);
   // Auto-switch to individual tab when paginating responses
@@ -931,6 +939,8 @@ async function pollReport(jobId, progress, statusEl, btn, spinner) {
     setTimeout(() => {
       window.deductDisplayCredits?.(15);
       sessionStorage.setItem('vox_report_created', '1');
+      const _rl = document.getElementById('report-lang')?.value;
+      if (_rl) sessionStorage.setItem('vox_report_lang', _rl);
       location.reload();
     }, 500);
   } else if (data.status === 'failed') {

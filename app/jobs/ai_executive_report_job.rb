@@ -129,7 +129,7 @@ class AiExecutiveReportJob < ApplicationJob
     output = plan.merge(
       "subtitle"     => language == "en" ? "#{Date.current.strftime('%m/%Y')} — #{responses.count} responses" : "#{Date.current.strftime('%m/%Y')} — #{responses.count} phản hồi",
       "response_count" => responses.count,
-      "_meta"        => { "format" => report_format, "focused" => (report_mode == "focused") }
+      "_meta"        => { "format" => report_format, "focused" => (report_mode == "focused"), "language" => @language }
     )
 
     ai_result = AiAnalysisResult.create!(
