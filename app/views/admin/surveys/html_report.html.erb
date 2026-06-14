@@ -507,10 +507,10 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   <% (section["cards"] || []).each do |card| %>
   <%
     chart_type = card["chart_type"].to_s
-    # Override to quotes if too many options (unreadable chart)
+    # Override to hbar with top-10 if too many options (unreadable chart)
     if %w[bar horizontal_bar distribution_bar doughnut pie].include?(chart_type)
       _opts_check = @question_stats[card["question_id"]&.to_i]&.dig(:options) || []
-      chart_type = "quotes" if _opts_check.size > 12
+      chart_type = "horizontal_bar" if _opts_check.size > 12
     end
     is_cross_tab = chart_type == "cross_tab_grouped_bar"
     qid  = is_cross_tab ? nil : card["question_id"]&.to_i
@@ -604,7 +604,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 
       <%# ═══ HORIZONTAL BAR (challenges / multiple-choice) ═══ %>
       <% elsif chart_type == "horizontal_bar" %>
-        <% opts = (stats[:options] || []).sort_by{|o| -o[:count]} %>
+        <% opts = (stats[:options] || []).sort_by{|o| -o[:count]}.first(12) %>
         <% if opts.any? %>
           <% opts.each_with_index do |o, oi| %>
           <div class="bar-item">
