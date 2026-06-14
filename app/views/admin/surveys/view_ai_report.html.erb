@@ -92,6 +92,11 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .btn-sec-hide{background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:#ef4444;cursor:pointer}
 .sortable-ghost{opacity:.3;background:#e0e7ff;border-radius:10px}
 .sortable-chosen{box-shadow:0 8px 24px rgba(67,97,238,.25)}
+.cw.cd-source{opacity:.25;pointer-events:none}
+.cd-ghost{position:fixed;z-index:1000;pointer-events:none;opacity:.85;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;background:white}
+.cd-zone{border:2px dashed #93c5fd;border-radius:12px;background:rgba(239,246,255,.7);min-height:80px;transition:background .15s,border-color .15s,transform .15s;box-sizing:border-box}
+.cd-zone-over{border-color:#4361ee;background:#dbeafe;transform:scale(1.02);box-shadow:0 0 0 3px rgba(67,97,238,.15)}
+.cd-placeholder{border:2px dashed #e2e8f0;border-radius:12px;background:#fafafa;min-height:80px}
 
 /* ── Grids ── */
 .grid-2{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;margin-bottom:4px}
@@ -936,7 +941,24 @@ function applyResize() {
   tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px';
 }
 
-document.addEventListener('mouseup', () => {
+document.addEventListener('mouseup', e => {
+  // Card drag end
+  if (cdrag) {
+    const { cw, ghost, ph, preview, lastGrid, lastCol, spanNum } = cdrag;
+    ghost.remove();
+    cw.classList.remove('cd-source');
+    if (lastGrid && preview.parentElement) {
+      cw.style.gridColumn = `${lastCol} / span ${spanNum}`;
+      lastGrid.insertBefore(cw, preview);
+    } else {
+      ph.parentElement.insertBefore(cw, ph);
+    }
+    preview.remove();
+    ph.remove();
+    cdrag = null;
+    saveLayout();
+  }
+  // Resize end
   if (!rd) return;
   rd.handle.classList.remove('dragging');
   rd.cw.classList.remove('is-resizing');
@@ -958,19 +980,75 @@ if (typeof Sortable !== 'undefined') {
     ghostClass: 'sortable-ghost',
     chosenClass: 'sortable-chosen',
   });
-  // Card drag within each grid
-  document.querySelectorAll('.grid-2').forEach(grid => {
-    Sortable.create(grid, {
-      handle: '.cw-move-mode .mode-label',
-      group: 'cards',
-      animation: 150,
-      ghostClass: 'sortable-ghost',
-      chosenClass: 'sortable-chosen',
-      filter: '.cw:not(.cw-move-mode), [data-dir]',
-      preventOnFilter: false,
-    });
-  });
 }
+
+// ── Custom card drag (same as html_report, avoids SortableJS blocking resize) ──
+let cdrag = null;
+
+function getCardSpan(cw) {
+  if (cw.style.gridColumn) {
+    const m = cw.style.gridColumn.match(/span\s+(\d+)/);
+    if (m) return parseInt(m[1]);
+  }
+  return 6;
+}
+
+function startCardDrag(e, cw) {
+  if (e.target.closest('.btn-done')) return;
+  e.preventDefault(); e.stopPropagation();
+  const rect = cw.getBoundingClientRect();
+  const spanNum = getCardSpan(cw);
+  const ghost = document.createElement('div');
+  ghost.className = 'cd-ghost';
+  ghost.style.cssText = `width:${rect.width}px;height:${rect.height}px;left:${rect.left}px;top:${rect.top}px`;
+  ghost.innerHTML = cw.querySelector('.card')?.outerHTML || '';
+  document.body.appendChild(ghost);
+  const ph = document.createElement('div');
+  ph.className = 'cd-placeholder';
+  ph.style.gridColumn = cw.style.gridColumn || `span ${spanNum}`;
+  cw.parentElement.insertBefore(ph, cw);
+  cw.classList.add('cd-source');
+  const preview = document.createElement('div');
+  preview.className = 'cd-zone cd-zone-over';
+  preview.style.gridColumn = `span ${spanNum}`;
+  cdrag = { cw, ghost, ph, preview, spanNum, offX: rect.width/2, offY: 24, lastGrid: null, lastBefore: null, lastCol: null };
+}
+
+document.addEventListener('mousemove', e => {
+  if (!cdrag) return;
+  cdrag.ghost.style.left = (e.clientX - cdrag.offX) + 'px';
+  cdrag.ghost.style.top  = (e.clientY - cdrag.offY) + 'px';
+  let targetGrid = null;
+  document.querySelectorAll('.grid-2').forEach(grid => {
+    const r = grid.getBoundingClientRect();
+    if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top - 50 && e.clientY <= r.bottom + 50) targetGrid = grid;
+  });
+  if (!targetGrid) { cdrag.preview.remove(); cdrag.lastGrid = null; return; }
+  const gr = targetGrid.getBoundingClientRect();
+  const colW = gr.width / 12;
+  let colStart = Math.round((e.clientX - gr.left) / colW) - Math.floor(cdrag.spanNum / 2) + 1;
+  colStart = Math.max(1, Math.min(13 - cdrag.spanNum, colStart));
+  const items = [...targetGrid.querySelectorAll(':scope > *:not(.cd-source):not(.cd-zone)')];
+  let insertBefore = null;
+  for (const item of items) {
+    const cr = item.getBoundingClientRect();
+    if (e.clientY < cr.top + cr.height * 0.55) { insertBefore = item; break; }
+  }
+  if (targetGrid !== cdrag.lastGrid || insertBefore !== cdrag.lastBefore || colStart !== cdrag.lastCol) {
+    cdrag.preview.style.gridColumn = `${colStart} / span ${cdrag.spanNum}`;
+    if (insertBefore) targetGrid.insertBefore(cdrag.preview, insertBefore);
+    else targetGrid.appendChild(cdrag.preview);
+    cdrag.lastGrid = targetGrid; cdrag.lastBefore = insertBefore; cdrag.lastCol = colStart;
+  }
+}, { passive: true });
+
+document.addEventListener('mousedown', e => {
+  const bar = e.target.closest('.cw-mode-bar');
+  if (!bar) return;
+  const cw = bar.closest('.cw');
+  if (!cw?.classList.contains('cw-move-mode')) return;
+  startCardDrag(e, cw);
+});
 <% end %>
 
 // ── Share modal ──
