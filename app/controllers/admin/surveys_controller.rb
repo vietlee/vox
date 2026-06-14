@@ -737,7 +737,7 @@ class Admin::SurveysController < Admin::BaseController
       input_data: {
         language:     params[:language] || current_workspace.language,
         user_context: params[:user_context].presence,
-        format:       params[:format].presence_in(%w[pdf excel word]) || "pdf"
+        format:       (params[:report_format] || params[:format]).to_s.presence_in(%w[pdf excel word]) || "pdf"
       }
     )
     AiExecutiveReportJob.perform_later(job.id)

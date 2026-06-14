@@ -67,6 +67,7 @@ class ApplicationController < ActionController::Base
         format.html { redirect_to billing_subscription_path, alert: t("ai.feature_not_available") }
         format.json { render json: { upgrade_required: true, error: t("ai.feature_not_available") }, status: :payment_required }
         format.turbo_stream { render turbo_stream: turbo_stream.replace("ai-result", partial: "shared/ai_upgrade_prompt") }
+        format.any  { render json: { upgrade_required: true, error: t("ai.feature_not_available") }, status: :payment_required }
       end
       return false
     end
@@ -79,6 +80,7 @@ class ApplicationController < ActionController::Base
       respond_to do |format|
         format.json { render json: { upgrade_required: true, insufficient_credits: true, error: t("ai.insufficient_credits") }, status: :payment_required }
         format.turbo_stream { render turbo_stream: turbo_stream.replace("ai-result", partial: "shared/no_credits") }
+        format.any  { render json: { upgrade_required: true, insufficient_credits: true, error: t("ai.insufficient_credits") }, status: :payment_required }
       end
       return false
     end
