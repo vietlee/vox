@@ -37,7 +37,8 @@ Rails.application.routes.draw do
   post "webhooks/payos" => "webhooks/payos#receive", as: :payos_webhook
 
   # Public report share (no login required)
-  get  "/r/:token", to: "public/reports#show", as: :public_report
+  get  "/r/:token",    to: "public/reports#show",    as: :public_report
+  get  "/ai-r/:token", to: "public/ai_reports#show", as: :public_ai_report
 
   # Public participation (End User — no login required)
   get  "/s/:slug",              to: "participate/surveys#show",    as: :participate_survey
@@ -104,6 +105,8 @@ Rails.application.routes.draw do
         get   :export
         get    :export_report
         get    :view_ai_report
+        post   :generate_ai_report_token
+        delete :revoke_ai_report_token
         delete :delete_report
         post   :ai_analyze
         post   :ai_report

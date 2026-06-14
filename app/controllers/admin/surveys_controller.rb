@@ -3,7 +3,7 @@ require "csv"
 class Admin::SurveysController < Admin::BaseController
   include HtmlReportSetup
 
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :generate_report_token, :revoke_report_token, :save_report_layout, :build_report_structure, :reset_report_structure, :export, :export_report, :view_ai_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :generate_report_token, :revoke_report_token, :generate_ai_report_token, :revoke_ai_report_token, :save_report_layout, :build_report_structure, :reset_report_structure, :export, :export_report, :view_ai_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
@@ -140,6 +140,21 @@ class Admin::SurveysController < Admin::BaseController
 
   def revoke_report_token
     @survey.update!(settings: @survey.settings.except("report_token"))
+    render json: { ok: true }
+  end
+
+  def generate_ai_report_token
+    report_id = params[:report_id].to_s
+    token = @survey.settings["ai_report_token"].presence || SecureRandom.urlsafe_base64(16)
+    @survey.update!(settings: @survey.settings.merge("ai_report_token" => token, "ai_report_id" => report_id))
+    public_url = public_ai_report_url(token)
+    qr_code = RQRCode::QRCode.new(public_url, level: :h)
+    qr_svg  = build_report_qr_svg(qr_code)
+    render json: { token: token, url: public_url, qr_svg: qr_svg }
+  end
+
+  def revoke_ai_report_token
+    @survey.update!(settings: @survey.settings.except("ai_report_token", "ai_report_id"))
     render json: { ok: true }
   end
 
@@ -334,14 +349,24 @@ class Admin::SurveysController < Admin::BaseController
     filename_base = vi_parameterize(@survey.title).presence || "report"
 
     if format_type == "pdf"
-      html = render_to_string(
-        template: "admin/surveys/report_pdf",
-        locals: { survey: @survey, report: report },
-        layout: "pdf"
-      )
-      pdf = Grover.new(html, format: "A4", print_background: true).to_pdf
+      # AI executive report → render view_ai_report with pdf mode
+      if report.result_type == "executive_report"
+        @ai_result  = report
+        @public_view = true
+        html = render_to_string(template: "admin/surveys/view_ai_report", layout: false)
+      else
+        html = render_to_string(
+          template: "admin/surveys/report_pdf",
+          locals: { survey: @survey, report: report },
+          layout: "pdf"
+        )
+      end
+      pdf = Grover.new(html, format: "A4", print_background: true,
+                       launch_args: ["--no-sandbox", "--disable-setuid-sandbox"],
+                       wait_for_selector: "canvas",
+                       timeout: 30_000).to_pdf rescue Grover.new(html, format: "A4", print_background: true).to_pdf
       set_download_cookie
-      send_data pdf, filename: "#{filename_base}-report-#{Date.today}.pdf", type: "application/pdf", disposition: "attachment"
+      send_data pdf, filename: "#{filename_base}-ai-report-#{Date.today}.pdf", type: "application/pdf", disposition: "attachment"
     elsif format_type == "word"
       html = render_to_string(
         template: "admin/surveys/report_word",

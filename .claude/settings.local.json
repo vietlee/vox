@@ -292,7 +292,12 @@
       "Bash(awk '/create_table \"responses\"/,/^  end/' /Users/mac/Desktop/VOX/db/schema.rb)",
       "Bash(awk '/create_table \"answers\"/,/^  end/' /Users/mac/Desktop/VOX/db/schema.rb)",
       "Bash(cat)",
-      "Bash(ruby /tmp/fix_toolbar.rb)"
+      "Bash(ruby /tmp/fix_toolbar.rb)",
+      "Bash(ruby -e \"require 'rails'; require_relative 'app/jobs/generate_report_structure_job'\")",
+      "Bash(ruby -c app/jobs/generate_report_structure_job.rb)",
+      "Bash(ruby -c app/jobs/ai_executive_report_job.rb)",
+      "Bash(ruby -e \"require 'erb'; ERB.new\\(File.read\\('app/views/admin/surveys/view_ai_report.html.erb'\\)\\).src\")",
+      "Bash(ssh deploy@188.166.189.119 'tail -50 /var/www/vox/shared/log/sidekiq.log 2>/dev/null | grep -A 20 \"AiExecutiveReportJob\\\\|Error\\\\|error\\\\|fail\"')"
     ]
   }
 }

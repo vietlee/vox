@@ -179,9 +179,42 @@ canvas{max-height:250px}
 .btn-back{background:#fff;color:#374151}
 .btn-print{background:#fff;color:#374151}
 .btn-pdf{background:#374151;color:#fff}
+.btn-share{background:linear-gradient(135deg,#4361ee,#7c3aed);color:#fff}
+.btn-back{background:#f1f5f9;color:#374151}
+
+/* Share modal */
+#shareModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#shareModal.open{display:flex}
+.share-box{background:white;border-radius:20px;padding:28px 28px 24px;max-width:420px;width:90%;box-shadow:0 24px 60px rgba(0,0,0,.2)}
+.share-box h3{font-size:17px;font-weight:700;color:#1e293b;margin-bottom:4px}
+.share-box p{font-size:13px;color:#64748b;margin-bottom:20px}
+.share-qr{display:flex;justify-content:center;margin-bottom:20px}
+.share-link-row{display:flex;gap:8px;margin-bottom:16px}
+.share-link-input{flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:9px 12px;font-size:12px;color:#374151;background:#f8fafc;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.share-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+.share-btn{border:1px solid #e2e8f0;background:white;border-radius:10px;padding:10px 8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;color:#374151;transition:all .15s}
+.share-btn:hover{background:#f1f5f9}
+.share-btn .icon{font-size:20px}
+.share-btn.copied{background:#f0fdf4;border-color:#86efac;color:#16a34a}
+.share-btn.copied .icon{display:none}
+.share-btn.copied .copy-tick{display:block}
+.copy-tick{display:none;font-size:20px}
+.share-footer{display:flex;justify-content:space-between;align-items:center}
+.share-revoke{font-size:12px;color:#ef4444;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:7px 14px;cursor:pointer;font-weight:600}
+.share-close{background:#4361ee;color:white;border:none;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer}
+
+/* PDF loading */
+#pdf-loading{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:white;font-size:15px;font-weight:600;backdrop-filter:blur(3px)}
+#pdf-loading.show{display:flex}
+.pdf-spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+<% if @public_view %>
+#actionBar .btn-share, #shareModal { display:none!important }
+<% end %>
 
 @media print{
-  .action-bar,.header-lang-switcher{display:none!important}
+  .action-bar,.header-lang-switcher,#shareModal,#pdf-loading{display:none!important}
   body{background:white}
   .header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{size:A4 landscape;margin:10mm 12mm}
@@ -198,7 +231,7 @@ canvas{max-height:250px}
     <button class="lang-btn active" id="langVI" onclick="setLang('vi')">🇻🇳 VI</button>
     <button class="lang-btn" id="langEN" onclick="setLang('en')">🇬🇧 EN</button>
   </div>
-  <div class="ai-badge">✨ <span data-t="ai_badge">Báo cáo AI</span></div>
+  <div class="ai-badge" style="display:none">✨ <span data-t="ai_badge">Báo cáo AI</span></div>
   <h1><%= rpt_title %></h1>
   <p><%= rpt_sub.present? ? rpt_sub : "#{@survey.title} · #{@total_responses rescue @ai_result.response_count} phản hồi" %></p>
   <% if meta["generated_at"].present? %>
@@ -427,17 +460,52 @@ canvas{max-height:250px}
 
 </div><%# /container %>
 
-<div class="action-bar">
-  <a href="<%= results_survey_path(@survey, tab: 'report') %>" class="btn-back">← <span data-t="back">Quay lại</span></a>
-  <button class="btn-print" onclick="window.print()">🖨️ <span data-t="print">In</span></button>
-  <button class="btn-pdf" onclick="downloadPdf()">⬇ <span data-t="download_pdf">Tải PDF</span></button>
+<%# ── Share modal ── %>
+<% unless @public_view %>
+<div id="shareModal">
+  <div class="share-box">
+    <h3>🔗 Chia sẻ báo cáo AI</h3>
+    <p>Ai có link này đều có thể xem báo cáo mà không cần đăng nhập</p>
+    <div class="share-qr" id="shareQrWrap"><div id="shareQrDiv"></div></div>
+    <div class="share-link-row">
+      <input class="share-link-input" id="shareLinkInput" readonly type="text" value="Đang tạo link...">
+    </div>
+    <div class="share-actions">
+      <button id="btn-copy-link" class="share-btn" onclick="copyShareLink(this)"><span class="icon">📋</span><span class="copy-tick">✅</span>Copy link</button>
+      <button id="btn-copy-qr"   class="share-btn" onclick="copyQrImage(this)"><span class="icon">🖼</span><span class="copy-tick">✅</span>Copy QR</button>
+      <button class="share-btn" onclick="downloadQr()"><span class="icon">⬇️</span>Tải QR</button>
+    </div>
+    <div class="share-footer">
+      <button class="share-revoke" onclick="revokeShareLink()">🗑 Thu hồi link</button>
+      <button class="share-close" onclick="closeShareModal()">Đóng</button>
+    </div>
+  </div>
+</div>
+<% end %>
+
+<%# ── PDF loading overlay ── %>
+<div id="pdf-loading">
+  <div class="pdf-spinner"></div>
+  <span>Đang tạo PDF, vui lòng chờ...</span>
+</div>
+
+<%# ── Action bar ── %>
+<div class="action-bar" id="actionBar">
+  <% unless @public_view %>
+    <button class="btn-share" onclick="openShareModal()">🔗 Chia sẻ</button>
+  <% end %>
+  <button class="btn-print" onclick="window.print()">🖨️ In</button>
+  <button class="btn-pdf" onclick="downloadPdf()">⬇ Tải PDF</button>
+  <% unless @public_view %>
+    <a href="<%= results_survey_path(@survey, tab: 'report') %>" class="btn-back" style="text-decoration:none">← Quay lại</a>
+  <% end %>
 </div>
 
 <script>
 // ── i18n ──
 const T = {
   vi: {
-    ai_badge:'✨ Báo cáo AI', back:'Quay lại', print:'In', download_pdf:'Tải PDF',
+    ai_badge:'✨ Báo cáo AI', back:'Quay lại', print:'In', download_pdf:'Tải PDF', share:'Chia sẻ',
     exec_summary:'Tóm tắt điều hành', section_charts:'Dữ liệu & Biểu đồ',
     section_crosstab:'Phân tích theo nhóm', section_analysis:'Phân tích chi tiết',
     section_recs:'Đề xuất & Khuyến nghị', recs_from_analysis:'Khuyến nghị hành động',
@@ -473,8 +541,58 @@ function setLang(l) {
 (function(){ const s = localStorage.getItem('report_lang'); if (s && T[s]) lang = s; applyTranslations(); })();
 
 function downloadPdf() {
+  document.getElementById('pdf-loading').classList.add('show');
+  const cookie = () => document.cookie.split(';').some(c => c.trim().startsWith('download_started='));
+  const check = setInterval(() => { if (cookie()) { clearInterval(check); document.getElementById('pdf-loading').classList.remove('show'); } }, 800);
+  setTimeout(() => { clearInterval(check); document.getElementById('pdf-loading').classList.remove('show'); }, 30000);
   window.location = '<%= export_report_survey_path(@survey, report_id: @ai_result.id, format_type: "pdf") %>';
 }
+
+// ── Share modal ──
+async function openShareModal() {
+  document.getElementById('shareModal').classList.add('open');
+  document.getElementById('shareLinkInput').value = 'Đang tạo link...';
+  document.getElementById('shareQrDiv').innerHTML = '<div style="width:180px;height:180px;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;">Đang tạo QR...</div>';
+  try {
+    const resp = await fetch('<%= generate_ai_report_token_survey_path(@survey, report_id: @ai_result.id) %>', {
+      method: 'POST', headers: { 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.content || '' }
+    });
+    const data = await resp.json();
+    document.getElementById('shareLinkInput').value = data.url || '';
+    document.getElementById('shareQrDiv').innerHTML = data.qr_svg || '';
+  } catch(e) { document.getElementById('shareLinkInput').value = 'Lỗi tạo link'; }
+}
+function closeShareModal() { document.getElementById('shareModal').classList.remove('open'); }
+async function copyShareLink(btn) {
+  const url = document.getElementById('shareLinkInput').value;
+  if (!url || url.startsWith('Đang') || url.startsWith('Lỗi')) return;
+  try { await navigator.clipboard.writeText(url); } catch(e) { const i = document.getElementById('shareLinkInput'); i.select(); document.execCommand('copy'); }
+  if (btn) { btn.classList.add('copied'); setTimeout(() => btn.classList.remove('copied'), 2000); }
+}
+async function copyQrImage(btn) {
+  const svg = document.querySelector('#shareQrDiv svg');
+  if (!svg) return;
+  try {
+    const canvas = document.createElement('canvas'); canvas.width = 220; canvas.height = 220;
+    const ctx = canvas.getContext('2d'); const img = new Image();
+    img.onload = async () => { ctx.drawImage(img, 0, 0, 220, 220); canvas.toBlob(async b => { await navigator.clipboard.write([new ClipboardItem({'image/png': b})]); if(btn){btn.classList.add('copied');setTimeout(()=>btn.classList.remove('copied'),2000);} }); };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg.outerHTML)));
+  } catch(e) {}
+}
+function downloadQr() {
+  const svg = document.querySelector('#shareQrDiv svg'); if (!svg) return;
+  const a = document.createElement('a'); a.download = 'qr-ai-report.svg';
+  a.href = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg.outerHTML))); a.click();
+}
+async function revokeShareLink() {
+  if (!confirm('Thu hồi link chia sẻ? Người đang giữ link sẽ không xem được nữa.')) return;
+  await fetch('<%= revoke_ai_report_token_survey_path(@survey) %>', {
+    method: 'DELETE', headers: { 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.content || '' }
+  });
+  document.getElementById('shareLinkInput').value = 'Link đã bị thu hồi';
+  document.getElementById('shareQrDiv').innerHTML = '';
+}
+document.getElementById('shareModal')?.addEventListener('click', e => { if (e.target === document.getElementById('shareModal')) closeShareModal(); });
 </script>
 </body>
 </html>
