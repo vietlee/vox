@@ -449,9 +449,12 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   </h1>
   <p>
     <span class="hdr-editable" id="hdrSubWrap" onclick="startHdrEdit('sub')" title="Click để chỉnh sửa mô tả">
-      <span class="hdr-text" id="hdrSubText">Báo cáo phân tích · <%= @total_responses %> phản hồi<% if @survey_date_range %> · <%= @survey_date_range %><% end %></span>
+      <% _sub_prefix = @report_lang == "en" ? "Analytics report" : "Báo cáo phân tích" %>
+      <% _sub_responses = @report_lang == "en" ? "#{@total_responses} responses" : "#{@total_responses} phản hồi" %>
+      <% _sub_text = "#{_sub_prefix} · #{_sub_responses}#{@survey_date_range.present? ? " · #{@survey_date_range}" : ""}" %>
+      <span class="hdr-text" id="hdrSubText"><%= _sub_text %></span>
       <svg class="hdr-edit-icon" width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-      <input class="hdr-input sub-input" id="hdrSubInput" type="text" value="Báo cáo phân tích · <%= @total_responses %> phản hồi<% if @survey_date_range %> · <%= @survey_date_range %><% end %>" onblur="endHdrEdit('sub')" onkeydown="hdrKey(event,'sub')">
+      <input class="hdr-input sub-input" id="hdrSubInput" type="text" value="<%= _sub_text %>" onblur="endHdrEdit('sub')" onkeydown="hdrKey(event,'sub')">
     </span>
   </p>
 </div>
@@ -977,7 +980,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 <% end %>
 
 </div><%# /container %>
-<footer>Báo cáo tự động · VOX · <%= @total_responses %> phản hồi · <%= @survey.title %></footer>
+<footer><%= @report_lang == "en" ? "Automated report · VOX · #{@total_responses} responses · #{@survey.title}" : "Báo cáo tự động · VOX · #{@total_responses} phản hồi · #{@survey.title}" %></footer>
 
 <script>
 // ══════════════════════════════════════════════════════════
@@ -2126,7 +2129,7 @@ const SECTION_I18N_MAP = {
   's-recs': { vi: 'Đề xuất & khuyến nghị', en: 'Suggestions & recommendations' },
 };
 
-let currentLang = '<%= I18n.locale %>';
+let currentLang = '<%= @report_lang || I18n.locale %>';
 
 function t(key) { return (TRANSLATIONS[currentLang] || TRANSLATIONS['vi'])[key] || key; }
 

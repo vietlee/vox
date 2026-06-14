@@ -107,29 +107,39 @@ class GenerateReportStructureJob < ApplicationJob
       s["cards"].map { |c| c["title"].to_s }
     }
 
-    insights_prompt = <<~MSG
-      Survey: "#{survey.title}"
-      #{survey.description.present? ? "Mô tả: #{survey.description}" : ""}
-      Tổng số phản hồi: #{completed_ids.size}
+    output_lang     = language == "vi" ? "Vietnamese (tiếng Việt)" : "English"
+    task1_label     = language == "vi" ? "Rút gọn nhãn KPI (tối đa 4 từ, súc tích)" : "Shorten KPI labels (max 4 words, clear)"
+    task2_label     = language == "vi" ? "Rút gọn tiêu đề section (tối đa 5 từ, rõ ý)" : "Shorten section titles (max 5 words, clear)"
+    task3_label     = language == "vi" ? "Rút gọn tiêu đề card/chart (tối đa 6 từ)" : "Shorten chart titles (max 6 words)"
+    task4_label     = language == "vi" ? "Insights thông minh (4–6 insights)" : "Smart insights (4–6 insights)"
+    stat_desc       = language == "vi" ? "phát hiện quan trọng với số liệu cụ thể" : "key finding with specific data"
+    rec_desc        = language == "vi" ? "đề xuất hành động WHO + WHAT + dẫn chứng số liệu" : "action recommendation WHO + WHAT + data evidence"
+    return_label    = language == "vi" ? "Trả về JSON (không markdown):" : "Return JSON (no markdown):"
 
-      ## Dữ liệu thực từ database:
+    insights_prompt = <<~MSG
+      ⚠️ LANGUAGE RULE: ALL output text (kpi_labels, section_titles, card_titles, insights) MUST be in #{output_lang}. Translate if needed. Do NOT mix languages.
+
+      Survey: "#{survey.title}"
+      Total responses: #{completed_ids.size}
+
+      ## Data:
       #{data_summary}
 
       ---
-      ## Nhiệm vụ 1 — Rút gọn nhãn KPI (tối đa 4 từ, súc tích, dễ hiểu):
+      ## Task 1 — #{task1_label}:
       #{kpi_texts.map.with_index { |t, i| "#{i}: #{t}" }.join("\n")}
 
-      ## Nhiệm vụ 2 — Rút gọn tiêu đề section (tối đa 5 từ, rõ ý):
+      ## Task 2 — #{task2_label}:
       #{section_titles.map.with_index { |t, i| "#{i}: #{t}" }.join("\n")}
 
-      ## Nhiệm vụ 3 — Rút gọn tiêu đề card/chart (tối đa 6 từ, giữ nguyên ý nghĩa):
+      ## Task 3 — #{task3_label}:
       #{card_texts.map.with_index { |t, i| "#{i}: #{t}" }.join("\n")}
 
-      ## Nhiệm vụ 4 — Insights thông minh (4–6 insights):
-      - type "stat": phát hiện quan trọng với số liệu cụ thể từ dữ liệu
-      - type "recommendation": đề xuất hành động WHO + WHAT + dẫn chứng số liệu
+      ## Task 4 — #{task4_label}:
+      - type "stat": #{stat_desc}
+      - type "recommendation": #{rec_desc}
 
-      Trả về JSON (không markdown):
+      #{return_label}
       {
         "kpi_labels": ["label 0", "label 1", ...],
         "section_titles": ["title 0", "title 1", ...],
@@ -139,8 +149,6 @@ class GenerateReportStructureJob < ApplicationJob
           {"type": "recommendation", "title": "...", "detail": "..."}
         ]
       }
-
-      IMPORTANT: All output text MUST be in #{language == "vi" ? "Vietnamese (tiếng Việt)" : "English"}. Translate everything if needed. Keep meaning when shortening.
     MSG
 
     raw      = ClaudeService.sonnet.call(system_prompt: INSIGHTS_SYSTEM_PROMPT,
