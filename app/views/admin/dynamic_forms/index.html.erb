@@ -124,7 +124,8 @@
                     <%= link_to edit_dynamic_form_path(form), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100 font-medium" do %><%= t("dynamic_forms.edit_btn") %><% end %>
                     <%= link_to submissions_dynamic_form_path(form), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 font-medium" do %><%= t("dynamic_forms.submissions_title") %><% end %>
                     <% if form.active? %>
-                      <%= link_to participate_dynamic_form_url(form.slug), target: "_blank", class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 font-medium" do %>🔗<% end %>
+                      <% _idx_short = short_url_for(participate_dynamic_form_url(form.slug), workspace: current_workspace) rescue participate_dynamic_form_url(form.slug) %>
+                      <%= link_to _idx_short, target: "_blank", class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 font-medium" do %>🔗<% end %>
                     <% end %>
                     <% if form.deletable? %>
                       <button type="button"

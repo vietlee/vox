@@ -5,24 +5,34 @@
     <h1 class="text-[19px] font-extrabold text-slate-900">🔗 <%= t("votes.share.title") %></h1>
   </div>
   <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6 space-y-4">
+    <% _vote_full  = request.base_url + participate_vote_path(@vote.slug) %>
+    <% _vote_short = short_url_for(_vote_full, workspace: current_workspace) rescue _vote_full %>
     <div>
       <label class="block text-[12px] font-semibold text-slate-500 mb-1.5"><%= t("votes.share.participant_link") %></label>
-      <div class="flex gap-2">
-        <input readonly value="<%= request.base_url + participate_vote_path(@vote.slug) %>"
+      <div class="flex gap-2 mb-1">
+        <input readonly value="<%= _vote_short %>"
           class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-[12px] bg-slate-50 text-slate-700">
         <button onclick="voxCopy(this.previousElementSibling.value, this)" class="vox-copy-btn">
           <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           <span>Sao chép</span>
         </button>
       </div>
+      <% if _vote_short != _vote_full %>
+        <p class="text-[11px] text-slate-400">Full: <span class="font-mono"><%= _vote_full %></span></p>
+      <% end %>
     </div>
+    <% _present_full  = request.base_url + present_vote_path(@vote.slug) %>
+    <% _present_short = short_url_for(_present_full, workspace: current_workspace) rescue _present_full %>
     <div>
       <label class="block text-[12px] font-semibold text-slate-500 mb-1.5"><%= t("votes.share.presenter_link") %></label>
-      <div class="flex gap-2">
-        <input readonly value="<%= request.base_url + present_vote_path(@vote.slug) %>"
+      <div class="flex gap-2 mb-1">
+        <input readonly value="<%= _present_short %>"
           class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-[12px] bg-slate-50 text-slate-700">
         <a href="<%= present_vote_path(@vote.slug) %>" target="_blank" class="px-3 py-2 bg-indigo-50 rounded-lg text-[12px] text-indigo-700 hover:bg-indigo-100"><%= t("votes.share.open") %></a>
       </div>
+      <% if _present_short != _present_full %>
+        <p class="text-[11px] text-slate-400">Full: <span class="font-mono"><%= _present_full %></span></p>
+      <% end %>
     </div>
   </div>
 </div>
