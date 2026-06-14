@@ -1,6 +1,6 @@
 <%
   data           = @ai_result.output || {}
-  rpt_title      = data["title"].presence || @survey.title
+  rpt_title      = data["report_title"].presence || data["title"].presence || @survey.title
   rpt_sub        = data["subtitle"].presence || ""
   exec_sum       = data["executive_summary"].to_s
   key_met        = data["key_metrics"] || {}
@@ -206,78 +206,10 @@ canvas{max-height:250px}
   <% end %>
 </div>
 
-<div class="container">
-
-<%# ── FOCUSED MODE: chỉ show insight 1 câu + chart được yêu cầu ── %>
-<% if focused_mode %>
-  <% if focused_insight.present? %>
-  <div style="background:#f0f4ff;border-left:4px solid #4361ee;border-radius:0 10px 10px 0;padding:14px 18px;margin:20px 0 4px;font-size:13px;line-height:1.7;color:#374151">
-    📊 <%= focused_insight %>
-  </div>
-  <% end %>
-<% else %>
-
-<%# ── KPI ── %>
-<% if key_met.any? %>
-<div class="kpi-grid" style="margin-top:24px">
-  <% if key_met["response_count"].present? %>
-  <div class="kpi" style="border-color:#4361ee">
-    <div class="kpi-value" style="color:#4361ee"><%= key_met["response_count"] %></div>
-    <div class="kpi-label" data-t="kpi_responses">Người tham gia</div>
-  </div>
-  <% end %>
-  <% if key_met["sentiment_positive"].present? %>
-  <div class="kpi" style="border-color:#10b981">
-    <div class="kpi-value" style="color:#10b981"><%= key_met["sentiment_positive"] %></div>
-    <div class="kpi-label" data-t="kpi_positive">Tích cực</div>
-  </div>
-  <% end %>
-  <% if key_met["sentiment_negative"].present? %>
-  <div class="kpi" style="border-color:#ef4444">
-    <div class="kpi-value" style="color:#ef4444"><%= key_met["sentiment_negative"] %></div>
-    <div class="kpi-label" data-t="kpi_negative">Tiêu cực</div>
-  </div>
-  <% end %>
-  <%# Extra KPIs from chart_data (NPS avg, key pct averages) %>
-  <% chart_data.select{|cd| cd["avg"].present? && %w[nps linear_scale rating].include?(cd["type"])}.first(2).each_with_index do |cd, i| %>
-  <% kpi_colors = %w[#f59e0b #8b5cf6] %>
-  <div class="kpi" style="border-color:<%= kpi_colors[i] %>">
-    <div class="kpi-value" style="color:<%= kpi_colors[i] %>"><%= cd["subtype"] == "pct" ? "#{cd['avg']}%" : cd["avg"] %></div>
-    <div class="kpi-label"><%= cd["question"].to_s.truncate(28) %></div>
-  </div>
-  <% end %>
-  <% if key_met["top_concern"].present? %>
-  <div class="kpi" style="border-color:#f59e0b;grid-column:span 2">
-    <div class="kpi-value" style="color:#f59e0b;font-size:15px;font-weight:700;line-height:1.3;margin-bottom:6px"><%= key_met["top_concern"] %></div>
-    <div class="kpi-label" data-t="kpi_concern">Vấn đề nổi bật</div>
-  </div>
-  <% end %>
-</div>
-<% end %>
-
-<%# ── Executive summary ── %>
-<% if exec_sum.present? %>
-<div class="exec-card">
-  <h2>📋 <span data-t="exec_summary">Tóm tắt điều hành</span></h2>
-  <% exec_sum.split(/\n\n+/).each do |para| %>
-    <% next if para.strip.empty? %>
-    <p><%= para.strip %></p>
-  <% end %>
-</div>
-<% end %>
-
-<% end %><%# /focused_mode else %>
-
-<%# ── Charts ── %>
-<%# main_charts already set in header block above — just filter empties %>
-<% main_charts = chart_data.reject{|cd| %w[short_text long_text].include?(cd["type"]) && cd["distribution"].blank? && cd["options"].blank? && cd["ai_chart_type"] != "quotes"} %>
-<% if main_charts.any? %>
-<% unless focused_mode %>
-<div class="section-heading" data-t="section_charts">Dữ liệu & Biểu đồ</div>
-<% end %>
-<div class="chart-grid">
-<% main_charts.each_with_index do |cd, idx| %>
-<%
+<%# ── Helper partial for rendering a single chart card ── %>
+<% render_chart = ->(c, idx) do
+  cd      = c["data"] || {}
+  xt      = c["cross_tab_data"]
   qtype   = cd["type"].to_s
   opts    = cd["options"] || []
   dist    = cd["distribution"] || []
@@ -285,306 +217,207 @@ canvas{max-height:250px}
   avg_v   = cd["avg"]
   max_v   = cd["max"].to_f
   sub     = cd["subtype"].to_s
-  insight = cd["insight"].to_s
-  chid    = "vc_#{idx}"
-  xt      = cd["cross_tab"]
-
-  # AI-specified overrides take priority; fall back to data-driven defaults
-  ai_type = cd["ai_chart_type"].to_s.presence
-  ai_span = cd["ai_span"].to_s.presence || "half"
-
-  vtype = if ai_type.present?
-    ai_type   # Trust AI specification
-  elsif xt.present?
-    "grouped_bar"   # Has cross-tab data → show grouped bar
-  elsif qtype == "nps" then "nps"
-  elsif qtype == "rating" then "rating_dist"
-  elsif qtype == "linear_scale" || sub == "pct" then "dist_bar"
-  elsif %w[single_choice dropdown].include?(qtype) && opts.size <= 6 then "doughnut"
-  elsif %w[single_choice dropdown multiple_choice].include?(qtype) then "hbar"
-  elsif qtype.in?(%w[short_text long_text]) && dist.any? then "dist_bar"
-  else "hbar"
+  insight = c["insight"].to_s
+  chid    = "ch_#{idx}"
+  vtype   = c["chart_type"].to_s.presence || begin
+    if xt.present? then "grouped_bar"
+    elsif qtype == "nps" then "nps"
+    elsif qtype == "rating" then "rating_dist"
+    elsif qtype == "linear_scale" || sub == "pct" then "dist_bar"
+    elsif %w[single_choice dropdown].include?(qtype) && opts.size <= 6 then "doughnut"
+    elsif %w[single_choice dropdown multiple_choice].include?(qtype) then "hbar"
+    else "dist_bar"
+    end
   end
-
-  is_full = ai_span == "full" ||
-            %w[grouped_bar nps dist_bar].include?(vtype) ||
-            opts.size > 6 ||
-            (dist.any? && dist.size > 6) ||
-            qtype.in?(%w[short_text long_text])
-
-  card_title = cd["ai_title"].presence || cd["question"].to_s
+  is_full = c["span"] == "full" || %w[grouped_bar dist_bar hbar quotes].include?(vtype) || opts.size > 6
 %>
 <div class="chart-card <%= is_full ? 'full' : '' %>">
-  <h3><%= card_title.truncate(90) %></h3>
+  <h3><%= (c["title"].presence || cd["question"].to_s).truncate(90) %></h3>
 
-  <% if vtype == "doughnut" && opts.any? %>
+  <% if vtype == "grouped_bar" && xt.present? && xt["groups"].present? %>
+    <% xt_groups = xt["groups"]; xt_pct = xt["max"].to_i >= 50 %>
     <canvas id="<%= chid %>"></canvas>
-    <script>
-    (function(){
-      var labels = <%= raw opts.map{|o| o["label"].to_s}.to_json %>;
-      var counts = <%= raw opts.map{|o| o["count"].to_i}.to_json %>;
-      mkChart('<%= chid %>', {type:'doughnut', data:{labels:labels, datasets:[{data:counts, backgroundColor:C.slice(0,labels.length), borderWidth:2, borderColor:'#fff'}]},
-        options:{responsive:true, plugins:{legend:{position:'right',labels:{font:{size:11},padding:10}},
-          datalabels:{color:'#fff',font:{weight:'bold',size:10}, display:ctx=>{ var s=ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0); return s>0&&ctx.dataset.data[ctx.dataIndex]/s>0.04; },
-            formatter:(v,ctx)=>{ var s=ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0); return s>0?Math.round(v/s*100)+'%':''; }}}},
-        plugins:[ChartDataLabels]});
-    })();
-    </script>
+    <script>(function(){
+      var labels=<%= raw xt_groups.map{|g| g["label"].to_s}.to_json %>;
+      var values=<%= raw xt_groups.map{|g|(g["avg"]||g["pct"]||0).to_f}.to_json %>;
+      var pct=<%= raw xt_pct ? 'true':'false' %>;
+      var clrs=<%= raw palette.cycle.first(labels.length).to_json %>;
+      mkChart('<%= chid %>',{type:'bar',data:{labels:labels,datasets:[{data:values,backgroundColor:clrs,borderRadius:5,borderSkipped:false}]},
+        options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},
+          datalabels:{anchor:'end',align:'right',offset:4,font:{size:12,weight:'700'},color:'#374151',formatter:function(v){return pct?v+'%':v;}}},
+          scales:{x:{beginAtZero:true,ticks:{callback:function(v){return pct?v+'%':v;}},grid:{color:'#f3f4f6'}},y:{ticks:{font:{size:11}}}},
+          layout:{padding:{right:44}}},plugins:[ChartDataLabels]});
+    })();</script>
+    <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px">
+      <% xt_groups.each do |g| %><span style="font-size:11px;color:#94a3b8"><%= g["label"] %>: <strong style="color:#374151"><%= g["total"]||"?" %></strong> phản hồi</span><% end %>
+    </div>
+
+  <% elsif vtype == "doughnut" && opts.any? %>
+    <canvas id="<%= chid %>"></canvas>
+    <script>(function(){
+      var l=<%= raw opts.map{|o|o["label"].to_s}.to_json %>;
+      var d=<%= raw opts.map{|o|o["count"].to_i}.to_json %>;
+      mkChart('<%= chid %>',{type:'doughnut',data:{labels:l,datasets:[{data:d,backgroundColor:C.slice(0,l.length),borderWidth:2,borderColor:'#fff'}]},
+        options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},padding:10}},
+          datalabels:{color:'#fff',font:{weight:'bold',size:10},display:ctx=>{var s=ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);return s>0&&ctx.dataset.data[ctx.dataIndex]/s>0.04;},
+            formatter:(v,ctx)=>{var s=ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);return s>0?Math.round(v/s*100)+'%':'';}}}},plugins:[ChartDataLabels]});
+    })();</script>
 
   <% elsif vtype == "hbar" && opts.any? %>
-    <% sorted = opts.sort_by{|o| -o["count"].to_i} %>
-    <% sorted.each_with_index do |o, oi| %>
+    <% opts.sort_by{|o|-o["count"].to_i}.each_with_index do |o,oi| %>
     <div class="bar-item">
       <span class="bar-label" title="<%= o['label'] %>"><%= o["label"].to_s.truncate(32) %></span>
-      <div class="bar-track"><div class="bar-fill" style="width:<%= o['pct'].to_f.clamp(0,100) %>%;background:<%= palette[oi % palette.size] %>"><%= o["pct"].to_f > 8 ? "#{o['pct'].round(1)}%" : "" %></div></div>
+      <div class="bar-track"><div class="bar-fill" style="width:<%= o['pct'].to_f.clamp(0,100) %>%;background:<%= palette[oi%palette.size] %>"><%= o["pct"].to_f>8 ? "#{o['pct'].round(1)}%" : "" %></div></div>
       <span class="bar-count"><%= o["count"] %></span>
     </div>
     <% end %>
 
   <% elsif vtype == "dist_bar" && dist.any? %>
-    <%# Histogram: distribution buckets %>
     <canvas id="<%= chid %>"></canvas>
-    <script>
-    (function(){
-      var labels = <%= raw dist.map{|d| d["value"].to_s}.to_json %>;
-      var counts = <%= raw dist.map{|d| d["count"].to_i}.to_json %>;
-      mkChart('<%= chid %>', {type:'bar', data:{labels:labels, datasets:[{data:counts, backgroundColor:'#4361ee', borderRadius:4}]},
-        options:{responsive:true, plugins:{legend:{display:false}, datalabels:{anchor:'end',align:'top',offset:2,font:{size:11,weight:'700'},color:'#444',formatter:v=>v>0?v:''}},
-          scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{ticks:{font:{size:10}}}}, layout:{padding:{top:20}}},
-        plugins:[ChartDataLabels]});
-    })();
-    </script>
-    <% if avg_v %>
-    <div style="margin-top:10px;text-align:center;font-size:12px;color:#6b7280">
-      <span data-t="average">Trung bình</span>: <strong style="color:#4361ee;font-size:15px"><%= avg_v %><%='%' if sub == 'pct' %></strong>
-    </div>
-    <% end %>
+    <script>(function(){
+      var l=<%= raw dist.map{|d|d["value"].to_s}.to_json %>;
+      var d=<%= raw dist.map{|d|d["count"].to_i}.to_json %>;
+      mkChart('<%= chid %>',{type:'bar',data:{labels:l,datasets:[{data:d,backgroundColor:'#4361ee',borderRadius:4}]},
+        options:{responsive:true,plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',offset:2,font:{size:11,weight:'700'},color:'#444',formatter:v=>v>0?v:''}},
+          scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{ticks:{font:{size:10}}}},layout:{padding:{top:20}}},plugins:[ChartDataLabels]});
+    })();</script>
+    <% if avg_v %><div style="margin-top:10px;text-align:center;font-size:12px;color:#6b7280">Trung bình: <strong style="color:#4361ee;font-size:15px"><%= avg_v %><%= '%' if sub=='pct' %></strong></div><% end %>
 
   <% elsif vtype == "nps" && dist.any? %>
-    <%# NPS: 0-10 bar with red/cyan/green coloring %>
     <canvas id="<%= chid %>"></canvas>
-    <script>
-    (function(){
-      var labels = <%= raw dist.map{|d| d["value"].to_s}.to_json %>;
-      var counts = <%= raw dist.map{|d| d["count"].to_i}.to_json %>;
-      var colors = labels.map(function(v){ var n=parseInt(v); return n>=9?'#10b981':n>=7?'#06b6d4':'#ef4444'; });
-      mkChart('<%= chid %>', {type:'bar', data:{labels:labels, datasets:[{data:counts, backgroundColor:colors, borderRadius:4}]},
-        options:{responsive:true, plugins:{legend:{display:false}, datalabels:{anchor:'end',align:'top',offset:2,font:{size:12,weight:'700'},color:'#444',formatter:v=>v>0?v:''}},
-          scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{ticks:{font:{size:11}}}}, layout:{padding:{top:20}}},
-        plugins:[ChartDataLabels]});
-    })();
-    </script>
-    <% promoters  = dist.select{|d| d["value"].to_i >= 9}.sum{|d| d["count"].to_i} %>
-    <% passives   = dist.select{|d| [7,8].include?(d["value"].to_i)}.sum{|d| d["count"].to_i} %>
-    <% detractors = dist.select{|d| d["value"].to_i <= 6}.sum{|d| d["count"].to_i} %>
-    <% nps_score  = total > 0 ? ((promoters - detractors).to_f / total * 100).round : 0 %>
+    <script>(function(){
+      var l=<%= raw dist.map{|d|d["value"].to_s}.to_json %>;
+      var d=<%= raw dist.map{|d|d["count"].to_i}.to_json %>;
+      var clrs=l.map(function(v){var n=parseInt(v);return n>=9?'#10b981':n>=7?'#06b6d4':'#ef4444';});
+      mkChart('<%= chid %>',{type:'bar',data:{labels:l,datasets:[{data:d,backgroundColor:clrs,borderRadius:4}]},
+        options:{responsive:true,plugins:{legend:{display:false},datalabels:{anchor:'end',align:'top',offset:2,font:{size:12,weight:'700'},color:'#444',formatter:v=>v>0?v:''}},
+          scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{ticks:{font:{size:11}}}},layout:{padding:{top:20}}},plugins:[ChartDataLabels]});
+    })();</script>
+    <% pro=dist.select{|d|d["value"].to_i>=9}.sum{|d|d["count"].to_i}; pas=dist.select{|d|[7,8].include?(d["value"].to_i)}.sum{|d|d["count"].to_i}; det=dist.select{|d|d["value"].to_i<=6}.sum{|d|d["count"].to_i}; sc=total>0?((pro-det).to_f/total*100).round:0 %>
     <div class="nps-pills">
-      <div class="nps-pill"><div class="nv" style="color:#4361ee"><%= nps_score %>%</div><div class="nl">Điểm hài lòng</div></div>
-      <div class="nps-pill"><div class="nv" style="color:#10b981"><%= promoters %></div><div class="nl">Hài lòng cao</div></div>
-      <div class="nps-pill"><div class="nv" style="color:#06b6d4"><%= passives %></div><div class="nl">Trung lập</div></div>
-      <div class="nps-pill"><div class="nv" style="color:#ef4444"><%= detractors %></div><div class="nl">Không hài lòng</div></div>
+      <div class="nps-pill"><div class="nv" style="color:#4361ee"><%= sc %>%</div><div class="nl">Điểm hài lòng</div></div>
+      <div class="nps-pill"><div class="nv" style="color:#10b981"><%= pro %></div><div class="nl">Hài lòng cao</div></div>
+      <div class="nps-pill"><div class="nv" style="color:#06b6d4"><%= pas %></div><div class="nl">Trung lập</div></div>
+      <div class="nps-pill"><div class="nv" style="color:#ef4444"><%= det %></div><div class="nl">Không hài lòng</div></div>
       <% if avg_v %><div class="nps-pill"><div class="nv" style="color:#f59e0b"><%= avg_v %></div><div class="nl">Điểm TB</div></div><% end %>
     </div>
 
   <% elsif vtype == "rating_dist" && dist.any? %>
-    <%# Rating: horizontal CSS bars with score %>
-    <% max_s = max_v > 0 ? max_v : 5.0 %>
-    <% dist.each_with_index do |d, di| %>
-    <% cnt = d["count"].to_i; pct = total > 0 ? (cnt.to_f / total * 100).round(1) : 0 %>
+    <% max_s=max_v>0?max_v:5.0; dist.each_with_index do |d,di| %>
+    <% cnt=d["count"].to_i; pct=total>0?(cnt.to_f/total*100).round(1):0 %>
     <div class="rating-row">
       <div class="rating-label"><%= d["value"] %></div>
-      <div class="rating-bar"><div class="rating-fill" style="width:<%= pct.clamp(0,100) %>%;background:<%= palette[di % palette.size] %>"><%= cnt > 0 ? cnt : '' %></div></div>
+      <div class="rating-bar"><div class="rating-fill" style="width:<%= pct.clamp(0,100) %>%;background:<%= palette[di%palette.size] %>"><%= cnt>0?cnt:'' %></div></div>
       <div class="rating-score"><%= pct %>%</div>
     </div>
     <% end %>
-    <% if avg_v %><div style="margin-top:10px;font-size:12px;color:#6b7280"><span data-t="average">Trung bình</span>: <strong style="color:#4361ee"><%= avg_v %></strong> / <%= max_s.to_i %></div><% end %>
+    <% if avg_v %><div style="margin-top:10px;font-size:12px;color:#6b7280">Trung bình: <strong style="color:#4361ee"><%= avg_v %></strong> / <%= max_s.to_i %></div><% end %>
 
   <% elsif vtype == "number" %>
-    <%# Single KPI number %>
     <div style="text-align:center;padding:24px 0">
-      <div style="font-size:52px;font-weight:800;color:#4361ee;line-height:1">
-        <%= avg_v || opts.first&.dig("pct").then { |p| "#{p}%" } || total %>
-      </div>
-      <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:8px;text-transform:uppercase">
-        <%= total %> phản hồi
-      </div>
+      <div style="font-size:52px;font-weight:800;color:#4361ee;line-height:1"><%= avg_v || total %></div>
+      <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:8px;text-transform:uppercase"><%= total %> phản hồi</div>
     </div>
 
   <% elsif vtype == "quotes" %>
-    <%# Long-text quotes section %>
     <% texts = cd["texts"] || [] %>
-    <% if texts.any? %>
-      <% texts.first(6).each do |t| %>
-      <div style="border-left:3px solid #e0e7ff;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#374151;line-height:1.65;font-style:italic">"<%= t.to_s.truncate(200) %>"</div>
-      <% end %>
-    <% else %>
-      <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Phân tích định tính — xem phần phân tích chi tiết bên dưới</p>
+    <% texts.first(6).each do |t| %>
+    <div style="border-left:3px solid #e0e7ff;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#374151;line-height:1.65;font-style:italic">"<%= t.to_s.truncate(200) %>"</div>
     <% end %>
-
-  <% elsif vtype == "grouped_bar" && xt.present? && xt["groups"].present? %>
-    <%# Inline grouped bar chart — cross-tab data attached to this chart card %>
-    <% xt_groups = xt["groups"] %>
-    <% xt_is_pct = xt["max"].to_i >= 50 %>
-    <canvas id="<%= chid %>"></canvas>
-    <script>
-    (function(){
-      var labels   = <%= raw xt_groups.map{|g| g["label"].to_s}.to_json %>;
-      var values   = <%= raw xt_groups.map{|g| (g["avg"] || g["pct"] || 0).to_f}.to_json %>;
-      var isPercent= <%= raw xt_is_pct ? 'true' : 'false' %>;
-      var colors   = <%= raw palette.cycle.first(labels.length).to_json %>;
-      mkChart('<%= chid %>', {type:'bar',
-        data:{labels:labels, datasets:[{data:values, backgroundColor:colors, borderRadius:5, borderSkipped:false}]},
-        options:{indexAxis:'y', responsive:true,
-          plugins:{legend:{display:false},
-            datalabels:{anchor:'end', align:'right', offset:4, font:{size:12,weight:'700'}, color:'#374151',
-              formatter:function(v){ return isPercent ? v+'%' : v; }}},
-          scales:{
-            x:{beginAtZero:true, ticks:{callback:function(v){ return isPercent?v+'%':v; }}, grid:{color:'#f3f4f6'}},
-            y:{ticks:{font:{size:11}}}},
-          layout:{padding:{right:40}}},
-        plugins:[ChartDataLabels]});
-    })();
-    </script>
-    <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px">
-      <% xt_groups.each do |g| %>
-      <span style="font-size:11px;color:#94a3b8"><%= g["label"] %>: <strong style="color:#374151"><%= g["total"] || "?" %></strong> phản hồi</span>
-      <% end %>
-    </div>
 
   <% else %>
-    <p style="color:#9ca3af;text-align:center;padding:32px 0;font-size:13px" data-t="no_data">Chưa có dữ liệu biểu đồ</p>
+    <p style="color:#9ca3af;text-align:center;padding:32px 0;font-size:13px">Chưa có dữ liệu</p>
   <% end %>
 
-  <% if insight.present? %>
-  <div class="insight-box">💡 <strong data-t="insight_label">Nhận xét:</strong> <%= insight %></div>
-  <% end %>
+  <% if insight.present? %><div class="insight-box">💡 <%= insight %></div><% end %>
 </div>
 <% end %>
-</div><%# /chart-grid %>
+
+<div class="container">
+
+<%# ── Focused mode: insight banner (1 câu từ data) ── %>
+<% if focused_mode && data["focused_insight"].present? %>
+<div style="background:#f0f4ff;border-left:4px solid #4361ee;border-radius:0 10px 10px 0;padding:14px 18px;margin:20px 0 8px;font-size:13px;line-height:1.7;color:#374151">
+  📊 <%= data["focused_insight"] %>
+</div>
 <% end %>
 
-<%# ── Cross-tab grouped bar charts (fallback — only shown when not rendered inline) ── %>
-<% if cross_tab_groups.any? && !focused_mode %>
-<div class="section-heading" data-t="section_crosstab">Phân tích theo nhóm</div>
-<div class="chart-grid">
-<% cross_tab_groups.each_with_index do |(group_q_title, ct), cti| %>
-<% chid = "ct_#{cti}" %>
-<div class="chart-card full">
-  <h3><%= ct[:label].present? ? ct[:label] : "#{group_q_title} — phân tích theo nhóm" %></h3>
-  <canvas id="<%= chid %>"></canvas>
-  <script>
-  (function(){
-    var groupLabels = <%= raw ct[:datasets].first[:groups].map{|g| g["label"].to_s}.to_json %>;
-    var datasets = <%= raw ct[:datasets].map.with_index{|ds, i|
-      {
-        label: ds[:title],
-        data: ds[:groups].map{|g| (g["avg"] || g["pct"] || 0).to_f},
-        backgroundColor: palette[i % palette.size],
-        borderRadius: 4
-      }
-    }.to_json %>;
-    var isPercent = <%= raw (ct[:datasets].first[:max].to_i >= 50 ? 'true' : 'false') %>;
-    mkChart('<%= chid %>', {type:'bar', data:{labels:groupLabels, datasets:datasets},
-      options:{responsive:true,
-        plugins:{legend:{position:'top',labels:{font:{size:11}}}, datalabels:{anchor:'end',align:'top',offset:2,font:{size:11,weight:'700'},color:'#444',
-          formatter:function(v){ return isPercent ? v+'%' : v; }}},
-        scales:{y:{beginAtZero:true, ticks:{callback:function(v){ return isPercent?v+'%':v; }}},x:{ticks:{font:{size:11}}}},
-        layout:{padding:{top:24}}},
-      plugins:[ChartDataLabels]});
-  })();
-  </script>
-  <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px">
-    <% ct[:datasets].first[:groups].each do |g| %>
-    <span style="font-size:11px;color:#94a3b8"><%= g["label"] %>: <strong style="color:#374151"><%= g["total"] || "?" %></strong> phản hồi</span>
-    <% end %>
+<%# ── Full mode: response count + exec summary ── %>
+<% unless focused_mode %>
+<div class="kpi-grid" style="margin-top:24px">
+  <div class="kpi" style="border-color:#4361ee">
+    <div class="kpi-value" style="color:#4361ee"><%= data["response_count"] || responses.count rescue "—" %></div>
+    <div class="kpi-label">Người tham gia</div>
   </div>
 </div>
-<% end %>
+<% if exec_sum.present? %>
+<div class="exec-card">
+  <h2>📋 Tóm tắt điều hành</h2>
+  <% exec_sum.split(/\n\n+/).each do |para| %><% next if para.strip.empty? %><p><%= para.strip %></p><% end %>
 </div>
 <% end %>
+<% end %>
 
-<%# ── AI Analysis sections (hidden in focused mode) ── %>
-<% if sections.any? && !focused_mode %>
-<div class="section-heading" data-t="section_analysis">Phân tích chi tiết</div>
-<div class="analysis-grid">
-  <% sections.each do |sec| %>
-  <div class="analysis-card">
-    <h3><%= sec["heading"] %></h3>
-    <% sec["content"].to_s.split(/\n\n+/).each do |para| %>
-      <% next if para.strip.empty? %>
-      <p><%= para.strip %></p>
-    <% end %>
-    <% if sec["key_finding"].present? %>
-    <div class="key-finding">🔑 <%= sec["key_finding"] %></div>
-    <% end %>
-  </div>
+<%# ── Sections + Charts (new architecture) ── %>
+<% chart_idx = 0 %>
+<% sections.each do |sec| %>
+  <% charts = sec["charts"] || [] %>
+  <% next if charts.empty? %>
+
+  <%# Section heading — only show in full mode OR if focused has meaningful title %>
+  <% if !focused_mode || sections.size > 1 %>
+  <div class="section-heading"><%= sec["title"] %></div>
   <% end %>
-</div>
+
+  <div class="chart-grid">
+  <% charts.each do |c| %>
+    <% render_chart.call(c, chart_idx); chart_idx += 1 %>
+  <% end %>
+  </div>
+
+  <%# Section insight (written by AI in full mode) %>
+  <% if sec["insight"].present? && !focused_mode %>
+  <div class="insight-box" style="margin-bottom:20px">💡 <%= sec["insight"] %></div>
+  <% end %>
 <% end %>
 
-<%# ── Recommendations + AI Insights (hidden in focused mode) ── %>
+<%# ── Recommendations (full mode only) ── %>
 <% if recs.any? && !focused_mode %>
-<div class="section-heading" data-t="section_recs">Đề xuất & Khuyến nghị</div>
+<div class="section-heading">Đề xuất & Khuyến nghị</div>
 <div class="rec-insight-grid">
-
-  <%# Left: Priority recommendations %>
   <div class="rec-panel">
-    <div class="panel-title" data-t="recs_from_analysis">Khuyến nghị hành động</div>
-    <% priority_order = {"high"=>0,"medium"=>1,"low"=>2} %>
-    <% recs.sort_by{|r| priority_order[r["priority"].to_s] || 9}.each do |rec| %>
+    <div class="panel-title">Khuyến nghị hành động</div>
+    <% recs.sort_by{|r| {"high"=>0,"medium"=>1,"low"=>2}[r["priority"].to_s]||9}.each do |rec| %>
     <div class="rec-card <%= rec['priority'] %>">
-      <div class="rec-priority <%= rec['priority'] %>">
-        <%= rec["priority"] == "high" ? "🔴 Ưu tiên cao" : rec["priority"] == "medium" ? "🟡 Trung bình" : "🟢 Thấp" %>
-      </div>
+      <div class="rec-priority <%= rec['priority'] %>"><%= rec["priority"]=="high" ? "🔴 Ưu tiên cao" : rec["priority"]=="medium" ? "🟡 Trung bình" : "🟢 Thấp" %></div>
       <div class="rec-action"><%= rec["action"] %></div>
-      <% if rec["rationale"].present? %>
-      <div class="rec-rationale"><%= rec["rationale"] %></div>
-      <% end %>
-      <% if rec["expected_impact"].present? %>
-      <div class="rec-impact">→ <%= rec["expected_impact"] %></div>
-      <% end %>
+      <% if rec["rationale"].present? %><div class="rec-rationale"><%= rec["rationale"] %></div><% end %>
+      <% if rec["expected_impact"].present? %><div class="rec-impact">→ <%= rec["expected_impact"] %></div><% end %>
     </div>
     <% end %>
   </div>
-
-  <%# Right: Key findings from sections as insight boxes %>
   <div class="insight-panel">
-    <div class="panel-title" data-t="key_insights">Insights từ dữ liệu</div>
-    <%# Stat insight boxes: from chart insights %>
-    <% chart_data.select{|cd| cd["insight"].present?}.first(3).each do |cd| %>
-    <div class="insight-item stat">
-      <p><strong>+ </strong><%= cd["insight"] %></p>
-    </div>
-    <% end %>
-    <%# Recommendation detail insights (action + rationale from recommendations) %>
-    <% recs.each do |rec| %>
-    <div class="insight-item">
-      <div class="rec-head">→ <%= rec["action"] %></div>
-      <% if rec["rationale"].present? %>
-      <div class="rec-detail"><%= rec["rationale"] %></div>
-      <% end %>
-    </div>
+    <div class="panel-title">Insights từ dữ liệu</div>
+    <% sections.each do |sec| %>
+      <% next unless sec["insight"].present? %>
+      <div class="insight-item stat"><p><%= sec["insight"] %></p></div>
     <% end %>
   </div>
-
 </div>
 <% end %>
 
-<%# ── Conclusion ── %>
-<% if conclusion.present? %>
+<%# ── Conclusion (full mode) ── %>
+<% if conclusion.present? && !focused_mode %>
 <div class="conclusion-box">
-  <h2 data-t="conclusion">Kết luận</h2>
-  <% conclusion.split(/\n\n+/).each do |para| %>
-    <% next if para.strip.empty? %>
-    <p><%= para.strip %></p>
-  <% end %>
+  <h2>Kết luận</h2>
+  <% conclusion.split(/\n\n+/).each do |para| %><% next if para.strip.empty? %><p><%= para.strip %></p><% end %>
 </div>
 <% end %>
 
-<%# ── User prompt context ── %>
+<%# ── User prompt watermark ── %>
 <% if meta["user_context"].present? %>
 <div class="prompt-box">
-  <div class="prompt-label" data-t="user_prompt_label">Prompt của bạn</div>
+  <div class="prompt-label">Prompt của bạn</div>
   <div class="prompt-text">"<%= meta["user_context"] %>"</div>
 </div>
 <% end %>
