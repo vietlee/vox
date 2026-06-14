@@ -46,18 +46,19 @@ class AiExecutiveReportJob < ApplicationJob
     choice_type_ids = questions.where(question_type: %w[single_choice dropdown])
                                .pluck(:id).map(&:to_i).to_set
 
-    # ── Step 1: PLANNING ────────────────────────────────────────────────────
-    plan = call_planning_ai(
-      survey:        survey,
-      questions:     questions,
-      user_context:  user_context,
-      lang_name:     lang_name,
-      total_responses: responses.count
-    )
-
-    # ── Step 2: DATA BUILDING ───────────────────────────────────────────────
+    # ── Step 1: DATA BUILDING (before planning so AI sees real data) ────────
     all_chart_data = build_question_chart_data(survey, completed_ids)
     chart_data_by_qid = all_chart_data.index_by { |d| d["question_id"].to_i }
+
+    # ── Step 2: PLANNING (with full data context) ────────────────────────────
+    plan = call_planning_ai(
+      survey:          survey,
+      questions:       questions,
+      user_context:    user_context,
+      lang_name:       lang_name,
+      total_responses: responses.count,
+      chart_data:      chart_data_by_qid
+    )
 
     # Collect all cross-tab pairs from the plan
     cross_tab_pairs = []
@@ -150,114 +151,125 @@ class AiExecutiveReportJob < ApplicationJob
   private
 
   # ── Step 1: Planning AI call ───────────────────────────────────────────────
-  def call_planning_ai(survey:, questions:, user_context:, lang_name:, total_responses:)
-    questions_list = questions.each_with_index.map { |q, i|
-      "  Q#{i+1} (ID #{q.id}) [#{q.question_type}] #{q.title}"
+  def call_planning_ai(survey:, questions:, user_context:, lang_name:, total_responses:, chart_data: {})
+    # Build rich question catalog with real data so AI can match user intent precisely
+    questions_catalog = questions.each_with_index.map { |q, i|
+      cd   = chart_data[q.id]
+      info = "  Q#{i+1} (ID #{q.id}) [#{q.question_type}] #{q.title}"
+      if cd
+        case cd["type"]
+        when "single_choice", "multiple_choice", "dropdown"
+          top = Array(cd["options"]).sort_by { |o| -o["count"].to_i }.first(6)
+                  .map { |o| "#{o['label']}=#{o['count']}" }.join(", ")
+          info += "\n    → Data: #{cd['total']} responses. Top options: #{top}"
+          info += " [SUITABLE FOR: doughnut (≤6 opts), hbar (>6 opts), grouped_bar comparison]"
+        when "multiple_choice"
+          top = Array(cd["options"]).sort_by { |o| -o["count"].to_i }.first(6)
+                  .map { |o| "#{o['label']}=#{o['count']}" }.join(", ")
+          info += "\n    → Data: #{cd['total']} responses. Options: #{top} [SUITABLE FOR: hbar]"
+        when "linear_scale", "rating", "nps"
+          info += "\n    → Data: avg=#{cd['avg']}/#{cd['max']}, n=#{cd['total']}"
+          info += " [SUITABLE FOR: #{cd['type'] == 'nps' ? 'nps' : 'rating_dist'}, dist_bar, grouped_bar comparison]"
+          if cd["subtype"] == "pct"
+            info += " [% data — dist_bar histogram]"
+          end
+        when "short_text", "long_text"
+          if cd["options"].present?
+            top = Array(cd["options"]).first(5).map { |o| "#{o['label']}=#{o['count']}" }.join(", ")
+            info += "\n    → Data: #{cd['total']} text answers aggregated as options: #{top}"
+            info += " [SUITABLE FOR: doughnut, hbar]"
+          else
+            sample = Array(cd["texts"]).first(2).map { |t| "\"#{t.to_s.truncate(60)}\"" }.join(", ")
+            info += "\n    → Data: #{cd['total']} text answers. Samples: #{sample} [SUITABLE FOR: quotes]"
+          end
+        end
+      else
+        info += "\n    → No data available"
+      end
+      info
     }.join("\n")
 
     system_prompt = <<~SYS.strip
-      You are a data visualization planner for survey reports.
-      Your job: read the user's request + survey structure, then design the MINIMUM necessary report structure.
+      You are an expert survey data analyst and visualization planner.
+      Your job: deeply understand the user's request, match it to the correct survey questions and data, then design the optimal chart structure.
 
-      KEY PRINCIPLE: The user asked for something specific. Give them exactly that — not a generic report.
-      - If they want one chart: plan one section with one chart.
-      - If they want a comparison: plan the comparison chart + minimal context.
-      - If they want a full analysis: plan appropriate sections.
+      CRITICAL PRINCIPLE: Match user intent precisely.
+      - "tỷ lệ" / "proportion" / "ratio" → doughnut or hbar showing percentages
+      - "so sánh" / "giữa các" / "theo bộ phận" → grouped_bar with cross_tab_by
+      - "trung bình" / "average" / "điểm" → rating_dist or number
+      - "xu hướng" / "phân bổ" / "distribution" → dist_bar
+      - "nhận xét" / "ý kiến" / "quote" → quotes
+      - "hình tròn" / "pie" / "donut" → doughnut
+      - "cột" / "bar" → hbar or dist_bar
+      - "tiết kiệm thời gian" / "time saved" → look for % or numeric questions about time saving
+      - "tool AI" / "công cụ AI" / "phần mềm" → look for questions about AI tools used
 
       OUTPUT ONLY valid JSON. No markdown, no explanation.
     SYS
 
-    q_types_hint = {
-      "single_choice" => "choice/dropdown — can group other questions by this",
-      "multiple_choice" => "multi-select — show % per option",
-      "rating" => "1-5 scale — show avg + distribution",
-      "linear_scale" => "custom scale — show avg + distribution",
-      "nps" => "0-10 satisfaction — show NPS summary",
-      "short_text" => "if mostly %-numbers: treat as numeric; else: quotes",
-      "long_text" => "qualitative — themes or quotes",
-      "dropdown" => "choice — same as single_choice"
-    }
-
-    chart_types_guide = <<~GUIDE
-      CHART TYPE GUIDE:
-      - "grouped_bar"  → compare a metric across groups (REQUIRES cross_tab_by). Best for "X theo Y / X giữa các Y"
-      - "dist_bar"     → histogram buckets for % estimates or numeric ranges
-      - "rating_dist"  → horizontal bars for 1-5 or 1-10 scales, shows each value count
-      - "nps"          → ONLY for 0-10 satisfaction/recommendation questions
-      - "doughnut"     → proportions for single_choice ≤6 options
-      - "hbar"         → horizontal bars for multi-choice or choice >6 options
-      - "bar"          → vertical bars for ordered distributions
-      - "number"       → single big KPI number (avg, %, count)
-      - "quotes"       → long_text qualitative responses
-    GUIDE
-
     user_prompt = <<~PROMPT
-      ## User request
-      #{user_context.present? ? "\"#{user_context}\"" : "(no specific request — create a comprehensive report)"}
+      ## User's request (in their own words)
+      #{user_context.present? ? "\"#{user_context}\"" : "(no specific request — create a comprehensive full report)"}
 
-      ## Survey
+      ## Survey context
       Title: #{survey.title}
       #{survey.description.present? ? "Description: #{survey.description}" : ""}
       Total responses: #{total_responses}
 
-      ## Questions available
-      #{questions_list}
+      ## Available questions WITH ACTUAL DATA
+      (Use question IDs exactly as shown when referencing in charts)
+      #{questions_catalog}
 
-      #{chart_types_guide}
+      ## CHART TYPE REFERENCE
+      - "doughnut"    → pie/circle chart showing proportions. Use when: user says "hình tròn/pie/tỷ lệ" AND question has ≤8 distinct options
+      - "hbar"        → horizontal bar chart. Use when: many options (>6), or user says "cột ngang", or comparing multiple choice
+      - "dist_bar"    → vertical histogram. Use when: numeric/% distribution, user says "phân bổ/distribution"
+      - "rating_dist" → rating scale breakdown. Use when: 1-5 or 1-10 rating question
+      - "nps"         → NPS chart. ONLY for 0-10 recommendation questions
+      - "grouped_bar" → grouped comparison. REQUIRES cross_tab_by. Use when: "so sánh theo X / X giữa các nhóm Y"
+      - "number"      → big single KPI. Use when: user wants one key metric (avg, total, %)
+      - "quotes"      → show text quotes. Use when: open-ended question with no aggregable data
+      - "bar"         → vertical bar. Use when: ordered categorical data
 
-      ## Question type hints
-      #{q_types_hint.map { |k,v| "- #{k}: #{v}" }.join("\n")}
+      ## OUTPUT LANGUAGE
+      ALL text (report_title, section titles, chart titles) MUST be in #{lang_name}.
+      Do NOT output English titles if language is Vietnamese.
 
-      ## Language
-      Output language: #{lang_name}. ALL text fields (report_title, section title, chart title) MUST be written in #{lang_name}. Do NOT use English if the language is Vietnamese.
+      ## TASK
+      Step 1 — Understand what the user wants: which metric, which question, which visual format
+      Step 2 — Match to the correct question ID(s) above
+      Step 3 — Select the right chart_type (follow user's explicit format request if given)
+      Step 4 — Output the minimal structure
 
-      ## Your task
-      Design the report structure. Determine:
-      1. report_mode: "focused" (user wants 1-2 specific charts, quick answer) OR "full" (user wants comprehensive analysis)
-      2. report_title: concise title in #{lang_name} reflecting exactly what the user asked for (NOT the survey title)
-      3. sections: array of sections, each with charts
+      report_mode rules:
+      - "focused": user says "nhanh/quick/chỉ cần/only/just/một chart/1 biểu đồ" → 1 section, 1-2 charts
+      - "full": user wants overview/toàn bộ/comprehensive → 2-5 sections
 
-      Rules for report_mode:
-      - "focused": user says "nhanh/quick/chỉ cần/only/just", or asks for ONE specific metric/chart
-      - "full": user asks for full analysis, overview, or no specific constraint
-
-      Rules for sections:
-      - focused mode: 1 section max, 1-3 charts max
-      - full mode: 2-5 sections, each covering a different analytical angle
-
-      Rules for charts:
-      - Each chart: {question_id, chart_type, title (≤6 words in #{lang_name}), span ("full"|"half"), cross_tab_by (optional)}
-      - cross_tab_by: ID of a single_choice/dropdown question used to group the metric
-      - If user wants "X theo/giữa Y": chart_type="grouped_bar", cross_tab_by=Y_question_id
-      - If user says "biểu đồ hình tròn" or "pie chart" or "doughnut": use chart_type="doughnut"
-      - If user says "biểu đồ cột" or "bar chart": use chart_type="hbar" or "dist_bar"
-      - SKIP: identity/name questions, grouping-only questions (they appear as cross_tab_by axis)
-      - span "full" for: grouped_bar, dist_bar, hbar with many options, quotes
-      - span "half" for: doughnut, number, rating_dist, nps
-
-      Return JSON:
+      Return JSON ONLY:
       {
         "report_mode": "focused|full",
-        "report_title": "...",
+        "report_title": "<title in #{lang_name} matching what user asked — NOT the survey title>",
         "sections": [
           {
-            "title": "Section heading (≤5 words)",
-            "sections_purpose": "1 sentence: what analytical question this section answers",
+            "title": "<section heading ≤5 words in #{lang_name}>",
             "charts": [
               {
-                "question_id": <int>,
-                "chart_type": "grouped_bar|dist_bar|rating_dist|nps|doughnut|hbar|bar|number|quotes",
-                "title": "Chart title ≤6 words",
-                "span": "full|half",
-                "cross_tab_by": <int or null>
+                "question_id": <int — MUST match an ID from the catalog above>,
+                "chart_type": "<one of: doughnut|hbar|dist_bar|rating_dist|nps|grouped_bar|number|quotes|bar>",
+                "title": "<chart title ≤6 words in #{lang_name}>",
+                "span": "<full|half>",
+                "cross_tab_by": <question_id of grouping question OR null>
               }
             ]
           }
         ]
       }
+
+      span rules: "half" for doughnut/number/rating_dist/nps; "full" for everything else.
+      cross_tab_by rules: ONLY set for grouped_bar; must be a single_choice/dropdown question ID.
     PROMPT
 
-    raw    = ClaudeService.haiku.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 1500)
+    raw    = ClaudeService.sonnet.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 2000)
     result = parse_json_response(raw.to_s)
 
     # Validate + sanitize
