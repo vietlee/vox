@@ -241,7 +241,7 @@ canvas{max-height:250px}
       var labels=<%= raw xt_groups.map{|g| g["label"].to_s}.to_json %>;
       var values=<%= raw xt_groups.map{|g|(g["avg"]||g["pct"]||0).to_f}.to_json %>;
       var pct=<%= raw xt_pct ? 'true':'false' %>;
-      var clrs=<%= raw palette.cycle.first(labels.length).to_json %>;
+      var clrs=<%= raw palette.cycle.first(xt_groups.size).to_json %>;
       mkChart('<%= chid %>',{type:'bar',data:{labels:labels,datasets:[{data:values,backgroundColor:clrs,borderRadius:5,borderSkipped:false}]},
         options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},
           datalabels:{anchor:'end',align:'right',offset:4,font:{size:12,weight:'700'},color:'#374151',formatter:function(v){return pct?v+'%':v;}}},
