@@ -670,68 +670,28 @@ class Admin::SurveysController < Admin::BaseController
     grouping_idx = grouping_q ? qs.index(grouping_q) + 1 : nil
 
     system_prompt = <<~SYS.strip
-      You are a senior data analyst writing a focused report brief for an AI executive report system.
-      Write in #{lang_name}. Output ONLY the prompt text — no preamble, no explanation, no meta-commentary.
-
-      Your job: read the survey's purpose and questions, then write a FOCUSED brief that guides an AI analyst
-      toward the most strategically important insights. Do NOT list every question — pick the 5-8 that matter most.
-
-      HARD METHODOLOGY RULES (violations corrupt the report):
-      1. "Độ hài lòng" questions (0-10 scale asking if respondent would recommend to others) → compute: điểm độ hài lòng TB, phân nhóm Hài lòng cao(≥9)/Trung lập(7-8)/Không hài lòng(≤6). NEVER call these "NPS" or use English terms.
-      2. Rating/scale questions measuring quality or satisfaction → use mean + score groups Thấp(0-6)/Trung bình(7-8)/Cao(9-10). NEVER use Promoters/Passives/Detractors labels.
-      3. Cross-tab: if any subgroup has n < 3, write "cỡ mẫu quá nhỏ để kết luận" instead of %.
-      4. Open-text questions → synthesize by theme clusters, cite 1-2 representative quotes per cluster.
-      5. Questions asking for numeric estimates (%, hours, frequency) → treat as quantitative data (mean + distribution), NOT free text.
-      6. LANGUAGE: never use the term "NPS" in the output. Use "độ hài lòng" instead.
+      You are helping a user write a short, natural-language report prompt.
+      Write in #{lang_name}. Output ONLY the prompt text — no explanation, no headers, no preamble.
+      Style: conversational, first-person ("Tôi muốn..." or "I want..."), 2-4 sentences max.
+      Focus on the most important insight this survey can reveal. Be specific but concise.
     SYS
 
     user_prompt = <<~PROMPT
-      Write the ideal report prompt for this survey.
-
       Survey: "#{@survey.title}"
-      #{@survey.description.present? ? "Purpose: #{@survey.description}" : ""}
-      Responses collected: #{total_responses}
-      #{grouping_q ? "Demographic/grouping variable: Q#{grouping_idx} — \"#{grouping_q.title.truncate(70)}\" (use for all cross-tab breakdowns)" : ""}
+      #{@survey.description.present? ? "Description: #{@survey.description}" : ""}
+      Responses: #{total_responses}
+      Questions: #{questions_text}
 
-      All questions (for context):
-      #{questions_text}
-
-      Write a structured prompt with these 4 sections:
-
-      ## MỤC TIÊU & ĐỐI TƯỢNG
-      2 sentences: who reads this report + what decisions should it enable.
-
-      ## TRỌNG TÂM PHÂN TÍCH
-      Select the 5-8 most strategically important questions. For each, write:
-      - **[Topic]** (Qx[+Qy]): what to compute + what insight to extract + cross-tab if relevant
-      Group under: ### Ưu tiên cao / ### Ưu tiên trung bình
-      Skip demographic/identity questions. Prioritize: outcome metrics > adoption > quality ratings > barriers > open feedback.
-
-      ## KHUYẾN NGHỊ HÀNH ĐỘNG
-      Exactly 3 recommendations. Format: **Tên** | Ai thực hiện | Timeline | Kết quả kỳ vọng | Căn cứ: Qx, Qy
-
-      ## CHỈ THỊ DỮ LIỆU PHỤ LỤC
-      Think strategically: what are the 2-3 comparisons that would answer this survey's core question?
-      Lead with the "money chart" — the single visualization that most directly answers the survey purpose.
-      Then list only charts where comparison reveals something actionable (not single-question distributions unless they stand alone).
-
-      Format each chart as:
-      **[Tên chart]** — [Qx × Qy hoặc Qx alone]: [loại chart] | [1 câu: insight chiến lược cần thấy từ chart này, không mô tả số liệu]
-
-      Rules:
-      - Maximum 5 charts total. Cut any chart that doesn't change a decision.
-      - If there's a demographic/grouping question, every key outcome metric MUST be cross-tabbed against it.
-      - Với nhóm n < 3: ghi "cỡ mẫu quá nhỏ" thay vì %.
-      - End with: **Bỏ qua:** [list questions and why — e.g., "Q1 (định danh/bảo mật)", "Q3 (bối cảnh, không cần chart)"]
+      Write a short natural-language prompt (2-4 sentences) that captures the key insight this survey should highlight.
+      Start with what the user wants to understand or compare, mention the most important angle (e.g. by department, over time, top pain points), and end with what they hope to learn or decide.
     PROMPT
 
     current_workspace.active_subscription&.deduct_credits!(3)
 
-    # Focused selective prompt is naturally concise — 2500 tokens is more than enough
     result = ClaudeService.sonnet_long.call_full(
       system_prompt: system_prompt,
       user_prompt:   user_prompt,
-      max_tokens:    2500
+      max_tokens:    300
     )
 
     render json: { suggestion: result[:text].strip, truncated: result[:truncated] }
