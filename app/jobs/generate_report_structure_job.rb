@@ -80,7 +80,8 @@ class GenerateReportStructureJob < ApplicationJob
     - Recommendations must be specific: WHO + WHAT + concrete basis from data
   PROMPT
 
-  def perform(survey_id)
+  def perform(survey_id, language = "vi")
+    language = language.presence_in(%w[vi en]) || "vi"
     survey = Survey.find_by(id: survey_id)
     return unless survey
 
@@ -139,7 +140,7 @@ class GenerateReportStructureJob < ApplicationJob
         ]
       }
 
-      Dùng ngôn ngữ của survey. Giữ đủ ý nghĩa khi rút gọn.
+      IMPORTANT: All output text MUST be in #{language == "vi" ? "Vietnamese (tiếng Việt)" : "English"}. Translate everything if needed. Keep meaning when shortening.
     MSG
 
     raw      = ClaudeService.sonnet.call(system_prompt: INSIGHTS_SYSTEM_PROMPT,
@@ -182,8 +183,7 @@ class GenerateReportStructureJob < ApplicationJob
         texts = sem&.dig(:texts) || []
         next if texts.size < 3
 
-        lang = survey.respond_to?(:language) ? (survey.language.presence || "vi") : "vi"
-        ai_options = generate_ai_theme_labels(texts, card["title"].to_s, lang)
+        ai_options = generate_ai_theme_labels(texts, card["title"].to_s, language)
         card["ai_options"] = ai_options if ai_options.present?
       rescue => e
         Rails.logger.warn "AI theme labels failed for Q#{qid}: #{e.message}"
@@ -191,19 +191,19 @@ class GenerateReportStructureJob < ApplicationJob
     end
 
     settings = survey.settings.to_h.merge(
-      "report_structure"         => structure,
-      "report_structure_version" => Time.current.to_i.to_s
+      "report_structure_#{language}"         => structure,
+      "report_structure_#{language}_version" => Time.current.to_i.to_s
     )
     survey.update_columns(settings: settings)
-    Rails.logger.info "GenerateReportStructureJob: survey #{survey_id} done — #{structure['sections']&.length} sections, #{structure['ai_insights']&.length} insights"
+    Rails.logger.info "GenerateReportStructureJob: survey #{survey_id} [#{language}] done — #{structure['sections']&.length} sections, #{structure['ai_insights']&.length} insights"
 
   rescue JSON::ParserError => e
     Rails.logger.error "GenerateReportStructureJob JSON error survey #{survey_id}: #{e.message}\nRaw: #{raw.to_s.first(500)}"
     # Save structure without insights rather than full fallback
     if defined?(structure) && structure["sections"].present?
       structure["ai_insights"] = []
-      survey.update_columns(settings: survey.settings.to_h.merge("report_structure" => structure,
-                                                                   "report_structure_version" => Time.current.to_i.to_s))
+      survey.update_columns(settings: survey.settings.to_h.merge("report_structure_#{language}" => structure,
+                                                                   "report_structure_#{language}_version" => Time.current.to_i.to_s))
     else
       save_fallback_structure(survey)
     end
@@ -350,7 +350,9 @@ class GenerateReportStructureJob < ApplicationJob
     end
     kpis = [{ "label" => "Người tham gia", "source" => "total_responses", "color" => "#4361ee" }]
     structure = { "kpis" => kpis, "sections" => sections, "ai_insights" => [], "_fallback" => true }
-    survey.update_columns(settings: survey.settings.to_h.merge("report_structure" => structure,
-                                                                "report_structure_version" => Time.current.to_i.to_s))
+    %w[vi en].each do |lang|
+      survey.update_columns(settings: survey.settings.to_h.merge("report_structure_#{lang}" => structure,
+                                                                  "report_structure_#{lang}_version" => Time.current.to_i.to_s))
+    end
   end
 end

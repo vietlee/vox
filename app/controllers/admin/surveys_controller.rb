@@ -110,23 +110,29 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   def html_report
-    structure = @survey.settings&.dig("report_structure")
+    @report_lang = params[:lang].presence_in(%w[vi en]) || "vi"
+    structure_key = "report_structure_#{@report_lang}"
+    structure = @survey.settings&.dig(structure_key)
+
+    # Migrate old single-key structure to per-language on first access
+    if structure.nil?
+      old = @survey.settings&.dig("report_structure")
+      if old.present?
+        %w[vi en].each do |lang|
+          @survey.settings[lang == "vi" ? "report_structure_vi" : "report_structure_en"] ||= old
+        end
+        @survey.update_columns(settings: @survey.settings)
+        structure = @survey.settings[structure_key]
+      end
+    end
 
     # JSON polling check: ?check_structure=1
     if params[:check_structure]
       render json: { ready: structure.present? } and return
     end
 
-    # No structure yet OR stale (old structure predates ai_options feature) → trigger job once
-    already_upgraded = @survey.settings&.dig("report_structure_ai_options_v1").present?
-    stale = structure.present? && !already_upgraded && structure_needs_ai_options?(structure)
-    unless structure.present? && !stale
-      if stale
-        @survey.update_columns(settings: @survey.settings.merge(
-          "report_structure" => nil, "report_structure_ai_options_v1" => true
-        ))
-      end
-      GenerateReportStructureJob.perform_later(@survey.id)
+    unless structure.present?
+      GenerateReportStructureJob.perform_later(@survey.id, @report_lang)
       render template: "admin/surveys/report_building", layout: false and return
     end
 

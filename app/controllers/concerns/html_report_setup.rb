@@ -51,7 +51,9 @@ module HtmlReportSetup
   def call_html_report_setup
     @questions        = @survey.questions.includes(:question_options).order(:position)
     @total_responses  = @survey.responses.completed.count
-    @report_structure = @survey.settings&.dig("report_structure")
+    lang = defined?(@report_lang) ? @report_lang : "vi"
+    @report_structure = @survey.settings&.dig("report_structure_#{lang}") ||
+                        @survey.settings&.dig("report_structure")
 
     responses   = @survey.responses.completed.includes(:answers).to_a
     all_answers = responses.flat_map(&:answers)
