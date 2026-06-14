@@ -83,7 +83,15 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .kpi:hover .kpi-toolbar{opacity:1}
 .kpi-tool-btn{cursor:pointer;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);transition:background .15s,transform .15s}
 .kpi-tool-btn:hover{background:#e0e7ff;color:#4361ee;transform:scale(1.08)}
-@media print{.kpi-toolbar{display:none!important}}
+/* KPI drag-resize handle */
+.kpi-rh{position:absolute;top:0;right:0;width:12px;height:100%;cursor:ew-resize;z-index:50;opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center}
+.kpi:hover .kpi-rh{opacity:1}
+.kpi-rh::after{content:'';display:block;width:4px;height:30px;background:#6366f1;border-radius:2px;opacity:.5;transition:opacity .15s,width .15s}
+.kpi-rh:hover::after,.kpi-rh.dragging::after{opacity:1;width:6px}
+.kpi-rh.dragging{background:rgba(99,102,241,.12)}
+.float-edit-icon{position:fixed;display:none;align-items:center;justify-content:center;width:22px;height:22px;background:#4361ee;color:white;border:none;border-radius:5px;cursor:pointer;z-index:500;box-shadow:0 2px 8px rgba(67,97,238,.4);padding:0;line-height:0}
+.float-edit-icon:hover{background:#3451d1}
+@media print{.kpi-toolbar,.kpi-rh,.float-edit-icon{display:none!important}}
 
 /* ── Sections ── */
 .report-section{position:relative;margin-top:28px}
@@ -490,11 +498,8 @@ canvas{max-height:250px}
 <% unless focused_mode %>
 <div class="kpi-grid" style="margin-top:24px">
   <div class="kpi" id="kpi-block-0" style="border-color:#4361ee">
-    <div class="kpi-toolbar">
-      <button class="kpi-tool-btn" onclick="toggleKpiWide(0)" title="Thay đổi kích thước">
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 10h14M7 6l-4 4 4 4M13 6l4 4-4 4"/></svg>
-      </button>
-    </div>
+    <div class="kpi-rh" data-kpi-idx="0"></div>
+    <div class="kpi-toolbar"></div>
     <div class="kpi-value" style="color:#4361ee"><%= data["response_count"] || (responses.count rescue @ai_result.response_count) rescue "—" %></div>
     <div class="kpi-label"><%= @report_lang == "en" ? "Participants" : "Người tham gia" %></div>
   </div>
@@ -1049,26 +1054,56 @@ document.addEventListener('mouseup', () => {
 // Load saved text edits from localStorage
 loadTextEdits();
 
-// ── KPI resize ────────────────────────────────────────────────────────────
+// ── KPI drag-resize ───────────────────────────────────────────────────────
 const KPI_SIZE_SK = 'ai_kpi_sizes_<%= @survey.id %>_<%= @ai_result.id %>';
-function toggleKpiWide(idx) {
-  const block = document.getElementById('kpi-block-' + idx);
-  if (!block) return;
-  const isWide = block.classList.toggle('kpi-wide');
-  try {
-    const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
-    saved[idx] = isWide ? 2 : 1;
-    localStorage.setItem(KPI_SIZE_SK, JSON.stringify(saved));
-  } catch(e) {}
+let kpiDrag = null;
+function _kpiGridCols() {
+  const g = document.querySelector('.kpi-grid');
+  if (!g) return 1;
+  return getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
 }
 (function loadKpiSizes(){
   try {
     const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
     Object.entries(saved).forEach(([idx, span]) => {
       const block = document.getElementById('kpi-block-' + idx);
-      if (block) block.classList.toggle('kpi-wide', span === 2);
+      if (block) block.style.gridColumn = span > 1 ? 'span ' + span : '';
     });
   } catch(e) {}
+})();
+(function initKpiDrag(){
+  document.addEventListener('mousedown', e => {
+    const handle = e.target.closest('.kpi-rh');
+    if (!handle) return;
+    const block = handle.parentElement;
+    const kpiGrid = document.querySelector('.kpi-grid');
+    if (!block || !kpiGrid) return;
+    e.preventDefault();
+    const numCols = _kpiGridCols();
+    const colW = kpiGrid.getBoundingClientRect().width / numCols;
+    const curSpan = parseInt(block.style.gridColumn?.replace('span ', '')) || 1;
+    handle.classList.add('dragging');
+    kpiDrag = { handle, block, startX: e.clientX, startSpan: curSpan, colW, numCols };
+  });
+  document.addEventListener('mousemove', e => {
+    if (!kpiDrag) return;
+    const dx = e.clientX - kpiDrag.startX;
+    const newSpan = Math.max(1, Math.min(kpiDrag.numCols, Math.round((kpiDrag.startSpan * kpiDrag.colW + dx) / kpiDrag.colW)));
+    kpiDrag.block.style.gridColumn = newSpan > 1 ? 'span ' + newSpan : '';
+    kpiDrag.pendingSpan = newSpan;
+  });
+  document.addEventListener('mouseup', () => {
+    if (!kpiDrag) return;
+    kpiDrag.handle.classList.remove('dragging');
+    const idx = kpiDrag.handle.dataset.kpiIdx;
+    const span = kpiDrag.pendingSpan || 1;
+    try {
+      const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
+      if (span > 1) saved[idx] = span; else delete saved[idx];
+      localStorage.setItem(KPI_SIZE_SK, JSON.stringify(saved));
+    } catch(e) {}
+    kpiDrag = null;
+  });
 })();
 
 // ── SortableJS: sections drag ──
@@ -1149,6 +1184,51 @@ document.addEventListener('mousedown', e => {
   if (!cw?.classList.contains('cw-move-mode')) return;
   startCardDrag(e, cw);
 });
+
+// ── Floating edit icon for [data-editable] elements ──────────────────────
+(function(){
+  const icon = document.createElement('button');
+  icon.className = 'float-edit-icon';
+  icon.title = 'Sửa nội dung';
+  icon.innerHTML = '<svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z"/></svg>';
+  document.body.appendChild(icon);
+  let target = null, hideTimer = null;
+  function showIcon(el) {
+    clearTimeout(hideTimer);
+    target = el;
+    const r = el.getBoundingClientRect();
+    icon.style.left = (r.right + 4) + 'px';
+    icon.style.top  = (r.top + r.height / 2 - 11) + 'px';
+    icon.style.display = 'flex';
+  }
+  function scheduleHide() {
+    hideTimer = setTimeout(() => { icon.style.display = 'none'; target = null; }, 120);
+  }
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-editable]');
+    if (el) showIcon(el);
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest('[data-editable]') && !e.relatedTarget?.closest('[data-editable]') && e.relatedTarget !== icon) scheduleHide();
+  });
+  icon.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+  icon.addEventListener('mouseleave', () => scheduleHide());
+  icon.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!target) return;
+    const cw = target.closest('.cw');
+    if (cw) {
+      cw.classList.remove('cw-resize-mode','cw-move-mode');
+      cw.classList.add('cw-text-mode');
+      cw.querySelectorAll('[data-editable]').forEach(el => el.contentEditable = 'true');
+      cw.querySelectorAll('.ct-mode-btn').forEach(b => b.classList.remove('active'));
+      const textBtn = cw.querySelector('.ct-mode-btn[data-mode="text"]');
+      if (textBtn) textBtn.classList.add('active');
+    }
+    target.focus();
+    icon.style.display = 'none';
+  });
+})();
 <% end %>
 
 // ── Share modal ──

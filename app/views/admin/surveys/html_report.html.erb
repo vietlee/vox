@@ -55,20 +55,28 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 /* ── KPI ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:14px;margin-bottom:4px}
 .kpi{background:white;border-radius:12px;padding:18px 14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid;position:relative}
-.kpi.kpi-wide{grid-column:span 2}
 .kpi-value{font-size:34px;font-weight:800;line-height:1;margin-bottom:5px}
 .kpi-label{font-size:11px;color:#666;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
-/* KPI toolbar (edit + resize) */
+/* KPI toolbar (edit) */
 .kpi-toolbar{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:opacity .2s}
 .kpi:hover .kpi-toolbar{opacity:1}
 .kpi-tool-btn{cursor:pointer;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);transition:background .15s,transform .15s}
 .kpi-tool-btn:hover{background:#e0e7ff;color:#4361ee;transform:scale(1.08)}
+/* KPI drag-resize handle */
+.kpi-rh{position:absolute;top:0;right:0;width:12px;height:100%;cursor:ew-resize;z-index:50;opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center}
+.kpi:hover .kpi-rh{opacity:1}
+.kpi-rh::after{content:'';display:block;width:4px;height:30px;background:#6366f1;border-radius:2px;opacity:.5;transition:opacity .15s,width .15s}
+.kpi-rh:hover::after,.kpi-rh.dragging::after{opacity:1;width:6px}
+.kpi-rh.dragging{background:rgba(99,102,241,.12)}
 /* KPI inline editing */
 .kpi-edit-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:4px;width:100%}
 .kpi-editable{cursor:text;border-radius:4px;transition:background .15s;padding:2px 4px;min-width:20px}
 .kpi-editable:hover{background:rgba(67,97,238,.07)}
 .kpi-editable:focus{outline:1px solid rgba(67,97,238,.3);background:#f5f7ff}
-@media print{.kpi-toolbar{display:none!important}.kpi-edit-wrap{display:block}}
+/* Floating edit icon for section card text */
+.float-edit-icon{position:fixed;display:none;align-items:center;justify-content:center;width:22px;height:22px;background:#4361ee;color:white;border:none;border-radius:5px;cursor:pointer;z-index:500;box-shadow:0 2px 8px rgba(67,97,238,.4);padding:0;line-height:0;pointer-events:auto}
+.float-edit-icon:hover{background:#3451d1}
+@media print{.kpi-toolbar,.kpi-rh,.float-edit-icon{display:none!important}.kpi-edit-wrap{display:block}}
 
 /* ── Sections ── */
 .report-section{position:relative;margin-top:28px}
@@ -476,10 +484,8 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 <div class="kpi-grid" style="margin-top:24px">
   <% @kpi_values.each_with_index do |k, ki| %>
     <div class="kpi" id="kpi-block-<%= ki %>" style="border-color:<%= k[:color] %>">
+      <div class="kpi-rh" data-kpi-idx="<%= ki %>"></div>
       <div class="kpi-toolbar">
-        <button class="kpi-tool-btn" onclick="toggleKpiWide(<%= ki %>)" title="Thay đổi kích thước">
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 10h14M7 6l-4 4 4 4M13 6l4 4-4 4"/></svg>
-        </button>
         <button class="kpi-tool-btn" onclick="document.getElementById('kpi-lbl-<%= ki %>').focus()" title="Sửa nhãn">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z"/></svg>
         </button>
@@ -1004,27 +1010,58 @@ const REPORT_LANG = '<%= @report_lang || "vi" %>';
 const SK = 'report_layout_' + SURVEY_ID + '_' + REPORT_LANG;
 const IS_PUBLIC = <%= @public_view ? 'true' : 'false' %>;
 
-// ── KPI resize ───────────────────────────────────────────────────────────
+// ── KPI drag-resize ──────────────────────────────────────────────────────
 const KPI_SIZE_SK = 'report_kpi_sizes_' + SURVEY_ID + '_' + REPORT_LANG;
-function toggleKpiWide(idx) {
-  const block = document.getElementById('kpi-block-' + idx);
-  if (!block) return;
-  const isWide = block.classList.toggle('kpi-wide');
-  try {
-    const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
-    saved[idx] = isWide ? 2 : 1;
-    localStorage.setItem(KPI_SIZE_SK, JSON.stringify(saved));
-  } catch(e) {}
+let kpiDrag = null;
+function _kpiGridCols() {
+  const g = document.querySelector('.kpi-grid');
+  if (!g) return 1;
+  return getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
 }
 function loadKpiSizes() {
   try {
     const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
     Object.entries(saved).forEach(([idx, span]) => {
       const block = document.getElementById('kpi-block-' + idx);
-      if (block) block.classList.toggle('kpi-wide', span === 2);
+      if (block) { block.style.gridColumn = span > 1 ? 'span ' + span : ''; }
     });
   } catch(e) {}
 }
+(function initKpiDrag() {
+  document.addEventListener('mousedown', e => {
+    if (IS_PUBLIC) return;
+    const handle = e.target.closest('.kpi-rh');
+    if (!handle) return;
+    const block = handle.parentElement;
+    const kpiGrid = document.querySelector('.kpi-grid');
+    if (!block || !kpiGrid) return;
+    e.preventDefault();
+    const numCols = _kpiGridCols();
+    const colW = kpiGrid.getBoundingClientRect().width / numCols;
+    const curSpan = parseInt(block.style.gridColumn?.replace('span ', '')) || 1;
+    handle.classList.add('dragging');
+    kpiDrag = { handle, block, startX: e.clientX, startSpan: curSpan, colW, numCols };
+  });
+  document.addEventListener('mousemove', e => {
+    if (!kpiDrag) return;
+    const dx = e.clientX - kpiDrag.startX;
+    const newSpan = Math.max(1, Math.min(kpiDrag.numCols, Math.round((kpiDrag.startSpan * kpiDrag.colW + dx) / kpiDrag.colW)));
+    kpiDrag.block.style.gridColumn = newSpan > 1 ? 'span ' + newSpan : '';
+    kpiDrag.pendingSpan = newSpan;
+  });
+  document.addEventListener('mouseup', () => {
+    if (!kpiDrag) return;
+    kpiDrag.handle.classList.remove('dragging');
+    const idx = kpiDrag.handle.dataset.kpiIdx;
+    const span = kpiDrag.pendingSpan || 1;
+    try {
+      const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
+      if (span > 1) saved[idx] = span; else delete saved[idx];
+      localStorage.setItem(KPI_SIZE_SK, JSON.stringify(saved));
+    } catch(e) {}
+    kpiDrag = null;
+  });
+})();
 
 // ── KPI label inline editing ──────────────────────────────────────────────
 const KPI_SK = 'report_kpi_labels_' + SURVEY_ID + '_' + REPORT_LANG;
@@ -1048,6 +1085,52 @@ function loadKpiLabels() {
   } catch(e) {}
 }
 document.addEventListener('DOMContentLoaded', () => { loadKpiLabels(); loadKpiSizes(); });
+
+// ── Floating edit icon for [data-editable] elements ──────────────────────
+(function(){
+  if (IS_PUBLIC) return;
+  const icon = document.createElement('button');
+  icon.className = 'float-edit-icon';
+  icon.title = 'Sửa nội dung';
+  icon.innerHTML = '<svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z"/></svg>';
+  document.body.appendChild(icon);
+  let target = null, hideTimer = null;
+  function showIcon(el) {
+    clearTimeout(hideTimer);
+    target = el;
+    const r = el.getBoundingClientRect();
+    icon.style.left = (r.right + 4) + 'px';
+    icon.style.top  = (r.top + r.height / 2 - 11) + 'px';
+    icon.style.display = 'flex';
+  }
+  function scheduleHide() {
+    hideTimer = setTimeout(() => { icon.style.display = 'none'; target = null; }, 120);
+  }
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-editable]');
+    if (el) showIcon(el);
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest('[data-editable]') && !e.relatedTarget?.closest('[data-editable]') && e.relatedTarget !== icon) scheduleHide();
+  });
+  icon.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+  icon.addEventListener('mouseleave', () => scheduleHide());
+  icon.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!target) return;
+    const cw = target.closest('.cw');
+    if (cw) {
+      cw.classList.remove('cw-resize-mode','cw-move-mode');
+      cw.classList.add('cw-text-mode');
+      cw.querySelectorAll('[data-editable]').forEach(el => el.contentEditable = 'true');
+      cw.querySelectorAll('.ct-mode-btn').forEach(b => b.classList.remove('active'));
+      const textBtn = cw.querySelector('.ct-mode-btn[data-mode="text"]');
+      if (textBtn) textBtn.classList.add('active');
+    }
+    target.focus();
+    icon.style.display = 'none';
+  });
+})();
 
 // ── Structure version check: clear stale localStorage if structure changed ──
 (function(){
