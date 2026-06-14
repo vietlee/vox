@@ -115,6 +115,8 @@ class GenerateReportStructureJob < ApplicationJob
     stat_desc       = language == "vi" ? "phát hiện quan trọng với số liệu cụ thể" : "key finding with specific data"
     rec_desc        = language == "vi" ? "đề xuất hành động WHO + WHAT + dẫn chứng số liệu" : "action recommendation WHO + WHAT + data evidence"
     return_label    = language == "vi" ? "Trả về JSON (không markdown):" : "Return JSON (no markdown):"
+    title_task      = language == "en" ? "\n## Task 0 — Translate survey title to English (concise, max 10 words):\n\"#{survey.title}\"\n" : ""
+    title_json      = language == "en" ? "\n  \"survey_title\": \"translated title here\"," : ""
 
     insights_prompt = <<~MSG
       ⚠️ LANGUAGE RULE: ALL output text (kpi_labels, section_titles, card_titles, insights) MUST be in #{output_lang}. Translate if needed. Do NOT mix languages.
@@ -135,12 +137,12 @@ class GenerateReportStructureJob < ApplicationJob
       ## Task 3 — #{task3_label}:
       #{card_texts.map.with_index { |t, i| "#{i}: #{t}" }.join("\n")}
 
-      ## Task 4 — #{task4_label}:
+      #{title_task}## Task 4 — #{task4_label}:
       - type "stat": #{stat_desc}
       - type "recommendation": #{rec_desc}
 
       #{return_label}
-      {
+      {#{title_json}
         "kpi_labels": ["label 0", "label 1", ...],
         "section_titles": ["title 0", "title 1", ...],
         "card_titles": ["title 0", "title 1", ...],
@@ -180,6 +182,7 @@ class GenerateReportStructureJob < ApplicationJob
 
     insights = result["ai_insights"] || []
     structure["ai_insights"] = Array(insights).select { |i| i["text"].present? || i["title"].present? }
+    structure["survey_title_translated"] = result["survey_title"].to_s.strip if result["survey_title"].present?
 
     # ── AI theme label generation for text question cards ────────────────
     structure["sections"].each do |sec|
