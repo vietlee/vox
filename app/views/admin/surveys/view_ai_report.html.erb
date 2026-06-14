@@ -727,6 +727,20 @@ function saveTextEdits() {
 function loadTextEdits() {
   try {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    // Restore header
+    if (saved.hdrTitle) {
+      const t = document.getElementById('hdrTitleText');
+      const i = document.getElementById('hdrTitleInput');
+      if (t) t.textContent = saved.hdrTitle;
+      if (i) i.value = saved.hdrTitle;
+    }
+    if (saved.hdrSub) {
+      const t = document.getElementById('hdrSubText');
+      const i = document.getElementById('hdrSubInput');
+      if (t) t.textContent = saved.hdrSub;
+      if (i) i.value = saved.hdrSub;
+    }
+    // Restore card titles
     if (!saved.textEdits) return;
     Object.entries(saved.textEdits).forEach(([cid, text]) => {
       const el = document.querySelector(`[data-cid="${cid}"] [data-editable]`);
@@ -1013,6 +1027,13 @@ function endHdrEdit(which) {
   const val = input.value.trim();
   if (val) text.textContent = val;
   else input.value = text.textContent;
+  // Save to localStorage
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    if (which === 'title') saved.hdrTitle = text.textContent;
+    else saved.hdrSub = text.textContent;
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+  } catch(e) {}
 }
 function hdrKey(e, which) {
   if (e.key === 'Enter') { e.preventDefault(); endHdrEdit(which); }
