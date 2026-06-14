@@ -120,6 +120,22 @@ class AiExecutiveReportJob < ApplicationJob
     pre_cross_tab_map = pre_pairs.any? ?
       build_cross_tab_data(survey, pre_pairs, completed_response_ids) : {}
 
+    # ── FOCUSED FAST PATH ────────────────────────────────────────────────────
+    # When user requests a specific chart (quick_report + matched questions),
+    # skip the heavy AI call entirely and render just what was asked.
+    if focus_intent[:quick_report] && focus_intent[:matched_target_q] && focus_intent[:matched_group_q]
+      return build_focused_result(
+        survey:           survey,
+        job:              job,
+        focus_intent:     focus_intent,
+        completed_ids:    completed_response_ids,
+        all_chart_data:   all_chart_data,
+        pre_cross_tab_map:pre_cross_tab_map,
+        report_format:    report_format,
+        responses:        responses
+      )
+    end
+
     # Build compact per-question data summary for the AI prompt
     questions_data_summary = all_chart_data.map do |qd|
       q = questions_list.find { |qq| qq.id == qd["question_id"].to_i }
@@ -371,6 +387,83 @@ class AiExecutiveReportJob < ApplicationJob
   end
 
   private
+
+  # ── Focused fast path ─────────────────────────────────────────────────────
+  # Skip AI entirely. Build just the specific chart(s) requested.
+  def build_focused_result(survey:, job:, focus_intent:, completed_ids:, all_chart_data:,
+                           pre_cross_tab_map:, report_format:, responses:)
+    target_q = focus_intent[:matched_target_q]
+    group_q  = focus_intent[:matched_group_q]
+
+    # Build cross-tab data (may already be in pre_cross_tab_map)
+    xt = pre_cross_tab_map[target_q.id]
+    if xt.nil?
+      pairs = [{ "target_id" => target_q.id, "group_by_id" => group_q.id, "label" => "" }]
+      xt    = build_cross_tab_data(survey, pairs, completed_ids)[target_q.id]
+    end
+
+    # Base chart data for the target question
+    base_cd = all_chart_data.find { |d| d["question_id"].to_i == target_q.id }&.dup || {}
+    base_cd["ai_chart_type"] = "grouped_bar"
+    base_cd["ai_title"]      = "#{target_q.title.truncate(50)} theo #{group_q.title.truncate(30)}"
+    base_cd["ai_span"]       = "full"
+    base_cd["cross_tab"]     = xt if xt
+
+    # Also include a distribution chart for the same question (overall)
+    dist_cd = all_chart_data.find { |d| d["question_id"].to_i == target_q.id }&.dup
+    if dist_cd
+      dist_cd = dist_cd.dup
+      dist_cd["ai_chart_type"] = "dist_bar"
+      dist_cd["ai_title"]      = "Phân phối tổng quan: #{target_q.title.truncate(40)}"
+      dist_cd["ai_span"]       = "half"
+      dist_cd["insight"]       = xt ? "Trung bình: #{base_cd['avg']}. " \
+        "#{xt['groups']&.max_by { |g| (g['avg'] || g['pct']).to_f }&.then { |g| "#{g['label']} cao nhất (#{g['avg'] || g['pct']})" }}" : nil
+    end
+
+    # Build a simple 1-sentence summary from cross-tab data
+    summary = if xt && xt["groups"].any?
+      sorted = xt["groups"].sort_by { |g| -(g["avg"] || g["pct"]).to_f }
+      top    = sorted.first
+      bot    = sorted.last
+      unit   = base_cd["subtype"] == "pct" || base_cd["max"].to_i >= 50 ? "%" : "/#{base_cd['max']}"
+      "#{top['label']} dẫn đầu với #{top['avg'] || top['pct']}#{unit}, " \
+      "cao hơn #{bot['label']} #{((( (top['avg'] || top['pct']).to_f - (bot['avg'] || bot['pct']).to_f)).round(1)).abs}#{unit}. " \
+      "Tổng #{responses.count} phản hồi, trung bình chung #{base_cd['avg']}#{unit}."
+    else
+      "Dữ liệu từ #{responses.count} phản hồi."
+    end
+
+    charts = [base_cd]
+    charts << dist_cd if dist_cd && xt  # show distribution only when we also have cross-tab
+
+    output = {
+      "title"             => "#{target_q.title.truncate(60)} theo #{group_q.title.truncate(30)}",
+      "subtitle"          => "#{Date.current.strftime('%m/%Y')} — #{responses.count} phản hồi",
+      "executive_summary" => nil,  # focused mode: no exec summary
+      "key_metrics"       => {
+        "response_count"      => responses.count,
+        "sentiment_positive"  => nil,
+        "sentiment_negative"  => nil,
+        "top_concern"         => nil
+      },
+      "sections"          => [],
+      "recommendations"   => [],
+      "conclusion"        => nil,
+      "focused_insight"   => summary,   # one-liner shown in view
+      "chart_data"        => charts,
+      "_meta"             => {
+        "format"  => report_format,
+        "focused" => true,
+        "user_context" => job.input_data["user_context"]
+      }
+    }
+
+    ai_result = survey.ai_analysis_results.create!(
+      result_type: "executive_report",
+      output:      output
+    )
+    job.complete!(ai_result.id)
+  end
 
   def build_question_chart_data(survey, completed_response_ids = nil)
     completed_response_ids ||= survey.responses.completed.where(excluded: [false, nil]).pluck(:id)

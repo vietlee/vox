@@ -1,14 +1,16 @@
 <%
-  data      = @ai_result.output || {}
-  rpt_title = data["title"].presence || @survey.title
-  rpt_sub   = data["subtitle"].presence || ""
-  exec_sum  = data["executive_summary"].to_s
-  key_met   = data["key_metrics"] || {}
-  sections  = data["sections"] || []
-  recs      = data["recommendations"] || []
-  conclusion= data["conclusion"].to_s
-  chart_data= data["chart_data"] || []
-  meta      = data["_meta"] || {}
+  data           = @ai_result.output || {}
+  rpt_title      = data["title"].presence || @survey.title
+  rpt_sub        = data["subtitle"].presence || ""
+  exec_sum       = data["executive_summary"].to_s
+  key_met        = data["key_metrics"] || {}
+  sections       = data["sections"] || []
+  recs           = data["recommendations"] || []
+  conclusion     = data["conclusion"].to_s
+  chart_data     = data["chart_data"] || []
+  meta           = data["_meta"] || {}
+  focused_mode   = meta["focused"] == true
+  focused_insight= data["focused_insight"].to_s
 
   palette = %w[#4361ee #7c3aed #06b6d4 #10b981 #f59e0b #ef4444 #ec4899 #8b5cf6 #0ea5e9 #14b8a6]
 
@@ -206,6 +208,15 @@ canvas{max-height:250px}
 
 <div class="container">
 
+<%# ── FOCUSED MODE: chỉ show insight 1 câu + chart được yêu cầu ── %>
+<% if focused_mode %>
+  <% if focused_insight.present? %>
+  <div style="background:#f0f4ff;border-left:4px solid #4361ee;border-radius:0 10px 10px 0;padding:14px 18px;margin:20px 0 4px;font-size:13px;line-height:1.7;color:#374151">
+    📊 <%= focused_insight %>
+  </div>
+  <% end %>
+<% else %>
+
 <%# ── KPI ── %>
 <% if key_met.any? %>
 <div class="kpi-grid" style="margin-top:24px">
@@ -255,11 +266,15 @@ canvas{max-height:250px}
 </div>
 <% end %>
 
+<% end %><%# /focused_mode else %>
+
 <%# ── Charts ── %>
 <%# main_charts already set in header block above — just filter empties %>
 <% main_charts = chart_data.reject{|cd| %w[short_text long_text].include?(cd["type"]) && cd["distribution"].blank? && cd["options"].blank? && cd["ai_chart_type"] != "quotes"} %>
 <% if main_charts.any? %>
+<% unless focused_mode %>
 <div class="section-heading" data-t="section_charts">Dữ liệu & Biểu đồ</div>
+<% end %>
 <div class="chart-grid">
 <% main_charts.each_with_index do |cd, idx| %>
 <%
@@ -448,8 +463,8 @@ canvas{max-height:250px}
 </div><%# /chart-grid %>
 <% end %>
 
-<%# ── Cross-tab grouped bar charts (one per group_question) ── %>
-<% if cross_tab_groups.any? %>
+<%# ── Cross-tab grouped bar charts (fallback — only shown when not rendered inline) ── %>
+<% if cross_tab_groups.any? && !focused_mode %>
 <div class="section-heading" data-t="section_crosstab">Phân tích theo nhóm</div>
 <div class="chart-grid">
 <% cross_tab_groups.each_with_index do |(group_q_title, ct), cti| %>
@@ -488,8 +503,8 @@ canvas{max-height:250px}
 </div>
 <% end %>
 
-<%# ── AI Analysis sections ── %>
-<% if sections.any? %>
+<%# ── AI Analysis sections (hidden in focused mode) ── %>
+<% if sections.any? && !focused_mode %>
 <div class="section-heading" data-t="section_analysis">Phân tích chi tiết</div>
 <div class="analysis-grid">
   <% sections.each do |sec| %>
@@ -507,8 +522,8 @@ canvas{max-height:250px}
 </div>
 <% end %>
 
-<%# ── Recommendations + AI Insights: 2-column (PDF page 4 style) ── %>
-<% if recs.any? %>
+<%# ── Recommendations + AI Insights (hidden in focused mode) ── %>
+<% if recs.any? && !focused_mode %>
 <div class="section-heading" data-t="section_recs">Đề xuất & Khuyến nghị</div>
 <div class="rec-insight-grid">
 
