@@ -118,15 +118,22 @@
           <h2 class="text-[13px] font-bold text-slate-700"><%= t("feedback_boards.show.share") %></h2>
         </div>
         <div class="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+          <% _fb_full  = participate_feedback_url(@board.slug) %>
+          <% _fb_short = short_url_for(_fb_full, workspace: current_workspace) rescue _fb_full %>
           <p class="text-[11px] text-slate-400 mb-2"><%= t("feedback_boards.show.public_link") %></p>
-          <div class="flex gap-1 mb-5">
-            <input id="feedback-link" readonly value="<%= participate_feedback_url(@board.slug) %>"
+          <div class="flex gap-1 mb-1">
+            <input id="feedback-link" readonly value="<%= _fb_short %>"
               class="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] font-mono text-slate-600 min-w-0">
             <button onclick="voxCopy(document.getElementById('feedback-link').value, this)" class="vox-copy-btn">
               <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
               <span>Sao chép</span>
             </button>
           </div>
+          <% if _fb_short != _fb_full %>
+            <p class="text-[11px] text-slate-400 mb-4">Full: <span class="font-mono"><%= _fb_full %></span></p>
+          <% else %>
+            <div class="mb-4"></div>
+          <% end %>
 
           <% if @board.qr_code %>
             <div class="text-center">
