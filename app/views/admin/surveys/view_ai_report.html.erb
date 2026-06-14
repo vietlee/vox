@@ -50,6 +50,21 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .lang-btn{background:transparent;border:none;border-radius:50px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;color:rgba(255,255,255,.65);transition:all .15s;line-height:1}
 .lang-btn.active{background:white;color:#374151;box-shadow:0 2px 6px rgba(0,0,0,.15)}
 .lang-btn:not(.active):hover{color:white;background:rgba(255,255,255,.15)}
+/* Header editable */
+.hdr-editable{position:relative;display:inline-block;max-width:100%;cursor:pointer;border-radius:6px;transition:background .15s}
+.hdr-editable.editing{display:block}
+.hdr-editable:hover{background:rgba(255,255,255,.08)}
+.hdr-editable:hover .hdr-edit-icon{opacity:1}
+.hdr-edit-icon{position:absolute;top:50%;right:-34px;transform:translateY(-50%);opacity:0;transition:opacity .15s;cursor:pointer;color:rgba(255,255,255,.85);padding:5px;background:rgba(255,255,255,.12);border-radius:8px;line-height:0}
+.hdr-edit-icon:hover{background:rgba(255,255,255,.22)}
+.hdr-input{display:none;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:white;outline:none;font-family:inherit;width:100%;max-width:min(760px,calc(100vw - 140px));box-sizing:border-box}
+.hdr-input.title-input{font-size:22px;font-weight:700;line-height:1.35;padding:4px 10px}
+.hdr-input.sub-input{font-size:13px;padding:3px 8px;opacity:.9}
+.hdr-editable.editing .hdr-text{display:none}
+.hdr-editable.editing .hdr-edit-icon{display:none}
+.hdr-editable.editing .hdr-input{display:block}
+<% if @public_view %>.hdr-editable{pointer-events:none;cursor:default}.hdr-edit-icon{display:none!important}<% end %>
+@media print{.hdr-edit-icon{display:none!important}}
 
 .container{max-width:1200px;margin:0 auto;padding:28px 24px 120px}
 
@@ -264,13 +279,28 @@ canvas{max-height:250px}
 </head>
 <body>
 
+<%
+  hdr_sub_default = rpt_sub.present? ? rpt_sub : "#{@survey.title} · #{@total_responses rescue @ai_result.response_count} phản hồi"
+%>
 <div class="header">
   <div class="header-lang-switcher">
     <button class="lang-btn active" id="langVI" onclick="setLang('vi')">🇻🇳 VI</button>
     <button class="lang-btn" id="langEN" onclick="setLang('en')">🇬🇧 EN</button>
   </div>
-  <h1><%= rpt_title %></h1>
-  <p><%= rpt_sub.present? ? rpt_sub : "#{@survey.title} · #{@total_responses rescue @ai_result.response_count} phản hồi" %></p>
+  <h1>
+    <span class="hdr-editable" id="hdrTitleWrap" onclick="startHdrEdit('title')" title="Click để chỉnh sửa tiêu đề">
+      <span class="hdr-text" id="hdrTitleText"><%= rpt_title %></span>
+      <svg class="hdr-edit-icon" width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <input class="hdr-input title-input" id="hdrTitleInput" type="text" value="<%= j rpt_title %>" onblur="endHdrEdit('title')" onkeydown="hdrKey(event,'title')">
+    </span>
+  </h1>
+  <p>
+    <span class="hdr-editable" id="hdrSubWrap" onclick="startHdrEdit('sub')" title="Click để chỉnh sửa mô tả">
+      <span class="hdr-text" id="hdrSubText"><%= hdr_sub_default %></span>
+      <svg class="hdr-edit-icon" width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <input class="hdr-input sub-input" id="hdrSubInput" type="text" value="<%= j hdr_sub_default %>" onblur="endHdrEdit('sub')" onkeydown="hdrKey(event,'sub')">
+    </span>
+  </p>
   <% if meta["generated_at"].present? %>
   <p style="margin-top:4px;font-size:11px;opacity:.4">Tạo lúc: <%= Time.parse(meta["generated_at"]).in_time_zone.strftime("%H:%M %d/%m/%Y") rescue meta["generated_at"] %></p>
   <% end %>
@@ -919,6 +949,36 @@ async function revokeShareLink() {
   document.getElementById('shareQrDiv').innerHTML = '';
 }
 document.getElementById('shareModal')?.addEventListener('click', e => { if (e.target===document.getElementById('shareModal')) closeShareModal(); });
+
+// ── Header edit ──
+function startHdrEdit(which) {
+  const wrap  = document.getElementById(which==='title' ? 'hdrTitleWrap' : 'hdrSubWrap');
+  const input = document.getElementById(which==='title' ? 'hdrTitleInput' : 'hdrSubInput');
+  if (!wrap || !input) return;
+  wrap.classList.add('editing');
+  input.style.width = '';
+  input.focus(); input.select();
+}
+function endHdrEdit(which) {
+  const wrap  = document.getElementById(which==='title' ? 'hdrTitleWrap' : 'hdrSubWrap');
+  const text  = document.getElementById(which==='title' ? 'hdrTitleText' : 'hdrSubText');
+  const input = document.getElementById(which==='title' ? 'hdrTitleInput' : 'hdrSubInput');
+  if (!wrap || !text || !input) return;
+  wrap.classList.remove('editing');
+  const val = input.value.trim();
+  if (val) text.textContent = val;
+  else input.value = text.textContent;
+}
+function hdrKey(e, which) {
+  if (e.key === 'Enter') { e.preventDefault(); endHdrEdit(which); }
+  if (e.key === 'Escape') {
+    const wrap  = document.getElementById(which==='title' ? 'hdrTitleWrap' : 'hdrSubWrap');
+    const text  = document.getElementById(which==='title' ? 'hdrTitleText' : 'hdrSubText');
+    const input = document.getElementById(which==='title' ? 'hdrTitleInput' : 'hdrSubInput');
+    if (input && text) input.value = text.textContent;
+    wrap?.classList.remove('editing');
+  }
+}
 </script>
 </body>
 </html>

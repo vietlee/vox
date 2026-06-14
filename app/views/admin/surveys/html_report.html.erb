@@ -43,7 +43,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .hdr-editable:hover .hdr-edit-icon{opacity:1}
 .hdr-edit-icon{position:absolute;top:50%;right:-36px;transform:translateY(-50%);opacity:0;transition:opacity .15s;cursor:pointer;color:rgba(255,255,255,.85);padding:6px;background:rgba(255,255,255,.12);border-radius:8px;line-height:0}
 .hdr-edit-icon:hover{background:rgba(255,255,255,.22)}
-.hdr-input{display:none;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:white;outline:none;font-family:inherit;width:100%}
+.hdr-input{display:none;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:white;outline:none;font-family:inherit;width:100%;max-width:min(760px,calc(100vw - 140px));box-sizing:border-box}
 .hdr-input.title-input{font-size:22px;font-weight:700;line-height:1.35;padding:4px 10px}
 .hdr-input.sub-input{font-size:13px;padding:3px 8px;opacity:.9}
 .hdr-editable.editing .hdr-text{display:none}
@@ -1840,10 +1840,7 @@ function startHdrEdit(which) {
   const wrap  = document.getElementById(which === 'title' ? 'hdrTitleWrap' : 'hdrSubWrap');
   const input = document.getElementById(which === 'title' ? 'hdrTitleInput' : 'hdrSubInput');
   wrap.classList.add('editing');
-  // Use full header width minus padding, so input spans the whole header
-  const header = document.querySelector('.header');
-  const availW = header ? (header.clientWidth - 96) : 800; // 96 = 2×48px padding
-  input.style.width = Math.max(availW, 300) + 'px';
+  input.style.width = '';  // let CSS max-width handle it
   input.focus();
   input.select();
 }
