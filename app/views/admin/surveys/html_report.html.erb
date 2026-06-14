@@ -987,7 +987,8 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 // Layout editor
 // ══════════════════════════════════════════════════════════
 const SURVEY_ID = '<%= @survey.id %>';
-const SK = 'report_layout_' + SURVEY_ID;
+const REPORT_LANG = '<%= @report_lang || "vi" %>';
+const SK = 'report_layout_' + SURVEY_ID + '_' + REPORT_LANG;
 const IS_PUBLIC = <%= @public_view ? 'true' : 'false' %>;
 
 // ── KPI label inline editing ──────────────────────────────────────────────
@@ -1025,11 +1026,12 @@ document.addEventListener('DOMContentLoaded', loadKpiLabels);
   }
   localStorage.setItem(VER_KEY, STRUCT_VER);
 })();
-<% if @public_view && @survey.settings["report_layout"].present? %>
+<% _layout_key = "report_layout_#{@report_lang || 'vi'}" %>
+<% if @public_view && @survey.settings[_layout_key].present? %>
 // Inject server-saved layout for public view
 (function(){
   try {
-    const serverLayout = <%= raw @survey.settings["report_layout"].to_json %>;
+    const serverLayout = <%= raw @survey.settings[_layout_key].to_json %>;
     localStorage.setItem(SK, JSON.stringify(serverLayout));
   } catch(e) {}
 })();
@@ -1130,7 +1132,7 @@ async function downloadPdf() {
   overlay.classList.add('show');
   try {
     // Read current layout from localStorage so Grover renders same as browser
-    const layoutJson = localStorage.getItem('<%= "report_layout_#{@survey.id}" %>') || '{}';
+    const layoutJson = localStorage.getItem(SK) || '{}';
 
     const resp = await fetch('<%= pdf_report_survey_path(@survey) %>', {
       method:  'POST',
@@ -1490,7 +1492,7 @@ function saveLayout() {
   if (!IS_PUBLIC) {
     clearTimeout(saveLayout._t);
     saveLayout._t = setTimeout(() => {
-      fetch('<%= @public_view ? "#" : save_report_layout_survey_path(@survey) %>', {
+      fetch('<%= @public_view ? "#" : raw(save_report_layout_survey_path(@survey, lang: @report_lang)) %>', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
         body: JSON.stringify(layout)

@@ -177,7 +177,8 @@ class Admin::SurveysController < Admin::BaseController
     layout_json = request.body.read
     layout_data = JSON.parse(layout_json) rescue nil
     return render json: { error: "invalid" }, status: :bad_request unless layout_data
-    @survey.update!(settings: @survey.settings.merge("report_layout" => layout_data))
+    lang = params[:lang].presence_in(%w[vi en]) || "vi"
+    @survey.update!(settings: @survey.settings.merge("report_layout_#{lang}" => layout_data))
     render json: { ok: true }
   end
 
