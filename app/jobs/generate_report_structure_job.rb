@@ -172,6 +172,23 @@ class GenerateReportStructureJob < ApplicationJob
     insights = result["ai_insights"] || []
     structure["ai_insights"] = Array(insights).select { |i| i["text"].present? || i["title"].present? }
 
+    # ── AI theme label generation for text question cards ────────────────
+    structure["sections"].each do |sec|
+      sec["cards"].each do |card|
+        next unless card["processing"].in?(%w[normalize_tools extract_themes])
+        qid = card["question_id"]&.to_i
+        next unless qid
+        sem = semantics_builder.semantics[qid]
+        texts = sem&.dig(:texts) || []
+        next if texts.size < 3
+
+        ai_options = generate_ai_theme_labels(texts, card["title"].to_s, language)
+        card["ai_options"] = ai_options if ai_options.present?
+      rescue => e
+        Rails.logger.warn "AI theme labels failed for Q#{qid}: #{e.message}"
+      end
+    end
+
     settings = survey.settings.to_h.merge(
       "report_structure"         => structure,
       "report_structure_version" => Time.current.to_i.to_s
@@ -195,6 +212,43 @@ class GenerateReportStructureJob < ApplicationJob
   end
 
   private
+
+  # ── AI theme label generation from raw text responses ──────────────────────
+  def generate_ai_theme_labels(texts, question_title, language = "vi")
+    sample = texts.map(&:to_s).reject(&:blank?).first(30).map { |t| t.truncate(200) }
+    return [] if sample.empty?
+
+    lang_name = language == "vi" ? "Vietnamese" : "English"
+    system_prompt = "You are a survey analyst. Analyze text responses and group them into themes. Return ONLY valid JSON array. No markdown."
+
+    user_prompt = <<~PROMPT
+      Survey question: "#{question_title}"
+      Total responses: #{texts.size}
+
+      Sample responses (up to 30):
+      #{sample.each_with_index.map { |t, i| "#{i+1}. #{t}" }.join("\n")}
+
+      Task: Group these responses into 4-8 meaningful themes/categories.
+      - Each theme label must be SHORT (2-5 words max), clear, and meaningful in #{lang_name}
+      - Count how many of the #{texts.size} total responses fit each theme (estimate based on sample)
+      - Cover the most common topics; themes should not overlap heavily
+
+      Return JSON array:
+      [
+        {"label": "short theme name", "count": <estimated count>, "pct": <estimated %>},
+        ...
+      ]
+      Order by count descending.
+    PROMPT
+
+    raw = ClaudeService.haiku.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 600)
+    clean = raw.to_s.gsub(/\A\s*```(?:json)?\s*/i, "").gsub(/\s*```\s*\z/, "").strip
+    arr = JSON.parse(clean.match(/\[.*\]/m)&.to_s || "[]")
+    arr.select { |o| o["label"].present? && o["count"].to_i > 0 }.first(8)
+  rescue => e
+    Rails.logger.warn "generate_ai_theme_labels failed: #{e.message}"
+    []
+  end
 
   # ── Compute actual aggregated data from DB ─────────────────────────────────
   def build_data_summary(survey, questions, completed_ids)

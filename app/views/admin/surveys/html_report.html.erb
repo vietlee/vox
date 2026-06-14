@@ -507,9 +507,13 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   <% (section["cards"] || []).each do |card| %>
   <%
     chart_type = card["chart_type"].to_s
-    # Override to hbar with top-10 if too many options (unreadable chart)
-    if %w[bar horizontal_bar distribution_bar doughnut pie].include?(chart_type)
-      _opts_check = @question_stats[card["question_id"]&.to_i]&.dig(:options) || []
+    _stats_check = @question_stats[card["question_id"]&.to_i]
+    # AI-generated themes → force horizontal_bar for readability
+    if _stats_check&.dig(:processing) == "ai_themes"
+      chart_type = "horizontal_bar"
+    elsif %w[bar horizontal_bar distribution_bar doughnut pie].include?(chart_type)
+      # Override to hbar with top-12 if too many options (unreadable chart)
+      _opts_check = _stats_check&.dig(:options) || []
       chart_type = "horizontal_bar" if _opts_check.size > 12
     end
     is_cross_tab = chart_type == "cross_tab_grouped_bar"

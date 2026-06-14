@@ -104,9 +104,11 @@ module HtmlReportSetup
     @question_stats = {}
     @questions.each do |q|
       answers    = all_answers.select { |a| a.question_id == q.id }
-      processing = processing_map[q.id]
+      card_meta  = processing_map[q.id] || {}
       @question_stats[q.id] = compute_question_stats(q, answers, opt_label, @total_responses,
-                                                      processing: processing, resp_meta: @resp_meta)
+                                                      processing: card_meta[:processing],
+                                                      ai_options: card_meta[:ai_options],
+                                                      resp_meta: @resp_meta)
     end
 
     # Cross-tab stats (one key per cross-tab card in structure)
@@ -140,22 +142,34 @@ module HtmlReportSetup
 
   private
 
-  # Build question_id → processing hint map from structure
+  # Build question_id → {processing, ai_options} map from structure
   def build_processing_map(structure)
     map = {}
     structure&.dig("sections")&.each do |sec|
       sec["cards"]&.each do |card|
         qid = card["question_id"]&.to_i
         next if qid.blank?
-        map[qid] = card["processing"] if card["processing"].present?
+        map[qid] = { processing: card["processing"], ai_options: card["ai_options"] }
       end
     end
     map
   end
 
   # ── Core per-question stats ───────────────────────────────────────────────
-  def compute_question_stats(q, answers, opt_label, total_responses, processing: nil, resp_meta: {}) # rubocop:disable Metrics/MethodLength
+  def compute_question_stats(q, answers, opt_label, total_responses, processing: nil, ai_options: nil, resp_meta: {}) # rubocop:disable Metrics/MethodLength
     base = { id: q.id, title: q.title, question_type: q.question_type, count: answers.size }
+
+    # ── AI pre-computed options (stored in report structure) ──
+    if ai_options.present? && %w[short_text long_text].include?(q.question_type)
+      opts = ai_options.map { |o| { label: o["label"], count: o["count"].to_i, pct: o["pct"].to_f } }
+      texts = answers.map(&:text_value).compact.reject(&:blank?)
+      rich_quotes = answers.select { |a| a.text_value.to_s.length >= 40 }
+                           .sort_by { |a| a.text_value.to_s.length }.last(6)
+                           .map { |a| meta = resp_meta[a.response_id] || {}
+                                      { text: a.text_value.to_s.truncate(300), name: meta[:name], dept: meta[:dept] } }
+      return base.merge(options: opts, quotes: rich_quotes.map { |q| q[:text] },
+                        rich_quotes: rich_quotes, total: texts.size, processing: "ai_themes")
+    end
 
     # ── Special processing overrides ──
     case processing

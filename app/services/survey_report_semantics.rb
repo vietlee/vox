@@ -211,7 +211,7 @@ class SurveyReportSemantics
         opts = self.class.aggregate_tools(texts, n_resp)
         return {
           role: :tools, chart_type: "bar", processing: "normalize_tools",
-          options: opts, total: n_resp,
+          options: opts, texts: texts, total: n_resp,
           data_summary: "tools: #{opts.first(6).map{|o| "#{o[:label]}=#{o[:count]}"}.join(', ')}"
         }
       end
@@ -222,7 +222,7 @@ class SurveyReportSemantics
         quotes = texts.select { |t| t.length >= 40 }.sort_by(&:length).last(6).map { |t| t.truncate(300) }
         return {
           role: :themes, chart_type: "theme_bar", processing: "extract_themes",
-          options: themes, quotes: quotes, total: texts.size,
+          options: themes, quotes: quotes, texts: texts, total: texts.size,
           data_summary: "themes: #{themes.first(5).map{|t| "#{t[:label]}=#{t[:count]}"}.join(', ')}"
         }
       end
