@@ -142,17 +142,19 @@ class Admin::SurveysController < Admin::BaseController
 
 
   def generate_report_token
-    token = @survey.settings["report_token"].presence || SecureRandom.urlsafe_base64(16)
-    @survey.update!(settings: @survey.settings.merge("report_token" => token))
+    lang = params[:lang].presence_in(%w[vi en]) || "vi"
+    token_key = "report_token_#{lang}"
+    token = @survey.settings[token_key].presence || SecureRandom.urlsafe_base64(16)
+    @survey.update!(settings: @survey.settings.merge(token_key => token))
     public_url = public_report_url(token)
-    # Generate QR SVG server-side (same style as vote QR)
     qr_code = RQRCode::QRCode.new(public_url, level: :h)
     qr_svg  = build_report_qr_svg(qr_code)
     render json: { token: token, url: public_url, qr_svg: qr_svg }
   end
 
   def revoke_report_token
-    @survey.update!(settings: @survey.settings.except("report_token"))
+    lang = params[:lang].presence_in(%w[vi en]) || "vi"
+    @survey.update!(settings: @survey.settings.except("report_token_#{lang}"))
     render json: { ok: true }
   end
 

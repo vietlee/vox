@@ -1722,7 +1722,7 @@ async function openShareModal() {
   document.getElementById('shareModal').classList.add('open');
   if (shareUrl) return; // already generated
   try {
-    const resp = await fetch('<%= generate_report_token_survey_path(@survey) %>', {
+    const resp = await fetch('<%= raw generate_report_token_survey_path(@survey, lang: @report_lang) %>', {
       method: 'POST',
       headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
     });
@@ -1810,7 +1810,7 @@ function downloadQr() {
 async function revokeShareLink() {
   voxConfirm('Thu hồi link chia sẻ? Link cũ sẽ hết hiệu lực và một link mới sẽ được tạo ngay.', async () => {
     // Revoke old token
-    await fetch('<%= revoke_report_token_survey_path(@survey) %>', {
+    await fetch('<%= raw revoke_report_token_survey_path(@survey, lang: @report_lang) %>', {
       method: 'DELETE',
       headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
     });
@@ -1819,7 +1819,7 @@ async function revokeShareLink() {
     document.getElementById('shareLinkInput').value = 'Đang tạo link mới...';
     document.getElementById('shareQrDiv').innerHTML = '<div style="width:220px;height:220px;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;">Đang tạo QR...</div>';
     try {
-      const resp = await fetch('<%= generate_report_token_survey_path(@survey) %>', {
+      const resp = await fetch('<%= raw generate_report_token_survey_path(@survey, lang: @report_lang) %>', {
         method: 'POST',
         headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
       });
