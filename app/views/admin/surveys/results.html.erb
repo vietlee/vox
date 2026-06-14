@@ -419,7 +419,7 @@
             <% rpt_fmt    = rpt_meta["format"] || "pdf" %>
             <% rpt_lang   = rpt_meta["language"] == "en" ? "EN" : "VI" %>
             <% rpt_ctx    = rpt_meta["user_context"] %>
-            <% rpt_title  = rpt.output["title"].presence || @survey.title %>
+            <% rpt_title  = rpt.output["report_title"].presence || rpt.output["title"].presence || @survey.title %>
             <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4" id="report-card-<%= rpt.id %>">
               <!-- Header -->
               <div class="flex items-start justify-between gap-2 mb-2">
@@ -622,7 +622,7 @@ const ALL_REPORTS = <%= raw(begin
     meta = r.output["_meta"] || {}
     {
       id:      r.id,
-      title:   r.output["title"].presence || @survey.title,
+      title:   r.output["report_title"].presence || r.output["title"].presence || @survey.title,
       fmt:     meta["format"] || "pdf",
       lang:    meta["language"] == "en" ? "EN" : "VI",
       ctx:     meta["user_context"].to_s.truncate(60).gsub("&", "&amp;"),
