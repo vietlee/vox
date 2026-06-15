@@ -19,12 +19,10 @@ const hbarDL ={anchor:'end',align:'end',offset:4,clip:false,font:{size:11,weight
 const pieDL  ={display:ctx=>ctx.dataset.data[ctx.dataIndex]>0,color:'#fff',font:{size:12,weight:'700'},formatter:v=>v};
 const barLayout={padding:{top:20}};
 const chartReg={};
-Chart.defaults.maintainAspectRatio = false;
 function mkChart(id,cfg){
   const el=document.getElementById(id);
   if(!el){console.warn('mkChart: canvas not found:',id);return null;}
   if(chartReg[id]){chartReg[id].destroy();}
-  if(cfg.options) cfg.options.maintainAspectRatio=false; else cfg.options={maintainAspectRatio:false};
   const ch=new Chart(el,cfg);
   chartReg[id]=ch;
   return ch;
@@ -1443,7 +1441,10 @@ function applyResize() {
       card.style.minHeight = newH + 'px';
       card.style.height = newH + 'px';
       rd._h = newH;
+      const headerH = card.querySelector('h3')?.offsetHeight || 0;
+      const canvasH = Math.max(80, newH - headerH - 60);
       rd.cw.querySelectorAll('canvas').forEach(cv => {
+        cv.style.height = canvasH + 'px';
         const ch = chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(_) {} }
       });
     }
@@ -1629,6 +1630,7 @@ function saveLayout() {
     hiddenCards: [],
     cardSpans: {},
     cardHeights: {},
+    canvasHeights: {},
     cardOrder: {},   // gridId → [cid, cid, ...]
     chartData: {},
     textEdits: {},
@@ -1646,6 +1648,7 @@ function saveLayout() {
     if (cw.style.gridColumn) layout.cardSpans[cid] = cw.style.gridColumn;
     const card = cw.querySelector('.card');
     if (card?.style.minHeight) layout.cardHeights[cid] = card.style.minHeight;
+    cw.querySelectorAll('canvas').forEach(cv => { if (cv.style.height) layout.canvasHeights[cid + '_' + cv.id] = cv.style.height; });
   });
   // Text edits
   document.querySelectorAll('[data-editable]').forEach(el => {
@@ -1751,6 +1754,14 @@ function loadLayout() {
     Object.entries(saved.cardHeights).forEach(([cid, h]) => {
       const card = document.querySelector(`[data-cid="${cid}"] .card`);
       if (card) { card.style.minHeight = h; card.style.height = h; }
+    });
+  }
+  // Restore canvas heights
+  if (saved.canvasHeights) {
+    Object.entries(saved.canvasHeights).forEach(([key, h]) => {
+      const cvId = key.replace(/^[^_]+_/, '');
+      const cv = document.getElementById(cvId);
+      if (cv) { cv.style.height = h; requestAnimationFrame(() => { const ch = chartReg[cv.id]; if (ch) try { ch.resize(); } catch(_) {} }); }
     });
   }
   // Restore text edits

@@ -29,12 +29,10 @@ try { Object.defineProperty(window,'devicePixelRatio',{get:()=>2,configurable:tr
 Chart.register(ChartDataLabels);
 const C=['#4361ee','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#0ea5e9','#14b8a6'];
 const chartReg={};
-Chart.defaults.maintainAspectRatio = false;
 function mkChart(id,cfg){
   const el=document.getElementById(id);
   if(!el){console.warn('mkChart: canvas not found:',id);return null;}
   if(chartReg[id]){chartReg[id].destroy();}
-  if(cfg.options) cfg.options.maintainAspectRatio=false; else cfg.options={maintainAspectRatio:false};
   const ch=new Chart(el,cfg);
   chartReg[id]=ch;
   return ch;
@@ -1025,7 +1023,10 @@ function applyResize() {
       card.style.minHeight = newH + 'px';
       card.style.height = newH + 'px';
       rd._h = newH;
+      const headerH = card.querySelector('h3')?.offsetHeight || 0;
+      const canvasH = Math.max(80, newH - headerH - 60);
       rd.cw.querySelectorAll('canvas').forEach(cv => {
+        cv.style.height = canvasH + 'px';
         const ch = chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(_) {} }
       });
     }
