@@ -29,10 +29,12 @@ try { Object.defineProperty(window,'devicePixelRatio',{get:()=>2,configurable:tr
 Chart.register(ChartDataLabels);
 const C=['#4361ee','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#0ea5e9','#14b8a6'];
 const chartReg={};
+Chart.defaults.maintainAspectRatio = false;
 function mkChart(id,cfg){
   const el=document.getElementById(id);
   if(!el){console.warn('mkChart: canvas not found:',id);return null;}
   if(chartReg[id]){chartReg[id].destroy();}
+  if(cfg.options) cfg.options.maintainAspectRatio=false; else cfg.options={maintainAspectRatio:false};
   const ch=new Chart(el,cfg);
   chartReg[id]=ch;
   return ch;
@@ -180,7 +182,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 /* ── Card ── */
 .card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);height:100%}
 .card h3{font-size:13px;font-weight:700;margin-bottom:14px;color:#1a1a2e;border-bottom:2px solid #f0f2f5;padding-bottom:10px;display:flex;align-items:center;gap:10px}
-canvas{max-height:250px}
+canvas{max-height:none}
 @media(max-width:900px){.cw{grid-column:span 12!important}}
 
 /* Editable text — only in text mode */
@@ -1023,6 +1025,9 @@ function applyResize() {
       card.style.minHeight = newH + 'px';
       card.style.height = newH + 'px';
       rd._h = newH;
+      rd.cw.querySelectorAll('canvas').forEach(cv => {
+        const ch = chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(_) {} }
+      });
     }
   }
 
