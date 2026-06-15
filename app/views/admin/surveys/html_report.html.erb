@@ -525,6 +525,9 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
         <button class="kpi-tool-btn" onclick="document.getElementById('kpi-lbl-<%= ki %>').focus()" title="Sửa nhãn">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z"/></svg>
         </button>
+        <button class="kpi-tool-btn" onclick="hideKpi('<%= ki %>')" title="Ẩn block">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 11.94A10 10 0 0 1 2.06 11.94M1 1l18 18"/><path d="M9.9 4.07A7 7 0 0 1 17 11M6.53 6.53A7 7 0 0 0 3 11"/></svg>
+        </button>
       </div>
       <div class="kpi-value" style="color:<%= k[:color] %>"><%= k[:value] %></div>
       <div class="kpi-edit-wrap">
@@ -1566,6 +1569,14 @@ function autoHideEmptySections() {
 }
 
 // ── Hide/show section ──
+function hideKpi(ki) {
+  const el = document.getElementById('kpi-block-' + ki);
+  if (!el) return;
+  el.classList.add('hidden-section');
+  const label = el.querySelector('.kpi-label')?.textContent?.trim() || ('KPI ' + ki);
+  addRestoreChip('kpi-block-' + ki, label, 'kpi');
+  saveLayout();
+}
 function hideSection(sid, label) {
   const el = document.querySelector(`[data-id="${sid}"]`);
   if (el) el.classList.add('hidden-section');
@@ -1580,7 +1591,7 @@ function addRestoreChip(id, label, type) {
   btn.setAttribute('data-restore', id);
   btn.textContent = '👁 ' + label;
   btn.onclick = () => {
-    const sel = type === 'card' ? `[data-cid="${id}"]` : `[data-id="${id}"]`;
+    const sel = type === 'card' ? `[data-cid="${id}"]` : type === 'kpi' ? `#${id}` : `[data-id="${id}"]`;
     const el = document.querySelector(sel);
     if (el) {
       el.classList.remove('hidden-section');
@@ -1688,7 +1699,8 @@ function saveLayout() {
     chartData: {},
     textEdits: {},
     sectionTitles: {},
-    kpiOrder: []
+    kpiOrder: [],
+    hiddenKpis: []
   };
   // Card order per grid
   document.querySelectorAll('[id^="grid-"]').forEach(grid => {
@@ -1718,8 +1730,11 @@ function saveLayout() {
   document.querySelectorAll('.section-title-edit[data-sec-id]').forEach(el => {
     layout.sectionTitles[el.dataset.secId] = (el.value !== undefined ? el.value : el.textContent).trim();
   });
-  // KPI order
+  // KPI order + hidden
   layout.kpiOrder = [...document.querySelectorAll('.kpi[id^="kpi-block-"]')].map(el => el.id);
+  layout.hiddenKpis = [...document.querySelectorAll('.kpi[id^="kpi-block-"].hidden-section')].map(el => ({
+    id: el.id, label: el.querySelector('.kpi-label')?.textContent?.trim() || el.id
+  }));
   localStorage.setItem(SK, JSON.stringify(layout));
   // Sync layout to server so public link shows same layout
   if (!IS_PUBLIC) {
@@ -1770,6 +1785,13 @@ function loadLayout() {
     el.classList.add('hidden-section');
     const domLabel = el.querySelector('.section-title')?.textContent?.trim() || label || id;
     if (!IS_PUBLIC) addRestoreChip(id, domLabel, 'section');
+  });
+  // Restore hidden KPIs
+  (saved.hiddenKpis || []).forEach(({ id, label }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('hidden-section');
+    if (!IS_PUBLIC) addRestoreChip(id, label, 'kpi');
   });
   // Restore hidden cards
   (saved.hiddenCards || []).forEach(cid => {

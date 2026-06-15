@@ -527,7 +527,11 @@ canvas{height:250px;min-height:80px;max-height:none}
     <div class="kpi-lh" data-kpi-idx="0" data-dir="l"></div>
     <div class="kpi-rb" data-kpi-idx="0" data-dir="b"></div>
     <div class="kpi-rt" data-kpi-idx="0" data-dir="t"></div>
-    <div class="kpi-toolbar"></div>
+    <div class="kpi-toolbar">
+      <button class="kpi-tool-btn" onclick="hideKpi('kpi-block-0')" title="Ẩn block">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 11.94A10 10 0 0 1 2.06 11.94M1 1l18 18"/><path d="M9.9 4.07A7 7 0 0 1 17 11M6.53 6.53A7 7 0 0 0 3 11"/></svg>
+      </button>
+    </div>
     <div class="kpi-value" style="color:#4361ee"><%= data["response_count"] || (responses.count rescue @ai_result.response_count) rescue "—" %></div>
     <div class="kpi-label"><%= @report_lang == "en" ? "Participants" : "Người tham gia" %></div>
   </div>
@@ -855,10 +859,18 @@ function loadTextEdits() {
       });
     }
     // Restore card titles
-    if (!saved.textEdits) return;
-    Object.entries(saved.textEdits).forEach(([cid, text]) => {
-      const el = document.querySelector(`[data-cid="${cid}"] [data-editable]`);
-      if (el && text) el.textContent = text;
+    if (saved.textEdits) {
+      Object.entries(saved.textEdits).forEach(([cid, text]) => {
+        const el = document.querySelector(`[data-cid="${cid}"] [data-editable]`);
+        if (el && text) el.textContent = text;
+      });
+    }
+    // Restore hidden KPIs
+    (saved.hiddenKpis || []).forEach(({ id, label }) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('hidden-section');
+      addRestoreChip(id, label, 'kpi');
     });
   } catch(e) {}
 }
@@ -917,6 +929,23 @@ function autoHideEmptySections() {
 }
 
 // ── Hide/show section ──
+function hideKpi(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('hidden-section');
+  const label = el.querySelector('.kpi-label')?.textContent?.trim() || id;
+  addRestoreChip(id, label, 'kpi');
+  saveKpiHidden();
+}
+function saveKpiHidden() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    saved.hiddenKpis = [...document.querySelectorAll('.kpi[id^="kpi-block-"].hidden-section')].map(el => ({
+      id: el.id, label: el.querySelector('.kpi-label')?.textContent?.trim() || el.id
+    }));
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+  } catch(e) {}
+}
 function hideSection(sid, label) {
   const el = document.querySelector(`[data-id="${sid}"]`);
   if (el) el.classList.add('hidden-section');
@@ -930,10 +959,11 @@ function addRestoreChip(id, label, type) {
   btn.setAttribute('data-restore', id);
   btn.textContent = '👁 ' + label;
   btn.onclick = () => {
-    const sel = type === 'card' ? `[data-cid="${id}"]` : `[data-id="${id}"]`;
+    const sel = type === 'card' ? `[data-cid="${id}"]` : type === 'kpi' ? `#${id}` : `[data-id="${id}"]`;
     const el = document.querySelector(sel);
     if (el) {
       el.classList.remove('hidden-section');
+      if (type === 'kpi') { saveKpiHidden(); }
       if (type === 'card') {
         const sec = el.closest('.report-section');
         if (sec && sec.classList.contains('hidden-section')) {
