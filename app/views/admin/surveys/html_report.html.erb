@@ -64,6 +64,10 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 /* KPI toolbar (edit) */
 .kpi-toolbar{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:opacity .2s}
 .kpi:hover .kpi-toolbar{opacity:1}
+.kpi-drag-handle{cursor:grab;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);font-size:14px;user-select:none}
+.kpi-drag-handle:hover{background:#e0e7ff}
+/* Section title editable */
+.section-title-edit{outline:none;border-bottom:2px dashed #a5b4fc;background:transparent;cursor:text;border-radius:3px;padding:1px 4px;min-width:40px}
 .kpi-tool-btn{cursor:pointer;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);transition:background .15s,transform .15s}
 .kpi-tool-btn:hover{background:#e0e7ff;color:#4361ee;transform:scale(1.08)}
 /* KPI drag-resize handles (4 directions) */
@@ -498,6 +502,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
       <div class="kpi-rb" data-kpi-idx="<%= ki %>" data-dir="b"></div>
       <div class="kpi-rt" data-kpi-idx="<%= ki %>" data-dir="t"></div>
       <div class="kpi-toolbar">
+        <span class="kpi-drag-handle" title="Kéo để sắp xếp">⠿</span>
         <button class="kpi-tool-btn" onclick="document.getElementById('kpi-lbl-<%= ki %>').focus()" title="Sửa nhãn">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z"/></svg>
         </button>
@@ -535,7 +540,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
       <span class="btn-sec-drag">⠿</span>
       <button class="btn-sec-hide" onclick="hideSection('<%= sid %>','<%= j sec_title %>')">Ẩn section</button>
     </div>
-    <div class="section-title"><%= sec_title %></div>
+    <div class="section-title"><% unless @public_view %><span contenteditable="true" spellcheck="false" class="section-title-edit" data-sec-id="<%= sid %>" onblur="saveLayout()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"><%= sec_title %></span><% else %><%= sec_title %><% end %></div>
   </div>
   <div class="<%= section['layout'] || 'grid-2' %>" id="grid-<%= sid %>">
   <% (section["cards"] || []).each do |card| %>
@@ -1626,7 +1631,9 @@ function saveLayout() {
     cardHeights: {},
     cardOrder: {},   // gridId → [cid, cid, ...]
     chartData: {},
-    textEdits: {}
+    textEdits: {},
+    sectionTitles: {},
+    kpiOrder: []
   };
   // Card order per grid
   document.querySelectorAll('[id^="grid-"]').forEach(grid => {
@@ -1652,6 +1659,12 @@ function saveLayout() {
   // Header edits
   const ht = document.getElementById('hdrTitleText'); if (ht) layout.hdrTitle = ht.textContent;
   const hs = document.getElementById('hdrSubText');   if (hs) layout.hdrSub   = hs.textContent;
+  // Section titles
+  document.querySelectorAll('.section-title-edit[data-sec-id]').forEach(el => {
+    layout.sectionTitles[el.dataset.secId] = el.textContent.trim();
+  });
+  // KPI order
+  layout.kpiOrder = [...document.querySelectorAll('.kpi[id^="kpi-block-"]')].map(el => el.id);
   localStorage.setItem(SK, JSON.stringify(layout));
   // Sync layout to server so public link shows same layout
   if (!IS_PUBLIC) {
@@ -1676,6 +1689,18 @@ function loadLayout() {
   if (saved.hdrTitle) { const el = document.getElementById('hdrTitleText'); if (el) { el.textContent = saved.hdrTitle; document.getElementById('hdrTitleInput').value = saved.hdrTitle; } }
   if (saved.hdrSub)   { const el = document.getElementById('hdrSubText');   if (el) { el.textContent = saved.hdrSub;   document.getElementById('hdrSubInput').value   = saved.hdrSub; localStorage.setItem(SK + '_sub_edited', '1'); } }
 
+  // Restore KPI order
+  if (saved.kpiOrder && saved.kpiOrder.length) {
+    const kpiGrid = document.querySelector('.kpi-grid');
+    if (kpiGrid) saved.kpiOrder.forEach(id => { const el = document.getElementById(id); if (el) kpiGrid.appendChild(el); });
+  }
+  // Restore section titles
+  if (saved.sectionTitles) {
+    Object.entries(saved.sectionTitles).forEach(([sid, title]) => {
+      const el = document.querySelector(`.section-title-edit[data-sec-id="${sid}"]`);
+      if (el && title) el.textContent = title;
+    });
+  }
   // Restore section order
   if (saved.sectionOrder) {
     saved.sectionOrder.forEach(id => {
@@ -1758,6 +1783,20 @@ new Sortable(document.getElementById('sortableContainer'), {
   chosenClass: 'sortable-chosen',
   onEnd: saveLayout
 });
+
+// ── Sortable: KPI blocks ──
+(function(){
+  const kpiGrid = document.querySelector('.kpi-grid');
+  if (kpiGrid && typeof Sortable !== 'undefined') {
+    new Sortable(kpiGrid, {
+      animation: 150,
+      handle: '.kpi-drag-handle',
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      onEnd: saveLayout
+    });
+  }
+})();
 
 // ── Custom card drag (CSS-Grid aware, free placement) ──
 let cdrag = null;
