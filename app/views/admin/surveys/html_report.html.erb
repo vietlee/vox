@@ -1457,6 +1457,7 @@ document.addEventListener('mousedown', e => {
 
   handle.classList.add('dragging');
   cw.classList.add('is-resizing');
+  cw.style.alignSelf = 'start'; // prevent grid from stretching cw during resize
   rd = { cw, handle, dir, gridRect, startH,
          startSpan, startY: e.clientY, _span: startSpan, _h: startH };
 
@@ -1521,6 +1522,7 @@ document.addEventListener('mouseup', () => {
   rd.handle.classList.remove('dragging');
   rd.cw.classList.remove('is-resizing');
   rd.cw.style.height = '';
+  rd.cw.style.alignSelf = '';
   document.body.style.cursor = '';
   document.body.style.userSelect = '';
   tip.classList.remove('visible');
@@ -1851,6 +1853,14 @@ function loadLayout() {
   }
   updateRestoreBar();
 }
+
+// ── Section title click-to-edit ──
+document.querySelectorAll('.section-title').forEach(titleDiv => {
+  titleDiv.addEventListener('click', function(e) {
+    const input = this.querySelector('.section-title-edit');
+    if (input) { e.stopPropagation(); setTimeout(() => { input.focus(); input.select(); }, 10); }
+  });
+});
 
 // ── Sortable: sections ──
 new Sortable(document.getElementById('sortableContainer'), {

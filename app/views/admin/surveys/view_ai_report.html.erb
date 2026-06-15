@@ -124,6 +124,9 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .edit-mode .section-controls{display:flex}
 .btn-sec-drag{cursor:grab;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:14px;color:#94a3b8;line-height:1;user-select:none}
 .btn-sec-hide{background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:#ef4444;cursor:pointer}
+.section-title-edit{outline:none;border:none;border-bottom:2px dashed #c7d2fe;background:transparent;cursor:text;border-radius:3px;padding:1px 4px;min-width:40px;flex:1;font-size:inherit;font-weight:inherit;color:inherit;font-family:inherit;width:100%}
+.section-title-edit:hover{background:#f0f4ff}
+.section-title-edit:focus{border-bottom-color:#4361ee;background:#eef2ff;outline:none}
 .sortable-ghost{opacity:.3;background:#e0e7ff;border-radius:10px}
 .sortable-chosen{box-shadow:0 8px 24px rgba(67,97,238,.25)}
 .cw.cd-source{opacity:.25;pointer-events:none}
@@ -560,7 +563,7 @@ canvas{height:250px;min-height:80px;max-height:none}
         <span class="btn-sec-drag">⠿</span>
         <button class="btn-sec-hide" onclick="hideSection('<%= sid %>','<%= j sec_title %>')">Ẩn section</button>
       </div>
-      <div class="section-title"><%= sec_title %></div>
+      <div class="section-title"><% unless @public_view %><input type="text" class="section-title-edit" data-sec-id="<%= sid %>" value="<%= j sec_title %>" spellcheck="false"><% else %><span><%= sec_title %></span><% end %></div>
     </div>
     <% end %>
 
@@ -865,6 +868,13 @@ function loadTextEdits() {
         if (el && text) el.textContent = text;
       });
     }
+    // Restore section titles
+    if (saved.sectionTitles) {
+      Object.entries(saved.sectionTitles).forEach(([sid, title]) => {
+        const el = document.querySelector(`.section-title-edit[data-sec-id="${sid}"]`);
+        if (el && title) el.value = title;
+      });
+    }
     // Restore hidden KPIs
     (saved.hiddenKpis || []).forEach(({ id, label }) => {
       const el = document.getElementById(id);
@@ -1059,6 +1069,7 @@ document.addEventListener('mousedown', e => {
 
   handle.classList.add('dragging');
   cw.classList.add('is-resizing');
+  cw.style.alignSelf = 'start';
   rd = { cw, handle, dir, gridRect, startH,
          startSpan, startY: e.clientY, _span: startSpan, _h: startH };
 
@@ -1139,6 +1150,7 @@ document.addEventListener('mouseup', () => {
   rd.handle.classList.remove('dragging');
   rd.cw.classList.remove('is-resizing');
   rd.cw.style.height = '';
+  rd.cw.style.alignSelf = '';
   document.body.style.cursor = '';
   document.body.style.userSelect = '';
   tip.classList.remove('visible');
@@ -1228,6 +1240,28 @@ function _kpiGridCols() { return KPI_MAXCOLS; }
     kpiDrag = null;
   });
 })();
+
+// ── Section title click-to-edit ──
+document.querySelectorAll('.section-title').forEach(titleDiv => {
+  titleDiv.addEventListener('click', function(e) {
+    const input = this.querySelector('.section-title-edit');
+    if (input) { e.stopPropagation(); setTimeout(() => { input.focus(); input.select(); }, 10); }
+  });
+});
+document.querySelectorAll('.section-title-edit').forEach(el => {
+  el.addEventListener('change', () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+      saved.sectionTitles = saved.sectionTitles || {};
+      document.querySelectorAll('.section-title-edit[data-sec-id]').forEach(inp => {
+        saved.sectionTitles[inp.dataset.secId] = inp.value.trim();
+      });
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+    } catch(e) {}
+  });
+  el.addEventListener('blur', () => el.dispatchEvent(new Event('change')));
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') el.blur(); });
+});
 
 // ── SortableJS: sections drag ──
 <% unless @public_view %>
