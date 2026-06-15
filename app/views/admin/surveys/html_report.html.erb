@@ -585,6 +585,11 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
     qid  = is_cross_tab ? nil : card["question_id"]&.to_i
     stats = is_cross_tab ? nil : @question_stats[qid]
     next unless stats || is_cross_tab
+    # Skip blocks with no meaningful data
+    if stats && !is_cross_tab
+      has_data = stats[:options]&.any? || stats[:distribution]&.any? || stats[:avg]
+      next unless has_data
+    end
 
     # For cross-tab, look up pre-computed data
     ct_data = nil
