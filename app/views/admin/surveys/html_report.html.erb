@@ -235,6 +235,7 @@ canvas{height:250px;min-height:80px;max-height:none}
 .bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;color:white;font-size:11px;font-weight:700;min-width:18px}
 .bar-pct-out{font-size:11px;font-weight:700;white-space:nowrap;width:44px;text-align:right;flex-shrink:0}
 .bar-count{width:26px;text-align:right;color:#888;font-weight:600;font-size:12px}
+.bar-header{margin-bottom:4px!important}.bar-header .bar-pct-out,.bar-header .bar-count{font-size:10px;text-transform:uppercase;letter-spacing:.05em}
 
 /* Rating rows */
 .rating-row{display:flex;align-items:center;margin-bottom:11px}
@@ -681,6 +682,12 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
         <% opts = (stats[:options] || []).sort_by{|o| -o[:count]}.first(12) %>
         <% if opts.any? %>
           <div class="bar-list">
+          <div class="bar-item bar-header">
+            <span class="bar-label w200"></span>
+            <div class="bar-track" style="background:transparent"></div>
+            <span class="bar-pct-out" style="color:#9ca3af;font-weight:500">%</span>
+            <span class="bar-count" style="color:#9ca3af;font-weight:500">n</span>
+          </div>
           <% opts.each_with_index do |o, oi| %>
           <div class="bar-item">
             <span class="bar-label w200" title="<%= o[:label] %>"><%= o[:label] %></span>
@@ -957,6 +964,12 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
       <% else %>
         <% if stats[:options]&.any? %>
           <% opts = (stats[:options] || []).sort_by{|o| -o[:count]} %>
+          <div class="bar-item bar-header">
+            <span class="bar-label w160"></span>
+            <div class="bar-track" style="background:transparent"></div>
+            <span class="bar-pct-out" style="color:#9ca3af;font-weight:500">%</span>
+            <span class="bar-count" style="color:#9ca3af;font-weight:500">n</span>
+          </div>
           <% opts.each_with_index do |o, oi| %>
           <div class="bar-item">
             <span class="bar-label w160" title="<%= o[:label] %>"><%= o[:label].to_s.truncate(28) %></span>
