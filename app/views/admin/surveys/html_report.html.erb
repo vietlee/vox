@@ -1388,14 +1388,17 @@ function showAlignGuides(activeCw) {
   hideAlignGuides();
   const grid = activeCw.parentElement;
   if (!grid) return;
+  const gridRect = grid.getBoundingClientRect();
   [...grid.children].forEach(sibling => {
     if (sibling === activeCw || !sibling.classList.contains('cw')) return;
     const card = sibling.querySelector('.card');
     if (!card) return;
     const rect = card.getBoundingClientRect();
     const g = getGuide();
-    g.style.top = (rect.bottom + window.scrollY) + 'px';
     g.style.position = 'absolute';
+    g.style.left = gridRect.left + 'px';
+    g.style.width = gridRect.width + 'px';
+    g.style.top = (rect.bottom + window.scrollY) + 'px';
     g.classList.add('visible');
   });
 }
