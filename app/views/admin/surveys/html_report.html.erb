@@ -63,15 +63,17 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .kpi:hover .kpi-toolbar{opacity:1}
 .kpi-tool-btn{cursor:pointer;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);transition:background .15s,transform .15s}
 .kpi-tool-btn:hover{background:#e0e7ff;color:#4361ee;transform:scale(1.08)}
-/* KPI drag-resize handles */
-.kpi-rh{position:absolute;top:0;right:0;width:12px;height:100%;cursor:ew-resize;z-index:50;opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center}
-.kpi-rb{position:absolute;bottom:0;left:0;width:100%;height:10px;cursor:ns-resize;z-index:50;opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center}
-.kpi:hover .kpi-rh,.kpi:hover .kpi-rb{opacity:1}
-.kpi-rh::after{content:'';display:block;width:4px;height:30px;background:#6366f1;border-radius:2px;opacity:.5;transition:opacity .15s,width .15s}
-.kpi-rh:hover::after,.kpi-rh.dragging::after{opacity:1;width:6px}
-.kpi-rb::after{content:'';display:block;width:30px;height:4px;background:#6366f1;border-radius:2px;opacity:.5;transition:opacity .15s,height .15s}
-.kpi-rb:hover::after,.kpi-rb.dragging::after{opacity:1;height:6px}
-.kpi-rh.dragging,.kpi-rb.dragging{background:rgba(99,102,241,.12)}
+/* KPI drag-resize handles (4 directions) */
+.kpi-rh,.kpi-lh{position:absolute;top:0;width:12px;height:100%;cursor:ew-resize;z-index:50;opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center}
+.kpi-rh{right:0}.kpi-lh{left:0}
+.kpi-rb,.kpi-rt{position:absolute;left:0;width:100%;height:10px;cursor:ns-resize;z-index:50;opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center}
+.kpi-rb{bottom:0}.kpi-rt{top:0}
+.kpi:hover .kpi-rh,.kpi:hover .kpi-lh,.kpi:hover .kpi-rb,.kpi:hover .kpi-rt{opacity:1}
+.kpi-rh::after,.kpi-lh::after{content:'';display:block;width:4px;height:30px;background:#6366f1;border-radius:2px;opacity:.5;transition:opacity .15s,width .15s}
+.kpi-rh:hover::after,.kpi-lh:hover::after,.kpi-rh.dragging::after,.kpi-lh.dragging::after{opacity:1;width:6px}
+.kpi-rb::after,.kpi-rt::after{content:'';display:block;width:30px;height:4px;background:#6366f1;border-radius:2px;opacity:.5;transition:opacity .15s,height .15s}
+.kpi-rb:hover::after,.kpi-rt:hover::after,.kpi-rb.dragging::after,.kpi-rt.dragging::after{opacity:1;height:6px}
+.kpi-rh.dragging,.kpi-lh.dragging,.kpi-rb.dragging,.kpi-rt.dragging{background:rgba(99,102,241,.12)}
 /* KPI inline editing */
 .kpi-edit-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:4px;width:100%}
 .kpi-editable{cursor:text;border-radius:4px;transition:background .15s;padding:2px 4px;min-width:20px}
@@ -488,8 +490,10 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 <div class="kpi-grid" style="margin-top:24px">
   <% @kpi_values.each_with_index do |k, ki| %>
     <div class="kpi" id="kpi-block-<%= ki %>" style="border-color:<%= k[:color] %>">
-      <div class="kpi-rh" data-kpi-idx="<%= ki %>"></div>
-      <div class="kpi-rb" data-kpi-idx="<%= ki %>"></div>
+      <div class="kpi-rh" data-kpi-idx="<%= ki %>" data-dir="r"></div>
+      <div class="kpi-lh" data-kpi-idx="<%= ki %>" data-dir="l"></div>
+      <div class="kpi-rb" data-kpi-idx="<%= ki %>" data-dir="b"></div>
+      <div class="kpi-rt" data-kpi-idx="<%= ki %>" data-dir="t"></div>
       <div class="kpi-toolbar">
         <button class="kpi-tool-btn" onclick="document.getElementById('kpi-lbl-<%= ki %>').focus()" title="Sửa nhãn">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z"/></svg>
@@ -1040,34 +1044,38 @@ function loadKpiSizes() {
 (function initKpiDrag() {
   document.addEventListener('mousedown', e => {
     if (IS_PUBLIC) return;
-    const isH = !!e.target.closest('.kpi-rh');
-    const isV = !!e.target.closest('.kpi-rb');
-    if (!isH && !isV) return;
-    const handle = e.target.closest('.kpi-rh') || e.target.closest('.kpi-rb');
+    const handle = e.target.closest('.kpi-rh,.kpi-lh,.kpi-rb,.kpi-rt');
+    if (!handle) return;
     const block = handle.parentElement;
     const kpiGrid = document.querySelector('.kpi-grid');
     if (!block || !kpiGrid) return;
     e.preventDefault();
     handle.classList.add('dragging');
-    if (isH) {
+    const dir = handle.dataset.dir;
+    if (dir === 'r' || dir === 'l') {
       const numCols = _kpiGridCols();
       const colW = kpiGrid.getBoundingClientRect().width / numCols;
       const curSpan = parseInt(block.style.gridColumn?.replace('span ', '')) || 1;
-      kpiDrag = { handle, block, dir: 'h', startX: e.clientX, startSpan: curSpan, colW, numCols };
+      kpiDrag = { handle, block, dir, startX: e.clientX, startSpan: curSpan, colW, numCols };
     } else {
-      const curH = block.getBoundingClientRect().height;
-      kpiDrag = { handle, block, dir: 'v', startY: e.clientY, startH: curH };
+      kpiDrag = { handle, block, dir, startY: e.clientY, startH: block.getBoundingClientRect().height };
     }
   });
   document.addEventListener('mousemove', e => {
     if (!kpiDrag) return;
-    if (kpiDrag.dir === 'h') {
+    const { dir } = kpiDrag;
+    if (dir === 'r' || dir === 'l') {
       const dx = e.clientX - kpiDrag.startX;
-      const newSpan = Math.max(1, Math.min(kpiDrag.numCols, Math.round((kpiDrag.startSpan * kpiDrag.colW + dx) / kpiDrag.colW)));
+      // right: drag right = wider; left: drag left = wider
+      const sign = dir === 'r' ? 1 : -1;
+      const newSpan = Math.max(1, Math.min(kpiDrag.numCols, Math.round((kpiDrag.startSpan * kpiDrag.colW + sign * dx) / kpiDrag.colW)));
       kpiDrag.block.style.gridColumn = newSpan > 1 ? 'span ' + newSpan : '';
       kpiDrag.pendingSpan = newSpan;
     } else {
-      const newH = Math.max(80, kpiDrag.startH + (e.clientY - kpiDrag.startY));
+      const dy = e.clientY - kpiDrag.startY;
+      // bottom: drag down = taller; top: drag up = taller
+      const sign = dir === 'b' ? 1 : -1;
+      const newH = Math.max(80, kpiDrag.startH + sign * dy);
       kpiDrag.block.style.minHeight = newH + 'px';
       kpiDrag.pendingH = newH;
     }
@@ -1076,10 +1084,11 @@ function loadKpiSizes() {
     if (!kpiDrag) return;
     kpiDrag.handle.classList.remove('dragging');
     const idx = kpiDrag.handle.dataset.kpiIdx;
+    const isH = kpiDrag.dir === 'r' || kpiDrag.dir === 'l';
     try {
       const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
       if (!saved[idx] || typeof saved[idx] !== 'object') saved[idx] = {};
-      if (kpiDrag.dir === 'h') {
+      if (isH) {
         const span = kpiDrag.pendingSpan != null ? kpiDrag.pendingSpan : kpiDrag.startSpan;
         if (span > 1) saved[idx].span = span; else delete saved[idx].span;
       } else {
