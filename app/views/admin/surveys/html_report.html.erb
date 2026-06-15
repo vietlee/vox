@@ -124,7 +124,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 @media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}.grid-2>.cw,.grid-3>.cw{grid-column:span 1}}
 
 /* ── Card wrapper ── */
-.cw{position:relative;align-self:start}
+.cw{position:relative}
 .cw.hidden-section{display:none}
 .cw.cd-source{opacity:.25;pointer-events:none}
 
@@ -158,9 +158,8 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .ct-divider{height:1px;background:#f0f2f5;margin:3px 0}
 /* Active card: subtle ring only */
 .cw-active .card{box-shadow:0 0 0 2px #c7d2fe,0 2px 8px rgba(0,0,0,.07)}
-/* Resize mode: dashed outline directly on card */
-.cw-resize-mode .card{box-shadow:0 2px 8px rgba(0,0,0,.07);outline:2px dashed #a5b4fc;outline-offset:0}
-#resize-border-el{display:none!important}
+/* Resize mode: dashed outline */
+.cw-resize-mode .card{box-shadow:0 2px 8px rgba(0,0,0,.07);outline:2px dashed #a5b4fc;outline-offset:-2px}
 /* ── Mode bar: inline in card header, same row as h3 ── */
 .cw-mode-bar{display:none;align-items:center;gap:8px;white-space:nowrap;flex-shrink:0}
 .cw-mode-bar .mode-label{display:flex;align-items:center;gap:5px;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12)}
@@ -210,7 +209,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 @media(max-width:700px){.insights-grid{grid-template-columns:1fr}}
 
 /* ── Card ── */
-.card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);position:relative}
+.card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
 .card h3{font-size:13px;font-weight:700;margin-bottom:16px;color:#1a1a2e;border-bottom:2px solid #f0f2f5;padding-bottom:10px;display:flex;align-items:center;gap:10px}
 canvas{height:250px;min-height:80px;max-height:none}
 .chart-wrap{position:relative;width:100%}
@@ -1271,7 +1270,6 @@ function setCwMode(btn, mode) {
     if (mode === 'text') {
       cw.querySelectorAll('[data-editable]').forEach(el => el.contentEditable = 'true');
     }
-    if (mode === 'resize') syncCwToCard(cw);
   }
   // Close dropdown after selecting a mode
   cw.classList.remove('cw-active');
@@ -1286,8 +1284,6 @@ function cancelMode(e, btn) {
   cw.querySelectorAll('[data-editable]').forEach(el => el.contentEditable = 'false');
   cw.querySelectorAll('.ct-mode-btn').forEach(b => b.classList.remove('active'));
   cw.querySelectorAll('.lbl-text,.lbl-resize,.lbl-move').forEach(el => el.style.display='none');
-  cw.style.height = '';
-  cw.style.width = '';
   saveLayout();
 }
 
@@ -1378,23 +1374,6 @@ const tip = document.createElement('div');
 tip.className = 'resize-tip';
 document.body.appendChild(tip);
 
-// ── Resize border overlay (pixel-perfect via getBoundingClientRect) ──
-const resizeBorderEl = document.createElement('div');
-resizeBorderEl.id = 'resize-border-el';
-document.body.appendChild(resizeBorderEl);
-
-function showResizeBorder() {}
-function hideResizeBorder() {}
-// Sync .cw dimensions to .card so resize handles sit exactly on card boundary
-function syncCwToCard(cw) {
-  const card = cw.querySelector('.card');
-  if (!card) return;
-  const cardH = card.offsetHeight;
-  const cardW = card.offsetWidth;
-  cw.style.height = cardH + 'px';
-  cw.style.width  = cardW + 'px';
-}
-
 // Inject mode-bar inside h3 + resize handles into all .cw
 document.querySelectorAll('.cw').forEach(cw => {
   // Mode bar injected INSIDE h3 so it shares the same line & padding as the title
@@ -1413,14 +1392,12 @@ document.querySelectorAll('.cw').forEach(cw => {
     if (gear) gear.insertAdjacentHTML('beforebegin', modeBarHtml);
     else h3.insertAdjacentHTML('beforeend', modeBarHtml);
   }
-  // Resize handles in .cw (position:relative); JS syncs .cw size to .card on activate
-  if (!cw.querySelector('.rh-right')) {
-    cw.insertAdjacentHTML('beforeend',
-      '<div class="rh-right"  data-dir="e"><div class="rh-right-bar"></div></div>' +
-      '<div class="rh-bottom" data-dir="s"><div class="rh-bottom-bar"></div></div>' +
-      '<div class="rh-corner" data-dir="se"></div>'
-    );
-  }
+  // Resize handles + snap guide go after card (absolute positioned)
+  cw.insertAdjacentHTML('beforeend',
+    '<div class="rh-right"  data-dir="e"><div class="rh-right-bar"></div></div>' +
+    '<div class="rh-bottom" data-dir="s"><div class="rh-bottom-bar"></div></div>' +
+    '<div class="rh-corner" data-dir="se"></div>'
+  );
 });
 
 let rd = null;
@@ -1482,7 +1459,6 @@ function applyResize() {
       card.style.minHeight = newH + 'px';
       card.style.height = '';
       rd._h = newH;
-      syncCwToCard(rd.cw);
       const h3H = card?.querySelector('h3')?.offsetHeight || 50;
       const cvH = Math.max(80, newH - h3H - 60);
       rd.cw.querySelectorAll('.chart-wrap').forEach(wrap => {
