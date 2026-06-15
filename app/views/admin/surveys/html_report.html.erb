@@ -26,7 +26,8 @@ function mkChart(id,cfg){
   // Set canvas height BEFORE Chart.js init so ResizeObserver sees stable size (no loop)
   const isHBar = cfg.type==='bar' && cfg.options?.indexAxis==='y';
   const itemCount = cfg.data?.labels?.length||0;
-  const autoH = isHBar ? Math.max(200, itemCount*52+120) : 250;
+  const isPie = cfg.type==='doughnut'||cfg.type==='pie';
+  const autoH = isHBar ? Math.max(200, itemCount*52+120) : isPie ? Math.max(300, itemCount*30+120) : 260;
   el.style.height = (el.style.height || autoH+'px'); // keep user-resized height
   cfg.options = Object.assign({maintainAspectRatio:false}, cfg.options||{}, {maintainAspectRatio:false});
   const ch=new Chart(el,cfg);
