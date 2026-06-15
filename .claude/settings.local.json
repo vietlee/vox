@@ -312,7 +312,16 @@
       "Bash(ssh deploy@188.166.189.119 \"psql 'postgresql://vox_user:cfdb7b8f10d2bdd9c46e9d4d48335b12@localhost/vox_production' -c \\\\\"SELECT jsonb_pretty\\(settings->'report_structure_en'\\) FROM surveys WHERE id = 34;\\\\\"\")",
       "Bash(ssh deploy@188.166.189.119 \"psql 'postgresql://vox_user:cfdb7b8f10d2bdd9c46e9d4d48335b12@localhost/vox_production' -c \\\\\"UPDATE surveys SET settings = settings - 'report_structure_en' - 'report_structure_en_version' WHERE id = 34;\\\\\"\")",
       "Bash(wait)",
-      "Bash(ssh deploy@188.166.189.119 \"tail -100 /var/www/vox/current/log/sidekiq.log | grep -E 'ERROR|error|AiExecutive|failed|Exception'\")"
+      "Bash(ssh deploy@188.166.189.119 \"tail -100 /var/www/vox/current/log/sidekiq.log | grep -E 'ERROR|error|AiExecutive|failed|Exception'\")",
+      "Bash(ssh deploy@188.166.189.119 \"source ~/.bashrc 2>/dev/null; source ~/.bash_profile 2>/dev/null; which ruby; which bundle; cd /var/www/vox/current && bundle exec rails db:migrate RAILS_ENV=production 2>&1\")",
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && ~/.rbenv/versions/3.2.2/bin/bundle exec rails db:migrate RAILS_ENV=production; echo EXIT:$?\")",
+      "Bash(ruby -e \"puts 'syntax check'\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -50 /var/www/vox/current/log/production.log | grep -A5 'generate_report_token\\\\|short_url_for\\\\|ShortLink\\\\|Error\\\\|error'\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -80 /var/www/vox/shared/log/production.log 2>/dev/null | grep -E 'generate_report_token|ShortLink|short_url|ERROR|500'\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -100 /var/www/vox/shared/log/production.log 2>/dev/null | grep -E 'Error|error|Exception|500|generate_report'\")",
+      "Bash(ssh deploy@188.166.189.119 'cd /var/www/vox/current && ~/.rbenv/shims/bundle exec rails runner \" *)",
+      "Bash(ssh deploy@188.166.189.119 \"tail -100 /var/www/vox/shared/log/puma.log 2>/dev/null | grep -A5 'generate_report_token\\\\|ERROR\\\\|Error\\\\|exception'\")",
+      "Bash(grep -n \"min-width\\\\|width: [0-9]\\\\{3,\\\\}px\\\\|width:[0-9]\\\\{3,\\\\}px\" /Users/mac/Desktop/VOX/app/views/pages/home.html.erb)"
     ]
   }
 }
