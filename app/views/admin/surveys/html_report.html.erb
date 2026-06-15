@@ -1478,12 +1478,14 @@ document.addEventListener('mousedown', e => {
   const dir = handle.dataset.dir;
   const defaultSpan = grid.classList.contains('grid-3') ? 4 : 6;
   const startSpan = parseInt(cw.style.gridColumn?.match(/span (\d+)/)?.[1] || defaultSpan);
-  const startH = cw.querySelector('.card')?.offsetHeight || 240;
+  const card0 = cw.querySelector('.card');
+  const startH = card0?.offsetHeight || 240;
+  const cardTop = card0?.getBoundingClientRect().top || 0;
   const gridRect = grid.getBoundingClientRect();
 
   handle.classList.add('dragging');
   cw.classList.add('is-resizing');
-  rd = { cw, handle, dir, gridRect, startH,
+  rd = { cw, handle, dir, gridRect, startH, cardTop,
          startSpan, startY: e.clientY, _span: startSpan, _h: startH };
 
   document.body.style.userSelect = 'none';
@@ -1517,7 +1519,7 @@ function applyResize() {
     }
   }
   if (dir === 's' || dir === 'se') {
-    const newH = Math.max(180, startH + (e.clientY - startY));
+    const newH = Math.max(180, e.clientY - rd.cardTop);
     if (card && Math.abs(newH - (rd._h||0)) > 2) {
       card.style.minHeight = newH + 'px';
       card.style.height = '';
