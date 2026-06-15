@@ -23,7 +23,7 @@ function mkChart(id,cfg){
   const el=document.getElementById(id);
   if(!el){console.warn('mkChart: canvas not found:',id);return null;}
   if(chartReg[id]){chartReg[id].destroy();}
-  cfg.options = Object.assign({ maintainAspectRatio:false }, cfg.options||{}, { maintainAspectRatio:false });
+  // maintainAspectRatio left at default (true) to avoid ResizeObserver loop
   const ch=new Chart(el,cfg);
   chartReg[id]=ch;
   return ch;
@@ -1445,8 +1445,9 @@ function applyResize() {
       card.style.height = newH + 'px';
       rd._h = newH;
       rd.cw.querySelectorAll('canvas').forEach(cv => {
-        cv.style.height = Math.max(80, newH - 80) + 'px';
-        const ch = chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(_) {} }
+        const cvH = Math.max(80, newH - 80);
+        cv.style.height = cvH + 'px';
+        const ch = chartReg[cv.id]; if (ch) { try { ch.resize(cv.offsetWidth, cvH); } catch(_) {} }
       });
     }
   }
