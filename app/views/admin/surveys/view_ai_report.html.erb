@@ -221,6 +221,7 @@ canvas{height:250px;min-height:80px;max-height:none}
 .btn-restore:hover{background:#eef2ff}
 
 /* ── Bar items ── */
+.bar-list{display:flex;flex-direction:column;justify-content:space-between}
 .bar-item{display:flex;align-items:center;margin-bottom:8px;font-size:12px}
 .bar-label{flex-shrink:0;color:#444;padding-right:8px;width:190px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-track{flex:1;background:#e8eaf0;border-radius:4px;height:20px;overflow:hidden;margin-right:8px}
@@ -441,6 +442,7 @@ canvas{height:250px;min-height:80px;max-height:none}
       })();</script>
 
     <% elsif vtype == "hbar" && opts.any? %>
+      <div class="bar-list">
       <% opts.sort_by{|o|-o["count"].to_i}.each_with_index do |o,oi| %>
       <div class="bar-item">
         <span class="bar-label" title="<%= o['label'] %>"><%= o["label"].to_s.truncate(32) %></span>
@@ -448,6 +450,7 @@ canvas{height:250px;min-height:80px;max-height:none}
         <span class="bar-count"><%= o["count"] %></span>
       </div>
       <% end %>
+      </div>
 
     <% elsif vtype == "dist_bar" && dist.any? %>
       <canvas id="<%= chid %>"></canvas>
@@ -1116,6 +1119,7 @@ function applyResize() {
         const cv = wrap.querySelector('canvas');
         const ch = cv && chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(_) {} }
       });
+      rd.cw.querySelectorAll('.bar-list').forEach(list => { list.style.height = cvH + 'px'; });
     }
   }
 
