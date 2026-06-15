@@ -34,11 +34,11 @@ function mkChart(id,cfg){
   if(!el){console.warn('mkChart: canvas not found:',id);return null;}
   if(chartReg[id]){chartReg[id].destroy();}
   const isHBar = cfg.type==='bar' && cfg.options?.indexAxis==='y';
-  const itemCount = cfg.data?.labels?.length||0;
   const isPie = cfg.type==='doughnut'||cfg.type==='pie';
+  const itemCount = cfg.data?.labels?.length||0;
   const autoH = isHBar ? Math.max(200, itemCount*52+120) : isPie ? Math.max(300, itemCount*30+120) : 260;
-  el.style.height = (el.style.height || autoH+'px');
-  cfg.options = Object.assign({maintainAspectRatio:false}, cfg.options||{}, {maintainAspectRatio:false});
+  if (!el.style.height) el.style.height = autoH+'px';
+  cfg.options = Object.assign({}, cfg.options||{}, {responsive:false, maintainAspectRatio:false});
   const ch=new Chart(el,cfg);
   chartReg[id]=ch;
   return ch;
