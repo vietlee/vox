@@ -54,7 +54,8 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .container{max-width:1200px;margin:0 auto;padding:28px 24px 120px}
 
 /* ── KPI ── */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:14px;margin-bottom:4px}
+.kpi-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-bottom:4px}
+.kpi{grid-column:span 2}
 .kpi{background:white;border-radius:12px;padding:18px 14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .kpi-value{font-size:34px;font-weight:800;line-height:1;margin-bottom:5px}
 .kpi-label{font-size:11px;color:#666;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
@@ -1022,21 +1023,17 @@ const IS_PUBLIC = <%= @public_view ? 'true' : 'false' %>;
 // ── KPI drag-resize ──────────────────────────────────────────────────────
 const KPI_SIZE_SK = 'report_kpi_sizes_' + SURVEY_ID + '_' + REPORT_LANG;
 let kpiDrag = null;
-function _kpiGridCols() {
-  const g = document.querySelector('.kpi-grid');
-  if (!g) return 1;
-  return getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
-}
+const KPI_MAXCOLS = 12;
+function _kpiGridCols() { return KPI_MAXCOLS; }
 function loadKpiSizes() {
   try {
     const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
     Object.entries(saved).forEach(([idx, v]) => {
       const block = document.getElementById('kpi-block-' + idx);
       if (!block) return;
-      // v can be old format (number) or new format {span, h}
       const span = typeof v === 'object' ? v.span : v;
       const h    = typeof v === 'object' ? v.h : null;
-      if (span > 1) block.style.gridColumn = 'span ' + span; else block.style.gridColumn = '';
+      if (span) block.style.gridColumn = 'span ' + span;
       if (h) block.style.minHeight = h + 'px';
     });
   } catch(e) {}
@@ -1090,7 +1087,7 @@ function loadKpiSizes() {
       if (!saved[idx] || typeof saved[idx] !== 'object') saved[idx] = {};
       if (isH) {
         const span = kpiDrag.pendingSpan != null ? kpiDrag.pendingSpan : kpiDrag.startSpan;
-        if (span > 1) saved[idx].span = span; else delete saved[idx].span;
+        if (span >= 1) saved[idx].span = span; else delete saved[idx].span;
       } else {
         const h = kpiDrag.pendingH != null ? Math.round(kpiDrag.pendingH) : Math.round(kpiDrag.startH);
         if (h > 80) saved[idx].h = h; else delete saved[idx].h;
