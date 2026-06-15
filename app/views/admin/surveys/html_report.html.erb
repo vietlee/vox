@@ -1840,9 +1840,10 @@ new Sortable(document.getElementById('sortableContainer'), {
   onEnd: saveLayout
 });
 
-// Ensure section title spans are clickable/editable
+// Ensure section title spans are editable — block SortableJS from intercepting mousedown
 document.querySelectorAll('.section-title-edit').forEach(el => {
-  el.addEventListener('click', function(e) { e.stopPropagation(); this.focus(); });
+  el.addEventListener('mousedown', function(e) { e.stopImmediatePropagation(); });
+  el.addEventListener('click', function(e) { e.stopImmediatePropagation(); this.focus(); });
 });
 
 // ── Sortable: KPI blocks ──
