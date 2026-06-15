@@ -378,7 +378,7 @@ canvas{height:250px;min-height:80px;max-height:none}
   cd      = c["data"] || {}
   xt      = c["cross_tab_data"]
   qtype   = cd["type"].to_s
-  opts    = cd["options"] || []
+  opts    = (cd["options"] || []).map{|o| { "label"=>o["label"].to_s, "count"=>o["count"].to_i, "pct"=>o["pct"].to_f }}
   dist    = cd["distribution"] || []
   total   = cd["total"].to_i
   avg_v   = cd["avg"]
@@ -448,11 +448,11 @@ canvas{height:250px;min-height:80px;max-height:none}
 
     <% elsif vtype == "hbar" && opts.any? %>
       <div class="bar-list">
-      <% opts.sort_by{|o|-o["count"].to_i}.each_with_index do |o,oi| %>
+      <% opts.sort_by{|o|-o["count"]}.each_with_index do |o,oi| %>
       <div class="bar-item">
-        <span class="bar-label" title="<%= o['label'] %>"><%= o["label"].to_s.truncate(32) %></span>
-        <div class="bar-track"><div class="bar-fill" style="width:<%= o['pct'].to_f.clamp(0,100) %>%;background:<%= palette[oi%palette.size] %>"><%= o["pct"].to_f>15 ? "#{o['pct'].round(1)}%" : "" %></div></div>
-        <% if o["pct"].to_f <= 15 %><span class="bar-pct-out" style="color:<%= palette[oi%palette.size] %>"><%= o['pct'].round(1) %>%</span><% end %>
+        <span class="bar-label" title="<%= o['label'] %>"><%= o["label"].truncate(32) %></span>
+        <div class="bar-track"><div class="bar-fill" style="width:<%= o['pct'].clamp(0,100) %>%;background:<%= palette[oi%palette.size] %>"><%= o["pct"]>15 ? "#{o['pct'].round(1)}%" : "" %></div></div>
+        <% if o["pct"] <= 15 %><span class="bar-pct-out" style="color:<%= palette[oi%palette.size] %>"><%= o['pct'].round(1) %>%</span><% end %>
         <span class="bar-count"><%= o["count"] %></span>
       </div>
       <% end %>
