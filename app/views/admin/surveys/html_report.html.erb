@@ -79,8 +79,9 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .kpi-drag-handle{cursor:grab;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);font-size:14px;user-select:none}
 .kpi-drag-handle:hover{background:#e0e7ff}
 /* Section title editable */
-.section-title-edit{outline:none;border:none;border-bottom:2px dashed transparent;background:transparent;cursor:text;border-radius:3px;padding:1px 4px;min-width:40px;flex:1;font-size:inherit;font-weight:inherit;color:inherit;font-family:inherit;width:100%}
-.section-title-edit:hover,.section-title-edit:focus{border-bottom-color:#a5b4fc;background:#f8f9ff}
+.section-title-edit{outline:none;border:none;border-bottom:2px dashed #c7d2fe;background:transparent;cursor:text;border-radius:3px;padding:1px 4px;min-width:40px;flex:1;font-size:inherit;font-weight:inherit;color:inherit;font-family:inherit;width:100%}
+.section-title-edit:hover{background:#f0f4ff}
+.section-title-edit:focus{border-bottom-color:#4361ee;background:#eef2ff;outline:none}
 .kpi-tool-btn{cursor:pointer;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);transition:background .15s,transform .15s}
 .kpi-tool-btn:hover{background:#e0e7ff;color:#4361ee;transform:scale(1.08)}
 /* KPI drag-resize handles (4 directions) */
@@ -1833,17 +1834,9 @@ function loadLayout() {
 new Sortable(document.getElementById('sortableContainer'), {
   animation: 150,
   handle: '.btn-sec-drag',
-  filter: '.section-title-edit',
-  preventOnFilter: false,
   ghostClass: 'sortable-ghost',
   chosenClass: 'sortable-chosen',
   onEnd: saveLayout
-});
-
-// Section title inputs: stop propagation so SortableJS doesn't interfere
-document.querySelectorAll('.section-title-edit').forEach(el => {
-  el.addEventListener('mousedown', e => e.stopImmediatePropagation());
-  el.addEventListener('pointerdown', e => e.stopImmediatePropagation());
 });
 
 // ── Sortable: KPI blocks ──
