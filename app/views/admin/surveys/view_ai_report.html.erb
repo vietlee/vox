@@ -378,7 +378,7 @@ canvas{height:250px;min-height:80px;max-height:none}
   cd      = c["data"] || {}
   xt      = c["cross_tab_data"]
   qtype   = cd["type"].to_s
-  opts    = (cd["options"] || []).map{|o| { "label"=>o["label"].to_s, "count"=>o["count"].to_i, "pct"=>o["pct"].to_f }}
+  opts    = (cd["options"] || []).map{|o| c=o["count"].to_i; { "label"=>o["label"].to_s, "count"=>c, "pct"=>_resp_count>0 ? (c.to_f/_resp_count*100).round(1) : o["pct"].to_f }}
   dist    = cd["distribution"] || []
   total   = cd["total"].to_i
   avg_v   = cd["avg"]
