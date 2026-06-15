@@ -23,13 +23,20 @@ function mkChart(id,cfg){
   const el=document.getElementById(id);
   if(!el){console.warn('mkChart: canvas not found:',id);return null;}
   if(chartReg[id]){chartReg[id].destroy();}
+  // Wrap canvas in fixed-height div (canonical Chart.js way to prevent ResizeObserver loop)
+  let wrap = el.parentElement?.classList.contains('chart-wrap') ? el.parentElement : null;
+  if(!wrap){
+    wrap = document.createElement('div');
+    wrap.className = 'chart-wrap';
+    el.parentNode.insertBefore(wrap, el);
+    wrap.appendChild(el);
+  }
   const isHBar = cfg.type==='bar' && cfg.options?.indexAxis==='y';
   const isPie = cfg.type==='doughnut'||cfg.type==='pie';
   const itemCount = cfg.data?.labels?.length||0;
   const autoH = isHBar ? Math.max(160, itemCount*38+60) : isPie ? Math.max(260, itemCount*24+80) : 240;
-  if (!el.style.height) el.style.height = autoH+'px';
-  // responsive:false disables ResizeObserver entirely → no infinite resize loop
-  cfg.options = Object.assign({}, cfg.options||{}, {responsive:false, maintainAspectRatio:false});
+  if(!wrap.style.height) wrap.style.height = autoH+'px';
+  cfg.options = Object.assign({}, cfg.options||{}, {responsive:true, maintainAspectRatio:false});
   const ch=new Chart(el,cfg);
   chartReg[id]=ch;
   return ch;
@@ -205,6 +212,8 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
 .card h3{font-size:13px;font-weight:700;margin-bottom:16px;color:#1a1a2e;border-bottom:2px solid #f0f2f5;padding-bottom:10px;display:flex;align-items:center;gap:10px}
 canvas{height:250px;min-height:80px;max-height:none}
+.chart-wrap{position:relative;width:100%}
+.chart-wrap canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important}
 
 /* Editable text — only in text mode */
 .cw-text-mode [data-editable]{outline:none;border-bottom:2px dashed #a5b4fc;cursor:text;min-width:20px;border-radius:3px;padding:1px 4px;background:#f8f9ff;transition:background .1s}
@@ -1450,10 +1459,11 @@ function applyResize() {
       card.style.minHeight = newH + 'px';
       card.style.height = newH + 'px';
       rd._h = newH;
-      rd.cw.querySelectorAll('canvas').forEach(cv => {
-        const cvH = Math.max(80, newH - 80);
-        cv.style.height = cvH + 'px';
-        const ch = chartReg[cv.id]; if (ch) { try { ch.resize(cv.offsetWidth, cvH); } catch(_) {} }
+      const cvH = Math.max(80, newH - 80);
+      rd.cw.querySelectorAll('.chart-wrap').forEach(wrap => {
+        wrap.style.height = cvH + 'px';
+        const cv = wrap.querySelector('canvas');
+        const ch = cv && chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(_) {} }
       });
     }
   }
@@ -1476,10 +1486,8 @@ document.addEventListener('mouseup', () => {
   tip.classList.remove('visible');
   rd = null; latestE = null; rafId = null;
   saveLayout();
-  // Resize any Chart.js instances inside the resized card
-  resizedCw.querySelectorAll('canvas').forEach(cv => {
-    const ch = chartReg[cv.id];
-    if (ch) { try { ch.resize(); } catch(e) {} }
+  resizedCw.querySelectorAll('.chart-wrap canvas').forEach(cv => {
+    const ch = chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(e) {} }
   });
 });
 
