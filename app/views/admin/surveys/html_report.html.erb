@@ -1522,7 +1522,7 @@ function applyResize() {
     const newH = Math.max(180, e.clientY - rd.cardTop);
     if (card && Math.abs(newH - (rd._h||0)) > 2) {
       card.style.minHeight = newH + 'px';
-      card.style.height = '';
+      card.style.height = newH + 'px';
       rd._h = newH;
       const h3H = card?.querySelector('h3')?.offsetHeight || 50;
       const cvH = Math.max(80, newH - h3H - 60);
@@ -1531,9 +1531,9 @@ function applyResize() {
         const cv = wrap.querySelector('canvas');
         const ch = cv && chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(_) {} }
       });
-      // Scale horizontal bar lists (no canvas — use flex distribute)
       rd.cw.querySelectorAll('.bar-list').forEach(list => {
         list.style.height = cvH + 'px';
+        list.style.overflowY = 'auto';
       });
     }
   }
@@ -1556,6 +1556,8 @@ document.addEventListener('mouseup', () => {
   tip.classList.remove('visible');
   hideAlignGuides();
   rd = null; latestE = null; rafId = null;
+  const finalCard = resizedCw.querySelector('.card');
+  if (finalCard?.style.height) { finalCard.style.minHeight = finalCard.style.height; finalCard.style.height = ''; }
   saveLayout();
   resizedCw.querySelectorAll('.chart-wrap canvas').forEach(cv => {
     const ch = chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(e) {} }
