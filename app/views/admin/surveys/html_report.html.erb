@@ -1458,8 +1458,11 @@ document.addEventListener('mousedown', e => {
 
   handle.classList.add('dragging');
   cw.classList.add('is-resizing');
-  cw.style.alignSelf = 'start'; // prevent grid from stretching cw during resize
-  rd = { cw, handle, dir, gridRect, startH,
+  // Lock all siblings to their current rendered height so they don't collapse/stretch during resize
+  const siblings = [...grid.querySelectorAll('.cw')].filter(el => el !== cw);
+  siblings.forEach(el => { el.style.height = el.offsetHeight + 'px'; el.style.alignSelf = 'start'; });
+  cw.style.alignSelf = 'start';
+  rd = { cw, handle, dir, gridRect, startH, siblings,
          startSpan, startY: e.clientY, _span: startSpan, _h: startH };
 
   document.body.style.userSelect = 'none';
@@ -1524,6 +1527,7 @@ document.addEventListener('mouseup', () => {
   rd.cw.classList.remove('is-resizing');
   rd.cw.style.height = '';
   rd.cw.style.alignSelf = '';
+  (rd.siblings || []).forEach(el => { el.style.height = ''; el.style.alignSelf = ''; });
   document.body.style.cursor = '';
   document.body.style.userSelect = '';
   tip.classList.remove('visible');
