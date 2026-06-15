@@ -1122,17 +1122,19 @@ function applyResize() {
   if (dir === 's' || dir === 'se') {
     const newH = Math.max(180, startH + (e.clientY - startY));
     if (card && Math.abs(newH - (rd._h||0)) > 2) {
-      card.style.minHeight = newH + 'px';
+      const hasBarList = !!rd.cw.querySelector('.bar-list');
+      const naturalH = hasBarList ? card.scrollHeight : 0;
+      const clampedH = Math.max(newH, naturalH);
+      card.style.minHeight = clampedH + 'px';
       card.style.height = '';
-      rd._h = newH;
+      rd._h = clampedH;
       const h3H = card?.querySelector('h3')?.offsetHeight || 50;
-      const cvH = Math.max(80, newH - h3H - 60);
+      const cvH = Math.max(80, clampedH - h3H - 60);
       rd.cw.querySelectorAll('.chart-wrap').forEach(wrap => {
         wrap.style.height = cvH + 'px';
         const cv = wrap.querySelector('canvas');
         const ch = cv && chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(_) {} }
       });
-      rd.cw.querySelectorAll('.bar-list').forEach(list => { list.style.height = cvH + 'px'; });
     }
   }
 
