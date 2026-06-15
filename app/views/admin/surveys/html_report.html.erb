@@ -61,7 +61,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .kpi-value{font-size:34px;font-weight:800;line-height:1;margin-bottom:5px}
 .kpi-label{font-size:11px;color:#666;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
 /* KPI toolbar (edit) */
-.kpi-toolbar{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:opacity .2s}
+.kpi-toolbar{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:opacity .2s;z-index:60}
 .kpi:hover .kpi-toolbar{opacity:1}
 .kpi-drag-handle{cursor:grab;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);font-size:14px;user-select:none}
 .kpi-drag-handle:hover{background:#e0e7ff}
@@ -73,7 +73,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .kpi-rh,.kpi-lh{position:absolute;top:0;width:12px;height:100%;cursor:ew-resize;z-index:50;opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center}
 .kpi-rh{right:0}.kpi-lh{left:0}
 .kpi-rb,.kpi-rt{position:absolute;left:0;width:100%;height:10px;cursor:ns-resize;z-index:50;opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center}
-.kpi-rb{bottom:0}.kpi-rt{top:0}
+.kpi-rb{bottom:0}.kpi-rt{top:0;pointer-events:none}.kpi:hover .kpi-rt{pointer-events:auto}
 .kpi:hover .kpi-rh,.kpi:hover .kpi-lh,.kpi:hover .kpi-rb,.kpi:hover .kpi-rt{opacity:1}
 .kpi-rh::after,.kpi-lh::after{content:'';display:block;width:4px;height:30px;background:#6366f1;border-radius:2px;opacity:.5;transition:opacity .15s,width .15s}
 .kpi-rh:hover::after,.kpi-lh:hover::after,.kpi-rh.dragging::after,.kpi-lh.dragging::after{opacity:1;width:6px}
@@ -1805,6 +1805,8 @@ new Sortable(document.getElementById('sortableContainer'), {
       handle: '.kpi-drag-handle',
       ghostClass: 'sortable-ghost',
       chosenClass: 'sortable-chosen',
+      swapThreshold: 0.5,
+      direction: 'horizontal',
       onEnd: saveLayout
     });
   }
