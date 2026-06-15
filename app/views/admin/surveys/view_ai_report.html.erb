@@ -226,7 +226,7 @@ canvas{height:250px;min-height:80px;max-height:none}
 .bar-label{flex-shrink:0;color:#444;padding-right:8px;width:190px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-track{flex:1;background:#e8eaf0;border-radius:4px;height:20px;overflow:hidden;margin-right:8px}
 .bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;color:white;font-size:11px;font-weight:700;min-width:18px;transition:width .4s}
-.bar-pct-out{font-size:11px;font-weight:700;white-space:nowrap;margin-right:4px;flex-shrink:0}
+.bar-pct-out{font-size:11px;font-weight:700;white-space:nowrap;width:44px;text-align:right;flex-shrink:0}
 .bar-count{width:28px;text-align:right;color:#888;font-weight:600;font-size:12px}
 
 /* ── Rating ── */
@@ -451,8 +451,8 @@ canvas{height:250px;min-height:80px;max-height:none}
       <% opts.sort_by{|o|-o["count"]}.each_with_index do |o,oi| %>
       <div class="bar-item">
         <span class="bar-label" title="<%= o['label'] %>"><%= o["label"].truncate(32) %></span>
-        <div class="bar-track"><div class="bar-fill" style="width:<%= o['pct'].clamp(0,100) %>%;background:<%= palette[oi%palette.size] %>"><%= o["pct"]>15 ? "#{o['pct'].round(1)}%" : "" %></div></div>
-        <% if o["pct"] <= 15 %><span class="bar-pct-out" style="color:<%= palette[oi%palette.size] %>"><%= o['pct'].round(1) %>%</span><% end %>
+        <div class="bar-track"><div class="bar-fill" style="width:<%= o['pct'].clamp(0,100) %>%;background:<%= palette[oi%palette.size] %>"></div></div>
+        <span class="bar-pct-out" style="color:<%= palette[oi%palette.size] %>"><%= o['pct'].round(1) %>%</span>
         <span class="bar-count"><%= o["count"] %></span>
       </div>
       <% end %>
