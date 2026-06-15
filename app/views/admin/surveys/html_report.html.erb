@@ -125,7 +125,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 @media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}.grid-2>.cw,.grid-3>.cw{grid-column:span 1}}
 
 /* ── Card wrapper ── */
-.cw{position:relative;display:flex;flex-direction:column}
+.cw{position:relative;display:flex;flex-direction:column;align-self:start}
 .cw>.card{flex:1}
 .cw.hidden-section{display:none}
 .kpi.hidden-section{display:none}
@@ -1459,11 +1459,7 @@ document.addEventListener('mousedown', e => {
 
   handle.classList.add('dragging');
   cw.classList.add('is-resizing');
-  // Lock all siblings to their current rendered height so they don't collapse/stretch during resize
-  const siblings = [...grid.querySelectorAll('.cw')].filter(el => el !== cw);
-  siblings.forEach(el => { el.style.height = el.offsetHeight + 'px'; el.style.alignSelf = 'start'; });
-  cw.style.alignSelf = 'start';
-  rd = { cw, handle, dir, gridRect, startH, siblings,
+  rd = { cw, handle, dir, gridRect, startH,
          startSpan, startY: e.clientY, _span: startSpan, _h: startH };
 
   document.body.style.userSelect = 'none';
@@ -1501,7 +1497,6 @@ function applyResize() {
     if (card && Math.abs(newH - (rd._h||0)) > 2) {
       card.style.minHeight = newH + 'px';
       card.style.height = '';
-      rd.cw.style.height = newH + 'px';
       rd._h = newH;
       const h3H = card?.querySelector('h3')?.offsetHeight || 50;
       const cvH = Math.max(80, newH - h3H - 60);
@@ -1526,9 +1521,6 @@ document.addEventListener('mouseup', () => {
   const resizedCw = rd.cw;
   rd.handle.classList.remove('dragging');
   rd.cw.classList.remove('is-resizing');
-  rd.cw.style.height = '';
-  rd.cw.style.alignSelf = '';
-  (rd.siblings || []).forEach(el => { el.style.height = ''; el.style.alignSelf = ''; });
   document.body.style.cursor = '';
   document.body.style.userSelect = '';
   tip.classList.remove('visible');
