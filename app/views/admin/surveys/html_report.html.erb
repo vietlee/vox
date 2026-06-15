@@ -1593,8 +1593,9 @@ document.addEventListener('mousedown', e => {
   const grid = block?.closest('.kpi-grid');
   if (!block || !grid) return;
   e.preventDefault(); e.stopPropagation();
-  const cs = window.getComputedStyle(block);
-  const span = parseInt(cs.gridColumnEnd) - parseInt(cs.gridColumnStart) || 2;
+  const inlineCol = block.style.gridColumn;
+  let span = 2;
+  if (inlineCol) { const m = inlineCol.match(/span\s+(\d+)/); if (m) span = parseInt(m[1]); }
   kpiMoveDrag = { block, grid, span };
   document.body.style.cursor = 'grabbing';
   document.body.style.userSelect = 'none';
