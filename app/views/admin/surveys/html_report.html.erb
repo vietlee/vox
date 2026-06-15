@@ -196,9 +196,9 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 @media(max-width:700px){.insights-grid{grid-template-columns:1fr}}
 
 /* ── Card ── */
-.card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);height:100%;overflow:hidden;display:flex;flex-direction:column}
-.card h3{font-size:13px;font-weight:700;margin-bottom:16px;color:#1a1a2e;border-bottom:2px solid #f0f2f5;padding-bottom:10px;display:flex;align-items:center;gap:10px;flex-shrink:0}
-canvas{flex:1;min-height:200px;max-height:none}
+.card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);height:100%;overflow:hidden}
+.card h3{font-size:13px;font-weight:700;margin-bottom:16px;color:#1a1a2e;border-bottom:2px solid #f0f2f5;padding-bottom:10px;display:flex;align-items:center;gap:10px}
+canvas{height:250px;min-height:80px;max-height:none}
 
 /* Editable text — only in text mode */
 .cw-text-mode [data-editable]{outline:none;border-bottom:2px dashed #a5b4fc;cursor:text;min-width:20px;border-radius:3px;padding:1px 4px;background:#f8f9ff;transition:background .1s}
@@ -1445,6 +1445,7 @@ function applyResize() {
       card.style.height = newH + 'px';
       rd._h = newH;
       rd.cw.querySelectorAll('canvas').forEach(cv => {
+        cv.style.height = Math.max(80, newH - 80) + 'px';
         const ch = chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(_) {} }
       });
     }
