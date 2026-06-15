@@ -66,7 +66,8 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .kpi-drag-handle{cursor:grab;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);font-size:14px;user-select:none}
 .kpi-drag-handle:hover{background:#e0e7ff}
 /* Section title editable */
-.section-title-edit{outline:none;border-bottom:2px dashed #a5b4fc;background:transparent;cursor:text;border-radius:3px;padding:1px 4px;min-width:40px}
+.section-title-edit{outline:none;border-bottom:2px dashed transparent;background:transparent;cursor:text;border-radius:3px;padding:1px 4px;min-width:40px;flex:1}
+.section-title-edit:hover,.section-title-edit:focus{border-bottom-color:#a5b4fc}
 .kpi-tool-btn{cursor:pointer;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);transition:background .15s,transform .15s}
 .kpi-tool-btn:hover{background:#e0e7ff;color:#4361ee;transform:scale(1.08)}
 /* KPI drag-resize handles (4 directions) */
@@ -1277,6 +1278,7 @@ document.addEventListener('mousedown', e => {
   if (e.target.closest('.cw-gear')) return; // handled by gear click
   if (e.target.closest('[data-dir]')) return; // resize handle
   if (e.target.closest('#deleteModal,#chartModal')) return; // modals
+  if (e.target.closest('.section-title-edit')) return; // section title editing
   if (!e.target.closest('.cw-active')) deactivateAllCards();
 });
 
@@ -1792,8 +1794,6 @@ new Sortable(document.getElementById('sortableContainer'), {
       handle: '.kpi-drag-handle',
       ghostClass: 'sortable-ghost',
       chosenClass: 'sortable-chosen',
-      swapThreshold: 0.5,
-      direction: 'horizontal',
       onEnd: saveLayout
     });
   }
