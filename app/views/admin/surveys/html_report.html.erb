@@ -525,15 +525,9 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
       <div class="kpi-rb" data-kpi-idx="<%= ki %>" data-dir="b"></div>
       <div class="kpi-rt" data-kpi-idx="<%= ki %>" data-dir="t"></div>
       <div class="kpi-toolbar">
-        <span class="kpi-drag-handle" title="Kéo để sắp xếp">⠿</span>
+        <span class="kpi-drag-handle" title="Kéo để di chuyển">⠿</span>
         <button class="kpi-tool-btn" onclick="document.getElementById('kpi-lbl-<%= ki %>').focus()" title="Sửa nhãn">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z"/></svg>
-        </button>
-        <button class="kpi-tool-btn" onclick="moveKpi(this,'l')" title="Dịch trái">
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <button class="kpi-tool-btn" onclick="moveKpi(this,'r')" title="Dịch phải">
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <button class="kpi-tool-btn" onclick="hideKpi('<%= ki %>')" title="Ẩn block">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 11.94A10 10 0 0 1 2.06 11.94M1 1l18 18"/><path d="M9.9 4.07A7 7 0 0 1 17 11M6.53 6.53A7 7 0 0 0 3 11"/></svg>
@@ -1585,16 +1579,39 @@ function autoHideEmptySections() {
 }
 
 // ── Hide/show section ──
-function moveKpi(btn, dir) {
-  const block = btn.closest('.kpi');
-  if (!block) return;
+// ── KPI free-drag positioning ──
+let kpiMoveDrag = null;
+document.addEventListener('mousedown', e => {
+  const handle = e.target.closest('.kpi-drag-handle');
+  if (!handle) return;
+  const block = handle.closest('.kpi');
+  const grid = block?.closest('.kpi-grid');
+  if (!block || !grid) return;
+  e.preventDefault(); e.stopPropagation();
   const cs = window.getComputedStyle(block);
   const span = parseInt(cs.gridColumnEnd) - parseInt(cs.gridColumnStart) || 2;
-  const start = parseInt(block.style.gridColumnStart) || parseInt(cs.gridColumnStart) || 1;
-  const newStart = dir === 'l' ? Math.max(1, start - 1) : Math.min(13 - span, start + 1);
+  kpiMoveDrag = { block, grid, span };
+  document.body.style.cursor = 'grabbing';
+  document.body.style.userSelect = 'none';
+  block.style.opacity = '0.7';
+});
+document.addEventListener('mousemove', e => {
+  if (!kpiMoveDrag) return;
+  const { block, grid, span } = kpiMoveDrag;
+  const rect = grid.getBoundingClientRect();
+  const colW = rect.width / 12;
+  const offset = e.clientX - rect.left;
+  const newStart = Math.max(1, Math.min(13 - span, Math.round(offset / colW) + 1));
   block.style.gridColumnStart = newStart;
+});
+document.addEventListener('mouseup', e => {
+  if (!kpiMoveDrag) return;
+  kpiMoveDrag.block.style.opacity = '';
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+  kpiMoveDrag = null;
   saveLayout();
-}
+});
 function hideKpi(ki) {
   const el = document.getElementById('kpi-block-' + ki);
   if (!el) return;
@@ -1913,18 +1930,8 @@ new Sortable(document.getElementById('sortableContainer'), {
   onEnd: saveLayout
 });
 
-// ── Sortable: KPI blocks ──
+// KPI blocks use custom free-drag positioning (see kpiMoveDrag above)
 (function(){
-  const kpiGrid = document.querySelector('.kpi-grid');
-  if (kpiGrid && typeof Sortable !== 'undefined') {
-    new Sortable(kpiGrid, {
-      animation: 150,
-      handle: '.kpi-drag-handle',
-      ghostClass: 'sortable-ghost',
-      chosenClass: 'sortable-chosen',
-      onEnd: saveLayout
-    });
-  }
 })();
 
 // ── Custom card drag (CSS-Grid aware, free placement) ──
