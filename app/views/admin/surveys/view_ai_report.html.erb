@@ -33,7 +33,11 @@ function mkChart(id,cfg){
   const el=document.getElementById(id);
   if(!el){console.warn('mkChart: canvas not found:',id);return null;}
   if(chartReg[id]){chartReg[id].destroy();}
-  // maintainAspectRatio left at default (true) to avoid ResizeObserver loop
+  const isHBar = cfg.type==='bar' && cfg.options?.indexAxis==='y';
+  const itemCount = cfg.data?.labels?.length||0;
+  const autoH = isHBar ? Math.max(200, itemCount*44+60) : 250;
+  el.style.height = (el.style.height || autoH+'px');
+  cfg.options = Object.assign({maintainAspectRatio:false}, cfg.options||{}, {maintainAspectRatio:false});
   const ch=new Chart(el,cfg);
   chartReg[id]=ch;
   return ch;
