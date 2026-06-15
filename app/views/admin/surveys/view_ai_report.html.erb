@@ -171,7 +171,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .cw-move-mode   .mode-label{background:#6366f1;color:white;cursor:grab}
 
 /* ── Resize handles ── */
-.cw-resize-mode .card{box-shadow:0 0 0 2px #a5b4fc,0 2px 8px rgba(0,0,0,.07)}
+.cw-resize-mode .card{box-shadow:0 2px 8px rgba(0,0,0,.07);outline:2px dashed #a5b4fc;outline-offset:0}
 .cw-resize-mode .rh-right{display:flex}
 .cw-resize-mode .rh-bottom{display:flex}
 .cw-resize-mode .rh-corner{display:flex}
@@ -762,6 +762,7 @@ function setCwMode(btn, mode) {
     if (mode === 'text') {
       cw.querySelectorAll('[data-editable]').forEach(el => { el.contentEditable = 'true'; });
     }
+    if (mode === 'resize') syncCwToCard(cw);
   }
   cw.classList.remove('cw-active');
   activeCw = null;
@@ -861,9 +862,17 @@ function loadTextEdits() {
   } catch(e) {}
 }
 
+function syncCwToCard(cw) {
+  const card = cw.querySelector('.card');
+  if (!card) return;
+  cw.style.height = card.offsetHeight + 'px';
+  cw.style.width  = card.offsetWidth  + 'px';
+}
+
 function cancelMode(e, btn) {
   e.stopPropagation(); e.preventDefault();
   const cw = btn.closest('.cw');
+  cw.style.height = ''; cw.style.width = '';
   const wasTextMode = cw.classList.contains('cw-text-mode');
   cw.classList.remove('cw-text-mode','cw-resize-mode','cw-move-mode');
   cw.querySelectorAll('[data-editable]').forEach(el => { el.contentEditable = 'false'; });
@@ -973,11 +982,13 @@ document.querySelectorAll('.cw').forEach(cw => {
     if (gear) gear.insertAdjacentHTML('beforebegin', modeBarHtml);
     else h3.insertAdjacentHTML('beforeend', modeBarHtml);
   }
-  cw.querySelector('.card').insertAdjacentHTML('beforeend',
-    '<div class="rh-right"  data-dir="e"><div class="rh-right-bar"></div></div>' +
-    '<div class="rh-bottom" data-dir="s"><div class="rh-bottom-bar"></div></div>' +
-    '<div class="rh-corner" data-dir="se"></div>'
-  );
+  if (!cw.querySelector('.rh-right')) {
+    cw.insertAdjacentHTML('beforeend',
+      '<div class="rh-right"  data-dir="e"><div class="rh-right-bar"></div></div>' +
+      '<div class="rh-bottom" data-dir="s"><div class="rh-bottom-bar"></div></div>' +
+      '<div class="rh-corner" data-dir="se"></div>'
+    );
+  }
 });
 
 let rd = null;
@@ -1038,6 +1049,7 @@ function applyResize() {
       card.style.minHeight = newH + 'px';
       card.style.height = '';
       rd._h = newH;
+      syncCwToCard(rd.cw);
       const h3H = card?.querySelector('h3')?.offsetHeight || 50;
       const cvH = Math.max(80, newH - h3H - 60);
       rd.cw.querySelectorAll('.chart-wrap').forEach(wrap => {

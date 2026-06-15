@@ -158,9 +158,9 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .ct-divider{height:1px;background:#f0f2f5;margin:3px 0}
 /* Active card: subtle ring only */
 .cw-active .card{box-shadow:0 0 0 2px #c7d2fe,0 2px 8px rgba(0,0,0,.07)}
-/* Resize mode: border via JS overlay (#resize-border-el), no CSS border needed */
-.cw-resize-mode .card{box-shadow:0 2px 8px rgba(0,0,0,.07)}
-#resize-border-el{position:fixed;pointer-events:none;border:2px dashed #a5b4fc;border-radius:12px;z-index:9999;display:none}
+/* Resize mode: dashed outline directly on card */
+.cw-resize-mode .card{box-shadow:0 2px 8px rgba(0,0,0,.07);outline:2px dashed #a5b4fc;outline-offset:0}
+#resize-border-el{display:none!important}
 /* ── Mode bar: inline in card header, same row as h3 ── */
 .cw-mode-bar{display:none;align-items:center;gap:8px;white-space:nowrap;flex-shrink:0}
 .cw-mode-bar .mode-label{display:flex;align-items:center;gap:5px;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12)}
@@ -1271,10 +1271,7 @@ function setCwMode(btn, mode) {
     if (mode === 'text') {
       cw.querySelectorAll('[data-editable]').forEach(el => el.contentEditable = 'true');
     }
-    if (mode === 'resize') showResizeBorder(cw.querySelector('.card'));
-    else hideResizeBorder();
-  } else {
-    hideResizeBorder();
+    if (mode === 'resize') syncCwToCard(cw);
   }
   // Close dropdown after selecting a mode
   cw.classList.remove('cw-active');
@@ -1289,7 +1286,8 @@ function cancelMode(e, btn) {
   cw.querySelectorAll('[data-editable]').forEach(el => el.contentEditable = 'false');
   cw.querySelectorAll('.ct-mode-btn').forEach(b => b.classList.remove('active'));
   cw.querySelectorAll('.lbl-text,.lbl-resize,.lbl-move').forEach(el => el.style.display='none');
-  hideResizeBorder();
+  cw.style.height = '';
+  cw.style.width = '';
   saveLayout();
 }
 
@@ -1385,19 +1383,17 @@ const resizeBorderEl = document.createElement('div');
 resizeBorderEl.id = 'resize-border-el';
 document.body.appendChild(resizeBorderEl);
 
-function showResizeBorder(card) {
-  if (!card) { hideResizeBorder(); return; }
-  const r = card.getBoundingClientRect();
-  resizeBorderEl.style.cssText = `position:fixed;pointer-events:none;border:2px dashed #a5b4fc;border-radius:12px;z-index:9999;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;display:block`;
+function showResizeBorder() {}
+function hideResizeBorder() {}
+// Sync .cw dimensions to .card so resize handles sit exactly on card boundary
+function syncCwToCard(cw) {
+  const card = cw.querySelector('.card');
+  if (!card) return;
+  const cardH = card.offsetHeight;
+  const cardW = card.offsetWidth;
+  cw.style.height = cardH + 'px';
+  cw.style.width  = cardW + 'px';
 }
-function hideResizeBorder() { resizeBorderEl.style.display = 'none'; }
-function updateResizeBorderIfActive() {
-  const cw = document.querySelector('.cw-resize-mode');
-  if (cw) showResizeBorder(cw.querySelector('.card'));
-  else hideResizeBorder();
-}
-window.addEventListener('scroll', updateResizeBorderIfActive, true);
-window.addEventListener('resize', updateResizeBorderIfActive);
 
 // Inject mode-bar inside h3 + resize handles into all .cw
 document.querySelectorAll('.cw').forEach(cw => {
@@ -1417,12 +1413,14 @@ document.querySelectorAll('.cw').forEach(cw => {
     if (gear) gear.insertAdjacentHTML('beforebegin', modeBarHtml);
     else h3.insertAdjacentHTML('beforeend', modeBarHtml);
   }
-  // Resize handles + snap guide go after card (absolute positioned)
-  cw.querySelector('.card').insertAdjacentHTML('beforeend',
-    '<div class="rh-right"  data-dir="e"><div class="rh-right-bar"></div></div>' +
-    '<div class="rh-bottom" data-dir="s"><div class="rh-bottom-bar"></div></div>' +
-    '<div class="rh-corner" data-dir="se"></div>'
-  );
+  // Resize handles in .cw (position:relative); JS syncs .cw size to .card on activate
+  if (!cw.querySelector('.rh-right')) {
+    cw.insertAdjacentHTML('beforeend',
+      '<div class="rh-right"  data-dir="e"><div class="rh-right-bar"></div></div>' +
+      '<div class="rh-bottom" data-dir="s"><div class="rh-bottom-bar"></div></div>' +
+      '<div class="rh-corner" data-dir="se"></div>'
+    );
+  }
 });
 
 let rd = null;
@@ -1484,7 +1482,7 @@ function applyResize() {
       card.style.minHeight = newH + 'px';
       card.style.height = '';
       rd._h = newH;
-      showResizeBorder(card);
+      syncCwToCard(rd.cw);
       const h3H = card?.querySelector('h3')?.offsetHeight || 50;
       const cvH = Math.max(80, newH - h3H - 60);
       rd.cw.querySelectorAll('.chart-wrap').forEach(wrap => {
