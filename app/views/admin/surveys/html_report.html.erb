@@ -79,8 +79,8 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .kpi-drag-handle{cursor:grab;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);font-size:14px;user-select:none}
 .kpi-drag-handle:hover{background:#e0e7ff}
 /* Section title editable */
-.section-title-edit{outline:none;border-bottom:2px dashed transparent;background:transparent;cursor:text;border-radius:3px;padding:1px 4px;min-width:40px;flex:1;pointer-events:auto!important;user-select:text;-webkit-user-select:text}
-.section-title-edit:hover,.section-title-edit:focus{border-bottom-color:#a5b4fc}
+.section-title-edit{outline:none;border:none;border-bottom:2px dashed transparent;background:transparent;cursor:text;border-radius:3px;padding:1px 4px;min-width:40px;flex:1;font-size:inherit;font-weight:inherit;color:inherit;font-family:inherit;width:100%}
+.section-title-edit:hover,.section-title-edit:focus{border-bottom-color:#a5b4fc;background:#f8f9ff}
 .kpi-tool-btn{cursor:pointer;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);transition:background .15s,transform .15s}
 .kpi-tool-btn:hover{background:#e0e7ff;color:#4361ee;transform:scale(1.08)}
 /* KPI drag-resize handles (4 directions) */
@@ -558,7 +558,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
       <span class="btn-sec-drag">⠿</span>
       <button class="btn-sec-hide" onclick="hideSection('<%= sid %>','<%= j sec_title %>')">Ẩn section</button>
     </div>
-    <div class="section-title"><% unless @public_view %><span contenteditable="true" spellcheck="false" class="section-title-edit" data-sec-id="<%= sid %>" onblur="saveLayout()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"><%= sec_title %></span><% else %><%= sec_title %><% end %></div>
+    <div class="section-title"><% unless @public_view %><input type="text" class="section-title-edit" data-sec-id="<%= sid %>" value="<%= j sec_title %>" onchange="saveLayout()" onblur="saveLayout()" onkeydown="if(event.key==='Enter')this.blur()" spellcheck="false"><% else %><span><%= sec_title %></span><% end %></div>
   </div>
   <div class="<%= section['layout'] || 'grid-2' %>" id="grid-<%= sid %>">
   <% (section["cards"] || []).each do |card| %>
@@ -1715,7 +1715,7 @@ function saveLayout() {
   const hs = document.getElementById('hdrSubText');   if (hs) layout.hdrSub   = hs.textContent;
   // Section titles
   document.querySelectorAll('.section-title-edit[data-sec-id]').forEach(el => {
-    layout.sectionTitles[el.dataset.secId] = el.textContent.trim();
+    layout.sectionTitles[el.dataset.secId] = (el.value !== undefined ? el.value : el.textContent).trim();
   });
   // KPI order
   layout.kpiOrder = [...document.querySelectorAll('.kpi[id^="kpi-block-"]')].map(el => el.id);
@@ -1752,7 +1752,7 @@ function loadLayout() {
   if (saved.sectionTitles) {
     Object.entries(saved.sectionTitles).forEach(([sid, title]) => {
       const el = document.querySelector(`.section-title-edit[data-sec-id="${sid}"]`);
-      if (el && title) el.textContent = title;
+      if (el && title) { if (el.tagName === 'INPUT') el.value = title; else el.textContent = title; }
     });
   }
   // Restore section order
@@ -1840,10 +1840,10 @@ new Sortable(document.getElementById('sortableContainer'), {
   onEnd: saveLayout
 });
 
-// Ensure section title spans are editable — block SortableJS from intercepting mousedown
+// Section title inputs: stop propagation so SortableJS doesn't interfere
 document.querySelectorAll('.section-title-edit').forEach(el => {
-  el.addEventListener('mousedown', function(e) { e.stopImmediatePropagation(); });
-  el.addEventListener('click', function(e) { e.stopImmediatePropagation(); this.focus(); });
+  el.addEventListener('mousedown', e => e.stopImmediatePropagation());
+  el.addEventListener('pointerdown', e => e.stopImmediatePropagation());
 });
 
 // ── Sortable: KPI blocks ──
