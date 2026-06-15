@@ -1607,7 +1607,7 @@ document.addEventListener('mousemove', e => {
   const colW = rect.width / 12;
   const offset = e.clientX - rect.left;
   const newStart = Math.max(1, Math.min(13 - span, Math.round(offset / colW) + 1));
-  block.style.gridColumnStart = newStart;
+  block.style.gridColumn = `${newStart} / span ${span}`;
 });
 document.addEventListener('mouseup', e => {
   if (!kpiMoveDrag) return;
@@ -1784,7 +1784,7 @@ function saveLayout() {
   layout.kpiOrder = [...document.querySelectorAll('.kpi[id^="kpi-block-"]')].map(el => el.id);
   layout.kpiPositions = {};
   document.querySelectorAll('.kpi[id^="kpi-block-"]').forEach(el => {
-    if (el.style.gridColumnStart) layout.kpiPositions[el.id] = el.style.gridColumnStart;
+    if (el.style.gridColumn) layout.kpiPositions[el.id] = el.style.gridColumn;
   });
   layout.hiddenKpis = [...document.querySelectorAll('.kpi[id^="kpi-block-"].hidden-section')].map(el => ({
     id: el.id, label: el.querySelector('.kpi-label')?.textContent?.trim() || el.id
@@ -1819,9 +1819,9 @@ function loadLayout() {
     if (kpiGrid) saved.kpiOrder.forEach(id => { const el = document.getElementById(id); if (el) kpiGrid.appendChild(el); });
   }
   if (saved.kpiPositions) {
-    Object.entries(saved.kpiPositions).forEach(([id, start]) => {
+    Object.entries(saved.kpiPositions).forEach(([id, col]) => {
       const el = document.getElementById(id);
-      if (el) el.style.gridColumnStart = start;
+      if (el) el.style.gridColumn = col;
     });
   }
   // Restore section titles
