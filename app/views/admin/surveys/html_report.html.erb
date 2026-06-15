@@ -195,6 +195,9 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 /* tooltip */
 .resize-tip{display:none;position:fixed;background:#1a1a2e;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap;pointer-events:none;z-index:999;transform:translate(12px,-50%)}
 .resize-tip.visible{display:block}
+/* align guide lines */
+.align-guide{position:fixed;left:0;width:100%;height:0;border-top:2px dashed #a5b4fc;pointer-events:none;z-index:998;display:none}
+.align-guide.visible{display:block}
 
 /* ── AI Insights ── */
 .insights-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -1374,6 +1377,32 @@ const tip = document.createElement('div');
 tip.className = 'resize-tip';
 document.body.appendChild(tip);
 
+// ── Align guide lines ──
+const guidePool = [];
+function getGuide() {
+  let g = guidePool.find(g => !g.classList.contains('visible'));
+  if (!g) { g = document.createElement('div'); g.className = 'align-guide'; document.body.appendChild(g); guidePool.push(g); }
+  return g;
+}
+function showAlignGuides(activeCw) {
+  hideAlignGuides();
+  const grid = activeCw.parentElement;
+  if (!grid) return;
+  [...grid.children].forEach(sibling => {
+    if (sibling === activeCw || !sibling.classList.contains('cw')) return;
+    const card = sibling.querySelector('.card');
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const g = getGuide();
+    g.style.top = (rect.bottom + window.scrollY) + 'px';
+    g.style.position = 'absolute';
+    g.classList.add('visible');
+  });
+}
+function hideAlignGuides() {
+  guidePool.forEach(g => g.classList.remove('visible'));
+}
+
 // Inject mode-bar inside h3 + resize handles into all .cw
 document.querySelectorAll('.cw').forEach(cw => {
   // Mode bar injected INSIDE h3 so it shares the same line & padding as the title
@@ -1427,6 +1456,7 @@ document.addEventListener('mousedown', e => {
   document.body.style.userSelect = 'none';
   document.body.style.cursor = dir === 'e' ? 'ew-resize' : dir === 's' ? 'ns-resize' : 'nwse-resize';
   tip.classList.add('visible');
+  if (dir === 's' || dir === 'se') showAlignGuides(cw);
 });
 
 document.addEventListener('mousemove', e => {
@@ -1487,6 +1517,7 @@ document.addEventListener('mouseup', () => {
   document.body.style.cursor = '';
   document.body.style.userSelect = '';
   tip.classList.remove('visible');
+  hideAlignGuides();
   rd = null; latestE = null; rafId = null;
   saveLayout();
   resizedCw.querySelectorAll('.chart-wrap canvas').forEach(cv => {
