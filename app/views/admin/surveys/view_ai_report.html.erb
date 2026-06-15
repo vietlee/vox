@@ -849,7 +849,7 @@ function loadTextEdits() {
     if (saved.cardHeights) {
       Object.entries(saved.cardHeights).forEach(([cid, h]) => {
         const card = document.querySelector(`[data-cid="${cid}"] .card`);
-        if (card) { card.style.minHeight = h; card.style.height = h; }
+        if (card) { card.style.minHeight = h; card.style.height = ''; }
       });
     }
     // Restore card titles
@@ -1036,9 +1036,10 @@ function applyResize() {
     const newH = Math.max(180, startH + (e.clientY - startY));
     if (card && Math.abs(newH - (rd._h||0)) > 2) {
       card.style.minHeight = newH + 'px';
-      card.style.height = newH + 'px';
+      card.style.height = '';
       rd._h = newH;
-      const cvH = Math.max(80, newH - 80);
+      const h3H = card?.querySelector('h3')?.offsetHeight || 50;
+      const cvH = Math.max(80, newH - h3H - 60);
       rd.cw.querySelectorAll('.chart-wrap').forEach(wrap => {
         wrap.style.height = cvH + 'px';
         const cv = wrap.querySelector('canvas');
