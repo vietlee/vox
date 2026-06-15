@@ -527,6 +527,12 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
         <button class="kpi-tool-btn" onclick="document.getElementById('kpi-lbl-<%= ki %>').focus()" title="Sửa nhãn">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z"/></svg>
         </button>
+        <button class="kpi-tool-btn" onclick="moveKpi(this,'l')" title="Dịch trái">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="kpi-tool-btn" onclick="moveKpi(this,'r')" title="Dịch phải">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
         <button class="kpi-tool-btn" onclick="hideKpi('<%= ki %>')" title="Ẩn block">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 11.94A10 10 0 0 1 2.06 11.94M1 1l18 18"/><path d="M9.9 4.07A7 7 0 0 1 17 11M6.53 6.53A7 7 0 0 0 3 11"/></svg>
         </button>
@@ -1569,6 +1575,16 @@ function autoHideEmptySections() {
 }
 
 // ── Hide/show section ──
+function moveKpi(btn, dir) {
+  const block = btn.closest('.kpi');
+  if (!block) return;
+  const cs = window.getComputedStyle(block);
+  const span = parseInt(cs.gridColumnEnd) - parseInt(cs.gridColumnStart) || 2;
+  const start = parseInt(block.style.gridColumnStart) || parseInt(cs.gridColumnStart) || 1;
+  const newStart = dir === 'l' ? Math.max(1, start - 1) : Math.min(13 - span, start + 1);
+  block.style.gridColumnStart = newStart;
+  saveLayout();
+}
 function hideKpi(ki) {
   const el = document.getElementById('kpi-block-' + ki);
   if (!el) return;
@@ -1730,8 +1746,12 @@ function saveLayout() {
   document.querySelectorAll('.section-title-edit[data-sec-id]').forEach(el => {
     layout.sectionTitles[el.dataset.secId] = (el.value !== undefined ? el.value : el.textContent).trim();
   });
-  // KPI order + hidden
+  // KPI order + hidden + positions
   layout.kpiOrder = [...document.querySelectorAll('.kpi[id^="kpi-block-"]')].map(el => el.id);
+  layout.kpiPositions = {};
+  document.querySelectorAll('.kpi[id^="kpi-block-"]').forEach(el => {
+    if (el.style.gridColumnStart) layout.kpiPositions[el.id] = el.style.gridColumnStart;
+  });
   layout.hiddenKpis = [...document.querySelectorAll('.kpi[id^="kpi-block-"].hidden-section')].map(el => ({
     id: el.id, label: el.querySelector('.kpi-label')?.textContent?.trim() || el.id
   }));
@@ -1763,6 +1783,12 @@ function loadLayout() {
   if (saved.kpiOrder && saved.kpiOrder.length) {
     const kpiGrid = document.querySelector('.kpi-grid');
     if (kpiGrid) saved.kpiOrder.forEach(id => { const el = document.getElementById(id); if (el) kpiGrid.appendChild(el); });
+  }
+  if (saved.kpiPositions) {
+    Object.entries(saved.kpiPositions).forEach(([id, start]) => {
+      const el = document.getElementById(id);
+      if (el) el.style.gridColumnStart = start;
+    });
   }
   // Restore section titles
   if (saved.sectionTitles) {
