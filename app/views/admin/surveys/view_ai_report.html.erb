@@ -402,7 +402,7 @@ canvas{height:250px;min-height:80px;max-height:none}
   col_span = is_full ? 12 : 6
   card_title = (c["title"].presence || cd["question"].to_s).truncate(90)
   # Skip blocks with no data
-  _has_data = opts.any? || dist.any? || xt.present? || avg_v || total.to_i > 0 || vtype == "quotes"
+  _has_data = opts.any?{|o| o[:count].to_i > 0} || dist.any? || xt.present? || avg_v || total.to_i > 0 || vtype == "quotes"
   next unless _has_data
 %>
 <div class="cw" data-cid="<%= chid %>" style="grid-column:span <%= col_span %>">

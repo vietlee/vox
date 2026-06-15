@@ -587,7 +587,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
     next unless stats || is_cross_tab
     # Skip blocks with no meaningful data
     if stats && !is_cross_tab
-      has_data = stats[:options]&.any? || stats[:distribution]&.any? || stats[:avg]
+      has_data = stats[:options]&.any?{|o| o[:count].to_i > 0} || stats[:distribution]&.any? || stats[:avg]
       next unless has_data
     end
 
