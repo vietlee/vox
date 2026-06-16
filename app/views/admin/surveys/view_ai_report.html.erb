@@ -1645,16 +1645,17 @@ function setPdfFullscreenSize(size) {
   if (info) info.textContent = label;
   const body  = document.getElementById('pdfFsBody');
   const avail = body.clientWidth - 48;
+  // Scale 1200px content to fit available width; keep same aspect ratio per page for reference
   const pageW = Math.min(avail, 1100);
-  const pageH = Math.round(pageW / (w / h));
   const scale = pageW / PDF_PREVIEW_W;
   body.innerHTML = '';
   const wrap = document.createElement('div');
   wrap.className = 'pdf-page-wrap';
-  wrap.style.cssText = `width:${pageW}px;height:${pageH}px`;
+  // Start with one page height; will expand after iframe loads
+  wrap.style.cssText = `width:${pageW}px;height:${Math.round((h/w)*pageW)}px`;
   const frame = document.createElement('iframe');
   frame.className = 'pdf-page-iframe';
-  frame.style.cssText = `width:${PDF_PREVIEW_W}px;height:${Math.round(pageH/scale)}px;transform:scale(${scale})`;
+  frame.style.cssText = `width:${PDF_PREVIEW_W}px;height:${Math.round((h/w)*PDF_PREVIEW_W)}px;transform:scale(${scale})`;
   wrap.appendChild(frame);
   body.appendChild(wrap);
   const layoutJson = localStorage.getItem(LAYOUT_KEY) || '{}';
@@ -1671,7 +1672,12 @@ function setPdfFullscreenSize(size) {
       setTimeout(() => {
         try {
           const totalH = frame.contentDocument?.body?.scrollHeight || 0;
-          if (totalH > 100) { frame.style.height = totalH+'px'; wrap.style.height = Math.ceil(totalH*scale)+'px'; drawPageBreaks(wrap, scale, totalH, size); }
+          if (totalH > 100) {
+            // Expand to full document height so all content is visible (like multi-page PDF)
+            frame.style.height = totalH + 'px';
+            wrap.style.height  = Math.ceil(totalH * scale) + 'px';
+            drawPageBreaks(wrap, scale, totalH, size);
+          }
         } catch(e) {}
       }, 800);
     };
