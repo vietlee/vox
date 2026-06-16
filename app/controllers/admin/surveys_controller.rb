@@ -4,7 +4,7 @@ class Admin::SurveysController < Admin::BaseController
   include HtmlReportSetup
   include ApplicationHelper
 
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :preview_pdf_report, :generate_report_token, :revoke_report_token, :generate_ai_report_token, :revoke_ai_report_token, :save_report_layout, :save_ai_report_layout, :build_report_structure, :reset_report_structure, :export, :export_report, :view_ai_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :preview_html_report, :preview_html_ai_report, :preview_pdf_report, :generate_report_token, :revoke_report_token, :generate_ai_report_token, :revoke_ai_report_token, :save_report_layout, :save_ai_report_layout, :build_report_structure, :reset_report_structure, :export, :export_report, :view_ai_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
