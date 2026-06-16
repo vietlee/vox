@@ -1156,42 +1156,40 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
 
   <div class="insights-grid">
     <% if stat_insights.any? %>
-    <div class="cw insights-col" data-cid="card-insights-findings">
+    <div class="cw" data-cid="card-insights-findings">
       <% unless @public_view %>
       <div class="card-toolbar">
         <button class="ct-mode-btn danger" onclick="hideCard('card-insights-findings')"><span class="icon">👁</span>Ẩn block này</button>
       </div>
       <% end %>
-      <div class="insights-col-header" style="display:flex;align-items:center;gap:6px">
-        <span style="flex:1"><%= @report_lang == "en" ? "📊 Data Findings" : "📊 Phát hiện từ dữ liệu" %></span>
-        <% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %>
+      <div class="card insights-col">
+        <h3><span><%= @report_lang == "en" ? "📊 Data Findings" : "📊 Phát hiện từ dữ liệu" %></span><span class="h3-spacer"></span><% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %></h3>
+        <% stat_insights.each do |ins| %>
+        <div class="insight-item insight-stat">
+          <strong class="insight-plus">+</strong> <%= ins["text"] %>
+        </div>
+        <% end %>
       </div>
-      <% stat_insights.each do |ins| %>
-      <div class="insight-item insight-stat">
-        <strong class="insight-plus">+</strong> <%= ins["text"] %>
-      </div>
-      <% end %>
     </div>
     <% end %>
     <% if rec_insights.any? %>
-    <div class="cw insights-col" data-cid="card-insights-recs">
+    <div class="cw" data-cid="card-insights-recs">
       <% unless @public_view %>
       <div class="card-toolbar">
         <button class="ct-mode-btn danger" onclick="hideCard('card-insights-recs')"><span class="icon">👁</span>Ẩn block này</button>
       </div>
       <% end %>
-      <div class="insights-col-header" style="display:flex;align-items:center;gap:6px">
-        <span style="flex:1"><%= @report_lang == "en" ? "🎯 Action Recommendations" : "🎯 Khuyến nghị hành động" %></span>
-        <% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %>
-      </div>
-      <% rec_insights.each do |ins| %>
-      <div class="insight-item insight-rec">
-        <div class="insight-rec-title">→ <%= ins["title"] %></div>
-        <% if ins["detail"].present? %>
-        <div class="insight-rec-detail"><%= ins["detail"] %></div>
+      <div class="card insights-col">
+        <h3><span><%= @report_lang == "en" ? "🎯 Action Recommendations" : "🎯 Khuyến nghị hành động" %></span><span class="h3-spacer"></span><% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %></h3>
+        <% rec_insights.each do |ins| %>
+        <div class="insight-item insight-rec">
+          <div class="insight-rec-title">→ <%= ins["title"] %></div>
+          <% if ins["detail"].present? %>
+          <div class="insight-rec-detail"><%= ins["detail"] %></div>
+          <% end %>
+        </div>
         <% end %>
       </div>
-      <% end %>
     </div>
     <% end %>
   </div>
