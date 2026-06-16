@@ -551,16 +551,14 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
   <div class="pdf-drawer-body" style="padding:0;background:#525659">
     <div id="pdfPreviewLoading" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:white">
       <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite"></div>
-      <span id="pdfPreviewLoadingText" style="font-size:13px;opacity:.8">Đang tải...</span>
+      <span id="pdfPreviewLoadingText" style="font-size:13px;opacity:.8">Đang tạo PDF...</span>
     </div>
-    <div id="pdfIframeWrap" style="display:none;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:#525659;padding:16px;box-sizing:border-box">
-      <div id="pdfIframeOuter" style="position:relative;overflow:hidden;margin:0 auto;background:white;box-shadow:0 4px 24px rgba(0,0,0,.5);border-radius:2px">
-        <iframe id="pdfHtmlFrame" src="" style="width:1200px;border:none;display:block;background:white;transform-origin:0 0;" scrolling="no"></iframe>
-      </div>
+    <div id="pdfIframeWrap" style="display:none;flex:1;min-height:0;overflow:hidden;">
+      <iframe id="pdfHtmlFrame" src="" style="width:100%;height:100%;border:none;display:block;"></iframe>
     </div>
     <div id="pdfPreviewEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:rgba(255,255,255,.6)">
       <span style="font-size:32px">📄</span>
-      <span style="font-size:13px">Nhấn "Làm mới" để xem trước layout</span>
+      <span style="font-size:13px">Nhấn "Làm mới" để xem trước PDF</span>
     </div>
   </div>
 </div>
@@ -1159,6 +1157,10 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
     <div class="cw" data-cid="card-insights-findings">
       <% unless @public_view %>
       <div class="card-toolbar">
+        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
+        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤢</span>Thay đổi kích thước</button>
+        <button class="ct-mode-btn" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
+        <div class="ct-divider"></div>
         <button class="ct-mode-btn danger" onclick="hideCard('card-insights-findings')"><span class="icon">👁</span>Ẩn block này</button>
       </div>
       <% end %>
@@ -1176,6 +1178,10 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
     <div class="cw" data-cid="card-insights-recs">
       <% unless @public_view %>
       <div class="card-toolbar">
+        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
+        <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤢</span>Thay đổi kích thước</button>
+        <button class="ct-mode-btn" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
+        <div class="ct-divider"></div>
         <button class="ct-mode-btn danger" onclick="hideCard('card-insights-recs')"><span class="icon">👁</span>Ẩn block này</button>
       </div>
       <% end %>
@@ -2766,7 +2772,6 @@ async function generatePdfPreview() {
   const loading    = document.getElementById('pdfPreviewLoading');
   const loadText   = document.getElementById('pdfPreviewLoadingText');
   const iframeWrap = document.getElementById('pdfIframeWrap');
-  const iframeOuter= document.getElementById('pdfIframeOuter');
   const iframe     = document.getElementById('pdfHtmlFrame');
   const empty      = document.getElementById('pdfPreviewEmpty');
   const hint       = document.getElementById('pdfPreviewHint');
@@ -2782,38 +2787,37 @@ async function generatePdfPreview() {
     if (loadText) loadText.textContent = 'Đang lưu layout...';
     if (typeof saveLayout === 'function') saveLayout();
     const layoutJson = localStorage.getItem(SK) || '{}';
-    const t0 = Date.now();
     await fetch('<%= save_report_layout_survey_path(@survey) %>', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.content || '' },
       body: layoutJson
     }).catch(() => {});
 
-    // Step 2: load HTML preview in iframe (instant — no Grover)
-    if (loadText) loadText.textContent = 'Đang tải preview...';
-    const previewUrl = '<%= @html_preview_url || preview_html_report_survey_path(@survey, lang: @report_lang) %>' + '&t=' + Date.now();
-    await new Promise((resolve) => {
-      iframe.onload = resolve;
-      iframe.src = previewUrl;
-      setTimeout(resolve, 15000);
-    });
+    // Step 2: fetch real PDF (Grover) with countdown
+    if (loadText) loadText.textContent = 'Đang tạo PDF...';
+    const fetchStart = Date.now();
+    const _countdownT = setInterval(() => {
+      const s = Math.round((Date.now() - fetchStart) / 1000);
+      if (loadText) loadText.textContent = s < 3 ? 'Đang tạo PDF...' : `Đang render... (${s}s)`;
+    }, 1000);
+    const resp = await fetch('<%= @pdf_preview_url || preview_pdf_report_survey_path(@survey, lang: @report_lang) %>&t=' + Date.now());
+    clearInterval(_countdownT);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const blob = await resp.blob();
+    const fetchMs = Date.now() - fetchStart;
 
-    // Step 3: scale to fit drawer
-    const availW = (iframeWrap.clientWidth || 508) - 32;
-    const scale  = availW / 1200;
-    const doc    = iframe.contentDocument || iframe.contentWindow?.document;
-    const contentH = doc?.documentElement?.scrollHeight || doc?.body?.scrollHeight || 2000;
-
-    iframe.style.height    = contentH + 'px';
-    iframe.style.transform = `scale(${scale})`;
-    if (iframeOuter) {
-      iframeOuter.style.width  = Math.floor(1200 * scale) + 'px';
-      iframeOuter.style.height = Math.floor(contentH * scale) + 'px';
-    }
+    // Step 3: show PDF via blob URL in iframe (native browser PDF viewer, no toolbar)
+    const prevUrl = iframe.dataset.blobUrl;
+    if (prevUrl) URL.revokeObjectURL(prevUrl);
+    const blobUrl = URL.createObjectURL(blob);
+    iframe.dataset.blobUrl = blobUrl;
+    await new Promise((resolve) => { iframe.onload = resolve; iframe.src = blobUrl + '#toolbar=0&navpanes=0'; setTimeout(resolve, 5000); });
 
     if (iframeWrap) iframeWrap.style.display = 'flex';
-    const elapsed = Date.now() - t0;
-    if (hint) hint.textContent = `⚡ Tải xong trong ${(elapsed/1000).toFixed(1)}s — nhấn Làm mới sau khi thay đổi layout`;
+    const cached = fetchMs < 1500;
+    if (hint) hint.textContent = cached
+      ? `⚡ Từ cache (${fetchMs}ms) — PDF chính xác A4`
+      : `✓ Hoàn tất (${(fetchMs/1000).toFixed(1)}s) — PDF chính xác A4`;
 
   } catch(err) {
     if (empty) {
