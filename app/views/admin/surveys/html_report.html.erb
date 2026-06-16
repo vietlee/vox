@@ -263,7 +263,7 @@ canvas{height:250px;min-height:80px;max-height:none}
 .btn-restore:hover{background:#eef2ff}
 
 /* ── Action bar ── */
-.action-bar{position:fixed;bottom:24px;right:24px;display:flex;gap:8px;z-index:300}
+.action-bar{position:fixed;bottom:24px;right:24px;display:flex;gap:8px;z-index:1500}
 .action-bar button{display:flex;align-items:center;gap:6px;border:none;border-radius:50px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.15);transition:all .15s}
 .action-bar button:hover{opacity:.88}
 .btn-share{background:linear-gradient(135deg,#4361ee,#7c3aed);color:#fff}
@@ -536,8 +536,8 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
       <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite"></div>
       <span id="pdfPreviewLoadingText" style="font-size:13px;opacity:.8">Đang tạo PDF... (5-10 giây)</span>
     </div>
-    <div id="pdfPreviewWrap" style="display:none;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:#525659">
-      <div id="pdfPageContainer" style="padding:16px;display:flex;flex-direction:column;gap:16px;align-items:center"></div>
+    <div id="pdfPreviewWrap" style="display:none;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:#525659;width:100%">
+      <div id="pdfPageContainer" style="padding:16px;display:flex;flex-direction:column;gap:16px;align-items:center;width:100%;box-sizing:border-box"></div>
     </div>
     <div id="pdfPreviewEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:rgba(255,255,255,.6)">
       <span style="font-size:32px">📄</span>
@@ -2761,6 +2761,7 @@ async function generatePdfPreview() {
     if (loadText) loadText.textContent = 'Đang render trang...';
     const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     container.innerHTML = '';
+    const dpr = window.devicePixelRatio || 1;
     const containerWidth = (wrap.clientWidth || 500) - 32;
 
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
@@ -2770,12 +2771,16 @@ async function generatePdfPreview() {
       const scaledViewport = page.getViewport({ scale });
 
       const canvas = document.createElement('canvas');
-      canvas.width  = scaledViewport.width;
-      canvas.height = scaledViewport.height;
-      canvas.style.cssText = 'display:block;box-shadow:0 2px 12px rgba(0,0,0,0.5);border-radius:2px;';
+      // Render at devicePixelRatio for crispness
+      canvas.width  = Math.floor(scaledViewport.width  * dpr);
+      canvas.height = Math.floor(scaledViewport.height * dpr);
+      canvas.style.cssText = 'display:block;width:' + Math.floor(scaledViewport.width) + 'px;height:' + Math.floor(scaledViewport.height) + 'px;box-shadow:0 2px 16px rgba(0,0,0,0.5);border-radius:2px;';
+
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
 
       const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;';
+      wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;';
       wrapper.appendChild(canvas);
       const label = document.createElement('div');
       label.style.cssText = 'font-size:11px;color:rgba(255,255,255,.4);';
@@ -2783,7 +2788,7 @@ async function generatePdfPreview() {
       wrapper.appendChild(label);
       container.appendChild(wrapper);
 
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledViewport }).promise;
+      await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
     }
 
     if (wrap) wrap.style.display = 'flex';
