@@ -1110,7 +1110,8 @@ function loadKpiSizes() {
       const curSpan = parseInt(block.style.gridColumn?.replace('span ', '')) || 1;
       kpiDrag = { handle, block, dir, startX: e.clientX, startSpan: curSpan, colW, numCols };
     } else {
-      kpiDrag = { handle, block, dir, startY: e.clientY, startH: block.getBoundingClientRect().height };
+      const blockRect = block.getBoundingClientRect();
+      kpiDrag = { handle, block, dir, startY: e.clientY, startH: blockRect.height, blockTop: blockRect.top };
     }
   });
   document.addEventListener('mousemove', e => {
@@ -1124,10 +1125,11 @@ function loadKpiSizes() {
       kpiDrag.block.style.gridColumn = newSpan > 1 ? 'span ' + newSpan : '';
       kpiDrag.pendingSpan = newSpan;
     } else {
-      const dy = e.clientY - kpiDrag.startY;
-      // bottom: drag down = taller; top: drag up = taller
-      const sign = dir === 'b' ? 1 : -1;
-      const newH = Math.max(80, kpiDrag.startH + sign * dy);
+      // Use absolute position from block top so shrinking works even when minHeight constrains
+      const newH = dir === 'b'
+        ? Math.max(80, e.clientY - kpiDrag.blockTop)
+        : Math.max(80, kpiDrag.startH - (e.clientY - kpiDrag.startY));
+      kpiDrag.block.style.height = newH + 'px';
       kpiDrag.block.style.minHeight = newH + 'px';
       kpiDrag.pendingH = newH;
     }
@@ -1137,6 +1139,10 @@ function loadKpiSizes() {
     kpiDrag.handle.classList.remove('dragging');
     const idx = kpiDrag.handle.dataset.kpiIdx;
     const isH = kpiDrag.dir === 'r' || kpiDrag.dir === 'l';
+    if (!isH && kpiDrag.block.style.height) {
+      kpiDrag.block.style.minHeight = kpiDrag.block.style.height;
+      kpiDrag.block.style.height = '';
+    }
     try {
       const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
       if (!saved[idx] || typeof saved[idx] !== 'object') saved[idx] = {};
