@@ -536,7 +536,7 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
       <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite"></div>
       <span style="font-size:13px;opacity:.8">Đang tạo PDF... (khoảng 5-10 giây)</span>
     </div>
-    <embed id="pdfPreviewEmbed" type="application/pdf" style="width:100%;height:100%;display:none;border:none">
+    <iframe id="pdfPreviewEmbed" style="width:100%;height:100%;display:none;border:none"></iframe>
     <div id="pdfPreviewEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:rgba(255,255,255,.6)">
       <span style="font-size:32px">📄</span>
       <span style="font-size:13px">Nhấn "Làm mới" để xem trước PDF chính xác</span>
@@ -2714,6 +2714,8 @@ async function generatePdfPreview() {
   if (btn)     { btn.disabled = true; btn.textContent = '⏳ Đang tạo...'; }
 
   try {
+    // Capture current DOM state (hidden KPIs etc.) before syncing
+    if (typeof saveLayout === 'function') saveLayout();
     // Sync layout to server
     const layoutJson = localStorage.getItem(SK) || '{}';
     await fetch('<%= raw(save_report_layout_survey_path(@survey, lang: @report_lang)) %>', {
@@ -2732,7 +2734,7 @@ async function generatePdfPreview() {
     if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
     _pdfBlobUrl = URL.createObjectURL(blob);
 
-    if (embed) { embed.src = _pdfBlobUrl + '#pagemode=none'; embed.style.display = 'block'; }
+    if (embed) { embed.src = _pdfBlobUrl + '#toolbar=0&navpanes=0&scrollbar=1'; embed.style.display = 'block'; }
     if (hint)  hint.textContent = 'PDF thực tế — chính xác 100%';
     if (btn)   { btn.style.background = '#4361ee'; btn.style.borderColor = '#4361ee'; }
   } catch(err) {
