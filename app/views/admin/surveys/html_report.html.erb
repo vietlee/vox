@@ -200,6 +200,11 @@ body.pdf-preview-open{padding-right:540px}
 .cw-mode-bar .mode-label{display:flex;align-items:center;gap:5px;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .cw-mode-bar .btn-done{background:white;border:1px solid #e2e8f0;border-radius:20px;padding:5px 13px;font-size:12px;font-weight:700;cursor:pointer;line-height:1.4;box-shadow:0 2px 8px rgba(0,0,0,.1);color:#374151}
 .cw-mode-bar .btn-done:hover{background:#f9fafb;border-color:#6366f1;color:#4361ee}
+.span-controls{display:none;align-items:center;gap:4px;background:#f1f5f9;border-radius:20px;padding:3px 8px}
+.cw-resize-mode .span-controls{display:flex}
+.span-btn{width:26px;height:26px;border-radius:50%;border:none;background:#6366f1;color:white;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
+.span-btn:hover{background:#4361ee}
+.span-label{font-size:11px;font-weight:700;color:#374151;min-width:32px;text-align:center}
 /* text mode */
 .cw-text-mode  .cw-mode-bar{display:flex}
 .cw-text-mode  .mode-label{background:#4361ee;color:white}
@@ -1470,10 +1475,36 @@ function setCwMode(btn, mode) {
     if (mode === 'text') {
       cw.querySelectorAll('[data-editable]').forEach(el => el.contentEditable = 'true');
     }
+    if (mode === 'resize') {
+      const grid = cw.parentElement;
+      const defaultSpan = grid?.classList.contains('grid-3') ? 4 : 6;
+      const cur = parseInt(cw.style.gridColumn?.match(/span (\d+)/)?.[1] || defaultSpan);
+      const lbl = cw.querySelector('.span-label');
+      if (lbl) lbl.textContent = cur + '/12';
+    }
   }
   // Close dropdown after selecting a mode
   cw.classList.remove('cw-active');
   activeCw = null;
+}
+
+function adjustSpan(btn, delta) {
+  const cw = btn.closest('.cw');
+  if (!cw) return;
+  const grid = cw.parentElement;
+  const MAXCOLS = 12;
+  const defaultSpan = grid?.classList.contains('grid-3') ? 4 : 6;
+  const cur = parseInt(cw.style.gridColumn?.match(/span (\d+)/)?.[1] || defaultSpan);
+  const siblings = [...(grid?.querySelectorAll(':scope > .cw') || [])].filter(el => el !== cw && !el.classList.contains('hidden-section'));
+  const minSib = siblings.length > 0 ? 2 : 0;
+  const newSpan = Math.max(2, Math.min(MAXCOLS - minSib, cur + delta));
+  cw.style.gridColumn = `span ${newSpan}`;
+  if (siblings.length === 1) siblings[0].style.gridColumn = `span ${MAXCOLS - newSpan}`;
+  // Update label
+  const lbl = btn.closest('.span-controls')?.querySelector('.span-label');
+  if (lbl) lbl.textContent = newSpan + '/12';
+  cw.querySelectorAll('.chart-wrap canvas').forEach(cv => { const ch = chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(_){} } });
+  saveLayout();
 }
 
 function cancelMode(e, btn) {
@@ -1617,6 +1648,11 @@ document.querySelectorAll('.cw').forEach(cw => {
           '<span class="lbl-resize" style="display:none">⤡ Kích thước</span>' +
           '<span class="lbl-move" style="display:none">⠿ Di chuyển</span>' +
         '</span>' +
+        '<div class="span-controls">' +
+          '<button class="span-btn" onclick="adjustSpan(this,-1)" title="Hẹp hơn">−</button>' +
+          '<span class="span-label"></span>' +
+          '<button class="span-btn" onclick="adjustSpan(this,1)" title="Rộng hơn">+</button>' +
+        '</div>' +
         '<button class="btn-done" onclick="cancelMode(event,this)">✓ Xong</button>' +
       '</div>';
     if (gear) gear.insertAdjacentHTML('beforebegin', modeBarHtml);
