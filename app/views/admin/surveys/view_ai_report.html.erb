@@ -383,6 +383,14 @@ canvas{height:250px;min-height:80px;max-height:none}
 html,body{height:auto!important;overflow:visible!important;background:white!important}
 .card{box-shadow:none!important;border:1px solid #e2e8f0!important}
 .report-section{margin-bottom:6mm}
+body.pdf-mode .action-bar,body.pdf-mode .header-lang-switcher,
+body.pdf-mode .cw-gear,body.pdf-mode .card-toolbar,body.pdf-mode .cw-mode-bar,
+body.pdf-mode .restore-bar,body.pdf-mode .section-controls,
+body.pdf-mode .rh-right,body.pdf-mode .rh-bottom,body.pdf-mode .rh-corner,
+body.pdf-mode .btn-sec-drag,body.pdf-mode .btn-sec-hide,
+body.pdf-mode #shareModal,body.pdf-mode #pdf-loading,
+body.pdf-mode .pdf-preview-tab,body.pdf-mode .pdf-drawer,body.pdf-mode #pdfFullscreenOverlay{display:none!important}
+body.pdf-mode{background:white!important}
 <% end %>
 </style>
 </head>
@@ -1724,12 +1732,16 @@ function setDrawerSize(size) {
   document.getElementById('drawerA3Btn')?.classList.toggle('active', size === 'A3');
   const wrap = document.getElementById('pdfFrameWrap');
   const frame = document.getElementById('pdfPreviewFrame');
-  if (wrap && frame) {
-    try {
-      const h = frame.contentDocument?.body?.scrollHeight;
-      if (h > 100) drawPageBreaks(wrap, frame._previewScale || 1, h, size);
-    } catch(e) {}
-  }
+  if (!wrap || !frame) return;
+  try {
+    const h = frame.contentDocument?.body?.scrollHeight;
+    if (h > 100) {
+      drawPageBreaks(wrap, frame._previewScale || 1, h, size);
+      return;
+    }
+  } catch(e) {}
+  // iframe not loaded yet — trigger load
+  loadPreviewFrame();
 }
 
 function drawPageBreaks(wrap, scale, sourceHeightPx, size) {
