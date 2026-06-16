@@ -412,6 +412,20 @@ class Admin::SurveysController < Admin::BaseController
     send_data "\xEF\xBB\xBF#{csv_data}", filename: filename, type: "text/csv; charset=utf-8", disposition: "attachment"
   end
 
+  def preview_html_ai_report
+    @ai_result = if params[:report_id].present?
+                   @survey.ai_analysis_results.find_by(id: params[:report_id], result_type: "executive_report")
+                 else
+                   @survey.ai_analysis_results.where(result_type: "executive_report").order(created_at: :desc).first
+                 end
+    redirect_to results_survey_path(@survey, tab: "report") unless @ai_result
+    @report_lang = @ai_result&.ai_job&.input_data&.dig("language").presence_in(%w[vi en]) || "vi"
+    @pdf_preview = true
+    @public_view = true
+    params[:pdf] = "1"
+    render template: "admin/surveys/view_ai_report", layout: false
+  end
+
   def view_ai_report
     @pdf_preview = params[:pdf_preview].present?
     if @pdf_preview

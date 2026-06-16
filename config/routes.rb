@@ -103,6 +103,7 @@ Rails.application.routes.draw do
         get   :html_report
         post  :pdf_report
         get   :preview_html_report
+        get   :preview_html_ai_report
         get   :preview_pdf_report
         post  :generate_report_token
         delete :revoke_report_token
