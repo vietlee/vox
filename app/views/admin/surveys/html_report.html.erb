@@ -2156,11 +2156,23 @@ function loadLayout() {
       }
     });
   }
-  // Ensure insight cards always have valid span if not already set
-  ['card-insights-findings','card-insights-recs'].forEach(cid => {
-    const el = document.querySelector(`[data-cid="${cid}"]`);
-    if (el && !/^span \d+$/.test(el.style.gridColumn)) el.style.gridColumn = 'span 6';
-  });
+  // Normalize insight blocks: if their spans sum > 12, reset both to span 6
+  (function() {
+    const a = document.querySelector('[data-cid="card-insights-findings"]');
+    const b = document.querySelector('[data-cid="card-insights-recs"]');
+    const spanOf = el => parseInt(el?.style.gridColumn?.match(/span (\d+)/)?.[1] || 6);
+    if (a && b) {
+      const total = spanOf(a) + spanOf(b);
+      if (total > 12 || total < 4) {
+        a.style.gridColumn = 'span 6';
+        b.style.gridColumn = 'span 6';
+      }
+    } else if (a && !b) {
+      a.style.gridColumn = 'span 12';
+    } else if (b && !a) {
+      b.style.gridColumn = 'span 12';
+    }
+  })();
   // Restore card heights
   if (saved.cardHeights) {
     Object.entries(saved.cardHeights).forEach(([cid, h]) => {
@@ -2833,6 +2845,21 @@ function setLang(lang) {
 })();
 
 loadLayout();
+
+// Always normalize insight block spans after loadLayout (guards against stale saved data)
+(function normalizeInsightSpans() {
+  const a = document.querySelector('[data-cid="card-insights-findings"]');
+  const b = document.querySelector('[data-cid="card-insights-recs"]');
+  const spanOf = el => parseInt(el?.style.gridColumn?.match(/span (\d+)/)?.[1] || 6);
+  if (a && b) {
+    const total = spanOf(a) + spanOf(b);
+    if (total > 12 || total < 4) {
+      a.style.gridColumn = 'span 6';
+      b.style.gridColumn = 'span 6';
+    }
+  } else if (a) { a.style.gridColumn = 'span 12'; }
+  else if (b)   { b.style.gridColumn = 'span 12'; }
+})();
 
 <% unless @pdf_preview %>
 // ── PDF Preview drawer (actual PDF via blob) ──
