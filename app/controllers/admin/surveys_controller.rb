@@ -111,6 +111,7 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   def html_report
+    @pdf_preview = params[:pdf_preview].present?
     @report_lang = params[:lang].presence_in(%w[vi en]) || "vi"
     structure_key = "report_structure_#{@report_lang}"
     structure = @survey.settings&.dig(structure_key)
@@ -352,6 +353,7 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   def view_ai_report
+    @pdf_preview = params[:pdf_preview].present?
     @ai_result = if params[:report_id].present?
                    @survey.ai_analysis_results.find_by(id: params[:report_id], result_type: "executive_report")
                  else

@@ -2,7 +2,11 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<% if @pdf_preview %>
+<meta name="viewport" content="width=794">
+<% else %>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<% end %>
 <title>Báo cáo: <%= @survey.title %></title>
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <link rel="icon" type="image/png" href="/icon.png">
@@ -265,6 +269,21 @@ canvas{height:250px;min-height:80px;max-height:none}
 .btn-print{background:#fff;color:#374151}
 .btn-pdf{background:#374151;color:#fff}
 .btn-edit{background:#4361ee;color:#fff}
+.btn-preview{background:#0f766e;color:#fff}
+.btn-preview.active{background:#0d9488;box-shadow:0 0 0 3px rgba(20,184,166,.35)!important}
+/* ── PDF Preview Drawer ── */
+.pdf-drawer{position:fixed;top:0;right:-560px;width:540px;height:100vh;background:#1e293b;z-index:1500;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,.5)}
+.pdf-drawer.open{right:0}
+.pdf-drawer-hdr{padding:13px 16px;background:#0f172a;display:flex;align-items:center;justify-content:space-between;color:#f1f5f9;font-weight:600;font-size:13px;flex-shrink:0;border-bottom:1px solid #334155}
+.pdf-drawer-hdr-left{display:flex;align-items:center;gap:8px}
+.pdf-drawer-badge{background:#0d9488;color:white;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:.05em}
+.pdf-drawer-close{background:#334155;border:none;color:#94a3b8;cursor:pointer;border-radius:6px;padding:5px 10px;font-size:13px;line-height:1;transition:all .15s}
+.pdf-drawer-close:hover{color:white;background:#475569}
+.pdf-drawer-toolbar{padding:8px 16px;background:#1e293b;display:flex;align-items:center;gap:8px;border-bottom:1px solid #334155;flex-shrink:0}
+.pdf-drawer-hint{font-size:11px;color:#64748b;flex:1}
+.pdf-drawer-body{flex:1;overflow-y:auto;background:#374151;padding:16px;display:flex;flex-direction:column;gap:0}
+.pdf-frame-wrap{background:white;box-shadow:0 4px 20px rgba(0,0,0,.4);border-radius:2px;overflow:hidden;flex-shrink:0}
+#pdfPreviewFrame{width:100%;border:none;display:block;min-height:500px;transition:height .2s}
 /* Share modal */
 #shareModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 #shareModal.open{display:flex}
@@ -405,7 +424,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 }
 </style>
 </head>
-<body>
+<body<% if @pdf_preview %> class="pdf-mode pdf-preview-body"<% end %>>
 
 <%# ── Delete confirm modal ── %>
 <div class="modal-overlay" id="deleteModal">
@@ -447,10 +466,32 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   <button class="btn-print" onclick="window.print()">🖨 <span data-i18n="print">In</span></button>
   <button class="btn-pdf" onclick="downloadPdf()">⬇ <span data-i18n="download_pdf">Tải PDF</span></button>
   <% unless @public_view %>
+    <button class="btn-preview" id="btnPreview" onclick="togglePdfPreview()">👁 Xem trước PDF</button>
     <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">⠿ <span data-i18n="arrange">Sắp xếp sections</span></button>
     <button class="btn-rebuild" onclick="rebuildStructure()" title="Yêu cầu AI tạo lại cấu trúc báo cáo">✦ <span data-i18n="rebuild">Tạo lại</span></button>
   <% end %>
 </div>
+
+<% unless @pdf_preview %>
+<div class="pdf-drawer" id="pdfDrawer">
+  <div class="pdf-drawer-hdr">
+    <div class="pdf-drawer-hdr-left">
+      <span>👁 Xem trước PDF</span>
+      <span class="pdf-drawer-badge">LIVE</span>
+    </div>
+    <button class="pdf-drawer-close" onclick="togglePdfPreview()">✕ Đóng</button>
+  </div>
+  <div class="pdf-drawer-toolbar">
+    <span class="pdf-drawer-hint">Resize block bên trái → preview tự cập nhật</span>
+    <button onclick="downloadPdf()" style="background:#374151;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer">⬇ Tải PDF</button>
+  </div>
+  <div class="pdf-drawer-body">
+    <div class="pdf-frame-wrap">
+      <iframe id="pdfPreviewFrame" src="about:blank" scrolling="no"></iframe>
+    </div>
+  </div>
+</div>
+<% end %>
 
 <%# ── Share modal ── %>
 <div id="shareModal">
@@ -1828,6 +1869,9 @@ function saveLayout() {
         body: JSON.stringify(layout)
       }).catch(() => {});
     }, 1500); // debounce 1.5s
+    // Real-time preview update
+    clearTimeout(saveLayout._pt);
+    saveLayout._pt = setTimeout(() => postLayoutToPreview(layout), 150);
   }
 }
 
@@ -2588,6 +2632,86 @@ function setLang(lang) {
 })();
 
 loadLayout();
+
+<% if @pdf_preview %>
+// ── PDF Preview mode: receive layout updates from parent ──
+(function(){
+  function applyLayoutStyles(saved) {
+    if (!saved) return;
+    if (saved.cardHeights) Object.entries(saved.cardHeights).forEach(([cid, h]) => {
+      const card = document.querySelector(`.cw[data-cid="${cid}"] .card`);
+      if (card) card.style.minHeight = h;
+    });
+    if (saved.cardSpans) Object.entries(saved.cardSpans).forEach(([cid, col]) => {
+      const cw = document.querySelector(`.cw[data-cid="${cid}"]`);
+      if (cw) cw.style.gridColumn = col;
+    });
+    if (saved.kpiHeights) Object.entries(saved.kpiHeights).forEach(([id, h]) => {
+      const el = document.getElementById(id); if (el) el.style.minHeight = h;
+    });
+    if (saved.kpiPositions) Object.entries(saved.kpiPositions).forEach(([id, col]) => {
+      const el = document.getElementById(id); if (el) el.style.gridColumn = col;
+    });
+    if (saved.barListHeights) Object.entries(saved.barListHeights).forEach(([cid, h]) => {
+      const bl = document.querySelector(`.cw[data-cid="${cid}"] .bar-list`);
+      if (bl) { bl.style.height = h; bl.style.overflowY = 'auto'; }
+    });
+    // Resize chart canvases
+    Object.values(chartReg).forEach(ch => { try { ch.resize(); } catch(_){} });
+    reportHeight();
+  }
+  function reportHeight() {
+    const h = document.body.scrollHeight;
+    window.parent.postMessage({ type: 'vox_preview_height', h }, '*');
+  }
+  window.addEventListener('message', e => {
+    if (e.data?.type === 'vox_preview_layout') applyLayoutStyles(e.data.layout);
+  });
+  // Report initial height after charts render
+  setTimeout(reportHeight, 800);
+})();
+<% else %>
+// ── PDF Preview drawer (admin only) ──
+let pdfPreviewOpen = false;
+function togglePdfPreview() {
+  pdfPreviewOpen = !pdfPreviewOpen;
+  const drawer = document.getElementById('pdfDrawer');
+  const btn    = document.getElementById('btnPreview');
+  if (!drawer) return;
+  drawer.classList.toggle('open', pdfPreviewOpen);
+  if (btn) btn.classList.toggle('active', pdfPreviewOpen);
+  if (pdfPreviewOpen) loadPreviewFrame();
+}
+function loadPreviewFrame() {
+  const frame = document.getElementById('pdfPreviewFrame');
+  if (!frame) return;
+  const base = window.location.href.split('?')[0];
+  const params = new URLSearchParams(window.location.search);
+  params.set('pdf_preview', '1');
+  const previewUrl = base + '?' + params.toString();
+  if (frame.getAttribute('data-loaded-url') !== previewUrl) {
+    frame.setAttribute('data-loaded-url', previewUrl);
+    frame.src = previewUrl;
+    frame.onload = () => {
+      postLayoutToPreview();
+    };
+  } else {
+    postLayoutToPreview();
+  }
+}
+function postLayoutToPreview(layout) {
+  const frame = document.getElementById('pdfPreviewFrame');
+  if (!frame?.contentWindow || !pdfPreviewOpen) return;
+  const data = layout || JSON.parse(localStorage.getItem(SK) || '{}');
+  frame.contentWindow.postMessage({ type: 'vox_preview_layout', layout: data }, '*');
+}
+window.addEventListener('message', e => {
+  if (e.data?.type === 'vox_preview_height') {
+    const frame = document.getElementById('pdfPreviewFrame');
+    if (frame) frame.style.height = e.data.h + 'px';
+  }
+});
+<% end %>
 </script>
 </body>
 </html>
