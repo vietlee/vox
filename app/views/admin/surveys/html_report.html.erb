@@ -455,6 +455,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   .insights-col{box-shadow:none!important;border:1px solid #e2e8f0!important;break-inside:avoid;page-break-inside:avoid}
   .insight-item{break-inside:avoid;page-break-inside:avoid}
   #ai-insights-section{break-before:auto;page-break-before:auto}
+  .section-title-edit{border-bottom-color:transparent!important;background:transparent!important;pointer-events:none}
 }
 <% if @pdf_preview %>
 /* PDF Preview: exact copy of @media print to simulate Grover emulate_media:print */
@@ -479,6 +480,7 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
 .card{box-shadow:none!important;border:1px solid #e2e8f0!important;border-radius:8px!important}
 .insights-grid{grid-template-columns:1fr 1fr!important;gap:12px!important}
 .insights-col{box-shadow:none!important;border:1px solid #e2e8f0!important}
+.section-title-edit{border-bottom-color:transparent!important;background:transparent!important;pointer-events:none}
 <% end %>
 </style>
 </head>
@@ -2790,7 +2792,7 @@ async function generatePdfPreview() {
       const s = Math.round((Date.now() - fetchStart) / 1000);
       if (loadText) loadText.textContent = s < 3 ? 'Đang tạo PDF...' : `Đang render PDF... (${s}s)`;
     }, 1000);
-    const resp = await fetch('<%= preview_pdf_report_survey_path(@survey, lang: @report_lang) %>&t=' + Date.now());
+    const resp = await fetch('<%= @pdf_preview_url || preview_pdf_report_survey_path(@survey, lang: @report_lang) %>&t=' + Date.now());
     clearInterval(_countdownT);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const arrayBuffer = await resp.arrayBuffer();

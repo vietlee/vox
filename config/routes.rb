@@ -40,8 +40,9 @@ Rails.application.routes.draw do
   get  "/l/:code", to: "public/short_links#show", as: :short_link
 
   # Public report share (no login required)
-  get  "/r/:token",    to: "public/reports#show",    as: :public_report
-  get  "/ai-r/:token", to: "public/ai_reports#show", as: :public_ai_report
+  get  "/r/:token",             to: "public/reports#show",        as: :public_report
+  get  "/r/:token/preview_pdf", to: "public/reports#preview_pdf", as: :public_report_preview_pdf
+  get  "/ai-r/:token",          to: "public/ai_reports#show",     as: :public_ai_report
 
   # Public participation (End User — no login required)
   get  "/s/:slug",              to: "participate/surveys#show",    as: :participate_survey
