@@ -16,7 +16,19 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 // ── Chart helpers — must be defined BEFORE any chart <script> blocks ──
-Chart.register(ChartDataLabels);
+// White background plugin: ensures canvas background is white (not transparent) in PDF
+const whiteBackgroundPlugin = {
+  id: 'whiteBackground',
+  beforeDraw(chart) {
+    const ctx = chart.canvas.getContext('2d');
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-over';
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, chart.canvas.width, chart.canvas.height);
+    ctx.restore();
+  }
+};
+Chart.register(ChartDataLabels, whiteBackgroundPlugin);
 const C=['#4361ee','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#0ea5e9','#14b8a6'];
 const barDL  ={anchor:'end',align:'end',offset:2,clip:false,font:{size:11,weight:'700'},color:'#444',formatter:v=>v>0?v:''};
 const hbarDL ={anchor:'end',align:'end',offset:4,clip:false,font:{size:11,weight:'700'},color:'#374151',formatter:v=>v>0?v:''};
@@ -221,7 +233,6 @@ body.pdf-preview-open{padding-right:540px}
 .align-guide.visible{display:block}
 
 /* ── AI Insights ── */
-.insights-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .insights-col{background:white;border-radius:12px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07);align-self:start}
 .insights-col-header{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #f0f2f5}
 .insight-item{border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:10px;font-size:12px;line-height:1.65}
@@ -230,13 +241,13 @@ body.pdf-preview-open{padding-right:540px}
 .insight-rec{border-left:4px solid #7c3aed;background:#faf5ff}
 .insight-rec-title{font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:5px;line-height:1.4}
 .insight-rec-detail{font-size:11px;color:#6b7280;line-height:1.6}
-@media(max-width:700px){.insights-grid{grid-template-columns:1fr}}
+
 
 /* ── Card ── */
 .card{background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
 .card h3{font-size:13px;font-weight:700;margin-bottom:16px;color:#1a1a2e;border-bottom:2px solid #f0f2f5;padding-bottom:10px;display:flex;align-items:center;gap:10px}
 canvas{height:250px;min-height:80px;max-height:none}
-.chart-wrap{position:relative;width:100%}
+.chart-wrap{position:relative;width:100%;background:white;overflow:hidden}
 .chart-wrap canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important}
 
 /* Editable text — only in text mode */
@@ -448,11 +459,9 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   .cw.hidden-section{display:none!important}
   /* Cards & canvases: never split mid-element */
   .cw{break-inside:avoid;page-break-inside:avoid}
-  .card{box-shadow:none!important;border:1px solid #e2e8f0!important;break-inside:avoid;page-break-inside:avoid;border-radius:8px!important}
-  canvas{break-inside:avoid;page-break-inside:avoid;max-width:100%!important}
-  /* Insights: keep 2 columns on print */
-  .insights-grid{grid-template-columns:1fr 1fr!important;gap:12px!important}
-  .insights-col{box-shadow:none!important;border:1px solid #e2e8f0!important;break-inside:avoid;page-break-inside:avoid}
+  .card{box-shadow:none!important;border:1px solid #e2e8f0!important;break-inside:avoid;page-break-inside:avoid;border-radius:8px!important;background:white!important}
+  canvas{break-inside:avoid;page-break-inside:avoid;max-width:100%!important;background:white!important}
+.insights-col{box-shadow:none!important;border:1px solid #e2e8f0!important;break-inside:avoid;page-break-inside:avoid}
   .insight-item{break-inside:avoid;page-break-inside:avoid}
   #ai-insights-section{break-before:auto;page-break-before:auto}
   .section-title-edit{border-bottom-color:transparent!important;background:transparent!important;pointer-events:none}
@@ -477,9 +486,9 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
 .section-header{break-after:avoid;page-break-after:avoid}
 .grid-2,.grid-3{break-inside:auto;page-break-inside:auto;display:grid!important}
 .cw.hidden-section{display:none!important}
-.card{box-shadow:none!important;border:1px solid #e2e8f0!important;border-radius:8px!important}
-.insights-grid{grid-template-columns:1fr 1fr!important;gap:12px!important}
-.insights-col{box-shadow:none!important;border:1px solid #e2e8f0!important}
+.card{box-shadow:none!important;border:1px solid #e2e8f0!important;border-radius:8px!important;background:white!important}
+.insights-col{box-shadow:none!important;border:1px solid #e2e8f0!important;background:white!important}
+canvas{background:white!important}
 .section-title-edit{border-bottom-color:transparent!important;background:transparent!important;pointer-events:none}
 <% end %>
 </style>
@@ -1152,12 +1161,11 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
     <% unless @public_view %><button class="section-edit-btn" onmousedown="event.preventDefault();event.stopPropagation();focusSectionTitle(this)" title="Sửa tên section">✏️</button><% end %>
   </div>
 
-  <div class="insights-grid">
+  <div class="grid-2" id="grid-s-ai-insights">
     <% if stat_insights.any? %>
-    <div class="cw" data-cid="card-insights-findings">
+    <div class="cw" data-cid="card-insights-findings" style="grid-column:span 6">
       <% unless @public_view %>
       <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
         <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤢</span>Thay đổi kích thước</button>
         <button class="ct-mode-btn" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
         <div class="ct-divider"></div>
@@ -1175,10 +1183,9 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
     </div>
     <% end %>
     <% if rec_insights.any? %>
-    <div class="cw" data-cid="card-insights-recs">
+    <div class="cw" data-cid="card-insights-recs" style="grid-column:span 6">
       <% unless @public_view %>
       <div class="card-toolbar">
-        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
         <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤢</span>Thay đổi kích thước</button>
         <button class="ct-mode-btn" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
         <div class="ct-divider"></div>
@@ -2062,13 +2069,35 @@ function loadLayout() {
       });
     });
   }
-  // Restore card spans
+  // Ensure insight cards always live in their correct grid (guard against stale layout)
+  const insightGrid = document.getElementById('grid-s-ai-insights');
+  if (insightGrid) {
+    ['card-insights-findings','card-insights-recs'].forEach(cid => {
+      const el = document.querySelector(`[data-cid="${cid}"]`);
+      if (el && el.parentElement !== insightGrid) insightGrid.appendChild(el);
+    });
+  }
+  // Restore card spans (only valid "span N" values for 12-col grids)
   if (saved.cardSpans) {
     Object.entries(saved.cardSpans).forEach(([cid, col]) => {
       const el = document.querySelector(`[data-cid="${cid}"]`);
-      if (el) el.style.gridColumn = col;
+      if (!el) return;
+      // Only restore if it looks like a valid span value (e.g. "span 6")
+      // and card is inside a 12-col grid (grid-2 or grid-3)
+      const parentGrid = el.parentElement;
+      const in12ColGrid = parentGrid?.classList.contains('grid-2') || parentGrid?.classList.contains('grid-3');
+      if (/^span \d+$/.test(col) && in12ColGrid) el.style.gridColumn = col;
+      else if (in12ColGrid && !el.style.gridColumn) {
+        // default span for grid-2 = 6, grid-3 = 4
+        el.style.gridColumn = parentGrid.classList.contains('grid-3') ? 'span 4' : 'span 6';
+      }
     });
   }
+  // Ensure insight cards always have valid span if not already set
+  ['card-insights-findings','card-insights-recs'].forEach(cid => {
+    const el = document.querySelector(`[data-cid="${cid}"]`);
+    if (el && !/^span \d+$/.test(el.style.gridColumn)) el.style.gridColumn = 'span 6';
+  });
   // Restore card heights
   if (saved.cardHeights) {
     Object.entries(saved.cardHeights).forEach(([cid, h]) => {
