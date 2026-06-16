@@ -77,6 +77,8 @@ class AiExecutiveReportJob < ApplicationJob
     cross_tab_map = cross_tab_pairs.any? ?
       build_cross_tab_data(survey, cross_tab_pairs, completed_ids) : {}
 
+    total_responses = responses.count
+
     # Attach data to each chart in the plan
     Array(plan["sections"]).each do |sec|
       Array(sec["charts"]).each do |c|
@@ -85,6 +87,17 @@ class AiExecutiveReportJob < ApplicationJob
 
         base = chart_data_by_qid[qid]&.dup
         next unless base
+
+        # If planning AI chose a visual chart for a text question with no options, categorize via AI
+        if c["chart_type"] != "quotes" && base["options"].blank? && base["texts"].present?
+          themes = categorize_text_into_themes(base["texts"], c["title"].to_s, total_responses: total_responses, language: @language)
+          if themes.any?
+            base["options"] = themes
+            base["type"]    = "multiple_choice"
+          else
+            c["chart_type"] = "quotes"
+          end
+        end
 
         c["data"] = base
 
@@ -181,7 +194,7 @@ class AiExecutiveReportJob < ApplicationJob
             info += " [SUITABLE FOR: doughnut, hbar]"
           else
             sample = Array(cd["texts"]).first(2).map { |t| "\"#{t.to_s.truncate(60)}\"" }.join(", ")
-            info += "\n    → Data: #{cd['total']} text answers. Samples: #{sample} [SUITABLE FOR: quotes]"
+            info += "\n    → Data: #{cd['total']} text answers. Samples: #{sample} [SUITABLE FOR: hbar (AI will group into themes) OR quotes (if user wants raw text)]"
           end
         end
       else
@@ -229,7 +242,7 @@ class AiExecutiveReportJob < ApplicationJob
       - "nps"         → NPS chart. ONLY for 0-10 recommendation questions
       - "grouped_bar" → grouped comparison. REQUIRES cross_tab_by. Use when: "so sánh theo X / X giữa các nhóm Y"
       - "number"      → big single KPI. Use when: user wants one key metric (avg, total, %)
-      - "quotes"      → show text quotes. Use when: open-ended question with no aggregable data
+      - "quotes"      → show text quotes. Use when: user explicitly wants to see raw comments/opinions. For open-ended text questions, prefer "hbar" when user asks for chart/biểu đồ/thống kê — the system will auto-group responses into themes.
       - "bar"         → vertical bar. Use when: ordered categorical data
 
       ## OUTPUT LANGUAGE
@@ -574,5 +587,50 @@ class AiExecutiveReportJob < ApplicationJob
       i += 1
     end
     out
+  end
+
+  def categorize_text_into_themes(texts, question_title, total_responses: 0, language: "vi")
+    return [] if texts.blank?
+
+    lang_instruction = language == "vi" ? "Respond in Vietnamese." : "Respond in English."
+    sample = texts.first(40).map { |t| "- #{t.to_s.truncate(120)}" }.join("\n")
+    total = [texts.size, total_responses].max
+
+    prompt = <<~PROMPT
+      You are analyzing open-ended survey responses to group them into themes.
+      Question: "#{question_title}"
+      Total text responses: #{texts.size}
+      Total survey respondents: #{total}
+      #{lang_instruction}
+
+      Responses:
+      #{sample}
+
+      Group these responses into 4–7 meaningful themes. For each theme, estimate how many of the #{texts.size} responses fit it (counts can overlap slightly if a response fits multiple themes, but total should roughly sum to #{texts.size}).
+
+      Return ONLY valid JSON array, no prose:
+      [
+        {"label": "Theme name", "count": N},
+        ...
+      ]
+    PROMPT
+
+    client = Anthropic::Client.new(api_key: ENV["ANTHROPIC_API_KEY"])
+    resp = client.messages(
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 512,
+      messages: [{ role: "user", content: prompt }]
+    )
+    raw = resp.content.first.text.strip
+    json_str = raw[/\[.*\]/m] || raw
+    themes = JSON.parse(json_str)
+    themes.map do |t|
+      cnt = t["count"].to_i
+      pct = total > 0 ? (cnt.to_f / total * 100).round(1) : 0
+      { "label" => t["label"].to_s, "count" => cnt, "pct" => pct }
+    end
+  rescue => e
+    Rails.logger.warn("[AiExecutiveReportJob] categorize_text_into_themes failed: #{e.message}")
+    []
   end
 end

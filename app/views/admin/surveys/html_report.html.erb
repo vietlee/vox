@@ -1151,6 +1151,7 @@ function loadKpiSizes() {
       localStorage.setItem(KPI_SIZE_SK, JSON.stringify(saved));
     } catch(e) {}
     kpiDrag = null;
+    saveLayout();
   });
 })();
 
@@ -1482,10 +1483,11 @@ document.addEventListener('mousedown', e => {
   const startH = card0?.offsetHeight || 240;
   const cardTop = card0?.getBoundingClientRect().top || 0;
   const gridRect = grid.getBoundingClientRect();
+  const cwLeft = cw.getBoundingClientRect().left;
 
   handle.classList.add('dragging');
   cw.classList.add('is-resizing');
-  rd = { cw, handle, dir, gridRect, startH, cardTop,
+  rd = { cw, handle, dir, gridRect, cwLeft, startH, cardTop,
          startSpan, startY: e.clientY, _span: startSpan, _h: startH };
 
   document.body.style.userSelect = 'none';
@@ -1509,10 +1511,10 @@ function applyResize() {
   const MAXCOLS = 12;
 
   if (dir === 'e' || dir === 'se') {
-    // Snap based on absolute cursor position within grid
+    // Snap based on cursor position relative to card's own left edge
     const colW = gridRect.width / MAXCOLS;
-    const offsetInGrid = e.clientX - gridRect.left;
-    const newSpan = Math.max(1, Math.min(MAXCOLS, Math.round(offsetInGrid / colW)));
+    const offsetFromCardLeft = e.clientX - rd.cwLeft;
+    const newSpan = Math.max(1, Math.min(MAXCOLS, Math.round(offsetFromCardLeft / colW)));
     if (newSpan !== rd._span) {
       cw.style.gridColumn = `span ${newSpan}`;
       rd._span = newSpan;
@@ -1801,8 +1803,10 @@ function saveLayout() {
   // KPI order + hidden + positions
   layout.kpiOrder = [...document.querySelectorAll('.kpi[id^="kpi-block-"]')].map(el => el.id);
   layout.kpiPositions = {};
+  layout.kpiHeights = {};
   document.querySelectorAll('.kpi[id^="kpi-block-"]').forEach(el => {
     if (el.style.gridColumn) layout.kpiPositions[el.id] = el.style.gridColumn;
+    if (el.style.minHeight) layout.kpiHeights[el.id] = el.style.minHeight;
   });
   layout.hiddenKpis = [...document.querySelectorAll('.kpi[id^="kpi-block-"].hidden-section')].map(el => ({
     id: el.id, label: el.querySelector('.kpi-label')?.textContent?.trim() || el.id
@@ -1840,6 +1844,12 @@ function loadLayout() {
     Object.entries(saved.kpiPositions).forEach(([id, col]) => {
       const el = document.getElementById(id);
       if (el) el.style.gridColumn = col;
+    });
+  }
+  if (saved.kpiHeights) {
+    Object.entries(saved.kpiHeights).forEach(([id, h]) => {
+      const el = document.getElementById(id);
+      if (el) el.style.minHeight = h;
     });
   }
   // Restore section titles
