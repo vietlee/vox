@@ -1667,6 +1667,7 @@ async function generatePdfPreview() {
     });
     const contentH = frame.contentDocument?.body?.scrollHeight || 3000;
     frame.style.height = contentH + 'px';
+    const MARGIN_PX = Math.round(70 * PREVIEW_ZOOM);
     const breakDiv = document.getElementById('pdfBreakLines');
     if (breakDiv) {
       breakDiv.innerHTML = '';
@@ -1674,8 +1675,8 @@ async function generatePdfPreview() {
       for (let i = 1; i < pages; i++) {
         const y = Math.round(i * PDF_PAGE_H * PREVIEW_ZOOM);
         breakDiv.insertAdjacentHTML('beforeend',
-          `<div style="position:absolute;top:${y}px;left:0;right:0;height:3px;background:rgba(220,38,38,.85);box-shadow:0 0 6px rgba(220,38,38,.5)">` +
-          `<span style="position:absolute;right:4px;top:-16px;font-size:10px;color:rgba(220,38,38,.9);font-weight:600;background:#525659;padding:1px 4px;border-radius:3px">Trang ${i}</span></div>`
+          `<div style="position:absolute;top:${y - MARGIN_PX/2}px;left:0;right:0;height:${MARGIN_PX}px;background:#525659;border-top:2px solid rgba(220,38,38,.7);border-bottom:2px solid rgba(220,38,38,.7);z-index:5;display:flex;align-items:center;justify-content:center">` +
+          `<span style="font-size:10px;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:.05em">— Trang ${i} / Trang ${i+1} —</span></div>`
         );
       }
       breakDiv.style.height = Math.round(contentH * PREVIEW_ZOOM) + 'px';

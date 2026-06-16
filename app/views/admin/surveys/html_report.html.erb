@@ -1444,7 +1444,8 @@ async function downloadPdf() {
   const overlay = document.getElementById('pdf-loading');
   overlay.classList.add('show');
   try {
-    // Read current layout from localStorage so Grover renders same as browser
+    // Capture current DOM state before reading localStorage
+    if (typeof saveLayout === 'function') saveLayout();
     const layoutJson = localStorage.getItem(SK) || '{}';
 
     const resp = await fetch('<%= raw pdf_report_survey_path(@survey, lang: @report_lang) %>', {
@@ -2731,7 +2732,9 @@ async function generatePdfPreview() {
     // Set iframe height to full content height
     const contentH = frame.contentDocument?.body?.scrollHeight || 3000;
     frame.style.height = contentH + 'px';
-    // Draw page break lines
+    // Draw page break zones: 8mm top + 8mm bottom margin = ~70px CSS gap per break
+    // At PREVIEW_ZOOM 0.45: gap = 70 * 0.45 ≈ 32px; split evenly (16px bottom + 16px top)
+    const MARGIN_PX = Math.round(70 * PREVIEW_ZOOM); // visual gap between pages
     const breakDiv = document.getElementById('pdfBreakLines');
     if (breakDiv) {
       breakDiv.innerHTML = '';
@@ -2739,15 +2742,14 @@ async function generatePdfPreview() {
       for (let i = 1; i < pages; i++) {
         const y = Math.round(i * PDF_PAGE_H * PREVIEW_ZOOM);
         breakDiv.insertAdjacentHTML('beforeend',
-          `<div style="position:absolute;top:${y}px;left:0;right:0;height:3px;background:rgba(220,38,38,.85);box-shadow:0 0 6px rgba(220,38,38,.5);z-index:5">` +
-          `<span style="position:absolute;right:4px;top:-16px;font-size:10px;color:rgba(220,38,38,.9);font-weight:600;background:#525659;padding:1px 4px;border-radius:3px">Trang ${i}</span></div>`
+          `<div style="position:absolute;top:${y - MARGIN_PX/2}px;left:0;right:0;height:${MARGIN_PX}px;background:#525659;border-top:2px solid rgba(220,38,38,.7);border-bottom:2px solid rgba(220,38,38,.7);z-index:5;display:flex;align-items:center;justify-content:center">` +
+          `<span style="font-size:10px;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:.05em">— Trang ${i} / Trang ${i+1} —</span></div>`
         );
       }
-      // Set breakDiv height to match scaled content
       breakDiv.style.height = Math.round(contentH * PREVIEW_ZOOM) + 'px';
     }
     if (wrap) wrap.style.display = 'flex';
-    if (hint) hint.textContent = 'Đường đỏ = điểm cắt trang A4 — nhấn Làm mới sau khi thay đổi layout';
+    if (hint) hint.textContent = 'Vùng xám = margin đầu/cuối trang A4 (8mm) — tự cập nhật khi thay đổi layout';
     if (btn)  btn.style.background = '#4361ee';
   } catch(err) {
     if (empty) { empty.style.display = 'flex'; empty.querySelector('span:last-child').textContent = 'Lỗi: ' + err.message; }
