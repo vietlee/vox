@@ -683,7 +683,7 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
       <button class="btn-sec-hide" onclick="hideSection('<%= sid %>','<%= j sec_title %>')">Ẩn section</button>
     </div>
     <div class="section-title"><% unless @public_view %><input type="text" class="section-title-edit" data-sec-id="<%= sid %>" value="<%= j sec_title %>" onchange="saveLayout()" onblur="saveLayout()" onkeydown="if(event.key==='Enter')this.blur()" spellcheck="false"><% else %><span><%= sec_title %></span><% end %></div>
-    <% unless @public_view %><button class="section-edit-btn" onmousedown="event.preventDefault();focusSectionTitle(this)" title="Sửa tên section">✏️</button><% end %>
+    <% unless @public_view %><button class="section-edit-btn" onmousedown="event.preventDefault();event.stopPropagation();focusSectionTitle(this)" title="Sửa tên section">✏️</button><% end %>
   </div>
   <div class="<%= section['layout'] || 'grid-2' %>" id="grid-<%= sid %>">
   <% (section["cards"] || []).each do |card| %>
@@ -1149,7 +1149,7 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
       <button class="btn-sec-hide" onclick="hideSection('s-ai-insights','<%= @report_lang == "en" ? "Insights & Recommendations (AI)" : "Insights & Khuyến nghị (AI)" %>')"><%= @report_lang == "en" ? "Hide section" : "Ẩn section" %></button>
     </div>
     <div class="section-title"><% unless @public_view %><input type="text" class="section-title-edit" data-sec-id="s-ai-insights" value="<%= @report_lang == "en" ? "✦ Insights & Recommendations (AI)" : "✦ Insights & Khuyến nghị (AI)" %>" onchange="saveLayout()" onblur="saveLayout()" onkeydown="if(event.key==='Enter')this.blur()" spellcheck="false"><% else %><span><%= @report_lang == "en" ? "✦ Insights & Recommendations (AI)" : "✦ Insights & Khuyến nghị (AI)" %></span><% end %></div>
-    <% unless @public_view %><button class="section-edit-btn" onmousedown="event.preventDefault();focusSectionTitle(this)" title="Sửa tên section">✏️</button><% end %>
+    <% unless @public_view %><button class="section-edit-btn" onmousedown="event.preventDefault();event.stopPropagation();focusSectionTitle(this)" title="Sửa tên section">✏️</button><% end %>
   </div>
 
   <div class="insights-grid">
@@ -1452,7 +1452,7 @@ document.addEventListener('mousedown', e => {
   if (e.target.closest('.cw-gear')) return; // handled by gear click
   if (e.target.closest('[data-dir]')) return; // resize handle
   if (e.target.closest('#deleteModal,#chartModal')) return; // modals
-  if (e.target.closest('.section-title-edit')) return; // section title editing
+  if (e.target.closest('.section-title-edit,.section-edit-btn')) return; // section title editing
   if (!e.target.closest('.cw-active')) deactivateAllCards();
 });
 
@@ -2084,11 +2084,11 @@ function loadLayout() {
 
 // ── Section title edit via ✏️ button ──
 function focusSectionTitle(btn) {
-  const input = btn.closest('.section-header').querySelector('.section-title-edit');
+  const header = btn.closest('.section-header');
+  if (!header) return;
+  const input = header.querySelector('.section-title-edit');
   if (!input) return;
-  input.focus();
-  input.select();
-  input.style.cursor = 'text';
+  setTimeout(() => { input.focus(); input.select(); input.style.cursor = 'text'; }, 10);
 }
 
 // ── Sortable: sections ──
