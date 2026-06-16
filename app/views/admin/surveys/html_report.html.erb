@@ -16,14 +16,14 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 // ── Chart helpers — must be defined BEFORE any chart <script> blocks ──
-// White background plugin: ensures canvas background is white (not transparent) in PDF
+// White background plugin: draw white before every chart render so PDF/print canvas is opaque
 const whiteBackgroundPlugin = {
   id: 'whiteBackground',
   beforeDraw(chart) {
     const ctx = chart.canvas.getContext('2d');
     ctx.save();
-    ctx.globalCompositeOperation = 'destination-over';
-    ctx.fillStyle = 'white';
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, chart.canvas.width, chart.canvas.height);
     ctx.restore();
   }
@@ -63,10 +63,12 @@ function mkChart(id,cfg){
 }
 // Signal to Grover when all charts are done (used by waitForFunction)
 window._chartsReady = false;
-document.addEventListener('DOMContentLoaded', () => {
-  // Give charts one rAF to render their first frame, then mark ready
-  requestAnimationFrame(() => requestAnimationFrame(() => { window._chartsReady = true; }));
-});
+window._markChartsReady = function() {
+  // Wait 3 rAFs to ensure all canvas pixels are flushed
+  requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => {
+    window._chartsReady = true;
+  })));
+};
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -2869,6 +2871,8 @@ function schedulePreviewReload() {
   schedulePreviewReload._t = setTimeout(generatePdfPreview, 1500);
 }
 <% end %>
+// Call after all chart scripts have run
+if (typeof window._markChartsReady === 'function') window._markChartsReady();
 </script>
 </body>
 </html>
