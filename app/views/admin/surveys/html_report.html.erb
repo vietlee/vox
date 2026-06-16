@@ -1672,10 +1672,18 @@ function applyResize() {
     // Snap based on cursor position relative to card's own left edge
     const colW = gridRect.width / MAXCOLS;
     const offsetFromCardLeft = e.clientX - rd.cwLeft;
-    const newSpan = Math.max(1, Math.min(MAXCOLS, Math.round(offsetFromCardLeft / colW)));
+    // Find visible siblings in the same grid to share remaining columns
+    const siblings = [...cw.parentElement.querySelectorAll(':scope > .cw')]
+      .filter(el => el !== cw && !el.classList.contains('hidden-section'));
+    const minSiblingSpan = siblings.length > 0 ? 2 : 0;
+    const newSpan = Math.max(2, Math.min(MAXCOLS - minSiblingSpan, Math.round(offsetFromCardLeft / colW)));
     if (newSpan !== rd._span) {
       cw.style.gridColumn = `span ${newSpan}`;
       rd._span = newSpan;
+      // If exactly one sibling, give it the remaining columns so rows never wrap
+      if (siblings.length === 1) {
+        siblings[0].style.gridColumn = `span ${MAXCOLS - newSpan}`;
+      }
     }
   }
   if (dir === 's' || dir === 'se') {
