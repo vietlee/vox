@@ -277,6 +277,13 @@ class Admin::SurveysController < Admin::BaseController
     redirect_to html_report_survey_path(@survey), alert: "Không thể xuất PDF: #{e.message}"
   end
 
+  def preview_html_report
+    @report_lang = params[:lang].presence_in(%w[vi en]) || "vi"
+    call_html_report_setup
+    @pdf_preview = true
+    render template: "admin/surveys/html_report", layout: false
+  end
+
   def preview_pdf_report
     @report_lang = params[:lang].presence_in(%w[vi en]) || "vi"
     call_html_report_setup

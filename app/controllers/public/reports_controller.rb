@@ -6,7 +6,16 @@ class Public::ReportsController < ApplicationController
     find_survey_by_token || return
     call_html_report_setup
     @public_view = true
-    @pdf_preview_url = public_report_preview_pdf_path(params[:token], lang: @report_lang)
+    @pdf_preview_url  = public_report_preview_pdf_path(params[:token], lang: @report_lang)
+    @html_preview_url = public_report_preview_html_path(params[:token], lang: @report_lang)
+    render template: "admin/surveys/html_report", layout: false
+  end
+
+  def preview_html
+    find_survey_by_token || return
+    call_html_report_setup
+    @public_view = true
+    @pdf_preview = true
     render template: "admin/surveys/html_report", layout: false
   end
 

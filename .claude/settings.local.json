@@ -312,7 +312,18 @@
       "Bash(ssh deploy@188.166.189.119 \"psql 'postgresql://vox_user:cfdb7b8f10d2bdd9c46e9d4d48335b12@localhost/vox_production' -c \\\\\"SELECT jsonb_pretty\\(settings->'report_structure_en'\\) FROM surveys WHERE id = 34;\\\\\"\")",
       "Bash(ssh deploy@188.166.189.119 \"psql 'postgresql://vox_user:cfdb7b8f10d2bdd9c46e9d4d48335b12@localhost/vox_production' -c \\\\\"UPDATE surveys SET settings = settings - 'report_structure_en' - 'report_structure_en_version' WHERE id = 34;\\\\\"\")",
       "Bash(wait)",
-      "Bash(ssh deploy@188.166.189.119 \"tail -100 /var/www/vox/current/log/sidekiq.log | grep -E 'ERROR|error|AiExecutive|failed|Exception'\")"
+      "Bash(ssh deploy@188.166.189.119 \"tail -100 /var/www/vox/current/log/sidekiq.log | grep -E 'ERROR|error|AiExecutive|failed|Exception'\")",
+      "Bash(sed -n '1290,1310p' app/views/admin/surveys/html_report.html.erb)",
+      "Bash(sed -n '1435,1455p' app/views/admin/surveys/html_report.html.erb)",
+      "Bash(sed -n '1978,2000p' app/views/admin/surveys/html_report.html.erb)",
+      "Bash(sed -n '1730,1745p' app/views/admin/surveys/html_report.html.erb)",
+      "Bash(sed -n '1763,1780p' app/views/admin/surveys/html_report.html.erb)",
+      "Bash(ssh deploy@188.166.189.119 \"tail -100 /var/www/vox/current/log/production.log\")",
+      "Bash(ssh deploy@188.166.189.119 \"sudo journalctl -u vox_puma_production --since '5 minutes ago' --no-pager\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -60 /var/www/vox/current/log/puma.log\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -80 /var/www/vox/current/log/puma.log\")",
+      "Bash(grep -n \"def categorize_text\\\\|def call_planning_ai\\\\|def build_question\\\\|private\\\\|^  end$\" /Users/mac/Desktop/VOX/app/jobs/ai_executive_report_job.rb)",
+      "Bash(ssh deploy@188.166.189.119 \"ls -la /var/www/vox/current\")"
     ]
   }
 }

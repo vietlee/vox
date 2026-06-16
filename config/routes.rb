@@ -41,7 +41,8 @@ Rails.application.routes.draw do
 
   # Public report share (no login required)
   get  "/r/:token",             to: "public/reports#show",        as: :public_report
-  get  "/r/:token/preview_pdf", to: "public/reports#preview_pdf", as: :public_report_preview_pdf
+  get  "/r/:token/preview_pdf",  to: "public/reports#preview_pdf",  as: :public_report_preview_pdf
+  get  "/r/:token/preview_html", to: "public/reports#preview_html", as: :public_report_preview_html
   get  "/ai-r/:token",          to: "public/ai_reports#show",     as: :public_ai_report
 
   # Public participation (End User — no login required)
@@ -101,6 +102,7 @@ Rails.application.routes.draw do
         get   :results
         get   :html_report
         post  :pdf_report
+        get   :preview_html_report
         get   :preview_pdf_report
         post  :generate_report_token
         delete :revoke_report_token

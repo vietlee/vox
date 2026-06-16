@@ -551,14 +551,16 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
   <div class="pdf-drawer-body" style="padding:0;background:#525659">
     <div id="pdfPreviewLoading" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:white">
       <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite"></div>
-      <span id="pdfPreviewLoadingText" style="font-size:13px;opacity:.8">Đang tạo PDF... (5-10 giây)</span>
+      <span id="pdfPreviewLoadingText" style="font-size:13px;opacity:.8">Đang tải...</span>
     </div>
-    <div id="pdfPreviewWrap" style="display:none;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:#525659;width:100%">
-      <div id="pdfPageContainer" style="padding:16px;display:flex;flex-direction:column;gap:16px;align-items:center;width:100%;box-sizing:border-box"></div>
+    <div id="pdfIframeWrap" style="display:none;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:#525659;padding:16px;box-sizing:border-box">
+      <div id="pdfIframeOuter" style="position:relative;overflow:hidden;margin:0 auto;background:white;box-shadow:0 4px 24px rgba(0,0,0,.5);border-radius:2px">
+        <iframe id="pdfHtmlFrame" src="" style="width:1200px;border:none;display:block;background:white;transform-origin:0 0;" scrolling="no"></iframe>
+      </div>
     </div>
     <div id="pdfPreviewEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:rgba(255,255,255,.6)">
       <span style="font-size:32px">📄</span>
-      <span style="font-size:13px">Nhấn "Làm mới" để xem trước PDF</span>
+      <span style="font-size:13px">Nhấn "Làm mới" để xem trước layout</span>
     </div>
   </div>
 </div>
@@ -2747,96 +2749,58 @@ const PAGE_GAP_PX = 71;
 async function generatePdfPreview() {
   if (!pdfPreviewOpen || _pdfPreviewLoading) return;
   _pdfPreviewLoading = true;
-  const loading   = document.getElementById('pdfPreviewLoading');
-  const loadText  = document.getElementById('pdfPreviewLoadingText');
-  const wrap      = document.getElementById('pdfPreviewWrap');
-  const container = document.getElementById('pdfPageContainer');
-  const empty     = document.getElementById('pdfPreviewEmpty');
-  const hint      = document.getElementById('pdfPreviewHint');
-  const btn       = document.getElementById('pdfRefreshBtn');
+  const loading    = document.getElementById('pdfPreviewLoading');
+  const loadText   = document.getElementById('pdfPreviewLoadingText');
+  const iframeWrap = document.getElementById('pdfIframeWrap');
+  const iframeOuter= document.getElementById('pdfIframeOuter');
+  const iframe     = document.getElementById('pdfHtmlFrame');
+  const empty      = document.getElementById('pdfPreviewEmpty');
+  const hint       = document.getElementById('pdfPreviewHint');
+  const btn        = document.getElementById('pdfRefreshBtn');
 
-  if (loading) loading.style.display = 'flex';
-  if (wrap)    wrap.style.display = 'none';
-  if (empty)   empty.style.display = 'none';
-  if (btn)     { btn.disabled = true; btn.textContent = '⏳ Đang tải...'; }
+  if (loading)    loading.style.display = 'flex';
+  if (iframeWrap) iframeWrap.style.display = 'none';
+  if (empty)      empty.style.display = 'none';
+  if (btn)        { btn.disabled = true; btn.textContent = '⏳ Đang tải...'; }
 
   try {
-    // Step 1: sync current layout to server
+    // Step 1: save current layout to server so iframe picks it up
     if (loadText) loadText.textContent = 'Đang lưu layout...';
     if (typeof saveLayout === 'function') saveLayout();
     const layoutJson = localStorage.getItem(SK) || '{}';
+    const t0 = Date.now();
     await fetch('<%= save_report_layout_survey_path(@survey) %>', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.content || '' },
       body: layoutJson
     }).catch(() => {});
 
-    // Step 2: load pdf.js if not yet loaded
-    if (!window.pdfjsLib) {
-      if (loadText) loadText.textContent = 'Đang tải pdf.js...';
-      await new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-        s.onload = resolve; s.onerror = reject;
-        document.head.appendChild(s);
-      });
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    // Step 2: load HTML preview in iframe (instant — no Grover)
+    if (loadText) loadText.textContent = 'Đang tải preview...';
+    const previewUrl = '<%= @html_preview_url || preview_html_report_survey_path(@survey, lang: @report_lang) %>' + '&t=' + Date.now();
+    await new Promise((resolve) => {
+      iframe.onload = resolve;
+      iframe.src = previewUrl;
+      setTimeout(resolve, 15000);
+    });
+
+    // Step 3: scale to fit drawer
+    const availW = (iframeWrap.clientWidth || 508) - 32;
+    const scale  = availW / 1200;
+    const doc    = iframe.contentDocument || iframe.contentWindow?.document;
+    const contentH = doc?.documentElement?.scrollHeight || doc?.body?.scrollHeight || 2000;
+
+    iframe.style.height    = contentH + 'px';
+    iframe.style.transform = `scale(${scale})`;
+    if (iframeOuter) {
+      iframeOuter.style.width  = Math.floor(1200 * scale) + 'px';
+      iframeOuter.style.height = Math.floor(contentH * scale) + 'px';
     }
 
-    // Step 3: fetch the actual PDF
-    if (loadText) loadText.textContent = 'Đang tạo PDF...';
-    const fetchStart = Date.now();
-    // Countdown hint while waiting
-    const _countdownT = setInterval(() => {
-      const s = Math.round((Date.now() - fetchStart) / 1000);
-      if (loadText) loadText.textContent = s < 3 ? 'Đang tạo PDF...' : `Đang render PDF... (${s}s)`;
-    }, 1000);
-    const resp = await fetch('<%= @pdf_preview_url || preview_pdf_report_survey_path(@survey, lang: @report_lang) %>&t=' + Date.now());
-    clearInterval(_countdownT);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const arrayBuffer = await resp.arrayBuffer();
-    const fetchMs = Date.now() - fetchStart;
+    if (iframeWrap) iframeWrap.style.display = 'flex';
+    const elapsed = Date.now() - t0;
+    if (hint) hint.textContent = `⚡ Tải xong trong ${(elapsed/1000).toFixed(1)}s — nhấn Làm mới sau khi thay đổi layout`;
 
-    // Step 4: render each page as canvas
-    if (loadText) loadText.textContent = 'Đang render trang...';
-    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    container.innerHTML = '';
-    const dpr = window.devicePixelRatio || 1;
-    const containerWidth = (wrap.clientWidth || 500) - 32;
-
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 1 });
-      const scale = containerWidth / viewport.width;
-      const scaledViewport = page.getViewport({ scale });
-
-      const canvas = document.createElement('canvas');
-      // Render at devicePixelRatio for crispness
-      canvas.width  = Math.floor(scaledViewport.width  * dpr);
-      canvas.height = Math.floor(scaledViewport.height * dpr);
-      canvas.style.cssText = 'display:block;width:' + Math.floor(scaledViewport.width) + 'px;height:' + Math.floor(scaledViewport.height) + 'px;box-shadow:0 2px 16px rgba(0,0,0,0.5);border-radius:2px;';
-
-      const ctx = canvas.getContext('2d');
-      ctx.scale(dpr, dpr);
-
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;';
-      wrapper.appendChild(canvas);
-      const label = document.createElement('div');
-      label.style.cssText = 'font-size:11px;color:rgba(255,255,255,.4);';
-      label.textContent = 'Trang ' + pageNum + ' / ' + pdf.numPages;
-      wrapper.appendChild(label);
-      container.appendChild(wrapper);
-
-      await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-    }
-
-    if (wrap) wrap.style.display = 'flex';
-    const cached = fetchMs < 1500;
-    if (hint) hint.textContent = cached
-      ? `⚡ Từ cache (${fetchMs}ms) — PDF chính xác 100%`
-      : `✓ Hoàn tất (${(fetchMs/1000).toFixed(1)}s) — tự cập nhật khi thay đổi layout`;
   } catch(err) {
     if (empty) {
       empty.style.display = 'flex';
