@@ -4,7 +4,7 @@ class Admin::SurveysController < Admin::BaseController
   include HtmlReportSetup
   include ApplicationHelper
 
-  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :generate_report_token, :revoke_report_token, :generate_ai_report_token, :revoke_ai_report_token, :save_report_layout, :save_ai_report_layout, :build_report_structure, :reset_report_structure, :export, :export_report, :view_ai_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
+  before_action :set_survey, only: [:show, :edit, :update, :destroy, :publish, :close, :reopen, :archive, :results, :html_report, :pdf_report, :preview_pdf_report, :generate_report_token, :revoke_report_token, :generate_ai_report_token, :revoke_ai_report_token, :save_report_layout, :save_ai_report_layout, :build_report_structure, :reset_report_structure, :export, :export_report, :view_ai_report, :delete_report, :ai_analyze, :ai_report, :ai_suggest_prompt, :share, :clone]
   before_action :prevent_edit_if_closed, only: [:edit, :update]
 
   def index
@@ -183,7 +183,7 @@ class Admin::SurveysController < Admin::BaseController
     layout_data = JSON.parse(layout_json) rescue nil
     return render json: { error: "invalid" }, status: :bad_request unless layout_data
     lang = params[:lang].presence_in(%w[vi en]) || "vi"
-    @survey.update!(settings: @survey.settings.merge("report_layout_#{lang}" => layout_data))
+    @survey.update!(settings: @survey.settings.merge("report_layout_#{@survey.id}_#{lang}" => layout_data))
     render json: { ok: true }
   end
 
@@ -271,6 +271,45 @@ class Admin::SurveysController < Admin::BaseController
   rescue => e
     Rails.logger.error "pdf_report error: #{e.message}\n#{e.backtrace.first(5).join("\n")}"
     redirect_to html_report_survey_path(@survey), alert: "Không thể xuất PDF: #{e.message}"
+  end
+
+  def preview_pdf_report
+    @report_lang = params[:lang].presence_in(%w[vi en]) || "vi"
+    call_html_report_setup
+    params[:pdf] = "1"
+    html = render_to_string(template: "admin/surveys/html_report", layout: false)
+
+    sk = "report_layout_#{@survey.id}_#{@report_lang}"
+    layout_json = @survey.settings[sk]&.to_json || "{}"
+    layout_script = <<~JS
+      <script>
+        (function(){
+          try {
+            var data = #{layout_json.to_s.html_safe};
+            if (typeof data === 'string') data = JSON.parse(data);
+            localStorage.setItem('#{sk}', typeof data === 'string' ? data : JSON.stringify(data));
+          } catch(e) {}
+        })();
+      </script>
+    JS
+    html = html.sub("</head>", "#{layout_script}</head>")
+
+    pdf = Grover.new(html,
+      format:           "A4",
+      landscape:        true,
+      print_background: true,
+      scale:            0.86,
+      margin:           { top: "8mm", bottom: "8mm", left: "8mm", right: "8mm" },
+      emulate_media:    "print",
+      viewport:         { width: 1200, height: 900, device_scale_factor: 2 },
+      wait_until:       "networkidle2",
+      timeout:          90_000
+    ).to_pdf
+
+    send_data pdf, type: "application/pdf", disposition: "inline"
+  rescue => e
+    Rails.logger.error "preview_pdf_report error: #{e.message}"
+    head :internal_server_error
   end
 
   def results

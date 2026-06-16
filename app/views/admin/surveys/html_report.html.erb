@@ -2724,19 +2724,16 @@ async function generatePdfPreview() {
       body: layoutJson
     }).catch(() => {});
 
-    // Generate actual PDF
-    const resp = await fetch('<%= raw(pdf_report_survey_path(@survey, lang: @report_lang)) %>', {
-      method: 'POST',
-      headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+    // Load PDF via GET endpoint — keep spinner until iframe loads
+    const previewUrl = '<%= raw(preview_pdf_report_survey_path(@survey, lang: @report_lang)) %>?t=' + Date.now() + '#toolbar=0&navpanes=0';
+    await new Promise((resolve, reject) => {
+      embed.onload = resolve;
+      embed.onerror = () => reject(new Error('Không tải được PDF'));
+      embed.src = previewUrl;
     });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const blob = await resp.blob();
-    if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
-    _pdfBlobUrl = URL.createObjectURL(blob);
-
-    if (embed) { embed.src = _pdfBlobUrl + '#toolbar=0&navpanes=0&scrollbar=1'; embed.style.display = 'block'; }
-    if (hint)  hint.textContent = 'PDF thực tế — chính xác 100%';
-    if (btn)   { btn.style.background = '#4361ee'; btn.style.borderColor = '#4361ee'; }
+    embed.style.display = 'block';
+    if (hint) hint.textContent = 'PDF thực tế — chính xác 100%';
+    if (btn)  { btn.style.background = '#4361ee'; btn.style.borderColor = '#4361ee'; }
   } catch(err) {
     if (empty) { empty.style.display = 'flex'; empty.querySelector('span:last-child').textContent = 'Lỗi: ' + err.message; }
   } finally {

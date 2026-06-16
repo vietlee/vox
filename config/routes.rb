@@ -100,6 +100,7 @@ Rails.application.routes.draw do
         get   :results
         get   :html_report
         post  :pdf_report
+        get   :preview_pdf_report
         post  :generate_report_token
         delete :revoke_report_token
         post  :save_report_layout
