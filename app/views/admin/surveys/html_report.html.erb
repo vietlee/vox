@@ -1339,9 +1339,9 @@ document.addEventListener('DOMContentLoaded', () => { loadKpiLabels(); loadKpiSi
   }
   localStorage.setItem(VER_KEY, STRUCT_VER);
 })();
-<% _layout_key = "report_layout_#{@report_lang || 'vi'}" %>
-<% if @public_view && @survey.settings[_layout_key].present? %>
-// Inject server-saved layout for public view
+<% _layout_key = "report_layout_#{@survey.id}_#{@report_lang || 'vi'}" %>
+<% if @survey.settings[_layout_key].present? %>
+// Inject server-saved layout into localStorage (admin + public)
 (function(){
   try {
     const serverLayout = <%= raw @survey.settings[_layout_key].to_json %>;
@@ -1970,6 +1970,10 @@ function loadLayout() {
     saved.sectionOrder.forEach(id => {
       const el = container.querySelector(`[data-id="${id}"]`);
       if (el) container.appendChild(el);
+    });
+    // Sections not in saved order (e.g., newly added) go to the end
+    container.querySelectorAll('.report-section').forEach(el => {
+      if (!saved.sectionOrder.includes(el.dataset.id)) container.appendChild(el);
     });
   }
   // Restore hidden sections — always read label from DOM (ignore stale localStorage label)
