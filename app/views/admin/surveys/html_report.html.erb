@@ -298,6 +298,8 @@ canvas{height:250px;min-height:80px;max-height:none}
 #pdfFullscreenOverlay.show{display:flex}
 .pdf-page-wrap{background:white;box-shadow:0 4px 24px rgba(0,0,0,.5);flex-shrink:0;overflow:hidden;position:relative}
 .pdf-page-iframe{border:none;display:block;transform-origin:0 0}
+.page-break-line{position:absolute;left:0;right:0;height:0;border-top:2px dashed rgba(239,68,68,.85);z-index:20;pointer-events:none}
+.page-break-label{position:absolute;right:0;top:-20px;background:#ef4444;color:white;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px 3px 0 0;white-space:nowrap}
 /* Share modal */
 #shareModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 #shareModal.open{display:flex}
@@ -377,7 +379,8 @@ footer{text-align:center;padding:20px;color:#bbb;font-size:11px;break-before:avo
 body.pdf-mode .action-bar,body.pdf-mode .cw-gear,body.pdf-mode .card-toolbar,
 body.pdf-mode .cw-mode-bar,body.pdf-mode .restore-bar,body.pdf-mode .section-controls,
 body.pdf-mode .rh-right,body.pdf-mode .rh-bottom,body.pdf-mode .rh-corner,
-body.pdf-mode #shareModal,body.pdf-mode #pdf-loading{display:none!important}
+body.pdf-mode #shareModal,body.pdf-mode #pdf-loading,
+body.pdf-mode .pdf-preview-tab,body.pdf-mode .pdf-drawer,body.pdf-mode #pdfFullscreenOverlay{display:none!important}
 body.pdf-mode{background:white!important}
 body.pdf-mode .card{box-shadow:none!important;border:1px solid #e2e8f0!important}
 body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
@@ -404,7 +407,8 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   .action-bar,.section-controls,.card-toolbar,.restore-bar,
   .cw-gear,.cw-mode-bar,.rh-right,.rh-bottom,.rh-corner,
   .modal-overlay,.btn-sec-drag,#pdf-loading,footer,
-  .hdr-edit-icon,#shareModal,#vox-confirm-overlay{display:none!important}
+  .hdr-edit-icon,#shareModal,#vox-confirm-overlay,
+  .pdf-preview-tab,.pdf-drawer,#pdfFullscreenOverlay{display:none!important}
 
   html,body{height:auto!important;overflow:visible!important;background:white!important;font-size:12px}
   /* Remove any trailing padding/margin that creates blank last page */
@@ -513,8 +517,11 @@ html,body{height:auto!important;overflow:visible!important;background:white!impo
   </div>
   <div class="pdf-drawer-toolbar">
     <span class="pdf-drawer-hint">Preview tự cập nhật khi thay đổi</span>
-    <button onclick="openPdfFullscreen('A4')" class="pdf-size-btn" title="Xem A4">A4</button>
-    <button onclick="openPdfFullscreen('A3')" class="pdf-size-btn" title="Xem A3">A3</button>
+    <span style="display:flex;gap:3px;align-items:center">
+      <button id="drawerA4Btn" onclick="setDrawerSize('A4')" class="pdf-size-btn active" title="Xem ngắt trang A4">A4</button>
+      <button id="drawerA3Btn" onclick="setDrawerSize('A3')" class="pdf-size-btn" title="Xem ngắt trang A3">A3</button>
+    </span>
+    <button onclick="openPdfFullscreen(_drawerSize)" class="pdf-size-btn" title="Mở toàn màn hình">⛶</button>
     <button onclick="downloadPdf()" style="background:#374151;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer">⬇ Tải PDF</button>
   </div>
   <div class="pdf-drawer-body">
@@ -2757,12 +2764,12 @@ function setPdfFullscreenSize(size) {
     qp.set('pdf_preview','1'); qp.set('pdf','1'); qp.set('_ts', Date.now());
     frame.src = base + '?' + qp.toString();
     frame.onload = () => {
-      // After content renders, measure real page height and add more page blocks if needed
       setTimeout(() => {
         try {
           const totalH = frame.contentDocument?.body?.scrollHeight || 0;
           frame.style.height = totalH + 'px';
           wrap.style.height  = Math.ceil(totalH * scale) + 'px';
+          drawPageBreaks(wrap, scale, totalH, size);
         } catch(e) {}
       }, 800);
     };
@@ -2814,12 +2821,53 @@ function loadPreviewFrame(forceReload) {
           if (h > 100) {
             frame.style.height = h + 'px';
             const wrap = document.getElementById('pdfFrameWrap');
-            if (wrap) wrap.style.height = Math.ceil(h * (frame._previewScale||1)) + 'px';
+            if (wrap) {
+              const sc = frame._previewScale || 1;
+              wrap.style.height = Math.ceil(h * sc) + 'px';
+              drawPageBreaks(wrap, sc, h, _drawerSize);
+            }
           }
         } catch(e) {}
       }, 600);
     };
   });
+}
+
+// Page break heights in source CSS px (at 1200px viewport, scale 0.86, 8mm margins, landscape)
+const PAGE_BREAK_PX = { A4: 853, A3: 1236 };
+let _drawerSize = 'A4';
+
+function setDrawerSize(size) {
+  _drawerSize = size;
+  document.getElementById('drawerA4Btn')?.classList.toggle('active', size === 'A4');
+  document.getElementById('drawerA3Btn')?.classList.toggle('active', size === 'A3');
+  // Redraw page breaks if iframe is loaded
+  const wrap = document.getElementById('pdfFrameWrap');
+  const frame = document.getElementById('pdfPreviewFrame');
+  if (wrap && frame) {
+    try {
+      const h = frame.contentDocument?.body?.scrollHeight;
+      if (h > 100) drawPageBreaks(wrap, frame._previewScale || 1, h, size);
+    } catch(e) {}
+  }
+}
+
+function drawPageBreaks(wrap, scale, sourceHeightPx, size) {
+  // Remove old lines
+  wrap.querySelectorAll('.page-break-line').forEach(el => el.remove());
+  const ph = PAGE_BREAK_PX[size] || PAGE_BREAK_PX.A4;
+  const pages = Math.floor(sourceHeightPx / ph);
+  for (let i = 1; i <= pages; i++) {
+    const line = document.createElement('div');
+    line.className = 'page-break-line';
+    const top = Math.round(i * ph * scale);
+    line.style.top = top + 'px';
+    const lbl = document.createElement('div');
+    lbl.className = 'page-break-label';
+    lbl.textContent = `Trang ${i}`;
+    line.appendChild(lbl);
+    wrap.appendChild(line);
+  }
 }
 
 // Debounced reload on any layout change
