@@ -536,8 +536,8 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
       <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite"></div>
       <span style="font-size:13px;opacity:.8">Đang tạo PDF... (khoảng 5-10 giây)</span>
     </div>
-    <div id="pdfEmbedWrapper" style="display:none;position:relative;width:100%;height:100%;overflow:hidden">
-      <iframe id="pdfPreviewEmbed" style="position:absolute;left:-230px;width:calc(100% + 230px);height:100%;border:none"></iframe>
+    <div id="pdfEmbedWrapper" style="display:none;flex:1;min-height:0;position:relative;overflow:hidden">
+      <iframe id="pdfPreviewEmbed" style="position:absolute;top:0;bottom:0;left:-230px;width:calc(100% + 230px);height:100%;border:none"></iframe>
     </div>
     <div id="pdfPreviewEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:rgba(255,255,255,.6)">
       <span style="font-size:32px">📄</span>
@@ -2734,7 +2734,7 @@ async function generatePdfPreview() {
       embed.onerror = () => reject(new Error('Không tải được PDF'));
       embed.src = previewUrl;
     });
-    if (wrapper) wrapper.style.display = 'block';
+    if (wrapper) wrapper.style.display = 'flex';
     if (hint) hint.textContent = 'PDF thực tế — chính xác 100%';
     if (btn)  { btn.style.background = '#4361ee'; btn.style.borderColor = '#4361ee'; }
   } catch(err) {
