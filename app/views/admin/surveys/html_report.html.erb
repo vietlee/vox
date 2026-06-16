@@ -2704,9 +2704,12 @@ function togglePdfPreview() {
   if (pdfPreviewOpen) generatePdfPreview();
 }
 
-// A4 landscape, scale 0.86, 8mm margins → ~851 CSS px per page at 1200px viewport
-const PDF_PAGE_H = 851;
+// A4 landscape 210mm, scale 0.86, margins: 194mm content → 194*3.78/0.86 = 853px
+const PDF_PAGE_H = 853;
 const PREVIEW_ZOOM = 0.45; // 540px drawer / 1200px viewport
+// Measured from actual PDF: ~18mm top + ~18mm bottom margin per page = 36mm gap
+// In CSS px at scale 0.86: 36*3.78/0.86 = 158px; at zoom 0.45 = 71px visual
+const PAGE_GAP_PX = 71;
 
 async function generatePdfPreview() {
   if (!pdfPreviewOpen) return;
@@ -2732,9 +2735,6 @@ async function generatePdfPreview() {
     // Set iframe height to full content height
     const contentH = frame.contentDocument?.body?.scrollHeight || 3000;
     frame.style.height = contentH + 'px';
-    // Draw page break zones: 8mm top + 8mm bottom margin = ~70px CSS gap per break
-    // At PREVIEW_ZOOM 0.45: gap = 70 * 0.45 ≈ 32px; split evenly (16px bottom + 16px top)
-    const MARGIN_PX = Math.round(70 * PREVIEW_ZOOM); // visual gap between pages
     const breakDiv = document.getElementById('pdfBreakLines');
     if (breakDiv) {
       breakDiv.innerHTML = '';
@@ -2742,8 +2742,10 @@ async function generatePdfPreview() {
       for (let i = 1; i < pages; i++) {
         const y = Math.round(i * PDF_PAGE_H * PREVIEW_ZOOM);
         breakDiv.insertAdjacentHTML('beforeend',
-          `<div style="position:absolute;top:${y - MARGIN_PX/2}px;left:0;right:0;height:${MARGIN_PX}px;background:#525659;border-top:2px solid rgba(220,38,38,.7);border-bottom:2px solid rgba(220,38,38,.7);z-index:5;display:flex;align-items:center;justify-content:center">` +
-          `<span style="font-size:10px;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:.05em">— Trang ${i} / Trang ${i+1} —</span></div>`
+          `<div style="position:absolute;top:${y - PAGE_GAP_PX/2}px;left:0;right:0;height:${PAGE_GAP_PX}px;background:#3a3f47;border-top:2px solid rgba(220,38,38,.8);border-bottom:2px solid rgba(220,38,38,.8);z-index:5;display:flex;align-items:center;justify-content:center;gap:8px">` +
+          `<span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:500">Trang ${i}</span>` +
+          `<span style="font-size:10px;color:rgba(220,38,38,.6)">✦</span>` +
+          `<span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:500">Trang ${i+1}</span></div>`
         );
       }
       breakDiv.style.height = Math.round(contentH * PREVIEW_ZOOM) + 'px';

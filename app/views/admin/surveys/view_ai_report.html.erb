@@ -1640,8 +1640,9 @@ function _syncedLayout() {
   } catch(e) { return {}; }
 }
 
-const PDF_PAGE_H   = 851;  // A4 landscape 8mm margins scale:0.86 at 1200px viewport
+const PDF_PAGE_H   = 853;  // A4 landscape 194mm content * 3.78/0.86 = 853px CSS
 const PREVIEW_ZOOM = 0.45; // 540px drawer / 1200px viewport
+const PAGE_GAP_PX  = 71;   // measured from actual PDF: ~18mm top + ~18mm bottom margin
 
 async function generatePdfPreview() {
   if (!pdfPreviewOpen) return;
@@ -1667,7 +1668,6 @@ async function generatePdfPreview() {
     });
     const contentH = frame.contentDocument?.body?.scrollHeight || 3000;
     frame.style.height = contentH + 'px';
-    const MARGIN_PX = Math.round(70 * PREVIEW_ZOOM);
     const breakDiv = document.getElementById('pdfBreakLines');
     if (breakDiv) {
       breakDiv.innerHTML = '';
@@ -1675,8 +1675,10 @@ async function generatePdfPreview() {
       for (let i = 1; i < pages; i++) {
         const y = Math.round(i * PDF_PAGE_H * PREVIEW_ZOOM);
         breakDiv.insertAdjacentHTML('beforeend',
-          `<div style="position:absolute;top:${y - MARGIN_PX/2}px;left:0;right:0;height:${MARGIN_PX}px;background:#525659;border-top:2px solid rgba(220,38,38,.7);border-bottom:2px solid rgba(220,38,38,.7);z-index:5;display:flex;align-items:center;justify-content:center">` +
-          `<span style="font-size:10px;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:.05em">— Trang ${i} / Trang ${i+1} —</span></div>`
+          `<div style="position:absolute;top:${y - PAGE_GAP_PX/2}px;left:0;right:0;height:${PAGE_GAP_PX}px;background:#3a3f47;border-top:2px solid rgba(220,38,38,.8);border-bottom:2px solid rgba(220,38,38,.8);z-index:5;display:flex;align-items:center;justify-content:center;gap:8px">` +
+          `<span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:500">Trang ${i}</span>` +
+          `<span style="font-size:10px;color:rgba(220,38,38,.6)">✦</span>` +
+          `<span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:500">Trang ${i+1}</span></div>`
         );
       }
       breakDiv.style.height = Math.round(contentH * PREVIEW_ZOOM) + 'px';
