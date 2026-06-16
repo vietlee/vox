@@ -1693,11 +1693,10 @@ async function generatePdfPreview() {
 
 function schedulePreviewReload() {
   if (!pdfPreviewOpen) return;
-  _previewDirty = true;
   const hint = document.getElementById('pdfPreviewHint');
-  const btn  = document.getElementById('pdfRefreshBtn');
-  if (hint) hint.textContent = '⚠ Layout đã thay đổi — nhấn Làm mới để cập nhật';
-  if (btn)  { btn.style.background = '#f59e0b'; btn.style.borderColor = '#f59e0b'; btn.textContent = '🔄 Làm mới'; btn.disabled = false; }
+  if (hint) hint.textContent = '⏳ Đang cập nhật xem trước...';
+  clearTimeout(schedulePreviewReload._t);
+  schedulePreviewReload._t = setTimeout(generatePdfPreview, 1500);
 }
 <% end %>
 </script>
