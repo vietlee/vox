@@ -256,15 +256,16 @@ class Admin::SurveysController < Admin::BaseController
     # scale:0.86 → shrinks 1200px layout to fit A4 landscape content (277mm).
     # Net canvas sharpness: 2 * 0.86 = 1.72x vs default → significantly crisper.
     pdf = Grover.new(html,
-      format:           "A4",
-      landscape:        true,
-      print_background: true,
-      scale:            0.86,
-      margin:           { top: "8mm", bottom: "8mm", left: "8mm", right: "8mm" },
-      emulate_media:    "print",
-      viewport:         { width: 1200, height: 900, device_scale_factor: 2 },
-      wait_until:       "networkidle2",
-      timeout:          90_000
+      format:            "A4",
+      landscape:         true,
+      print_background:  true,
+      scale:             0.86,
+      margin:            { top: "8mm", bottom: "8mm", left: "8mm", right: "8mm" },
+      emulate_media:     "print",
+      viewport:          { width: 1200, height: 900, device_scale_factor: 2 },
+      wait_until:        "load",
+      wait_for_function: "window._chartsReady === true",
+      timeout:           90_000
     ).to_pdf
 
     send_data pdf,
@@ -304,15 +305,16 @@ class Admin::SurveysController < Admin::BaseController
       html = html.sub("</head>", "#{layout_script}</head>")
 
       Grover.new(html,
-        format:           "A4",
-        landscape:        true,
-        print_background: true,
-        scale:            0.86,
-        margin:           { top: "8mm", bottom: "8mm", left: "8mm", right: "8mm" },
-        emulate_media:    "print",
-        viewport:         { width: 1200, height: 900, device_scale_factor: 2 },
-        wait_until:       "load",
-        timeout:          60_000
+        format:              "A4",
+        landscape:           true,
+        print_background:    true,
+        scale:               0.86,
+        margin:              { top: "8mm", bottom: "8mm", left: "8mm", right: "8mm" },
+        emulate_media:       "print",
+        viewport:            { width: 1200, height: 900, device_scale_factor: 2 },
+        wait_until:          "load",
+        wait_for_function:   "window._chartsReady === true",
+        timeout:             60_000
       ).to_pdf
     end
 
@@ -460,8 +462,9 @@ class Admin::SurveysController < Admin::BaseController
         emulate_media:    "print",
         launch_args:      ["--no-sandbox", "--disable-setuid-sandbox", "--font-render-hinting=none"],
         viewport:         { width: 1200, height: 900, device_scale_factor: 2 },
-        wait_until:       "networkidle2",
-        timeout:          90_000
+        wait_until:        "load",
+        wait_for_function: "window._chartsReady === true",
+        timeout:           90_000
       ).to_pdf
       disp = params[:preview] == "1" ? "inline" : "attachment"
       send_data pdf, filename: "#{filename_base}-ai-report-#{Date.today}.pdf", type: "application/pdf", disposition: disp

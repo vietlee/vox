@@ -23,6 +23,9 @@ const hbarDL ={anchor:'end',align:'end',offset:4,clip:false,font:{size:11,weight
 const pieDL  ={display:ctx=>ctx.dataset.data[ctx.dataIndex]>0,color:'#fff',font:{size:12,weight:'700'},formatter:v=>v};
 const barLayout={padding:{top:20}};
 const chartReg={};
+const _pdfMode = new URLSearchParams(location.search).get('pdf') === '1';
+// Disable animation in PDF mode so Grover captures fully-rendered charts
+if (_pdfMode) { Chart.defaults.animation = false; Chart.defaults.animations = {}; }
 function mkChart(id,cfg){
   const el=document.getElementById(id);
   if(!el){console.warn('mkChart: canvas not found:',id);return null;}
@@ -40,11 +43,18 @@ function mkChart(id,cfg){
   const itemCount = cfg.data?.labels?.length||0;
   const autoH = isHBar ? Math.max(160, itemCount*38+60) : isPie ? Math.max(260, itemCount*24+80) : 240;
   if(!wrap.style.height) wrap.style.height = autoH+'px';
+  if (_pdfMode) { cfg.options = Object.assign({}, cfg.options||{}, {animation:false}); }
   cfg.options = Object.assign({}, cfg.options||{}, {responsive:true, maintainAspectRatio:false});
   const ch=new Chart(el,cfg);
   chartReg[id]=ch;
   return ch;
 }
+// Signal to Grover when all charts are done (used by waitForFunction)
+window._chartsReady = false;
+document.addEventListener('DOMContentLoaded', () => {
+  // Give charts one rAF to render their first frame, then mark ready
+  requestAnimationFrame(() => requestAnimationFrame(() => { window._chartsReady = true; }));
+});
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
