@@ -311,7 +311,7 @@ canvas{height:250px;min-height:80px;max-height:none}
 .pdf-drawer-close:hover{color:white;background:#475569}
 .pdf-drawer-toolbar{padding:8px 16px;background:#1e293b;display:flex;align-items:center;gap:8px;border-bottom:1px solid #334155;flex-shrink:0}
 .pdf-drawer-hint{font-size:11px;color:#64748b;flex:1}
-.pdf-drawer-body{flex:1;overflow-y:auto;background:#374151;padding:12px;display:flex;flex-direction:column}
+.pdf-drawer-body{flex:1;overflow:hidden;background:#525659;padding:0;display:flex;flex-direction:column}
 .pdf-frame-wrap{background:#374151;border-radius:2px;overflow:hidden;flex-shrink:0;position:relative}
 #pdfPreviewFrame{width:1200px;border:none;display:block;transform-origin:0 0}
 .pdf-preview-refreshing{position:absolute;inset:0;background:rgba(55,65,81,.6);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
@@ -744,46 +744,30 @@ canvas{max-height:200px;break-inside:avoid}
 <button class="pdf-preview-tab" id="pdfPreviewTab" onclick="togglePdfPreview()" title="Xem trước PDF">
   <span class="pdf-preview-tab-icon">👁</span>
   <span class="pdf-preview-tab-text">XEM TRƯỚC PDF</span>
-  <span class="pdf-preview-tab-badge">LIVE</span>
 </button>
 <div class="pdf-drawer" id="pdfDrawer">
   <div class="pdf-drawer-hdr">
     <div class="pdf-drawer-hdr-left">
-      <span>👁 Xem trước PDF</span>
-      <span class="pdf-drawer-badge">LIVE</span>
+      <span>👁 Xem trước PDF thực tế</span>
     </div>
     <button class="pdf-drawer-close" onclick="togglePdfPreview()">✕ Đóng</button>
   </div>
   <div class="pdf-drawer-toolbar">
-    <span class="pdf-drawer-hint">Preview tự cập nhật khi thay đổi</span>
-    <span style="display:flex;gap:3px;align-items:center">
-      <button id="drawerA4Btn" onclick="setDrawerSize('A4')" class="pdf-size-btn active" title="Xem ngắt trang A4">A4</button>
-      <button id="drawerA3Btn" onclick="setDrawerSize('A3')" class="pdf-size-btn" title="Xem ngắt trang A3">A3</button>
-    </span>
-    <button onclick="openPdfFullscreen(_drawerSize)" class="pdf-size-btn" title="Mở toàn màn hình">⛶</button>
+    <span class="pdf-drawer-hint" id="pdfPreviewHint">PDF được tạo chính xác như khi xuất</span>
+    <button id="pdfRefreshBtn" onclick="generatePdfPreview()" class="pdf-size-btn" style="background:#4361ee;color:white;border-color:#4361ee" title="Tạo lại preview">🔄 Làm mới</button>
     <button onclick="downloadPdf()" style="background:#374151;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer">⬇ Tải PDF</button>
   </div>
-  <div class="pdf-drawer-body">
-    <div class="pdf-frame-wrap" id="pdfFrameWrap">
-      <iframe id="pdfPreviewFrame" src="about:blank" scrolling="no"></iframe>
-      <div class="pdf-preview-refreshing" id="pdfRefreshing">Đang cập nhật...</div>
+  <div class="pdf-drawer-body" style="padding:0;background:#525659">
+    <div id="pdfPreviewLoading" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:white">
+      <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite"></div>
+      <span style="font-size:13px;opacity:.8">Đang tạo PDF... (khoảng 5-10 giây)</span>
+    </div>
+    <embed id="pdfPreviewEmbed" type="application/pdf" style="width:100%;height:100%;display:none;border:none">
+    <div id="pdfPreviewEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:rgba(255,255,255,.6)">
+      <span style="font-size:32px">📄</span>
+      <span style="font-size:13px">Nhấn "Làm mới" để xem trước PDF chính xác</span>
     </div>
   </div>
-</div>
-
-<div id="pdfFullscreenOverlay" style="position:fixed;inset:0;background:rgba(15,23,42,.92);z-index:3000;flex-direction:column">
-  <div style="padding:10px 16px;background:#0f172a;display:flex;align-items:center;gap:10px;flex-shrink:0">
-    <span style="color:white;font-weight:600;font-size:13px">👁 Xem trước PDF</span>
-    <div style="display:flex;gap:4px;margin-left:8px">
-      <button onclick="setPdfFullscreenSize('A4')" id="fsA4Btn" class="pdf-size-btn active">A4</button>
-      <button onclick="setPdfFullscreenSize('A3')" id="fsA3Btn" class="pdf-size-btn">A3</button>
-    </div>
-    <span id="fsSizeInfo" style="color:#64748b;font-size:11px;margin-left:4px"></span>
-    <div style="flex:1"></div>
-    <button onclick="downloadPdf()" style="background:#374151;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer">⬇ Tải PDF</button>
-    <button onclick="closePdfFullscreen()" style="background:#475569;color:white;border:none;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">✕ Đóng</button>
-  </div>
-  <div id="pdfFsBody" style="flex:1;overflow:auto;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px"></div>
 </div>
 <% end %>
 
@@ -1628,9 +1612,10 @@ function hdrKey(e, which) {
 }
 
 <% unless @pdf_preview %>
-// ── PDF Preview drawer ──
+// ── PDF Preview drawer (actual PDF via blob) ──
 let pdfPreviewOpen = false;
-const PDF_PREVIEW_W = 1200;
+let _pdfBlobUrl = null;
+let _previewDirty = false;
 
 function togglePdfPreview() {
   pdfPreviewOpen = !pdfPreviewOpen;
@@ -1640,81 +1625,10 @@ function togglePdfPreview() {
   drawer.classList.toggle('open', pdfPreviewOpen);
   if (tab) tab.classList.toggle('open', pdfPreviewOpen);
   document.body.classList.toggle('pdf-preview-open', pdfPreviewOpen);
-  if (pdfPreviewOpen) { updatePreviewScale(); loadPreviewFrame(); }
-}
-
-const PAGE_SIZES = {
-  A4: { w: 297, h: 210, label: 'A4 (297×210mm)' },
-  A3: { w: 420, h: 297, label: 'A3 (420×297mm)' }
-};
-let _fsSize = 'A4';
-
-function openPdfFullscreen(size) {
-  _fsSize = size || 'A4';
-  document.getElementById('pdfFullscreenOverlay').classList.add('show');
-  setPdfFullscreenSize(_fsSize);
-}
-function closePdfFullscreen() {
-  document.getElementById('pdfFullscreenOverlay').classList.remove('show');
-}
-function setPdfFullscreenSize(size) {
-  _fsSize = size;
-  document.getElementById('fsA4Btn')?.classList.toggle('active', size === 'A4');
-  document.getElementById('fsA3Btn')?.classList.toggle('active', size === 'A3');
-  const { w, h, label } = PAGE_SIZES[size];
-  const info = document.getElementById('fsSizeInfo');
-  if (info) info.textContent = label;
-  const body  = document.getElementById('pdfFsBody');
-  const avail = body.clientWidth - 48;
-  // Scale 1200px content to fit available width; keep same aspect ratio per page for reference
-  const pageW = Math.min(avail, 1100);
-  const scale = pageW / PDF_PREVIEW_W;
-  body.innerHTML = '';
-  const wrap = document.createElement('div');
-  wrap.className = 'pdf-page-wrap';
-  // Start with one page height; will expand after iframe loads
-  wrap.style.cssText = `width:${pageW}px;height:${Math.round((h/w)*pageW)}px`;
-  const frame = document.createElement('iframe');
-  frame.className = 'pdf-page-iframe';
-  frame.style.cssText = `width:${PDF_PREVIEW_W}px;height:${Math.round((h/w)*PDF_PREVIEW_W)}px;transform:scale(${scale})`;
-  wrap.appendChild(frame);
-  body.appendChild(wrap);
-  fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
-    body: JSON.stringify(_syncedLayout())
-  }).catch(() => {}).finally(() => {
-    const base = window.location.href.split('?')[0];
-    const qp = new URLSearchParams(window.location.search);
-    qp.set('pdf_preview','1'); qp.set('pdf','1'); qp.set('_ts', Date.now());
-    frame.src = base + '?' + qp.toString();
-    frame.onload = () => {
-      setTimeout(() => {
-        try {
-          const totalH = frame.contentDocument?.body?.scrollHeight || 0;
-          if (totalH > 100) {
-            // Expand to full document height so all content is visible (like multi-page PDF)
-            frame.style.height = totalH + 'px';
-            wrap.style.height  = Math.ceil(totalH * scale) + 'px';
-            drawPageBreaks(wrap, scale, totalH, size);
-          }
-        } catch(e) {}
-      }, 800);
-    };
-  });
-}
-
-function updatePreviewScale() {
-  const wrap  = document.getElementById('pdfFrameWrap');
-  const frame = document.getElementById('pdfPreviewFrame');
-  if (!wrap || !frame) return;
-  const scale = wrap.offsetWidth / PDF_PREVIEW_W;
-  frame.style.transform = `scale(${scale})`;
-  frame._previewScale = scale;
+  if (pdfPreviewOpen && !_pdfBlobUrl) generatePdfPreview();
 }
 
 function _syncedLayout() {
-  // Merge KPI sizes into LAYOUT_KEY before syncing to server
   try {
     const layout = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
     const kpiSizes = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
@@ -1723,90 +1637,53 @@ function _syncedLayout() {
   } catch(e) { return {}; }
 }
 
-function loadPreviewFrame() {
+async function generatePdfPreview() {
   if (!pdfPreviewOpen) return;
-  const frame    = document.getElementById('pdfPreviewFrame');
-  const refresher = document.getElementById('pdfRefreshing');
-  if (!frame) return;
-  fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
-    body: JSON.stringify(_syncedLayout())
-  }).catch(() => {}).finally(() => {
-    if (refresher) refresher.classList.add('show');
-    const base = window.location.href.split('?')[0];
-    const qp = new URLSearchParams(window.location.search);
-    qp.set('pdf_preview', '1'); qp.set('pdf', '1'); qp.set('_ts', Date.now());
-    frame.src = base + '?' + qp.toString();
-    frame.onload = () => {
-      updatePreviewScale();
-      if (refresher) refresher.classList.remove('show');
-      setTimeout(() => {
-        try {
-          const h = frame.contentDocument?.body?.scrollHeight;
-          if (h > 100) {
-            frame.style.height = h + 'px';
-            const wrap = document.getElementById('pdfFrameWrap');
-            if (wrap) {
-              const sc = frame._previewScale || 1;
-              wrap.style.height = Math.ceil(h * sc) + 'px';
-              drawPageBreaks(wrap, sc, h, _drawerSize);
-            }
-          }
-        } catch(e) {}
-      }, 600);
-    };
-  });
-}
+  const loading = document.getElementById('pdfPreviewLoading');
+  const embed   = document.getElementById('pdfPreviewEmbed');
+  const empty   = document.getElementById('pdfPreviewEmpty');
+  const hint    = document.getElementById('pdfPreviewHint');
+  const btn     = document.getElementById('pdfRefreshBtn');
 
-const PAGE_BREAK_PX = { A4: 780, A3: 1130 };
-let _drawerSize = 'A4';
+  if (loading) { loading.style.display = 'flex'; }
+  if (embed)   { embed.style.display = 'none'; }
+  if (empty)   { empty.style.display = 'none'; }
+  if (btn)     { btn.disabled = true; btn.textContent = '⏳ Đang tạo...'; }
+  _previewDirty = false;
 
-function setDrawerSize(size) {
-  _drawerSize = size;
-  document.getElementById('drawerA4Btn')?.classList.toggle('active', size === 'A4');
-  document.getElementById('drawerA3Btn')?.classList.toggle('active', size === 'A3');
-  const wrap = document.getElementById('pdfFrameWrap');
-  const frame = document.getElementById('pdfPreviewFrame');
-  if (!wrap || !frame) return;
   try {
-    const h = frame.contentDocument?.body?.scrollHeight;
-    if (h > 100) {
-      drawPageBreaks(wrap, frame._previewScale || 1, h, size);
-      return;
-    }
-  } catch(e) {}
-  // iframe not loaded yet — trigger load
-  loadPreviewFrame();
-}
+    // Sync layout to server first
+    await fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+      body: JSON.stringify(_syncedLayout())
+    }).catch(() => {});
 
-function drawPageBreaks(wrap, scale, sourceHeightPx, size) {
-  wrap.querySelectorAll('.page-break-sep').forEach(el => el.remove());
-  const ph = PAGE_BREAK_PX[size] || PAGE_BREAK_PX.A4;
-  const sepH = Math.max(12, Math.round(20 * scale)); // separator height scales with content
-  const pages = Math.floor(sourceHeightPx / ph);
-  for (let i = 1; i <= pages; i++) {
-    const sep = document.createElement('div');
-    sep.className = 'page-break-sep';
-    const top = Math.round(i * ph * scale);
-    sep.style.cssText = `top:${top - Math.floor(sepH/2)}px;height:${sepH}px`;
-    const lbl = document.createElement('span');
-    lbl.className = 'page-break-sep-lbl';
-    lbl.textContent = `— Trang ${i} / Trang ${i+1} —`;
-    sep.appendChild(lbl);
-    wrap.appendChild(sep);
+    // Generate actual PDF
+    const resp = await fetch('<%= export_report_survey_path(@survey, report_id: @ai_result.id, format_type: "pdf") %>');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const blob = await resp.blob();
+    if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
+    _pdfBlobUrl = URL.createObjectURL(blob);
+
+    if (embed) { embed.src = _pdfBlobUrl; embed.style.display = 'block'; }
+    if (hint)  { hint.textContent = 'PDF thực tế — chính xác 100%'; }
+  } catch(err) {
+    if (empty) { empty.style.display = 'flex'; empty.querySelector('span:last-child').textContent = 'Lỗi tạo PDF: ' + err.message; }
+  } finally {
+    if (loading) loading.style.display = 'none';
+    if (btn)     { btn.disabled = false; btn.textContent = '🔄 Làm mới'; }
   }
-  // Ensure wrap has dark background to show between pages
-  wrap.style.background = '#374151';
 }
 
 function schedulePreviewReload() {
   if (!pdfPreviewOpen) return;
-  clearTimeout(schedulePreviewReload._t);
-  schedulePreviewReload._t = setTimeout(loadPreviewFrame, 800);
+  _previewDirty = true;
+  const hint = document.getElementById('pdfPreviewHint');
+  const btn  = document.getElementById('pdfRefreshBtn');
+  if (hint) hint.textContent = '⚠ Layout đã thay đổi — nhấn Làm mới để cập nhật';
+  if (btn)  { btn.style.background = '#f59e0b'; btn.style.borderColor = '#f59e0b'; btn.textContent = '🔄 Làm mới'; btn.disabled = false; }
 }
-
-window.addEventListener('resize', updatePreviewScale);
 <% end %>
 </script>
 </body>
