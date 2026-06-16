@@ -1116,20 +1116,20 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
   </div>
 <% end %>
 
-</div><%# /sortableContainer %>
-
 <%# ── AI Insights & Recommendations panel ── %>
 <% ai_insights = @report_structure&.dig("ai_insights") || [] %>
 <% if ai_insights.any? %>
 <% stat_insights = ai_insights.select{|i| i["type"] == "stat" || (i["text"].present? && i["type"] != "recommendation")} %>
 <% rec_insights  = ai_insights.select{|i| i["type"] == "recommendation" && i["title"].present?} %>
-<div style="margin-top:28px" id="ai-insights-section">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:16px;font-weight:700;color:#1a1a2e;break-after:avoid;page-break-after:avoid">
-    <span style="display:block;width:4px;height:20px;background:#7c3aed;border-radius:2px;flex-shrink:0"></span>
-    <%= @report_lang == "en" ? "✦ Insights & Recommendations (AI)" : "✦ Insights & Khuyến nghị (AI)" %>
+<div class="report-section" data-id="s-ai-insights" id="ai-insights-section">
+  <div class="section-header">
+    <div class="section-controls">
+      <span class="btn-sec-drag">⠿</span>
+      <button class="btn-sec-hide" onclick="hideSection('s-ai-insights','<%= @report_lang == "en" ? "Insights & Recommendations (AI)" : "Insights & Khuyến nghị (AI)" %>')"><%= @report_lang == "en" ? "Hide section" : "Ẩn section" %></button>
+    </div>
+    <div class="section-title"><% unless @public_view %><input type="text" class="section-title-edit" data-sec-id="s-ai-insights" value="<%= @report_lang == "en" ? "✦ Insights & Recommendations (AI)" : "✦ Insights & Khuyến nghị (AI)" %>" onchange="saveLayout()" onblur="saveLayout()" onkeydown="if(event.key==='Enter')this.blur()" spellcheck="false"><% else %><span><%= @report_lang == "en" ? "✦ Insights & Recommendations (AI)" : "✦ Insights & Khuyến nghị (AI)" %></span><% end %></div>
   </div>
 
-  <%# ── Screen: 2-col grid | Print: single column each item avoids break ── %>
   <div class="insights-grid">
     <% if stat_insights.any? %>
     <div class="insights-col">
@@ -1157,6 +1157,8 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
   </div>
 </div>
 <% end %>
+
+</div><%# /sortableContainer %>
 
 </div><%# /container %>
 <footer><%= @report_lang == "en" ? "Automated report · VOX · #{@total_responses} responses · #{@survey.title}" : "Báo cáo tự động · VOX · #{@total_responses} phản hồi · #{@survey.title}" %></footer>
