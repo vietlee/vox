@@ -218,8 +218,9 @@ class Admin::SurveysController < Admin::BaseController
     html = render_to_string(template: "admin/surveys/html_report", layout: false)
 
     # Inject the browser's localStorage layout so Grover renders the same layout
-    layout_json = params[:layout].presence || "{}"
+    # Prefer server-saved layout (synced before PDF generation) over params
     sk = "report_layout_#{@survey.id}_#{@report_lang}"
+    layout_json = params[:layout].presence || @survey.settings[sk]&.to_json || "{}"
     layout_script = <<~JS
       <script>
         (function(){

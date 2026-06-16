@@ -2723,7 +2723,10 @@ async function generatePdfPreview() {
     }).catch(() => {});
 
     // Generate actual PDF
-    const resp = await fetch('<%= raw(pdf_report_survey_path(@survey, lang: @report_lang)) %>');
+    const resp = await fetch('<%= raw(pdf_report_survey_path(@survey, lang: @report_lang)) %>', {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+    });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const blob = await resp.blob();
     if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
