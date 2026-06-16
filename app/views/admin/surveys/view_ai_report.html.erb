@@ -762,7 +762,7 @@ canvas{max-height:200px;break-inside:avoid}
       <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite"></div>
       <span style="font-size:13px;opacity:.8">Đang tạo PDF... (khoảng 5-10 giây)</span>
     </div>
-    <embed id="pdfPreviewEmbed" type="application/pdf" style="width:100%;height:100%;display:none;border:none">
+    <iframe id="pdfPreviewEmbed" style="width:100%;height:100%;display:none;border:none"></iframe>
     <div id="pdfPreviewEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:rgba(255,255,255,.6)">
       <span style="font-size:32px">📄</span>
       <span style="font-size:13px">Nhấn "Làm mới" để xem trước PDF chính xác</span>
@@ -1659,15 +1659,15 @@ async function generatePdfPreview() {
       body: JSON.stringify(_syncedLayout())
     }).catch(() => {});
 
-    // Generate actual PDF
-    const resp = await fetch('<%= export_report_survey_path(@survey, report_id: @ai_result.id, format_type: "pdf") %>');
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const blob = await resp.blob();
-    if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
-    _pdfBlobUrl = URL.createObjectURL(blob);
-
-    if (embed) { embed.src = _pdfBlobUrl + '#pagemode=none'; embed.style.display = 'block'; }
-    if (hint)  { hint.textContent = 'PDF thực tế — chính xác 100%'; }
+    // Load PDF via real URL so #toolbar=0&navpanes=0 is respected
+    const previewUrl = '<%= export_report_survey_path(@survey, report_id: @ai_result.id, format_type: "pdf", preview: "1") %>&t=' + Date.now() + '#toolbar=0&navpanes=0';
+    await new Promise((resolve, reject) => {
+      embed.onload = resolve;
+      embed.onerror = () => reject(new Error('Không tải được PDF'));
+      embed.src = previewUrl;
+    });
+    embed.style.display = 'block';
+    if (hint) { hint.textContent = 'PDF thực tế — chính xác 100%'; }
   } catch(err) {
     if (empty) { empty.style.display = 'flex'; empty.querySelector('span:last-child').textContent = 'Lỗi tạo PDF: ' + err.message; }
   } finally {

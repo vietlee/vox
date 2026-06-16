@@ -453,7 +453,8 @@ class Admin::SurveysController < Admin::BaseController
         wait_until:       "networkidle2",
         timeout:          90_000
       ).to_pdf
-      send_data pdf, filename: "#{filename_base}-ai-report-#{Date.today}.pdf", type: "application/pdf", disposition: "attachment"
+      disp = params[:preview] == "1" ? "inline" : "attachment"
+      send_data pdf, filename: "#{filename_base}-ai-report-#{Date.today}.pdf", type: "application/pdf", disposition: disp
     elsif format_type == "word"
       html = render_to_string(
         template: "admin/surveys/report_word",
