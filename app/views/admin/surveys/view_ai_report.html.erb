@@ -760,16 +760,14 @@ canvas{max-height:200px;break-inside:avoid}
   <div class="pdf-drawer-body" style="padding:0;background:#525659">
     <div id="pdfPreviewLoading" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:white">
       <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite"></div>
-      <span style="font-size:13px;opacity:.8">Đang tải xem trước...</span>
+      <span id="pdfPreviewLoadingText" style="font-size:13px;opacity:.8">Đang tạo PDF... (5-10 giây)</span>
     </div>
-    <div id="pdfPreviewWrap" style="display:none;flex:1;min-height:0;position:relative;overflow-y:auto;overflow-x:hidden">
-      <div id="pdfBreakLines" style="position:absolute;top:0;left:0;right:0;pointer-events:none;z-index:10"></div>
-      <div style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:9;cursor:default"></div>
-      <iframe id="pdfPreviewFrame" style="width:1200px;zoom:0.45;border:none;display:block;background:white"></iframe>
+    <div id="pdfPreviewWrap" style="display:none;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:#525659">
+      <div id="pdfPageContainer" style="padding:16px;display:flex;flex-direction:column;gap:16px;align-items:center"></div>
     </div>
     <div id="pdfPreviewEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:rgba(255,255,255,.6)">
       <span style="font-size:32px">📄</span>
-      <span style="font-size:13px">Nhấn "Làm mới" để xem trước</span>
+      <span style="font-size:13px">Nhấn "Làm mới" để xem trước PDF</span>
     </div>
   </div>
 </div>
@@ -1647,12 +1645,13 @@ const PAGE_GAP_PX  = 71;   // measured from actual PDF: ~18mm top + ~18mm bottom
 
 async function generatePdfPreview() {
   if (!pdfPreviewOpen) return;
-  const loading = document.getElementById('pdfPreviewLoading');
-  const wrap    = document.getElementById('pdfPreviewWrap');
-  const frame   = document.getElementById('pdfPreviewFrame');
-  const empty   = document.getElementById('pdfPreviewEmpty');
-  const hint    = document.getElementById('pdfPreviewHint');
-  const btn     = document.getElementById('pdfRefreshBtn');
+  const loading   = document.getElementById('pdfPreviewLoading');
+  const loadText  = document.getElementById('pdfPreviewLoadingText');
+  const wrap      = document.getElementById('pdfPreviewWrap');
+  const container = document.getElementById('pdfPageContainer');
+  const empty     = document.getElementById('pdfPreviewEmpty');
+  const hint      = document.getElementById('pdfPreviewHint');
+  const btn       = document.getElementById('pdfRefreshBtn');
 
   if (loading) loading.style.display = 'flex';
   if (wrap)    wrap.style.display = 'none';
@@ -1661,34 +1660,72 @@ async function generatePdfPreview() {
   _previewDirty = false;
 
   try {
-    const previewUrl = '<%= view_ai_report_survey_path(@survey, report_id: @ai_result.id, pdf_preview: "1") %>&t=' + Date.now();
-    await new Promise((resolve, reject) => {
-      frame.onload = resolve;
-      frame.onerror = () => reject(new Error('Không tải được'));
-      frame.src = previewUrl;
-    });
-    const contentH = frame.contentDocument?.body?.scrollHeight || 3000;
-    frame.style.height = contentH + 'px';
-    const breakDiv = document.getElementById('pdfBreakLines');
-    if (breakDiv) {
-      breakDiv.innerHTML = '';
-      const pages = Math.ceil(contentH / PDF_PAGE_H);
-      for (let i = 1; i < pages; i++) {
-        const y = Math.round(i * PDF_PAGE_H * PREVIEW_ZOOM);
-        breakDiv.insertAdjacentHTML('beforeend',
-          `<div style="position:absolute;top:${y - PAGE_GAP_PX/2}px;left:0;right:0;height:${PAGE_GAP_PX}px;background:#3a3f47;border-top:2px solid rgba(220,38,38,.8);border-bottom:2px solid rgba(220,38,38,.8);z-index:5;display:flex;align-items:center;justify-content:center;gap:8px">` +
-          `<span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:500">Trang ${i}</span>` +
-          `<span style="font-size:10px;color:rgba(220,38,38,.6)">✦</span>` +
-          `<span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:500">Trang ${i+1}</span></div>`
-        );
-      }
-      breakDiv.style.height = Math.round(contentH * PREVIEW_ZOOM) + 'px';
+    // Step 1: sync current layout to server
+    if (loadText) loadText.textContent = 'Đang lưu layout...';
+    if (typeof saveLayout === 'function') saveLayout();
+    const layoutJson = localStorage.getItem(LAYOUT_KEY) || '{}';
+    await fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.content || '' },
+      body: layoutJson
+    }).catch(() => {});
+
+    // Step 2: load pdf.js if not yet loaded
+    if (!window.pdfjsLib) {
+      if (loadText) loadText.textContent = 'Đang tải pdf.js...';
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
+
+    // Step 3: fetch the actual PDF
+    if (loadText) loadText.textContent = 'Đang tạo PDF... (5-10 giây)';
+    const resp = await fetch('<%= export_report_survey_path(@survey, report_id: @ai_result.id, format_type: "pdf", preview: "1") %>&t=' + Date.now());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const arrayBuffer = await resp.arrayBuffer();
+
+    // Step 4: render each page as canvas
+    if (loadText) loadText.textContent = 'Đang render trang...';
+    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    container.innerHTML = '';
+    const containerWidth = (wrap.clientWidth || 500) - 32;
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 1 });
+      const scale = containerWidth / viewport.width;
+      const scaledViewport = page.getViewport({ scale });
+
+      const canvas = document.createElement('canvas');
+      canvas.width  = scaledViewport.width;
+      canvas.height = scaledViewport.height;
+      canvas.style.cssText = 'display:block;box-shadow:0 2px 12px rgba(0,0,0,0.5);border-radius:2px;';
+
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;';
+      wrapper.appendChild(canvas);
+      const label = document.createElement('div');
+      label.style.cssText = 'font-size:11px;color:rgba(255,255,255,.4);';
+      label.textContent = 'Trang ' + pageNum + ' / ' + pdf.numPages;
+      wrapper.appendChild(label);
+      container.appendChild(wrapper);
+
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledViewport }).promise;
+    }
+
     if (wrap) wrap.style.display = 'flex';
-    if (hint) hint.textContent = 'Đường đỏ = điểm cắt trang A4 — nhấn Làm mới sau khi thay đổi layout';
-    if (btn)  btn.style.background = '#4361ee';
+    if (hint) hint.textContent = 'PDF thực tế — chính xác 100% — tự cập nhật khi thay đổi layout';
   } catch(err) {
-    if (empty) { empty.style.display = 'flex'; empty.querySelector('span:last-child').textContent = 'Lỗi: ' + err.message; }
+    if (empty) {
+      empty.style.display = 'flex';
+      const spans = empty.querySelectorAll('span');
+      if (spans[1]) spans[1].textContent = 'Lỗi: ' + err.message;
+    }
   } finally {
     if (loading) loading.style.display = 'none';
     if (btn)     { btn.disabled = false; btn.textContent = '🔄 Làm mới'; }
