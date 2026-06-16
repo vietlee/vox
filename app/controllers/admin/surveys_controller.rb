@@ -355,7 +355,10 @@ class Admin::SurveysController < Admin::BaseController
 
   def view_ai_report
     @pdf_preview = params[:pdf_preview].present?
-    params[:pdf] = "1" if @pdf_preview
+    if @pdf_preview
+      params[:pdf] = "1"
+      @public_view = true  # render same HTML as export (no edit elements)
+    end
     @ai_result = if params[:report_id].present?
                    @survey.ai_analysis_results.find_by(id: params[:report_id], result_type: "executive_report")
                  else
