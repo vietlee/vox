@@ -2754,10 +2754,18 @@ async function generatePdfPreview() {
     }
 
     // Step 3: fetch the actual PDF
-    if (loadText) loadText.textContent = 'Đang tạo PDF... (5-10 giây)';
+    if (loadText) loadText.textContent = 'Đang tạo PDF...';
+    const fetchStart = Date.now();
+    // Countdown hint while waiting
+    const _countdownT = setInterval(() => {
+      const s = Math.round((Date.now() - fetchStart) / 1000);
+      if (loadText) loadText.textContent = s < 3 ? 'Đang tạo PDF...' : `Đang render PDF... (${s}s)`;
+    }, 1000);
     const resp = await fetch('<%= preview_pdf_report_survey_path(@survey, lang: @report_lang) %>&t=' + Date.now());
+    clearInterval(_countdownT);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const arrayBuffer = await resp.arrayBuffer();
+    const fetchMs = Date.now() - fetchStart;
 
     // Step 4: render each page as canvas
     if (loadText) loadText.textContent = 'Đang render trang...';
@@ -2794,7 +2802,10 @@ async function generatePdfPreview() {
     }
 
     if (wrap) wrap.style.display = 'flex';
-    if (hint) hint.textContent = 'PDF thực tế — chính xác 100% — tự cập nhật khi thay đổi layout';
+    const cached = fetchMs < 1500;
+    if (hint) hint.textContent = cached
+      ? `⚡ Từ cache (${fetchMs}ms) — PDF chính xác 100%`
+      : `✓ Hoàn tất (${(fetchMs/1000).toFixed(1)}s) — tự cập nhật khi thay đổi layout`;
   } catch(err) {
     if (empty) {
       empty.style.display = 'flex';

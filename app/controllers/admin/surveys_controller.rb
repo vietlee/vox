@@ -280,34 +280,41 @@ class Admin::SurveysController < Admin::BaseController
     @report_lang = params[:lang].presence_in(%w[vi en]) || "vi"
     call_html_report_setup
     params[:pdf] = "1"
-    html = render_to_string(template: "admin/surveys/html_report", layout: false)
 
     sk = "report_layout_#{@survey.id}_#{@report_lang}"
     layout_json = @survey.settings[sk]&.to_json || "{}"
-    layout_script = <<~JS
-      <script>
-        (function(){
-          try {
-            var data = #{layout_json.to_s.html_safe};
-            if (typeof data === 'string') data = JSON.parse(data);
-            localStorage.setItem('#{sk}', typeof data === 'string' ? data : JSON.stringify(data));
-          } catch(e) {}
-        })();
-      </script>
-    JS
-    html = html.sub("</head>", "#{layout_script}</head>")
 
-    pdf = Grover.new(html,
-      format:           "A4",
-      landscape:        true,
-      print_background: true,
-      scale:            0.86,
-      margin:           { top: "8mm", bottom: "8mm", left: "8mm", right: "8mm" },
-      emulate_media:    "print",
-      viewport:         { width: 1200, height: 900, device_scale_factor: 2 },
-      wait_until:       "networkidle2",
-      timeout:          90_000
-    ).to_pdf
+    # Cache key: invalidate when layout or survey data changes
+    content_sig = Digest::MD5.hexdigest("#{layout_json}#{@survey.updated_at.to_i}#{@report_lang}")
+    cache_key   = "pdf_preview/#{@survey.id}/#{content_sig}"
+
+    pdf = Rails.cache.fetch(cache_key, expires_in: 10.minutes) do
+      html = render_to_string(template: "admin/surveys/html_report", layout: false)
+      layout_script = <<~JS
+        <script>
+          (function(){
+            try {
+              var data = #{layout_json.to_s.html_safe};
+              if (typeof data === 'string') data = JSON.parse(data);
+              localStorage.setItem('#{sk}', typeof data === 'string' ? data : JSON.stringify(data));
+            } catch(e) {}
+          })();
+        </script>
+      JS
+      html = html.sub("</head>", "#{layout_script}</head>")
+
+      Grover.new(html,
+        format:           "A4",
+        landscape:        true,
+        print_background: true,
+        scale:            0.86,
+        margin:           { top: "8mm", bottom: "8mm", left: "8mm", right: "8mm" },
+        emulate_media:    "print",
+        viewport:         { width: 1200, height: 900, device_scale_factor: 2 },
+        wait_until:       "load",
+        timeout:          60_000
+      ).to_pdf
+    end
 
     send_data pdf, type: "application/pdf", disposition: "inline"
   rescue => e
