@@ -269,10 +269,14 @@ canvas{height:250px;min-height:80px;max-height:none}
 .btn-print{background:#fff;color:#374151}
 .btn-pdf{background:#374151;color:#fff}
 .btn-edit{background:#4361ee;color:#fff}
-.btn-preview{background:#0f766e;color:#fff}
-.btn-preview.active{background:#0d9488;box-shadow:0 0 0 3px rgba(20,184,166,.35)!important}
-/* ── PDF Preview Drawer ── */
-.pdf-drawer{position:fixed;top:0;right:-560px;width:540px;height:100vh;background:#1e293b;z-index:1500;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,.5)}
+/* ── PDF Preview side tab + Drawer ── */
+.pdf-preview-tab{position:fixed;top:50%;right:0;transform:translateY(-50%);z-index:1400;display:flex;flex-direction:column;align-items:center;background:#0f766e;color:white;border-radius:10px 0 0 10px;padding:14px 8px;gap:6px;cursor:pointer;box-shadow:-4px 0 16px rgba(0,0,0,.25);transition:background .15s,right .3s cubic-bezier(.4,0,.2,1);user-select:none;border:none}
+.pdf-preview-tab:hover{background:#0d9488}
+.pdf-preview-tab.open{right:540px}
+.pdf-preview-tab-icon{font-size:18px;line-height:1}
+.pdf-preview-tab-text{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);font-size:11px;font-weight:700;letter-spacing:.08em;white-space:nowrap}
+.pdf-preview-tab-badge{font-size:9px;font-weight:700;background:rgba(255,255,255,.25);border-radius:20px;padding:2px 5px;letter-spacing:.05em}
+.pdf-drawer{position:fixed;top:0;right:-560px;width:540px;height:100vh;background:#1e293b;z-index:1399;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,.5)}
 .pdf-drawer.open{right:0}
 .pdf-drawer-hdr{padding:13px 16px;background:#0f172a;display:flex;align-items:center;justify-content:space-between;color:#f1f5f9;font-weight:600;font-size:13px;flex-shrink:0;border-bottom:1px solid #334155}
 .pdf-drawer-hdr-left{display:flex;align-items:center;gap:8px}
@@ -281,9 +285,11 @@ canvas{height:250px;min-height:80px;max-height:none}
 .pdf-drawer-close:hover{color:white;background:#475569}
 .pdf-drawer-toolbar{padding:8px 16px;background:#1e293b;display:flex;align-items:center;gap:8px;border-bottom:1px solid #334155;flex-shrink:0}
 .pdf-drawer-hint{font-size:11px;color:#64748b;flex:1}
-.pdf-drawer-body{flex:1;overflow-y:auto;background:#374151;padding:12px;display:flex;flex-direction:column;gap:0}
-.pdf-frame-wrap{background:#e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.4);border-radius:2px;overflow:hidden;flex-shrink:0;position:relative}
+.pdf-drawer-body{flex:1;overflow-y:auto;background:#374151;padding:12px;display:flex;flex-direction:column}
+.pdf-frame-wrap{background:#e2e8f0;border-radius:2px;overflow:hidden;flex-shrink:0;position:relative}
 #pdfPreviewFrame{width:1200px;border:none;display:block;transform-origin:0 0}
+.pdf-preview-refreshing{position:absolute;inset:0;background:rgba(55,65,81,.6);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+.pdf-preview-refreshing.show{opacity:1}
 /* Share modal */
 #shareModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 #shareModal.open{display:flex}
@@ -478,13 +484,17 @@ html,body{height:auto!important;overflow:visible!important;background:white!impo
   <button class="btn-print" onclick="window.print()">🖨 <span data-i18n="print">In</span></button>
   <button class="btn-pdf" onclick="downloadPdf()">⬇ <span data-i18n="download_pdf">Tải PDF</span></button>
   <% unless @public_view %>
-    <button class="btn-preview" id="btnPreview" onclick="togglePdfPreview()">👁 Xem trước PDF</button>
     <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">⠿ <span data-i18n="arrange">Sắp xếp sections</span></button>
     <button class="btn-rebuild" onclick="rebuildStructure()" title="Yêu cầu AI tạo lại cấu trúc báo cáo">✦ <span data-i18n="rebuild">Tạo lại</span></button>
   <% end %>
 </div>
 
 <% unless @pdf_preview %>
+<button class="pdf-preview-tab" id="pdfPreviewTab" onclick="togglePdfPreview()" title="Xem trước PDF">
+  <span class="pdf-preview-tab-icon">👁</span>
+  <span class="pdf-preview-tab-text">XEM TRƯỚC PDF</span>
+  <span class="pdf-preview-tab-badge">LIVE</span>
+</button>
 <div class="pdf-drawer" id="pdfDrawer">
   <div class="pdf-drawer-hdr">
     <div class="pdf-drawer-hdr-left">
@@ -494,12 +504,13 @@ html,body{height:auto!important;overflow:visible!important;background:white!impo
     <button class="pdf-drawer-close" onclick="togglePdfPreview()">✕ Đóng</button>
   </div>
   <div class="pdf-drawer-toolbar">
-    <span class="pdf-drawer-hint">Resize block bên trái → preview tự cập nhật</span>
+    <span class="pdf-drawer-hint">Preview tự cập nhật khi bạn thay đổi</span>
     <button onclick="downloadPdf()" style="background:#374151;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer">⬇ Tải PDF</button>
   </div>
   <div class="pdf-drawer-body">
-    <div class="pdf-frame-wrap">
+    <div class="pdf-frame-wrap" id="pdfFrameWrap">
       <iframe id="pdfPreviewFrame" src="about:blank" scrolling="no"></iframe>
+      <div class="pdf-preview-refreshing" id="pdfRefreshing">Đang cập nhật...</div>
     </div>
   </div>
 </div>
@@ -1881,9 +1892,8 @@ function saveLayout() {
         body: JSON.stringify(layout)
       }).catch(() => {});
     }, 1500); // debounce 1.5s
-    // Real-time preview update
-    clearTimeout(saveLayout._pt);
-    saveLayout._pt = setTimeout(() => postLayoutToPreview(layout), 150);
+    // Live preview reload
+    schedulePreviewReload();
   }
 }
 
@@ -2645,102 +2655,80 @@ function setLang(lang) {
 
 loadLayout();
 
-<% if @pdf_preview %>
-// ── PDF Preview mode: receive layout updates from parent ──
-(function(){
-  function applyLayoutStyles(saved) {
-    if (!saved) return;
-    if (saved.cardHeights) Object.entries(saved.cardHeights).forEach(([cid, h]) => {
-      const card = document.querySelector(`.cw[data-cid="${cid}"] .card`);
-      if (card) card.style.minHeight = h;
-    });
-    if (saved.cardSpans) Object.entries(saved.cardSpans).forEach(([cid, col]) => {
-      const cw = document.querySelector(`.cw[data-cid="${cid}"]`);
-      if (cw) cw.style.gridColumn = col;
-    });
-    if (saved.kpiHeights) Object.entries(saved.kpiHeights).forEach(([id, h]) => {
-      const el = document.getElementById(id); if (el) el.style.minHeight = h;
-    });
-    if (saved.kpiPositions) Object.entries(saved.kpiPositions).forEach(([id, col]) => {
-      const el = document.getElementById(id); if (el) el.style.gridColumn = col;
-    });
-    if (saved.barListHeights) Object.entries(saved.barListHeights).forEach(([cid, h]) => {
-      const bl = document.querySelector(`.cw[data-cid="${cid}"] .bar-list`);
-      if (bl) { bl.style.height = h; bl.style.overflowY = 'auto'; }
-    });
-    // Resize chart canvases
-    Object.values(chartReg).forEach(ch => { try { ch.resize(); } catch(_){} });
-    reportHeight();
-  }
-  function reportHeight() {
-    const h = document.body.scrollHeight;
-    window.parent.postMessage({ type: 'vox_preview_height', h }, '*');
-  }
-  window.addEventListener('message', e => {
-    if (e.data?.type === 'vox_preview_layout') applyLayoutStyles(e.data.layout);
-  });
-  // Report initial height after charts render
-  setTimeout(reportHeight, 800);
-})();
-<% else %>
+<% unless @pdf_preview %>
 // ── PDF Preview drawer (admin only) ──
 let pdfPreviewOpen = false;
-const PDF_PREVIEW_W = 1200; // must match Grover viewport width
+const PDF_PREVIEW_W = 1200;
 
 function togglePdfPreview() {
   pdfPreviewOpen = !pdfPreviewOpen;
   const drawer = document.getElementById('pdfDrawer');
-  const btn    = document.getElementById('btnPreview');
+  const tab    = document.getElementById('pdfPreviewTab');
   if (!drawer) return;
   drawer.classList.toggle('open', pdfPreviewOpen);
-  if (btn) btn.classList.toggle('active', pdfPreviewOpen);
+  if (tab) tab.classList.toggle('open', pdfPreviewOpen);
   if (pdfPreviewOpen) { updatePreviewScale(); loadPreviewFrame(); }
 }
 
 function updatePreviewScale() {
-  const wrap = document.querySelector('.pdf-frame-wrap');
+  const wrap  = document.getElementById('pdfFrameWrap');
   const frame = document.getElementById('pdfPreviewFrame');
   if (!wrap || !frame) return;
-  const scale = (wrap.offsetWidth || 516) / PDF_PREVIEW_W;
+  const scale = wrap.offsetWidth / PDF_PREVIEW_W;
   frame.style.transform = `scale(${scale})`;
-  frame._scale = scale;
-  // wrapper height will be updated when frame reports its height
+  frame._previewScale = scale;
 }
 
-function loadPreviewFrame() {
-  const frame = document.getElementById('pdfPreviewFrame');
-  if (!frame) return;
+function _previewUrl() {
   const base = window.location.href.split('?')[0];
-  const qp = new URLSearchParams(window.location.search);
+  const qp   = new URLSearchParams(window.location.search);
   qp.set('pdf_preview', '1');
   qp.set('pdf', '1');
-  const previewUrl = base + '?' + qp.toString();
-  if (frame.getAttribute('data-loaded-url') !== previewUrl) {
-    frame.setAttribute('data-loaded-url', previewUrl);
-    frame.src = previewUrl;
-    frame.onload = () => postLayoutToPreview();
-  } else {
-    postLayoutToPreview();
-  }
+  // Embed current layout in URL so the server injects it into localStorage
+  qp.set('_layout_ts', Date.now()); // cache-bust so iframe reloads
+  return base + '?' + qp.toString();
 }
 
-function postLayoutToPreview(layout) {
-  const frame = document.getElementById('pdfPreviewFrame');
-  if (!frame?.contentWindow || !pdfPreviewOpen) return;
-  const data = layout || JSON.parse(localStorage.getItem(SK) || '{}');
-  frame.contentWindow.postMessage({ type: 'vox_preview_layout', layout: data }, '*');
+function loadPreviewFrame(forceReload) {
+  if (!pdfPreviewOpen) return;
+  const frame    = document.getElementById('pdfPreviewFrame');
+  const refresher = document.getElementById('pdfRefreshing');
+  if (!frame) return;
+
+  // Sync current layout to server before loading iframe
+  const layoutJson = localStorage.getItem(SK) || '{}';
+  fetch('<%= raw(save_report_layout_survey_path(@survey, lang: @report_lang)) %>', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+    body: JSON.stringify(JSON.parse(layoutJson))
+  }).catch(() => {}).finally(() => {
+    if (refresher) refresher.classList.add('show');
+    const url = _previewUrl();
+    frame.src = url;
+    frame.onload = () => {
+      updatePreviewScale();
+      if (refresher) refresher.classList.remove('show');
+      // Auto-size wrapper once frame has rendered
+      setTimeout(() => {
+        try {
+          const h = frame.contentDocument?.body?.scrollHeight;
+          if (h > 100) {
+            frame.style.height = h + 'px';
+            const wrap = document.getElementById('pdfFrameWrap');
+            if (wrap) wrap.style.height = Math.ceil(h * (frame._previewScale||1)) + 'px';
+          }
+        } catch(e) {}
+      }, 600);
+    };
+  });
 }
 
-window.addEventListener('message', e => {
-  if (e.data?.type === 'vox_preview_height') {
-    const frame = document.getElementById('pdfPreviewFrame');
-    const wrap  = document.querySelector('.pdf-frame-wrap');
-    if (!frame || !wrap) return;
-    const scale = frame._scale || 1;
-    frame.style.height = e.data.h + 'px';
-    wrap.style.height  = Math.ceil(e.data.h * scale) + 'px';
-  }
-});
+// Debounced reload on any layout change
+function schedulePreviewReload() {
+  if (!pdfPreviewOpen) return;
+  clearTimeout(schedulePreviewReload._t);
+  schedulePreviewReload._t = setTimeout(() => loadPreviewFrame(true), 800);
+}
 
 window.addEventListener('resize', updatePreviewScale);
 <% end %>
