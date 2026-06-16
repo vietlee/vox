@@ -112,6 +112,7 @@ class Admin::SurveysController < Admin::BaseController
 
   def html_report
     @pdf_preview = params[:pdf_preview].present?
+    params[:pdf] = "1" if @pdf_preview  # render same CSS/JS as real PDF export
     @report_lang = params[:lang].presence_in(%w[vi en]) || "vi"
     structure_key = "report_structure_#{@report_lang}"
     structure = @survey.settings&.dig(structure_key)
@@ -354,6 +355,7 @@ class Admin::SurveysController < Admin::BaseController
 
   def view_ai_report
     @pdf_preview = params[:pdf_preview].present?
+    params[:pdf] = "1" if @pdf_preview
     @ai_result = if params[:report_id].present?
                    @survey.ai_analysis_results.find_by(id: params[:report_id], result_type: "executive_report")
                  else

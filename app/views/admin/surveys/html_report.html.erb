@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <% if @pdf_preview %>
-<meta name="viewport" content="width=794">
+<meta name="viewport" content="width=1200">
 <% else %>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <% end %>
@@ -281,9 +281,9 @@ canvas{height:250px;min-height:80px;max-height:none}
 .pdf-drawer-close:hover{color:white;background:#475569}
 .pdf-drawer-toolbar{padding:8px 16px;background:#1e293b;display:flex;align-items:center;gap:8px;border-bottom:1px solid #334155;flex-shrink:0}
 .pdf-drawer-hint{font-size:11px;color:#64748b;flex:1}
-.pdf-drawer-body{flex:1;overflow-y:auto;background:#374151;padding:16px;display:flex;flex-direction:column;gap:0}
-.pdf-frame-wrap{background:white;box-shadow:0 4px 20px rgba(0,0,0,.4);border-radius:2px;overflow:hidden;flex-shrink:0}
-#pdfPreviewFrame{width:100%;border:none;display:block;min-height:500px;transition:height .2s}
+.pdf-drawer-body{flex:1;overflow-y:auto;background:#374151;padding:12px;display:flex;flex-direction:column;gap:0}
+.pdf-frame-wrap{background:#e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.4);border-radius:2px;overflow:hidden;flex-shrink:0;position:relative}
+#pdfPreviewFrame{width:1200px;border:none;display:block;transform-origin:0 0}
 /* Share modal */
 #shareModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 #shareModal.open{display:flex}
@@ -422,6 +422,18 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   .insight-item{break-inside:avoid;page-break-inside:avoid}
   #ai-insights-section{break-before:auto;page-break-before:auto}
 }
+<% if @pdf_preview %>
+/* PDF Preview: apply print rules as regular CSS to simulate @media print */
+html,body{height:auto!important;overflow:visible!important;background:white!important;font-size:12px}
+.container{max-width:100%!important}
+.report-body{max-width:100%!important;padding:0 8mm!important}
+.header{border-radius:0!important}
+.kpi-grid{display:flex!important;flex-wrap:nowrap!important;gap:8px!important}
+.kpi{flex:1!important;min-width:0!important;grid-column:unset!important}
+.card{box-shadow:none!important;border:1px solid #e2e8f0!important;border-radius:8px!important}
+.insights-grid{grid-template-columns:1fr!important}
+.insights-col{box-shadow:none!important;border:1px solid #e2e8f0!important}
+<% end %>
 </style>
 </head>
 <body<% if @pdf_preview %> class="pdf-mode pdf-preview-body"<% end %>>
@@ -2673,6 +2685,8 @@ loadLayout();
 <% else %>
 // ── PDF Preview drawer (admin only) ──
 let pdfPreviewOpen = false;
+const PDF_PREVIEW_W = 1200; // must match Grover viewport width
+
 function togglePdfPreview() {
   pdfPreviewOpen = !pdfPreviewOpen;
   const drawer = document.getElementById('pdfDrawer');
@@ -2680,37 +2694,55 @@ function togglePdfPreview() {
   if (!drawer) return;
   drawer.classList.toggle('open', pdfPreviewOpen);
   if (btn) btn.classList.toggle('active', pdfPreviewOpen);
-  if (pdfPreviewOpen) loadPreviewFrame();
+  if (pdfPreviewOpen) { updatePreviewScale(); loadPreviewFrame(); }
 }
+
+function updatePreviewScale() {
+  const wrap = document.querySelector('.pdf-frame-wrap');
+  const frame = document.getElementById('pdfPreviewFrame');
+  if (!wrap || !frame) return;
+  const scale = (wrap.offsetWidth || 516) / PDF_PREVIEW_W;
+  frame.style.transform = `scale(${scale})`;
+  frame._scale = scale;
+  // wrapper height will be updated when frame reports its height
+}
+
 function loadPreviewFrame() {
   const frame = document.getElementById('pdfPreviewFrame');
   if (!frame) return;
   const base = window.location.href.split('?')[0];
-  const params = new URLSearchParams(window.location.search);
-  params.set('pdf_preview', '1');
-  const previewUrl = base + '?' + params.toString();
+  const qp = new URLSearchParams(window.location.search);
+  qp.set('pdf_preview', '1');
+  qp.set('pdf', '1');
+  const previewUrl = base + '?' + qp.toString();
   if (frame.getAttribute('data-loaded-url') !== previewUrl) {
     frame.setAttribute('data-loaded-url', previewUrl);
     frame.src = previewUrl;
-    frame.onload = () => {
-      postLayoutToPreview();
-    };
+    frame.onload = () => postLayoutToPreview();
   } else {
     postLayoutToPreview();
   }
 }
+
 function postLayoutToPreview(layout) {
   const frame = document.getElementById('pdfPreviewFrame');
   if (!frame?.contentWindow || !pdfPreviewOpen) return;
   const data = layout || JSON.parse(localStorage.getItem(SK) || '{}');
   frame.contentWindow.postMessage({ type: 'vox_preview_layout', layout: data }, '*');
 }
+
 window.addEventListener('message', e => {
   if (e.data?.type === 'vox_preview_height') {
     const frame = document.getElementById('pdfPreviewFrame');
-    if (frame) frame.style.height = e.data.h + 'px';
+    const wrap  = document.querySelector('.pdf-frame-wrap');
+    if (!frame || !wrap) return;
+    const scale = frame._scale || 1;
+    frame.style.height = e.data.h + 'px';
+    wrap.style.height  = Math.ceil(e.data.h * scale) + 'px';
   }
 });
+
+window.addEventListener('resize', updatePreviewScale);
 <% end %>
 </script>
 </body>
