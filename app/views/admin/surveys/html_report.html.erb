@@ -1495,12 +1495,8 @@ function adjustSpan(btn, delta) {
   const MAXCOLS = 12;
   const defaultSpan = grid?.classList.contains('grid-3') ? 4 : 6;
   const cur = parseInt(cw.style.gridColumn?.match(/span (\d+)/)?.[1] || defaultSpan);
-  const siblings = [...(grid?.querySelectorAll(':scope > .cw') || [])].filter(el => el !== cw && !el.classList.contains('hidden-section'));
-  const minSib = siblings.length > 0 ? 2 : 0;
-  const newSpan = Math.max(2, Math.min(MAXCOLS - minSib, cur + delta));
+  const newSpan = Math.max(2, Math.min(MAXCOLS, cur + delta));
   cw.style.gridColumn = `span ${newSpan}`;
-  if (siblings.length === 1) siblings[0].style.gridColumn = `span ${MAXCOLS - newSpan}`;
-  // Update label
   const lbl = btn.closest('.span-controls')?.querySelector('.span-label');
   if (lbl) lbl.textContent = newSpan + '/12';
   cw.querySelectorAll('.chart-wrap canvas').forEach(cv => { const ch = chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(_){} } });
@@ -1717,18 +1713,10 @@ function applyResize() {
     // Snap based on cursor position relative to card's own left edge
     const colW = gridRect.width / MAXCOLS;
     const offsetFromCardLeft = e.clientX - rd.cwLeft;
-    // Find visible siblings in the same grid to share remaining columns
-    const siblings = [...cw.parentElement.querySelectorAll(':scope > .cw')]
-      .filter(el => el !== cw && !el.classList.contains('hidden-section'));
-    const minSiblingSpan = siblings.length > 0 ? 2 : 0;
-    const newSpan = Math.max(2, Math.min(MAXCOLS - minSiblingSpan, Math.round(offsetFromCardLeft / colW)));
+    const newSpan = Math.max(2, Math.min(MAXCOLS, Math.round(offsetFromCardLeft / colW)));
     if (newSpan !== rd._span) {
       cw.style.gridColumn = `span ${newSpan}`;
       rd._span = newSpan;
-      // If exactly one sibling, give it the remaining columns so rows never wrap
-      if (siblings.length === 1) {
-        siblings[0].style.gridColumn = `span ${MAXCOLS - newSpan}`;
-      }
     }
   }
   if (dir === 's' || dir === 'se') {
