@@ -536,7 +536,9 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
       <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite"></div>
       <span style="font-size:13px;opacity:.8">Đang tạo PDF... (khoảng 5-10 giây)</span>
     </div>
-    <iframe id="pdfPreviewEmbed" style="width:100%;height:100%;display:none;border:none"></iframe>
+    <div id="pdfEmbedWrapper" style="display:none;position:relative;width:100%;height:100%;overflow:hidden">
+      <iframe id="pdfPreviewEmbed" style="position:absolute;left:-230px;width:calc(100% + 230px);height:100%;border:none"></iframe>
+    </div>
     <div id="pdfPreviewEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:rgba(255,255,255,.6)">
       <span style="font-size:32px">📄</span>
       <span style="font-size:13px">Nhấn "Làm mới" để xem trước PDF chính xác</span>
@@ -2704,12 +2706,13 @@ async function generatePdfPreview() {
   if (!pdfPreviewOpen) return;
   const loading = document.getElementById('pdfPreviewLoading');
   const embed   = document.getElementById('pdfPreviewEmbed');
+  const wrapper = document.getElementById('pdfEmbedWrapper');
   const empty   = document.getElementById('pdfPreviewEmpty');
   const hint    = document.getElementById('pdfPreviewHint');
   const btn     = document.getElementById('pdfRefreshBtn');
 
   if (loading) loading.style.display = 'flex';
-  if (embed)   embed.style.display = 'none';
+  if (wrapper) wrapper.style.display = 'none';
   if (empty)   empty.style.display = 'none';
   if (btn)     { btn.disabled = true; btn.textContent = '⏳ Đang tạo...'; }
 
@@ -2724,14 +2727,14 @@ async function generatePdfPreview() {
       body: layoutJson
     }).catch(() => {});
 
-    // Load PDF via GET endpoint — keep spinner until iframe loads
-    const previewUrl = '<%= raw(preview_pdf_report_survey_path(@survey, lang: @report_lang)) %>?t=' + Date.now() + '#toolbar=0&navpanes=0';
+    // Load PDF via GET endpoint; CSS wrapper clips the Chrome sidebar (left 230px)
+    const previewUrl = '<%= raw(preview_pdf_report_survey_path(@survey, lang: @report_lang)) %>?t=' + Date.now();
     await new Promise((resolve, reject) => {
       embed.onload = resolve;
       embed.onerror = () => reject(new Error('Không tải được PDF'));
       embed.src = previewUrl;
     });
-    embed.style.display = 'block';
+    if (wrapper) wrapper.style.display = 'block';
     if (hint) hint.textContent = 'PDF thực tế — chính xác 100%';
     if (btn)  { btn.style.background = '#4361ee'; btn.style.borderColor = '#4361ee'; }
   } catch(err) {
