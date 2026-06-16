@@ -808,6 +808,14 @@ function setLang(l) {
 // ── PDF download (fetch → blob → dismiss loading) ──
 async function downloadPdf() {
   deactivateAllCards();
+  // Sync latest layout (including KPI sizes) to server before export
+  try {
+    await fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+      body: JSON.stringify(_syncedLayout())
+    });
+  } catch(e) {}
   const overlay = document.getElementById('pdf-loading');
   overlay.classList.add('show');
   try {
@@ -1294,7 +1302,14 @@ const KPI_MAXCOLS = 12;
 function _kpiGridCols() { return KPI_MAXCOLS; }
 (function loadKpiSizes(){
   try {
-    const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
+    // Prefer kpiSizes from LAYOUT_KEY (synced from server) over standalone KPI_SIZE_SK
+    const layout = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    const fromLayout = layout.kpiSizes || {};
+    const fromKey    = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
+    // Merge: layout takes precedence (it came from server)
+    const saved = Object.keys(fromLayout).length ? fromLayout : fromKey;
+    // Sync back so both keys are consistent
+    if (Object.keys(fromLayout).length) localStorage.setItem(KPI_SIZE_SK, JSON.stringify(fromLayout));
     Object.entries(saved).forEach(([idx, v]) => {
       const block = document.getElementById('kpi-block-' + idx);
       if (!block) return;
@@ -1347,19 +1362,25 @@ function _kpiGridCols() { return KPI_MAXCOLS; }
     const idx = kpiDrag.handle.dataset.kpiIdx;
     const isH = kpiDrag.dir === 'r' || kpiDrag.dir === 'l';
     try {
-      const saved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
-      if (!saved[idx] || typeof saved[idx] !== 'object') saved[idx] = {};
+      // Save into both KPI_SIZE_SK (legacy) AND LAYOUT_KEY so it syncs to server
+      const kpiSaved = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
+      if (!kpiSaved[idx] || typeof kpiSaved[idx] !== 'object') kpiSaved[idx] = {};
       if (isH) {
         const span = kpiDrag.pendingSpan != null ? kpiDrag.pendingSpan : kpiDrag.startSpan;
-        if (span >= 1) saved[idx].span = span; else delete saved[idx].span;
+        if (span >= 1) kpiSaved[idx].span = span; else delete kpiSaved[idx].span;
       } else {
         const h = kpiDrag.pendingH != null ? Math.round(kpiDrag.pendingH) : Math.round(kpiDrag.startH);
-        if (h > 80) saved[idx].h = h; else delete saved[idx].h;
+        if (h > 80) kpiSaved[idx].h = h; else delete kpiSaved[idx].h;
       }
-      if (!Object.keys(saved[idx]).length) delete saved[idx];
-      localStorage.setItem(KPI_SIZE_SK, JSON.stringify(saved));
+      if (!Object.keys(kpiSaved[idx]).length) delete kpiSaved[idx];
+      localStorage.setItem(KPI_SIZE_SK, JSON.stringify(kpiSaved));
+      // Also persist into LAYOUT_KEY so server sync includes KPI sizes
+      const layout = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+      layout.kpiSizes = kpiSaved;
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
     } catch(e) {}
     kpiDrag = null;
+    schedulePreviewReload();
   });
 })();
 
@@ -1658,11 +1679,10 @@ function setPdfFullscreenSize(size) {
   frame.style.cssText = `width:${PDF_PREVIEW_W}px;height:${Math.round((h/w)*PDF_PREVIEW_W)}px;transform:scale(${scale})`;
   wrap.appendChild(frame);
   body.appendChild(wrap);
-  const layoutJson = localStorage.getItem(LAYOUT_KEY) || '{}';
   fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
-    body: JSON.stringify(JSON.parse(layoutJson))
+    body: JSON.stringify(_syncedLayout())
   }).catch(() => {}).finally(() => {
     const base = window.location.href.split('?')[0];
     const qp = new URLSearchParams(window.location.search);
@@ -1693,16 +1713,25 @@ function updatePreviewScale() {
   frame._previewScale = scale;
 }
 
+function _syncedLayout() {
+  // Merge KPI sizes into LAYOUT_KEY before syncing to server
+  try {
+    const layout = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    const kpiSizes = JSON.parse(localStorage.getItem(KPI_SIZE_SK) || '{}');
+    if (Object.keys(kpiSizes).length) layout.kpiSizes = kpiSizes;
+    return layout;
+  } catch(e) { return {}; }
+}
+
 function loadPreviewFrame() {
   if (!pdfPreviewOpen) return;
   const frame    = document.getElementById('pdfPreviewFrame');
   const refresher = document.getElementById('pdfRefreshing');
   if (!frame) return;
-  const layoutJson = localStorage.getItem(LAYOUT_KEY) || '{}';
   fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
-    body: JSON.stringify(JSON.parse(layoutJson))
+    body: JSON.stringify(_syncedLayout())
   }).catch(() => {}).finally(() => {
     if (refresher) refresher.classList.add('show');
     const base = window.location.href.split('?')[0];
