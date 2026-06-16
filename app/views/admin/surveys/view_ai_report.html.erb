@@ -312,7 +312,7 @@ canvas{height:250px;min-height:80px;max-height:none}
 .pdf-drawer-toolbar{padding:8px 16px;background:#1e293b;display:flex;align-items:center;gap:8px;border-bottom:1px solid #334155;flex-shrink:0}
 .pdf-drawer-hint{font-size:11px;color:#64748b;flex:1}
 .pdf-drawer-body{flex:1;overflow-y:auto;background:#374151;padding:12px;display:flex;flex-direction:column}
-.pdf-frame-wrap{background:#e2e8f0;border-radius:2px;overflow:hidden;flex-shrink:0;position:relative}
+.pdf-frame-wrap{background:#374151;border-radius:2px;overflow:hidden;flex-shrink:0;position:relative}
 #pdfPreviewFrame{width:1200px;border:none;display:block;transform-origin:0 0}
 .pdf-preview-refreshing{position:absolute;inset:0;background:rgba(55,65,81,.6);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
 .pdf-preview-refreshing.show{opacity:1}
@@ -323,8 +323,8 @@ canvas{height:250px;min-height:80px;max-height:none}
 #pdfFullscreenOverlay.show{display:flex}
 .pdf-page-wrap{background:white;box-shadow:0 4px 24px rgba(0,0,0,.5);flex-shrink:0;overflow:hidden;position:relative}
 .pdf-page-iframe{border:none;display:block;transform-origin:0 0}
-.page-break-line{position:absolute;left:0;right:0;height:0;border-top:2px dashed rgba(239,68,68,.85);z-index:20;pointer-events:none}
-.page-break-label{position:absolute;right:0;top:-20px;background:#ef4444;color:white;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px 3px 0 0;white-space:nowrap}
+.page-break-sep{position:absolute;left:0;right:0;background:#374151;z-index:20;pointer-events:none;display:flex;align-items:center;justify-content:center;gap:12px}
+.page-break-sep-lbl{color:#9ca3af;font-size:10px;font-weight:600;white-space:nowrap;letter-spacing:.5px}
 
 /* ── Share modal ── */
 #shareModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
@@ -1781,19 +1781,23 @@ function setDrawerSize(size) {
 }
 
 function drawPageBreaks(wrap, scale, sourceHeightPx, size) {
-  wrap.querySelectorAll('.page-break-line').forEach(el => el.remove());
+  wrap.querySelectorAll('.page-break-sep').forEach(el => el.remove());
   const ph = PAGE_BREAK_PX[size] || PAGE_BREAK_PX.A4;
+  const sepH = Math.max(12, Math.round(20 * scale)); // separator height scales with content
   const pages = Math.floor(sourceHeightPx / ph);
   for (let i = 1; i <= pages; i++) {
-    const line = document.createElement('div');
-    line.className = 'page-break-line';
-    line.style.top = Math.round(i * ph * scale) + 'px';
-    const lbl = document.createElement('div');
-    lbl.className = 'page-break-label';
-    lbl.textContent = `Trang ${i}`;
-    line.appendChild(lbl);
-    wrap.appendChild(line);
+    const sep = document.createElement('div');
+    sep.className = 'page-break-sep';
+    const top = Math.round(i * ph * scale);
+    sep.style.cssText = `top:${top - Math.floor(sepH/2)}px;height:${sepH}px`;
+    const lbl = document.createElement('span');
+    lbl.className = 'page-break-sep-lbl';
+    lbl.textContent = `— Trang ${i} / Trang ${i+1} —`;
+    sep.appendChild(lbl);
+    wrap.appendChild(sep);
   }
+  // Ensure wrap has dark background to show between pages
+  wrap.style.background = '#374151';
 }
 
 function schedulePreviewReload() {
