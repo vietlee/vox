@@ -1618,6 +1618,7 @@ function hdrKey(e, which) {
 let pdfPreviewOpen = false;
 let _pdfBlobUrl = null;
 let _previewDirty = false;
+let _pdfPreviewLoading = false;
 
 function togglePdfPreview() {
   pdfPreviewOpen = !pdfPreviewOpen;
@@ -1644,7 +1645,8 @@ const PREVIEW_ZOOM = 0.45; // 540px drawer / 1200px viewport
 const PAGE_GAP_PX  = 71;   // measured from actual PDF: ~18mm top + ~18mm bottom margin
 
 async function generatePdfPreview() {
-  if (!pdfPreviewOpen) return;
+  if (!pdfPreviewOpen || _pdfPreviewLoading) return;
+  _pdfPreviewLoading = true;
   const loading   = document.getElementById('pdfPreviewLoading');
   const loadText  = document.getElementById('pdfPreviewLoadingText');
   const wrap      = document.getElementById('pdfPreviewWrap');
@@ -1727,13 +1729,14 @@ async function generatePdfPreview() {
       if (spans[1]) spans[1].textContent = 'Lỗi: ' + err.message;
     }
   } finally {
+    _pdfPreviewLoading = false;
     if (loading) loading.style.display = 'none';
     if (btn)     { btn.disabled = false; btn.textContent = '🔄 Làm mới'; }
   }
 }
 
 function schedulePreviewReload() {
-  if (!pdfPreviewOpen) return;
+  if (!pdfPreviewOpen || _pdfPreviewLoading) return;
   const hint = document.getElementById('pdfPreviewHint');
   if (hint) hint.textContent = '⏳ Đang cập nhật xem trước...';
   clearTimeout(schedulePreviewReload._t);
