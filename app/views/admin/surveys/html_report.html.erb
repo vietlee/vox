@@ -256,11 +256,13 @@ canvas{height:250px;min-height:80px;max-height:none}
 .quote-card .author{font-weight:700;color:#e65100;font-size:11px;margin-bottom:3px}
 
 /* ── Restore bar ── */
-.restore-bar{display:none;flex-wrap:wrap;gap:6px;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:8px 0}
+.restore-bar{display:none;flex-wrap:wrap;gap:6px;padding:10px 14px;background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;margin:8px 0;align-items:center}
 .restore-bar.has-hidden{display:flex}
-.restore-bar span{font-size:11px;color:#94a3b8;font-weight:600;align-self:center}
-.btn-restore{background:white;border:1px solid #c7d2fe;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#4361ee;cursor:pointer}
-.btn-restore:hover{background:#eef2ff}
+.restore-bar>.restore-label{font-size:11px;color:#92400e;font-weight:700;align-self:center}
+.btn-restore{background:white;border:1px solid #fcd34d;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#92400e;cursor:pointer}
+.btn-restore:hover{background:#fffbeb}
+.btn-restore-all{background:#f59e0b;border:none;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;color:white;cursor:pointer;margin-left:4px}
+.btn-restore-all:hover{background:#d97706}
 
 /* ── Action bar ── */
 .action-bar{position:fixed;bottom:24px;right:24px;display:flex;gap:8px;z-index:1500}
@@ -609,7 +611,10 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
 <% palette = %w[#4361ee #7c3aed #06b6d4 #10b981 #f59e0b #ef4444 #ec4899 #8b5cf6 #0ea5e9 #14b8a6] %>
 
 <%# ── Restore bar ── %>
-<div class="restore-bar" id="restoreBar"><span>Đã ẩn:</span></div>
+<div class="restore-bar" id="restoreBar">
+  <span class="restore-label">👁 Đang ẩn:</span>
+  <button class="btn-restore-all" onclick="restoreAllHidden()" title="Hiện tất cả sections và cards đang ẩn">Hiện tất cả</button>
+</div>
 
 <%# ── KPI grid — driven by report_structure kpis ── %>
 <% if @kpi_values.any? %>
@@ -1787,6 +1792,10 @@ function addRestoreChip(id, label, type) {
 function updateRestoreBar() {
   const bar = document.getElementById('restoreBar');
   bar.classList.toggle('has-hidden', bar.querySelectorAll('.btn-restore').length > 0);
+}
+function restoreAllHidden() {
+  const bar = document.getElementById('restoreBar');
+  bar.querySelectorAll('.btn-restore').forEach(btn => btn.click());
 }
 
 // ── Chart edit modal ──
