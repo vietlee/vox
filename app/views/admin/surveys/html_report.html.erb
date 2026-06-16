@@ -94,9 +94,12 @@ body.pdf-preview-open{padding-right:540px}
 .kpi-drag-handle{cursor:grab;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);font-size:14px;user-select:none}
 .kpi-drag-handle:hover{background:#e0e7ff}
 /* Section title editable */
-.section-title-edit{outline:none;border:none;border-bottom:2px dashed #c7d2fe;background:transparent;cursor:text;border-radius:3px;padding:1px 4px;min-width:40px;flex:1;font-size:inherit;font-weight:inherit;color:inherit;font-family:inherit;width:100%}
-.section-title-edit:hover{background:#f0f4ff}
-.section-title-edit:focus{border-bottom-color:#4361ee;background:#eef2ff;outline:none}
+.section-title-edit{outline:none;border:none;border-bottom:2px solid transparent;background:transparent;cursor:default;border-radius:3px;padding:1px 4px;min-width:40px;flex:1;font-size:inherit;font-weight:inherit;color:inherit;font-family:inherit;width:100%}
+.section-title-edit:hover{background:#f0f4ff;cursor:text;border-bottom-color:#c7d2fe}
+.section-title-edit:focus{border-bottom:2px dashed #4361ee;background:#eef2ff;outline:none;cursor:text}
+.section-edit-btn{opacity:0;border:none;background:transparent;cursor:pointer;font-size:13px;padding:2px 6px;border-radius:5px;color:#94a3b8;transition:opacity .15s,background .15s;line-height:1;flex-shrink:0}
+.section-header:hover .section-edit-btn{opacity:1}
+.section-edit-btn:hover{background:#eef2ff;color:#4361ee}
 .kpi-tool-btn{cursor:pointer;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);transition:background .15s,transform .15s}
 .kpi-tool-btn:hover{background:#e0e7ff;color:#4361ee;transform:scale(1.08)}
 /* KPI drag-resize handles (4 directions) */
@@ -405,7 +408,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 #shareModal,#deleteModal,#chartModal,.hdr-edit-icon,
 .hdr-editable{pointer-events:none;cursor:default}
 .cw-gear,.card-toolbar,.cw-mode-bar,.restore-bar,.section-controls,
-.rh-right,.rh-bottom,.rh-corner,.btn-sec-drag,.btn-sec-hide,
+.rh-right,.rh-bottom,.rh-corner,.btn-sec-drag,.btn-sec-hide,.section-edit-btn,
 #shareModal,#deleteModal,#chartModal,.hdr-edit-icon{display:none!important}
 .hdr-editable{cursor:default!important}
 <% end %>
@@ -419,7 +422,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
   /* Hide all UI chrome */
   .action-bar,.section-controls,.card-toolbar,.restore-bar,
   .cw-gear,.cw-mode-bar,.rh-right,.rh-bottom,.rh-corner,
-  .modal-overlay,.btn-sec-drag,#pdf-loading,footer,
+  .modal-overlay,.btn-sec-drag,.section-edit-btn,#pdf-loading,footer,
   .hdr-edit-icon,#shareModal,#vox-confirm-overlay,
   .pdf-preview-tab,.pdf-drawer,#pdfFullscreenOverlay{display:none!important}
 
@@ -458,7 +461,7 @@ body.pdf-mode *{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibi
 *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 .action-bar,.section-controls,.card-toolbar,.restore-bar,
 .cw-gear,.cw-mode-bar,.rh-right,.rh-bottom,.rh-corner,
-.modal-overlay,.btn-sec-drag,#pdf-loading,footer,
+.modal-overlay,.btn-sec-drag,.section-edit-btn,#pdf-loading,footer,
 .hdr-edit-icon,#shareModal,#vox-confirm-overlay,
 .header-lang-switcher,
 .pdf-preview-tab,.pdf-drawer,#pdfFullscreenOverlay{display:none!important}
@@ -678,6 +681,7 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
       <button class="btn-sec-hide" onclick="hideSection('<%= sid %>','<%= j sec_title %>')">Ẩn section</button>
     </div>
     <div class="section-title"><% unless @public_view %><input type="text" class="section-title-edit" data-sec-id="<%= sid %>" value="<%= j sec_title %>" onchange="saveLayout()" onblur="saveLayout()" onkeydown="if(event.key==='Enter')this.blur()" spellcheck="false"><% else %><span><%= sec_title %></span><% end %></div>
+    <% unless @public_view %><button class="section-edit-btn" onclick="focusSectionTitle(this)" title="Sửa tên section">✏️</button><% end %>
   </div>
   <div class="<%= section['layout'] || 'grid-2' %>" id="grid-<%= sid %>">
   <% (section["cards"] || []).each do |card| %>
@@ -1143,6 +1147,7 @@ body>*:last-child{margin-bottom:0!important;padding-bottom:0!important}
       <button class="btn-sec-hide" onclick="hideSection('s-ai-insights','<%= @report_lang == "en" ? "Insights & Recommendations (AI)" : "Insights & Khuyến nghị (AI)" %>')"><%= @report_lang == "en" ? "Hide section" : "Ẩn section" %></button>
     </div>
     <div class="section-title"><% unless @public_view %><input type="text" class="section-title-edit" data-sec-id="s-ai-insights" value="<%= @report_lang == "en" ? "✦ Insights & Recommendations (AI)" : "✦ Insights & Khuyến nghị (AI)" %>" onchange="saveLayout()" onblur="saveLayout()" onkeydown="if(event.key==='Enter')this.blur()" spellcheck="false"><% else %><span><%= @report_lang == "en" ? "✦ Insights & Recommendations (AI)" : "✦ Insights & Khuyến nghị (AI)" %></span><% end %></div>
+    <% unless @public_view %><button class="section-edit-btn" onclick="focusSectionTitle(this)" title="Sửa tên section">✏️</button><% end %>
   </div>
 
   <div class="insights-grid">
@@ -2075,13 +2080,14 @@ function loadLayout() {
   updateRestoreBar();
 }
 
-// ── Section title click-to-edit ──
-document.querySelectorAll('.section-title').forEach(titleDiv => {
-  titleDiv.addEventListener('click', function(e) {
-    const input = this.querySelector('.section-title-edit');
-    if (input) { e.stopPropagation(); setTimeout(() => { input.focus(); input.select(); }, 10); }
-  });
-});
+// ── Section title edit via ✏️ button ──
+function focusSectionTitle(btn) {
+  const input = btn.closest('.section-header').querySelector('.section-title-edit');
+  if (!input) return;
+  input.focus();
+  input.select();
+  input.style.cursor = 'text';
+}
 
 // ── Sortable: sections ──
 new Sortable(document.getElementById('sortableContainer'), {
