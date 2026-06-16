@@ -57,7 +57,8 @@ function mkChart(id,cfg){
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
+body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px;transition:padding-right .3s cubic-bezier(.4,0,.2,1)}
+body.pdf-preview-open{padding-right:540px}
 
 /* ── Header ── */
 .header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:white;padding:36px 48px 32px;position:relative}
@@ -315,6 +316,13 @@ canvas{height:250px;min-height:80px;max-height:none}
 #pdfPreviewFrame{width:1200px;border:none;display:block;transform-origin:0 0}
 .pdf-preview-refreshing{position:absolute;inset:0;background:rgba(55,65,81,.6);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
 .pdf-preview-refreshing.show{opacity:1}
+.pdf-size-btn{background:#1e3a5f;color:#93c5fd;border:1px solid #2563eb;border-radius:5px;padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s}
+.pdf-size-btn:hover{background:#1d4ed8;color:white}
+.pdf-size-btn.active{background:#2563eb;color:white}
+#pdfFullscreenOverlay{display:none}
+#pdfFullscreenOverlay.show{display:flex}
+.pdf-page-wrap{background:white;box-shadow:0 4px 24px rgba(0,0,0,.5);flex-shrink:0;overflow:hidden}
+.pdf-page-iframe{border:none;display:block;transform-origin:0 0}
 
 /* ── Share modal ── */
 #shareModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
@@ -734,7 +742,9 @@ html,body{height:auto!important;overflow:visible!important;background:white!impo
     <button class="pdf-drawer-close" onclick="togglePdfPreview()">✕ Đóng</button>
   </div>
   <div class="pdf-drawer-toolbar">
-    <span class="pdf-drawer-hint">Preview tự cập nhật khi bạn thay đổi</span>
+    <span class="pdf-drawer-hint">Preview tự cập nhật khi thay đổi</span>
+    <button onclick="openPdfFullscreen('A4')" class="pdf-size-btn">A4</button>
+    <button onclick="openPdfFullscreen('A3')" class="pdf-size-btn">A3</button>
     <button onclick="downloadPdf()" style="background:#374151;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer">⬇ Tải PDF</button>
   </div>
   <div class="pdf-drawer-body">
@@ -743,6 +753,21 @@ html,body{height:auto!important;overflow:visible!important;background:white!impo
       <div class="pdf-preview-refreshing" id="pdfRefreshing">Đang cập nhật...</div>
     </div>
   </div>
+</div>
+
+<div id="pdfFullscreenOverlay" style="position:fixed;inset:0;background:rgba(15,23,42,.92);z-index:3000;flex-direction:column">
+  <div style="padding:10px 16px;background:#0f172a;display:flex;align-items:center;gap:10px;flex-shrink:0">
+    <span style="color:white;font-weight:600;font-size:13px">👁 Xem trước PDF</span>
+    <div style="display:flex;gap:4px;margin-left:8px">
+      <button onclick="setPdfFullscreenSize('A4')" id="fsA4Btn" class="pdf-size-btn active">A4</button>
+      <button onclick="setPdfFullscreenSize('A3')" id="fsA3Btn" class="pdf-size-btn">A3</button>
+    </div>
+    <span id="fsSizeInfo" style="color:#64748b;font-size:11px;margin-left:4px"></span>
+    <div style="flex:1"></div>
+    <button onclick="downloadPdf()" style="background:#374151;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer">⬇ Tải PDF</button>
+    <button onclick="closePdfFullscreen()" style="background:#475569;color:white;border:none;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">✕ Đóng</button>
+  </div>
+  <div id="pdfFsBody" style="flex:1;overflow:auto;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px"></div>
 </div>
 <% end %>
 
@@ -1577,7 +1602,64 @@ function togglePdfPreview() {
   if (!drawer) return;
   drawer.classList.toggle('open', pdfPreviewOpen);
   if (tab) tab.classList.toggle('open', pdfPreviewOpen);
+  document.body.classList.toggle('pdf-preview-open', pdfPreviewOpen);
   if (pdfPreviewOpen) { updatePreviewScale(); loadPreviewFrame(); }
+}
+
+const PAGE_SIZES = {
+  A4: { w: 297, h: 210, label: 'A4 (297×210mm)' },
+  A3: { w: 420, h: 297, label: 'A3 (420×297mm)' }
+};
+let _fsSize = 'A4';
+
+function openPdfFullscreen(size) {
+  _fsSize = size || 'A4';
+  document.getElementById('pdfFullscreenOverlay').classList.add('show');
+  setPdfFullscreenSize(_fsSize);
+}
+function closePdfFullscreen() {
+  document.getElementById('pdfFullscreenOverlay').classList.remove('show');
+}
+function setPdfFullscreenSize(size) {
+  _fsSize = size;
+  document.getElementById('fsA4Btn')?.classList.toggle('active', size === 'A4');
+  document.getElementById('fsA3Btn')?.classList.toggle('active', size === 'A3');
+  const { w, h, label } = PAGE_SIZES[size];
+  const info = document.getElementById('fsSizeInfo');
+  if (info) info.textContent = label;
+  const body  = document.getElementById('pdfFsBody');
+  const avail = body.clientWidth - 48;
+  const pageW = Math.min(avail, 1100);
+  const pageH = Math.round(pageW / (w / h));
+  const scale = pageW / PDF_PREVIEW_W;
+  body.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'pdf-page-wrap';
+  wrap.style.cssText = `width:${pageW}px;height:${pageH}px`;
+  const frame = document.createElement('iframe');
+  frame.className = 'pdf-page-iframe';
+  frame.style.cssText = `width:${PDF_PREVIEW_W}px;height:${Math.round(pageH/scale)}px;transform:scale(${scale})`;
+  wrap.appendChild(frame);
+  body.appendChild(wrap);
+  const layoutJson = localStorage.getItem(LAYOUT_KEY) || '{}';
+  fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+    body: JSON.stringify(JSON.parse(layoutJson))
+  }).catch(() => {}).finally(() => {
+    const base = window.location.href.split('?')[0];
+    const qp = new URLSearchParams(window.location.search);
+    qp.set('pdf_preview','1'); qp.set('pdf','1'); qp.set('_ts', Date.now());
+    frame.src = base + '?' + qp.toString();
+    frame.onload = () => {
+      setTimeout(() => {
+        try {
+          const totalH = frame.contentDocument?.body?.scrollHeight || 0;
+          if (totalH > 100) { frame.style.height = totalH+'px'; wrap.style.height = Math.ceil(totalH*scale)+'px'; }
+        } catch(e) {}
+      }, 800);
+    };
+  });
 }
 
 function updatePreviewScale() {
