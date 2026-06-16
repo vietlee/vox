@@ -112,7 +112,10 @@ class Admin::SurveysController < Admin::BaseController
 
   def html_report
     @pdf_preview = params[:pdf_preview].present?
-    params[:pdf] = "1" if @pdf_preview  # render same CSS/JS as real PDF export
+    if @pdf_preview
+      params[:pdf] = "1"
+      @public_view = true  # hide all edit controls, same as export
+    end
     @report_lang = params[:lang].presence_in(%w[vi en]) || "vi"
     structure_key = "report_structure_#{@report_lang}"
     structure = @survey.settings&.dig(structure_key)
