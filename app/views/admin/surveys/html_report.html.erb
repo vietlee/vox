@@ -1399,7 +1399,13 @@ document.addEventListener('DOMContentLoaded', () => { loadKpiLabels(); loadKpiSi
 (function(){
   try {
     const serverLayout = <%= raw @survey.settings[_layout_key].to_json %>;
-    localStorage.setItem(SK, JSON.stringify(serverLayout));
+    // Only use server layout if it was saved with current LAYOUT_VERSION
+    if (serverLayout && serverLayout._v >= LAYOUT_VERSION) {
+      localStorage.setItem(SK, JSON.stringify(serverLayout));
+    } else {
+      // Server layout is stale — clear localStorage so loadLayout starts fresh
+      localStorage.removeItem(SK);
+    }
   } catch(e) {}
 })();
 <% end %>
