@@ -386,8 +386,10 @@ class Admin::SurveysController < Admin::BaseController
     if format_type == "pdf"
       # AI executive report → render view_ai_report with pdf mode
       if report.result_type == "executive_report"
-        @ai_result  = report
+        @ai_result   = report
         @public_view = true
+        @pdf_preview = true   # same render path as preview iframe
+        params[:pdf] = "1"
         html = render_to_string(template: "admin/surveys/view_ai_report", layout: false)
       else
         html = render_to_string(

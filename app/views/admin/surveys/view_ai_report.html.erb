@@ -379,18 +379,19 @@ canvas{height:250px;min-height:80px;max-height:none}
   .report-section{break-inside:auto;margin-bottom:6mm}
 }
 <% if @pdf_preview %>
-/* PDF Preview: simulate @media print as regular CSS */
+/* PDF Preview: exact copy of @media print + pdf-mode hides */
 html,body{height:auto!important;overflow:visible!important;background:white!important}
-.card{box-shadow:none!important;border:1px solid #e2e8f0!important}
-.report-section{margin-bottom:6mm}
-body.pdf-mode .action-bar,body.pdf-mode .header-lang-switcher,
-body.pdf-mode .cw-gear,body.pdf-mode .card-toolbar,body.pdf-mode .cw-mode-bar,
-body.pdf-mode .restore-bar,body.pdf-mode .section-controls,
-body.pdf-mode .rh-right,body.pdf-mode .rh-bottom,body.pdf-mode .rh-corner,
-body.pdf-mode .btn-sec-drag,body.pdf-mode .btn-sec-hide,
-body.pdf-mode #shareModal,body.pdf-mode #pdf-loading,
-body.pdf-mode .pdf-preview-tab,body.pdf-mode .pdf-drawer,body.pdf-mode #pdfFullscreenOverlay{display:none!important}
-body.pdf-mode{background:white!important}
+*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.card{box-shadow:none!important;border:1px solid #e2e8f0!important;break-inside:avoid}
+canvas{max-height:200px;break-inside:avoid}
+.cw{break-inside:avoid}
+.grid-2{break-inside:auto}
+.report-section{break-inside:auto;margin-bottom:6mm}
+.action-bar,.header-lang-switcher,#shareModal,#pdf-loading,
+.cw-gear,.card-toolbar,.cw-mode-bar,.restore-bar,.section-controls,
+.rh-right,.rh-bottom,.rh-corner,.btn-sec-drag,.btn-sec-hide,
+.pdf-preview-tab,.pdf-drawer,#pdfFullscreenOverlay{display:none!important}
 <% end %>
 </style>
 </head>
