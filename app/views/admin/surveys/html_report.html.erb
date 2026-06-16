@@ -1168,6 +1168,7 @@ canvas{background:white!important}
     <div class="cw" data-cid="card-insights-findings" style="grid-column:span 6">
       <% unless @public_view %>
       <div class="card-toolbar">
+        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
         <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤢</span>Thay đổi kích thước</button>
         <button class="ct-mode-btn" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
         <div class="ct-divider"></div>
@@ -1178,7 +1179,7 @@ canvas{background:white!important}
         <h3><span><%= @report_lang == "en" ? "📊 Data Findings" : "📊 Phát hiện từ dữ liệu" %></span><span class="h3-spacer"></span><% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %></h3>
         <% stat_insights.each do |ins| %>
         <div class="insight-item insight-stat">
-          <strong class="insight-plus">+</strong> <%= ins["text"] %>
+          <strong class="insight-plus">+</strong> <span data-editable contenteditable="false"><%= ins["text"] %></span>
         </div>
         <% end %>
       </div>
@@ -1188,6 +1189,7 @@ canvas{background:white!important}
     <div class="cw" data-cid="card-insights-recs" style="grid-column:span 6">
       <% unless @public_view %>
       <div class="card-toolbar">
+        <button class="ct-mode-btn" onclick="setCwMode(this,'text')"><span class="icon">✏️</span>Sửa nội dung</button>
         <button class="ct-mode-btn" onclick="setCwMode(this,'resize')"><span class="icon">⤢</span>Thay đổi kích thước</button>
         <button class="ct-mode-btn" onclick="setCwMode(this,'move')"><span class="icon">⠿</span>Di chuyển</button>
         <div class="ct-divider"></div>
@@ -1198,9 +1200,9 @@ canvas{background:white!important}
         <h3><span><%= @report_lang == "en" ? "🎯 Action Recommendations" : "🎯 Khuyến nghị hành động" %></span><span class="h3-spacer"></span><% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %></h3>
         <% rec_insights.each do |ins| %>
         <div class="insight-item insight-rec">
-          <div class="insight-rec-title">→ <%= ins["title"] %></div>
+          <div class="insight-rec-title" data-editable contenteditable="false">→ <%= ins["title"] %></div>
           <% if ins["detail"].present? %>
-          <div class="insight-rec-detail"><%= ins["detail"] %></div>
+          <div class="insight-rec-detail" data-editable contenteditable="false"><%= ins["detail"] %></div>
           <% end %>
         </div>
         <% end %>
@@ -1916,6 +1918,7 @@ function saveLayout() {
   const container = document.getElementById('sortableContainer');
   const sections = [...container.querySelectorAll('.report-section')];
   const layout = {
+    _v: LAYOUT_VERSION,
     sectionOrder: sections.map(el => el.dataset.id),
     hiddenSections: sections.filter(el => el.classList.contains('hidden-section')).map(el => ({
       id: el.dataset.id,
@@ -1988,10 +1991,16 @@ function saveLayout() {
   }
 }
 
+const LAYOUT_VERSION = 3; // bump when grid structure changes
 function loadLayout() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(SK) || 'null'); } catch(e) {}
   if (!saved) return;
+  // If layout was saved with an older structure, clear it to avoid card placement bugs
+  if (!saved._v || saved._v < LAYOUT_VERSION) {
+    localStorage.removeItem(SK);
+    return;
+  }
   const container = document.getElementById('sortableContainer');
 
   // Restore header edits
