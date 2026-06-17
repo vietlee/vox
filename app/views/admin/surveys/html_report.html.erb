@@ -1778,7 +1778,7 @@ document.addEventListener('mouseup', () => {
   hideAlignGuides();
   rd = null; latestE = null; rafId = null;
   const finalCard = resizedCw.querySelector('.card');
-  if (finalCard?.style.height) { finalCard.style.minHeight = finalCard.style.height; finalCard.style.height = ''; }
+  if (finalCard?.style.height) { finalCard.style.minHeight = finalCard.style.height; finalCard.style.height = ''; finalCard.dataset.manualHeight = '1'; }
   saveLayout();
   resizedCw.querySelectorAll('.chart-wrap canvas').forEach(cv => {
     const ch = chartReg[cv.id]; if (ch) { try { ch.resize(); } catch(e) {} }
@@ -2004,7 +2004,7 @@ function saveLayout() {
     if (cw.classList.contains('hidden-section')) layout.hiddenCards.push(cid);
     if (cw.style.gridColumn) layout.cardSpans[cid] = cw.style.gridColumn;
     const card = cw.querySelector('.card');
-    if (card?.style.minHeight) layout.cardHeights[cid] = card.style.minHeight;
+    if (card?.dataset.manualHeight && card.style.minHeight) layout.cardHeights[cid] = card.style.minHeight;
     const barList = cw.querySelector('.bar-list');
     if (barList?.style.height) { layout.barListHeights = layout.barListHeights || {}; layout.barListHeights[cid] = barList.style.height; }
   });
@@ -2197,7 +2197,7 @@ function loadLayout() {
   if (saved.cardHeights) {
     Object.entries(saved.cardHeights).forEach(([cid, h]) => {
       const card = document.querySelector(`[data-cid="${cid}"] .card`);
-      if (card) { card.style.minHeight = h; }
+      if (card) { card.style.minHeight = h; card.dataset.manualHeight = '1'; }
     });
   }
   if (saved.barListHeights) {
