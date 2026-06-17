@@ -2008,10 +2008,12 @@ function saveLayout() {
     const barList = cw.querySelector('.bar-list');
     if (barList?.style.height) { layout.barListHeights = layout.barListHeights || {}; layout.barListHeights[cid] = barList.style.height; }
   });
-  // Text edits
-  document.querySelectorAll('[data-editable]').forEach(el => {
-    const cid = el.closest('.cw')?.dataset.cid || el.closest('.report-section')?.dataset.id;
-    if (cid && el.textContent) layout.textEdits[cid + '_' + (el.className||'h3')] = el.textContent;
+  // Text edits — use index within each .cw so multiple [data-editable] per card get unique keys
+  document.querySelectorAll('.cw[data-cid]').forEach(cw => {
+    const cid = cw.dataset.cid;
+    cw.querySelectorAll('[data-editable]').forEach((el, idx) => {
+      if (el.textContent.trim()) layout.textEdits[cid + '_' + idx] = el.textContent;
+    });
   });
   // Chart data
   Object.entries(chartReg).forEach(([id, ch]) => {
@@ -2208,18 +2210,23 @@ function loadLayout() {
   }
   // Restore text edits
   if (saved.textEdits) {
+    // Group by cid, restore by index within each .cw
+    const byCard = {};
     Object.entries(saved.textEdits).forEach(([key, text]) => {
-      // key = cid_className (e.g. "card-123_h3" or "card-123_insight-rec-title")
-      const cid = key.replace(/_[^_]*$/, '');
-      const className = key.slice(cid.length + 1); // everything after cid_
+      const lastUnderscore = key.lastIndexOf('_');
+      const cid = key.slice(0, lastUnderscore);
+      const idx = key.slice(lastUnderscore + 1);
+      if (!byCard[cid]) byCard[cid] = {};
+      byCard[cid][idx] = text;
+    });
+    Object.entries(byCard).forEach(([cid, edits]) => {
       const cwEl = document.querySelector(`[data-cid="${cid}"]`);
-      if (!cwEl || !text) return;
-      // Try to find by className first, fallback to first [data-editable]
-      let el = className && className !== 'h3'
-        ? cwEl.querySelector(`[data-editable].${className}`)
-        : cwEl.querySelector('[data-editable]');
-      if (!el) el = cwEl.querySelector('[data-editable]');
-      if (el) el.textContent = text;
+      if (!cwEl) return;
+      const editables = [...cwEl.querySelectorAll('[data-editable]')];
+      editables.forEach((el, idx) => {
+        const text = edits[String(idx)];
+        if (text) el.textContent = text;
+      });
     });
   }
   // Restore chart data
