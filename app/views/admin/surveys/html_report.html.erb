@@ -2013,6 +2013,12 @@ function saveLayout() {
   layout.hiddenKpis = [...document.querySelectorAll('.kpi[id^="kpi-block-"].hidden-section')].map(el => ({
     id: el.id, label: el.querySelector('.kpi-label')?.textContent?.trim() || el.id
   }));
+  // Save KPI labels into main layout so server/public can restore them
+  layout.kpiLabels = {};
+  document.querySelectorAll('.kpi-editable[data-kpi-idx]').forEach(el => {
+    const v = el.innerText.trim();
+    if (v) layout.kpiLabels[el.dataset.kpiIdx] = v;
+  });
   localStorage.setItem(SK, JSON.stringify(layout));
   // Sync layout to server so public link shows same layout
   if (!IS_PUBLIC) {
@@ -2059,6 +2065,13 @@ function loadLayout() {
     Object.entries(saved.kpiHeights).forEach(([id, h]) => {
       const el = document.getElementById(id);
       if (el) el.style.minHeight = h;
+    });
+  }
+  // Restore KPI labels
+  if (saved.kpiLabels) {
+    Object.entries(saved.kpiLabels).forEach(([idx, text]) => {
+      const el = document.querySelector(`.kpi-editable[data-kpi-idx="${idx}"]`);
+      if (el && text) el.innerText = text;
     });
   }
   // Restore section titles
