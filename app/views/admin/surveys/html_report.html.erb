@@ -2255,17 +2255,20 @@ function focusSectionTitle(btn) {
 }
 
 // Clicking anywhere on section-header (except controls) focuses the title input
-document.querySelectorAll('.section-header').forEach(header => {
-  header.addEventListener('mousedown', function(e) {
-    if (e.target.closest('.section-controls,.section-edit-btn')) return;
-    const input = this.querySelector('input.section-title-edit');
-    if (!input) return;
-    if (e.target === input) return; // let native focus work
-    e.preventDefault();
-    input.focus();
-    try { input.select(); } catch(_) {}
-  });
-});
+// Use capture phase so this fires before Sortable.js can stopPropagation
+document.addEventListener('mousedown', function(e) {
+  if (IS_PUBLIC) return;
+  const header = e.target.closest('.section-header');
+  if (!header) return;
+  if (e.target.closest('.section-controls,.section-edit-btn')) return;
+  const input = header.querySelector('input.section-title-edit');
+  if (!input) return;
+  if (e.target === input || e.target.tagName === 'INPUT') return; // native focus ok
+  e.preventDefault();
+  input.removeAttribute('disabled');
+  input.focus();
+  try { input.select(); } catch(_) {}
+}, true); // capture phase
 
 // ── Sortable: sections ──
 new Sortable(document.getElementById('sortableContainer'), {
