@@ -218,6 +218,7 @@ class Admin::SurveysController < Admin::BaseController
 
     # Render view to HTML string (with pdf=1 so UI chrome is hidden)
     params[:pdf] = "1"
+    @pdf_preview = true
     html = render_to_string(template: "admin/surveys/html_report", layout: false)
 
     # Inject the browser's localStorage layout so Grover renders the same layout
