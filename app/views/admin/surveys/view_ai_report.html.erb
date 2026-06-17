@@ -367,7 +367,13 @@ canvas{height:250px;min-height:80px;max-height:none}
 .cw-gear,.card-toolbar,.cw-mode-bar,.restore-bar,.section-controls,
 .rh-right,.rh-bottom,.rh-corner,.btn-sec-drag,.btn-sec-hide,
 #shareModal,.btn-share,.btn-arrange,.btn-back,
+.kpi-toolbar,.kpi-rh,.kpi-lh,.kpi-rb,.kpi-rt,.float-edit-icon,
 .pdf-preview-tab,.pdf-drawer,#pdfFullscreenOverlay{display:none!important}
+/* View-only: no edit affordance on section titles or KPI labels */
+.section-title-edit{border-bottom:none!important;pointer-events:none!important;cursor:default!important}
+.section-title-edit:hover,.section-title-edit:focus{background:transparent!important;border-bottom:none!important;outline:none!important}
+.kpi-editable{pointer-events:none!important;cursor:default!important}
+.kpi-editable:hover,.kpi-editable:focus{background:transparent!important;outline:none!important}
 <% end %>
 
 @media print{
@@ -640,7 +646,7 @@ canvas{max-height:200px;break-inside:avoid}
         <span class="btn-sec-drag">⠿</span>
         <button class="btn-sec-hide" onclick="hideSection('<%= sid %>','<%= j sec_title %>')">Ẩn section</button>
       </div>
-      <div class="section-title"><% unless @public_view %><input type="text" class="section-title-edit" data-sec-id="<%= sid %>" value="<%= j sec_title %>" spellcheck="false"><% else %><span><%= sec_title %></span><% end %></div>
+      <div class="section-title"><% unless @public_view %><input type="text" class="section-title-edit" data-sec-id="<%= sid %>" value="<%= j sec_title %>" spellcheck="false"><% else %><span class="section-title-edit" data-sec-id="<%= sid %>"><%= sec_title %></span><% end %></div>
     </div>
     <% end %>
 
@@ -915,28 +921,23 @@ function saveLayout() {
     });
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
     <% unless @public_view %>
-    clearTimeout(saveLayout._t);
-    saveLayout._t = setTimeout(() => {
-      fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
-        body: JSON.stringify(saved)
-      }).catch(() => {});
-    }, 1500);
+    pushLayout();
     schedulePreviewReload();
     <% end %>
   } catch(e) {}
 }
 
-// Debounced POST of a layout object to the server (admin only).
-function pushLayout(saved) {
+// Single debounced sync to the server (admin only). Reads the LATEST localStorage
+// at fire time — never a stale snapshot — so concurrent savers can't clobber each
+// other's data. All save helpers write localStorage then call this.
+function pushLayout() {
   <% unless @public_view %>
   clearTimeout(pushLayout._t);
   pushLayout._t = setTimeout(() => {
     fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
-      body: JSON.stringify(saved)
+      body: localStorage.getItem(LAYOUT_KEY) || '{}'
     }).catch(() => {});
   }, 1000);
   <% end %>
@@ -953,15 +954,7 @@ function saveTextEdits() {
     saved.textEdits = edits;
     saved.report_id = '<%= @ai_result.id %>';
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
-    // Sync to server so public link shows same data
-    clearTimeout(saveTextEdits._t);
-    saveTextEdits._t = setTimeout(() => {
-      fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
-        body: JSON.stringify(saved)
-      }).catch(() => {});
-    }, 1500);
+    pushLayout(); // sync to server so public link shows same data
   } catch(e) {}
 }
 
@@ -1001,11 +994,11 @@ function loadTextEdits() {
         if (el && text) el.textContent = text;
       });
     }
-    // Restore section titles
+    // Restore section titles (input on admin, span on public)
     if (saved.sectionTitles) {
       Object.entries(saved.sectionTitles).forEach(([sid, title]) => {
         const el = document.querySelector(`.section-title-edit[data-sec-id="${sid}"]`);
-        if (el && title) el.value = title;
+        if (el && title) { if (el.tagName === 'INPUT') el.value = title; else el.textContent = title; }
       });
     }
     // Restore hidden KPIs
@@ -1115,12 +1108,14 @@ function saveKpiHidden() {
       id: el.id, label: el.querySelector('.kpi-label')?.textContent?.trim() || el.id
     }));
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+    pushLayout();
   } catch(e) {}
 }
 function hideSection(sid, label) {
   const el = document.querySelector(`[data-id="${sid}"]`);
   if (el) el.classList.add('hidden-section');
-  addRestoreChip(sid, label, 'section');
+  // Prefer the current (possibly edited) section title over the original ERB arg
+  addRestoreChip(sid, (el && getSectionLabel(el)) || label, 'section');
   saveHidden();
 }
 // Persist hidden sections + cards to localStorage and (admin only) the server,
@@ -1135,16 +1130,7 @@ function saveHidden() {
     }));
     saved.hiddenCards = [...document.querySelectorAll('.cw.hidden-section[data-cid]')].map(el => el.dataset.cid);
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
-    <% unless @public_view %>
-    clearTimeout(saveHidden._t);
-    saveHidden._t = setTimeout(() => {
-      fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
-        body: JSON.stringify(saved)
-      }).catch(() => {});
-    }, 1000);
-    <% end %>
+    pushLayout();
   } catch(e) {}
 }
 function addRestoreChip(id, label, type) {
