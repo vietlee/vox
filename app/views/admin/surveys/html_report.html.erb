@@ -2872,18 +2872,19 @@ function setLang(lang) {
 })();
 
 loadLayout();
-equalizeRowHeights();
+equalizeRowHeights(true); // equalize + save heights to server
 
 // Equalize card heights per grid row so blocks in the same row match height
-function equalizeRowHeights() {
+function equalizeRowHeights(andSave) {
   requestAnimationFrame(() => {
+    // Reset previous min-heights to measure natural content height
     document.querySelectorAll('.grid-2, .grid-3').forEach(grid => {
-      // Reset any previous min-heights so we measure natural content height
       grid.querySelectorAll('.cw[data-cid]:not(.hidden-section) .card').forEach(card => {
         card.style.minHeight = '';
       });
-      // Re-measure and equalize per row
-      requestAnimationFrame(() => {
+    });
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.grid-2, .grid-3').forEach(grid => {
         const rows = {};
         grid.querySelectorAll('.cw[data-cid]:not(.hidden-section)').forEach(cw => {
           const key = Math.round(cw.getBoundingClientRect().top / 5) * 5;
@@ -2891,7 +2892,7 @@ function equalizeRowHeights() {
           rows[key].push(cw);
         });
         Object.values(rows).forEach(rowCws => {
-          if (rowCws.length < 2) return; // single block, no need to equalize
+          if (rowCws.length < 2) return;
           const maxH = Math.max(...rowCws.map(cw => cw.querySelector('.card')?.getBoundingClientRect().height || 0));
           rowCws.forEach(cw => {
             const card = cw.querySelector('.card');
@@ -2899,6 +2900,7 @@ function equalizeRowHeights() {
           });
         });
       });
+      if (andSave && !IS_PUBLIC && typeof saveLayout === 'function') saveLayout();
     });
   });
 }
@@ -2918,8 +2920,8 @@ function equalizeRowHeights() {
   else if (b)   { b.style.gridColumn = 'span 12'; }
 })();
 
-// Auto-save layout on first load so server always has a copy for public link
-if (!IS_PUBLIC) setTimeout(saveLayout, 2000);
+// Auto-save layout on first load — wait for equalizeRowHeights (2x rAF ~33ms) then save
+if (!IS_PUBLIC) setTimeout(saveLayout, 3000);
 
 <% unless @pdf_preview %>
 // ── PDF Preview drawer (actual PDF via blob) ──
