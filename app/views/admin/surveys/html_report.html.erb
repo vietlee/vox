@@ -1540,12 +1540,24 @@ async function downloadPdf() {
     // Capture current DOM state before reading localStorage
     if (typeof saveLayout === 'function') saveLayout();
     const layoutJson = localStorage.getItem(SK) || '{}';
-    // Measure actual rendered heights so Grover matches browser exactly
+    // Measure actual rendered heights per grid row so Grover matches browser
     const layout = JSON.parse(layoutJson);
     layout.cardHeights = layout.cardHeights || {};
-    document.querySelectorAll('.cw[data-cid]').forEach(cw => {
-      const card = cw.querySelector('.card');
-      if (card) layout.cardHeights[cw.dataset.cid] = card.getBoundingClientRect().height + 'px';
+    document.querySelectorAll('.grid-2, .grid-3').forEach(grid => {
+      // Group visible .cw by row (based on offsetTop)
+      const rows = {};
+      grid.querySelectorAll('.cw[data-cid]:not(.hidden-section)').forEach(cw => {
+        const top = cw.getBoundingClientRect().top;
+        const key = Math.round(top / 5) * 5; // bucket by 5px to handle sub-pixel
+        rows[key] = rows[key] || [];
+        rows[key].push(cw);
+      });
+      Object.values(rows).forEach(rowCws => {
+        const maxH = Math.max(...rowCws.map(cw => cw.querySelector('.card')?.getBoundingClientRect().height || 0));
+        rowCws.forEach(cw => {
+          if (cw.dataset.cid) layout.cardHeights[cw.dataset.cid] = maxH + 'px';
+        });
+      });
     });
     const layoutJsonWithHeights = JSON.stringify(layout);
 
