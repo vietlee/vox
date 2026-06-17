@@ -308,7 +308,7 @@ class Admin::SurveysController < Admin::BaseController
     sk = "report_layout_#{@survey.id}_#{@report_lang}"
     # Accept layout directly from POST body (includes browser-measured cardHeights)
     layout_json = if request.post? && request.content_type&.include?("application/json")
-      request.body.read.presence || @survey.settings[sk]&.to_json || "{}"
+      request.body.read.force_encoding("UTF-8").presence || @survey.settings[sk]&.to_json || "{}"
     else
       @survey.settings[sk]&.to_json || "{}"
     end
