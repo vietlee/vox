@@ -2872,6 +2872,36 @@ function setLang(lang) {
 })();
 
 loadLayout();
+equalizeRowHeights();
+
+// Equalize card heights per grid row so blocks in the same row match height
+function equalizeRowHeights() {
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.grid-2, .grid-3').forEach(grid => {
+      // Reset any previous min-heights so we measure natural content height
+      grid.querySelectorAll('.cw[data-cid]:not(.hidden-section) .card').forEach(card => {
+        card.style.minHeight = '';
+      });
+      // Re-measure and equalize per row
+      requestAnimationFrame(() => {
+        const rows = {};
+        grid.querySelectorAll('.cw[data-cid]:not(.hidden-section)').forEach(cw => {
+          const key = Math.round(cw.getBoundingClientRect().top / 5) * 5;
+          rows[key] = rows[key] || [];
+          rows[key].push(cw);
+        });
+        Object.values(rows).forEach(rowCws => {
+          if (rowCws.length < 2) return; // single block, no need to equalize
+          const maxH = Math.max(...rowCws.map(cw => cw.querySelector('.card')?.getBoundingClientRect().height || 0));
+          rowCws.forEach(cw => {
+            const card = cw.querySelector('.card');
+            if (card) card.style.minHeight = maxH + 'px';
+          });
+        });
+      });
+    });
+  });
+}
 
 // Always normalize insight block spans after loadLayout (guards against stale saved data)
 (function normalizeInsightSpans() {
