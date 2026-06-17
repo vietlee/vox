@@ -2862,12 +2862,17 @@ function applyTranslations() {
   document.querySelector('.share-close') && (document.querySelector('.share-close').textContent = t('close'));
   // PDF loading
   const pdfSpan = document.querySelector('#pdf-loading span'); if (pdfSpan) pdfSpan.textContent = t('pdf_loading');
-  // Section titles via SECTION_I18N_MAP
+  // Section titles via SECTION_I18N_MAP — write into the inner editable element
+  // (input/span) WITHOUT replacing .section-title, otherwise the <input> that
+  // makes the title editable gets destroyed (it has no textContent of its own).
   Object.entries(SECTION_I18N_MAP).forEach(([sid, labels]) => {
     const sec = document.querySelector(`[data-id="${sid}"]`);
     if (!sec) return;
-    const titleEl = sec.querySelector('.section-title');
-    if (titleEl) titleEl.textContent = labels[currentLang] || labels['vi'];
+    const editEl = sec.querySelector('.section-title-edit');
+    if (!editEl) return;
+    const label = labels[currentLang] || labels['vi'];
+    if (editEl.tagName === 'INPUT') editEl.value = label;
+    else editEl.textContent = label;
   });
   // Lang button active state
   document.getElementById('langVI')?.classList.toggle('active', currentLang === 'vi');
