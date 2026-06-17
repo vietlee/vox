@@ -928,6 +928,20 @@ function saveLayout() {
   } catch(e) {}
 }
 
+// Debounced POST of a layout object to the server (admin only).
+function pushLayout(saved) {
+  <% unless @public_view %>
+  clearTimeout(pushLayout._t);
+  pushLayout._t = setTimeout(() => {
+    fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+      body: JSON.stringify(saved)
+    }).catch(() => {});
+  }, 1000);
+  <% end %>
+}
+
 function saveTextEdits() {
   const edits = {};
   document.querySelectorAll('[data-cid] [data-editable]').forEach(el => {
@@ -1009,12 +1023,15 @@ function loadTextEdits() {
       el.classList.add('hidden-section');
       <% unless @public_view %>addRestoreChip(id, label || el.querySelector('.section-title')?.textContent?.trim() || id, 'section');<% end %>
     });
-    // Restore hidden cards
+    // Restore hidden cards (skip the restore chip if the parent section is
+    // already hidden — its section chip already covers it, avoids duplicates)
     (saved.hiddenCards || []).forEach(cid => {
       const el = document.querySelector(`.cw[data-cid="${cid}"]`);
       if (!el) return;
       el.classList.add('hidden-section');
-      <% unless @public_view %>addRestoreChip(cid, getCardTitle(el) || cid, 'card');<% end %>
+      <% unless @public_view %>
+      if (!el.closest('.report-section.hidden-section')) addRestoreChip(cid, getCardTitle(el) || cid, 'card');
+      <% end %>
     });
   } catch(e) {}
 }
@@ -1037,6 +1054,15 @@ document.addEventListener('mousedown', e => {
   if (e.target.closest('[data-dir]')) return; // resize handle
   if (!e.target.closest('.cw-active')) deactivateAllCards();
 });
+
+// Section label: read the input value (admin) or span/text — a header div that
+// contains an <input> has empty textContent, so never rely on .textContent alone.
+function getSectionLabel(sec) {
+  if (!sec) return '';
+  const inp = sec.querySelector('.section-title-edit');
+  if (inp) return (inp.value !== undefined ? inp.value : inp.textContent || '').trim();
+  return sec.querySelector('.section-title')?.textContent?.trim() || '';
+}
 
 // ── Hide card ──
 function getCardTitle(el) {
@@ -1064,11 +1090,10 @@ function autoHideEmptySections() {
     const allHidden = [...allCards].every(cw => cw.classList.contains('hidden-section'));
     if (allHidden) {
       const sid = sec.dataset.id;
-      const secText = sec.querySelector('.section-title')?.textContent?.trim();
-      const firstCard = sec.querySelector('[data-editable]')?.textContent?.trim();
-      const label = secText || firstCard || 'Section';
+      const label = getSectionLabel(sec) || 'Section';
       sec.classList.add('hidden-section');
       addRestoreChip(sid, label, 'section');
+      saveHidden();
     }
   });
 }
@@ -1106,7 +1131,7 @@ function saveHidden() {
     saved.report_id = '<%= @ai_result.id %>';
     saved.hiddenSections = [...document.querySelectorAll('.report-section.hidden-section')].map(el => ({
       id: el.dataset.id,
-      label: el.querySelector('.section-title')?.textContent?.trim() || el.dataset.id
+      label: getSectionLabel(el) || el.dataset.id
     }));
     saved.hiddenCards = [...document.querySelectorAll('.cw.hidden-section[data-cid]')].map(el => el.dataset.cid);
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
@@ -1125,6 +1150,8 @@ function saveHidden() {
 function addRestoreChip(id, label, type) {
   const bar = document.getElementById('restoreBar');
   if (!bar || bar.querySelector(`[data-restore="${id}"]`)) return;
+  // De-dupe by visible label too, so the same name can't appear twice
+  if ([...bar.querySelectorAll('.btn-restore')].some(b => b.textContent.trim() === ('👁 ' + label).trim())) return;
   const btn = document.createElement('button');
   btn.className = 'btn-restore';
   btn.setAttribute('data-restore', id);
@@ -1431,16 +1458,23 @@ document.querySelectorAll('.section-title-edit').forEach(el => {
   el.addEventListener('change', () => {
     try {
       const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+      saved.report_id = '<%= @ai_result.id %>';
       saved.sectionTitles = saved.sectionTitles || {};
       document.querySelectorAll('.section-title-edit[data-sec-id]').forEach(inp => {
         saved.sectionTitles[inp.dataset.secId] = inp.value.trim();
       });
       localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+      pushLayout(saved); // sync to server so reload/public/PDF keep the edit
     } catch(e) {}
   });
   el.addEventListener('blur', () => el.dispatchEvent(new Event('change')));
   el.addEventListener('keydown', e => { if (e.key === 'Enter') el.blur(); });
 });
+// Commit card text edits whenever an editable element loses focus (clicking
+// away, not just the explicit "Xong" button), then sync to server.
+document.addEventListener('blur', e => {
+  if (e.target.matches && e.target.matches('[data-editable]')) saveTextEdits();
+}, true);
 
 // ── SortableJS: sections drag ──
 <% unless @public_view %>
