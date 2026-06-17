@@ -1233,6 +1233,7 @@ const SURVEY_ID = '<%= @survey.id %>';
 const REPORT_LANG = '<%= @report_lang || "vi" %>';
 const SK = 'report_layout_' + SURVEY_ID + '_' + REPORT_LANG;
 const IS_PUBLIC = <%= @public_view ? 'true' : 'false' %>;
+const LAYOUT_VERSION = 3; // bump when grid structure changes — declared early so server-layout injection can use it
 
 // ── KPI drag-resize ──────────────────────────────────────────────────────
 const KPI_SIZE_SK = 'report_kpi_sizes_' + SURVEY_ID + '_' + REPORT_LANG;
@@ -2031,7 +2032,6 @@ function saveLayout() {
   }
 }
 
-const LAYOUT_VERSION = 3; // bump when grid structure changes
 function loadLayout() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(SK) || 'null'); } catch(e) {}
