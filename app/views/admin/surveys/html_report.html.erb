@@ -1525,7 +1525,7 @@ document.addEventListener('mousedown', e => {
   if (e.target.closest('.cw-gear')) return; // handled by gear click
   if (e.target.closest('[data-dir]')) return; // resize handle
   if (e.target.closest('#deleteModal,#chartModal')) return; // modals
-  if (e.target.closest('.section-title-edit,.section-edit-btn')) return; // section title editing
+  if (e.target.closest('.section-header')) return; // section title editing
   if (!e.target.closest('.cw-active')) deactivateAllCards();
 });
 
@@ -2242,14 +2242,30 @@ function loadLayout() {
   updateRestoreBar();
 }
 
-// ── Section title edit via ✏️ button ──
+// ── Section title edit via ✏️ button or clicking anywhere in section header ──
 function focusSectionTitle(btn) {
-  const header = btn.closest('.section-header');
+  const header = btn.closest ? btn.closest('.section-header') : btn;
   if (!header) return;
-  const input = header.querySelector('.section-title-edit');
+  const input = header.querySelector('input.section-title-edit');
   if (!input) return;
-  setTimeout(() => { input.focus(); input.select(); input.style.cursor = 'text'; }, 10);
+  input.removeAttribute('disabled');
+  input.focus();
+  try { input.select(); } catch(_) {}
+  input.style.cursor = 'text';
 }
+
+// Clicking anywhere on section-header (except controls) focuses the title input
+document.querySelectorAll('.section-header').forEach(header => {
+  header.addEventListener('mousedown', function(e) {
+    if (e.target.closest('.section-controls,.section-edit-btn')) return;
+    const input = this.querySelector('input.section-title-edit');
+    if (!input) return;
+    if (e.target === input) return; // let native focus work
+    e.preventDefault();
+    input.focus();
+    try { input.select(); } catch(_) {}
+  });
+});
 
 // ── Sortable: sections ──
 new Sortable(document.getElementById('sortableContainer'), {
