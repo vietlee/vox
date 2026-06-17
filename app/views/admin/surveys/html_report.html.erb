@@ -2872,7 +2872,6 @@ function setLang(lang) {
 })();
 
 loadLayout();
-equalizeRowHeights(true); // equalize + save heights to server
 
 // Equalize card heights per grid row so blocks in the same row match height
 function equalizeRowHeights(andSave) {
@@ -2920,8 +2919,8 @@ function equalizeRowHeights(andSave) {
   else if (b)   { b.style.gridColumn = 'span 12'; }
 })();
 
-// Auto-save layout on first load — wait for equalizeRowHeights (2x rAF ~33ms) then save
-if (!IS_PUBLIC) setTimeout(saveLayout, 3000);
+// Auto-save layout on first load so server always has a copy for public link
+if (!IS_PUBLIC) setTimeout(saveLayout, 2000);
 
 <% unless @pdf_preview %>
 // ── PDF Preview drawer (actual PDF via blob) ──
