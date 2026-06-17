@@ -1540,6 +1540,14 @@ async function downloadPdf() {
     // Capture current DOM state before reading localStorage
     if (typeof saveLayout === 'function') saveLayout();
     const layoutJson = localStorage.getItem(SK) || '{}';
+    // Measure actual rendered heights so Grover matches browser exactly
+    const layout = JSON.parse(layoutJson);
+    layout.cardHeights = layout.cardHeights || {};
+    document.querySelectorAll('.cw[data-cid]').forEach(cw => {
+      const card = cw.querySelector('.card');
+      if (card) layout.cardHeights[cw.dataset.cid] = card.getBoundingClientRect().height + 'px';
+    });
+    const layoutJsonWithHeights = JSON.stringify(layout);
 
     const resp = await fetch('<%= raw pdf_report_survey_path(@survey, lang: @report_lang) %>', {
       method:  'POST',
@@ -1547,7 +1555,7 @@ async function downloadPdf() {
         'Content-Type': 'application/json',
         'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
       },
-      body: JSON.stringify({ layout: layoutJson })
+      body: JSON.stringify({ layout: layoutJsonWithHeights })
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const blob = await resp.blob();
@@ -2174,7 +2182,7 @@ function loadLayout() {
   if (saved.cardHeights) {
     Object.entries(saved.cardHeights).forEach(([cid, h]) => {
       const card = document.querySelector(`[data-cid="${cid}"] .card`);
-      if (card) { card.style.minHeight = h; card.style.height = ''; }
+      if (card) { card.style.minHeight = h; }
     });
   }
   if (saved.barListHeights) {
