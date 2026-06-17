@@ -288,12 +288,14 @@ class Admin::SurveysController < Admin::BaseController
     @report_lang = params[:lang].presence_in(%w[vi en]) || "vi"
     call_html_report_setup
     params[:pdf] = "1"
+    @pdf_preview = true
 
     sk = "report_layout_#{@survey.id}_#{@report_lang}"
     layout_json = @survey.settings[sk]&.to_json || "{}"
 
-    # Cache key: invalidate when layout or survey data changes
-    content_sig = Digest::MD5.hexdigest("#{layout_json}#{@survey.updated_at.to_i}#{@report_lang}")
+    # Cache key: invalidate when layout, survey data, or template changes
+    tmpl_mtime = File.mtime(Rails.root.join("app/views/admin/surveys/html_report.html.erb")).to_i rescue 0
+    content_sig = Digest::MD5.hexdigest("#{layout_json}#{@survey.updated_at.to_i}#{@report_lang}#{tmpl_mtime}")
     cache_key   = "pdf_preview/#{@survey.id}/#{content_sig}"
 
     pdf = Rails.cache.fetch(cache_key, expires_in: 10.minutes) do
