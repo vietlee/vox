@@ -1381,7 +1381,10 @@ document.addEventListener('DOMContentLoaded', () => { loadKpiLabels(); loadKpiSi
     if (cw) {
       cw.classList.remove('cw-resize-mode','cw-move-mode');
       cw.classList.add('cw-text-mode');
-      cw.querySelectorAll('[data-editable]').forEach(el => el.contentEditable = 'true');
+      cw.querySelectorAll('[data-editable]').forEach(el => {
+        el.contentEditable = 'true';
+        el.addEventListener('blur', () => saveLayout(), { once: false });
+      });
       cw.querySelectorAll('.ct-mode-btn').forEach(b => b.classList.remove('active'));
       const textBtn = cw.querySelector('.ct-mode-btn[data-mode="text"]');
       if (textBtn) textBtn.classList.add('active');
@@ -2206,10 +2209,17 @@ function loadLayout() {
   // Restore text edits
   if (saved.textEdits) {
     Object.entries(saved.textEdits).forEach(([key, text]) => {
-      // key = cid_className (e.g. "abc123_h3")
+      // key = cid_className (e.g. "card-123_h3" or "card-123_insight-rec-title")
       const cid = key.replace(/_[^_]*$/, '');
-      const el = document.querySelector(`[data-cid="${cid}"] [data-editable]`);
-      if (el && text) el.textContent = text;
+      const className = key.slice(cid.length + 1); // everything after cid_
+      const cwEl = document.querySelector(`[data-cid="${cid}"]`);
+      if (!cwEl || !text) return;
+      // Try to find by className first, fallback to first [data-editable]
+      let el = className && className !== 'h3'
+        ? cwEl.querySelector(`[data-editable].${className}`)
+        : cwEl.querySelector('[data-editable]');
+      if (!el) el = cwEl.querySelector('[data-editable]');
+      if (el) el.textContent = text;
     });
   }
   // Restore chart data
