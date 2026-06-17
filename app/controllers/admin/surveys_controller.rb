@@ -306,7 +306,12 @@ class Admin::SurveysController < Admin::BaseController
     @pdf_preview = true
 
     sk = "report_layout_#{@survey.id}_#{@report_lang}"
-    layout_json = @survey.settings[sk]&.to_json || "{}"
+    # Accept layout directly from POST body (includes browser-measured cardHeights)
+    layout_json = if request.post? && request.content_type&.include?("application/json")
+      request.body.read.presence || @survey.settings[sk]&.to_json || "{}"
+    else
+      @survey.settings[sk]&.to_json || "{}"
+    end
 
     # Cache key: invalidate when layout, survey data, or template changes
     tmpl_mtime = File.mtime(Rails.root.join("app/views/admin/surveys/html_report.html.erb")).to_i rescue 0

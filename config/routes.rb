@@ -104,7 +104,7 @@ Rails.application.routes.draw do
         post  :pdf_report
         get   :preview_html_report
         get   :preview_html_ai_report
-        get   :preview_pdf_report
+        post  :preview_pdf_report
         post  :generate_report_token
         delete :revoke_report_token
         post  :save_report_layout
