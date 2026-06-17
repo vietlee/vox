@@ -999,7 +999,22 @@ function loadTextEdits() {
       const el = document.getElementById(id);
       if (!el) return;
       el.classList.add('hidden-section');
-      addRestoreChip(id, label, 'kpi');
+      <% unless @public_view %>addRestoreChip(id, label, 'kpi');<% end %>
+    });
+    // Restore hidden sections — applied for both admin and public so the
+    // public link / PDF match what the admin hid.
+    (saved.hiddenSections || []).forEach(({ id, label }) => {
+      const el = document.querySelector(`.report-section[data-id="${id}"]`);
+      if (!el) return;
+      el.classList.add('hidden-section');
+      <% unless @public_view %>addRestoreChip(id, label || el.querySelector('.section-title')?.textContent?.trim() || id, 'section');<% end %>
+    });
+    // Restore hidden cards
+    (saved.hiddenCards || []).forEach(cid => {
+      const el = document.querySelector(`.cw[data-cid="${cid}"]`);
+      if (!el) return;
+      el.classList.add('hidden-section');
+      <% unless @public_view %>addRestoreChip(cid, getCardTitle(el) || cid, 'card');<% end %>
     });
   } catch(e) {}
 }
@@ -1038,6 +1053,7 @@ function hideCard(cid) {
   el.classList.add('hidden-section');
   addRestoreChip(cid, label, 'card');
   autoHideEmptySections();
+  saveHidden();
 }
 
 // ── Auto-hide empty sections ──
@@ -1065,6 +1081,7 @@ function hideKpi(id) {
   const label = el.querySelector('.kpi-label')?.textContent?.trim() || id;
   addRestoreChip(id, label, 'kpi');
   saveKpiHidden();
+  saveHidden(); // also POST to server so public/PDF reflect the hidden KPI
 }
 function saveKpiHidden() {
   try {
@@ -1079,6 +1096,31 @@ function hideSection(sid, label) {
   const el = document.querySelector(`[data-id="${sid}"]`);
   if (el) el.classList.add('hidden-section');
   addRestoreChip(sid, label, 'section');
+  saveHidden();
+}
+// Persist hidden sections + cards to localStorage and (admin only) the server,
+// so the public link and PDF reflect what was hidden in admin.
+function saveHidden() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    saved.report_id = '<%= @ai_result.id %>';
+    saved.hiddenSections = [...document.querySelectorAll('.report-section.hidden-section')].map(el => ({
+      id: el.dataset.id,
+      label: el.querySelector('.section-title')?.textContent?.trim() || el.dataset.id
+    }));
+    saved.hiddenCards = [...document.querySelectorAll('.cw.hidden-section[data-cid]')].map(el => el.dataset.cid);
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+    <% unless @public_view %>
+    clearTimeout(saveHidden._t);
+    saveHidden._t = setTimeout(() => {
+      fetch('<%= save_ai_report_layout_survey_path(@survey, report_id: @ai_result.id) %>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+        body: JSON.stringify(saved)
+      }).catch(() => {});
+    }, 1000);
+    <% end %>
+  } catch(e) {}
 }
 function addRestoreChip(id, label, type) {
   const bar = document.getElementById('restoreBar');
@@ -1101,6 +1143,7 @@ function addRestoreChip(id, label, type) {
           if (secChip) secChip.remove();
         }
       }
+      if (type !== 'kpi') saveHidden();
     }
     btn.remove();
     updateRestoreBar();
