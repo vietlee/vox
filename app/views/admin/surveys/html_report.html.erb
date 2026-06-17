@@ -753,7 +753,7 @@ canvas{background:white!important}
     </div>
     <%# cw-mode-bar, resize handles, snap-guide injected by JS below %>
     <div class="card">
-      <h3><span data-editable contenteditable="false"><%= card_title.to_s.truncate(100) %></span><span class="h3-spacer"></span><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button></h3>
+      <h3><span data-editable contenteditable="false"><%= card_title.to_s.truncate(100) %></span><span class="h3-spacer"></span><% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %></h3>
 
       <%# ═══ DOUGHNUT ═══ %>
       <% if chart_type == "doughnut" || chart_type == "pie" %>
@@ -1184,7 +1184,7 @@ canvas{background:white!important}
       </div>
       <% end %>
       <div class="card insights-col">
-        <h3><span><%= @report_lang == "en" ? "📊 Data Findings" : "📊 Phát hiện từ dữ liệu" %></span><span class="h3-spacer"></span><% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %></h3>
+        <h3><span data-editable contenteditable="false"><%= @report_lang == "en" ? "📊 Data Findings" : "📊 Phát hiện từ dữ liệu" %></span><span class="h3-spacer"></span><% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %></h3>
         <% stat_insights.each do |ins| %>
         <div class="insight-item insight-stat">
           <strong class="insight-plus">+</strong> <span data-editable contenteditable="false"><%= ins["text"] %></span>
@@ -1205,7 +1205,7 @@ canvas{background:white!important}
       </div>
       <% end %>
       <div class="card insights-col">
-        <h3><span><%= @report_lang == "en" ? "🎯 Action Recommendations" : "🎯 Khuyến nghị hành động" %></span><span class="h3-spacer"></span><% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %></h3>
+        <h3><span data-editable contenteditable="false"><%= @report_lang == "en" ? "🎯 Action Recommendations" : "🎯 Khuyến nghị hành động" %></span><span class="h3-spacer"></span><% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %></h3>
         <% rec_insights.each do |ins| %>
         <div class="insight-item insight-rec">
           <div class="insight-rec-title" data-editable contenteditable="false">→ <%= ins["title"] %></div>
