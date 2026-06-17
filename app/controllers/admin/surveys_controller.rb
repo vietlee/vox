@@ -328,6 +328,19 @@ class Admin::SurveysController < Admin::BaseController
       JS
       html = html.sub("</head>", "#{layout_script}</head>")
 
+      # Inject card min-heights as inline CSS so Grover renders heights matching browser
+      begin
+        layout_data = JSON.parse(layout_json)
+        if layout_data["cardHeights"].is_a?(Hash) && layout_data["cardHeights"].any?
+          height_styles = layout_data["cardHeights"].map do |cid, h|
+            next unless h.to_s.match?(/\A[\d.]+px\z/)
+            "[data-cid=\"#{cid}\"] .card { min-height: #{h} !important; }"
+          end.compact.join("\n")
+          html = html.sub("</head>", "<style>#{height_styles}</style></head>") if height_styles.present?
+        end
+      rescue JSON::ParserError
+      end
+
       Grover.new(html,
         format:              "A4",
         landscape:           true,

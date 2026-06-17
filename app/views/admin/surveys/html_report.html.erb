@@ -2922,14 +2922,28 @@ async function generatePdfPreview() {
   if (btn)        { btn.disabled = true; btn.textContent = '⏳ Đang tải...'; }
 
   try {
-    // Step 1: save current layout to server so iframe picks it up
+    // Step 1: save current layout (with measured heights) to server so preview picks it up
     if (loadText) loadText.textContent = 'Đang lưu layout...';
     if (typeof saveLayout === 'function') saveLayout();
     const layoutJson = localStorage.getItem(SK) || '{}';
+    const layoutForPreview = JSON.parse(layoutJson);
+    layoutForPreview.cardHeights = layoutForPreview.cardHeights || {};
+    document.querySelectorAll('.grid-2, .grid-3').forEach(grid => {
+      const rows = {};
+      grid.querySelectorAll('.cw[data-cid]:not(.hidden-section)').forEach(cw => {
+        const key = Math.round(cw.getBoundingClientRect().top / 5) * 5;
+        rows[key] = rows[key] || [];
+        rows[key].push(cw);
+      });
+      Object.values(rows).forEach(rowCws => {
+        const maxH = Math.max(...rowCws.map(cw => cw.querySelector('.card')?.getBoundingClientRect().height || 0));
+        rowCws.forEach(cw => { if (cw.dataset.cid) layoutForPreview.cardHeights[cw.dataset.cid] = maxH + 'px'; });
+      });
+    });
     await fetch('<%= save_report_layout_survey_path(@survey) %>', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.content || '' },
-      body: layoutJson
+      body: JSON.stringify(layoutForPreview)
     }).catch(() => {});
 
     // Step 2: fetch real PDF (Grover) with countdown
