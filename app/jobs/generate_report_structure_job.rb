@@ -95,13 +95,37 @@ class GenerateReportStructureJob < ApplicationJob
     structure         = semantics_builder.build_structure
     data_summary      = semantics_builder.data_summary_for_ai
 
-    Rails.logger.info "GenerateReportStructureJob: survey #{survey_id} — Ruby built #{structure['sections']&.length} sections, now calling AI for insights"
+    # ── Step 1b: Let the AI decide section grouping + order (dynamic, no fixed
+    # 6-bucket template). Falls back to the deterministic grouping on any failure.
+    begin
+      grouping = plan_sections(semantics_builder.chartable_catalog, survey, language)
+      if grouping
+        regrouped = semantics_builder.build_sections_from_grouping(grouping)
+        structure["sections"] = regrouped if regrouped.present?
+      end
+    rescue => e
+      Rails.logger.warn "GenerateReportStructureJob: section planner failed, using deterministic grouping: #{e.message}"
+    end
+
+    Rails.logger.info "GenerateReportStructureJob: survey #{survey_id} — #{structure['sections']&.length} sections, now calling AI for insights"
 
     # ── Step 2: AI shortens labels + generates insights ───────────────────
     # Collect all texts needing shortening
     kpi_texts = structure["kpis"].map { |k| k["label"] }
 
-    section_titles = structure["sections"].map { |s| s["title"] }
+    # For section naming, give the AI the actual questions inside each section so
+    # it names them by CONTENT (domain-agnostic) rather than shortening a
+    # hardcoded seed title. Cross-tab cards expose value_question_ids instead.
+    qmap = questions.index_by(&:id)
+    section_questions = structure["sections"].map do |s|
+      s["cards"].flat_map { |c|
+        if c["question_id"]
+          [qmap[c["question_id"].to_i]&.title]
+        else
+          Array(c["value_question_ids"]).map { |id| qmap[id.to_i]&.title }
+        end
+      }.compact.map { |t| t.to_s.truncate(60) }.uniq.first(6)
+    end
 
     card_texts = structure["sections"].flat_map { |s|
       s["cards"].map { |c| c["title"].to_s }
@@ -109,7 +133,7 @@ class GenerateReportStructureJob < ApplicationJob
 
     output_lang     = language == "vi" ? "Vietnamese (tiếng Việt)" : "English"
     task1_label     = language == "vi" ? "Rút gọn nhãn KPI (tối đa 4 từ, súc tích)" : "Shorten KPI labels (max 4 words, clear)"
-    task2_label     = language == "vi" ? "Rút gọn tiêu đề section (tối đa 5 từ, rõ ý)" : "Shorten section titles (max 5 words, clear)"
+    task2_label     = language == "vi" ? "Đặt tiêu đề section (≤5 từ) DỰA TRÊN nội dung các câu hỏi trong section — không bịa chủ đề ngoài dữ liệu" : "Name each section (≤5 words) BASED ON the questions it contains — do not invent topics not in the data"
     task3_label     = language == "vi" ? "Rút gọn tiêu đề card/chart (tối đa 6 từ)" : "Shorten chart titles (max 6 words)"
     task4_label     = language == "vi" ? "Insights thông minh (4–6 insights)" : "Smart insights (4–6 insights)"
     stat_desc       = language == "vi" ? "phát hiện quan trọng với số liệu cụ thể" : "key finding with specific data"
@@ -132,7 +156,7 @@ class GenerateReportStructureJob < ApplicationJob
       #{kpi_texts.map.with_index { |t, i| "#{i}: #{t}" }.join("\n")}
 
       ## Task 2 — #{task2_label}:
-      #{section_titles.map.with_index { |t, i| "#{i}: #{t}" }.join("\n")}
+      #{section_questions.map.with_index { |qs, i| "#{i}: [#{qs.join(' | ')}]" }.join("\n")}
 
       ## Task 3 — #{task3_label}:
       #{card_texts.map.with_index { |t, i| "#{i}: #{t}" }.join("\n")}
@@ -180,8 +204,11 @@ class GenerateReportStructureJob < ApplicationJob
       end
     end
 
-    insights = result["ai_insights"] || []
-    structure["ai_insights"] = Array(insights).select { |i| i["text"].present? || i["title"].present? }
+    insights = Array(result["ai_insights"]).select { |i| i["text"].present? || i["title"].present? }
+    # Guard against fabricated numbers: drop a "stat" insight whose cited numbers
+    # match NONE of the real computed values (strong hallucination signal).
+    facts = build_fact_numbers(semantics_builder, completed_ids.size)
+    structure["ai_insights"] = verify_insights(insights, facts)
     structure["survey_title_translated"] = result["survey_title"].to_s.strip if result["survey_title"].present?
 
     # ── AI theme label generation for text question cards ────────────────
@@ -194,7 +221,7 @@ class GenerateReportStructureJob < ApplicationJob
         texts = sem&.dig(:texts) || []
         next if texts.size < 3
 
-        ai_options = generate_ai_theme_labels(texts, card["title"].to_s, language)
+        ai_options = ReportAnalytics.categorize_themes(texts, card["title"].to_s, total: texts.size, language: language)
         card["ai_options"] = ai_options if ai_options.present?
       rescue => e
         Rails.logger.warn "AI theme labels failed for Q#{qid}: #{e.message}"
@@ -224,6 +251,69 @@ class GenerateReportStructureJob < ApplicationJob
   end
 
   private
+
+  # ── Insight number verification (anti-hallucination guard) ──────────────────
+  def build_fact_numbers(builder, total)
+    facts = [total.to_f]
+    builder.semantics.each_value do |sem|
+      facts << sem[:avg].to_f       if sem[:avg]
+      facts << sem[:nps_score].to_f if sem[:nps_score]
+      facts << sem[:total].to_f     if sem[:total]
+      [sem[:min], sem[:max], sem[:promoters], sem[:passives], sem[:detractors]].each { |v| facts << v.to_f if v }
+      Array(sem[:options]).each { |o| facts << o[:count].to_f if o[:count]; facts << o[:pct].to_f if o[:pct] }
+      Array(sem[:distribution]).each { |d| c = d[:count] || d["count"]; facts << c.to_f if c }
+      Array(sem[:dist]).each { |d| c = d["count"] || d[:count]; facts << c.to_f if c }
+    end
+    facts.uniq
+  end
+
+  def verify_insights(insights, facts)
+    Array(insights).select do |ins|
+      next true unless ins["type"] == "stat"
+      nums = ins["text"].to_s.scan(/\d+(?:[.,]\d+)?/).map { |s| s.tr(",", ".").to_f }
+      next true if nums.empty?
+      grounded = nums.any? { |n| facts.any? { |f| (f - n).abs <= 1.0 || (f != 0 && ((f - n).abs / f.abs) <= 0.05) } }
+      Rails.logger.warn "GenerateReportStructureJob: dropped unverified insight: #{ins['text'].to_s.truncate(90)}" unless grounded
+      grounded
+    end
+  end
+
+  # ── AI section planner: group + order chartable questions into sections ─────
+  # Returns [{ "title" =>, "question_ids" => [..] }] or nil (→ deterministic).
+  def plan_sections(catalog, survey, language)
+    return nil if catalog.blank? || catalog.size < 3
+    lang_name = language == "vi" ? "Vietnamese (tiếng Việt)" : "English"
+    lines = catalog.map { |c| "  - id=#{c['id']} [#{c['role']}] #{c['title']}" }.join("\n")
+    system = "You are a survey report designer. Group questions into a logical, well-ordered set " \
+             "of report sections. Return ONLY valid JSON. Titles MUST be in #{lang_name}."
+    user = <<~PROMPT
+      Survey: "#{survey.title}"
+      Questions (id, semantic role, title):
+      #{lines}
+
+      Group these into 2–6 sections that tell a coherent story, ordered logically
+      (overview/segments first → core metrics → problems → suggestions last).
+      - Every question id must appear in exactly one section.
+      - Keep related questions together; don't make single-question sections unless necessary.
+      - Section title: ≤5 words, in #{lang_name}, describing that section's questions.
+
+      Return JSON ONLY:
+      { "sections": [ { "title": "...", "question_ids": [1,2] }, ... ] }
+    PROMPT
+    raw = ClaudeService.sonnet.call(system_prompt: system, user_prompt: user, max_tokens: 800)
+    clean = raw.to_s.gsub(/\A\s*```(?:json)?\s*/i, "").gsub(/\s*```\s*\z/, "").strip
+    parsed = JSON.parse(clean[/\{.*\}/m] || "{}")
+    secs = parsed["sections"]
+    return nil unless secs.is_a?(Array) && secs.any?
+    valid_ids = catalog.map { |c| c["id"].to_i }.to_set
+    # Keep only known ids; ensure uncovered questions are appended to the last section.
+    seen = Set.new
+    secs.each { |s| s["question_ids"] = Array(s["question_ids"]).map(&:to_i).select { |id| valid_ids.include?(id) && seen.add?(id) } }
+    missing = valid_ids.to_a - seen.to_a
+    secs.last["question_ids"] |= missing if missing.any? && secs.last
+    secs.reject! { |s| s["question_ids"].blank? }
+    secs.presence
+  end
 
   # ── AI theme label generation from raw text responses ──────────────────────
   def generate_ai_theme_labels(texts, question_title, language = "vi")

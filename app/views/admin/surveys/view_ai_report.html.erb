@@ -98,7 +98,8 @@ body.pdf-preview-open{padding-right:540px}
 /* ── KPI ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-bottom:4px}
 .kpi{grid-column:span 2}
-.kpi{background:white;border-radius:12px;padding:18px 14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.kpi{background:white;border-radius:12px;padding:18px 14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:grid-column .14s ease,min-height .14s ease,height .14s ease}
+.kpi-grid.kpi-resizing .kpi{transition:none}
 .kpi.kpi-wide{grid-column:span 2}
 .kpi-value{font-size:32px;font-weight:800;line-height:1;margin-bottom:5px}
 .kpi-label{font-size:10px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
@@ -150,7 +151,7 @@ body.pdf-preview-open{padding-right:540px}
 .cd-placeholder{border:2px dashed #e2e8f0;border-radius:12px;background:#fafafa;min-height:80px}
 
 /* ── Grids ── */
-.grid-2{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;margin-bottom:4px}
+.grid-2{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;margin-bottom:4px;align-items:start}
 .grid-2>.cw{grid-column:span 6}
 @media(max-width:900px){.grid-2{grid-template-columns:1fr}.grid-2>.cw{grid-column:span 1!important}}
 
@@ -235,7 +236,7 @@ canvas{height:250px;min-height:80px;max-height:none}
 .btn-restore:hover{background:#eef2ff}
 
 /* ── Bar items ── */
-.bar-list{display:flex;flex-direction:column;justify-content:space-between}
+.bar-list{display:flex;flex-direction:column;justify-content:flex-start}
 .bar-item{display:flex;align-items:center;margin-bottom:8px;font-size:12px}
 .bar-label{flex-shrink:0;color:#444;padding-right:8px;width:190px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-track{flex:1;background:#e8eaf0;border-radius:4px;height:20px;overflow:hidden;margin-right:8px}
@@ -246,7 +247,7 @@ canvas{height:250px;min-height:80px;max-height:none}
 
 /* ── Rating ── */
 .rating-row{display:flex;align-items:center;margin-bottom:10px}
-.rating-label{width:200px;font-size:12px;color:#555;flex-shrink:0;line-height:1.3}
+.rating-label{width:auto;min-width:24px;max-width:160px;font-size:12px;color:#555;flex-shrink:0;line-height:1.3;padding-right:10px;text-align:right}
 .rating-bar{flex:1;background:#e8eaf0;height:22px;border-radius:6px;overflow:hidden;margin-right:10px}
 .rating-fill{height:100%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:white;font-weight:700;font-size:11px}
 .rating-score{width:36px;font-size:14px;font-weight:800;color:#1a1a2e;text-align:right}
@@ -427,7 +428,7 @@ canvas{max-height:200px;break-inside:avoid}
   canvas{height:200px!important;max-width:100%!important}
   /* Bar/rating lists: fixed label widths overflow narrow screens → make fluid */
   .bar-label{width:38%!important;max-width:140px!important;white-space:normal!important}
-  .rating-label{width:84px!important}
+  .rating-label{max-width:120px!important}
   .bar-item,.rating-row{font-size:11px!important}
   .bar-count{width:22px!important}
 }
@@ -490,7 +491,11 @@ canvas{max-height:200px;break-inside:avoid}
     else "dist_bar"
     end
   end
-  is_full  = c["span"] == "full" || %w[grouped_bar dist_bar hbar quotes].include?(vtype) || opts.size > 6
+  # Near-unanimous single-answer question → compact stat instead of a near-empty chart
+  if %w[single_choice dropdown].include?(qtype) && opts.any? && ReportAnalytics.degenerate_choice?(opts)
+    vtype = "single_stat"
+  end
+  is_full  = c["span"] == "full" || %w[grouped_bar dist_bar hbar quotes].include?(vtype) || (vtype != "single_stat" && opts.size > 6)
   col_span = is_full ? 12 : 6
   card_title = (c["title"].presence || cd["question"].to_s).truncate(90)
   # Skip blocks with no data
@@ -508,7 +513,20 @@ canvas{max-height:200px;break-inside:avoid}
   <div class="card">
     <h3><span data-editable contenteditable="false"><%= card_title %></span><span class="h3-spacer"></span><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button></h3>
 
-    <% if vtype == "grouped_bar" && xt.present? && xt["groups"].present? %>
+    <% if vtype == "single_stat" %>
+      <% _o = opts.sort_by { |o| -o["count"].to_i }; _t = _o.first %>
+      <div style="display:flex;align-items:baseline;gap:10px;padding:6px 0 2px">
+        <span style="font-size:30px;font-weight:800;color:#4361ee;line-height:1"><%= _t["pct"] %>%</span>
+        <span style="font-size:14px;font-weight:600;color:#1a1a2e"><%= _t["label"] %></span>
+      </div>
+      <p style="margin-top:6px;font-size:12px;color:#6b7280"><%= _t["count"] %>/<%= total > 0 ? total : _resp_count %> <%= @report_lang == "en" ? "respondents" : "người trả lời" %></p>
+      <% if _o.size > 1 %>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+        <% _o.drop(1).each do |o| %><span style="font-size:11px;color:#94a3b8"><%= o["label"] %>: <%= o["pct"] %>%</span><% end %>
+      </div>
+      <% end %>
+
+    <% elsif vtype == "grouped_bar" && xt.present? && xt["groups"].present? %>
       <% xt_groups = xt["groups"]; xt_pct = xt["max"].to_i >= 50 %>
       <canvas id="<%= chid %>"></canvas>
       <script>(function(){
@@ -935,11 +953,16 @@ function setCwMode(btn, mode) {
 }
 
 const LAYOUT_KEY = '<%= "ai_report_layout_#{@survey.id}_#{@ai_result.id}" %>';
-<% server_layout = @survey.settings["ai_report_layout_#{@ai_result.id}"] %>
-<% if server_layout.present? %>
-// Inject server layout into localStorage for both admin and public
-(function(){try{var d=<%= raw server_layout.to_json.gsub('</', '<\/') %>;localStorage.setItem(LAYOUT_KEY,JSON.stringify(d));}catch(e){}})();
-<% end %>
+<% server_layout = @survey.settings["ai_report_layout_#{@ai_result.id}"].presence %>
+// Server is the single source of truth → admin and public render identically.
+// Runs even with no server layout so admin can't keep stale browser-only state.
+(function(){
+  try {
+    var d = <%= raw (server_layout || nil).to_json.gsub('</', '<\/') %>;
+    if (d) localStorage.setItem(LAYOUT_KEY, JSON.stringify(d));
+    else localStorage.removeItem(LAYOUT_KEY);
+  } catch(e) { try { localStorage.removeItem(LAYOUT_KEY); } catch(_) {} }
+})();
 
 function saveLayout() {
   try {
@@ -1419,6 +1442,7 @@ function _kpiGridCols() { return KPI_MAXCOLS; }
       const curSpan = parseInt(block.style.gridColumn?.replace('span ', '')) || 1;
       kpiDrag = { handle, block, dir, startX: e.clientX, startSpan: curSpan, colW, numCols };
     } else {
+      kpiGrid.classList.add('kpi-resizing'); // vertical px drag follows cursor 1:1
       kpiDrag = { handle, block, dir, startY: e.clientY, startH: block.getBoundingClientRect().height };
     }
   });
@@ -1442,6 +1466,7 @@ function _kpiGridCols() { return KPI_MAXCOLS; }
   document.addEventListener('mouseup', () => {
     if (!kpiDrag) return;
     kpiDrag.handle.classList.remove('dragging');
+    document.querySelector('.kpi-grid')?.classList.remove('kpi-resizing');
     const idx = kpiDrag.handle.dataset.kpiIdx;
     const isH = kpiDrag.dir === 'r' || kpiDrag.dir === 'l';
     try {

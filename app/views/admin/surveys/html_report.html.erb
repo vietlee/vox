@@ -99,7 +99,9 @@ body.pdf-preview-open{padding-right:540px}
 /* ── KPI ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-bottom:4px}
 .kpi{grid-column:span 2}
-.kpi{background:white;border-radius:12px;padding:18px 14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.kpi{background:white;border-radius:12px;padding:18px 14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:grid-column .14s ease,min-height .14s ease,height .14s ease}
+/* No transition while actively dragging a resize handle — follow the cursor 1:1 */
+.kpi-grid.kpi-resizing .kpi{transition:none}
 .kpi-value{font-size:34px;font-weight:800;line-height:1;margin-bottom:5px}
 .kpi-label{font-size:11px;color:#666;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
 /* KPI toolbar (edit) */
@@ -151,7 +153,7 @@ body.pdf-preview-open{padding-right:540px}
 .sortable-chosen{box-shadow:0 8px 24px rgba(67,97,238,.25)}
 
 /* ── Grids (12-col base) ── */
-.grid-2,.grid-3{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;margin-bottom:20px}
+.grid-2,.grid-3{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;margin-bottom:20px;align-items:start}
 .grid-2>.cw{grid-column:span 6}
 .grid-3>.cw{grid-column:span 4}
 <% if @public_view %>@media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}.grid-2>.cw,.grid-3>.cw{grid-column:span 1}}<% end %>
@@ -243,7 +245,11 @@ body.pdf-mode .grid-2,body.pdf-mode .grid-3{align-items:start}
 .align-guide.visible{display:block}
 
 /* ── AI Insights ── */
-.insights-col{background:white;border-radius:12px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07);align-self:start}
+.insights-col{background:white;border-radius:12px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+/* Insights = a paired Findings|Recommendations layout → equal-height columns,
+   deterministically (no JS), so admin and the public link always match. */
+#grid-s-ai-insights{align-items:stretch}
+#grid-s-ai-insights>.cw{align-self:stretch}
 .insights-col-header{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #f0f2f5}
 .insight-item{border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:10px;font-size:12px;line-height:1.65}
 .insight-stat{background:#f0f4ff;border-left:4px solid #4361ee;color:#374151}
@@ -266,7 +272,7 @@ canvas{height:250px;min-height:80px;max-height:none}
 .cw-text-mode [data-editable]:empty::before{content:'(trống)';color:#aaa;font-style:italic}
 
 /* Bar items */
-.bar-list{display:flex;flex-direction:column;justify-content:space-between}
+.bar-list{display:flex;flex-direction:column;justify-content:flex-start}
 .bar-item{display:flex;align-items:center;margin-bottom:9px;font-size:12px}
 .bar-label{flex-shrink:0;color:#444;line-height:1.3;padding-right:8px;word-break:break-word;white-space:normal}
 .bar-label.w160{width:160px}.bar-label.w200{width:200px}.bar-label.w220{width:220px}
@@ -278,7 +284,7 @@ canvas{height:250px;min-height:80px;max-height:none}
 
 /* Rating rows */
 .rating-row{display:flex;align-items:center;margin-bottom:11px}
-.rating-label{width:220px;font-size:12px;color:#555;line-height:1.3;flex-shrink:0}
+.rating-label{width:auto;min-width:24px;max-width:160px;font-size:12px;color:#555;line-height:1.3;flex-shrink:0;padding-right:10px;text-align:right}
 .rating-bar{flex:1;background:#e8eaf0;height:22px;border-radius:6px;overflow:hidden;margin-right:10px}
 .rating-fill{height:100%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:white;font-weight:700;font-size:11px}
 .rating-score{width:36px;font-size:14px;font-weight:800;color:#1a1a2e;text-align:right}
@@ -529,7 +535,7 @@ canvas{background:white!important}
   canvas{height:200px!important;max-width:100%!important}
   /* Bar/rating lists: fixed label widths overflow narrow screens → make fluid */
   .bar-label.w160,.bar-label.w200,.bar-label.w220{width:38%!important;max-width:140px!important}
-  .rating-label{width:84px!important}
+  .rating-label{max-width:120px!important}
   .bar-item,.rating-row{font-size:11px!important}
   .bar-count{width:22px!important}
 }
@@ -787,8 +793,29 @@ canvas{background:white!important}
     <div class="card">
       <h3><span data-editable contenteditable="false"><%= card_title.to_s.truncate(100) %></span><span class="h3-spacer"></span><% unless @public_view %><button class="cw-gear" onclick="toggleCardMenu(this)">⚙</button><% end %></h3>
 
+      <%# ═══ SINGLE STAT (near-unanimous question → compact) ═══ %>
+      <% if chart_type == "single_stat" %>
+        <% _opts = (stats[:options] || []).sort_by { |o| -o[:count] } %>
+        <% _top = _opts.first %>
+        <% if _top %>
+          <div style="display:flex;align-items:baseline;gap:10px;padding:6px 0 2px">
+            <span style="font-size:30px;font-weight:800;color:#4361ee;line-height:1"><%= _top[:pct] %>%</span>
+            <span style="font-size:14px;font-weight:600;color:#1a1a2e"><%= _top[:label] %></span>
+          </div>
+          <p style="margin-top:6px;font-size:12px;color:#6b7280"><%= _top[:count] %>/<%= stats[:total] %> <%= @report_lang == "en" ? "respondents" : "người trả lời" %></p>
+          <% if _opts.size > 1 %>
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+            <% _opts.drop(1).each do |o| %>
+            <span style="font-size:11px;color:#94a3b8"><%= o[:label] %>: <%= o[:pct] %>%</span>
+            <% end %>
+          </div>
+          <% end %>
+        <% else %>
+          <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
+        <% end %>
+
       <%# ═══ DOUGHNUT ═══ %>
-      <% if chart_type == "doughnut" || chart_type == "pie" %>
+      <% elsif chart_type == "doughnut" || chart_type == "pie" %>
         <% opts = stats[:options] || [] %>
         <% if opts.any? %>
           <canvas id="ch_<%= cid %>"></canvas>
@@ -1053,11 +1080,17 @@ canvas{background:white!important}
           })();
           </script>
           <% if ct_data[:group_counts]&.any? %>
+          <% _min_n = defined?(ReportAnalytics) ? ReportAnalytics::MIN_GROUP_N : 4 %>
+          <% _has_small = ct_data[:group_counts].any? { |c| c < _min_n } %>
           <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px">
             <% ct_data[:labels].each_with_index do |lbl, i| %>
-            <span style="font-size:10px;color:#94a3b8"><%= lbl %>: <strong style="color:#374151"><%= ct_data[:group_counts][i] %></strong></span>
+            <% _small = ct_data[:group_counts][i] < _min_n %>
+            <span style="font-size:10px;color:<%= _small ? '#f59e0b' : '#94a3b8' %>"><%= lbl %>: <strong style="color:<%= _small ? '#d97706' : '#374151' %>"><%= ct_data[:group_counts][i] %></strong><%= _small ? ' ⚠' : '' %></span>
             <% end %>
           </div>
+          <% if _has_small %>
+          <p style="margin-top:6px;font-size:10px;color:#b45309;font-style:italic"><%= @report_lang == "en" ? "⚠ Groups with fewer than #{_min_n} responses — interpret with caution (small sample)." : "⚠ Nhóm có dưới #{_min_n} phản hồi — số liệu chỉ mang tính tham khảo (mẫu nhỏ)." %></p>
+          <% end %>
           <% end %>
         <% else %>
           <p style="color:#9ca3af;text-align:center;padding:24px 0;font-size:13px">Chưa có dữ liệu</p>
@@ -1305,11 +1338,14 @@ function loadKpiSizes() {
     handle.classList.add('dragging');
     const dir = handle.dataset.dir;
     if (dir === 'r' || dir === 'l') {
+      // Horizontal: keep the CSS transition so each column-snap animates smoothly.
       const numCols = _kpiGridCols();
       const colW = kpiGrid.getBoundingClientRect().width / numCols;
       const curSpan = parseInt(block.style.gridColumn?.replace('span ', '')) || 1;
       kpiDrag = { handle, block, dir, startX: e.clientX, startSpan: curSpan, colW, numCols };
     } else {
+      // Vertical: px height follows the cursor 1:1 — disable transition so it doesn't lag.
+      kpiGrid.classList.add('kpi-resizing');
       const blockRect = block.getBoundingClientRect();
       kpiDrag = { handle, block, dir, startY: e.clientY, startH: blockRect.height, blockTop: blockRect.top };
     }
@@ -1337,6 +1373,7 @@ function loadKpiSizes() {
   document.addEventListener('mouseup', () => {
     if (!kpiDrag) return;
     kpiDrag.handle.classList.remove('dragging');
+    document.querySelector('.kpi-grid')?.classList.remove('kpi-resizing');
     const idx = kpiDrag.handle.dataset.kpiIdx;
     const isH = kpiDrag.dir === 'r' || kpiDrag.dir === 'l';
     if (!isH && kpiDrag.block.style.height) {
@@ -1446,21 +1483,20 @@ document.addEventListener('DOMContentLoaded', () => { loadKpiLabels(); loadKpiSi
   localStorage.setItem(VER_KEY, STRUCT_VER);
 })();
 <% _layout_key = "report_layout_#{@survey.id}_#{@report_lang || 'vi'}" %>
-<% if @survey.settings[_layout_key].present? %>
-// Inject server-saved layout into localStorage (admin + public)
+// Make the SERVER the single source of truth for layout so admin and the public
+// link always render identically. Runs even when there is NO server layout, so
+// admin never falls back to stale browser-only localStorage that public can't see.
 (function(){
   try {
-    const serverLayout = <%= raw @survey.settings[_layout_key].to_json %>;
-    // Only use server layout if it was saved with current LAYOUT_VERSION
+    const serverLayout = <%= raw (@survey.settings[_layout_key].presence || nil).to_json %>;
     if (serverLayout && serverLayout._v >= LAYOUT_VERSION) {
       localStorage.setItem(SK, JSON.stringify(serverLayout));
     } else {
-      // Server layout is stale — clear localStorage so loadLayout starts fresh
+      // No/stale server layout → start fresh on BOTH admin and public
       localStorage.removeItem(SK);
     }
-  } catch(e) {}
+  } catch(e) { try { localStorage.removeItem(SK); } catch(_) {} }
 })();
-<% end %>
 let editMode = false;
 let pendingDeleteCid = null;
 let currentChartModal = null; // { chartId, cardTitle }
@@ -2234,7 +2270,7 @@ function loadLayout() {
       b.style.gridColumn = 'span 12';
     }
   })();
-  // Restore card heights
+  // Restore card heights (manual resizes)
   if (saved.cardHeights) {
     Object.entries(saved.cardHeights).forEach(([cid, h]) => {
       const card = document.querySelector(`[data-cid="${cid}"] .card`);
@@ -3051,11 +3087,11 @@ async function generatePdfPreview() {
         rowCws.forEach(cw => { if (cw.dataset.cid) layoutForPreview.cardHeights[cw.dataset.cid] = maxH + 'px'; });
       });
     });
-    await fetch('<%= save_report_layout_survey_path(@survey) %>', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.content || '' },
-      body: JSON.stringify(layoutForPreview)
-    }).catch(() => {});
+    // NOTE: the equalized cardHeights above are PDF-only. They are sent to the
+    // preview endpoint via the fetch body below — they must NOT be persisted to
+    // the saved layout, or they'd stretch the cards in the normal admin/public
+    // web view (which uses natural heights). The normal layout was already saved
+    // by saveLayout() at the top of this function.
 
     // Step 2: fetch real PDF (Grover) with countdown
     if (loadText) loadText.textContent = 'Đang tạo PDF...';

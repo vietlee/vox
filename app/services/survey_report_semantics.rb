@@ -82,6 +82,49 @@ class SurveyReportSemantics
     { "kpis" => kpis, "sections" => sections, "ai_insights" => [], "_auto_built" => true }
   end
 
+  # ── Public: catalog for the AI section-planner (id, role, chart, title) ─────
+  # Excludes questions that produce no chart (empty / plain short text).
+  def chartable_catalog
+    detect_all_semantics! if @semantics.empty?
+    @questions.filter_map do |q|
+      sem = @semantics[q.id]
+      next if sem.nil? || sem[:chart_type].nil? || sem[:role].in?(%i[empty text unknown])
+      { "id" => q.id, "role" => sem[:role].to_s, "chart" => sem[:chart_type], "title" => q.title.to_s.truncate(70) }
+    end
+  end
+
+  # ── Public: rebuild sections from an AI-proposed grouping ───────────────────
+  # grouping: [{ "title" => "...", "question_ids" => [..] }, ...] (ordered).
+  # Reuses per-question chart types + auto-inserts cross-tab cards. Returns nil
+  # if nothing valid could be built (caller falls back to deterministic build).
+  def build_sections_from_grouping(grouping)
+    detect_all_semantics! if @semantics.empty?
+    return nil unless grouping.is_a?(Array) && grouping.any?
+    group_q = (qs_for(:grouping).presence ||
+               ReportAnalytics.grouping_questions(@questions)).reject { |q| @semantics[q.id]&.dig(:role) == :frequency }.first
+    used = Set.new
+    sections = grouping.each_with_index.filter_map do |sec, idx|
+      qs = Array(sec["question_ids"]).map(&:to_i).uniq
+              .map { |id| @questions.find { |q| q.id == id } }.compact
+              .reject { |q| used.include?(q.id) }
+      cards = []; pct_in = []; num_in = []
+      qs.each do |q|
+        sem = @semantics[q.id]
+        next if sem.nil? || sem[:chart_type].nil? || sem[:role].in?(%i[empty text unknown])
+        used << q.id
+        span = %w[distribution_bar theme_bar quotes rating_bar nps_bar].include?(sem[:chart_type]) ? 12 : 6
+        cards << mk_card(q, sem[:chart_type], sem[:processing], span)
+        pct_in << q if sem[:role] == :pct
+        num_in << q if sem[:role] == :numeric
+      end
+      cards << cross_tab_card(group_q, pct_in, "parse_percent") if group_q && pct_in.any?
+      cards << cross_tab_card(group_q, num_in, nil)             if group_q && num_in.any?
+      next if cards.empty?
+      { "id" => "s#{idx + 1}", "title" => sec["title"].to_s.strip.presence || "Phân tích", "layout" => "grid-2", "cards" => cards }
+    end
+    sections.presence
+  end
+
   # ── Public: data summary for AI (used to generate insights) ─────────────
   def data_summary_for_ai
     detect_all_semantics! if @semantics.empty?
@@ -101,6 +144,11 @@ class SurveyReportSemantics
     match = TOOL_NORMALIZE.find { |pat, _| text.match?(pat) }
     return match.last if match
     text.split(/\s+/).first(3).map(&:capitalize).join(" ")
+  end
+
+  # ── Public: JSONB option_ids matcher — delegates to the shared core ─────
+  def self.option_match(option_id)
+    ReportAnalytics.option_match(option_id)
   end
 
   # ── Public: parse % from text ─────────────────────────────────────────
@@ -177,14 +225,13 @@ class SurveyReportSemantics
 
     # ── 2. Rating / linear_scale (by type) ───────────────────────────
     if %w[rating linear_scale].include?(qtype)
-      nums  = answers.where.not(numeric_value: nil).pluck(:numeric_value).map(&:to_f)
-      max_v = qtype == "linear_scale" ? (q.settings&.dig("max_value")&.to_i.then { |v| v&.positive? ? v : 5 }) : 5
-      avg   = nums.any? ? (nums.sum / nums.size).round(2) : nil
-      dist  = (1..max_v).map { |v| { "value" => v.to_s, "count" => nums.count { |n| n.round == v } } }
+      nums = answers.where.not(numeric_value: nil).pluck(:numeric_value).map(&:to_f)
+      rs   = ReportAnalytics.rating_stats(nums, qtype, q.settings)
+      dist = rs[:dist].map { |d| { "value" => d[:value].to_s, "count" => d[:count] } }
       return {
         role: :numeric, chart_type: "rating_bar",
-        avg: avg, max: max_v, dist: dist, total: nums.size,
-        data_summary: "avg=#{avg}/#{max_v}, n=#{nums.size}, dist=[#{dist.map{|d| "#{d['value']}:#{d['count']}"}.reject{|s| s.end_with?(":0")}.join(', ')}]"
+        avg: rs[:avg], max: rs[:max], dist: dist, total: rs[:total],
+        data_summary: "avg=#{rs[:avg]}/#{rs[:max]}, n=#{rs[:total]}, dist=[#{dist.map{|d| "#{d['value']}:#{d['count']}"}.reject{|s| s.end_with?(":0")}.join(', ')}]"
       }
     end
 
@@ -206,25 +253,36 @@ class SurveyReportSemantics
         }
       end
 
-      # 3b. Tool detection (answers contain AI tool names)
+      # 3b. Theme/suggestion detection — checked BEFORE tool detection so an
+      # explicit suggestion/feedback question (which often mentions tool names in
+      # passing) is grouped into themes, not mis-classified as a "tools" question.
+      is_suggestion = title.match?(/đề xuất|gợi ý|kiến nghị|suggest|recommend|cải thiện|improve|góp ý|ý kiến|chia sẻ|share|mong muốn|wish|expect|propose|feedback|cần|nên/)
+      if is_suggestion
+        themes = self.class.extract_themes(texts, n_resp)
+        quotes = texts.select { |t| t.length >= 40 }.sort_by(&:length).last(6).map { |t| t.truncate(300) }
+        # Feed the AI raw samples (not the domain-locked keyword themes) so insights
+        # aren't biased toward a fixed taxonomy. Actual chart themes come from
+        # ReportAnalytics.categorize_themes at generation time.
+        sample = texts.select { |t| t.length >= 20 }.sample(4).map { |t| t.truncate(90) }
+        return {
+          role: :themes, chart_type: "theme_bar", processing: "extract_themes",
+          options: themes, quotes: quotes, texts: texts, total: texts.size,
+          data_summary: "n=#{texts.size} suggestions, samples: #{sample.inspect}"
+        }
+      end
+
+      # 3c. Tool detection (answers are AI tool names) — only for non-suggestion
+      # questions, and require the title to actually ask "which tool" OR a strong
+      # majority of answers to be tool names (not just an incidental mention).
+      title_is_tools = title.match?(/\b(ai nào|công cụ|tool|phần mềm|software|app nào|nền tảng|platform)\b/)
       tool_answers = texts.select { |t| t.match?(/claude|chatgpt|gemini|gpt|cursor|copilot|codex|deepseek|midjourney|perplexity|antigravity|trae/i) }
-      if tool_answers.size >= [texts.size * 0.3, 2].min
+      if (title_is_tools && tool_answers.size >= [texts.size * 0.3, 2].min) ||
+         tool_answers.size >= texts.size * 0.6
         opts = self.class.aggregate_tools(texts, n_resp)
         return {
           role: :tools, chart_type: "bar", processing: "normalize_tools",
           options: opts, texts: texts, total: n_resp,
           data_summary: "tools: #{opts.first(6).map{|o| "#{o[:label]}=#{o[:count]}"}.join(', ')}"
-        }
-      end
-
-      # 3c. Theme/suggestion detection
-      if title.match?(/đề xuất|gợi ý|kiến nghị|suggest|recommend|cải thiện|góp ý|ý kiến|mong muốn|cần|nên/)
-        themes = self.class.extract_themes(texts, n_resp)
-        quotes = texts.select { |t| t.length >= 40 }.sort_by(&:length).last(6).map { |t| t.truncate(300) }
-        return {
-          role: :themes, chart_type: "theme_bar", processing: "extract_themes",
-          options: themes, quotes: quotes, texts: texts, total: texts.size,
-          data_summary: "themes: #{themes.first(5).map{|t| "#{t[:label]}=#{t[:count]}"}.join(', ')}"
         }
       end
 
@@ -247,7 +305,7 @@ class SurveyReportSemantics
     if %w[single_choice multiple_choice dropdown].include?(qtype)
       total_ans = answers.count
       opts = q.question_options.order(:position).filter_map do |opt|
-        cnt = answers.where("option_ids @> ?", [opt.id.to_s].to_json).count
+        cnt = answers.where(*self.class.option_match(opt.id)).count
         cnt > 0 ? { label: opt.label, count: cnt, pct: (cnt.to_f / n_resp * 100).round(1) } : nil
       end
       return { role: :empty } if opts.empty?
@@ -255,14 +313,22 @@ class SurveyReportSemantics
       top_str = opts.sort_by { |o| -o[:count] }.first(5).map { |o| "#{o[:label]}=#{o[:count]}(#{o[:pct]}%)" }.join(", ")
       data_sum = "n=#{total_ans}, options: #{top_str}"
 
-      # ── 4a. Grouping question (dept/role/team) ────────────────────
-      if title.match?(/\b(bộ phận|phòng ban|team|department|vị trí|role|chức vụ|nhóm\b)/) &&
+      # ── 4a. Grouping question (dept/role/team) — exempt from degenerate collapse
+      if title.match?(/\b(bộ phận|phòng ban|team|department|division|unit|vị trí|position|role|chức vụ|cấp bậc|seniority|nhóm|group)\b/) &&
          qtype.in?(%w[single_choice dropdown])
         return { role: :grouping, chart_type: "doughnut", options: opts, total: n_resp, data_summary: data_sum }
       end
 
+      # ── 4a′. Near-unanimous single-answer question → compact stat, not a chart
+      if qtype != "multiple_choice" && ReportAnalytics.degenerate_choice?(opts)
+        top = opts.max_by { |o| o[:count] }
+        return { role: :single_stat, chart_type: "single_stat",
+                 top_option: top[:label], top_pct: top[:pct], options: opts, total: n_resp,
+                 data_summary: "#{top[:pct]}% #{top[:label]} (n=#{total_ans})" }
+      end
+
       # ── 4b. Frequency question ────────────────────────────────────
-      if title.match?(/tần suất|bao lâu|mỗi ngày|hàng ngày|daily|thường xuyên|frequency|how often/)
+      if title.match?(/tần suất|bao lâu|mỗi ngày|hàng ngày|daily|weekly|thường xuyên|regularly|frequency|how often/)
         top_opt = opts.max_by { |o| o[:count] }
         return { role: :frequency, chart_type: "doughnut", options: opts, total: n_resp,
                  top_option: top_opt&.dig(:label),
@@ -277,13 +343,13 @@ class SurveyReportSemantics
       end
 
       # ── 4d. Challenges / pain points ─────────────────────────────
-      if title.match?(/khó khăn|thách thức|challenge|pain|vấn đề gặp|gặp phải|khó|cản trở|rào cản/)
+      if title.match?(/khó khăn|thách thức|challenge|difficulty|pain|problem|issue|obstacle|barrier|vấn đề gặp|gặp phải|khó|cản trở|rào cản/)
         sorted = opts.sort_by { |o| -o[:count] }
         return { role: :challenges, chart_type: "horizontal_bar", options: sorted, total: n_resp, data_summary: data_sum }
       end
 
       # ── 4e. Usage / purpose ───────────────────────────────────────
-      if title.match?(/mục đích|cách sử dụng|sử dụng.*cho|dùng.*để|use.*for|purpose|công việc/)
+      if title.match?(/mục đích|cách sử dụng|sử dụng.*cho|dùng.*để|use.*for|use case|used for|purpose|tasks?|công việc/)
         sorted = opts.sort_by { |o| -o[:count] }
         return { role: :usage, chart_type: "horizontal_bar", options: sorted, total: n_resp, data_summary: data_sum }
       end
@@ -304,7 +370,10 @@ class SurveyReportSemantics
     covered = Set.new
     sections = []
 
-    grouping_qs  = qs_for(:grouping)
+    # Prefer role-detected grouping questions; fall back to the core's broader
+    # segment-dimension detector so we never miss an obvious group-by question.
+    grouping_qs  = qs_for(:grouping).presence ||
+                   ReportAnalytics.grouping_questions(@questions).reject { |q| @semantics[q.id]&.dig(:role) == :frequency }
     tool_qs      = qs_for(:tools)
     pct_qs       = qs_for(:pct)
     nps_qs       = qs_for(:nps)
@@ -318,7 +387,7 @@ class SurveyReportSemantics
 
     # ── Section 1: Thành phần người tham gia ───────────────────────
     cards = []
-    (grouping_qs + freq_qs).each do |q|
+    (grouping_qs + freq_qs + qs_for(:single_stat)).each do |q|
       cards << mk_card(q, @semantics[q.id][:chart_type], nil, 6)
       covered << q.id
     end
@@ -350,7 +419,9 @@ class SurveyReportSemantics
           "span"                 => 12
         }
       end
-      sections << { "id" => "s-savings", "title" => "Mức độ tiết kiệm thời gian",
+      # Neutral fallback title — the AI step renames it from the % questions'
+      # actual content, so it isn't locked to "time savings".
+      sections << { "id" => "s-savings", "title" => "Phân tích định lượng",
                     "layout" => "grid-2", "cards" => cards }
     end
 
@@ -360,6 +431,17 @@ class SurveyReportSemantics
       covered << q.id
       ct = @semantics[q.id][:chart_type]
       rating_cards << mk_card(q, ct, nil, ct == "nps_bar" ? 12 : 12)
+    end
+    # Cross-tab: compare rating scores across groups (e.g. satisfaction by dept).
+    if rating_cards.any? && grouping_qs.any? && numeric_qs.any?
+      rating_cards << {
+        "question_id"          => nil,
+        "chart_type"           => "cross_tab_grouped_bar",
+        "title"                => "So sánh theo #{grouping_qs.first.title.truncate(30)}",
+        "group_by_question_id" => grouping_qs.first.id,
+        "value_question_ids"   => numeric_qs.map(&:id),
+        "span"                 => 12
+      }
     end
     if rating_cards.any?
       sections << { "id" => "s-ratings", "title" => "Đánh giá chất lượng & trải nghiệm",
@@ -454,5 +536,18 @@ class SurveyReportSemantics
   def mk_card(q, chart_type, processing, span)
     { "question_id" => q.id, "chart_type" => chart_type,
       "title" => q.title, "span" => span }.tap { |c| c["processing"] = processing if processing }
+  end
+
+  def cross_tab_card(group_q, value_qs, processing)
+    card = {
+      "question_id"          => nil,
+      "chart_type"           => "cross_tab_grouped_bar",
+      "title"                => "So sánh theo #{group_q.title.truncate(30)}",
+      "group_by_question_id" => group_q.id,
+      "value_question_ids"   => value_qs.map(&:id),
+      "span"                 => 12
+    }
+    card["processing"] = processing if processing
+    card
   end
 end

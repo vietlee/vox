@@ -96,7 +96,7 @@ class AiExecutiveReportJob < ApplicationJob
 
         # If planning AI chose a visual chart for a text question with no options, categorize via AI
         if c["chart_type"] != "quotes" && base["options"].blank? && base["texts"].present?
-          themes = categorize_text_into_themes(base["texts"], c["title"].to_s, total_responses: total_responses, language: @language)
+          themes = ReportAnalytics.categorize_themes(base["texts"], c["title"].to_s, total: total_responses, language: @language)
           if themes.any?
             base["options"] = themes
             base["type"]    = "multiple_choice"
@@ -453,12 +453,8 @@ class AiExecutiveReportJob < ApplicationJob
   end
 
   # ── Build question chart data from DB ──────────────────────────────────────
-  # JSONB option_ids may be stored as integers ([331]) or strings (["331"])
-  # depending on how the answer was created. Match both so option-based queries
-  # (counts, cross-tabs) never silently return zero.
-  def option_match(option_id)
-    ["option_ids @> ? OR option_ids @> ?", [option_id.to_i].to_json, [option_id.to_s].to_json]
-  end
+  # Shared primitive (robust int/string option_ids match) — see ReportAnalytics.
+  def option_match(option_id) = ReportAnalytics.option_match(option_id)
 
   def build_question_chart_data(survey, completed_response_ids = nil)
     completed_response_ids ||= survey.responses.completed.where(excluded: [false, nil]).pluck(:id)
@@ -480,21 +476,13 @@ class AiExecutiveReportJob < ApplicationJob
           "type" => q.question_type.to_s, "total" => total, "options" => options }
 
       when :rating, :nps, :linear_scale
-        nums = base.where.not(numeric_value: nil).pluck(:numeric_value).map(&:to_i)
+        nums = base.where.not(numeric_value: nil).pluck(:numeric_value).map(&:to_f)
         next if nums.empty?
-        max_val = if q.nps? then 10
-                  elsif q.question_type == "linear_scale"
-                    q.settings&.dig("max_value")&.to_i.then { |v| v&.positive? ? v : 10 }
-                  else
-                    # Derive the scale from the actual data instead of assuming 1–5,
-                    # so 1–10 rating questions don't collapse to an all-zero chart.
-                    [nums.max.to_i, 5].max
-                  end
-        avg  = (nums.sum.to_f / nums.size).round(1)
-        dist = (1..max_val).map { |v| { "value" => v, "count" => nums.count(v) } }
+        rs = ReportAnalytics.rating_stats(nums, q.question_type, q.settings)
         { "question_id" => q.id, "question" => q.title,
-          "type" => q.question_type.to_s, "total" => nums.size,
-          "avg" => avg, "max" => max_val, "distribution" => dist }
+          "type" => q.question_type.to_s, "total" => rs[:total],
+          "avg" => rs[:avg], "max" => rs[:max],
+          "distribution" => rs[:dist].map { |d| { "value" => d[:value], "count" => d[:count] } } }
 
       when :short_text, :long_text
         texts = base.where.not(text_value: [nil, ""]).pluck(:text_value)
@@ -540,57 +528,21 @@ class AiExecutiveReportJob < ApplicationJob
       group_q  = survey.questions.find_by(id: pair["group_by_id"].to_i)
       next unless target_q && group_q
 
-      group_options = group_q.question_options.order(:position)
-      max_val = if target_q.nps? then 10
-                elsif target_q.question_type == "linear_scale"
-                  target_q.settings&.dig("max_value")&.to_i.then { |v| v&.positive? ? v : 10 }
-                elsif %w[short_text long_text].include?(target_q.question_type) then 100
-                else
-                  # Dynamic rating scale from the data (handles 1–5 and 1–10 alike)
-                  [Answer.where(question: target_q, response_id: completed_response_ids)
-                         .where.not(numeric_value: nil).maximum(:numeric_value).to_i, 5].max
-                end
+      # Single source of truth — only quantitative targets, dynamic scale,
+      # robust option matching, small-sample flags (see ReportAnalytics).
+      xt = ReportAnalytics.cross_tab(group_q, target_q, completed_response_ids)
+      next unless xt
 
-      groups = group_options.filter_map do |opt|
-        group_resp_ids = Answer.where(question: group_q, response_id: completed_response_ids)
-                               .where(*option_match(opt.id))
-                               .pluck(:response_id)
-        next if group_resp_ids.empty?
-
-        target_base = Answer.where(question: target_q, response_id: group_resp_ids)
-
-        case target_q.question_type.to_sym
-        when :rating, :nps, :linear_scale
-          nums = target_base.where.not(numeric_value: nil).pluck(:numeric_value).map(&:to_i)
-          next if nums.empty?
-          avg = (nums.sum.to_f / nums.size).round(1)
-          { "label" => opt.label.truncate(30), "avg" => avg, "total" => nums.size, "max" => max_val }
-        when :short_text, :long_text
-          texts = target_base.where.not(text_value: [nil, ""]).pluck(:text_value)
-          next if texts.empty?
-          nums = texts.filter_map { |t| t.to_s.gsub(/[~≈]/, "").scan(/\d+(?:\.\d+)?/).first&.to_f }
-                      .select { |n| n > 0 && n <= 100 }
-          next if nums.size < texts.size * 0.4
-          avg = (nums.sum / nums.size).round(1)
-          { "label" => opt.label.truncate(30), "avg" => avg, "total" => nums.size, "max" => 100 }
-        when :single_choice, :multiple_choice, :dropdown
-          total = target_base.count
-          next if total == 0
-          top = target_q.question_options.order(:position).map { |topt|
-            cnt = target_base.where(*option_match(topt.id)).count
-            { "option" => topt.label.truncate(30), "pct" => (cnt.to_f / total * 100).round(1) }
-          }.max_by { |o| o["pct"] }
-          { "label" => opt.label.truncate(30), "top_option" => top["option"], "pct" => top["pct"], "total" => total }
-        end
-      end.compact
-
-      next if groups.empty?
       result[target_q.id] = {
-        "label"          => (pair["label"] || "So sánh theo nhóm").truncate(60),
-        "group_question" => group_q.title.truncate(60),
-        "type"           => target_q.question_type.to_s,
-        "max"            => max_val,
-        "groups"         => groups.sort_by { |g| -(g["avg"] || g["pct"] || 0) }
+        "label"           => (pair["label"] || "So sánh theo nhóm").truncate(60),
+        "group_question"  => xt[:group_question].to_s.truncate(60),
+        "type"            => xt[:target_type],
+        "max"             => xt[:max],
+        "low_confidence"  => xt[:low_confidence_overall],
+        "groups"          => xt[:groups].map { |g|
+          { "label" => g[:label], "avg" => g[:value], "total" => g[:n],
+            "max" => xt[:max], "low_confidence" => g[:low_confidence] }
+        }
       }
     end
     result
@@ -629,48 +581,5 @@ class AiExecutiveReportJob < ApplicationJob
     out
   end
 
-  def categorize_text_into_themes(texts, question_title, total_responses: 0, language: "vi")
-    return [] if texts.blank?
-
-    lang_instruction = language == "vi" ? "Respond in Vietnamese." : "Respond in English."
-    sample = texts.first(40).map { |t| "- #{t.to_s.truncate(120)}" }.join("\n")
-    total = [texts.size, total_responses].max
-
-    prompt = <<~PROMPT
-      You are analyzing open-ended survey responses to group them into themes.
-      Question: "#{question_title}"
-      Total text responses: #{texts.size}
-      Total survey respondents: #{total}
-      #{lang_instruction}
-
-      Responses:
-      #{sample}
-
-      Group these responses into 4–7 meaningful themes. For each theme, estimate how many of the #{texts.size} responses fit it (counts can overlap slightly if a response fits multiple themes, but total should roughly sum to #{texts.size}).
-
-      Return ONLY valid JSON array, no prose:
-      [
-        {"label": "Theme name", "count": N},
-        ...
-      ]
-    PROMPT
-
-    client = Anthropic::Client.new(api_key: ENV["ANTHROPIC_API_KEY"])
-    resp = client.messages(
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
-      messages: [{ role: "user", content: prompt }]
-    )
-    raw = resp.content.first.text.strip
-    json_str = raw[/\[.*\]/m] || raw
-    themes = JSON.parse(json_str)
-    themes.map do |t|
-      cnt = t["count"].to_i
-      pct = total > 0 ? (cnt.to_f / total * 100).round(1) : 0
-      { "label" => t["label"].to_s, "count" => cnt, "pct" => pct }
-    end
-  rescue => e
-    Rails.logger.warn("[AiExecutiveReportJob] categorize_text_into_themes failed: #{e.message}")
-    []
-  end
+  # Theme categorization now lives in ReportAnalytics.categorize_themes (shared).
 end
