@@ -520,9 +520,18 @@ canvas{background:white!important}
   .kpi-label{font-size:9px!important;letter-spacing:.3px!important}
   .grid-2,.grid-3{grid-template-columns:1fr!important;gap:14px!important}
   .grid-2>.cw,.grid-3>.cw,.cw{grid-column:auto!important;width:auto!important}
-  .card{min-height:0!important}
-  /* Hide PDF preview feature entirely on mobile */
+  .card{min-height:0!important;overflow:hidden}
+  /* Public link on mobile = view-only: hide print + download (action-bar) */
+  <% if @public_view %>.action-bar{display:none!important}<% end %>
+  /* PDF preview hidden on mobile for everyone */
   .pdf-preview-tab,.pdf-drawer,#pdfFullscreenOverlay{display:none!important}
+  /* Charts fit the card width; shorter on mobile */
+  canvas{height:200px!important;max-width:100%!important}
+  /* Bar/rating lists: fixed label widths overflow narrow screens → make fluid */
+  .bar-label.w160,.bar-label.w200,.bar-label.w220{width:38%!important;max-width:140px!important}
+  .rating-label{width:84px!important}
+  .bar-item,.rating-row{font-size:11px!important}
+  .bar-count{width:22px!important}
 }
 </style>
 </head>
