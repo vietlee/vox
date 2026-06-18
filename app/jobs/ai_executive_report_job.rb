@@ -46,6 +46,11 @@ class AiExecutiveReportJob < ApplicationJob
     valid_q_ids     = questions.pluck(:id).map(&:to_i).to_set
     choice_type_ids = questions.where(question_type: %w[single_choice dropdown])
                                .pluck(:id).map(&:to_i).to_set
+    # A grouped "average comparison" cross-tab is only meaningful when the TARGET
+    # is quantitative (rating/scale/% text). Comparing a choose-one question across
+    # groups produces a misleading "agreement %" bar, so such targets are excluded.
+    choice_target_ids = questions.where(question_type: %w[single_choice multiple_choice dropdown])
+                                 .pluck(:id).map(&:to_i).to_set
 
     # ── Step 1: DATA BUILDING (before planning so AI sees real data) ────────
     all_chart_data = build_question_chart_data(survey, completed_ids)
@@ -69,6 +74,7 @@ class AiExecutiveReportJob < ApplicationJob
         tid = c["question_id"].to_i
         gid = c["cross_tab_by"].to_i
         next unless valid_q_ids.include?(tid) && valid_q_ids.include?(gid) && choice_type_ids.include?(gid)
+        next if choice_target_ids.include?(tid) # skip meaningless choose-one cross-tabs
         cross_tab_pairs << { "target_id" => tid, "group_by_id" => gid, "label" => c["title"].to_s }
       end
     end
@@ -109,6 +115,17 @@ class AiExecutiveReportJob < ApplicationJob
         end
       end
     end
+
+    # Drop cross-tab charts that target a choose-one question (no valid cross-tab
+    # data could be attached) so they don't render as empty/misleading, then drop
+    # any section left without charts.
+    Array(plan["sections"]).each do |sec|
+      sec["charts"] = Array(sec["charts"]).reject do |c|
+        c["cross_tab_by"].present? && c["cross_tab_data"].blank? &&
+          choice_target_ids.include?(c["question_id"].to_i)
+      end
+    end
+    plan["sections"] = Array(plan["sections"]).reject { |sec| Array(sec["charts"]).empty? }
 
     # ── Step 3: WRITING (skip for focused mode) ─────────────────────────────
     report_mode = plan["report_mode"].to_s
@@ -280,7 +297,13 @@ class AiExecutiveReportJob < ApplicationJob
       }
 
       span rules: "half" for doughnut/number/rating_dist/nps; "full" for everything else.
-      cross_tab_by rules: ONLY set for grouped_bar; must be a single_choice/dropdown question ID.
+      cross_tab_by rules:
+      - ONLY set for grouped_bar. The grouping question (cross_tab_by) must be a single_choice/dropdown.
+      - The chart's own question_id (the TARGET being compared) MUST be quantitative:
+        a rating / linear_scale / nps question, or a short_text question that holds a number/percent.
+      - NEVER cross-tab a choose-one / multiple-choice question across groups (e.g. "which stage is
+        most effective by department") — averaging a categorical answer is meaningless. For those,
+        just show one normal doughnut/hbar of the whole question instead.
     PROMPT
 
     raw    = ClaudeService.sonnet.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 2000)
