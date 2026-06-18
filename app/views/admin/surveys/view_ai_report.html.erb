@@ -478,19 +478,33 @@ canvas{max-height:200px;break-inside:avoid}
   sub     = cd["subtype"].to_s
   insight = c["insight"].to_s
   chid    = "ch_#{idx}"
-  vtype   = c["chart_type"].to_s.presence || begin
-    if xt.present? then "grouped_bar"
+  # Data-appropriate chart type derived purely from what data actually exists.
+  has_opts  = opts.any? { |o| o["count"].to_i > 0 }
+  has_texts = (cd["texts"] || []).any?
+  auto_vtype = if xt.present? then "grouped_bar"
     elsif qtype == "nps" then "nps"
     elsif qtype == "rating" then "rating_dist"
     elsif qtype == "linear_scale" || sub == "pct" then "dist_bar"
-    elsif %w[single_choice dropdown].include?(qtype) && opts.size <= 6 then "doughnut"
-    elsif %w[single_choice dropdown multiple_choice].include?(qtype) then "hbar"
-    elsif %w[text long_text open_ended].include?(qtype) && opts.any?{|o| o["count"].to_i > 0} then "hbar"
-    elsif %w[text long_text open_ended].include?(qtype) then "quotes"
-    elsif dist.size > 12 || opts.size > 12 then "quotes"
+    elsif %w[single_choice dropdown].include?(qtype) && has_opts && opts.size <= 6 then "doughnut"
+    elsif %w[single_choice dropdown multiple_choice].include?(qtype) && has_opts then "hbar"
+    elsif has_opts then "hbar"
+    elsif dist.any? then (qtype == "nps" ? "nps" : "dist_bar")
+    elsif has_texts then "quotes"
     else "dist_bar"
     end
-  end
+  # Use the AI-planned type ONLY if it actually has the data it needs — otherwise
+  # fall back to the data-appropriate type so a mis-planned chart never renders empty.
+  planned = c["chart_type"].to_s.presence
+  compatible = case planned
+    when "doughnut", "hbar", "bar"   then has_opts
+    when "quotes"                    then has_texts
+    when "dist_bar", "rating_dist"   then dist.any?
+    when "nps"                       then dist.any?
+    when "grouped_bar"               then xt.present?
+    when "number", "single_stat"     then true
+    else                                  false
+    end
+  vtype = (planned && compatible) ? planned : auto_vtype
   # Near-unanimous single-answer question → compact stat instead of a near-empty chart
   if %w[single_choice dropdown].include?(qtype) && opts.any? && ReportAnalytics.degenerate_choice?(opts)
     vtype = "single_stat"
