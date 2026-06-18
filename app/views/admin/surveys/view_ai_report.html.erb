@@ -111,6 +111,8 @@ body.pdf-preview-open{padding-right:540px}
 .kpi:hover .kpi-toolbar{opacity:1}
 .kpi-tool-btn{cursor:pointer;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);transition:background .15s,transform .15s}
 .kpi-tool-btn:hover{background:#e0e7ff;color:#4361ee;transform:scale(1.08)}
+.kpi-drag-handle{cursor:grab;color:#818cf8;line-height:0;padding:5px;background:#eef2ff;border-radius:7px;border:none;box-shadow:0 1px 4px rgba(99,102,241,.15);font-size:14px;user-select:none}
+.kpi-drag-handle:hover{background:#e0e7ff}
 /* KPI drag-resize handles (4 directions) */
 .kpi-rh,.kpi-lh{position:absolute;top:0;width:12px;height:100%;cursor:ew-resize;z-index:50;opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center}
 .kpi-rh{right:0}.kpi-lh{left:0}
@@ -628,12 +630,21 @@ canvas{max-height:200px;break-inside:avoid}
     <div class="kpi-rb" data-kpi-idx="0" data-dir="b"></div>
     <div class="kpi-rt" data-kpi-idx="0" data-dir="t"></div>
     <div class="kpi-toolbar">
+      <span class="kpi-drag-handle" title="Kéo để di chuyển">⠿</span>
+      <button class="kpi-tool-btn" onclick="document.getElementById('kpi-lbl-0').focus()" title="Sửa nhãn">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.2 2.8a1.8 1.8 0 0 1 2.54 2.54L6.5 15.58l-3.5.96.96-3.5L14.2 2.8z"/></svg>
+      </button>
       <button class="kpi-tool-btn" onclick="hideKpi('kpi-block-0')" title="Ẩn block">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 11.94A10 10 0 0 1 2.06 11.94M1 1l18 18"/><path d="M9.9 4.07A7 7 0 0 1 17 11M6.53 6.53A7 7 0 0 0 3 11"/></svg>
       </button>
     </div>
     <div class="kpi-value" style="color:#4361ee"><%= data["response_count"] || (responses.count rescue @ai_result.response_count) rescue "—" %></div>
-    <div class="kpi-label"><%= @report_lang == "en" ? "Participants" : "Người tham gia" %></div>
+    <div class="kpi-edit-wrap">
+      <span contenteditable="<%= @public_view ? 'false' : 'true' %>" spellcheck="false" id="kpi-lbl-0" data-kpi-idx="0"
+            data-kpi-default="<%= @report_lang == "en" ? "Participants" : "Người tham gia" %>"
+            class="kpi-label kpi-editable" onblur="saveKpiLabel(this)"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"><%= @report_lang == "en" ? "Participants" : "Người tham gia" %></span>
+    </div>
   </div>
 </div>
 <% if exec_sum.present? %>
@@ -1445,6 +1456,75 @@ function _kpiGridCols() { return KPI_MAXCOLS; }
     kpiDrag = null;
     schedulePreviewReload();
   });
+})();
+
+// ── KPI label edit (sync to server via LAYOUT_KEY → public/PDF) ──
+function saveKpiLabel(el) {
+  const idx = el.dataset.kpiIdx;
+  const text = el.innerText.trim();
+  if (!text) { el.innerText = el.dataset.kpiDefault; return; }
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    saved.report_id = '<%= @ai_result.id %>';
+    saved.kpiLabels = saved.kpiLabels || {};
+    saved.kpiLabels[idx] = text;
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+    pushLayout();
+  } catch(e) {}
+}
+
+// ── KPI free-drag positioning (move within the 12-col grid) ──
+let kpiMoveDrag = null;
+document.addEventListener('mousedown', e => {
+  const handle = e.target.closest('.kpi-drag-handle');
+  if (!handle) return;
+  const block = handle.closest('.kpi');
+  const grid = block?.closest('.kpi-grid');
+  if (!block || !grid) return;
+  e.preventDefault(); e.stopPropagation();
+  let span = 2;
+  const m = block.style.gridColumn.match(/span\s+(\d+)/); if (m) span = parseInt(m[1]);
+  kpiMoveDrag = { block, grid, span };
+  document.body.style.cursor = 'grabbing'; document.body.style.userSelect = 'none';
+  block.style.opacity = '0.7';
+});
+document.addEventListener('mousemove', e => {
+  if (!kpiMoveDrag) return;
+  const { block, grid, span } = kpiMoveDrag;
+  const rect = grid.getBoundingClientRect();
+  const colW = rect.width / 12;
+  const newStart = Math.max(1, Math.min(13 - span, Math.round((e.clientX - rect.left) / colW) + 1));
+  block.style.gridColumn = `${newStart} / span ${span}`;
+});
+document.addEventListener('mouseup', () => {
+  if (!kpiMoveDrag) return;
+  const { block } = kpiMoveDrag;
+  block.style.opacity = '';
+  document.body.style.cursor = ''; document.body.style.userSelect = '';
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    saved.report_id = '<%= @ai_result.id %>';
+    saved.kpiPositions = saved.kpiPositions || {};
+    saved.kpiPositions[block.id] = block.style.gridColumn;
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(saved));
+    pushLayout();
+  } catch(e) {}
+  kpiMoveDrag = null;
+});
+
+// Restore KPI labels + positions on load (all views, including public link)
+(function loadKpiLabelsAndPositions(){
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+    if (saved.kpiLabels) Object.entries(saved.kpiLabels).forEach(([idx, text]) => {
+      const el = document.querySelector(`.kpi-editable[data-kpi-idx="${idx}"]`);
+      if (el && text) el.innerText = text;
+    });
+    if (saved.kpiPositions) Object.entries(saved.kpiPositions).forEach(([id, col]) => {
+      const el = document.getElementById(id);
+      if (el && col) el.style.gridColumn = col;
+    });
+  } catch(e) {}
 })();
 
 // ── Section title click-to-edit ──
