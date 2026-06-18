@@ -272,6 +272,17 @@ class AiExecutiveReportJob < ApplicationJob
       Step 3 — Select the right chart_type (follow user's explicit format request if given)
       Step 4 — Output the minimal structure
 
+      ## HARD RULES (avoid basic mistakes)
+      1. The chart "title" MUST describe the SAME question you put in "question_id".
+         Never write a title about topic A while pointing question_id at question B.
+         If unsure, base the title on that question's actual wording above.
+      2. "chart_type" MUST be one of the types in that question's [SUITABLE FOR: ...] hint.
+         Do NOT pick a type the question's data cannot fill (e.g. hbar needs options;
+         quotes needs raw text; rating_dist/dist_bar/nps need a numeric scale).
+      3. Do NOT create more than ONE chart for the same question_id — EXCEPT you may add
+         one extra grouped_bar (cross_tab_by) comparison for a quantitative question.
+      4. Only reference question IDs that appear in the catalog above.
+
       report_mode rules:
       - "focused": user says "nhanh/quick/chỉ cần/only/just/một chart/1 biểu đồ" → 1 section, 1-2 charts
       - "full": user wants overview/toàn bộ/comprehensive → 2-5 sections
@@ -312,11 +323,20 @@ class AiExecutiveReportJob < ApplicationJob
     # Validate + sanitize
     result["report_mode"] = "full" unless %w[focused full].include?(result["report_mode"])
     result["sections"]    = Array(result["sections"])
+    by_id = questions.index_by(&:id)
     result["sections"].each do |sec|
       sec["charts"] = Array(sec["charts"]).select { |c|
-        c["question_id"].present? &&
-          questions.map(&:id).include?(c["question_id"].to_i)
+        c["question_id"].present? && by_id.key?(c["question_id"].to_i)
       }
+      # Guard against the AI picking a chart_type the question's data can't fill
+      # (e.g. hbar on a numeric question, quotes on a rating question). Correct it
+      # to a data-appropriate type so blocks never render empty.
+      sec["charts"].each do |c|
+        next if c["cross_tab_by"].present? # grouped_bar handled by cross-tab logic
+        cd = chart_data[c["question_id"].to_i]
+        allowed = data_chart_types(cd)
+        c["chart_type"] = allowed.first unless allowed.include?(c["chart_type"])
+      end
     end
     result["sections"].reject! { |s| s["charts"].blank? }
     result
@@ -325,6 +345,30 @@ class AiExecutiveReportJob < ApplicationJob
     Rails.logger.error "Planning AI call failed: #{e.message}"
     # Fallback plan: show all metric questions grouped by department if found
     fallback_plan(survey, questions, user_context)
+  end
+
+  # Chart types whose required data actually exists for a question (best-fit first).
+  def data_chart_types(cd)
+    return %w[quotes] if cd.nil?
+    case cd["type"]
+    when "single_choice", "dropdown"
+      has = Array(cd["options"]).any? { |o| o["count"].to_i > 0 }
+      has ? (Array(cd["options"]).size <= 6 ? %w[doughnut hbar bar] : %w[hbar bar doughnut]) : %w[number]
+    when "multiple_choice"
+      %w[hbar bar doughnut]
+    when "nps"
+      %w[nps dist_bar]
+    when "rating"
+      %w[rating_dist dist_bar]
+    when "linear_scale"
+      cd["subtype"] == "pct" ? %w[dist_bar] : %w[rating_dist dist_bar]
+    when "short_text", "long_text"
+      if Array(cd["options"]).any? then %w[hbar bar doughnut]
+      elsif Array(cd["texts"]).any? then %w[quotes hbar]
+      else %w[quotes] end
+    else
+      %w[hbar dist_bar quotes]
+    end
   end
 
   # ── Step 3: Writing AI call ────────────────────────────────────────────────
