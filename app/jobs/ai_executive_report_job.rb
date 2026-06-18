@@ -430,6 +430,13 @@ class AiExecutiveReportJob < ApplicationJob
   end
 
   # ── Build question chart data from DB ──────────────────────────────────────
+  # JSONB option_ids may be stored as integers ([331]) or strings (["331"])
+  # depending on how the answer was created. Match both so option-based queries
+  # (counts, cross-tabs) never silently return zero.
+  def option_match(option_id)
+    ["option_ids @> ? OR option_ids @> ?", [option_id.to_i].to_json, [option_id.to_s].to_json]
+  end
+
   def build_question_chart_data(survey, completed_response_ids = nil)
     completed_response_ids ||= survey.responses.completed.where(excluded: [false, nil]).pluck(:id)
     return [] if completed_response_ids.empty?
@@ -442,7 +449,7 @@ class AiExecutiveReportJob < ApplicationJob
         total = base.count
         next if total == 0
         options = q.question_options.order(:position).map do |opt|
-          count = base.where("option_ids @> ?", [opt.id.to_s].to_json).count
+          count = base.where(*option_match(opt.id)).count
           { "id" => opt.id, "label" => opt.label, "count" => count,
             "pct" => (count.to_f / total * 100).round(1) }
         end
@@ -455,7 +462,10 @@ class AiExecutiveReportJob < ApplicationJob
         max_val = if q.nps? then 10
                   elsif q.question_type == "linear_scale"
                     q.settings&.dig("max_value")&.to_i.then { |v| v&.positive? ? v : 10 }
-                  else 5
+                  else
+                    # Derive the scale from the actual data instead of assuming 1–5,
+                    # so 1–10 rating questions don't collapse to an all-zero chart.
+                    [nums.max.to_i, 5].max
                   end
         avg  = (nums.sum.to_f / nums.size).round(1)
         dist = (1..max_val).map { |v| { "value" => v, "count" => nums.count(v) } }
@@ -477,9 +487,13 @@ class AiExecutiveReportJob < ApplicationJob
             "type" => "linear_scale", "subtype" => "pct",
             "total" => nums.size, "avg" => avg, "max" => 100, "distribution" => dist }
         else
-          # Check for tool-name data (people typed AI tool names)
+          # Tool-name aggregation only when the QUESTION is actually about which
+          # tools people use — otherwise a suggestion mentioning "Claude" would be
+          # naively split into junk "tool" rows. Let real open-ended questions fall
+          # through to AI theme grouping instead.
+          title_is_tools = q.title.match?(/\b(ai nào|công cụ|tool|phần mềm)\b/i)
           tool_hits = texts.select { |t| t.match?(/claude|chatgpt|gemini|gpt|cursor|copilot|codex|deepseek|midjourney|perplexity|trae|antigravity/i) }
-          if tool_hits.size >= [texts.size * 0.2, 2].min
+          if title_is_tools && tool_hits.size >= [texts.size * 0.4, 2].max
             opts = SurveyReportSemantics.aggregate_tools(texts, texts.size)
             { "question_id" => q.id, "question" => q.title,
               "type" => "multiple_choice", "total" => texts.size,
@@ -508,12 +522,15 @@ class AiExecutiveReportJob < ApplicationJob
                 elsif target_q.question_type == "linear_scale"
                   target_q.settings&.dig("max_value")&.to_i.then { |v| v&.positive? ? v : 10 }
                 elsif %w[short_text long_text].include?(target_q.question_type) then 100
-                else 5
+                else
+                  # Dynamic rating scale from the data (handles 1–5 and 1–10 alike)
+                  [Answer.where(question: target_q, response_id: completed_response_ids)
+                         .where.not(numeric_value: nil).maximum(:numeric_value).to_i, 5].max
                 end
 
       groups = group_options.filter_map do |opt|
         group_resp_ids = Answer.where(question: group_q, response_id: completed_response_ids)
-                               .where("option_ids @> ?", [opt.id.to_s].to_json)
+                               .where(*option_match(opt.id))
                                .pluck(:response_id)
         next if group_resp_ids.empty?
 
@@ -537,7 +554,7 @@ class AiExecutiveReportJob < ApplicationJob
           total = target_base.count
           next if total == 0
           top = target_q.question_options.order(:position).map { |topt|
-            cnt = target_base.where("option_ids @> ?", [topt.id.to_s].to_json).count
+            cnt = target_base.where(*option_match(topt.id)).count
             { "option" => topt.label.truncate(30), "pct" => (cnt.to_f / total * 100).round(1) }
           }.max_by { |o| o["pct"] }
           { "label" => opt.label.truncate(30), "top_option" => top["option"], "pct" => top["pct"], "total" => total }
