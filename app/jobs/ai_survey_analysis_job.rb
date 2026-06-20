@@ -363,7 +363,7 @@ class AiSurveyAnalysisJob < ApplicationJob
       groups = gq.question_options.order(:position).map do |opt|
         # Response IDs where respondent chose this option
         resp_ids = Answer.where(question: gq, response_id: completed_ids)
-                         .where("option_ids @> ?", [opt.id.to_s].to_json)
+                         .where(*ReportAnalytics.option_match(opt.id))
                          .pluck(:response_id)
         next if resp_ids.empty?
         { option_id: opt.id, label: opt.label, response_ids: resp_ids }
