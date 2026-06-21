@@ -60,6 +60,7 @@
 
 <!-- Loading overlay — hiện ngay khi submit, che trang cho đến khi redirect sang show page -->
 <div id="co-submit-overlay" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center"
+     data-turbo-temporary
      style="background: rgba(15,23,42,0.82); backdrop-filter: blur(6px);">
   <div class="relative mb-8">
     <svg class="w-24 h-24" viewBox="0 0 96 96">
@@ -102,9 +103,10 @@
     document.getElementById('ai-submit-btn').disabled = true;
   });
 
-  // Hide overlay before Turbo caches the page (prevents ghost overlay on back-nav)
+  // Hide on every Turbo navigation (covers preview, cache restore, back/forward)
   document.addEventListener('turbo:before-cache', hideOverlay);
-  // Also hide on bfcache restore (non-Turbo back/forward)
+  document.addEventListener('turbo:load', hideOverlay);
+  document.addEventListener('turbo:render', hideOverlay);
   window.addEventListener('pageshow', function(e) { if (e.persisted) hideOverlay(); });
 })();
 </script>
