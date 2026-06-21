@@ -297,6 +297,7 @@ Rails.application.routes.draw do
         get  :study
         post :review
       end
+      resources :flashcards, only: [:update]
     end
 
     # Module 3: Tóm tắt tài liệu

@@ -35,6 +35,15 @@
       <!-- Card area — built entirely by JS -->
       <div id="card-area" class="mb-5"></div>
 
+      <!-- TTS toggle -->
+      <div class="flex justify-end mb-2">
+        <button id="tts-btn" onclick="toggleTTS()" title="Bật/tắt đọc to"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-all"
+                style="border-color:#e2e8f0; color:#64748b; background:#fff;">
+          🔊 <span id="tts-label">Đọc to: Tắt</span>
+        </button>
+      </div>
+
       <!-- Rating buttons — hidden until flip -->
       <div id="rating-btns" class="mb-4" style="display:none;">
         <div class="grid grid-cols-4 gap-2.5">
@@ -83,9 +92,10 @@
   var DECK_PATH        = '<%= flashcard_deck_path(@deck) %>';
   var CSRF_TOKEN       = document.querySelector('meta[name="csrf-token"]').content;
 
-  var cards = <%= raw @study_cards.map { |c| { id: c.id, front: c.front, back: c.back } }.to_json %>;
+  var cards = <%= raw @study_cards.map { |c| { id: c.id, front: c.front, back: c.back, image_data: c.image_data } }.to_json %>;
   var current = 0;
   var flipped = false;
+  var ttsOn   = false;
 
   var GRADIENTS = [
     ['#667eea','#764ba2'],
@@ -96,39 +106,83 @@
     ['#a18cd1','#fbc2eb'],
   ];
 
-  function makeCard(text, label, g1, g2, isBack) {
+  /* ── TTS ── */
+  window.toggleTTS = function() {
+    ttsOn = !ttsOn;
+    var btn = document.getElementById('tts-btn');
+    var lbl = document.getElementById('tts-label');
+    if (ttsOn) {
+      btn.style.borderColor = '#6366f1'; btn.style.color = '#4f46e5'; btn.style.background = '#eef2ff';
+      lbl.textContent = 'Đọc to: Bật';
+    } else {
+      window.speechSynthesis && window.speechSynthesis.cancel();
+      btn.style.borderColor = '#e2e8f0'; btn.style.color = '#64748b'; btn.style.background = '#fff';
+      lbl.textContent = 'Đọc to: Tắt';
+    }
+  };
+
+  function speak(text) {
+    if (!ttsOn || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'vi-VN';
+    u.rate = 0.9;
+    window.speechSynthesis.speak(u);
+  }
+
+  function makeCard(card, label, g1, g2, isBack) {
+    var text = isBack ? card.back : card.front;
     var div = document.createElement('div');
     div.className = 'card-in';
     div.style.cssText = [
-      'background:linear-gradient(135deg,' + g1 + ' 0%,' + g2 + ' 100%)',
-      'border-radius:24px',
+      isBack ? 'background:#fff;border:2px solid ' + g1 + '88' : 'background:linear-gradient(145deg,' + g1 + ',' + g2 + ')',
+      'border-radius:28px',
       'overflow:hidden',
-      'box-shadow:0 20px 60px ' + g1 + '55',
-      'min-height:280px',
+      'box-shadow:0 20px 60px ' + g1 + (isBack ? '22' : '55'),
       'display:flex',
       'flex-direction:column',
       'cursor:pointer',
       'user-select:none',
     ].join(';');
 
+    /* header */
+    var hdrBg = isBack ? 'rgba(0,0,0,.04)' : 'rgba(0,0,0,.15)';
+    var hdrClr = isBack ? g1 : 'rgba(255,255,255,.8)';
     var header = document.createElement('div');
-    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.2);';
-    header.innerHTML = '<span style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.75);">' + label + '</span>' +
-      '<span style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;">' + (isBack ? '✓' : (current+1) + ' / ' + cards.length) + '</span>';
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-bottom:1px solid ' + (isBack ? 'rgba(0,0,0,.07)' : 'rgba(255,255,255,.2)') + ';flex-shrink:0;';
+    header.innerHTML =
+      '<span style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:' + hdrClr + ';">' + label + '</span>' +
+      '<span style="font-size:11px;color:' + hdrClr + ';font-weight:600;opacity:.7;">' + (isBack ? '✓ Đáp án' : (current+1) + ' / ' + cards.length) + '</span>';
 
+    /* image (front only if has image) */
+    if (!isBack && card.image_data) {
+      var imgWrap = document.createElement('div');
+      imgWrap.style.cssText = 'flex-shrink:0;height:180px;overflow:hidden;';
+      var img = document.createElement('img');
+      img.src = card.image_data;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      imgWrap.appendChild(img);
+      div.appendChild(header);
+      div.appendChild(imgWrap);
+    } else {
+      div.appendChild(header);
+    }
+
+    /* body */
+    var minH = (!isBack && card.image_data) ? '80px' : '200px';
     var body = document.createElement('div');
-    body.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;padding:32px;text-align:center;';
+    body.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;padding:24px 28px;text-align:center;min-height:' + minH + ';';
     var p = document.createElement('p');
-    p.style.cssText = 'color:#fff;font-size:' + (text.length > 60 ? '18' : '24') + 'px;font-weight:700;line-height:1.45;margin:0;';
+    var fs = text.length > 80 ? '16' : text.length > 40 ? '20' : '26';
+    p.style.cssText = 'margin:0;font-size:' + fs + 'px;font-weight:700;line-height:1.5;color:' + (isBack ? '#1e293b' : '#fff') + ';';
     p.textContent = text;
     body.appendChild(p);
-
-    var footer = document.createElement('div');
-    footer.style.cssText = 'text-align:center;padding-bottom:16px;color:rgba(255,255,255,0.55);font-size:11px;font-weight:500;';
-    footer.textContent = isBack ? 'Chọn mức độ ghi nhớ bên dưới' : 'Nhấn để xem đáp án';
-
-    div.appendChild(header);
     div.appendChild(body);
+
+    /* footer hint */
+    var footer = document.createElement('div');
+    footer.style.cssText = 'text-align:center;padding:10px 20px 16px;font-size:11px;font-weight:500;color:' + (isBack ? '#94a3b8' : 'rgba(255,255,255,.5)') + ';flex-shrink:0;';
+    footer.textContent = isBack ? 'Chọn mức độ ghi nhớ bên dưới' : 'Nhấn để xem đáp án';
     div.appendChild(footer);
     return div;
   }
@@ -155,8 +209,9 @@
 
     var card = cards[i];
     var g = GRADIENTS[i % GRADIENTS.length];
-    var frontEl = makeCard(card.front, 'Câu hỏi', g[0], g[1], false);
+    var frontEl = makeCard(card, 'Câu hỏi', g[0], g[1], false);
     frontEl.onclick = function() { flipCard(card, i); };
+    speak(card.front);
 
     area.innerHTML = '';
     area.appendChild(frontEl);
@@ -172,8 +227,9 @@
     if (flipped) return;
     flipped = true;
     var area = document.getElementById('card-area');
-    var g = GRADIENTS[(i + 3) % GRADIENTS.length]; // different gradient for back
-    var backEl = makeCard(card.back, 'Đáp án', g[0], g[1], true);
+    var g = GRADIENTS[(i + 3) % GRADIENTS.length];
+    var backEl = makeCard(card, 'Đáp án', g[0], g[1], true);
+    speak(card.back);
     backEl.onclick = null;
     area.innerHTML = '';
     area.appendChild(backEl);
