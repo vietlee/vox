@@ -37,15 +37,9 @@
 
       <!-- TTS controls -->
       <div class="flex items-center gap-2 justify-end mb-2 flex-wrap">
-        <select id="vi-voice-select" title="Giọng tiếng Việt"
+        <select id="fc-voice-select" title="Chọn giọng đọc"
                 class="hidden px-2 py-1.5 rounded-xl text-[12px] font-semibold border outline-none"
-                style="border-color:#6366f1; color:#4f46e5; background:#eef2ff; max-width:200px;"
-                onchange="onVoiceChange()">
-        </select>
-        <select id="en-voice-select" title="Giọng tiếng Anh"
-                class="hidden px-2 py-1.5 rounded-xl text-[12px] font-semibold border outline-none"
-                style="border-color:#0284c7; color:#0369a1; background:#e0f2fe; max-width:200px;"
-                onchange="onVoiceChange()">
+                style="border-color:#6366f1; color:#4f46e5; background:#eef2ff; max-width:220px;">
         </select>
         <button id="tts-btn" onclick="toggleTTS()" title="Bật/tắt đọc to"
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-all flex-shrink-0"
@@ -116,103 +110,100 @@
     ['#a18cd1','#fbc2eb'],
   ];
 
-  /* ── TTS ── */
-  var _allVoices = [];
-  var _selectedViVoice = null;  /* SpeechSynthesisVoice object chosen by user */
-  var _selectedEnVoice = null;
+  /* ── TTS via ElevenLabs (reuses existing /tts/voices + /tts/generate) ── */
+  var VOICES_URL   = '<%= tts_voices_path %>';
+  var GENERATE_URL = '<%= tts_generate_path %>';
+  var CSRF_TOKEN_TTS = document.querySelector('meta[name="csrf-token"]').content;
 
-  /* Vietnamese diacritics → vi; pure ASCII letters → en; else vi */
-  var VI_RE  = /[àáảãạăắặằẳẵâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵÀÁẢÃẠĂẮẶẰẲẴÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ]/;
-  var EN_RE  = /^[a-zA-Z0-9\s.,!?;:()\-'"\/\[\]%&@#+*=]+$/;
+  var _fcAudio = null;   /* current Audio instance */
+  var _voicesLoaded = false;
+
+  /* Vietnamese diacritics → vi; pure ASCII → en; else vi */
+  var VI_RE = /[àáảãạăắặằẳẵâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵÀÁẢÃẠĂẮẶẰẲẴÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ]/;
   function detectLang(text) {
-    if (VI_RE.test(text)) return 'vi';
-    if (EN_RE.test(text)) return 'en';
-    return 'vi';
+    return VI_RE.test(text) ? 'vi' : 'en';
   }
 
-  function populateVoiceSelects() {
-    _allVoices = window.speechSynthesis.getVoices();
-    var viVoices = _allVoices.filter(function(v){ return v.lang.startsWith('vi'); });
-    var enVoices = _allVoices.filter(function(v){ return v.lang.startsWith('en'); });
-
-    var viSel = document.getElementById('vi-voice-select');
-    var enSel = document.getElementById('en-voice-select');
-
-    viSel.innerHTML = '';
-    viVoices.forEach(function(v) {
-      var opt = document.createElement('option');
-      opt.value = v.name;
-      opt.textContent = '🇻🇳 ' + v.name.replace(/Microsoft |Google /,'');
-      viSel.appendChild(opt);
-    });
-    /* auto-pick: prefer Google, then first available */
-    var bestVi = viVoices.find(function(v){ return /google/i.test(v.name); }) || viVoices[0];
-    if (bestVi) { viSel.value = bestVi.name; _selectedViVoice = bestVi; }
-
-    enSel.innerHTML = '';
-    enVoices.forEach(function(v) {
-      var opt = document.createElement('option');
-      opt.value = v.name;
-      opt.textContent = '🇺🇸 ' + v.name.replace(/Microsoft |Google /,'');
-      enSel.appendChild(opt);
-    });
-    var bestEn = enVoices.find(function(v){ return /google/i.test(v.name) && v.lang === 'en-US'; }) ||
-                 enVoices.find(function(v){ return v.lang === 'en-US'; }) ||
-                 enVoices[0];
-    if (bestEn) { enSel.value = bestEn.name; _selectedEnVoice = bestEn; }
-
-    /* show selects only when TTS is on */
-    if (ttsOn) {
-      if (viVoices.length) viSel.classList.remove('hidden');
-      if (enVoices.length) enSel.classList.remove('hidden');
-    }
-  }
-
-  window.onVoiceChange = function() {
-    var viSel = document.getElementById('vi-voice-select');
-    var enSel = document.getElementById('en-voice-select');
-    _selectedViVoice = _allVoices.find(function(v){ return v.name === viSel.value; }) || null;
-    _selectedEnVoice = _allVoices.find(function(v){ return v.name === enSel.value; }) || null;
-  };
-
-  if (window.speechSynthesis) {
-    /* Chrome loads voices async */
-    if (window.speechSynthesis.getVoices().length) populateVoiceSelects();
-    window.speechSynthesis.onvoiceschanged = populateVoiceSelects;
+  function loadElevenLabsVoices() {
+    if (_voicesLoaded) return Promise.resolve();
+    return fetch(VOICES_URL, { headers: { 'Accept': 'application/json' } })
+      .then(function(r) { return r.json(); })
+      .then(function(voices) {
+        var sel = document.getElementById('fc-voice-select');
+        sel.innerHTML = '';
+        voices.forEach(function(v) {
+          var opt = document.createElement('option');
+          opt.value = v.id;
+          opt.textContent = v.name.length > 30 ? v.name.substring(0, 30) + '…' : v.name;
+          sel.appendChild(opt);
+        });
+        /* restore last used voice */
+        var saved = localStorage.getItem('fc_tts_voice');
+        if (saved && Array.from(sel.options).find(function(o){ return o.value === saved; })) {
+          sel.value = saved;
+        }
+        sel.onchange = function() { localStorage.setItem('fc_tts_voice', sel.value); };
+        _voicesLoaded = true;
+        sel.classList.remove('hidden');
+      })
+      .catch(function(e) {
+        var sel = document.getElementById('fc-voice-select');
+        sel.innerHTML = '<option value="">⚠️ Không tải được giọng</option>';
+        sel.classList.remove('hidden');
+      });
   }
 
   window.toggleTTS = function() {
     ttsOn = !ttsOn;
-    var btn   = document.getElementById('tts-btn');
-    var lbl   = document.getElementById('tts-label');
-    var viSel = document.getElementById('vi-voice-select');
-    var enSel = document.getElementById('en-voice-select');
+    var btn = document.getElementById('tts-btn');
+    var lbl = document.getElementById('tts-label');
     if (ttsOn) {
       btn.style.borderColor = '#6366f1'; btn.style.color = '#4f46e5'; btn.style.background = '#eef2ff';
       lbl.textContent = 'Đọc to: Bật';
-      populateVoiceSelects();
-      if (viSel.options.length) viSel.classList.remove('hidden');
-      if (enSel.options.length) enSel.classList.remove('hidden');
+      loadElevenLabsVoices();
     } else {
-      window.speechSynthesis && window.speechSynthesis.cancel();
+      if (_fcAudio) { _fcAudio.pause(); _fcAudio = null; }
       btn.style.borderColor = '#e2e8f0'; btn.style.color = '#64748b'; btn.style.background = '#fff';
       lbl.textContent = 'Đọc to: Tắt';
-      viSel.classList.add('hidden');
-      enSel.classList.add('hidden');
+      document.getElementById('fc-voice-select').classList.add('hidden');
     }
   };
 
   function speak(text) {
-    if (!ttsOn || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    var lang  = detectLang(text);
-    var voice = lang === 'vi' ? _selectedViVoice : _selectedEnVoice;
-    var u = new SpeechSynthesisUtterance(text);
-    if (voice) { u.voice = voice; u.lang = voice.lang; }
-    else        { u.lang  = lang === 'en' ? 'en-US' : 'vi-VN'; }
-    u.rate  = lang === 'en' ? 0.88 : 0.84;
-    u.pitch = 1.0;
-    window.speechSynthesis.speak(u);
+    if (!ttsOn) return;
+    /* stop any in-progress audio */
+    if (_fcAudio) { _fcAudio.pause(); _fcAudio = null; }
+
+    var voiceId = document.getElementById('fc-voice-select').value;
+    if (!voiceId) return;
+
+    var fd = new FormData();
+    fd.append('text',          text);
+    fd.append('voice_id',      voiceId);
+    fd.append('model',         'eleven_turbo_v2_5');
+    fd.append('speed',         detectLang(text) === 'en' ? '1.0' : '0.9');
+    fd.append('stability',     '0.5');
+    fd.append('similarity',    '0.75');
+    fd.append('style',         '0.0');
+    fd.append('output_format', 'mp3_44100_128');
+
+    fetch(GENERATE_URL, {
+      method:  'POST',
+      headers: { 'X-CSRF-Token': CSRF_TOKEN_TTS, 'Accept': 'audio/mpeg, application/json' },
+      body:    fd
+    })
+    .then(function(r) {
+      if (!r.ok) return;
+      return r.blob();
+    })
+    .then(function(blob) {
+      if (!blob || !ttsOn) return;
+      var url = URL.createObjectURL(blob);
+      _fcAudio = new Audio(url);
+      _fcAudio.onended = function() { URL.revokeObjectURL(url); };
+      _fcAudio.play();
+    })
+    .catch(function() { /* silent fail — don't interrupt study flow */ });
   }
 
   function makeCard(card, label, g1, g2, isBack) {
