@@ -8,7 +8,7 @@
     <!-- Header -->
     <div class="flex items-center gap-4 mb-8">
       <%= link_to flashcard_deck_path(@deck),
-          class: "flex items-center gap-1.5 text-[13px] font-semibold text-slate-500 hover:text-slate-800 transition-colors flex-shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm hover:shadow-md" do %>
+          class: "flex items-center gap-1.5 text-[13px] font-semibold text-slate-600 hover:text-slate-900 transition-colors flex-shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm" do %>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
         Quay lại
       <% end %>
@@ -18,7 +18,7 @@
           <div class="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
             <div id="progress-bar" class="h-1.5 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500" style="width:0%"></div>
           </div>
-          <span id="card-counter" class="text-[11px] text-slate-500 font-bold flex-shrink-0 bg-white border border-slate-200 rounded-lg px-2 py-0.5">1 / <%= @study_cards.size %></span>
+          <span id="card-counter" class="text-[11px] text-slate-500 font-bold flex-shrink-0 tabular-nums"></span>
         </div>
       </div>
     </div>
@@ -32,66 +32,37 @@
       </div>
     <% else %>
 
-      <!-- Card -->
-      <div id="card-wrap" class="mb-5 cursor-pointer" onclick="flipCard()">
+      <!-- Card area — built entirely by JS -->
+      <div id="card-area" class="mb-5"></div>
 
-        <!-- FRONT -->
-        <div id="card-front" class="rounded-3xl overflow-hidden shadow-2xl"
-             style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:280px; display:flex; flex-direction:column;">
-          <div class="flex items-center justify-between px-6 py-4" style="border-bottom:1px solid rgba(255,255,255,0.2);">
-            <span class="text-[11px] font-bold uppercase tracking-widest" style="color:rgba(255,255,255,0.7)">Câu hỏi</span>
-            <span id="card-num-badge" class="text-[11px] font-bold" style="color:rgba(255,255,255,0.6)"></span>
-          </div>
-          <div class="flex-1 flex items-center justify-center px-8 py-8 text-center">
-            <p id="front-text" class="text-[24px] font-bold leading-relaxed" style="color:#fff;"></p>
-          </div>
-          <div class="flex items-center justify-center gap-1.5 pb-5" style="color:rgba(255,255,255,0.5);">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            <span class="text-[11px] font-medium">Nhấn để xem đáp án</span>
-          </div>
+      <!-- Rating buttons — hidden until flip -->
+      <div id="rating-btns" class="mb-4" style="display:none;">
+        <div class="grid grid-cols-4 gap-2.5">
+          <button onclick="rate(0)" class="flex flex-col items-center py-4 bg-white rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md" style="border:2px solid #fca5a5; color:#dc2626;">
+            <span style="font-size:24px; margin-bottom:4px;">😵</span>
+            <span style="font-size:12px; font-weight:700;">Quên</span>
+            <span style="font-size:10px; color:#ef4444; margin-top:2px;">1 phút</span>
+          </button>
+          <button onclick="rate(1)" class="flex flex-col items-center py-4 bg-white rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md" style="border:2px solid #fdba74; color:#ea580c;">
+            <span style="font-size:24px; margin-bottom:4px;">😅</span>
+            <span style="font-size:12px; font-weight:700;">Khó</span>
+            <span style="font-size:10px; color:#f97316; margin-top:2px;">10 phút</span>
+          </button>
+          <button onclick="rate(2)" class="flex flex-col items-center py-4 bg-white rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md" style="border:2px solid #93c5fd; color:#2563eb;">
+            <span style="font-size:24px; margin-bottom:4px;">👍</span>
+            <span style="font-size:12px; font-weight:700;">Ổn</span>
+            <span style="font-size:10px; color:#3b82f6; margin-top:2px;">1 ngày</span>
+          </button>
+          <button onclick="rate(3)" class="flex flex-col items-center py-4 bg-white rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md" style="border:2px solid #6ee7b7; color:#059669;">
+            <span style="font-size:24px; margin-bottom:4px;">⭐</span>
+            <span style="font-size:12px; font-weight:700;">Dễ</span>
+            <span style="font-size:10px; color:#10b981; margin-top:2px;">2 ngày</span>
+          </button>
         </div>
-
-        <!-- BACK (hidden initially) -->
-        <div id="card-back" class="rounded-3xl overflow-hidden shadow-2xl" style="display:none; min-height:280px; flex-direction:column;
-             background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);">
-          <div class="flex items-center justify-between px-6 py-4" style="border-bottom:1px solid rgba(255,255,255,0.2);">
-            <span class="text-[11px] font-bold uppercase tracking-widest" style="color:rgba(255,255,255,0.7)">Đáp án</span>
-            <span style="color:rgba(255,255,255,0.7); font-size:14px;">✓</span>
-          </div>
-          <div class="flex-1 flex items-center justify-center px-8 py-8 text-center">
-            <p id="back-text" class="text-[20px] font-semibold leading-relaxed" style="color:#fff;"></p>
-          </div>
-          <div class="pb-5 text-center text-[11px] font-medium" style="color:rgba(255,255,255,0.6);">Chọn mức độ ghi nhớ bên dưới</div>
-        </div>
-
-      </div>
-
-      <!-- Rating buttons -->
-      <div id="rating-btns" class="hidden grid grid-cols-4 gap-2.5 mb-4">
-        <button onclick="rate(0)" class="flex flex-col items-center py-4 bg-white border-2 border-red-200 hover:border-red-400 hover:bg-red-50 text-red-600 rounded-2xl cursor-pointer transition-all shadow-sm group border-0">
-          <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">😵</span>
-          <span class="text-[12px] font-bold">Quên</span>
-          <span class="text-[10px] text-red-400 mt-0.5">1 phút</span>
-        </button>
-        <button onclick="rate(1)" class="flex flex-col items-center py-4 bg-white border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-600 rounded-2xl cursor-pointer transition-all shadow-sm group border-0">
-          <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">😅</span>
-          <span class="text-[12px] font-bold">Khó</span>
-          <span class="text-[10px] text-orange-400 mt-0.5">10 phút</span>
-        </button>
-        <button onclick="rate(2)" class="flex flex-col items-center py-4 bg-white border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-blue-600 rounded-2xl cursor-pointer transition-all shadow-sm group border-0">
-          <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">👍</span>
-          <span class="text-[12px] font-bold">Ổn</span>
-          <span class="text-[10px] text-blue-400 mt-0.5">1 ngày</span>
-        </button>
-        <button onclick="rate(3)" class="flex flex-col items-center py-4 bg-white border-2 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 text-emerald-600 rounded-2xl cursor-pointer transition-all shadow-sm group border-0">
-          <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">⭐</span>
-          <span class="text-[12px] font-bold">Dễ</span>
-          <span class="text-[10px] text-emerald-400 mt-0.5">2 ngày</span>
-        </button>
       </div>
 
       <div id="flip-hint" class="text-center">
-        <span class="text-[12px] text-slate-400">Nhấn vào thẻ hoặc <kbd class="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono shadow-sm">Space</kbd> để lật</span>
+        <span class="text-[12px] text-slate-400">Nhấn thẻ hoặc <kbd class="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono shadow-sm">Space</kbd> để xem đáp án</span>
       </div>
 
     <% end %>
@@ -99,92 +70,141 @@
 </div>
 
 <style>
-#rating-btns button { border-width: 2px !important; }
-@keyframes cardIn {
-  from { opacity:0; transform:scale(0.95) translateY(8px); }
-  to   { opacity:1; transform:scale(1)    translateY(0); }
+@keyframes fadeInUp {
+  from { opacity:0; transform:translateY(12px) scale(0.97); }
+  to   { opacity:1; transform:translateY(0)    scale(1); }
 }
-.card-animate { animation: cardIn 0.25s ease forwards; }
+.card-in { animation: fadeInUp 0.22s ease forwards; }
 </style>
 
 <script>
-const cards = <%= raw @study_cards.map { |c| { id: c.id, front: c.front, back: c.back } }.to_json %>;
-let current = 0;
-let flipped = false;
+(function() {
+  var DECK_REVIEW_PATH = '<%= review_flashcard_deck_path(@deck) %>';
+  var DECK_PATH        = '<%= flashcard_deck_path(@deck) %>';
+  var CSRF_TOKEN       = document.querySelector('meta[name="csrf-token"]').content;
 
-const FRONTS = [
-  'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
-  'linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)',
-  'linear-gradient(135deg,#43e97b 0%,#38f9d7 100%)',
-  'linear-gradient(135deg,#f093fb 0%,#f5576c 100%)',
-  'linear-gradient(135deg,#30cfd0 0%,#330867 100%)',
-];
+  var cards = <%= raw @study_cards.map { |c| { id: c.id, front: c.front, back: c.back } }.to_json %>;
+  var current = 0;
+  var flipped = false;
 
-function showCard(i) {
-  if (i >= cards.length) {
-    document.getElementById('card-wrap').innerHTML =
-      '<div class="card-animate rounded-3xl overflow-hidden shadow-2xl p-14 text-center" style="background:linear-gradient(135deg,#43e97b,#38f9d7)">' +
-      '<div style="font-size:52px;margin-bottom:16px;">🎉</div>' +
-      '<h2 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 8px;">Hoàn thành phiên học!</h2>' +
-      '<p style="color:rgba(255,255,255,0.85);font-size:13px;margin:0 0 24px;">Tuyệt vời! Ôn lại vào đúng thời điểm tốt nhất.</p>' +
-      '<a href="<%= flashcard_deck_path(@deck) %>" style="display:inline-block;background:#fff;color:#059669;font-size:13px;font-weight:700;padding:12px 24px;border-radius:16px;text-decoration:none;">← Xem bộ thẻ</a>' +
-      '</div>';
-    document.getElementById('rating-btns')?.remove();
-    document.getElementById('flip-hint')?.remove();
-    return;
+  var GRADIENTS = [
+    ['#667eea','#764ba2'],
+    ['#4facfe','#00f2fe'],
+    ['#43e97b','#38f9d7'],
+    ['#f093fb','#f5576c'],
+    ['#30cfd0','#667eea'],
+    ['#a18cd1','#fbc2eb'],
+  ];
+
+  function makeCard(text, label, g1, g2, isBack) {
+    var div = document.createElement('div');
+    div.className = 'card-in';
+    div.style.cssText = [
+      'background:linear-gradient(135deg,' + g1 + ' 0%,' + g2 + ' 100%)',
+      'border-radius:24px',
+      'overflow:hidden',
+      'box-shadow:0 20px 60px ' + g1 + '55',
+      'min-height:280px',
+      'display:flex',
+      'flex-direction:column',
+      'cursor:pointer',
+      'user-select:none',
+    ].join(';');
+
+    var header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.2);';
+    header.innerHTML = '<span style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.75);">' + label + '</span>' +
+      '<span style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;">' + (isBack ? '✓' : (current+1) + ' / ' + cards.length) + '</span>';
+
+    var body = document.createElement('div');
+    body.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;padding:32px;text-align:center;';
+    var p = document.createElement('p');
+    p.style.cssText = 'color:#fff;font-size:' + (text.length > 60 ? '18' : '24') + 'px;font-weight:700;line-height:1.45;margin:0;';
+    p.textContent = text;
+    body.appendChild(p);
+
+    var footer = document.createElement('div');
+    footer.style.cssText = 'text-align:center;padding-bottom:16px;color:rgba(255,255,255,0.55);font-size:11px;font-weight:500;';
+    footer.textContent = isBack ? 'Chọn mức độ ghi nhớ bên dưới' : 'Nhấn để xem đáp án';
+
+    div.appendChild(header);
+    div.appendChild(body);
+    div.appendChild(footer);
+    return div;
   }
 
-  const card = cards[i];
-  const frontEl = document.getElementById('card-front');
-  const backEl  = document.getElementById('card-back');
+  function showCard(i) {
+    var area = document.getElementById('card-area');
+    var ratingEl = document.getElementById('rating-btns');
+    var hintEl   = document.getElementById('flip-hint');
 
-  frontEl.style.background = FRONTS[i % FRONTS.length];
-  document.getElementById('front-text').textContent = card.front;
-  document.getElementById('back-text').textContent  = card.back;
-  document.getElementById('card-counter').textContent = (i + 1) + ' / ' + cards.length;
-  document.getElementById('card-num-badge').textContent = (i + 1) + ' / ' + cards.length;
-  document.getElementById('progress-bar').style.width = (i / cards.length * 100) + '%';
+    if (i >= cards.length) {
+      area.innerHTML = '';
+      var done = document.createElement('div');
+      done.className = 'card-in';
+      done.style.cssText = 'background:linear-gradient(135deg,#43e97b,#38f9d7);border-radius:24px;padding:56px 32px;text-align:center;box-shadow:0 20px 60px rgba(67,233,123,0.35);';
+      done.innerHTML = '<div style="font-size:52px;margin-bottom:16px;">🎉</div>' +
+        '<h2 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 8px;">Hoàn thành phiên học!</h2>' +
+        '<p style="color:rgba(255,255,255,0.85);font-size:13px;margin:0 0 24px;">Tuyệt vời! Hệ thống sẽ nhắc ôn vào đúng thời điểm.</p>' +
+        '<a href="' + DECK_PATH + '" style="display:inline-block;background:#fff;color:#059669;font-size:13px;font-weight:700;padding:12px 24px;border-radius:16px;text-decoration:none;">← Xem bộ thẻ</a>';
+      area.appendChild(done);
+      if (ratingEl) ratingEl.style.display = 'none';
+      if (hintEl)   hintEl.style.display   = 'none';
+      return;
+    }
 
-  // Show front, hide back
-  frontEl.style.display = 'flex';
-  backEl.style.display  = 'none';
-  frontEl.classList.add('card-animate');
-  setTimeout(() => frontEl.classList.remove('card-animate'), 300);
+    var card = cards[i];
+    var g = GRADIENTS[i % GRADIENTS.length];
+    var frontEl = makeCard(card.front, 'Câu hỏi', g[0], g[1], false);
+    frontEl.onclick = function() { flipCard(card, i); };
 
-  document.getElementById('rating-btns').classList.add('hidden');
-  document.getElementById('flip-hint').style.display = '';
-  flipped = false;
-}
+    area.innerHTML = '';
+    area.appendChild(frontEl);
 
-function flipCard() {
-  if (flipped) return;
-  flipped = true;
-  const frontEl = document.getElementById('card-front');
-  const backEl  = document.getElementById('card-back');
-  frontEl.style.display = 'none';
-  backEl.style.display  = 'flex';
-  backEl.classList.add('card-animate');
-  setTimeout(() => backEl.classList.remove('card-animate'), 300);
-  document.getElementById('rating-btns').classList.remove('hidden');
-  document.getElementById('flip-hint').style.display = 'none';
-}
+    document.getElementById('card-counter').textContent = (i+1) + ' / ' + cards.length;
+    document.getElementById('progress-bar').style.width = (i / cards.length * 100) + '%';
+    if (ratingEl) ratingEl.style.display = 'none';
+    if (hintEl)   hintEl.style.display   = '';
+    flipped = false;
+  }
 
-function rate(rating) {
-  const card = cards[current];
-  fetch('<%= review_flashcard_deck_path(@deck) %>', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
-    body: JSON.stringify({ card_id: card.id, rating })
-  }).then(() => { current++; showCard(current); });
-}
+  function flipCard(card, i) {
+    if (flipped) return;
+    flipped = true;
+    var area = document.getElementById('card-area');
+    var g = GRADIENTS[(i + 3) % GRADIENTS.length]; // different gradient for back
+    var backEl = makeCard(card.back, 'Đáp án', g[0], g[1], true);
+    backEl.onclick = null;
+    area.innerHTML = '';
+    area.appendChild(backEl);
+    var ratingEl = document.getElementById('rating-btns');
+    var hintEl   = document.getElementById('flip-hint');
+    if (ratingEl) ratingEl.style.display = '';
+    if (hintEl)   hintEl.style.display   = 'none';
+  }
 
-document.addEventListener('keydown', function(e) {
-  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
-  if (e.key === '1') rate(0);
-  if (e.key === '2') rate(1);
-  if (e.key === '3') rate(2);
-  if (e.key === '4') rate(3);
-});
+  function rate(rating) {
+    var card = cards[current];
+    fetch(DECK_REVIEW_PATH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+      body: JSON.stringify({ card_id: card.id, rating: rating })
+    }).then(function() { current++; showCard(current); });
+  }
 
-if (cards.length > 0) showCard(0);
+  window.rate = rate;
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      if (!flipped && cards[current]) flipCard(cards[current], current);
+    }
+    if (e.key === '1') rate(0);
+    if (e.key === '2') rate(1);
+    if (e.key === '3') rate(2);
+    if (e.key === '4') rate(3);
+  });
+
+  if (cards.length > 0) showCard(0);
+})();
 </script>
