@@ -84,14 +84,28 @@
 </div>
 
 <script>
-document.querySelector('form').addEventListener('submit', function(e) {
-  var title = document.querySelector('[name="content_outline[title]"]').value.trim();
-  if (!title) return; // let browser handle required validation
-  var type = document.querySelector('[name="content_outline[output_type]"]:checked')?.value;
-  var label = type === 'slide' ? 'slide' : type === 'lesson_plan' ? 'kế hoạch buổi học' : 'dàn ý';
-  document.getElementById('co-overlay-msg').textContent = 'AI đang tạo ' + label + '...';
-  document.getElementById('co-submit-overlay').classList.remove('hidden');
-  document.getElementById('ai-submit-btn').disabled = true;
-});
+(function() {
+  function hideOverlay() {
+    var el = document.getElementById('co-submit-overlay');
+    if (el) el.classList.add('hidden');
+    var btn = document.getElementById('ai-submit-btn');
+    if (btn) btn.disabled = false;
+  }
+
+  document.querySelector('form').addEventListener('submit', function() {
+    var title = document.querySelector('[name="content_outline[title]"]').value.trim();
+    if (!title) return;
+    var type = document.querySelector('[name="content_outline[output_type]"]:checked')?.value;
+    var label = type === 'slide' ? 'slide' : type === 'lesson_plan' ? 'kế hoạch buổi học' : 'dàn ý';
+    document.getElementById('co-overlay-msg').textContent = 'AI đang tạo ' + label + '...';
+    document.getElementById('co-submit-overlay').classList.remove('hidden');
+    document.getElementById('ai-submit-btn').disabled = true;
+  });
+
+  // Hide overlay before Turbo caches the page (prevents ghost overlay on back-nav)
+  document.addEventListener('turbo:before-cache', hideOverlay);
+  // Also hide on bfcache restore (non-Turbo back/forward)
+  window.addEventListener('pageshow', function(e) { if (e.persisted) hideOverlay(); });
+})();
 </script>
 
