@@ -229,14 +229,16 @@ class Admin::QuizSetsController < Admin::BaseController
     questions_count = questions_count.clamp(3, 50) unless auto_mode
     custom_prompt   = params[:custom_prompt].to_s.strip.presence
 
-    # For image content (hash with base64), write to a shared temp file accessible by Sidekiq.
-    # For text content, pass directly as job argument (avoids cross-process cache issues).
+    # For image content (hash with base64), write to shared/tmp/uploads (persists across deploys).
+    # For text content, pass directly as job argument.
     if content.is_a?(Hash)
-      tmp_path = Rails.root.join("tmp", "quiz_upload_#{@quiz_set.id}_#{Time.now.to_i}.json")
+      uploads_dir = Rails.root.join("tmp", "uploads")
+      FileUtils.mkdir_p(uploads_dir)
+      tmp_path = uploads_dir.join("quiz_#{@quiz_set.id}_#{Time.now.to_i}.json")
       File.write(tmp_path, content.to_json)
-      job_content = { tmp_file: tmp_path.to_s }
+      job_content = { "tmp_file" => tmp_path.to_s }
     else
-      job_content = content.to_s.truncate(14000)
+      job_content = content.to_s.truncate(18000)
     end
 
     @quiz_set.update!(ai_generating: true)
@@ -271,6 +273,8 @@ class Admin::QuizSetsController < Admin::BaseController
     @quiz_set = current_workspace.quiz_sets.find(params[:id])
     if @quiz_set.ai_generating?
       render json: { pending: true }
+    elsif @quiz_set.ai_failed?
+      render json: { failed: true, error: "AI gặp lỗi khi tạo câu hỏi. Vui lòng thử lại." }
     else
       render json: { success: true, redirect: edit_quiz_set_path(@quiz_set) }
     end

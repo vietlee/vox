@@ -1004,11 +1004,15 @@ async function pollAiStatus(pollUrl) {
     } else if (data.success) {
       if (_aiRingCtrl) _aiRingCtrl.finish();
       window.location.href = data.redirect;
-    } else {
+    } else if (data.failed || data.error) {
       hideAiLoadingOverlay();
-      document.getElementById('ai-error').textContent = data.error || 'Lỗi không xác định';
-      document.getElementById('ai-error').classList.remove('hidden');
       document.getElementById('ai-generate-btn').disabled = false;
+      if (handleAiError(data, res)) return;
+      document.getElementById('ai-error').textContent = data.error || 'AI gặp lỗi. Vui lòng thử lại.';
+      document.getElementById('ai-error').classList.remove('hidden');
+    } else {
+      // Unexpected state — retry a few more times then give up
+      setTimeout(() => pollAiStatus(pollUrl), 3000);
     }
   } catch(e) {
     setTimeout(() => pollAiStatus(pollUrl), 3000);

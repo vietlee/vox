@@ -22,6 +22,7 @@ set :linked_dirs, %w[
   tmp/pids
   tmp/cache
   tmp/sockets
+  tmp/uploads
   storage
   public/assets
 ]

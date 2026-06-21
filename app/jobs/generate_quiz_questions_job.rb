@@ -6,7 +6,11 @@ class GenerateQuizQuestionsJob < ApplicationJob
     return unless quiz_set
 
     content = resolve_content(job_content)
-    raise "Nội dung tải lên không còn hợp lệ. Vui lòng tải lại file." if content.blank?
+    if content.blank?
+      quiz_set.update(ai_generating: false, ai_failed: true)
+      Rails.logger.error "[GenerateQuizQuestionsJob] #{quiz_set_id}: file upload expired or unreadable"
+      return
+    end
 
     svc = ClaudeService.for_feature("quiz_generate", timeout: 180)
 
@@ -18,22 +22,18 @@ class GenerateQuizQuestionsJob < ApplicationJob
           { type: "text", text: build_prompt(questions_count, custom_prompt) }
         ]
       }]
-      raw = svc.call(system_prompt: "You are a quiz generator. Always respond with valid JSON only.", messages: messages, max_tokens: 4000)
+      raw = svc.call(system_prompt: SYSTEM_PROMPT, messages: messages, max_tokens: 4000)
     else
-      user_prompt = "#{build_prompt(questions_count, custom_prompt)}\n\n---\n#{content.to_s.truncate(12000)}"
-      raw = svc.call(system_prompt: "You are a quiz generator. Always respond with valid JSON only.", user_prompt: user_prompt, max_tokens: 4000)
+      user_prompt = "#{build_prompt(questions_count, custom_prompt)}\n\n---\n#{content.to_s.truncate(16000)}"
+      raw = svc.call(system_prompt: SYSTEM_PROMPT, user_prompt: user_prompt, max_tokens: 4000)
     end
 
-    json_str = raw[/\{.*\}/m] || raw[/\[.*\]/m]
-    raise "AI did not return valid JSON" if json_str.nil?
-
-    parsed    = JSON.parse(json_str, symbolize_names: true) rescue JSON.parse(sanitize_latex(json_str), symbolize_names: true)
-    questions = parsed.is_a?(Array) ? parsed : parsed[:questions]
+    questions = parse_ai_response(raw)
     raise "No questions found in AI response" if questions.blank?
 
     ActiveRecord::Base.transaction do
       quiz_set.workspace.active_subscription&.deduct_credits!(5)
-      quiz_set.update!(source_type: :ai_generated, ai_generating: false)
+      quiz_set.update!(source_type: :ai_generated, ai_generating: false, ai_failed: false)
       questions.each_with_index do |q, idx|
         question = quiz_set.quiz_questions.create!(
           question_text: q[:question],
@@ -41,42 +41,94 @@ class GenerateQuizQuestionsJob < ApplicationJob
           explanation:   q[:explanation],
           position:      quiz_set.quiz_questions.count + idx
         )
-        q[:options].each_with_index do |opt, oi|
+        (q[:options] || []).each_with_index do |opt, oi|
           question.quiz_options.create!(option_text: opt[:text], is_correct: opt[:correct], position: oi)
         end
       end
     end
   rescue => e
-    quiz_set&.update(ai_generating: false)
+    quiz_set&.update(ai_generating: false, ai_failed: true)
     Rails.logger.error "[GenerateQuizQuestionsJob] #{quiz_set_id}: #{e.message}"
   ensure
-    # Clean up temp file if used
-    if job_content.is_a?(Hash) && job_content["tmp_file"]
-      File.delete(job_content["tmp_file"]) rescue nil
-    end
+    # Clean up temp file
+    tmp = job_content.is_a?(Hash) ? (job_content["tmp_file"] || job_content[:tmp_file]) : nil
+    File.delete(tmp) rescue nil if tmp
   end
 
   private
 
+  SYSTEM_PROMPT = "You are a quiz generator. Respond with ONLY valid JSON, no markdown, no code fences, no explanation."
+
   def resolve_content(job_content)
-    if job_content.is_a?(Hash) && job_content["tmp_file"]
-      path = job_content["tmp_file"]
-      return nil unless File.exist?(path)
-      JSON.parse(File.read(path), symbolize_names: true)
-    else
-      job_content
+    return job_content unless job_content.is_a?(Hash)
+
+    # Support both string and symbol keys (ActiveJob may convert either way)
+    path = job_content["tmp_file"] || job_content[:tmp_file]
+    return job_content unless path  # hash without tmp_file = image data already resolved
+
+    unless File.exist?(path)
+      Rails.logger.error "[GenerateQuizQuestionsJob] tmp file missing: #{path}"
+      return nil
     end
+
+    raw = File.read(path)
+    JSON.parse(raw, symbolize_names: true)
+  rescue JSON::ParserError => e
+    Rails.logger.error "[GenerateQuizQuestionsJob] tmp file JSON parse error: #{e.message}"
+    nil
+  end
+
+  def parse_ai_response(raw)
+    return nil if raw.blank?
+
+    # Strip markdown code fences: ```json ... ``` or ``` ... ```
+    cleaned = raw
+      .gsub(/\A\s*```(?:json)?\s*/i, '')
+      .gsub(/\s*```\s*\z/, '')
+      .strip
+
+    # Extract first JSON object or array
+    json_str = extract_json(cleaned) || extract_json(raw)
+    return nil if json_str.blank?
+
+    # Parse — retry with LaTeX-escaped backslashes if first attempt fails
+    parsed = begin
+      JSON.parse(json_str, symbolize_names: true)
+    rescue JSON::ParserError
+      JSON.parse(sanitize_backslashes(json_str), symbolize_names: true) rescue nil
+    end
+
+    return nil unless parsed
+    parsed.is_a?(Array) ? parsed : parsed[:questions]
+  end
+
+  def extract_json(str)
+    # Try to extract outermost { } first, then [ ]
+    [/\{[\s\S]*\}/, /\[[\s\S]*\]/].each do |pattern|
+      m = str.match(pattern)
+      next unless m
+      candidate = m[0]
+      # Validate it's parseable before returning
+      JSON.parse(candidate) rescue next
+      return candidate
+    end
+    nil
+  end
+
+  def sanitize_backslashes(str)
+    str.gsub(/\\(?!["\\\/bfnrt]|u[0-9a-fA-F]{4})/, '\\\\')
   end
 
   def build_prompt(count, custom_prompt)
     count_instruction = count.nil? \
-      ? "Extract ALL multiple-choice questions found in the document." \
-      : "Generate exactly #{count} multiple-choice questions."
-    user_instruction = custom_prompt.present? ? "\n\nAdditional instructions:\n#{custom_prompt}" : ""
-    "#{count_instruction}#{user_instruction}\n\nReturn ONLY valid JSON:\n{\"questions\":[{\"question\":\"...\",\"options\":[{\"text\":\"...\",\"correct\":true/false},...],\"explanation\":\"...\"}]}"
-  end
+      ? "Extract ALL multiple-choice questions found in the document. Do not invent new ones." \
+      : "Generate exactly #{count} multiple-choice questions based on the content."
+    user_instruction = custom_prompt.present? ? "\n\nAdditional instructions: #{custom_prompt}" : ""
+    <<~PROMPT
+      #{count_instruction}#{user_instruction}
 
-  def sanitize_latex(str)
-    str.gsub(/\\(?!["\\\/bfnrt]|u[0-9a-fA-F]{4})/, '\\\\')
+      Return ONLY this JSON (no other text, no markdown):
+      {"questions":[{"question":"...","options":[{"text":"...","correct":true},{"text":"...","correct":false},{"text":"...","correct":false},{"text":"...","correct":false}],"explanation":"..."}]}
+    PROMPT
   end
 end
