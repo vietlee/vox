@@ -144,7 +144,18 @@
   var _pendingSpeak  = null;   /* text to speak once voices finish loading */
 
   var VI_RE = /[àáảãạăắặằẳẵâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵÀÁẢÃẠĂẮẶẰẲẴÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ]/;
-  function detectLang(text) { return VI_RE.test(text) ? 'vi' : 'en'; }
+  /* Detect English only when text is clearly English:
+     - no Vietnamese diacritics
+     - consists mainly of ASCII letters/spaces
+     - has at least 3 words (short terms like "ATP", "CPU" default to VI) */
+  function detectLang(text) {
+    if (VI_RE.test(text)) return 'vi';
+    var words = text.trim().split(/\s+/);
+    var asciiWords = words.filter(function(w) { return /^[a-zA-Z'-]+$/.test(w); });
+    /* If less than 3 words OR less than 70% pure ASCII words → treat as VI */
+    if (words.length < 3 || asciiWords.length / words.length < 0.7) return 'vi';
+    return 'en';
+  }
 
   function showEl(id)  { document.getElementById(id).classList.remove('hidden'); }
   function hideEl(id)  { document.getElementById(id).classList.add('hidden'); }
