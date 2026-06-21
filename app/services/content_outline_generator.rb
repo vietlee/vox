@@ -30,60 +30,129 @@ class ContentOutlineGenerator
   # ── AI prompts ──────────────────────────────────────────────────────────────
 
   def slide_system
-    "Bạn là chuyên gia thiết kế slide thuyết trình chuyên nghiệp. Trả lời bằng tiếng Việt. Chỉ xuất đúng format được yêu cầu, không thêm văn bản khác."
+    "Bạn là chuyên gia thiết kế slide thuyết trình doanh nghiệp chuyên nghiệp. Trả lời bằng tiếng Việt. Chỉ xuất đúng format được yêu cầu, không thêm văn bản khác."
   end
 
   def slide_user
     <<~PROMPT
-      Tạo bộ slide thuyết trình CHUYÊN NGHIỆP, TRỰC QUAN cho chủ đề: "#{@outline.title}"#{@outline.subject.present? ? " (#{@outline.subject})" : ""}.
+      Tạo bộ slide thuyết trình CHUYÊN NGHIỆP, TRỰC QUAN, PHONG PHÚ cho chủ đề: "#{@outline.title}"#{@outline.subject.present? ? " (#{@outline.subject})" : ""}.
       Yêu cầu bổ sung: #{@outline.prompt_input.presence || 'Không có'}
 
       Tạo 8–10 slide, mỗi slide theo đúng format này:
 
       ---SLIDE---
-      TITLE: Tiêu đề slide
-      LAYOUT: [xem bên dưới]
+      TITLE: Tiêu đề slide (IN HOA, súc tích)
+      LAYOUT: [tên layout]
       BODY:
-      [nội dung theo từng LAYOUT]
-      NOTE: Ghi chú ngắn cho người trình bày
+      [nội dung theo format của layout đã chọn]
+      NOTE: Ghi chú 1-2 câu cho người trình bày (câu hỏi tương tác hoặc insight bổ sung)
       ---END---
 
-      CÁC LOẠI LAYOUT VÀ FORMAT BODY:
+      ═══════════════════════════════════════════
+      CÁC LOẠI LAYOUT — chọn layout PHÙ HỢP NHẤT với nội dung:
+      ═══════════════════════════════════════════
 
-      1. LAYOUT: bullets
-         Dùng cho: nội dung có 3–4 điểm chính
-         BODY format: mỗi dòng bắt đầu bằng "- " rồi nội dung cụ thể, có số liệu/ví dụ
+      LAYOUT: bullets
+        Khi nào dùng: 3–5 điểm chính, mỗi điểm độc lập
+        Format: mỗi dòng "- nội dung CỤ THỂ, có số liệu/ví dụ"
+        Ví dụ:
+        - 87% học sinh cải thiện điểm sau 4 tuần áp dụng phương pháp mới
+        - Giảm thời gian chuẩn bị bài 40% nhờ AI-assisted planning
 
-      2. LAYOUT: stats
-         Dùng cho: slide có 3–4 con số/chỉ số quan trọng (kết quả, số liệu thống kê)
-         BODY format: mỗi dòng "- GIÁ_TRỊ :: MÔ_TẢ_NGẮN" (ví dụ: - 87% :: Học sinh đạt mục tiêu)
+      LAYOUT: stats
+        Khi nào dùng: 3–4 con số/chỉ số quan trọng (KPI, kết quả đo lường được)
+        Format: mỗi dòng "- GIÁ_TRỊ :: MÔ_TẢ_NGẮN"
+        Ví dụ:
+        - 87% :: Tỷ lệ học sinh đạt mục tiêu
+        - 3.2x :: Cải thiện điểm số trung bình
+        - 12 tuần :: Thời gian hoàn thành khóa học
+        - 92% :: Mức độ hài lòng phụ huynh
 
-      3. LAYOUT: chart
-         Dùng cho: so sánh theo thời gian, tiến trình, hoặc phân bổ theo nhóm
-         BODY format: mỗi dòng "- SỐ :: NHÃN" (SỐ là số nguyên 0–100, ví dụ: - 45 :: Quý 1)
-         Tối đa 5 cột.
+      LAYOUT: chart
+        Khi nào dùng: so sánh theo thời gian, tiến độ tăng trưởng, phân bổ theo nhóm
+        Format: mỗi dòng "- SỐ_NGUYÊN_0_TO_100 :: NHÃN" (tối đa 5 cột)
+        Ví dụ:
+        - 45 :: Quý 1
+        - 62 :: Quý 2
+        - 78 :: Quý 3
+        - 91 :: Quý 4
 
-      4. LAYOUT: two-col
-         Dùng cho: so sánh 2 phía, pros/cons, trước/sau
-         BODY format: dòng lẻ "- COL1: nội dung", dòng chẵn "- COL2: nội dung"
-         Thêm dòng đầu tiên: "- HEADERS: Tiêu đề cột 1 | Tiêu đề cột 2"
+      LAYOUT: two-col
+        Khi nào dùng: so sánh 2 phía (pros/cons, trước/sau, lý thuyết/thực tế)
+        Format: dòng đầu "- HEADERS: Tiêu đề cột trái | Tiêu đề cột phải"
+        Sau đó xen kẽ "- COL1: nội dung" và "- COL2: nội dung"
+        Ví dụ:
+        - HEADERS: Phương pháp cũ | Phương pháp mới
+        - COL1: Học thuộc lòng thụ động
+        - COL2: Học chủ động qua thực hành
+        - COL1: Ít tương tác, 1 chiều
+        - COL2: Collaborative, 2 chiều
 
-      5. LAYOUT: timeline
-         Dùng cho: các bước, giai đoạn, quy trình tuần tự
-         BODY format: mỗi dòng "- BƯỚC_NGẮN :: Mô tả chi tiết" (tối đa 4 bước)
+      LAYOUT: timeline
+        Khi nào dùng: quy trình tuần tự, roadmap, các giai đoạn (tối đa 4 bước)
+        Format: mỗi dòng "- TÊN BƯỚC NGẮN :: Mô tả chi tiết 1 câu"
+        Ví dụ:
+        - Đánh giá :: Phân tích năng lực hiện tại và xác định gap
+        - Thiết kế :: Xây dựng lộ trình học cá nhân hóa
+        - Triển khai :: Học theo lộ trình với mentor hỗ trợ
+        - Đánh giá :: Đo lường kết quả và điều chỉnh
 
-      YÊU CẦU NỘI DUNG:
-      - Slide 1 (Bìa): LAYOUT: bullets, tiêu đề lớn + 2-3 từ khóa ngắn
-      - Slide 2: Mục tiêu / Tổng quan — LAYOUT: bullets hoặc stats
-      - Slide 3–4: Nội dung cốt lõi — ưu tiên dùng stats, chart, two-col để trực quan hóa
-      - Slide 5–7: Phân tích sâu — dùng timeline hoặc two-col cho so sánh/quy trình
-      - Slide áp chót: Case study / Ví dụ thực tế — LAYOUT: bullets hoặc two-col
-      - Slide cuối: Tóm tắt — LAYOUT: bullets hoặc stats
+      LAYOUT: pillars
+        Khi nào dùng: 3–4 trụ cột/chiến lược/nhóm nội dung song song (vision, giá trị, framework)
+        Format: mỗi dòng "- TÊN TRỤ CỘT :: bullet1 | bullet2 | bullet3"
+        Ví dụ:
+        - Chất lượng giảng dạy :: Áp dụng AI tools toàn diện | Đào tạo giáo viên định kỳ | Chuẩn hóa giáo án
+        - Trải nghiệm học sinh :: Học cá nhân hóa | Gamification | Phản hồi tức thì
+        - Hạ tầng công nghệ :: LMS hiện đại | Phân tích dữ liệu học tập | Tích hợp AI
 
-      TIÊU CHUẨN:
-      - Mỗi slide CÓ SỐ LIỆU cụ thể (%, số, tỉ lệ) khi có thể
-      - Ưu tiên layout stats và chart cho các slide giữa (tránh dùng bullets cho quá nhiều slide liên tiếp)
-      - NOTE phải là câu hỏi tương tác hoặc thông tin bổ sung có giá trị
+      LAYOUT: agenda
+        Khi nào dùng: slide mục lục/agenda, liệt kê 4–8 chủ đề sẽ trình bày
+        Format: mỗi dòng "- SỐ_THỨ_TỰ :: TÊN CHỦ ĐỀ :: Mô tả ngắn 1 câu"
+        Ví dụ:
+        - 01 :: Tổng quan chương trình :: Cấu trúc và mục tiêu học tập
+        - 02 :: Phương pháp giảng dạy :: Approach và framework áp dụng
+        - 03 :: Kết quả đo lường :: KPI và cách đánh giá
+
+      LAYOUT: roles
+        Khi nào dùng: mô tả 2–3 vai trò/chức năng/bộ phận trong tổ chức
+        Format: mỗi dòng "- TÊN VAI TRÒ :: Phạm vi/Loại :: trách nhiệm 1 | trách nhiệm 2 | trách nhiệm 3"
+        Ví dụ:
+        - GIÁO VIÊN :: Người truyền đạt tri thức :: Soạn bài theo chuẩn | Tương tác với học sinh | Đánh giá kết quả
+        - MENTOR :: Người đồng hành :: Hỗ trợ cá nhân hóa | Theo dõi tiến độ | Giải đáp thắc mắc
+        - ADMIN :: Vận hành hệ thống :: Quản lý nền tảng | Báo cáo dữ liệu | Hỗ trợ kỹ thuật
+
+      LAYOUT: okr
+        Khi nào dùng: mục tiêu và kết quả then chốt, OKR, KPI (3–5 objectives)
+        Format: mỗi dòng "- O{N} Tên mục tiêu :: Key result 1 | Key result 2 | Key result 3"
+        Ví dụ:
+        - O1 Chất lượng giảng dạy :: CSAT giáo viên ≥ 4.5/5 | 100% bài học đạt chuẩn | Tỷ lệ pass ≥ 85%
+        - O2 Kết quả học sinh :: Điểm trung bình tăng ≥ 20% | 90% hoàn thành khóa học | NPS ≥ 50
+
+      LAYOUT: principles
+        Khi nào dùng: nguyên tắc làm việc, giá trị văn hóa, quy tắc vận hành (4–6 items)
+        Format: mỗi dòng "- TIÊU ĐỀ NGẮN :: Mô tả 1-2 câu về ý nghĩa và cách áp dụng"
+        Ví dụ:
+        - Minh bạch :: Chia sẻ thông tin cởi mở — không có surprises, không có hidden agenda
+        - Trách nhiệm :: Mỗi người rõ ownership với task của mình, không đổ lỗi
+        - Cải tiến liên tục :: Học hỏi từ mỗi sprint, apply cải tiến ngay lập tức
+
+      ═══════════════════════════════════════════
+      YÊU CẦU CẤU TRÚC NỘI DUNG:
+      ═══════════════════════════════════════════
+
+      - Slide 1 (Bìa): LAYOUT: bullets — tiêu đề chính + 2-3 key highlights ngắn
+      - Slide 2 (Agenda): LAYOUT: agenda — liệt kê 4-6 nội dung sẽ trình bày
+      - Slide 3-4 (Tổng quan/Context): LAYOUT: pillars hoặc stats — context + big numbers
+      - Slide 5-7 (Nội dung cốt lõi): LAYOUT đa dạng — roles, chart, two-col, timeline
+      - Slide 8 (OKR/Mục tiêu): LAYOUT: okr hoặc stats
+      - Slide 9 (Văn hóa/Nguyên tắc nếu phù hợp): LAYOUT: principles
+      - Slide cuối (Tóm tắt + CTA): LAYOUT: bullets
+
+      TIÊU CHUẨN CHẤT LƯỢNG:
+      - Nội dung PHẢI CỤ THỂ: có con số, %, tỉ lệ, ví dụ thực tế (không chung chung)
+      - KHÔNG dùng bullets cho 3 slide liên tiếp — phải xen kẽ layout đa dạng
+      - Mỗi item trong pillars/roles phải có ít nhất 3 bullets sau "::"
+      - NOTE phải là câu hỏi tương tác hay insight bổ sung thực sự có giá trị
     PROMPT
   end
 
@@ -117,7 +186,7 @@ class ContentOutlineGenerator
           parts = l.split("::", 2).map(&:strip)
           { "value" => parts[0], "label" => parts[1] || "" }
         end
-        slide["bullets"] = lines  # fallback
+        slide["bullets"] = lines
       when "chart"
         slide["items"] = lines.map do |l|
           parts = l.split("::", 2).map(&:strip)
@@ -137,6 +206,39 @@ class ContentOutlineGenerator
         slide["items"] = lines.map do |l|
           parts = l.split("::", 2).map(&:strip)
           { "step" => parts[0], "desc" => parts[1] || "" }
+        end
+        slide["bullets"] = lines
+      when "pillars"
+        slide["items"] = lines.map do |l|
+          parts = l.split("::", 2).map(&:strip)
+          bullets = (parts[1] || "").split("|").map(&:strip).reject(&:empty?)
+          { "title" => parts[0], "bullets" => bullets }
+        end
+        slide["bullets"] = lines
+      when "agenda"
+        slide["items"] = lines.map do |l|
+          parts = l.split("::", 3).map(&:strip)
+          { "num" => parts[0], "title" => parts[1] || "", "desc" => parts[2] || "" }
+        end
+        slide["bullets"] = lines
+      when "roles"
+        slide["items"] = lines.map do |l|
+          parts = l.split("::", 3).map(&:strip)
+          bullets = (parts[2] || "").split("|").map(&:strip).reject(&:empty?)
+          { "role" => parts[0], "type" => parts[1] || "", "bullets" => bullets }
+        end
+        slide["bullets"] = lines
+      when "okr"
+        slide["items"] = lines.map do |l|
+          parts = l.split("::", 2).map(&:strip)
+          krs = (parts[1] || "").split("|").map(&:strip).reject(&:empty?)
+          { "objective" => parts[0], "krs" => krs }
+        end
+        slide["bullets"] = lines
+      when "principles"
+        slide["items"] = lines.map do |l|
+          parts = l.split("::", 2).map(&:strip)
+          { "title" => parts[0], "desc" => parts[1] || "" }
         end
         slide["bullets"] = lines
       else

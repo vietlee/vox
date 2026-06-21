@@ -983,19 +983,211 @@
       '</div>';
     }
 
+    /* multi-accent palette — cycles per item regardless of theme */
+    var ACCENTS = ['#0099CC','#FF8C42','#7C3AED','#00B074','#F59E0B','#EF4444'];
+    function ac(i) { return ACCENTS[i % ACCENTS.length]; }
+
+    /* ── LAYOUT: pillars — 3-4 column vision/strategy cards ── */
+    function layoutPillars(s, t) {
+      var tColor  = t.light ? t.text : '#fff';
+      var subClr  = t.light ? '#475569' : 'rgba(255,255,255,.72)';
+      var items   = s.items || [];
+      if (!items.length && s.bullets) {
+        items = s.bullets.map(function(b) {
+          var p = b.split('::'); return { title: (p[0]||'').trim(), bullets: (p[1]||'').split('|').map(function(x){return x.trim();}).filter(Boolean) };
+        });
+      }
+      items = items.slice(0, 4);
+      var cols = items.map(function(it, i) {
+        var color = ac(i);
+        var bgs   = t.light ? 'rgba(0,0,0,.04)' : 'rgba(255,255,255,.06)';
+        var bdr   = t.light ? 'rgba(0,0,0,.08)'  : 'rgba(255,255,255,.12)';
+        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;' +
+          'background:' + bgs + ';border:1px solid ' + bdr + ';animation-delay:' + (i*0.1) + 's;">' +
+          /* colored top bar */
+          '<div style="height:4px;background:' + color + ';flex-shrink:0;"></div>' +
+          /* header */
+          '<div style="padding:14px 16px 10px;border-bottom:1px solid ' + bdr + ';">' +
+            '<div style="font-size:clamp(11px,1.25vw,14px);font-weight:800;color:' + color + ';line-height:1.25;">' + it.title + '</div>' +
+          '</div>' +
+          /* bullets */
+          '<div style="padding:10px 16px 14px;flex:1;display:flex;flex-direction:column;gap:6px;">' +
+            it.bullets.map(function(b) {
+              return '<div style="display:flex;align-items:flex-start;gap:7px;">' +
+                '<div style="width:5px;height:5px;border-radius:50%;background:' + color + ';margin-top:5px;flex-shrink:0;opacity:.8;"></div>' +
+                '<span style="color:' + subClr + ';font-size:clamp(9.5px,1.05vw,12px);line-height:1.5;">' + b + '</span>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+        '</div>';
+      }).join('');
+      return '<div style="flex:1;display:flex;align-items:stretch;gap:12px;">' + cols + '</div>';
+    }
+
+    /* ── LAYOUT: agenda — numbered card grid ── */
+    function layoutAgenda(s, t) {
+      var tColor = t.light ? t.text : '#fff';
+      var subClr = t.light ? '#64748b' : 'rgba(255,255,255,.6)';
+      var items  = s.items || [];
+      if (!items.length && s.bullets) {
+        items = s.bullets.map(function(b, i) {
+          var p = b.split('::');
+          return { num: p[0]||String(i+1).padStart(2,'0'), title: (p[1]||b).trim(), desc: (p[2]||'').trim() };
+        });
+      }
+      items = items.slice(0, 10);
+      var cols = Math.ceil(items.length / 2);
+      var bgs  = t.light ? '#f8fafc' : 'rgba(255,255,255,.06)';
+      var bdr  = t.light ? '#e2e8f0' : 'rgba(255,255,255,.1)';
+      var cards = items.map(function(it, i) {
+        var color = ac(i);
+        return '<div class="f-up" style="display:flex;align-items:center;gap:12px;padding:10px 14px;' +
+          'background:' + bgs + ';border:1px solid ' + bdr + ';border-radius:12px;animation-delay:' + (i*0.07) + 's;">' +
+          '<div style="width:32px;height:32px;border-radius:10px;background:' + color + ';display:flex;align-items:center;justify-content:center;' +
+            'font-size:11px;font-weight:900;color:#fff;flex-shrink:0;">' + it.num + '</div>' +
+          '<div style="min-width:0;">' +
+            '<div style="font-size:clamp(11px,1.2vw,13px);font-weight:700;color:' + tColor + ';line-height:1.25;margin-bottom:2px;">' + it.title + '</div>' +
+            (it.desc ? '<div style="font-size:clamp(9px,.95vw,11px);color:' + subClr + ';line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + it.desc + '</div>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('');
+      return '<div style="flex:1;display:flex;align-items:center;">' +
+        '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;">' + cards + '</div>' +
+      '</div>';
+    }
+
+    /* ── LAYOUT: roles — 2-3 role cards with dark header ── */
+    function layoutRoles(s, t) {
+      var tColor = t.light ? t.text : '#fff';
+      var subClr = t.light ? '#475569' : 'rgba(255,255,255,.72)';
+      var items  = s.items || [];
+      if (!items.length && s.bullets) {
+        items = s.bullets.map(function(b, i) {
+          var p = b.split('::');
+          var krs = (p[2]||'').split('|').map(function(x){return x.trim();}).filter(Boolean);
+          return { role: (p[0]||'').trim(), type: (p[1]||'').trim(), bullets: krs };
+        });
+      }
+      items = items.slice(0, 3);
+      var cols = items.map(function(it, i) {
+        var color = ac(i);
+        var darkBg = t.light ? color : color;
+        var bdr    = t.light ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.1)';
+        var cardBg = t.light ? '#f8fafc' : 'rgba(255,255,255,.05)';
+        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;' +
+          'border:1px solid ' + bdr + ';animation-delay:' + (i*0.1) + 's;">' +
+          /* colored header */
+          '<div style="background:' + darkBg + ';padding:12px 16px;">' +
+            '<div style="font-size:clamp(10px,1.15vw,13px);font-weight:900;color:#fff;letter-spacing:.5px;margin-bottom:3px;">' + it.role + '</div>' +
+            '<div style="font-size:clamp(8.5px,.9vw,10px);color:rgba(255,255,255,.75);font-weight:600;">' + it.type + '</div>' +
+          '</div>' +
+          /* body */
+          '<div style="background:' + cardBg + ';padding:12px 16px;flex:1;">' +
+            '<div style="font-size:10px;font-weight:800;color:' + color + ';letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Trách nhiệm chính</div>' +
+            it.bullets.map(function(b) {
+              return '<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:5px;">' +
+                '<div style="width:5px;height:5px;border-radius:50%;background:' + color + ';margin-top:5px;flex-shrink:0;"></div>' +
+                '<span style="color:' + subClr + ';font-size:clamp(9.5px,1.05vw,12px);line-height:1.5;">' + b + '</span>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+        '</div>';
+      }).join('');
+      return '<div style="flex:1;display:flex;align-items:stretch;gap:12px;">' + cols + '</div>';
+    }
+
+    /* ── LAYOUT: okr — objective + key results rows ── */
+    function layoutOkr(s, t) {
+      var tColor = t.light ? t.text : '#fff';
+      var subClr = t.light ? '#475569' : 'rgba(255,255,255,.7)';
+      var krClr  = t.light ? '#1e293b' : 'rgba(255,255,255,.9)';
+      var items  = s.items || [];
+      if (!items.length && s.bullets) {
+        items = s.bullets.map(function(b) {
+          var p = b.split('::');
+          var krs = (p[1]||'').split('|').map(function(x){return x.trim();}).filter(Boolean);
+          return { objective: (p[0]||'').trim(), krs: krs };
+        });
+      }
+      items = items.slice(0, 5);
+      var rows = items.map(function(it, i) {
+        var color = ac(i);
+        var bgs   = t.light ? 'rgba(0,0,0,.03)' : 'rgba(255,255,255,.05)';
+        var bdr   = t.light ? 'rgba(0,0,0,.07)' : 'rgba(255,255,255,.1)';
+        var label = it.objective.match(/^[Oo]\d+/) ? it.objective.match(/^[Oo]\d+/)[0] : String(i+1);
+        var title = it.objective.replace(/^[Oo]\d+\s*[-–—]?\s*/,'');
+        return '<div class="f-up" style="display:flex;align-items:stretch;gap:0;border-radius:12px;overflow:hidden;' +
+          'border:1px solid ' + bdr + ';margin-bottom:8px;animation-delay:' + (i*0.08) + 's;">' +
+          /* label badge */
+          '<div style="width:48px;background:' + color + ';display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;padding:8px 4px;">' +
+            '<div style="font-size:9px;font-weight:900;color:#fff;letter-spacing:-.2px;text-align:center;">' + label + '</div>' +
+          '</div>' +
+          /* objective + KRs */
+          '<div style="background:' + bgs + ';padding:9px 14px;flex:1;display:flex;flex-direction:column;justify-content:center;">' +
+            '<div style="font-size:clamp(11px,1.2vw,13.5px);font-weight:700;color:' + tColor + ';margin-bottom:4px;">' + title + '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;">' +
+              it.krs.map(function(kr) {
+                return '<span style="font-size:clamp(8.5px,.92vw,10.5px);color:' + subClr + ';">• ' + kr + '</span>';
+              }).join('') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + rows + '</div>';
+    }
+
+    /* ── LAYOUT: principles — icon/color title + description list ── */
+    function layoutPrinciples(s, t) {
+      var tColor = t.light ? t.text : '#fff';
+      var subClr = t.light ? '#475569' : 'rgba(255,255,255,.72)';
+      var items  = s.items || [];
+      if (!items.length && s.bullets) {
+        items = s.bullets.map(function(b) {
+          var p = b.split('::'); return { title: (p[0]||'').trim(), desc: (p[1]||'').trim() };
+        });
+      }
+      items = items.slice(0, 6);
+      var half = Math.ceil(items.length / 2);
+      var col1 = items.slice(0, half);
+      var col2 = items.slice(half);
+      function colHtml(arr, offset) {
+        return arr.map(function(it, i) {
+          var color = ac(i + offset);
+          var bgs   = t.light ? 'rgba(0,0,0,.03)' : 'rgba(255,255,255,.04)';
+          var bdr   = t.light ? 'rgba(0,0,0,.07)' : 'rgba(255,255,255,.08)';
+          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:11px;padding:10px 14px;' +
+            'background:' + bgs + ';border:1px solid ' + bdr + ';border-radius:12px;margin-bottom:8px;animation-delay:' + ((i+offset)*0.08) + 's;">' +
+            '<div style="width:8px;height:8px;border-radius:50%;background:' + color + ';margin-top:5px;flex-shrink:0;"></div>' +
+            '<div>' +
+              '<div style="font-size:clamp(11px,1.15vw,13px);font-weight:800;color:' + color + ';margin-bottom:3px;">' + it.title + '</div>' +
+              '<div style="font-size:clamp(9.5px,1vw,12px);color:' + subClr + ';line-height:1.55;">' + it.desc + '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }
+      return '<div style="flex:1;display:flex;gap:14px;">' +
+        '<div style="flex:1;">' + colHtml(col1, 0) + '</div>' +
+        '<div style="flex:1;">' + colHtml(col2, half) + '</div>' +
+      '</div>';
+    }
+
     /* ─────────────────────────────────────────────────────────────────
        CONTENT — dispatch to layout
     ───────────────────────────────────────────────────────────────── */
     function renderContent(s, idx, t) {
       var bodyHtml;
       var layout = s.layout || 'bullets';
-      // Fallback: if layout-specific data missing, use bullets
       switch (layout) {
-        case 'stats':    bodyHtml = layoutStats(s, t);   break;
-        case 'chart':    bodyHtml = layoutChart(s, t);   break;
-        case 'two-col':  bodyHtml = layoutTwoCol(s, t);  break;
-        case 'timeline': bodyHtml = layoutTimeline(s, t); break;
-        default:         bodyHtml = layoutBullets(s, t); break;
+        case 'stats':      bodyHtml = layoutStats(s, t);      break;
+        case 'chart':      bodyHtml = layoutChart(s, t);      break;
+        case 'two-col':    bodyHtml = layoutTwoCol(s, t);     break;
+        case 'timeline':   bodyHtml = layoutTimeline(s, t);   break;
+        case 'pillars':    bodyHtml = layoutPillars(s, t);    break;
+        case 'agenda':     bodyHtml = layoutAgenda(s, t);     break;
+        case 'roles':      bodyHtml = layoutRoles(s, t);      break;
+        case 'okr':        bodyHtml = layoutOkr(s, t);        break;
+        case 'principles': bodyHtml = layoutPrinciples(s, t); break;
+        default:           bodyHtml = layoutBullets(s, t);    break;
       }
       return slideWrap(t.contentBg(), slideHeader(s, idx, t) + bodyHtml);
     }
