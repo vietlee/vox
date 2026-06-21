@@ -1,0 +1,1058 @@
+<% content_for :title, @quiz_set.title %>
+
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache, no-preview">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','input'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<% end %>
+
+<div class="flex items-center gap-3 mb-4">
+  <%= render "admin/shared/back_btn" %>
+  <div class="flex-1 min-w-0">
+    <h1 class="text-[18px] font-extrabold text-slate-900 truncate"><%= @quiz_set.title %></h1>
+  </div>
+  <div class="flex items-center gap-2 flex-wrap flex-shrink-0">
+    <% if @quiz_set.published? %>
+      <span class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[7px] text-[12px] font-bold bg-emerald-500 text-white"><%= t("quiz.status_published") %></span>
+      <% quiz_url = quiz_url(@quiz_set.share_token) %>
+      <button onclick="copyLink('<%= quiz_url %>')"
+              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 transition-colors whitespace-nowrap">
+        🔗 <%= t("quiz.copy_link") %>
+      </button>
+      <%= button_to unpublish_quiz_set_path(@quiz_set), method: :patch,
+          class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 text-slate-700 cursor-pointer transition-colors whitespace-nowrap" do %>
+        👁‍🗨 <%= t("quiz.unpublish") %>
+      <% end %>
+    <% else %>
+      <span class="inline-flex items-center px-2.5 py-1.5 rounded-[7px] text-[12px] font-bold bg-slate-100 text-slate-500"><%= t("quiz.status_draft") %></span>
+      <% if @questions.any? %>
+        <%= button_to publish_quiz_set_path(@quiz_set), method: :patch,
+            class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 cursor-pointer transition-colors whitespace-nowrap" do %>
+          🚀 <%= t("quiz.publish") %>
+        <% end %>
+      <% end %>
+    <% end %>
+    <%= link_to results_quiz_set_path(@quiz_set),
+        class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 transition-colors whitespace-nowrap" do %>
+      📊 <%= t("quiz.results") %> (<%= @quiz_set.attempt_count %>)
+    <% end %>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+  <!-- Left: Question list -->
+  <div class="lg:col-span-2 space-y-3">
+
+    <!-- AI Generate panel -->
+    <div class="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200 rounded-xl p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-lg">🤖</span>
+        <h3 class="text-[13px] font-bold text-violet-800"><%= t("quiz.ai_generate_title") %></h3>
+        <span class="text-[10px] px-1.5 py-0.5 bg-violet-100 text-violet-600 rounded-full font-bold">5 credits</span>
+      </div>
+      <p class="text-[12px] text-violet-600 mb-3"><%= t("quiz.ai_generate_desc") %></p>
+      <div id="ai-upload-area">
+        <!-- Drop zone -->
+        <div id="ai-drop-zone"
+             onclick="document.getElementById('ai-file-input').click()"
+             ondragover="aiDragOver(event)" ondragleave="aiDragLeave(event)" ondrop="aiDrop(event)"
+             class="border-2 border-dashed border-violet-300 hover:border-violet-500 bg-white hover:bg-violet-50 rounded-xl px-4 py-5 text-center cursor-pointer transition-all">
+          <div class="text-2xl mb-1">📂</div>
+          <p class="text-[13px] font-semibold text-violet-700" id="ai-drop-label"><%= t("quiz.drop_or_click") %></p>
+          <p class="text-[11px] text-violet-400 mt-0.5"><%= t("quiz.ai_file_hint") %></p>
+          <input type="file" id="ai-file-input" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                 class="hidden" onchange="aiFileSelected(this)">
+        </div>
+        <!-- Selected file + controls (shown after file chosen) -->
+        <div id="ai-file-selected" class="hidden mt-2 space-y-2">
+
+          <!-- Row 1: file name -->
+          <div class="flex items-center gap-2 bg-white border border-violet-200 rounded-lg px-3 py-2.5">
+            <span id="ai-file-icon" class="flex-shrink-0 text-base">📄</span>
+            <span id="ai-file-name" class="text-[13px] font-semibold text-slate-700 truncate flex-1 min-w-0"></span>
+            <button onclick="aiClearFile()" class="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 ml-2">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <!-- Row 1b: custom prompt -->
+          <div>
+            <label class="block text-[11px] font-bold text-violet-600 uppercase tracking-wide mb-1">
+              💬 <%= t("quiz.ai_custom_prompt") %> <span class="font-normal text-violet-400 normal-case">(<%= t("quiz.optional") %>)</span>
+            </label>
+            <textarea id="ai-custom-prompt" rows="2"
+                      placeholder="<%= t('quiz.ai_custom_prompt_placeholder') %>"
+                      class="w-full px-3 py-2 border border-violet-200 bg-white rounded-lg text-[12px] text-slate-700 focus:border-violet-500 outline-none resize-none placeholder-violet-300"></textarea>
+          </div>
+
+          <!-- Row 2: count mode + generate -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex-shrink-0"><%= t("quiz.questions_count") %>:</span>
+            <div class="flex rounded-lg border border-violet-200 bg-white overflow-hidden text-[12px] font-semibold flex-shrink-0">
+              <button id="mode-auto" onclick="setCountMode('auto')"
+                      class="px-3 py-1.5 bg-violet-600 text-white transition-colors whitespace-nowrap">
+                <%= t("quiz.count_mode_auto") %>
+              </button>
+              <button id="mode-custom" onclick="setCountMode('custom')"
+                      class="px-3 py-1.5 text-slate-500 hover:bg-violet-50 transition-colors whitespace-nowrap">
+                <%= t("quiz.count_mode_custom") %>
+              </button>
+            </div>
+            <div id="ai-count-wrap" class="hidden items-center gap-1 flex-shrink-0">
+              <input type="number" id="ai-count" value="10" min="3" max="50"
+                     class="w-16 px-2 py-1.5 border border-violet-300 rounded-lg text-[13px] font-bold text-center text-violet-700 outline-none focus:border-violet-500">
+              <span class="text-[11px] text-slate-400"><%= t("quiz.count_unit") %></span>
+            </div>
+            <button onclick="runAiGenerate()" id="ai-generate-btn"
+                    class="ml-auto px-4 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-bold rounded-lg transition-colors whitespace-nowrap flex-shrink-0">
+              ✨ <%= t("quiz.generate") %>
+            </button>
+          </div>
+
+          <p id="ai-count-hint" class="text-[11px] text-violet-400"><%= t("quiz.count_mode_auto_hint") %></p>
+        </div>
+      </div>
+      <div id="ai-progress" class="hidden"></div>
+      <div id="ai-error" class="hidden mt-2 text-[12px] text-red-600 bg-red-50 rounded-lg px-3 py-2"></div>
+    </div>
+
+    <!-- Questions -->
+    <div class="flex items-center justify-between">
+      <h2 class="text-[14px] font-bold text-slate-700">
+        📋 <%= t("quiz.questions") %> (<span id="q-count"><%= @questions.count %></span>)
+      </h2>
+      <button onclick="addQuestion()"
+              class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-bold rounded-lg transition-colors">
+        + <%= t("quiz.add_question") %>
+      </button>
+    </div>
+
+    <div id="questions-list" class="space-y-3">
+      <% @questions.each_with_index do |q, i| %>
+        <%= render "question_row", question: q, quiz_set: @quiz_set, index: i %>
+      <% end %>
+    </div>
+
+    <% if @questions.empty? %>
+      <div id="empty-state" class="bg-white rounded-xl border border-dashed border-slate-300 p-8 text-center">
+        <div class="text-3xl mb-2">📝</div>
+        <p class="text-[13px] text-slate-400"><%= t("quiz.no_questions") %></p>
+      </div>
+    <% end %>
+
+  </div>
+
+  <!-- Right: Settings -->
+  <div class="space-y-4">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <h3 class="text-[13px] font-bold text-slate-700 mb-3">⚙️ <%= t("quiz.settings") %></h3>
+      <%= form_with model: @quiz_set, url: quiz_set_path(@quiz_set), method: :patch, local: true, class: "space-y-3" do |f| %>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1"><%= t("quiz.field_title") %></label>
+          <%= f.text_field :title, class: "w-full px-2.5 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none" %>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1"><%= t("quiz.field_desc") %></label>
+          <%= f.text_area :description, rows: 2, class: "w-full px-2.5 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none resize-none" %>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1"><%= t("quiz.time_limit") %></label>
+          <%= f.number_field :time_limit_minutes, min: 0, placeholder: t("quiz.no_limit"),
+              class: "w-full px-2.5 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none" %>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Điểm đạt tối thiểu (%)</label>
+          <div class="relative">
+            <%= f.number_field :passing_score, min: 1, max: 100, value: @quiz_set.passing_score || 50,
+                class: "w-full px-2.5 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none pr-8" %>
+            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-semibold">%</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Mặc định: 50% — học sinh đạt từ ngưỡng này trở lên</p>
+        </div>
+        <!-- Result mode -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5"><%= t("quiz.result_mode_label") %></label>
+          <div class="grid grid-cols-2 gap-1.5" id="result-mode-cards">
+            <div id="rmode-immediate"
+                 onclick="selectResultMode('result_immediate')"
+                 class="flex flex-col items-center gap-1 p-2.5 rounded-lg border-2 cursor-pointer transition-all select-none
+                   <%= @quiz_set.result_immediate? ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-slate-300' %>">
+              <span class="text-[18px]">⚡</span>
+              <span class="text-[11px] font-bold text-slate-700"><%= t("quiz.result_mode_immediate") %></span>
+              <span class="text-[10px] text-slate-400 text-center leading-tight"><%= t("quiz.result_mode_immediate_desc") %></span>
+            </div>
+            <div id="rmode-later"
+                 onclick="selectResultMode('result_later')"
+                 class="flex flex-col items-center gap-1 p-2.5 rounded-lg border-2 cursor-pointer transition-all select-none
+                   <%= @quiz_set.result_later? ? 'border-violet-500 bg-violet-50' : 'border-slate-200 hover:border-slate-300' %>">
+              <span class="text-[18px]">📧</span>
+              <span class="text-[11px] font-bold text-slate-700"><%= t("quiz.result_mode_later") %></span>
+              <span class="text-[10px] text-slate-400 text-center leading-tight"><%= t("quiz.result_mode_later_desc") %></span>
+            </div>
+          </div>
+          <%= f.hidden_field :result_mode, id: "result_mode_hidden", value: @quiz_set.result_mode %>
+        </div>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 text-[13px] text-slate-600">
+            <%= f.check_box :allow_retake, class: "w-4 h-4 rounded" %>
+            <%= t("quiz.allow_retake") %>
+          </label>
+          <%= f.hidden_field :show_answers, value: "1" %>
+        </div>
+        <%= f.submit t("common.save"), class: "w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-lg cursor-pointer transition-colors" %>
+      <% end %>
+    </div>
+
+    <!-- Share link -->
+    <% if @quiz_set.published? %>
+      <% share_url = quiz_url(@quiz_set.share_token) %>
+      <% short_url = short_url_for(share_url, workspace: current_workspace) %>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-3">
+        <h3 class="text-[12px] font-bold text-emerald-800">🔗 <%= t("quiz.share_link") %></h3>
+
+        <!-- Short link -->
+        <div>
+          <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-1">Short link</p>
+          <div class="flex items-center gap-1.5">
+            <div class="flex-1 bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-[12px] text-slate-700 font-mono truncate">
+              <%= short_url %>
+            </div>
+            <button onclick="copyLink('<%= short_url %>')"
+                    class="flex-shrink-0 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition-colors">
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- Full URL -->
+        <div>
+          <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-1">Full URL</p>
+          <div class="bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-500 break-all">
+            <%= share_url %>
+          </div>
+        </div>
+
+        <!-- QR Code -->
+        <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4 text-center">
+          <h3 class="text-[13px] font-bold text-slate-900 mb-3">QR Code</h3>
+          <div id="qr-code-container" class="mx-auto w-36 h-36 flex items-center justify-content rounded-lg overflow-hidden mb-2"></div>
+          <div class="flex gap-2 justify-center">
+            <button onclick="copyQrCode(this)"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-lg hover:bg-slate-200 transition-colors border-0 cursor-pointer">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              Copy QR
+            </button>
+            <a href="#" id="qr-download-link" download="quiz-qr.png"
+               class="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-lg hover:bg-slate-200 transition-colors">
+              ⬇ Tải QR
+            </a>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Add Question Modal -->
+<div id="add-q-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(15,23,42,0.5)">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <h3 class="text-[16px] font-bold text-slate-900 mb-4">+ <%= t("quiz.add_question") %></h3>
+
+    <!-- Question type selector -->
+    <div class="mb-4">
+      <label class="block text-[11px] font-bold text-slate-500 uppercase mb-2"><%= t("quiz.question_type") %></label>
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="selectQType('multiple_choice', false)" id="qtype-mc1"
+                class="qtype-btn active-type flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-indigo-500 bg-indigo-50 text-indigo-700 text-[12px] font-bold transition-all text-left">
+          <span class="text-lg">🔘</span>
+          <div>
+            <div class="font-bold">Trắc nghiệm</div>
+            <div class="text-[10px] font-normal text-indigo-500">1 đáp án đúng</div>
+          </div>
+        </button>
+        <button onclick="selectQType('multiple_choice', true)" id="qtype-mc-multi"
+                class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-violet-400 hover:bg-violet-50">
+          <span class="text-lg">☑️</span>
+          <div>
+            <div class="font-bold">Nhiều đáp án</div>
+            <div class="text-[10px] font-normal text-slate-400">Chọn nhiều đáp án đúng</div>
+          </div>
+        </button>
+        <button onclick="selectQType('true_false', false)" id="qtype-tf"
+                class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-amber-400 hover:bg-amber-50">
+          <span class="text-lg">✅</span>
+          <div>
+            <div class="font-bold">Đúng / Sai</div>
+            <div class="text-[10px] font-normal text-slate-400">Tự động tạo 2 lựa chọn</div>
+          </div>
+        </button>
+        <button onclick="selectQType('short_answer', false)" id="qtype-sa"
+                class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-emerald-400 hover:bg-emerald-50">
+          <span class="text-lg">✍️</span>
+          <div>
+            <div class="font-bold">Tự luận</div>
+            <div class="text-[10px] font-normal text-slate-400">Học sinh nhập câu trả lời</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <div class="space-y-3">
+      <div>
+        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1"><%= t("quiz.question_text") %> *</label>
+        <textarea id="new-q-text" rows="3" placeholder="<%= t('quiz.question_placeholder') %>"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 outline-none resize-none"></textarea>
+      </div>
+
+      <!-- Options section (hidden for short_answer) -->
+      <div id="modal-opts-section">
+        <div class="flex items-center justify-between mb-1.5">
+          <label class="text-[11px] font-bold text-slate-500 uppercase">Lựa chọn *</label>
+          <span id="modal-opts-hint-label" class="text-[10px] text-slate-400">Bấm ○ để đánh dấu đáp án đúng</span>
+        </div>
+        <!-- Option list -->
+        <div id="modal-opts-list" class="space-y-1.5 mb-2"></div>
+        <!-- Add option input (hidden for true_false) -->
+        <div id="modal-add-opt-row" class="flex gap-2">
+          <input type="text" id="modal-opt-input" placeholder="Nhập lựa chọn rồi bấm Thêm hoặc Enter..."
+                 class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-[13px] focus:border-indigo-500 outline-none"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();addModalOption()}">
+          <button onclick="addModalOption()"
+                  class="px-3 py-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 text-[12px] font-semibold rounded-xl transition-colors flex-shrink-0">
+            + Thêm
+          </button>
+        </div>
+        <p id="modal-opts-error" class="hidden text-[11px] text-red-500 mt-1"></p>
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1"><%= t("quiz.explanation") %></label>
+        <input type="text" id="new-q-explanation" placeholder="<%= t('quiz.explanation_placeholder') %>"
+               class="w-full px-3 py-2 border border-slate-200 rounded-xl text-[13px] focus:border-indigo-500 outline-none">
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="submitNewQuestion()"
+              class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl transition-colors">
+        <%= t("quiz.add_question") %>
+      </button>
+      <button onclick="closeAddModal()"
+              class="px-4 py-2.5 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-xl">
+        <%= t("common.cancel") %>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="copy-toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[13px] px-4 py-2 rounded-xl shadow-lg hidden z-50">
+  <%= t("quiz.link_copied") %>
+</div>
+
+<!-- AI Loading Overlay -->
+<div id="ai-loading-overlay"
+     style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center;
+            background:rgba(15,23,42,0.65); backdrop-filter:blur(4px);">
+  <div style="background:#fff; border-radius:20px; padding:32px 40px; text-align:center;
+              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%;">
+    <div id="ai-ring-container"></div>
+    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Có thể mất 10–30 giây tuỳ kích thước tài liệu</p>
+  </div>
+</div>
+
+<style>
+@keyframes vox-pulse {
+  0%,100% { transform:scale(1); opacity:1; }
+  50%      { transform:scale(0.88); opacity:0.75; }
+}
+</style>
+
+<!-- Confirm Delete Modal -->
+<div id="confirm-delete-modal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4" style="background:rgba(15,23,42,0.5);">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-in">
+    <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+      <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+      </svg>
+    </div>
+    <h3 class="text-[16px] font-bold text-slate-800 mb-1"><%= t("quiz.confirm_delete_question") %></h3>
+    <p class="text-[13px] text-slate-400 mb-5">Hành động này không thể hoàn tác.</p>
+    <div class="flex gap-2">
+      <button onclick="cancelDeleteQuestion()"
+              class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[13px] font-semibold rounded-xl transition-colors">
+        Huỷ
+      </button>
+      <button onclick="confirmDeleteQuestion()"
+              class="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-bold rounded-xl transition-colors">
+        🗑 Xoá
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Guard: Turbo Drive re-executes scripts on every visit; re-assigning window vars is safe, re-declaring const is not.
+window.ROUTES = {
+  questions:  "<%= quiz_set_quiz_questions_path(@quiz_set) %>",
+  aiGenerate: "<%= ai_generate_quiz_set_path(@quiz_set) %>"
+};
+
+function copyLink(url) {
+  navigator.clipboard.writeText(url).then(function() {
+    var t = document.getElementById('copy-toast');
+    t.classList.remove('hidden');
+    setTimeout(function() { t.classList.add('hidden'); }, 2000);
+  });
+}
+
+// ── Question type selection ──────────────────────────────────────
+var selectedQType = 'multiple_choice';
+var selectedAllowMultiple = false;
+
+var QTYPE_COLORS = {
+  'mc1':      { border: 'border-indigo-500',  bg: 'bg-indigo-50',  text: 'text-indigo-700' },
+  'mc-multi': { border: 'border-violet-500',  bg: 'bg-violet-50',  text: 'text-violet-700' },
+  'tf':       { border: 'border-amber-500',   bg: 'bg-amber-50',   text: 'text-amber-700' },
+  'sa':       { border: 'border-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700' }
+};
+var QTYPE_HINTS = {
+  'mc1':      '💡 Sau khi thêm, nhập các lựa chọn và bấm ○ để đánh dấu đáp án đúng.',
+  'mc-multi': '💡 Sau khi thêm, nhập các lựa chọn và bấm ☐ để đánh dấu nhiều đáp án đúng.',
+  'tf':       '💡 Hai lựa chọn Đúng/Sai sẽ được tạo tự động.',
+  'sa':       '💡 Học sinh sẽ tự nhập câu trả lời dạng văn bản.'
+};
+
+// ── Modal options state ──────────────────────────────────────────
+var modalOptions = [];
+
+function renderModalOptions() {
+  const list = document.getElementById('modal-opts-list');
+  if (!list) return;
+  if (modalOptions.length === 0) {
+    list.innerHTML = '<p class="text-[11px] text-slate-400 italic py-1">Chưa có lựa chọn nào.</p>';
+    return;
+  }
+  list.innerHTML = modalOptions.map(function(opt, idx) {
+    const isCorrect = opt.correct;
+    const shape = selectedAllowMultiple ? 'rounded' : 'rounded-full';
+    const correctCls = isCorrect
+      ? 'bg-emerald-500 border-emerald-500 text-white'
+      : 'border-slate-300 text-slate-300 hover:border-emerald-400';
+    const onclick = selectedAllowMultiple
+      ? 'toggleModalCorrect(' + idx + ')'
+      : 'setModalCorrect(' + idx + ')';
+    const rowCls = isCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-150';
+    const canDelete = !(selectedQType === 'true_false');
+    return '<div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border ' + rowCls + '">' +
+      '<button onclick="' + onclick + '" title="Đánh dấu đúng" type="button"' +
+      '  class="w-5 h-5 ' + shape + ' border-2 flex-shrink-0 flex items-center justify-center transition-all text-[9px] font-bold ' + correctCls + '">' +
+      (isCorrect ? '✓' : '') + '</button>' +
+      '<span class="flex-1 text-[13px] ' + (isCorrect ? 'text-emerald-800 font-semibold' : 'text-slate-700') + '">' + escHtml(opt.text) + '</span>' +
+      (canDelete
+        ? '<button onclick="removeModalOption(' + idx + ')" type="button" class="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>'
+        : '') +
+      '</div>';
+  }).join('');
+}
+
+function addModalOption() {
+  const input = document.getElementById('modal-opt-input');
+  const text = (input ? input.value : '').trim();
+  if (!text) { if (input) input.focus(); return; }
+  modalOptions.push({ text: text, correct: false });
+  renderModalOptions();
+  input.value = '';
+  input.focus();
+}
+
+function removeModalOption(idx) {
+  modalOptions.splice(idx, 1);
+  renderModalOptions();
+}
+
+function setModalCorrect(idx) {
+  modalOptions.forEach(function(o, i) { o.correct = (i === idx); });
+  renderModalOptions();
+}
+
+function toggleModalCorrect(idx) {
+  modalOptions[idx].correct = !modalOptions[idx].correct;
+  renderModalOptions();
+}
+
+function selectQType(type, allowMultiple) {
+  selectedQType = type;
+  selectedAllowMultiple = allowMultiple;
+  const key = type === 'true_false' ? 'tf' : type === 'short_answer' ? 'sa' : (allowMultiple ? 'mc-multi' : 'mc1');
+  const idMap = { 'mc1': 'qtype-mc1', 'mc-multi': 'qtype-mc-multi', 'tf': 'qtype-tf', 'sa': 'qtype-sa' };
+  document.querySelectorAll('.qtype-btn').forEach(function(btn) {
+    btn.classList.remove('border-indigo-500','border-violet-500','border-amber-500','border-emerald-500',
+                         'bg-indigo-50','bg-violet-50','bg-amber-50','bg-emerald-50',
+                         'text-indigo-700','text-violet-700','text-amber-700','text-emerald-700');
+    btn.classList.add('border-slate-200','text-slate-600');
+  });
+  const c = QTYPE_COLORS[key];
+  const activeBtn = document.getElementById(idMap[key]);
+  if (activeBtn) {
+    activeBtn.classList.remove('border-slate-200','text-slate-600');
+    activeBtn.classList.add(c.border, c.bg, c.text);
+  }
+  var hintEl = document.getElementById('qtype-hint');
+  if (hintEl) hintEl.textContent = QTYPE_HINTS[key];
+
+  // Update options section
+  const optsSection = document.getElementById('modal-opts-section');
+  const addOptRow   = document.getElementById('modal-add-opt-row');
+  const hintLabel   = document.getElementById('modal-opts-hint-label');
+  if (!optsSection) return;
+
+  if (type === 'short_answer') {
+    optsSection.classList.add('hidden');
+    modalOptions = [];
+  } else if (type === 'true_false') {
+    optsSection.classList.remove('hidden');
+    if (addOptRow) addOptRow.classList.add('hidden');
+    if (hintLabel) hintLabel.textContent = 'Bấm ○ để đánh dấu đáp án đúng';
+    // Only reset if coming from a different type
+    if (!modalOptions.some(function(o) { return o.text === 'Đúng'; })) {
+      modalOptions = [{ text: 'Đúng', correct: true }, { text: 'Sai', correct: false }];
+    }
+    renderModalOptions();
+  } else {
+    optsSection.classList.remove('hidden');
+    if (addOptRow) addOptRow.classList.remove('hidden');
+    if (hintLabel) hintLabel.textContent = allowMultiple ? 'Bấm ☐ để đánh dấu nhiều đáp án đúng' : 'Bấm ○ để đánh dấu 1 đáp án đúng';
+    // Reset if coming from true_false
+    if (modalOptions.some(function(o) { return o.text === 'Đúng' || o.text === 'Sai'; })) {
+      modalOptions = [];
+    }
+    renderModalOptions();
+  }
+}
+
+function addQuestion() {
+  document.getElementById('new-q-text').value = '';
+  document.getElementById('new-q-explanation').value = '';
+  const errEl = document.getElementById('modal-opts-error');
+  if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+  modalOptions = [];
+  selectQType('multiple_choice', false);
+  var m = document.getElementById('add-q-modal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+  setTimeout(function() { document.getElementById('new-q-text').focus(); }, 50);
+}
+function closeAddModal() {
+  var m = document.getElementById('add-q-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+}
+var _addQModal = document.getElementById('add-q-modal');
+if (_addQModal && !_addQModal._hasClickListener) {
+  _addQModal._hasClickListener = true;
+  _addQModal.addEventListener('click', function(e) { if (e.target === this) closeAddModal(); });
+}
+
+async function submitNewQuestion() {
+  const text = document.getElementById('new-q-text').value.trim();
+  if (!text) { document.getElementById('new-q-text').focus(); return; }
+
+  // Validate options
+  const errEl = document.getElementById('modal-opts-error');
+  function showOptsError(msg) {
+    if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+  }
+  if (errEl) errEl.classList.add('hidden');
+
+  if (selectedQType !== 'short_answer') {
+    if (selectedQType !== 'true_false' && modalOptions.length < 2) {
+      showOptsError('Vui lòng thêm ít nhất 2 lựa chọn.');
+      document.getElementById('modal-opt-input')?.focus();
+      return;
+    }
+    if (!modalOptions.some(function(o) { return o.correct; })) {
+      showOptsError('Vui lòng đánh dấu ít nhất 1 đáp án đúng (bấm ○ hoặc ☐).');
+      return;
+    }
+  }
+
+  const explanation = document.getElementById('new-q-explanation').value.trim();
+  const token = document.querySelector('meta[name="csrf-token"]').content;
+  const res = await fetch(ROUTES.questions, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+    body: JSON.stringify({
+      quiz_question: {
+        question_text:  text,
+        question_type:  selectedQType,
+        allow_multiple: selectedAllowMultiple,
+        explanation:    explanation
+      },
+      options: selectedQType !== 'short_answer' ? modalOptions : []
+    })
+  });
+  const data = await res.json();
+  if (data.success) {
+    const list = document.getElementById('questions-list');
+    const empty = document.getElementById('empty-state');
+    if (empty) empty.remove();
+    const idx = list.children.length;
+    list.insertAdjacentHTML('beforeend', questionCardHtml(data, idx));
+    updateCount(1);
+    closeAddModal();
+    const newEl = list.lastElementChild;
+    newEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (window.MathJax) MathJax.typesetPromise([newEl]);
+  } else {
+    showOptsError(data.error || 'Có lỗi xảy ra.');
+  }
+}
+
+function questionCardHtml(q, index) {
+  const num = (index !== undefined ? index + 1 : '?');
+  let typeBadge = '';
+  if (q.question_type === 'multiple_choice') {
+    typeBadge = q.allow_multiple
+      ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-violet-100 text-violet-700 flex-shrink-0">Nhiều đáp án</span>'
+      : '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700 flex-shrink-0">1 đáp án</span>';
+  } else if (q.question_type === 'true_false') {
+    typeBadge = '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700 flex-shrink-0">Đúng/Sai</span>';
+  } else {
+    typeBadge = '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 flex-shrink-0">Tự luận</span>';
+  }
+
+  const explanation = q.explanation
+    ? `<p class="text-[11px] text-slate-400 italic mb-2">💡 ${escHtml(q.explanation)}</p>` : '';
+
+  let bodyHtml = '';
+  if (q.question_type === 'short_answer') {
+    bodyHtml = '<p class="text-[12px] text-slate-400 italic mb-3">✍️ Học sinh sẽ tự nhập câu trả lời</p>';
+  } else {
+    const opts = (q.options || []).map(function(o) { return optionHtml(o.id, o.text, o.correct, q.id, q.allow_multiple); }).join('');
+    const addRow = q.question_type !== 'true_false'
+      ? `<div class="flex gap-2">
+          <input type="text" id="opt-input-${q.id}" placeholder="Nhập lựa chọn..."
+                 class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-500 outline-none"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();addOption(${q.id})}">
+          <button onclick="addOption(${q.id})"
+                  class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 text-[12px] font-semibold rounded-lg transition-colors">
+            + Thêm lựa chọn
+          </button>
+        </div>` : '';
+    bodyHtml = `<div id="opts-${q.id}" class="space-y-0.5 mb-3">${opts}</div>${addRow}`;
+  }
+
+  return `<div id="q-${q.id}" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4" data-allow-multiple="${q.allow_multiple}">
+    <div class="flex items-start gap-3">
+      <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">${num}</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-start gap-2 mb-2 flex-wrap">
+          <p class="text-[14px] font-semibold text-slate-800 flex-1">${escHtml(q.question_text)}</p>
+          ${typeBadge}
+        </div>
+        ${explanation}
+        ${bodyHtml}
+      </div>
+      <button onclick="deleteQuestion(${q.id})" class="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 mt-0.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </button>
+    </div>
+  </div>`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function updateCount(delta) {
+  const el = document.getElementById('q-count');
+  el.textContent = parseInt(el.textContent) + delta;
+}
+
+var _pendingDeleteId = null;
+
+function deleteQuestion(id) {
+  _pendingDeleteId = id;
+  const m = document.getElementById('confirm-delete-modal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+}
+
+function cancelDeleteQuestion() {
+  _pendingDeleteId = null;
+  const m = document.getElementById('confirm-delete-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+}
+
+async function confirmDeleteQuestion() {
+  const id = _pendingDeleteId;
+  if (!id) return;
+  cancelDeleteQuestion();
+  const token = document.querySelector('meta[name="csrf-token"]').content;
+  const res = await fetch(ROUTES.questions + '/' + id, { method: 'DELETE', headers: { 'X-CSRF-Token': token } });
+  if ((await res.json()).success) {
+    const el = document.getElementById('q-' + id);
+    if (el) { el.style.transition = 'opacity .2s'; el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 200); }
+    updateCount(-1);
+  }
+}
+
+var _delModal = document.getElementById('confirm-delete-modal');
+if (_delModal && !_delModal._hasClickListener) {
+  _delModal._hasClickListener = true;
+  _delModal.addEventListener('click', function(e) { if (e.target === this) cancelDeleteQuestion(); });
+}
+
+async function addOption(questionId) {
+  const input = document.getElementById('opt-input-' + questionId);
+  const text = input.value.trim();
+  if (!text) return;
+  const token = document.querySelector('meta[name="csrf-token"]').content;
+  const res = await fetch(ROUTES.questions + '/' + questionId + '/quiz_options', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+    body: JSON.stringify({ quiz_option: { option_text: text, is_correct: false } })
+  });
+  const data = await res.json();
+  if (data.success) {
+    const list = document.getElementById('opts-' + questionId);
+    const qEl = document.getElementById('q-' + questionId);
+    const allowMultiple = qEl && qEl.dataset.allowMultiple === 'true';
+    const optContainer = document.getElementById('opts-' + questionId);
+    optContainer.insertAdjacentHTML('beforeend', optionHtml(data.id, text, false, questionId, allowMultiple));
+    if (window.MathJax) MathJax.typesetPromise([optContainer.lastElementChild]);
+    input.value = '';
+    input.focus();
+  }
+}
+
+function optionHtml(id, text, correct, qid, allowMultiple) {
+  const correctCls = correct ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 hover:border-emerald-400';
+  const deleteBtn = `<button onclick="deleteOption(${qid}, ${id})" class="text-slate-300 hover:text-red-400 transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>`;
+  if (allowMultiple) {
+    return `<div id="opt-${id}" class="flex items-center gap-2 py-1">
+      <button onclick="toggleCorrect(${qid}, ${id}, this)" title="Đánh dấu đúng"
+              data-correct="${correct}"
+              class="w-5 h-5 rounded border-2 flex-shrink-0 transition-colors ${correctCls}"
+              id="check-${id}"></button>
+      <span class="flex-1 text-[13px] text-slate-700">${escHtml(text)}</span>
+      ${deleteBtn}
+    </div>`;
+  } else {
+    return `<div id="opt-${id}" class="flex items-center gap-2 py-1">
+      <button onclick="setCorrect(${qid}, ${id})" title="Đánh dấu đúng"
+              class="w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${correctCls}"
+              id="radio-${id}"></button>
+      <span class="flex-1 text-[13px] text-slate-700">${escHtml(text)}</span>
+      ${deleteBtn}
+    </div>`;
+  }
+}
+
+async function setCorrect(questionId, optionId) {
+  const token = document.querySelector('meta[name="csrf-token"]').content;
+  document.querySelectorAll(`#q-${questionId} [id^="radio-"]`).forEach(function(el) {
+    el.classList.remove('bg-emerald-500', 'border-emerald-500');
+    el.classList.add('border-slate-300');
+  });
+  const btn = document.getElementById('radio-' + optionId);
+  if (btn) { btn.classList.add('bg-emerald-500', 'border-emerald-500'); btn.classList.remove('border-slate-300'); }
+  await fetch(ROUTES.questions + '/' + questionId + '/quiz_options/' + optionId, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+    body: JSON.stringify({ quiz_option: { is_correct: 'true' } })
+  });
+}
+
+async function toggleCorrect(questionId, optionId, btn) {
+  const token = document.querySelector('meta[name="csrf-token"]').content;
+  const nowCorrect = btn.dataset.correct !== 'true';
+  btn.dataset.correct = String(nowCorrect);
+  if (nowCorrect) {
+    btn.classList.add('bg-emerald-500', 'border-emerald-500'); btn.classList.remove('border-slate-300');
+  } else {
+    btn.classList.remove('bg-emerald-500', 'border-emerald-500'); btn.classList.add('border-slate-300');
+  }
+  await fetch(ROUTES.questions + '/' + questionId + '/quiz_options/' + optionId, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+    body: JSON.stringify({ quiz_option: { is_correct: String(nowCorrect) } })
+  });
+}
+
+async function deleteOption(questionId, optionId) {
+  const token = document.querySelector('meta[name="csrf-token"]').content;
+  const res = await fetch(ROUTES.questions + '/' + questionId + '/quiz_options/' + optionId, {
+    method: 'DELETE', headers: { 'X-CSRF-Token': token }
+  });
+  if ((await res.json()).success) {
+    document.getElementById('opt-' + optionId).remove();
+  }
+}
+
+// ── AI count mode ────────────────────────────────────────────────
+var aiCountMode = 'auto';
+function setCountMode(mode) {
+  aiCountMode = mode;
+  const wrap    = document.getElementById('ai-count-wrap');
+  const hint    = document.getElementById('ai-count-hint');
+  const btnAuto = document.getElementById('mode-auto');
+  const btnCust = document.getElementById('mode-custom');
+  const ACTIVE  = ['bg-violet-600','text-white'];
+  const IDLE    = ['text-slate-500','hover:bg-violet-50'];
+  if (mode === 'auto') {
+    wrap.classList.add('hidden'); wrap.classList.remove('flex');
+    btnAuto.classList.add(...ACTIVE); btnAuto.classList.remove(...IDLE);
+    btnCust.classList.remove(...ACTIVE); btnCust.classList.add(...IDLE);
+    if (hint) hint.textContent = '<%= j t("quiz.count_mode_auto_hint") %>';
+  } else {
+    wrap.classList.remove('hidden'); wrap.classList.add('flex');
+    btnCust.classList.add(...ACTIVE); btnCust.classList.remove(...IDLE);
+    btnAuto.classList.remove(...ACTIVE); btnAuto.classList.add(...IDLE);
+    if (hint) hint.textContent = '<%= j t("quiz.count_mode_custom_hint") %>';
+    document.getElementById('ai-count').focus();
+  }
+}
+
+// ── AI file drag & drop ──────────────────────────────────────────
+var FILE_ICONS = { pdf: '📕', doc: '📘', docx: '📘', txt: '📄', png: '🖼️', jpg: '🖼️', jpeg: '🖼️' };
+
+function aiFileSelected(input) {
+  if (!input.files.length) return;
+  showAiFile(input.files[0]);
+}
+
+function showAiFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  document.getElementById('ai-drop-zone').classList.add('hidden');
+  const sel = document.getElementById('ai-file-selected');
+  sel.classList.remove('hidden');
+  document.getElementById('ai-file-icon').textContent = FILE_ICONS[ext] || '📄';
+  document.getElementById('ai-file-name').textContent = file.name;
+}
+
+function aiClearFile() {
+  document.getElementById('ai-file-input').value = '';
+  document.getElementById('ai-drop-zone').classList.remove('hidden');
+  const sel = document.getElementById('ai-file-selected');
+  sel.classList.add('hidden');
+  sel.classList.remove('flex');
+  sel.classList.remove('flex');
+}
+
+function aiDragOver(e) {
+  e.preventDefault();
+  document.getElementById('ai-drop-zone').classList.add('border-violet-500', 'bg-violet-50');
+}
+
+function aiDragLeave(e) {
+  document.getElementById('ai-drop-zone').classList.remove('border-violet-500', 'bg-violet-50');
+}
+
+function aiDrop(e) {
+  e.preventDefault();
+  aiDragLeave(e);
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  // assign to input
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  document.getElementById('ai-file-input').files = dt.files;
+  showAiFile(file);
+}
+
+var AI_PHASES = [
+  'Đang đọc tài liệu...', 'Đang phân tích nội dung...', 'Đang tạo câu hỏi...',
+  'Đang kiểm tra đáp án...', 'Đang hoàn thiện bộ đề...'
+];
+
+function makeProgressRing(containerId, phases, intervalMs) {
+  const totalPhases = phases.length;
+  let phase = 0, pct = 0, timer = null;
+  const html = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0;gap:8px;">
+      <span id="${containerId}-pct" style="font-size:13px;font-weight:800;color:#7c3aed;letter-spacing:-0.3px;">0%</span>
+      <div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;">
+        <svg width="88" height="88" viewBox="0 0 88 88" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">
+          <circle cx="44" cy="44" r="38" stroke="#ede9fe" stroke-width="6"/>
+          <circle id="${containerId}-ring" cx="44" cy="44" r="38"
+            stroke="#7c3aed" stroke-width="6" stroke-linecap="round"
+            stroke-dasharray="238.8" stroke-dashoffset="238.8"
+            style="transition:stroke-dashoffset 0.6s ease;"/>
+        </svg>
+        <div style="position:relative;z-index:2;animation:vox-pulse 1.6s ease-in-out infinite;">
+          <svg width="32" height="32" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="36" height="36" rx="9" fill="#1A6BFF"/>
+            <polygon points="10,24 6,31 16,24" fill="white"/>
+            <rect x="6" y="6" width="24" height="19" rx="5" fill="white"/>
+            <rect x="10" y="11" width="4" height="7" rx="1" fill="#1A6BFF"/>
+            <rect x="16" y="8" width="4" height="13" rx="1" fill="#1A6BFF"/>
+            <rect x="23" y="10" width="4" height="9" rx="1" fill="#1A6BFF"/>
+          </svg>
+        </div>
+      </div>
+      <p id="${containerId}-phase" style="font-size:12px;font-weight:600;color:#6366f1;text-align:center;max-width:220px;margin:0;">${phases[0]}</p>
+    </div>`;
+  document.getElementById(containerId).innerHTML = html;
+  const ring  = document.getElementById(`${containerId}-ring`);
+  const pctEl = document.getElementById(`${containerId}-pct`);
+  const phEl  = document.getElementById(`${containerId}-phase`);
+  function setProgress(p) {
+    ring.style.strokeDashoffset = 238.8 * (1 - p / 100);
+    pctEl.textContent = Math.round(p) + '%';
+  }
+  const milestones = phases.map((_, i) => Math.round(((i + 1) / totalPhases) * 85));
+  timer = setInterval(() => {
+    const target = milestones[phase] || 85;
+    pct = Math.min(pct + 1, target);
+    setProgress(pct);
+    if (pct >= (milestones[phase] || 85) && phase < totalPhases - 1) {
+      phase++;
+      phEl.textContent = phases[phase];
+    }
+    if (pct >= 85 && phase >= totalPhases - 1) {
+      clearInterval(timer);
+      timer = setInterval(() => {
+        if (pct >= 98) { clearInterval(timer); return; }
+        pct = Math.min(pct + 0.4, 98);
+        setProgress(pct);
+      }, 3000);
+    }
+  }, intervalMs);
+  return {
+    finish: () => { clearInterval(timer); ring.style.strokeDashoffset = '0'; pctEl.textContent = '100%'; }
+  };
+}
+
+var _aiRingCtrl = null;
+
+function showAiLoadingOverlay() {
+  document.getElementById('ai-loading-overlay').style.display = 'flex';
+  _aiRingCtrl = makeProgressRing('ai-ring-container', AI_PHASES, 300);
+}
+
+function hideAiLoadingOverlay() {
+  if (_aiRingCtrl) _aiRingCtrl.finish();
+  document.getElementById('ai-loading-overlay').style.display = 'none';
+  _aiRingCtrl = null;
+}
+
+function selectResultMode(mode) {
+  document.getElementById('result_mode_hidden').value = mode;
+  var imm = document.getElementById('rmode-immediate');
+  var lat = document.getElementById('rmode-later');
+  var showAnswersRow = document.getElementById('show-answers-row');
+  if (mode === 'result_immediate') {
+    imm.className = imm.className.replace('border-slate-200 hover:border-slate-300', '').replace('border-violet-500 bg-violet-50', '') + ' border-indigo-500 bg-indigo-50';
+    lat.className = lat.className.replace('border-violet-500 bg-violet-50', '').replace('border-indigo-500 bg-indigo-50', '') + ' border-slate-200 hover:border-slate-300';
+    if (showAnswersRow) showAnswersRow.classList.remove('hidden');
+  } else {
+    lat.className = lat.className.replace('border-slate-200 hover:border-slate-300', '').replace('border-indigo-500 bg-indigo-50', '') + ' border-violet-500 bg-violet-50';
+    imm.className = imm.className.replace('border-indigo-500 bg-indigo-50', '').replace('border-violet-500 bg-violet-50', '') + ' border-slate-200 hover:border-slate-300';
+    if (showAnswersRow) showAnswersRow.classList.add('hidden');
+  }
+}
+
+async function runAiGenerate() {
+  const fileInput = document.getElementById('ai-file-input');
+  const count = aiCountMode === 'auto' ? 0 : document.getElementById('ai-count').value;
+  if (!fileInput.files.length) { alert('<%= j t("quiz.select_file") %>'); return; }
+  const customPrompt = (document.getElementById('ai-custom-prompt')?.value || '').trim();
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  formData.append('questions_count', count);
+  formData.append('custom_prompt', customPrompt);
+  formData.append('authenticity_token', document.querySelector('meta[name="csrf-token"]').content);
+  document.getElementById('ai-error').classList.add('hidden');
+  document.getElementById('ai-generate-btn').disabled = true;
+  showAiLoadingOverlay();
+  try {
+    const res = await fetch(ROUTES.aiGenerate, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (_aiRingCtrl) _aiRingCtrl.finish();
+      window.location.href = data.redirect;
+    } else {
+      hideAiLoadingOverlay();
+      document.getElementById('ai-error').textContent = data.error;
+      document.getElementById('ai-error').classList.remove('hidden');
+    }
+  } catch(e) {
+    hideAiLoadingOverlay();
+    document.getElementById('ai-error').textContent = e.message;
+    document.getElementById('ai-error').classList.remove('hidden');
+  } finally {
+    document.getElementById('ai-generate-btn').disabled = false;
+  }
+}
+</script>
+
+<% if @quiz_set.published? %>
+<script>
+(function() {
+  const SHARE_URL = '<%= j quiz_url(@quiz_set.share_token) %>';
+
+  function initQr() {
+    const qrEl = document.getElementById('qr-code-container');
+    if (!qrEl) return;
+
+    // Clear loading spinner
+    qrEl.innerHTML = '';
+
+    new QRCode(qrEl, {
+      text: SHARE_URL,
+      width:  144,
+      height: 144,
+      colorDark:  '#1E293B',
+      colorLight: '#FFFFFF',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    // Set up download link after canvas renders
+    setTimeout(function() {
+      const canvas = qrEl.querySelector('canvas');
+      const link = document.getElementById('qr-download-link');
+      if (canvas && link) {
+        link.href = canvas.toDataURL('image/png');
+        link.style.opacity = '1';
+      }
+    }, 200);
+  }
+
+  window.copyQrCode = function(btn) {
+    const canvas = document.querySelector('#qr-code-container canvas');
+    if (!canvas) return;
+    canvas.toBlob(function(blob) {
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+        .then(function() {
+          const orig = btn.textContent;
+          btn.textContent = '✓ Đã copy!';
+          setTimeout(function() { btn.textContent = orig; }, 2000);
+        })
+        .catch(function() {
+          // Fallback: trigger download instead
+          const link = document.getElementById('qr-download-link');
+          if (link) link.click();
+        });
+    });
+  };
+
+  // Load qrcodejs dynamically — avoids integrity/CDN issues
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+  script.onload = initQr;
+  script.onerror = function() {
+    // Fallback CDN
+    var s2 = document.createElement('script');
+    s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s2.onload = initQr;
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(script);
+})();
+</script>
+<% end %>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_11_100004) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_21_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -110,6 +110,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_11_100004) do
     t.index ["status"], name: "index_ai_jobs_on_status"
     t.index ["user_id"], name: "index_ai_jobs_on_user_id"
     t.index ["workspace_id"], name: "index_ai_jobs_on_workspace_id"
+  end
+
+  create_table "ai_model_configs", force: :cascade do |t|
+    t.string "feature_key", null: false
+    t.string "model_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["feature_key"], name: "index_ai_model_configs_on_feature_key", unique: true
   end
 
   create_table "answers", force: :cascade do |t|
@@ -334,6 +342,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_11_100004) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "monthly_free_credits", default: 100, null: false
     t.index ["plan_key"], name: "index_plan_configs_on_plan_key", unique: true
   end
 
@@ -382,6 +391,87 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_11_100004) do
     t.index ["survey_id"], name: "index_questions_on_survey_id"
   end
 
+  create_table "quiz_attempt_answers", force: :cascade do |t|
+    t.bigint "quiz_attempt_id", null: false
+    t.bigint "quiz_question_id", null: false
+    t.bigint "quiz_option_id"
+    t.text "text_answer"
+    t.boolean "is_correct", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_attempt_id"], name: "index_quiz_attempt_answers_on_quiz_attempt_id"
+    t.index ["quiz_option_id"], name: "index_quiz_attempt_answers_on_quiz_option_id"
+    t.index ["quiz_question_id"], name: "index_quiz_attempt_answers_on_quiz_question_id"
+  end
+
+  create_table "quiz_attempts", force: :cascade do |t|
+    t.bigint "quiz_set_id", null: false
+    t.string "participant_name", null: false
+    t.string "participant_email", null: false
+    t.integer "score", default: 0, null: false
+    t.integer "total_questions", default: 0, null: false
+    t.integer "total_points", default: 0, null: false
+    t.integer "earned_points", default: 0, null: false
+    t.datetime "submitted_at"
+    t.integer "time_spent_seconds"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "started_at"
+    t.string "result_token"
+    t.text "ai_evaluation"
+    t.datetime "ai_evaluated_at"
+    t.index ["quiz_set_id", "participant_email"], name: "index_quiz_attempts_on_quiz_set_id_and_participant_email"
+    t.index ["quiz_set_id"], name: "index_quiz_attempts_on_quiz_set_id"
+    t.index ["result_token"], name: "index_quiz_attempts_on_result_token", unique: true
+  end
+
+  create_table "quiz_options", force: :cascade do |t|
+    t.bigint "quiz_question_id", null: false
+    t.text "option_text", null: false
+    t.boolean "is_correct", default: false, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_question_id"], name: "index_quiz_options_on_quiz_question_id"
+  end
+
+  create_table "quiz_questions", force: :cascade do |t|
+    t.bigint "quiz_set_id", null: false
+    t.text "question_text", null: false
+    t.integer "question_type", default: 0, null: false
+    t.text "explanation"
+    t.integer "position", default: 0, null: false
+    t.integer "points", default: 1, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "allow_multiple", default: false, null: false
+    t.index ["quiz_set_id", "position"], name: "index_quiz_questions_on_quiz_set_id_and_position"
+    t.index ["quiz_set_id"], name: "index_quiz_questions_on_quiz_set_id"
+  end
+
+  create_table "quiz_sets", force: :cascade do |t|
+    t.bigint "workspace_id", null: false
+    t.bigint "user_id", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.integer "status", default: 0, null: false
+    t.integer "source_type", default: 0, null: false
+    t.string "share_token", null: false
+    t.boolean "allow_retake", default: true, null: false
+    t.boolean "show_answers", default: true, null: false
+    t.integer "time_limit_minutes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "result_mode", default: 0, null: false
+    t.integer "passing_score", default: 50, null: false
+    t.text "ai_class_evaluation"
+    t.datetime "ai_class_evaluated_at"
+    t.index ["share_token"], name: "index_quiz_sets_on_share_token", unique: true
+    t.index ["user_id"], name: "index_quiz_sets_on_user_id"
+    t.index ["workspace_id", "status"], name: "index_quiz_sets_on_workspace_id_and_status"
+    t.index ["workspace_id"], name: "index_quiz_sets_on_workspace_id"
+  end
+
   create_table "responses", force: :cascade do |t|
     t.bigint "survey_id", null: false
     t.bigint "workspace_id", null: false
@@ -406,6 +496,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_11_100004) do
     t.index ["survey_id"], name: "index_responses_on_survey_id"
     t.index ["user_id"], name: "index_responses_on_user_id"
     t.index ["workspace_id"], name: "index_responses_on_workspace_id"
+  end
+
+  create_table "short_links", force: :cascade do |t|
+    t.string "code", null: false
+    t.string "target_url", null: false
+    t.bigint "workspace_id"
+    t.integer "clicks_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_short_links_on_code", unique: true
+    t.index ["target_url"], name: "index_short_links_on_target_url"
+    t.index ["workspace_id"], name: "index_short_links_on_workspace_id"
   end
 
   create_table "stt_transcripts", force: :cascade do |t|
@@ -665,9 +767,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_11_100004) do
   add_foreign_key "qr_codes", "workspaces"
   add_foreign_key "question_options", "questions"
   add_foreign_key "questions", "surveys"
+  add_foreign_key "quiz_attempt_answers", "quiz_attempts"
+  add_foreign_key "quiz_attempt_answers", "quiz_options"
+  add_foreign_key "quiz_attempt_answers", "quiz_questions"
+  add_foreign_key "quiz_attempts", "quiz_sets"
+  add_foreign_key "quiz_options", "quiz_questions"
+  add_foreign_key "quiz_questions", "quiz_sets"
+  add_foreign_key "quiz_sets", "users"
+  add_foreign_key "quiz_sets", "workspaces"
   add_foreign_key "responses", "surveys"
   add_foreign_key "responses", "users", on_delete: :nullify
   add_foreign_key "responses", "workspaces"
+  add_foreign_key "short_links", "workspaces"
   add_foreign_key "stt_transcripts", "workspaces"
   add_foreign_key "subscriptions", "workspaces"
   add_foreign_key "surveys", "users"

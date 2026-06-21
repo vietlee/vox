@@ -5,245 +5,92 @@
   <h1 class="text-[22px] font-extrabold text-slate-900"><%= t("subscription.billing.title") %></h1>
 </div>
 
-<!-- Current plan banner -->
+<!-- All features free banner -->
+<div class="mb-6 max-w-2xl p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+  <div class="text-[14px] font-bold text-emerald-700 mb-1"><%= t("subscription.all_features_free") %></div>
+  <div class="text-[12px] text-emerald-600">
+    <%= t("subscription.monthly_credits_info", count: Subscription.monthly_free_credits, date: @subscription&.next_credit_reset_formatted) %>
+  </div>
+</div>
+
+<!-- AI Credits balance -->
 <% if @subscription %>
-  <div class="mb-6 max-w-2xl p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
-    <div class="text-[13px] text-indigo-700">
-      <%= t("subscription.billing.current_plan") %>: <strong><%= @subscription.plan&.upcase %></strong>
-      <% if @subscription.ends_at %>
-        · <%= t("subscription.expires_at") %> <strong><%= @subscription.ends_at.strftime("%d/%m/%Y") %></strong>
-        <% if @subscription.expires_soon? %>
-          <span class="ml-2 text-amber-600 font-semibold">⚠ <%= t("subscription.expires_soon") %></span>
-        <% end %>
+  <% bal = @subscription.credit_balance.to_i %>
+  <% used = @subscription.credit_used.to_i %>
+  <% max = @subscription.max_ai_credits.to_i %>
+  <% pct = max > 0 ? [[bal * 100 / max, 0].max, 100].min : (bal > 0 ? 100 : 0) %>
+  <% low = bal <= 5 %>
+  <div class="max-w-2xl mb-6 bg-white rounded-xl border <%= low ? 'border-amber-200' : 'border-slate-200' %> shadow-sm overflow-hidden">
+    <!-- Top accent bar -->
+    <div class="h-1 w-full bg-gradient-to-r <%= low ? 'from-amber-400 to-orange-400' : 'from-indigo-500 to-violet-500' %>"></div>
+    <div class="p-5">
+      <div class="flex items-start justify-between gap-4">
+        <!-- Left: label + big number -->
+        <div>
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">🪙 <%= t("dashboard.ai_credits") %></div>
+          <div class="flex items-end gap-2">
+            <span class="text-[40px] font-black leading-none <%= low ? 'text-amber-500' : 'text-violet-600' %>"><%= bal %></span>
+            <span class="text-[13px] text-slate-400 mb-1.5"><%= t("ai.credits_remaining") %></span>
+          </div>
+        </div>
+        <!-- Right: used / reset info -->
+        <div class="text-right flex-shrink-0">
+          <div class="text-[12px] text-slate-400 mb-1"><%= t("dashboard.ai_credits_used") %></div>
+          <div class="text-[18px] font-bold text-slate-700"><%= used %><% if max > 0 %><span class="text-[13px] font-normal text-slate-400"> / <%= max %></span><% end %></div>
+          <div class="text-[11px] text-slate-400 mt-2">
+            <%= t("dashboard.ai_credits_resets") %> <%= @subscription.next_credit_reset_formatted %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <% if max > 0 %>
+        <div class="mt-4">
+          <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-2 rounded-full transition-all bg-gradient-to-r <%= low ? 'from-amber-400 to-orange-400' : 'from-indigo-500 to-violet-500' %>"
+                 style="width: <%= pct %>%"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+            <span>0</span>
+            <span><%= max %></span>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Low credit warning -->
+      <% if low %>
+        <div class="mt-3 flex items-center gap-2 text-[12px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+          <span>⚠️</span>
+          <span><%= t("ai.credits_low_warning") %></span>
+        </div>
       <% end %>
     </div>
   </div>
 <% end %>
 
-<!-- Plan cards -->
-<% pro_config  = PlanConfig.find_for("pro") %>
-<% pro_price   = PlanConfig.price_for("pro") %>
-<% pro_limits  = PlanConfig.limits_for("pro") %>
-<% pro_features = PlanConfig.features_for("pro") %>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 max-w-2xl">
-
-  <!-- Pro -->
-  <div class="bg-white rounded-2xl border-2 border-indigo-200 p-6 relative shadow-sm">
-    <div class="absolute top-4 right-4 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-      <%= t("subscription.billing.popular") %>
-    </div>
-    <div class="text-[13px] font-bold text-indigo-600 uppercase mb-1"><%= pro_config&.display_name || "Pro" %></div>
-    <div class="text-[32px] font-black text-slate-900 mb-1">
-      <%= number_with_delimiter(pro_price) %> <span class="text-[16px] font-semibold text-slate-500">₫</span>
-    </div>
-    <div class="text-[12px] text-slate-500 mb-4">
-      <%= t("subscription.billing.#{pro_config&.billing_cycle == 'year' ? 'per_year' : 'per_month'}") %>
-      <%= t("subscription.billing.per_workspace") %>
-    </div>
-    <ul class="space-y-2 mb-6 text-[13px] text-slate-700">
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span>
-        <% max_sv = pro_limits[:max_surveys] %>
-        <%= max_sv.nil? ? t("subscription.billing.feature_unlimited") : t("subscription.billing.feature_surveys_votes_feedbacks_max", count: max_sv) %>
-      </li>
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span>
-        <% max_df = pro_limits[:max_dynamic_forms] %>
-        <%= max_df.nil? ? t("subscription.billing.feature_dynamic_forms_unlimited", default: "Dynamic Forms không giới hạn") : t("subscription.billing.feature_dynamic_forms_max", count: max_df, default: "#{max_df} Dynamic Forms") %>
-      </li>
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span>
-        <% max_sup = pro_limits[:max_supporters] %>
-        <%= max_sup.nil? ? t("subscription.billing.feature_supporters_unlimited") : t("subscription.billing.feature_supporters_max", count: max_sup) %>
-      </li>
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span>
-        <% max_cr = pro_limits[:max_ai_credits] %>
-        <%= max_cr.nil? ? t("subscription.billing.feature_ai_credits_unlimited") : t("subscription.billing.feature_ai_credits_monthly", count: max_cr) %>
-      </li>
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span> <%= t("subscription.billing.feature_ai_analysis") %></li>
-      <% if pro_features[:ai_chat] %>
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span> <%= t("subscription.billing.feature_ai_chat") %></li>
-      <% end %>
-      <% if pro_features[:tts] %>
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span> <%= t("subscription.billing.feature_tts") %></li>
-      <% end %>
-      <% if pro_features[:stt] %>
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span> <%= t("subscription.billing.feature_stt") %></li>
-      <% end %>
-      <li class="flex gap-2"><span class="text-indigo-500">✓</span> <%= t("subscription.billing.feature_export") %></li>
-    </ul>
-    <% if @subscription&.pro? %>
-      <div class="w-full py-2 text-center bg-indigo-50 text-indigo-600 text-[12px] font-semibold rounded-xl mb-2">
-        <%= t("subscription.billing.current_plan_label") %>
-        <% if @subscription.ends_at %>
-          · <%= @subscription.ends_at.strftime("%d/%m/%Y") %>
-        <% end %>
-      </div>
-      <%= button_to checkout_subscription_path(plan: "pro"), method: :post,
-            data: { turbo: false },
-            class: "w-full py-3 bg-blue-500 hover:bg-blue-600 text-white text-[14px] font-bold rounded-lg cursor-pointer border-0 transition-colors" do %>
-        <%= t("subscription.billing.renew_one_month") %>
-      <% end %>
-    <% else %>
-      <%= button_to checkout_subscription_path(plan: "pro"), method: :post,
-            data: { turbo: false },
-            class: "w-full py-3 bg-blue-500 hover:bg-blue-600 text-white text-[14px] font-bold rounded-lg cursor-pointer border-0 transition-colors" do %>
-        <%= t("subscription.billing.pay_payos") %>
-      <% end %>
-    <% end %>
-  </div>
-
-  <!-- Enterprise -->
-  <% ent_config = PlanConfig.find_for("enterprise") %>
-  <% ent_price  = PlanConfig.price_for("enterprise").to_i %>
-  <div class="bg-white rounded-2xl border border-slate-200 p-6 relative shadow-sm">
-    <div class="text-[13px] font-bold text-violet-600 uppercase mb-1"><%= ent_config&.display_name || "Enterprise" %></div>
-    <% if ent_price > 0 %>
-      <div class="text-[32px] font-black text-slate-900 mb-1">
-        <%= number_with_delimiter(ent_price) %> <span class="text-[16px] font-semibold text-slate-500">₫</span>
-      </div>
-      <div class="text-[12px] text-slate-500 mb-4">
-        <%= ent_config&.billing_cycle == "year" ? t("subscription.billing.per_year") : t("subscription.billing.per_month") %>
-        <%= t("subscription.billing.per_workspace") %>
-      </div>
-    <% else %>
-      <div class="text-[32px] font-black text-slate-900 mb-1"><%= t("subscription.unlimited") %></div>
-      <div class="text-[12px] text-slate-500 mb-4"><%= t("subscription.billing.contact_pricing") %></div>
-    <% end %>
-    <% ent_limits = PlanConfig.limits_for("enterprise") %>
-    <ul class="space-y-2 mb-6 text-[13px] text-slate-700">
-      <li class="flex gap-2"><span class="text-violet-500">✓</span> <%= t("subscription.billing.feature_all_pro") %></li>
-      <li class="flex gap-2"><span class="text-violet-500">✓</span>
-        <%= t("subscription.billing.feature_dynamic_forms_unlimited", default: "Dynamic Forms không giới hạn") %>
-      </li>
-      <li class="flex gap-2"><span class="text-violet-500">✓</span>
-        <%= ent_limits[:max_supporters].nil? ? t("subscription.billing.feature_supporters_unlimited") : t("subscription.billing.feature_supporters_max", count: ent_limits[:max_supporters]) %>
-      </li>
-      <li class="flex gap-2"><span class="text-violet-500">✓</span>
-        <%= ent_limits[:max_ai_credits].nil? ? t("subscription.billing.feature_ai_credits_unlimited") : t("subscription.billing.feature_ai_credits_monthly", count: ent_limits[:max_ai_credits]) %>
-      </li>
-      <li class="flex gap-2"><span class="text-violet-500">✓</span> <%= t("subscription.billing.feature_ai_chat") %></li>
-      <li class="flex gap-2"><span class="text-violet-500">✓</span> <%= t("subscription.billing.feature_tts") %></li>
-      <li class="flex gap-2"><span class="text-violet-500">✓</span> <%= t("subscription.billing.feature_stt") %></li>
-      <li class="flex gap-2"><span class="text-violet-500">✓</span> <%= t("subscription.billing.feature_sla") %></li>
-    </ul>
-    <% if @subscription&.enterprise? %>
-      <div class="w-full py-3 text-center bg-slate-100 text-slate-500 text-[13px] font-semibold rounded-xl">
-        <%= t("subscription.billing.current_plan_label") %>
-      </div>
-      <%= button_to checkout_subscription_path(plan: "enterprise"), method: :post,
-            data: { turbo: false },
-            class: "w-full py-3 mt-2 bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold rounded-lg cursor-pointer border-0 transition-colors" do %>
-        <%= t("subscription.billing.renew_one_month") %>
-      <% end %>
-    <% elsif ent_price > 0 %>
-      <%= button_to checkout_subscription_path(plan: "enterprise"), method: :post,
-            data: { turbo: false },
-            class: "w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold rounded-lg cursor-pointer border-0 transition-colors" do %>
-        <%= t("subscription.billing.pay_payos") %>
-      <% end %>
-    <% else %>
-      <a href="mailto:sales@vox.vn"
-         class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold rounded-lg block text-center transition-colors">
-        <%= t("subscription.billing.contact_sales") %>
-      </a>
-    <% end %>
-  </div>
-</div>
-
-<!-- Add-on packs -->
-<% if @subscription && (@addon_resources.any? || @addon_credits.any?) %>
-  <div class="mt-8 mb-8">
-    <h2 class="text-[16px] font-extrabold text-slate-900 mb-1"><%= t("subscription.billing.addon_title") %></h2>
-    <p class="text-[13px] text-slate-500 mb-5"><%= t("subscription.billing.addon_desc") %></p>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-      <!-- Resource Packs -->
-      <% if @addon_resources.any? %>
-        <div>
-          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">
-            📦 <%= t("subscription.resource_packs") %>
+<!-- AI Credits Packs -->
+<% if @addon_credits.any? %>
+  <div class="max-w-2xl mb-8">
+    <h2 class="text-[16px] font-extrabold text-slate-900 mb-1"><%= t("subscription.buy_more_credits") %></h2>
+    <p class="text-[13px] text-slate-500 mb-5"><%= t("subscription.buy_more_credits_desc") %></p>
+    <div class="space-y-3">
+      <% @addon_credits.each do |addon| %>
+        <div class="bg-white rounded-xl border border-violet-200 p-4 flex items-center gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-[14px] text-slate-900 mb-0.5"><%= addon.name %></div>
+            <div class="text-[12px] text-slate-400 mb-2"><%= addon.description %></div>
+            <span class="text-[12px] text-violet-700 font-semibold">+<%= addon.ai_credits_bonus %> AI Credits</span>
           </div>
-          <div class="space-y-3">
-            <% @addon_resources.each do |addon| %>
-              <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4">
-                <div class="flex-1 min-w-0">
-                  <div class="font-bold text-[14px] text-slate-900 mb-0.5"><%= addon.name %></div>
-                  <div class="text-[12px] text-slate-400 mb-2"><%= addon.description %></div>
-                  <div class="flex flex-wrap gap-x-3 gap-y-0.5">
-                    <% if addon.surveys_bonus.to_i > 0 %>
-                      <span class="text-[12px] text-slate-600"><span class="text-indigo-500 font-semibold">+</span> <%= addon.surveys_bonus %> Surveys</span>
-                    <% end %>
-                    <% if addon.votes_bonus.to_i > 0 %>
-                      <span class="text-[12px] text-slate-600"><span class="text-indigo-500 font-semibold">+</span> <%= addon.votes_bonus %> Votes</span>
-                    <% end %>
-                    <% if addon.feedbacks_bonus.to_i > 0 %>
-                      <span class="text-[12px] text-slate-600"><span class="text-indigo-500 font-semibold">+</span> <%= addon.feedbacks_bonus %> Feedbacks</span>
-                    <% end %>
-                  </div>
-                </div>
-                <div class="flex-shrink-0 text-right">
-                  <div class="text-[13px] font-semibold text-slate-600 mb-2"><%= addon.price_formatted %></div>
-                  <%= button_to checkout_addon_subscription_path(addon_config_id: addon.id), method: :post,
-                        data: { turbo: false },
-                        class: "px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 transition-colors" do %>
-                    <%= t("subscription.billing.buy_now") %>
-                  <% end %>
-                </div>
-              </div>
+          <div class="flex-shrink-0 text-right">
+            <div class="text-[13px] font-semibold text-slate-600 mb-2"><%= addon.price_formatted %></div>
+            <%= button_to checkout_addon_subscription_path(addon_config_id: addon.id), method: :post,
+                  data: { turbo: false },
+                  class: "px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 transition-colors" do %>
+              <%= t("subscription.buy_now") %>
             <% end %>
           </div>
         </div>
       <% end %>
-
-      <!-- AI Credits Packs -->
-      <% if @addon_credits.any? %>
-        <div>
-          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">
-            <%= t("subscription.ai_credit_packs") %> ✨
-          </div>
-          <div class="space-y-3">
-            <% @addon_credits.each do |addon| %>
-              <div class="bg-white rounded-xl border border-violet-200 p-4 flex items-center gap-4">
-                <div class="flex-1 min-w-0">
-                  <div class="font-bold text-[14px] text-slate-900 mb-0.5"><%= addon.name %></div>
-                  <div class="text-[12px] text-slate-400 mb-2"><%= addon.description %></div>
-                  <span class="text-[12px] text-violet-700 font-semibold">
-                    <span class="text-violet-500 font-bold">+</span> <%= addon.ai_credits_bonus %> AI Credits
-                  </span>
-                </div>
-                <div class="flex-shrink-0 text-right">
-                  <div class="text-[13px] font-semibold text-slate-600 mb-2"><%= addon.price_formatted %></div>
-                  <%= button_to checkout_addon_subscription_path(addon_config_id: addon.id), method: :post,
-                        data: { turbo: false },
-                        class: "px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 transition-colors" do %>
-                    <%= t("subscription.billing.buy_now") %>
-                  <% end %>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        </div>
-      <% end %>
-
     </div>
   </div>
 <% end %>
-
-<!-- Payment process -->
-<div class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
-  <h2 class="text-[14px] font-bold text-slate-700 mb-4"><%= t("subscription.billing.payment_title") %></h2>
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <% [
-      ["1", t("subscription.billing.step_1_title"), t("subscription.billing.step_1_desc")],
-      ["2", t("subscription.billing.step_2_title"), t("subscription.billing.step_2_desc")],
-      ["3", t("subscription.billing.step_3_title"), t("subscription.billing.step_3_desc")],
-      ["4", t("subscription.billing.step_4_title"), t("subscription.billing.step_4_desc")]
-    ].each do |step, title, desc| %>
-      <div class="text-center">
-        <div class="w-8 h-8 rounded-full bg-blue-500 text-white text-[13px] font-bold flex items-center justify-center mx-auto mb-2"><%= step %></div>
-        <div class="text-[12px] font-semibold text-slate-700 mb-1"><%= title %></div>
-        <div class="text-[11px] text-slate-500"><%= desc %></div>
-      </div>
-    <% end %>
-  </div>
-  <p class="text-[11px] text-slate-400 mt-4 text-center"><%= t("subscription.billing.payment_note") %></p>
-</div>

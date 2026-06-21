@@ -376,7 +376,10 @@
           <div id="vol-bar" class="h-full bg-emerald-400 rounded-full transition-all" style="width:0%"></div>
         </div>
         <p id="mic-timer" class="hidden mt-2 text-[14px] font-mono text-red-600 font-bold">00:00</p>
-        <p id="mic-no-credit" class="hidden mt-3 text-[12px] text-red-600 font-semibold text-center"><%= t("stt.mic_no_credit") %></p>
+        <p id="mic-no-credit" class="hidden mt-3 text-[12px] text-red-500 font-semibold text-center">
+          ⚠️ <%= t("stt.mic_no_credit") %> —
+          <a href="<%= billing_subscription_path %>" class="underline text-indigo-600 hover:text-indigo-800"><%= t("subscription.buy_more_credits") %></a>
+        </p>
       </div>
 
       <!-- Settings -->
@@ -465,50 +468,6 @@
   </div><!-- /main-panel-history -->
 
 
-<% else %>
-  <%# ── UPGRADE LANDING PAGE ─────────────────────────────────────────── %>
-  <div class="max-w-2xl mx-auto py-10">
-    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-      <div class="bg-gradient-to-br from-violet-600 to-indigo-600 px-8 py-10 text-center text-white">
-        <div class="text-5xl mb-4">🎤</div>
-        <h2 class="text-2xl font-extrabold mb-2"><%= t("stt.title") %></h2>
-        <p class="text-indigo-200 text-[14px]"><%= t("stt.upgrade_desc") %></p>
-      </div>
-      <div class="px-8 py-6">
-        <p class="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-4"><%= t("stt.upgrade_title") %></p>
-        <ul class="space-y-3 mb-6">
-          <% [:upgrade_feature_1, :upgrade_feature_2, :upgrade_feature_3, :upgrade_feature_4].each do |key| %>
-            <li class="flex items-center gap-3 text-[13px] text-slate-700">
-              <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0 text-[11px] font-bold">✓</span>
-              <%= t("stt.#{key}") %>
-            </li>
-          <% end %>
-        </ul>
-        <div class="mb-6 px-4 py-3 bg-violet-50 border border-violet-100 rounded-xl flex items-center gap-3">
-          <span class="text-2xl">🪙</span>
-          <div>
-            <p class="text-[13px] font-bold text-violet-800">Giá sử dụng</p>
-            <p class="text-[12px] text-violet-600"><%= t("stt.credit_rate") %></p>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3 mb-6">
-          <div class="rounded-xl border-2 border-indigo-500 bg-indigo-50 p-4 text-center">
-            <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide mb-1">Pro</div>
-            <div class="text-xl font-extrabold text-slate-800">190.000₫<span class="text-[12px] font-normal text-slate-400"><%= t("stt.per_month") %></span></div>
-            <div class="text-[11px] text-slate-500 mt-1"><%= t("stt.pro_credits") %></div>
-          </div>
-          <div class="rounded-xl border-2 border-violet-500 bg-violet-50 p-4 text-center">
-            <div class="text-[11px] font-bold text-violet-600 uppercase tracking-wide mb-1">Enterprise</div>
-            <div class="text-xl font-extrabold text-slate-800">390.000₫<span class="text-[12px] font-normal text-slate-400"><%= t("stt.per_month") %></span></div>
-            <div class="text-[11px] text-slate-500 mt-1"><%= t("stt.enterprise_credits") %></div>
-          </div>
-        </div>
-        <%= link_to subscription_path, class: "block w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold rounded-xl text-center transition-colors" do %>
-          <%= t("stt.upgrade_btn") %> →
-        <% end %>
-      </div>
-    </div>
-  </div>
 <% end %>
 
 </div><%# /scrollable %>
@@ -933,9 +892,9 @@ async function doTranscribe(endpoint, fd) {
     if (!res.ok) {
       // server_error from ElevenLabs is transient — show retry button
       const retryable = data.error_code === 'server_error' || res.status === 503;
+      if (data.insufficient_credits) { showAiCreditsModal(); checkTranscribeButton(); return; }
       showFileError(data.upgrade_required ? "Gói của bạn không hỗ trợ tính năng này."
                   : data.error || "Lỗi server.", retryable);
-      if (data.insufficient_credits) checkTranscribeButton();
       return;
     }
     const used = parseInt(res.headers.get("X-Credits-Used") || "0");

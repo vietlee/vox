@@ -24,20 +24,12 @@ class SuperAdmin::WorkspacesController < SuperAdmin::BaseController
         password_confirmation: password,
         must_change_password: true
       )
-      plan_key = params[:plan].presence || "free"
-      limits   = PlanConfig.limits_for(plan_key)
-      features = PlanConfig.features_for(plan_key)
       subscription = @workspace.subscriptions.create!(
-        plan:              plan_key,
-        status:            :active,
-        max_surveys:       limits[:max_surveys],
-        max_votes:         limits[:max_votes],
-        max_feedbacks:     limits[:max_feedbacks],
-        max_supporters:    limits[:max_supporters],
-        max_ai_credits:    limits[:max_ai_credits],
-        max_dynamic_forms: limits[:max_dynamic_forms],
-        credit_balance:    limits[:max_ai_credits].to_i,
-        features:          features
+        plan:           :free,
+        status:         :active,
+        starts_at:      Time.current,
+        credit_balance: Subscription.monthly_free_credits,
+        max_ai_credits: Subscription.monthly_free_credits
       )
 
       WorkspaceMailer.welcome(admin, password, @workspace).deliver_later

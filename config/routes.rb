@@ -86,6 +86,7 @@ Rails.application.routes.draw do
     resources :plan_configs, only: [:index, :edit, :update]
     resources :addon_configs
     resources :broadcasts, only: [:index, :new, :create]
+    resource  :ai_model_configs, only: [:show, :update], path: "ai_models"
   end
 
   # Authenticated workspace admin/supporter area
@@ -240,6 +241,36 @@ Rails.application.routes.draw do
     end
 
     get "audit_log", to: "audit_logs#index", as: :audit_log
+
+    resources :quiz_sets do
+      member do
+        patch :publish
+        patch :unpublish
+        get   :results
+        post  :ai_generate
+        post  :send_result_email
+        get   :attempt_detail
+        post  :ai_evaluate_attempt
+        post  :ai_evaluate_results
+        patch :update_ai_evaluation
+        post  :send_ai_evaluation_email
+      end
+      resources :quiz_questions, only: [:create, :update, :destroy] do
+        collection { post :reorder }
+        resources :quiz_options, only: [:create, :update, :destroy]
+      end
+    end
+  end
+
+  # Public quiz routes (học sinh làm bài)
+  scope "/q" do
+    get  ":token",            to: "quiz#show",   as: :quiz
+    post ":token/start",      to: "quiz#start",  as: :start_quiz
+    get  ":token/take",       to: "quiz#take",   as: :take_quiz
+    post ":token/submit",     to: "quiz#submit",     as: :submit_quiz
+    post ":token/save_answer", to: "quiz#save_answer", as: :save_quiz_answer
+    post ":token/send_result", to: "quiz#send_result", as: :send_quiz_result
+    get  "result/:result_token", to: "quiz#public_result", as: :quiz_public_result
   end
 
   # Catch-all: phải đặt cuối cùng — bắt mọi URL không khớp

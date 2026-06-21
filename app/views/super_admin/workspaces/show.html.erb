@@ -91,47 +91,29 @@
     <div class="text-[11px] text-slate-500 mt-0.5"><%= t("super_admin.workspaces.stat_ai_credits") %></div>
   </div>
   <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
-    <div class="text-[15px] font-extrabold text-slate-700 mt-1"><%= sub&.plan&.upcase || "FREE" %></div>
-    <div class="text-[11px] text-slate-500 mt-0.5"><%= sub&.ends_at ? sub.ends_at.strftime("%d/%m/%Y") : t("super_admin.workspaces.no_expiry") %></div>
+    <div class="text-[15px] font-extrabold text-emerald-600 mt-1">FREE</div>
+    <div class="text-[11px] text-slate-500 mt-0.5"><%= t("super_admin.workspaces.no_expiry") %></div>
   </div>
 </div>
 
 <!-- Usage this period -->
 <% if sub %>
-<div class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
-  <h2 class="text-[13px] font-bold text-slate-700 mb-4">📊 Sử dụng trong kỳ</h2>
-  <div class="grid grid-cols-6 gap-4">
-    <%
-      usage_items = [
-        { label: "Khảo sát",      used: sub.surveys_used,       max: sub.max_surveys,       pct: sub.surveys_pct,       color: "bg-indigo-500" },
-        { label: "Bình chọn",     used: sub.votes_used,         max: sub.max_votes,         pct: sub.votes_pct,         color: "bg-violet-500" },
-        { label: "Feedback",      used: sub.feedbacks_used,     max: sub.max_feedbacks,     pct: sub.feedbacks_pct,     color: "bg-sky-500"    },
-        { label: "Dynamic Forms", used: sub.dynamic_forms_used, max: sub.max_dynamic_forms, pct: sub.dynamic_forms_pct, color: "bg-orange-500" },
-        { label: "Supporter",     used: sub.supporters_used,    max: sub.max_supporters,    pct: sub.supporters_pct,    color: "bg-emerald-500"},
-        { label: "AI Credits",    used: (sub.max_ai_credits.to_i - sub.credit_balance.to_i), max: sub.max_ai_credits, pct: sub.max_ai_credits.to_i > 0 ? (((sub.max_ai_credits.to_i - sub.credit_balance.to_i).to_f / sub.max_ai_credits) * 100).round : 0, color: "bg-rose-500" },
-      ]
-    %>
-    <% usage_items.each do |item| %>
-      <div>
-        <div class="flex justify-between items-baseline mb-1.5">
-          <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide"><%= item[:label] %></span>
-          <span class="text-[12px] font-bold text-slate-800">
-            <%= item[:used] %><span class="text-slate-400 font-normal"> / <%= item[:max] || "∞" %></span>
-          </span>
+<div class="bg-white rounded-xl border border-violet-200 p-5 mb-4">
+  <h2 class="text-[13px] font-bold text-violet-700 mb-3">AI Credits</h2>
+  <div class="flex items-center gap-6">
+    <div>
+      <div class="text-[24px] font-black text-violet-600"><%= sub.credit_balance %></div>
+      <div class="text-[11px] text-slate-400">còn lại / <%= sub.max_ai_credits || "∞" %></div>
+    </div>
+    <div>
+      <div class="text-[24px] font-black text-slate-900"><%= sub.credit_used %></div>
+      <div class="text-[11px] text-slate-400">đã sử dụng</div>
+    </div>
+    <% if sub.max_ai_credits.to_i > 0 %>
+      <div class="flex-1">
+        <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div class="h-2 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full" style="width: <%= sub.credit_percentage %>%"></div>
         </div>
-        <% if item[:max] %>
-          <% bar_color = item[:pct] >= 90 ? "bg-red-500" : item[:pct] >= 70 ? "bg-amber-400" : item[:color] %>
-          <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div class="h-full rounded-full transition-all <%= bar_color %>" style="width:<%= item[:pct] %>%"></div>
-          </div>
-          <div class="text-[10px] mt-1 <%= item[:pct] >= 90 ? 'text-red-500 font-semibold' : 'text-slate-400' %>">
-            <% remaining = item[:max] - item[:used] %>
-            <%= remaining <= 0 ? "Đã hết giới hạn" : "Còn lại #{remaining}" %>
-          </div>
-        <% else %>
-          <div class="h-2 bg-slate-100 rounded-full"></div>
-          <div class="text-[10px] mt-1 text-slate-400">Không giới hạn</div>
-        <% end %>
       </div>
     <% end %>
   </div>
@@ -155,13 +137,10 @@
     <h2 class="text-[13px] font-bold text-slate-700 mb-3"><%= t("super_admin.workspaces.subscription_title") %></h2>
     <% if sub %>
       <dl class="space-y-2.5 text-[13px]">
-        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_plan") %></dt><dd class="font-semibold text-indigo-600"><%= sub.plan&.upcase %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_status") %></dt><dd class="font-medium text-slate-900"><%= sub.status&.capitalize %></dd></div>
         <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_ai_credits") %></dt><dd class="font-medium text-slate-900"><%= sub.credit_balance %> / <%= sub.max_ai_credits || "∞" %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_max_supporters") %></dt><dd class="font-medium text-slate-900"><%= sub.max_supporters || "∞" %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_max_surveys") %></dt><dd class="font-medium text-slate-900"><%= sub.max_surveys || "∞" %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-500">Dynamic Forms</dt><dd class="font-medium text-slate-900"><%= sub.dynamic_forms_used %> / <%= sub.max_dynamic_forms || "∞" %></dd></div>
-        <div class="flex justify-between"><dt class="text-slate-500"><%= t("super_admin.workspaces.sub_expires") %></dt><dd class="font-medium text-slate-900"><%= sub.ends_at&.strftime("%b %d, %Y") || t("super_admin.workspaces.sub_never") %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">Đã sử dụng</dt><dd class="font-medium text-slate-900"><%= sub.credit_used %></dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">Tính năng</dt><dd class="font-medium text-emerald-600">Tất cả miễn phí</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">Giới hạn</dt><dd class="font-medium text-slate-900">Không giới hạn</dd></div>
       </dl>
     <% else %>
       <p class="text-[13px] text-slate-400"><%= t("super_admin.workspaces.subscription_none") %></p>

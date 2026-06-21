@@ -1,0 +1,135 @@
+<% content_for :title, "Kết quả bài thi — #{@attempt.participant_name}" %>
+
+<% content_for :head do %>
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<% end %>
+
+<style>
+@keyframes fade-up { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+.pr-card { animation: fade-up .4s ease both; }
+.pr-q { background:#fff; border-radius:14px; border:1.5px solid #E2E8F0; margin-bottom:12px; overflow:hidden; }
+.pr-q.pr-correct { border-color:#A7F3D0; }
+.pr-q.pr-wrong   { border-color:#FECACA; }
+.pr-q.pr-manual  { border-color:#FDE68A; }
+</style>
+
+<% pct = @attempt.score_pct %>
+<% correct_count = @attempt.quiz_attempt_answers.where(is_correct: true).pluck(:quiz_question_id).uniq.size %>
+<% wrong_count   = @quiz_set.quiz_questions.count - correct_count %>
+
+<!-- Score Hero -->
+<div class="pr-card" style="border-radius:20px; overflow:hidden; margin-bottom:16px;
+  <%= pct >= 80 ? 'background:linear-gradient(135deg,#10B981,#0D9488)' : pct >= 50 ? 'background:linear-gradient(135deg,#6366F1,#8B5CF6)' : 'background:linear-gradient(135deg,#64748B,#475569)' %>;">
+  <div style="padding:32px 24px; text-align:center; color:#fff;">
+    <div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:16px;opacity:0.85;">
+      <svg width="20" height="20" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="36" height="36" rx="9" fill="rgba(255,255,255,0.2)"/>
+        <rect x="6" y="6" width="24" height="19" rx="5" fill="white"/>
+        <rect x="10" y="11" width="4" height="7" rx="1" fill="#1A6BFF"/>
+        <rect x="16" y="8" width="4" height="13" rx="1" fill="#1A6BFF"/>
+        <rect x="23" y="10" width="4" height="9" rx="1" fill="#1A6BFF"/>
+      </svg>
+      <span style="font-size:13px;font-weight:800;letter-spacing:4px;">VOX</span>
+    </div>
+    <div style="font-size:13px;font-weight:600;opacity:0.75;margin-bottom:8px;"><%= @quiz_set.title %></div>
+    <div style="font-size:52px;font-weight:900;line-height:1;margin-bottom:4px;"><%= pct %>%</div>
+    <div style="font-size:15px;font-weight:700;opacity:0.9;"><%= @attempt.passed? ? "ĐẠT ✓" : "CHƯA ĐẠT" %></div>
+    <div style="font-size:12px;opacity:0.7;margin-top:6px;">
+      <%= @attempt.participant_name %> · <%= @attempt.submitted_at&.strftime("%d/%m/%Y %H:%M") %>
+    </div>
+  </div>
+  <div style="display:flex; background:rgba(0,0,0,0.15); border-top:1px solid rgba(255,255,255,0.12);">
+    <div style="flex:1; padding:12px; text-align:center; border-right:1px solid rgba(255,255,255,0.12);">
+      <div style="font-size:22px;font-weight:900;color:#fff;"><%= @attempt.earned_points %>/<%= @attempt.total_points %></div>
+      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.7);margin-top:1px;">Điểm</div>
+    </div>
+    <div style="flex:1; padding:12px; text-align:center; border-right:1px solid rgba(255,255,255,0.12);">
+      <div style="font-size:22px;font-weight:900;color:#fff;"><%= correct_count %></div>
+      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.7);margin-top:1px;">Câu đúng</div>
+    </div>
+    <div style="flex:1; padding:12px; text-align:center;">
+      <div style="font-size:22px;font-weight:900;color:#fff;"><%= wrong_count %></div>
+      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.7);margin-top:1px;">Câu sai</div>
+    </div>
+  </div>
+</div>
+
+<!-- Answer Review -->
+<div class="pr-card" style="animation-delay:.1s;">
+  <h3 style="font-size:14px;font-weight:800;color:#1E293B;margin:0 0 12px;">📋 Chi tiết từng câu</h3>
+
+  <% @questions.each_with_index do |q, i| %>
+    <% my_answers  = @answers_by_q[q.id] || [] %>
+    <% is_correct  = my_answers.any?(&:is_correct?) %>
+    <% selected_ids = my_answers.map(&:quiz_option_id).compact %>
+    <% row_cls = q.short_answer? ? 'pr-manual' : (is_correct ? 'pr-correct' : 'pr-wrong') %>
+
+    <div class="pr-q <%= row_cls %>">
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px 8px;">
+        <% if q.short_answer? %>
+          <span style="font-size:16px;flex-shrink:0;">📝</span>
+        <% elsif is_correct %>
+          <div style="width:22px;height:22px;border-radius:50%;background:#10B981;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+            <svg width="12" height="12" fill="none" stroke="#fff" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+          </div>
+        <% else %>
+          <div style="width:22px;height:22px;border-radius:50%;background:#EF4444;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+            <svg width="12" height="12" fill="none" stroke="#fff" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+          </div>
+        <% end %>
+        <div style="flex:1;">
+          <p style="font-size:13px;font-weight:600;color:#1E293B;margin:0;line-height:1.5;"><%= i + 1 %>. <%= q.question_text %></p>
+        </div>
+        <div style="font-size:12px;font-weight:700;flex-shrink:0;<%= q.short_answer? ? 'color:#D97706' : (is_correct ? 'color:#10B981' : 'color:#EF4444') %>">
+          <%= q.short_answer? ? "Tự luận" : (is_correct ? "+#{q.points} pt" : "0 pt") %>
+        </div>
+      </div>
+
+      <!-- Options / Answer -->
+      <div style="padding:0 14px 12px 44px;">
+        <% if q.short_answer? %>
+          <% text_ans = my_answers.first&.text_answer %>
+          <% if text_ans.present? %>
+            <div style="font-size:13px;color:#374151;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 12px;"><%= text_ans %></div>
+          <% else %>
+            <p style="font-size:12px;color:#94A3B8;font-style:italic;margin:0;">Không có câu trả lời</p>
+          <% end %>
+        <% else %>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <% q.quiz_options.each do |opt| %>
+              <% i_sel = selected_ids.include?(opt.id) %>
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid;
+                <%= opt.is_correct? ? 'background:#F0FDF4;border-color:#A7F3D0' : (i_sel ? 'background:#FFF5F5;border-color:#FECACA' : 'background:#F8FAFC;border-color:#E2E8F0') %>">
+                <% if opt.is_correct? %>
+                  <svg width="14" height="14" fill="none" stroke="#10B981" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                <% elsif i_sel %>
+                  <svg width="14" height="14" fill="none" stroke="#EF4444" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                <% else %>
+                  <div style="width:14px;height:14px;flex-shrink:0;"></div>
+                <% end %>
+                <span style="flex:1;font-size:13px;<%= opt.is_correct? ? 'color:#065F46;font-weight:600' : (i_sel ? 'color:#991B1B' : 'color:#475569') %>"><%= opt.option_text %></span>
+                <% if opt.is_correct? %>
+                  <span style="font-size:10px;background:#D1FAE5;color:#065F46;font-weight:700;padding:1px 6px;border-radius:4px;">Đáp án đúng</span>
+                <% elsif i_sel %>
+                  <span style="font-size:10px;background:#FEE2E2;color:#991B1B;font-weight:700;padding:1px 6px;border-radius:4px;">Bạn chọn</span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+        <% if q.explanation.present? %>
+          <div style="margin-top:8px;font-size:11px;color:#94A3B8;font-style:italic;display:flex;gap:4px;">
+            <span>💡</span><span><%= q.explanation %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

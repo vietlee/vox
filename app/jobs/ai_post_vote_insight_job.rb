@@ -26,7 +26,7 @@ class AiPostVoteInsightJob < ApplicationJob
       Return JSON: { "insight": "2-4 sentences of insight", "highlight": "Most important finding" }
     PROMPT
 
-    result_text = ClaudeService.haiku.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 512)
+    result_text = ClaudeService.for_feature("vote_insight").call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 512)
     result = JSON.parse(result_text.match(/\{.*\}/m)&.to_s || result_text)
 
     job.complete!(result)

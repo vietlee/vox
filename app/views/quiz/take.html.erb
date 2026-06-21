@@ -1,0 +1,226 @@
+<% content_for :title, @quiz_set.title %>
+
+<style>
+.q-card { background:#fff; border-radius:16px; border:1px solid #E2E8F0; box-shadow:0 1px 4px rgba(0,0,0,0.06); padding:20px; margin-bottom:16px; }
+.q-num { width:28px; height:28px; border-radius:50%; background:#4F46E5; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.q-text { font-size:15px; font-weight:600; color:#1E293B; margin-bottom:16px; }
+.opt-label { display:flex; align-items:flex-start; gap:12px; padding:12px; border-radius:12px; border:1.5px solid #E2E8F0; cursor:pointer; margin-bottom:8px; transition:border-color .15s, background .15s; }
+.opt-label:hover { border-color:#A5B4FC; background:#EEF2FF; }
+.opt-label input:checked ~ span { color:#3730A3; font-weight:600; }
+.opt-label:has(input:checked) { border-color:#4F46E5; background:#EEF2FF; }
+.submit-wrap { margin-top:24px; display:flex; justify-content:flex-end; }
+.submit-btn { padding:14px 32px; background:#059669; color:#fff; font-size:15px; font-weight:700; border:none; border-radius:12px; cursor:pointer; font-family:inherit; transition:background .2s; }
+.submit-btn:hover { background:#047857; }
+.timer-bar { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid #E2E8F0; padding:10px 16px; margin-bottom:16px; border-radius:0 0 12px 12px; box-shadow:0 2px 8px rgba(0,0,0,0.07); display:flex; align-items:center; justify-content:space-between; }
+.short-answer-ta { width:100%; padding:12px; border:1.5px solid #E2E8F0; border-radius:12px; font-size:14px; font-family:inherit; resize:vertical; outline:none; transition:border-color .15s; box-sizing:border-box; }
+.short-answer-ta:focus { border-color:#4F46E5; }
+</style>
+
+<!-- Timer bar -->
+<div class="timer-bar">
+  <div style="font-size:13px; font-weight:700; color:#1E293B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;"><%= @quiz_set.title %></div>
+  <div style="display:flex; align-items:center; gap:16px; flex-shrink:0;">
+    <% if @quiz_set.time_limit_minutes.to_i > 0 %>
+      <div id="timer" style="font-family:monospace; font-size:14px; font-weight:700; color:#1E293B;">
+        --:--
+      </div>
+    <% end %>
+    <div style="font-size:12px; color:#94A3B8;">
+      <span id="answered-count">0</span> / <%= @questions.count %>
+    </div>
+  </div>
+</div>
+
+<form action="<%= submit_quiz_path(@quiz_set.share_token, attempt_id: @attempt.id) %>" method="post" id="quiz-form">
+  <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+  <input type="hidden" name="time_spent" id="time-spent-input" value="0">
+
+  <div>
+    <% @questions.each_with_index do |q, i| %>
+      <div class="q-card" id="question-<%= q.id %>">
+        <div style="display:flex; gap:12px;">
+          <div class="q-num"><%= i + 1 %></div>
+          <div style="flex:1; min-width:0;">
+            <p class="q-text"><%= q.question_text %></p>
+            <% if q.short_answer? %>
+              <textarea name="answers[<%= q.id %>]" rows="3" class="short-answer-ta"
+                        data-qid="<%= q.id %>" data-qtype="short"
+                        placeholder="<%= t('quiz.type_your_answer') %>"
+                        onchange="onAnswer(<%= q.id %>); saveAnswer(this)"
+                        oninput="onAnswer(<%= q.id %>)"></textarea>
+            <% elsif q.allow_multiple %>
+              <p style="font-size:11px; color:#94A3B8; margin-bottom:8px;"><%= t('quiz.select_all_correct') %></p>
+              <% q.quiz_options.each do |opt| %>
+                <label class="opt-label">
+                  <input type="checkbox" name="answers[<%= q.id %>][]" value="<%= opt.id %>"
+                         data-qid="<%= q.id %>" data-qtype="multi"
+                         onchange="onAnswer(<%= q.id %>); saveAnswer(this)"
+                         style="margin-top:2px; width:16px; height:16px; accent-color:#4F46E5; flex-shrink:0;">
+                  <span style="font-size:14px; color:#334155;"><%= opt.option_text %></span>
+                </label>
+              <% end %>
+            <% else %>
+              <% q.quiz_options.each do |opt| %>
+                <label class="opt-label">
+                  <input type="radio" name="answers[<%= q.id %>]" value="<%= opt.id %>"
+                         data-qid="<%= q.id %>" data-qtype="single"
+                         onchange="onAnswer(<%= q.id %>); saveAnswer(this)"
+                         style="margin-top:2px; width:16px; height:16px; accent-color:#4F46E5; flex-shrink:0;">
+                  <span style="font-size:14px; color:#334155;"><%= opt.option_text %></span>
+                </label>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="submit-wrap">
+    <button type="button" onclick="submitQuiz()" class="submit-btn">
+      ✅ <%= t("quiz.submit") %>
+    </button>
+  </div>
+</form>
+
+<!-- Submit confirm modal -->
+<div id="submit-modal" style="display:none; position:fixed; inset:0; z-index:50; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,0.55);">
+  <div style="background:#fff; border-radius:20px; box-shadow:0 8px 32px rgba(0,0,0,0.18); width:100%; max-width:360px; padding:28px 24px; text-align:center;">
+    <div style="font-size:40px; margin-bottom:12px;">📬</div>
+    <h3 style="font-size:17px; font-weight:800; color:#1E293B; margin:0 0 8px;"><%= t("quiz.confirm_submit") %></h3>
+    <p style="font-size:13px; color:#64748B; margin:0 0 20px;" id="submit-modal-desc"></p>
+    <div style="display:flex; gap:8px;">
+      <button onclick="confirmSubmit()"
+              style="flex:1; padding:12px; background:#059669; color:#fff; font-weight:700; font-size:14px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;">
+        <%= t("quiz.yes_submit") %>
+      </button>
+      <button onclick="closeSubmitModal()"
+              style="flex:1; padding:12px; background:#F1F5F9; color:#475569; font-weight:600; font-size:14px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;">
+        <%= t("common.cancel") %>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL = <%= @questions.count %>;
+const CSRF  = document.querySelector('meta[name="csrf-token"]').content;
+const SAVE_URL = '<%= save_quiz_answer_path(@quiz_set.share_token, attempt_id: @attempt.id) %>';
+const ATTEMPT_ID = <%= @attempt.id %>;
+
+let answered  = new Set();
+let pageStart = Date.now();
+let timerInterval;
+
+function onAnswer(qid) {
+  answered.add(qid);
+  document.getElementById('answered-count').textContent = answered.size;
+}
+
+// ── Auto-save ────────────────────────────────────────────────────────────────
+let _saveQueue = {};
+let _saveTimer = null;
+function saveAnswer(el) {
+  const qid   = el.dataset.qid;
+  const qtype = el.dataset.qtype;
+  _saveQueue[qid] = { qid, qtype, el };
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(flushSaveQueue, 600);
+}
+function flushSaveQueue() {
+  Object.values(_saveQueue).forEach(({ qid, qtype, el }) => {
+    const body = new URLSearchParams({ authenticity_token: CSRF, question_id: qid });
+    if (qtype === 'short') {
+      body.append('text_answer', el.value);
+    } else if (qtype === 'multi') {
+      const allChecked = document.querySelectorAll(`input[data-qid="${qid}"][data-qtype="multi"]:checked`);
+      allChecked.forEach(cb => body.append('option_ids[]', cb.value));
+    } else {
+      body.append('option_id', el.value);
+    }
+    fetch(SAVE_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() });
+  });
+  _saveQueue = {};
+}
+
+// ── Submit ───────────────────────────────────────────────────────────────────
+function submitQuiz() {
+  const unanswered = TOTAL - answered.size;
+  document.getElementById('submit-modal-desc').textContent =
+    unanswered > 0
+      ? '<%= j t("quiz.unanswered_warning") %>'.replace('{n}', unanswered)
+      : '<%= j t("quiz.all_answered") %>';
+  document.getElementById('submit-modal').style.display = 'flex';
+}
+function closeSubmitModal() {
+  document.getElementById('submit-modal').style.display = 'none';
+}
+function confirmSubmit() {
+  clearInterval(timerInterval);
+  const elapsed = Math.round((Date.now() - pageStart) / 1000);
+  document.getElementById('time-spent-input').value = elapsed;
+  document.getElementById('quiz-form').submit();
+}
+
+// ── Timer (server-side remaining) ────────────────────────────────────────────
+<% if @quiz_set.time_limit_minutes.to_i > 0 && @remaining_seconds %>
+let remaining = <%= @remaining_seconds %>;
+const timerEl = document.getElementById('timer');
+function renderTimer(sec) {
+  const m = Math.floor(sec / 60).toString().padStart(2, '0');
+  const s = (sec % 60).toString().padStart(2, '0');
+  timerEl.textContent = m + ':' + s;
+  timerEl.style.color = sec <= 60 ? '#DC2626' : '#1E293B';
+}
+renderTimer(remaining);
+timerInterval = setInterval(function() {
+  remaining--;
+  renderTimer(remaining);
+  if (remaining <= 0) {
+    clearInterval(timerInterval);
+    confirmSubmit();
+  }
+}, 1000);
+<% elsif @quiz_set.time_limit_minutes.to_i > 0 %>
+<%# Fallback: no started_at stored yet — show full limit %>
+let remaining = <%= @quiz_set.time_limit_minutes * 60 %>;
+const timerEl = document.getElementById('timer');
+function renderTimer(sec) {
+  const m = Math.floor(sec / 60).toString().padStart(2, '0');
+  const s = (sec % 60).toString().padStart(2, '0');
+  timerEl.textContent = m + ':' + s;
+  timerEl.style.color = sec <= 60 ? '#DC2626' : '#1E293B';
+}
+renderTimer(remaining);
+timerInterval = setInterval(function() {
+  remaining--;
+  renderTimer(remaining);
+  if (remaining <= 0) { clearInterval(timerInterval); confirmSubmit(); }
+}, 1000);
+<% end %>
+
+// ── Restore existing answers from server ─────────────────────────────────────
+<% @existing_answers.each do |qid, answers| %>
+  <% first = answers.first %>
+  <% if first.text_answer.present? %>
+    (function() {
+      const ta = document.querySelector('textarea[data-qid="<%= qid %>"]');
+      if (ta) { ta.value = <%= first.text_answer.to_json %>; onAnswer(<%= qid %>); }
+    })();
+  <% else %>
+    (function() {
+      let restored = false;
+      <% answers.each do |ans| %>
+        <% if ans.quiz_option_id %>
+          (function() {
+            const inp = document.querySelector('input[name="answers[<%= qid %>]"][value="<%= ans.quiz_option_id %>"]') ||
+                        document.querySelector('input[name="answers[<%= qid %>][]"][value="<%= ans.quiz_option_id %>"]');
+            if (inp) { inp.checked = true; restored = true; }
+          })();
+        <% end %>
+      <% end %>
+      if (restored) onAnswer(<%= qid %>);
+    })();
+  <% end %>
+<% end %>
+</script>

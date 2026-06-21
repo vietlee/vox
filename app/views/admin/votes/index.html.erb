@@ -10,31 +10,12 @@
       <%= render "admin/shared/back_btn" %>
       <div>
         <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">🗳️ <%= t("votes.title") %></h1>
-        <div class="flex items-center gap-3 mt-0.5">
-          <p class="text-[12px] text-slate-500"><%= t("votes.subtitle") %></p>
-          <% if sub&.max_votes %>
-            <% pct = sub.votes_pct %>
-            <div class="flex items-center gap-1.5">
-              <div class="w-20 h-1.5 rounded-full overflow-hidden bg-slate-200">
-                <div class="h-1.5 rounded-full" style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
-              </div>
-              <span class="text-[11px] font-semibold <%= pct >= 100 ? 'text-amber-600' : 'text-slate-500' %>">
-                <%= sub.votes_used %> / <%= sub.max_votes %>
-              </span>
-            </div>
-          <% end %>
-        </div>
+        <p class="text-[12px] text-slate-500 mt-0.5"><%= t("votes.subtitle") %></p>
       </div>
     </div>
     <div class="flex gap-2">
-      <% if sub && !sub.within_vote_limit? %>
-        <%= link_to billing_subscription_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-white border border-amber-300 hover:bg-amber-50 hover:border-amber-400 text-amber-700 transition-colors" do %>
-          ⚠️ <%= t("subscription.limit_reached_short") %> · <%= t("subscription.upgrade") %>
-        <% end %>
-      <% else %>
-        <%= link_to new_vote_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors" do %>
-          + <%= t("votes.new") %>
-        <% end %>
+      <%= link_to new_vote_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors" do %>
+        + <%= t("votes.new") %>
       <% end %>
     </div>
   </div>

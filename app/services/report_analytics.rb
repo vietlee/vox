@@ -167,7 +167,7 @@ module ReportAnalytics
       JSON: [{"label":"...","count":N},...] ordered by count desc.
     PROMPT
 
-    raw   = ClaudeService.haiku.call(system_prompt: system, user_prompt: user, max_tokens: 600)
+    raw   = ClaudeService.for_feature("vote_insight").call(system_prompt: system, user_prompt: user, max_tokens: 600)
     clean = raw.to_s.gsub(/\A\s*```(?:json)?\s*/i, "").gsub(/\s*```\s*\z/, "").strip
     arr   = JSON.parse(clean[/\[.*\]/m] || "[]")
     arr.filter_map do |t|

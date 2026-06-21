@@ -1,0 +1,30 @@
+<% content_for :title, t("quiz.thankyou_title") %>
+
+<style>
+@keyframes fade-up { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+.ty-card { animation: fade-up .5s ease both; }
+</style>
+
+<div class="ty-card" style="text-align:center; padding: 48px 24px;">
+  <% if @already_done %>
+    <div style="font-size:64px; margin-bottom:16px;">🔒</div>
+    <h1 style="font-size:24px; font-weight:900; color:#1E293B; margin:0 0 8px;">Bạn đã hoàn thành bài thi này trước đó</h1>
+    <p style="font-size:15px; color:#64748B; margin:0 0 24px; line-height:1.6;">
+      Kết quả của <strong><%= @attempt.participant_name %></strong> đã được ghi nhận. Bài thi này không cho phép làm lại.
+    </p>
+    <p style="font-size:13px; color:#94A3B8; margin:0;">Nếu bạn chưa nhận được email kết quả, hãy liên hệ giáo viên.</p>
+  <% else %>
+    <div style="font-size:64px; margin-bottom:16px;">🎉</div>
+    <h1 style="font-size:24px; font-weight:900; color:#1E293B; margin:0 0 8px;"><%= t("quiz.thankyou_heading") %></h1>
+    <p style="font-size:15px; color:#64748B; margin:0 0 24px; line-height:1.6;">
+      <%= t("quiz.thankyou_desc", name: @attempt.participant_name) %>
+    </p>
+    <p style="font-size:13px; color:#94A3B8; margin:0;"><%= t("quiz.thankyou_result_notice") %></p>
+    <% if @quiz_set.allow_retake? %>
+      <%= link_to quiz_path(@quiz_set.share_token),
+          style: "display:inline-block; margin-top:24px; padding:12px 28px; background:#4F46E5; color:#fff; font-weight:700; font-size:14px; border-radius:12px; text-decoration:none;" do %>
+        🔄 <%= t("quiz.retake") %>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

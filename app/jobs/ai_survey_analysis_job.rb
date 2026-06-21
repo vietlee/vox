@@ -162,7 +162,7 @@ class AiSurveyAnalysisJob < ApplicationJob
       - Sentiment values đã được điền sẵn — copy chính xác vào output.
     PROMPT
 
-    result_text = ClaudeService.opus_long.call(
+    result_text = ClaudeService.for_feature("survey_analysis", timeout: 360).call(
       system_prompt: system_prompt,
       user_prompt:   user_prompt,
       max_tokens:    8000

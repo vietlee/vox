@@ -10,31 +10,13 @@ class Subscription < ApplicationRecord
 
   scope :active, -> { where(status: :active) }
 
-  PLAN_LIMITS = {
-    "free"       => { max_surveys: 3, max_votes: 3, max_feedbacks: 10, max_supporters: 0, max_ai_credits: 0, max_dynamic_forms: 3 },
-    "pro"        => { max_surveys: nil, max_votes: nil, max_feedbacks: nil, max_supporters: 10, max_ai_credits: 500, max_dynamic_forms: 50 },
-    "enterprise" => { max_surveys: nil, max_votes: nil, max_feedbacks: nil, max_supporters: nil, max_ai_credits: nil, max_dynamic_forms: nil }
-  }.freeze
+  FREE_MONTHLY_CREDITS = 100 # fallback default; live value from PlanConfig.monthly_free_credits
 
-  PLAN_PRICES = {
-    "free" => 0,
-    "pro"  => 1_000_000,
-    "enterprise" => nil
-  }.freeze
-
-  FEATURE_FLAGS = {
-    "free"       => { ai_survey_builder: false, ai_analysis: false, ai_executive_report: false, ai_chat: false, ai_moderation: false, custom_branding: false, export: false, sso: false, tts: false, stt: false },
-    "pro"        => { ai_survey_builder: true, ai_analysis: true, ai_executive_report: true, ai_chat: false, ai_moderation: true, custom_branding: true, export: true, sso: false, tts: true, stt: true },
-    "enterprise" => { ai_survey_builder: true, ai_analysis: true, ai_executive_report: true, ai_chat: true, ai_moderation: true, custom_branding: true, export: true, sso: true, tts: true, stt: true }
-  }.freeze
+  def self.monthly_free_credits
+    PlanConfig.monthly_free_credits
+  end
 
   def deduct_credits!(amount)
-    # Enterprise: deduct for display but never block (unlimited)
-    if enterprise?
-      new_balance = [credit_balance - amount, 0].max
-      update_columns(credit_balance: new_balance, credit_used: credit_used + amount)
-      return true
-    end
     raise "Insufficient AI credits" if credit_balance < amount
     update!(credit_balance: credit_balance - amount, credit_used: credit_used + amount)
   end
@@ -44,72 +26,43 @@ class Subscription < ApplicationRecord
     ((credit_balance.to_f / max_ai_credits) * 100).round
   end
 
-  def has_feature?(feature)
-    key = feature.to_sym
-    # PlanConfig is the source of truth — super admin controls this live from DB.
-    # The subscription.features column is a stale snapshot set at activation time
-    # and may be out of date if the plan config was changed after activation.
-    plan_features = PlanConfig.features_for(plan)
-    return plan_features[key] if plan_features.key?(key)
-    # Fall back to hardcoded defaults if PlanConfig record is missing
-    FEATURE_FLAGS.dig(plan, key) || false
+  def has_feature?(_feature)
+    true
   end
 
-  def within_survey_limit?
-    max_surveys.nil? || workspace.surveys_created_count < max_surveys
-  end
+  def within_survey_limit?       = true
+  def within_vote_limit?         = true
+  def within_dynamic_form_limit? = true
+  def within_feedback_limit?     = true
+  def within_supporter_limit?    = true
 
-  def within_vote_limit?
-    max_votes.nil? || workspace.votes_created_count < max_votes
-  end
-
-  def within_dynamic_form_limit?
-    max_dynamic_forms.nil? || workspace.dynamic_forms_created_count < max_dynamic_forms
-  end
-
-  def within_feedback_limit?
-    max_feedbacks.nil? || workspace.feedbacks_created_count < max_feedbacks
-  end
-
-  def within_supporter_limit?
-    return true if max_supporters.nil?
-    current_count = workspace.workspace_memberships.active.where(role: :supporter).count
-    current_count < max_supporters
-  end
+  def expires_soon? = false
 
   def surveys_used      = workspace.surveys_created_count
-  def surveys_remaining = max_surveys.nil? ? nil : [max_surveys - surveys_used, 0].max
-  def surveys_pct       = max_surveys.nil? ? 0 : [(surveys_used * 100.0 / max_surveys).round, 100].min
+  def votes_used        = workspace.votes_created_count
+  def dynamic_forms_used = workspace.dynamic_forms_created_count
+  def feedbacks_used    = workspace.feedbacks_created_count
+  def supporters_used   = workspace.workspace_memberships.active.where(role: :supporter).count
 
-  def votes_used = workspace.votes_created_count
-  def votes_remaining = max_votes.nil? ? nil : [max_votes - votes_used, 0].max
-  def votes_pct = max_votes.nil? ? 0 : [(votes_used * 100.0 / max_votes).round, 100].min
+  def surveys_remaining      = nil
+  def votes_remaining        = nil
+  def dynamic_forms_remaining = nil
+  def feedbacks_remaining    = nil
+  def supporters_remaining   = nil
 
-  def dynamic_forms_used      = workspace.dynamic_forms_created_count
-  def dynamic_forms_remaining = max_dynamic_forms.nil? ? nil : [max_dynamic_forms - dynamic_forms_used, 0].max
-  def dynamic_forms_pct       = max_dynamic_forms.nil? ? 0 : [(dynamic_forms_used * 100.0 / max_dynamic_forms).round, 100].min
+  def surveys_pct       = 0
+  def votes_pct         = 0
+  def dynamic_forms_pct = 0
+  def feedbacks_pct     = 0
+  def supporters_pct    = 0
 
-  def feedbacks_used = workspace.feedbacks_created_count
-  def feedbacks_remaining = max_feedbacks.nil? ? nil : [max_feedbacks - feedbacks_used, 0].max
-  def feedbacks_pct = max_feedbacks.nil? ? 0 : [(feedbacks_used * 100.0 / max_feedbacks).round, 100].min
-
-  def supporters_used = workspace.workspace_memberships.active.where(role: :supporter).count
-  def supporters_remaining = max_supporters.nil? ? nil : [max_supporters - supporters_used, 0].max
-  def supporters_pct = max_supporters.nil? ? 0 : max_supporters == 0 ? 0 : [(supporters_used * 100.0 / max_supporters).round, 100].min
-
-  def expires_soon?
-    ends_at.present? && ends_at <= 7.days.from_now
-  end
-
-  # For free plan: date when counts will next be reset (1st of next month)
-  def next_reset_at
-    return nil unless free?
+  def next_credit_reset_at
     today = Date.current
     Date.new(today.year, today.month, 1).next_month.beginning_of_day
   end
 
-  def next_reset_date_formatted(locale = I18n.locale)
-    return nil unless (date = next_reset_at)
+  def next_credit_reset_formatted(locale = I18n.locale)
+    date = next_credit_reset_at
     I18n.l(date.to_date, format: :long, locale: locale)
   rescue
     date.strftime("%d/%m/%Y")

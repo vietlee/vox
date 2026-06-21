@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kết quả bài thi</title>
+</head>
+<body style="margin:0;padding:0;background:#F1F5F9;font-family:'Helvetica Neue',Arial,sans-serif;">
+<% pct = @attempt.score_pct %>
+<% correct_count = @attempt.quiz_attempt_answers.where(is_correct: true).pluck(:quiz_question_id).uniq.size %>
+<% wrong_count = @quiz_set.quiz_questions.count - correct_count %>
+<% grad = pct >= 80 ? 'background:#10B981' : pct >= 50 ? 'background:#6366F1' : 'background:#64748B' %>
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F1F5F9;">
+  <tr>
+    <td align="center" style="padding:28px 16px;">
+
+      <!-- Card wrapper -->
+      <table width="520" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;width:100%;">
+
+        <!-- Hero card -->
+        <tr>
+          <td style="border-radius:20px 20px 0 0;overflow:hidden;<%= grad %>;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <!-- VOX logo row -->
+              <tr>
+                <td align="center" style="padding:28px 24px 0;">
+                  <table cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td style="padding-right:8px;vertical-align:middle;">
+                        <img src="https://vox.czin.net/icon-192.png" width="22" height="22" alt="VOX" style="display:block;border-radius:6px;opacity:0.85;" onerror="this.style.display='none'">
+                      </td>
+                      <td style="font-size:14px;font-weight:800;letter-spacing:5px;color:rgba(255,255,255,0.9);vertical-align:middle;">VOX</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <!-- Quiz title -->
+              <tr>
+                <td align="center" style="padding:12px 24px 4px;font-size:13px;font-weight:600;color:rgba(255,255,255,0.75);">
+                  <%= @quiz_set.title %>
+                </td>
+              </tr>
+              <!-- Score -->
+              <tr>
+                <td align="center" style="padding:4px 24px 2px;font-size:56px;font-weight:900;color:#ffffff;line-height:1;">
+                  <%= pct %>%
+                </td>
+              </tr>
+              <!-- Pass/fail -->
+              <tr>
+                <td align="center" style="padding:4px 24px 4px;font-size:15px;font-weight:700;color:rgba(255,255,255,0.9);">
+                  <%= @attempt.passed? ? "ĐẠT ✓" : "CHƯA ĐẠT" %>
+                </td>
+              </tr>
+              <!-- Name · date -->
+              <tr>
+                <td align="center" style="padding:4px 24px 24px;font-size:12px;color:rgba(255,255,255,0.65);">
+                  <%= @attempt.participant_name %> · <%= @attempt.submitted_at&.strftime("%d/%m/%Y %H:%M") %>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Stat bar -->
+        <tr>
+          <td style="<%= grad %>;border-top:1px solid rgba(255,255,255,0.12);">
+            <!-- darken overlay via background -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(0,0,0,0.18);">
+              <tr>
+                <td width="33%" align="center" style="padding:14px 8px;border-right:1px solid rgba(255,255,255,0.12);">
+                  <div style="font-size:22px;font-weight:900;color:#ffffff;line-height:1;"><%= @attempt.earned_points %>/<%= @attempt.total_points %></div>
+                  <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.65);margin-top:3px;">Điểm</div>
+                </td>
+                <td width="33%" align="center" style="padding:14px 8px;border-right:1px solid rgba(255,255,255,0.12);">
+                  <div style="font-size:22px;font-weight:900;color:#ffffff;line-height:1;"><%= correct_count %></div>
+                  <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.65);margin-top:3px;">Câu đúng</div>
+                </td>
+                <td width="34%" align="center" style="padding:14px 8px;">
+                  <div style="font-size:22px;font-weight:900;color:#ffffff;line-height:1;"><%= wrong_count %></div>
+                  <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.65);margin-top:3px;">Câu sai</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- CTA card -->
+        <tr>
+          <td style="background:#ffffff;border-radius:0 0 20px 20px;padding:28px 28px 24px;">
+            <p style="font-size:14px;color:#374151;margin:0 0 20px;line-height:1.7;">
+              Xin chào <strong><%= @attempt.participant_name %></strong>!<br>
+              Kết quả bài thi <strong>"<%= @quiz_set.title %>"</strong> của bạn đã được ghi nhận. Nhấn nút bên dưới để xem chi tiết từng câu hỏi và đáp án.
+            </p>
+            <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+              <tr>
+                <td align="center" style="background:#4F46E5;border-radius:12px;">
+                  <a href="<%= quiz_public_result_url(@attempt.result_token) %>"
+                     style="display:inline-block;padding:14px 40px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">
+                    📋 Xem chi tiết kết quả
+                  </a>
+                </td>
+              </tr>
+            </table>
+            <p style="font-size:11px;color:#94A3B8;margin:14px 0 0;text-align:center;word-break:break-all;">
+              <%= quiz_public_result_url(@attempt.result_token) %>
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td align="center" style="padding:20px 0;font-size:11px;color:#94A3B8;">
+            Gửi tự động từ <strong>VOX Quiz</strong> · <%= @workspace.name %>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

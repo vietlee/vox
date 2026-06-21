@@ -33,7 +33,7 @@ class AiQuestionCheckerJob < ApplicationJob
       }
     PROMPT
 
-    result_text = ClaudeService.haiku.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 512)
+    result_text = ClaudeService.for_feature("moderation").call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 512)
     result = JSON.parse(result_text.match(/\{.*\}/m)&.to_s || result_text)
     job.complete!(result)
   rescue => e

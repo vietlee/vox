@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 0;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+      <!-- Header -->
+      <tr><td style="background:linear-gradient(135deg,#7c3aed,#4f46e5);border-radius:16px 16px 0 0;padding:28px 32px 24px;text-align:center;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="44" style="vertical-align:middle;">
+              <div style="width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:10px;display:inline-block;line-height:40px;text-align:center;font-size:20px;">✨</div>
+            </td>
+            <td style="vertical-align:middle;padding-left:10px;text-align:left;">
+              <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.8);letter-spacing:.5px;">VOX · Nhận xét AI</div>
+              <div style="font-size:18px;font-weight:800;color:#fff;margin-top:2px;"><%= @quiz_set.title %></div>
+            </td>
+          </tr>
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:rgba(255,255,255,.15);border-radius:12px;">
+          <tr>
+            <td width="33%" style="padding:14px 10px;text-align:center;border-right:1px solid rgba(255,255,255,.2);">
+              <div style="font-size:22px;font-weight:900;color:#fff;"><%= @attempt.score_pct %>%</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;">Điểm số</div>
+            </td>
+            <td width="33%" style="padding:14px 10px;text-align:center;border-right:1px solid rgba(255,255,255,.2);">
+              <div style="font-size:22px;font-weight:900;color:#fff;"><%= @attempt.earned_points %>/<%= @attempt.total_points %></div>
+              <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;">Điểm tuyệt đối</div>
+            </td>
+            <td width="33%" style="padding:14px 10px;text-align:center;">
+              <div style="font-size:22px;font-weight:900;color:<%= @attempt.passed? ? '#86efac' : '#fca5a5' %>;"><%= @attempt.passed? ? "ĐẠT" : "CHƯA ĐẠT" %></div>
+              <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;">Kết quả</div>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+
+      <!-- Body -->
+      <tr><td style="background:#fff;padding:28px 32px;">
+        <p style="margin:0 0 20px;font-size:14px;color:#475569;">Xin chào <strong style="color:#0f172a;"><%= @attempt.participant_name %></strong>,</p>
+        <p style="margin:0 0 24px;font-size:13px;color:#64748b;line-height:1.6;">Dưới đây là nhận xét chi tiết từ AI về bài thi của bạn:</p>
+
+        <!-- AI Evaluation content -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:24px;">
+          <tr><td style="padding:20px 24px;">
+            <%
+              # Strip any LaTeX notation that emails can't render
+              email_content = @attempt.ai_evaluation.to_s
+                .gsub(/\$\$(.+?)\$\$/m, '\1')   # display math $$...$$
+                .gsub(/\$(.+?)\$/, '\1')          # inline math $...$
+                .gsub(/\\\((.+?)\\\)/, '\1')      # \(...\)
+                .gsub(/\\\[(.+?)\\\]/m, '\1')     # \[...\]
+                .gsub(/\\vec\{([^}]+)\}/, 'vec(\1)')
+                .gsub(/\\([a-zA-Z]+)\{([^}]+)\}/, '\2')
+                .gsub(/\\([a-zA-Z]+)/, '')
+            %>
+            <%= email_content.html_safe %>
+          </td></tr>
+        </table>
+
+        <!-- CTA -->
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr><td align="center">
+            <table cellpadding="0" cellspacing="0">
+              <tr><td style="background:linear-gradient(135deg,#7c3aed,#4f46e5);border-radius:10px;">
+                <a href="<%= quiz_public_result_url(@attempt.result_token) %>"
+                   style="display:inline-block;padding:12px 28px;font-size:13px;font-weight:700;color:#fff;text-decoration:none;">
+                  Xem kết quả chi tiết →
+                </a>
+              </td></tr>
+            </table>
+          </td></tr>
+        </table>
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td style="background:#f8fafc;border-radius:0 0 16px 16px;padding:16px 32px;text-align:center;border-top:1px solid #e2e8f0;">
+        <p style="margin:0;font-size:11px;color:#94a3b8;">Gửi từ <strong><%= @workspace.name %></strong> qua nền tảng VOX</p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>

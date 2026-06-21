@@ -26,15 +26,12 @@ class Auth::RegistrationsController < Devise::RegistrationsController
       @user.workspace = workspace
       @user.save!
 
-      free_limits = PlanConfig.limits_for("free").transform_values { |v| v || 0 }
       workspace.subscriptions.create!(
         plan:           :free,
         status:         :active,
         starts_at:      Time.current,
-        ends_at:        nil,
-        credit_balance: free_limits[:max_ai_credits].to_i,
-        features:       PlanConfig.features_for("free"),
-        **free_limits
+        credit_balance: Subscription.monthly_free_credits,
+        max_ai_credits: Subscription.monthly_free_credits
       )
     end
 

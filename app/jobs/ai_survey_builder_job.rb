@@ -51,7 +51,7 @@ class AiSurveyBuilderJob < ApplicationJob
       - Order logically: general → specific, demographics last
     PROMPT
 
-    result_text = ClaudeService.sonnet.call(
+    result_text = ClaudeService.for_feature("survey_builder").call(
       system_prompt: system_prompt,
       user_prompt: user_prompt,
       max_tokens: 6000

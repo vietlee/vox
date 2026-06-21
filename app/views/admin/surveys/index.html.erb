@@ -10,20 +10,7 @@
       <%= render "admin/shared/back_btn" %>
       <div>
         <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">📋 <%= t("surveys.title") %></h1>
-        <div class="flex items-center gap-3 mt-0.5">
-          <p class="text-[12px] text-slate-500"><%= @surveys.total_count rescue @surveys.count %> <%= t("surveys.subtitle") %></p>
-          <% if sub&.max_surveys %>
-            <% pct = sub.surveys_pct %>
-            <div class="flex items-center gap-1.5">
-              <div class="w-20 h-1.5 rounded-full overflow-hidden bg-slate-200">
-                <div class="h-1.5 rounded-full" style="width:<%= pct %>%; background:<%= pct >= 100 ? '#f59e0b' : pct >= 75 ? '#f97316' : '#6366f1' %>;"></div>
-              </div>
-              <span class="text-[11px] font-semibold <%= pct >= 100 ? 'text-amber-600' : 'text-slate-500' %>">
-                <%= sub.surveys_used %> / <%= sub.max_surveys %>
-              </span>
-            </div>
-          <% end %>
-        </div>
+        <p class="text-[12px] text-slate-500 mt-0.5"><%= @surveys.total_count rescue @surveys.count %> <%= t("surveys.subtitle") %></p>
       </div>
     </div>
     <div class="flex gap-2">
@@ -31,14 +18,8 @@
         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 hover:bg-violet-50 hover:text-violet-700 hover:border-violet-300 text-slate-700 transition-colors">
         <%= t("surveys.ai_create") %> ✨
       </button>
-      <% if sub && !sub.within_survey_limit? %>
-        <%= link_to billing_subscription_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-white border border-amber-300 hover:bg-amber-50 hover:border-amber-400 text-amber-700 transition-colors" do %>
-          ⚠️ <%= t("subscription.limit_reached_short") %> · <%= t("subscription.upgrade") %>
-        <% end %>
-      <% else %>
-        <%= link_to new_survey_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors" do %>
-          + <%= t("surveys.new") %>
-        <% end %>
+      <%= link_to new_survey_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors" do %>
+        + <%= t("surveys.new") %>
       <% end %>
     </div>
   </div>

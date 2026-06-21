@@ -287,7 +287,7 @@ class Admin::SttController < Admin::BaseController
     lang_key  = params[:language].presence.then { |l| SUMMARY_LANGUAGES.key?(l) ? l : "vi" } || "vi"
     lang_name = SUMMARY_LANGUAGES[lang_key]
 
-    result = ClaudeService.haiku.call(
+    result = ClaudeService.for_feature("stt_enhance").call(
       system_prompt: "You are a professional transcript summarizer. You ALWAYS write your response in the requested output language, regardless of the language of the input transcript. Never add a title or heading at the top — output the content directly.",
       user_prompt:   <<~PROMPT
         Summarize the following transcript. Your response MUST be written entirely in #{lang_name} — this is mandatory even if the transcript is in a different language.
@@ -323,7 +323,7 @@ class Admin::SttController < Admin::BaseController
     target_key  = params[:target_language].presence.then { |l| SUMMARY_LANGUAGES.key?(l) ? l : "en" } || "en"
     target_name = SUMMARY_LANGUAGES[target_key]
 
-    result = ClaudeService.haiku.call(
+    result = ClaudeService.for_feature("stt_enhance").call(
       system_prompt: "You are a professional translator. You ALWAYS translate into the exact target language requested, regardless of the source language.",
       user_prompt:   <<~PROMPT
         Translate the following transcript into #{target_name}. Your entire response MUST be in #{target_name}.

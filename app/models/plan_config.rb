@@ -58,10 +58,16 @@ class PlanConfig < ApplicationRecord
     end
   end
 
+  def self.monthly_free_credits
+    Rails.cache.fetch("plan_config/monthly_free_credits", expires_in: 5.minutes) do
+      find_by(plan_key: "free")&.monthly_free_credits || 100
+    end
+  end
+
   def self.invalidate_cache!(plan_key)
     Rails.cache.delete("plan_config/#{plan_key}")
   end
 
-  after_save    { self.class.invalidate_cache!(plan_key) }
-  after_destroy { self.class.invalidate_cache!(plan_key) }
+  after_save    { self.class.invalidate_cache!(plan_key); Rails.cache.delete("plan_config/monthly_free_credits") }
+  after_destroy { self.class.invalidate_cache!(plan_key); Rails.cache.delete("plan_config/monthly_free_credits") }
 end

@@ -1,0 +1,392 @@
+<% content_for :title, "Chi tiết bài làm — #{@attempt.participant_name}" %>
+
+<% content_for :head do %>
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<% end %>
+
+<div class="flex items-center gap-3 mb-6">
+  <%= render "admin/shared/back_btn" %>
+  <div class="flex-1">
+    <h1 class="text-[20px] font-extrabold text-slate-900"><%= @attempt.participant_name %></h1>
+    <p class="text-[13px] text-slate-500"><%= @attempt.participant_email %> · <%= @quiz_set.title %></p>
+  </div>
+  <% if @quiz_set.result_later? %>
+    <button onclick="sendEmail(this)"
+            data-attempt="<%= @attempt.id %>"
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 transition-colors">
+      📧 Gửi kết quả qua email
+    </button>
+  <% end %>
+</div>
+
+<!-- Score banner -->
+<% pct = @attempt.score_pct %>
+<div class="rounded-2xl mb-6 overflow-hidden"
+     style="<%= pct >= 80 ? 'background:linear-gradient(135deg,#10B981,#0D9488)' : pct >= 50 ? 'background:linear-gradient(135deg,#6366F1,#8B5CF6)' : 'background:linear-gradient(135deg,#64748B,#475569)' %>">
+  <div class="flex items-center justify-between px-8 py-6 text-white">
+    <div>
+      <div class="text-[13px] font-semibold opacity-75 mb-1"><%= @attempt.submitted_at&.strftime("%d/%m/%Y %H:%M") %></div>
+      <div class="text-[42px] font-black leading-none"><%= pct %>%</div>
+      <div class="text-[14px] font-bold opacity-90 mt-1"><%= @attempt.passed? ? t("quiz.passed") : t("quiz.failed") %></div>
+    </div>
+    <div class="flex gap-8 text-center">
+      <% correct_count = @attempt.quiz_attempt_answers.where(is_correct: true).pluck(:quiz_question_id).uniq.size %>
+      <div>
+        <div class="text-[32px] font-black"><%= @attempt.earned_points %>/<%= @attempt.total_points %></div>
+        <div class="text-[11px] opacity-75 font-semibold">Điểm</div>
+      </div>
+      <div>
+        <div class="text-[32px] font-black"><%= correct_count %></div>
+        <div class="text-[11px] opacity-75 font-semibold">Câu đúng</div>
+      </div>
+      <div>
+        <div class="text-[32px] font-black"><%= @quiz_set.quiz_questions.count - correct_count %></div>
+        <div class="text-[11px] opacity-75 font-semibold">Câu sai</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="flex mb-4" style="border-bottom:2px solid #e2e8f0;">
+  <button id="tab-detail" onclick="switchTab('detail')"
+          style="flex:1;padding:10px 16px;font-size:13px;font-weight:700;color:#1e293b;background:#fff;border:0;border-bottom:2px solid #6366f1;margin-bottom:-2px;cursor:pointer;transition:all .15s;">
+    📋 Kết quả chi tiết
+  </button>
+  <div style="width:1px;background:#e2e8f0;margin:8px 0 10px;flex-shrink:0;"></div>
+  <button id="tab-ai" onclick="switchTab('ai')"
+          style="flex:1;padding:10px 16px;font-size:13px;font-weight:600;color:#94a3b8;background:#fff;border:0;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;transition:all .15s;">
+    ✨ Đánh giá AI<% if @attempt.ai_evaluated_at %><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;margin-left:6px;vertical-align:middle;"></span><% end %>
+    <span style="font-size:10px;font-weight:700;background:#ede9fe;color:#7c3aed;padding:1px 7px;border-radius:20px;margin-left:5px;vertical-align:middle;">AI</span>
+  </button>
+</div>
+
+<!-- Tab: AI Evaluation -->
+<div id="pane-ai" style="display:none;" class="mb-6">
+
+  <!-- Loading screen -->
+  <div id="ai-loading" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:220px;border-radius:16px;background:linear-gradient(135deg,#f5f3ff,#eef2ff);border:1.5px solid #c4b5fd;padding:32px 20px;">
+    <div style="position:relative;width:72px;height:72px;display:flex;align-items:center;justify-content:center;">
+      <div style="position:absolute;inset:-8px;border-radius:50%;border:2px dashed #c4b5fd;animation:rb-orbit 3s linear infinite"></div>
+      <img src="/icon.svg" style="width:56px;height:56px;border-radius:14px;box-shadow:0 4px 16px rgba(124,58,237,.25);animation:vox-pulse 1.6s ease-in-out infinite;object-fit:contain"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#4361ee);align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,58,237,.25);animation:vox-pulse 1.6s ease-in-out infinite">
+        <svg width="28" height="28" viewBox="0 0 36 36"><rect width="36" height="36" rx="9" fill="white" fill-opacity=".9"/><rect x="6" y="6" width="24" height="19" rx="5" fill="white"/><rect x="10" y="11" width="4" height="7" rx="1" fill="#7c3aed"/><rect x="16" y="8" width="4" height="13" rx="1" fill="#7c3aed"/><rect x="23" y="10" width="4" height="9" rx="1" fill="#7c3aed"/></svg>
+      </div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:11px;font-weight:700;color:#7c3aed;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">✦ AI đang phân tích</div>
+      <div style="font-size:14px;font-weight:700;color:#3b0764;margin-bottom:4px;">Đang đánh giá bài làm...</div>
+      <div id="ai-loading-sub" style="font-size:12px;color:#7c3aed;opacity:0.8;">Đọc kết quả từng câu hỏi</div>
+    </div>
+  </div>
+
+  <!-- Empty state (not yet evaluated) -->
+  <% if @attempt.ai_evaluation.blank? %>
+  <div id="ai-not-run" style="background:#fff;border:1.5px dashed #c4b5fd;border-radius:16px;padding:40px 24px;text-align:center;">
+    <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#f5f3ff,#ede9fe);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;">✨</div>
+    <p style="font-size:15px;font-weight:800;color:#1e293b;margin:0 0 8px;">Chưa có đánh giá AI</p>
+    <p style="font-size:13px;color:#64748b;line-height:1.6;margin:0 0 6px;">AI sẽ phân tích bài làm và đưa ra nhận xét chi tiết về điểm mạnh,<br>điểm yếu và gợi ý học tập cho <strong><%= @attempt.participant_name %></strong>.</p>
+    <p style="font-size:11px;color:#94a3b8;margin:0 0 20px;">Chi phí: 2 credits · Kết quả được lưu lại</p>
+    <button onclick="runAiEval(false)" id="ai-run-btn"
+            style="display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:10px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:0;cursor:pointer;box-shadow:0 4px 14px rgba(124,58,237,.35);">
+      ✨ Chạy đánh giá AI
+    </button>
+  </div>
+  <% end %>
+
+  <!-- Result panel -->
+  <div id="ai-result-panel" style="<%= @attempt.ai_evaluation.present? ? '' : 'display:none;' %>">
+    <!-- Toolbar -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #c4b5fd;border-radius:8px;padding:5px 10px;">
+        <span style="font-size:12px;">✨</span>
+        <span style="font-size:12px;font-weight:700;color:#6d28d9;">Nhận xét AI</span>
+        <% if @attempt.ai_evaluated_at %>
+          <span style="font-size:10px;color:#a78bfa;margin-left:4px;"><%= @attempt.ai_evaluated_at.strftime("%d/%m/%Y %H:%M") %></span>
+        <% end %>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px;">
+        <button onclick="toggleEdit()" id="edit-btn"
+                style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:600;background:#f8fafc;border:1px solid #e2e8f0;color:#64748b;cursor:pointer;">
+          ✏️ Chỉnh sửa
+        </button>
+        <button onclick="sendAiEmail(this)"
+                style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:600;background:#eff6ff;border:1px solid #bfdbfe;color:#2563eb;cursor:pointer;">
+          📧 Gửi cho học sinh
+        </button>
+        <button onclick="runAiEval(true)"
+                style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:600;background:#faf5ff;border:1px solid #e9d5ff;color:#7c3aed;cursor:pointer;">
+          ↻ Tạo lại
+        </button>
+      </div>
+    </div>
+
+    <!-- View mode -->
+    <div id="ai-view-mode" style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+      <div id="ai-eval-content" style="padding:24px 28px;">
+        <%= @attempt.ai_evaluation&.html_safe %>
+      </div>
+    </div>
+
+    <!-- Edit mode (hidden) — contenteditable so user sees rendered output, not raw HTML -->
+    <div id="ai-edit-mode" style="display:none;background:#fff;border:1.5px solid #c4b5fd;border-radius:14px;overflow:hidden;">
+      <div style="padding:8px 12px;background:#f5f3ff;border-bottom:1px solid #e9d5ff;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11px;color:#7c3aed;font-weight:600;">✏️ Chỉnh sửa trực tiếp</span>
+        <span style="font-size:11px;color:#a78bfa;">· Click vào nội dung để sửa</span>
+        <button onclick="saveEdit(this)" style="margin-left:auto;padding:5px 14px;border-radius:7px;font-size:12px;font-weight:700;background:#7c3aed;color:#fff;border:0;cursor:pointer;">Lưu</button>
+        <button onclick="cancelEdit()" style="padding:5px 10px;border-radius:7px;font-size:12px;font-weight:600;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;cursor:pointer;">Hủy</button>
+      </div>
+      <div id="ai-edit-area" contenteditable="true"
+           style="min-height:320px;padding:24px 28px;font-size:13px;line-height:1.7;color:#334155;outline:none;cursor:text;"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tab: Detail -->
+<div id="pane-detail" class="space-y-4">
+  <% @questions.each_with_index do |q, i| %>
+    <% my_answers  = @answers_by_q[q.id] || [] %>
+    <% is_correct  = my_answers.any?(&:is_correct?) %>
+    <% selected_ids = my_answers.map(&:quiz_option_id).compact %>
+    <div class="bg-white rounded-xl border-2 <%= q.short_answer? ? 'border-amber-200' : (is_correct ? 'border-emerald-200' : 'border-red-200') %> overflow-hidden">
+      <!-- Question header -->
+      <div class="flex items-start gap-3 px-5 py-4 <%= q.short_answer? ? 'bg-amber-50' : (is_correct ? 'bg-emerald-50' : 'bg-red-50') %>">
+        <% if q.short_answer? %>
+          <div class="w-7 h-7 rounded-full bg-amber-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-[12px]">📝</span>
+          </div>
+        <% elsif is_correct %>
+          <div class="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="14" height="14" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+          </div>
+        <% else %>
+          <div class="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="14" height="14" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+          </div>
+        <% end %>
+        <div class="flex-1">
+          <p class="text-[14px] font-bold text-slate-800"><%= i + 1 %>. <%= q.question_text %></p>
+          <% type_label = q.short_answer? ? "Tự luận" : q.true_false? ? "Đúng/Sai" : q.allow_multiple ? "Nhiều đáp án" : "1 đáp án" %>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full <%= q.short_answer? ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500' %>"><%= type_label %></span>
+        </div>
+        <div class="text-[13px] font-bold flex-shrink-0 <%= q.short_answer? ? 'text-amber-600' : (is_correct ? 'text-emerald-600' : 'text-red-500') %>">
+          <% if q.short_answer? %>
+            Manual
+          <% else %>
+            <%= is_correct ? "+#{q.points}" : "0" %> pt
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="px-5 py-4">
+        <% if q.short_answer? %>
+          <% text_ans = my_answers.first&.text_answer %>
+          <% if text_ans.present? %>
+            <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-[13px] text-slate-700"><%= text_ans %></div>
+          <% else %>
+            <p class="text-[13px] text-slate-400 italic">Không có câu trả lời</p>
+          <% end %>
+        <% else %>
+          <div class="space-y-2">
+            <% q.quiz_options.each do |opt| %>
+              <% i_sel = selected_ids.include?(opt.id) %>
+              <div class="flex items-center gap-3 px-4 py-2.5 rounded-lg border
+                <%= opt.is_correct? ? 'bg-emerald-50 border-emerald-300' : (i_sel ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-200') %>">
+                <% if opt.is_correct? %>
+                  <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                <% elsif i_sel %>
+                  <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                <% else %>
+                  <div class="w-4 h-4 flex-shrink-0"></div>
+                <% end %>
+                <span class="text-[13px] flex-1 <%= opt.is_correct? ? 'text-emerald-800 font-semibold' : (i_sel ? 'text-red-700' : 'text-slate-500') %>"><%= opt.option_text %></span>
+                <% if opt.is_correct? %>
+                  <span class="text-[10px] font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">Đáp án đúng</span>
+                <% end %>
+                <% if i_sel && !opt.is_correct? %>
+                  <span class="text-[10px] font-bold px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full">Bạn chọn</span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+        <% if q.explanation.present? %>
+          <div class="mt-3 flex gap-2 text-[12px] text-slate-500 italic">
+            <span>💡</span><span><%= q.explanation %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div><!-- /pane-detail -->
+
+<div id="email-toast" style="display:none; position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+     background:#1E293B; color:#fff; font-size:13px; font-weight:600; padding:10px 20px; border-radius:12px; z-index:50; white-space:nowrap;"></div>
+
+<style>
+@keyframes vox-pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.08);opacity:.85} }
+@keyframes rb-orbit  { to { transform:rotate(360deg); } }
+</style>
+<script>
+var AI_EVAL_URL        = '<%= ai_evaluate_attempt_quiz_set_path(@quiz_set) %>';
+var AI_UPDATE_URL      = '<%= update_ai_evaluation_quiz_set_path(@quiz_set) %>';
+var AI_SEND_EMAIL_URL  = '<%= send_ai_evaluation_email_quiz_set_path(@quiz_set) %>';
+var ATTEMPT_ID         = <%= @attempt.id %>;
+var loadingPhrases     = ['Đọc kết quả từng câu hỏi','Phân tích điểm mạnh, điểm yếu','Tổng hợp nhận xét','Viết gợi ý học tập...'];
+var phraseIdx = 0, phraseTimer = null;
+
+function switchTab(tab) {
+  document.getElementById('pane-detail').style.display = tab === 'detail' ? 'block' : 'none';
+  document.getElementById('pane-ai').style.display     = tab === 'ai'     ? 'block' : 'none';
+  var td = document.getElementById('tab-detail');
+  var ta = document.getElementById('tab-ai');
+  var base = 'flex:1;padding:10px 16px;font-size:13px;background:#fff;border:0;margin-bottom:-2px;cursor:pointer;transition:all .15s;';
+  if (tab === 'detail') {
+    td.style.cssText = base + 'font-weight:700;color:#1e293b;border-bottom:2px solid #6366f1;';
+    ta.style.cssText = base + 'font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;';
+  } else {
+    td.style.cssText = base + 'font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;';
+    ta.style.cssText = base + 'font-weight:700;color:#7c3aed;border-bottom:2px solid #7c3aed;';
+  }
+  history.replaceState(null, '', tab === 'ai' ? '#tab-ai' : '#');
+}
+
+// Restore tab from URL hash on load
+(function() {
+  if (window.location.hash === '#tab-ai') switchTab('ai');
+}());
+
+function runAiEval(force) {
+  var loading     = document.getElementById('ai-loading');
+  var notRun      = document.getElementById('ai-not-run');
+  var resultPanel = document.getElementById('ai-result-panel');
+
+  if (notRun) notRun.style.display = 'none';
+  if (resultPanel) resultPanel.style.display = 'none';
+  loading.style.display = 'flex';
+
+  phraseIdx = 0;
+  document.getElementById('ai-loading-sub').textContent = loadingPhrases[0];
+  phraseTimer = setInterval(function() {
+    phraseIdx = (phraseIdx + 1) % loadingPhrases.length;
+    document.getElementById('ai-loading-sub').textContent = loadingPhrases[phraseIdx];
+  }, 2200);
+
+  fetch(AI_EVAL_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+    body: JSON.stringify({ attempt_id: ATTEMPT_ID, force: force ? '1' : '' })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    clearInterval(phraseTimer);
+    loading.style.display = 'none';
+    if (data.html) {
+      document.getElementById('ai-eval-content').innerHTML = data.html;
+      if (resultPanel) resultPanel.style.display = 'block';
+      document.getElementById('tab-ai').innerHTML = '✨ Đánh giá AI <span style="font-size:9px;color:#10b981;font-weight:900;margin-left:4px;">●</span> <span style="font-size:10px;font-weight:700;background:#7c3aed;color:#fff;padding:1px 6px;border-radius:20px;margin-left:6px;vertical-align:middle;">AI</span>';
+      if (!data.cached && window.deductDisplayCredits) window.deductDisplayCredits(2);
+    } else {
+      if (notRun) notRun.style.display = 'block';
+      showToast('Lỗi: ' + (data.error || 'Không thể phân tích'), true);
+    }
+  }).catch(function() {
+    clearInterval(phraseTimer);
+    loading.style.display = 'none';
+    if (notRun) notRun.style.display = 'block';
+    showToast('Lỗi kết nối', true);
+  });
+}
+
+function toggleEdit() {
+  var view    = document.getElementById('ai-view-mode');
+  var edit    = document.getElementById('ai-edit-mode');
+  var editArea = document.getElementById('ai-edit-area');
+  var btn     = document.getElementById('edit-btn');
+  if (edit.style.display === 'none') {
+    // Copy rendered HTML into contenteditable — user edits what they see
+    editArea.innerHTML = document.getElementById('ai-eval-content').innerHTML;
+    view.style.display = 'none';
+    edit.style.display = 'block';
+    editArea.focus();
+    btn.innerHTML = '👁 Xem';
+  } else {
+    cancelEdit();
+  }
+}
+
+function cancelEdit() {
+  document.getElementById('ai-view-mode').style.display = 'block';
+  document.getElementById('ai-edit-mode').style.display = 'none';
+  document.getElementById('edit-btn').innerHTML = '✏️ Chỉnh sửa';
+}
+
+function saveEdit(btn) {
+  var html = document.getElementById('ai-edit-area').innerHTML.trim();
+  if (!html) return;
+  btn.textContent = 'Đang lưu...'; btn.disabled = true;
+  fetch(AI_UPDATE_URL, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+    body: JSON.stringify({ attempt_id: ATTEMPT_ID, html: html })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.ok) {
+      document.getElementById('ai-eval-content').innerHTML = html;
+      cancelEdit();
+      showToast('Đã lưu thay đổi');
+    } else {
+      btn.textContent = 'Lưu'; btn.disabled = false;
+      showToast('Lưu thất bại', true);
+    }
+  }).catch(function() { btn.textContent = 'Lưu'; btn.disabled = false; showToast('Lỗi kết nối', true); });
+}
+
+function sendAiEmail(btn) {
+  btn.disabled = true; btn.textContent = '⏳ Đang gửi...';
+  fetch(AI_SEND_EMAIL_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+    body: JSON.stringify({ attempt_id: ATTEMPT_ID })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.success) {
+      btn.textContent = '✅ Đã gửi';
+      btn.style.background = '#f0fdf4'; btn.style.borderColor = '#bbf7d0'; btn.style.color = '#16a34a';
+      showToast('Email nhận xét AI đã được gửi!');
+    } else {
+      btn.disabled = false; btn.innerHTML = '📧 Gửi cho học sinh';
+      showToast('Lỗi: ' + (data.error || 'Không thể gửi'), true);
+    }
+  }).catch(function() { btn.disabled = false; btn.innerHTML = '📧 Gửi cho học sinh'; showToast('Lỗi kết nối', true); });
+}
+
+function sendEmail(btn) {
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang gửi...';
+  fetch('<%= send_result_email_quiz_set_path(@quiz_set) %>', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+    body: JSON.stringify({ attempt_id: btn.dataset.attempt })
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      btn.textContent = '✅ Đã gửi email';
+      btn.className = btn.className.replace('hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700', 'text-emerald-700 bg-emerald-50 border-emerald-200');
+      showToast('Email kết quả đã gửi thành công!');
+    } else {
+      btn.disabled = false; btn.textContent = '📧 Gửi kết quả qua email';
+      showToast('Lỗi: ' + (data.error || 'Không thể gửi'), true);
+    }
+  });
+}
+function showToast(msg, err) {
+  var t = document.getElementById('email-toast');
+  t.textContent = msg; t.style.background = err ? '#DC2626' : '#1E293B'; t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+</script>

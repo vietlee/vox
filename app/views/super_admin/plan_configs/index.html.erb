@@ -1,70 +1,54 @@
 <div class="flex justify-between items-center mb-5">
   <div>
     <h1 class="text-[21px] font-extrabold text-slate-900"><%= t("super_admin.plan_configs.title") %></h1>
-    <p class="text-[12px] text-slate-500 mt-0.5"><%= t("super_admin.plan_configs.subtitle") %></p>
+    <p class="text-[12px] text-slate-500 mt-0.5">Cấu hình AI Credits miễn phí hàng tháng cho tất cả workspace.</p>
   </div>
 </div>
 
-<div class="grid grid-cols-3 gap-5">
-  <% @plan_configs.each do |pc| %>
-    <% plan_color = { "free" => "border-slate-200", "pro" => "border-indigo-300", "enterprise" => "border-violet-300" }[pc.plan_key] || "border-slate-200" %>
-    <% badge_color = { "free" => "bg-slate-100 text-slate-600", "pro" => "bg-indigo-100 text-indigo-700", "enterprise" => "bg-violet-100 text-violet-700" }[pc.plan_key] || "bg-slate-100 text-slate-600" %>
-    <div class="bg-white rounded-xl border-2 <%= plan_color %> p-5">
-      <div class="flex items-center justify-between mb-3">
-        <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase <%= badge_color %>"><%= pc.plan_key %></span>
-        <%= link_to edit_super_admin_plan_config_path(pc), class: "text-[11px] text-indigo-600 hover:text-indigo-700 font-semibold" do %><%= t("super_admin.plan_configs.action_edit") %><% end %>
-      </div>
+<% free_config = @plan_configs.find { |pc| pc.plan_key == "free" } %>
 
-      <div class="mb-4">
-        <div class="text-[28px] font-black text-slate-900 leading-none">
-          <% if pc.price_vnd == 0 && pc.plan_key == "free" %>
-            <%= t("super_admin.plan_configs.price_free") %>
-          <% elsif pc.price_vnd == 0 %>
-            <%= t("super_admin.plan_configs.price_contact") %>
-          <% else %>
-            <%= number_with_delimiter(pc.price_vnd) %> ₫
-          <% end %>
+<div class="max-w-lg">
+  <!-- AI Credits config card -->
+  <div class="bg-white rounded-xl border-2 border-violet-200 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex px-2.5 py-1 rounded-lg text-[12px] font-bold uppercase bg-violet-100 text-violet-700">AI Credits</span>
+        <span class="text-[12px] text-emerald-600 font-semibold">Tất cả tính năng miễn phí</span>
+      </div>
+      <% if free_config %>
+        <%= link_to edit_super_admin_plan_config_path(free_config), class: "text-[12px] text-indigo-600 hover:text-indigo-700 font-semibold" do %>
+          Chỉnh sửa →
+        <% end %>
+      <% end %>
+    </div>
+
+    <div class="bg-violet-50 rounded-lg p-4 mb-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[11px] font-semibold text-violet-500 uppercase mb-1">Monthly Free Credits</div>
+          <div class="text-[32px] font-black text-violet-700 leading-none"><%= free_config&.monthly_free_credits || 100 %></div>
+          <div class="text-[12px] text-violet-400 mt-1">credits / tháng / workspace</div>
         </div>
-        <% if pc.price_vnd > 0 %>
-          <div class="text-[12px] text-slate-400">/<%= pc.billing_cycle || "month" %></div>
-        <% end %>
-      </div>
-
-      <div class="space-y-1 text-[12px]">
-        <div class="font-semibold text-slate-500 uppercase text-[10px] mb-1.5"><%= t("super_admin.plan_configs.limits_section") %></div>
-        <% limits = pc.limits || {} %>
-        <% [
-          [t("super_admin.plan_configs.max_surveys"),       limits["max_surveys"]],
-          [t("super_admin.plan_configs.max_votes"),         limits["max_votes"]],
-          [t("super_admin.plan_configs.max_feedbacks"),     limits["max_feedbacks"]],
-          [t("super_admin.plan_configs.max_dynamic_forms", default: "Dynamic Forms"), limits["max_dynamic_forms"]],
-          [t("super_admin.plan_configs.max_supporters"),    limits["max_supporters"]],
-          [t("super_admin.plan_configs.max_ai_credits"),    limits["max_ai_credits"]]
-        ].each do |label, val| %>
-          <div class="flex justify-between">
-            <span class="text-slate-500"><%= label %></span>
-            <span class="font-semibold text-slate-700"><%= val.nil? ? "∞" : val.to_s %></span>
-          </div>
-        <% end %>
-      </div>
-
-      <div class="mt-3 pt-3 border-t border-slate-100 space-y-1 text-[12px]">
-        <div class="font-semibold text-slate-500 uppercase text-[10px] mb-1.5"><%= t("super_admin.plan_configs.features_section") %></div>
-        <% features = pc.features || {} %>
-        <% [
-          [t("super_admin.plan_configs.ai_builder"),    "ai_survey_builder"],
-          [t("super_admin.plan_configs.ai_analysis"),   "ai_analysis"],
-          [t("super_admin.plan_configs.ai_report"),     "ai_executive_report"],
-          [t("super_admin.plan_configs.ai_chat"),       "ai_chat"],
-          [t("super_admin.plan_configs.ai_moderation"), "ai_moderation"],
-          [t("dynamic_forms.nav"),                      "dynamic_forms"]
-        ].each do |label, key| %>
-          <div class="flex items-center gap-1.5">
-            <span class="<%= features[key] ? 'text-emerald-500' : 'text-slate-200' %>"><%= features[key] ? '✓' : '✗' %></span>
-            <span class="<%= features[key] ? 'text-slate-700' : 'text-slate-400' %>"><%= label %></span>
-          </div>
-        <% end %>
+        <div class="text-[48px] opacity-20">✨</div>
       </div>
     </div>
-  <% end %>
+
+    <div class="space-y-2 text-[13px]">
+      <div class="flex items-center gap-2 text-slate-600">
+        <span class="text-emerald-500">✓</span> Survey, Vote, Feedback, Dynamic Forms — không giới hạn
+      </div>
+      <div class="flex items-center gap-2 text-slate-600">
+        <span class="text-emerald-500">✓</span> Tất cả tính năng AI, TTS, STT, Export, SSO — miễn phí
+      </div>
+      <div class="flex items-center gap-2 text-slate-600">
+        <span class="text-emerald-500">✓</span> Supporter & Members — không giới hạn
+      </div>
+      <div class="flex items-center gap-2 text-slate-600">
+        <span class="text-violet-500">✦</span> Cron job cấp credits vào ngày 1 hàng tháng
+      </div>
+      <div class="flex items-center gap-2 text-slate-600">
+        <span class="text-violet-500">✦</span> Người dùng có thể mua thêm AI Credits qua PayOS
+      </div>
+    </div>
+  </div>
 </div>

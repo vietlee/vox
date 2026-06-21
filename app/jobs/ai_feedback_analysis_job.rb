@@ -130,7 +130,7 @@ class AiFeedbackAnalysisJob < ApplicationJob
       - sentiment %: estimate based on overall tone of feedbacks (positive/constructive/critical)
     PROMPT
 
-    result_text = ClaudeService.sonnet_long.call(
+    result_text = ClaudeService.for_feature("feedback_analysis", timeout: 240).call(
       system_prompt: system_prompt,
       user_prompt:   user_prompt,
       max_tokens:    5000

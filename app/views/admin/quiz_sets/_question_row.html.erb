@@ -1,0 +1,72 @@
+<% type_label = case question.question_type
+  when "multiple_choice" then (question.allow_multiple ? "Nhiều đáp án" : "1 đáp án")
+  when "true_false"      then "Đúng/Sai"
+  when "short_answer"    then "Tự luận"
+  end
+  type_color = case question.question_type
+    when "multiple_choice" then question.allow_multiple ? "bg-violet-100 text-violet-700" : "bg-indigo-100 text-indigo-700"
+    when "true_false"      then "bg-amber-100 text-amber-700"
+    when "short_answer"    then "bg-emerald-100 text-emerald-700"
+  end
+%>
+<div id="q-<%= question.id %>" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4"
+     data-allow-multiple="<%= question.allow_multiple %>">
+  <div class="flex items-start gap-3">
+    <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+      <%= defined?(index) ? (index.to_i + 1) : "?" %>
+    </div>
+    <div class="flex-1 min-w-0">
+      <div class="flex items-start gap-2 mb-2 flex-wrap">
+        <p class="text-[14px] font-semibold text-slate-800 flex-1"><%= question.question_text %></p>
+        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 <%= type_color %>"><%= type_label %></span>
+      </div>
+      <% if question.explanation.present? %>
+        <p class="text-[11px] text-slate-400 italic mb-2">💡 <%= question.explanation %></p>
+      <% end %>
+
+      <% if question.short_answer? %>
+        <p class="text-[12px] text-slate-400 italic mb-3">✍️ Học sinh sẽ tự nhập câu trả lời</p>
+      <% else %>
+        <!-- Options -->
+        <div id="opts-<%= question.id %>" class="space-y-0.5 mb-3">
+          <% question.quiz_options.each do |opt| %>
+            <div id="opt-<%= opt.id %>" class="flex items-center gap-2 py-1">
+              <% if question.allow_multiple %>
+                <button onclick="toggleCorrect(<%= question.id %>, <%= opt.id %>, this)" title="Đánh dấu đúng"
+                        data-correct="<%= opt.is_correct %>"
+                        class="w-5 h-5 rounded border-2 flex-shrink-0 transition-colors <%= opt.is_correct? ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 hover:border-emerald-400' %>"
+                        id="check-<%= opt.id %>"></button>
+              <% else %>
+                <button onclick="setCorrect(<%= question.id %>, <%= opt.id %>)" title="Đánh dấu đúng"
+                        class="w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors <%= opt.is_correct? ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 hover:border-emerald-400' %>"
+                        id="radio-<%= opt.id %>"></button>
+              <% end %>
+              <span class="flex-1 text-[13px] text-slate-700"><%= opt.option_text %></span>
+              <% unless question.true_false? %>
+                <button onclick="deleteOption(<%= question.id %>, <%= opt.id %>)" class="text-slate-300 hover:text-red-400 transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Add option inline (not for true_false) -->
+        <% unless question.true_false? %>
+          <div class="flex gap-2">
+            <input type="text" id="opt-input-<%= question.id %>" placeholder="<%= t('quiz.option_placeholder') %>"
+                   class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-500 outline-none"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();addOption(<%= question.id %>)}">
+            <button onclick="addOption(<%= question.id %>)"
+                    class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 text-[12px] font-semibold rounded-lg transition-colors">
+              + <%= t("quiz.add_option") %>
+            </button>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+    <button onclick="deleteQuestion(<%= question.id %>)" class="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 mt-0.5">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    </button>
+  </div>
+</div>

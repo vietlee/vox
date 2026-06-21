@@ -34,55 +34,19 @@
         </div>
       </div>
 
-      <!-- Limits -->
-      <div class="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 class="text-[13px] font-bold text-slate-700 mb-1"><%= t("super_admin.plan_configs.usage_limits") %></h2>
-        <p class="text-[12px] text-slate-400 mb-4"><%= t("super_admin.plan_configs.unlimited_note") %></p>
-        <% limits = @plan_config.limits || {} %>
-        <div class="grid grid-cols-2 gap-4">
-          <% [
-            ["max_surveys",       t("super_admin.plan_configs.max_surveys")],
-            ["max_votes",         t("super_admin.plan_configs.max_votes")],
-            ["max_feedbacks",     t("super_admin.plan_configs.max_feedbacks")],
-            ["max_dynamic_forms", t("super_admin.plan_configs.max_dynamic_forms", default: "Dynamic Form tối đa")],
-            ["max_supporters",    t("super_admin.plan_configs.max_supporters")],
-            ["max_ai_credits",    t("super_admin.plan_configs.max_ai_credits")]
-          ].each do |key, label| %>
-            <div>
-              <label class="block text-[12px] font-semibold text-slate-600 mb-1.5"><%= label %></label>
-              <input type="number" name="plan_config[limits][<%= key %>]" min="0"
-                value="<%= limits[key] %>"
-                placeholder="∞"
-                class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none">
-            </div>
-          <% end %>
+      <!-- Monthly free AI credits (only on free plan) -->
+      <% if @plan_config.plan_key == "free" %>
+        <div class="bg-white rounded-xl border border-violet-200 p-5">
+          <h2 class="text-[13px] font-bold text-violet-700 mb-1">AI Credits hàng tháng</h2>
+          <p class="text-[12px] text-slate-400 mb-4">Số AI Credits miễn phí được cấp cho tất cả workspace vào đầu mỗi tháng bởi cron job.</p>
+          <div class="max-w-[200px]">
+            <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">Monthly Free Credits</label>
+            <%= f.number_field :monthly_free_credits, min: 0, step: 10,
+                  class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none" %>
+          </div>
         </div>
-      </div>
+      <% end %>
 
-      <!-- Features -->
-      <div class="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 class="text-[13px] font-bold text-slate-700 mb-4"><%= t("super_admin.plan_configs.features_title") %></h2>
-        <% features = @plan_config.features || {} %>
-        <div class="grid grid-cols-2 gap-3">
-          <% [
-            ["ai_survey_builder",  t("super_admin.plan_configs.ai_builder")],
-            ["ai_analysis",        t("super_admin.plan_configs.ai_analysis")],
-            ["ai_executive_report",t("super_admin.plan_configs.ai_report")],
-            ["ai_chat",            t("super_admin.plan_configs.ai_chat")],
-            ["ai_moderation",      t("super_admin.plan_configs.ai_moderation")],
-            ["export",             t("super_admin.plan_configs.export")],
-            ["dynamic_forms",      t("dynamic_forms.nav")]
-          ].each do |key, label| %>
-            <label class="flex items-center gap-2.5 cursor-pointer group">
-              <input type="hidden" name="plan_config[features][<%= key %>]" value="0">
-              <input type="checkbox" name="plan_config[features][<%= key %>]" value="1"
-                <%= "checked" if features[key].to_s == "true" || features[key] == true %>
-                class="w-4 h-4 accent-indigo-600">
-              <span class="text-[13px] text-slate-700 group-hover:text-slate-900"><%= label %></span>
-            </label>
-          <% end %>
-        </div>
-      </div>
 
       <div class="flex gap-3">
         <%= f.submit t("super_admin.plan_configs.save_btn"), class: "px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700 cursor-pointer border-0" %>

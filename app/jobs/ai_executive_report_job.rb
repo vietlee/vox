@@ -317,7 +317,7 @@ class AiExecutiveReportJob < ApplicationJob
         just show one normal doughnut/hbar of the whole question instead.
     PROMPT
 
-    raw    = ClaudeService.sonnet.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 2000)
+    raw    = ClaudeService.for_feature("survey_report").call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 2000)
     result = parse_json_response(raw.to_s)
 
     # Validate + sanitize
@@ -429,7 +429,7 @@ class AiExecutiveReportJob < ApplicationJob
       - #{mode == "focused" ? "focused mode: only section_insights needed, rest null/[]" : "full mode: write all fields"}
     PROMPT
 
-    raw    = ClaudeService.sonnet.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 1500)
+    raw    = ClaudeService.for_feature("survey_report").call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 1500)
     parse_json_response(raw.to_s)
 
   rescue => e

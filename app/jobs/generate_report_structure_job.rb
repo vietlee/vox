@@ -177,7 +177,7 @@ class GenerateReportStructureJob < ApplicationJob
       }
     MSG
 
-    raw      = ClaudeService.sonnet.call(system_prompt: INSIGHTS_SYSTEM_PROMPT,
+    raw      = ClaudeService.for_feature("survey_report").call(system_prompt: INSIGHTS_SYSTEM_PROMPT,
                                          user_prompt:   insights_prompt, max_tokens: 3000)
     json_str = raw.to_s.gsub(/\A```(?:json)?\s*|\s*```\z/, "").strip
     result   = JSON.parse(json_str)
@@ -300,7 +300,7 @@ class GenerateReportStructureJob < ApplicationJob
       Return JSON ONLY:
       { "sections": [ { "title": "...", "question_ids": [1,2] }, ... ] }
     PROMPT
-    raw = ClaudeService.sonnet.call(system_prompt: system, user_prompt: user, max_tokens: 800)
+    raw = ClaudeService.for_feature("survey_report").call(system_prompt: system, user_prompt: user, max_tokens: 800)
     clean = raw.to_s.gsub(/\A\s*```(?:json)?\s*/i, "").gsub(/\s*```\s*\z/, "").strip
     parsed = JSON.parse(clean[/\{.*\}/m] || "{}")
     secs = parsed["sections"]

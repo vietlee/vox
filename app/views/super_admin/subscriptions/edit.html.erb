@@ -3,115 +3,24 @@
   <h1 class="text-[21px] font-extrabold text-slate-900"><%= t("super_admin.subscriptions.edit_title") %> — <%= @subscription.workspace&.name %></h1>
 </div>
 
-<%= form_with model: [:super_admin, @subscription], local: true, class: "space-y-5" do |f| %>
-  <div class="grid grid-cols-2 gap-5">
-
-    <!-- Plan & Status -->
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-4"><%= t("super_admin.subscriptions.edit_plan_status") %></h2>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.col_plan") %></label>
-          <%= f.select :plan,
-                [[t("super_admin.subscriptions.filter_free"), "free"],
-                 [t("super_admin.subscriptions.filter_pro"), "pro"],
-                 [t("super_admin.subscriptions.filter_enterprise"), "enterprise"]],
-                { selected: @subscription.plan },
-                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
-          <p class="text-[11px] text-slate-400 mt-1"><%= t("super_admin.subscriptions.plan_change_note") %></p>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.col_status") %></label>
-          <%= f.select :status,
-                [[t("super_admin.subscriptions.filter_active"), "active"],
-                 [t("super_admin.subscriptions.filter_expired"), "expired"],
-                 [t("super_admin.subscriptions.filter_cancelled"), "cancelled"],
-                 [t("super_admin.subscriptions.filter_trialing"), "trialing"]],
-                { selected: @subscription.status },
-                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.stat_billing") %></label>
-          <%= f.select :billing_cycle,
-                [["Monthly", "monthly"], ["Yearly", "yearly"]],
-                { selected: @subscription.billing_cycle },
-                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.detail_auto_renew") %></label>
-          <div class="flex items-center gap-2 mt-1">
-            <%= f.check_box :auto_renew, class: "w-4 h-4 accent-indigo-600" %>
-            <span class="text-[13px] text-slate-600"><%= t("super_admin.subscriptions.auto_renew_label") %></span>
-          </div>
-        </div>
+<%= form_with model: [:super_admin, @subscription], local: true, class: "space-y-5 max-w-lg" do |f| %>
+  <!-- AI Credits -->
+  <div class="bg-white rounded-xl border border-violet-200 p-5">
+    <h2 class="text-[13px] font-bold text-violet-700 mb-4">AI Credits</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Credit Balance (còn lại)</label>
+        <%= f.number_field :credit_balance, value: @subscription.credit_balance, min: 0,
+              class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
       </div>
-    </div>
-
-    <!-- Dates & Price -->
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-4"><%= t("super_admin.subscriptions.dates_pricing") %></h2>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.starts_at_label") %></label>
-          <%= f.datetime_local_field :starts_at, value: @subscription.starts_at&.strftime("%Y-%m-%dT%H:%M"),
-                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.expires_at_label") %></label>
-          <%= f.datetime_local_field :ends_at, value: @subscription.ends_at&.strftime("%Y-%m-%dT%H:%M"),
-                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.price_label") %></label>
-          <%= f.number_field :price_cents, value: @subscription.price_cents,
-                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800",
-                placeholder: "0" %>
-        </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Max AI Credits (hiển thị tối đa)</label>
+        <%= f.number_field :max_ai_credits, value: @subscription.max_ai_credits, min: 0,
+              class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800",
+              placeholder: "∞" %>
       </div>
-    </div>
-
-    <!-- Limits -->
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-[13px] font-bold text-slate-700"><%= t("super_admin.subscriptions.usage_limits") %> <span class="font-normal text-slate-400 text-[11px]"><%= t("super_admin.subscriptions.unlimited_note") %></span></h2>
-        <button type="button" onclick="resetToDefaults()" class="text-[11px] text-indigo-600 hover:text-indigo-700 font-semibold"><%= t("super_admin.subscriptions.reset_defaults") %></button>
-      </div>
-      <div class="space-y-3">
-        <% [
-          [:max_surveys,       t("super_admin.subscriptions.limit_max_surveys")],
-          [:max_votes,         t("super_admin.subscriptions.limit_max_votes")],
-          [:max_feedbacks,     t("super_admin.subscriptions.limit_max_feedbacks")],
-          [:max_dynamic_forms, t("super_admin.subscriptions.limit_max_dynamic_forms")],
-          [:max_supporters,    t("super_admin.subscriptions.limit_max_supporters")]
-        ].each do |field, label| %>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= label %></label>
-            <%= f.number_field field, value: @subscription.send(field),
-                  class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800",
-                  placeholder: "∞" %>
-          </div>
-        <% end %>
-      </div>
-    </div>
-
-    <!-- AI Credits -->
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-4"><%= t("super_admin.subscriptions.ai_credits_title") %></h2>
-      <div class="space-y-3">
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.ai_credits_max") %></label>
-          <%= f.number_field :max_ai_credits, value: @subscription.max_ai_credits,
-                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800",
-                placeholder: "∞" %>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1"><%= t("super_admin.subscriptions.ai_credits_balance") %></label>
-          <%= f.number_field :credit_balance, value: @subscription.credit_balance,
-                class: "w-full border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-800" %>
-        </div>
-        <div class="pt-2 p-3 bg-amber-50 rounded-lg border border-amber-100">
-          <p class="text-[11px] text-amber-700"><%= t("super_admin.subscriptions.ai_credits_note") %></p>
-        </div>
+      <div class="p-3 bg-violet-50 rounded-lg border border-violet-100">
+        <p class="text-[11px] text-violet-600">Thay đổi credit balance sẽ có hiệu lực ngay. Cron job hàng tháng sẽ cộng thêm <%= PlanConfig.monthly_free_credits %> credits.</p>
       </div>
     </div>
   </div>
@@ -121,39 +30,3 @@
     <%= link_to t("super_admin.subscriptions.cancel_btn"), super_admin_subscription_path(@subscription), class: "px-6 py-2.5 bg-slate-100 text-slate-700 text-[13px] font-semibold rounded-lg hover:bg-slate-200" %>
   </div>
 <% end %>
-
-<script>
-const PLAN_DEFAULTS = <%= PlanConfig.all.each_with_object({}) { |pc, h|
-  h[pc.plan_key] = {
-    max_surveys:       pc.limits["max_surveys"],
-    max_votes:         pc.limits["max_votes"],
-    max_feedbacks:     pc.limits["max_feedbacks"],
-    max_dynamic_forms: pc.limits["max_dynamic_forms"],
-    max_supporters:    pc.limits["max_supporters"],
-    max_ai_credits:    pc.limits["max_ai_credits"],
-    price_cents:       pc.price_vnd
-  }
-}.to_json.html_safe %>;
-
-// Auto-fill price when plan changes
-document.querySelector('select[name="subscription[plan]"]').addEventListener('change', function() {
-  const defaults = PLAN_DEFAULTS[this.value];
-  if (!defaults) return;
-  const priceInput = document.querySelector('input[name="subscription[price_cents]"]');
-  if (priceInput && (priceInput.value === "" || priceInput.value === "0")) {
-    priceInput.value = defaults.price_cents ?? 0;
-  }
-});
-
-function resetToDefaults() {
-  const plan = document.querySelector('select[name="subscription[plan]"]').value;
-  const defaults = PLAN_DEFAULTS[plan];
-  if (!defaults) return;
-  ["max_surveys","max_votes","max_feedbacks","max_dynamic_forms","max_supporters","max_ai_credits"].forEach(field => {
-    const input = document.querySelector(`input[name="subscription[${field}]"]`);
-    if (input) input.value = defaults[field] ?? "";
-  });
-  const priceInput = document.querySelector('input[name="subscription[price_cents]"]');
-  if (priceInput) priceInput.value = defaults.price_cents ?? 0;
-}
-</script>

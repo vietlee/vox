@@ -1,7 +1,9 @@
 class ClaudeService
   HAIKU_MODEL  = "claude-haiku-4-5-20251001"
   SONNET_MODEL = "claude-sonnet-4-6"
+  SONNET_45    = "claude-sonnet-4-5"
   OPUS_MODEL   = "claude-opus-4-5"
+  OPUS_48      = "claude-opus-4-8"
   API_URL      = "https://api.anthropic.com/v1/messages"
 
   def initialize(model: HAIKU_MODEL, timeout: 90)
@@ -73,4 +75,10 @@ class ClaudeService
   def self.sonnet_long = new(model: SONNET_MODEL, timeout: 240)
   def self.opus        = new(model: OPUS_MODEL, timeout: 180)
   def self.opus_long   = new(model: OPUS_MODEL, timeout: 360)
+
+  # Resolve model from admin config, fallback to default
+  def self.for_feature(feature_key, timeout: 120)
+    model_id = AiModelConfig.model_for(feature_key)
+    new(model: model_id, timeout: timeout)
+  end
 end

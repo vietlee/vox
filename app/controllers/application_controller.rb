@@ -60,27 +60,17 @@ class ApplicationController < ActionController::Base
     redirect_back(fallback_location: root_path)
   end
 
-  def require_ai_feature!(feature)
-    subscription = current_workspace&.active_subscription
-    unless subscription&.has_feature?(feature)
-      respond_to do |format|
-        format.html { redirect_to billing_subscription_path, alert: t("ai.feature_not_available") }
-        format.json { render json: { upgrade_required: true, error: t("ai.feature_not_available") }, status: :payment_required }
-        format.turbo_stream { render turbo_stream: turbo_stream.replace("ai-result", partial: "shared/ai_upgrade_prompt") }
-        format.any  { render json: { upgrade_required: true, error: t("ai.feature_not_available") }, status: :payment_required }
-      end
-      return false
-    end
+  def require_ai_feature!(_feature)
     true
   end
 
   def require_credits!(amount)
     subscription = current_workspace&.active_subscription
-    if subscription.nil? || (!subscription.enterprise? && subscription.credit_balance < amount)
+    if subscription.nil? || subscription.credit_balance < amount
       respond_to do |format|
-        format.json { render json: { upgrade_required: true, insufficient_credits: true, error: t("ai.insufficient_credits") }, status: :payment_required }
+        format.json { render json: { insufficient_credits: true, error: t("ai.insufficient_credits") }, status: :payment_required }
         format.turbo_stream { render turbo_stream: turbo_stream.replace("ai-result", partial: "shared/no_credits") }
-        format.any  { render json: { upgrade_required: true, insufficient_credits: true, error: t("ai.insufficient_credits") }, status: :payment_required }
+        format.any  { render json: { insufficient_credits: true, error: t("ai.insufficient_credits") }, status: :payment_required }
       end
       return false
     end

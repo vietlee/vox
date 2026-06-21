@@ -37,7 +37,7 @@ class AiChatJob < ApplicationJob
     messages = history.map { |h| { role: h["role"], content: h["content"] } }
     messages << { role: "user", content: message }
 
-    result_text = ClaudeService.sonnet.call(
+    result_text = ClaudeService.for_feature("ai_chat").call(
       system_prompt: system_prompt,
       messages: messages,
       max_tokens: 1024
@@ -53,7 +53,7 @@ class AiChatJob < ApplicationJob
   def build_workspace_context(workspace)
     lines = []
     lines << "Workspace: #{workspace.name}"
-    lines << "Members: #{workspace.users.count} | Surveys: #{workspace.surveys.count} | Votes: #{workspace.votes.count} | Feedback boards: #{workspace.feedback_boards.count}"
+    lines << "Members: #{workspace.users.count} | Surveys: #{workspace.surveys.count} | Votes: #{workspace.votes.count} | Feedback boards: #{workspace.feedback_boards.count} | Quiz sets: #{workspace.quiz_sets.count} | Dynamic forms: #{workspace.dynamic_forms.count}"
     lines << ""
 
     # ── Surveys with AI analysis ─────────────────────────────────────────────
@@ -128,6 +128,47 @@ class AiChatJob < ApplicationJob
         else
           lines << "  (No approved feedback yet)"
         end
+        lines << ""
+      end
+    end
+
+    # ── Quiz sets with results ───────────────────────────────────────────────
+    quiz_sets = workspace.quiz_sets.order(updated_at: :desc).limit(6)
+    if quiz_sets.any?
+      lines << "## QUIZ SETS"
+      quiz_sets.each do |qs|
+        attempts = qs.quiz_attempts.where.not(submitted_at: nil)
+        avg = attempts.any? ? (attempts.sum(&:score_pct).to_f / attempts.count).round(1) : nil
+        passed = attempts.select(&:passed?).count
+        pass_rate = attempts.any? ? (passed * 100.0 / attempts.count).round(1) : nil
+        lines << "### #{qs.title} [#{qs.status}, #{qs.quiz_questions.count} questions, #{attempts.count} attempts]"
+        lines << "  Avg score: #{avg ? "#{avg}%" : "N/A"} | Pass rate: #{pass_rate ? "#{pass_rate}%" : "N/A"} | Passing threshold: #{qs.passing_score}%"
+        if attempts.any?
+          # Most missed questions
+          q_stats = qs.quiz_questions.map do |q|
+            correct = attempts.count { |a| a.quiz_attempt_answers.any? { |ans| ans.quiz_question_id == q.id && ans.is_correct? } }
+            rate = (correct * 100.0 / attempts.count).round
+            { text: q.question_text.truncate(80), rate: rate }
+          end.sort_by { |s| s[:rate] }
+          weakest = q_stats.first(3)
+          if weakest.any?
+            lines << "  Weakest questions:"
+            weakest.each { |s| lines << "    - #{s[:text]} (#{s[:rate]}% correct)" }
+          end
+        end
+        lines << ""
+      end
+    end
+
+    # ── Dynamic Forms with recent submissions ────────────────────────────────
+    forms = workspace.dynamic_forms.order(updated_at: :desc).limit(5)
+    if forms.any?
+      lines << "## DYNAMIC FORMS"
+      forms.each do |f|
+        sub_count = f.form_submissions.count
+        lines << "### #{f.title} [#{f.status}, #{sub_count} submissions]"
+        pending = f.form_submissions.where(status: "pending").count
+        lines << "  Pending review: #{pending}" if pending > 0
         lines << ""
       end
     end

@@ -15,6 +15,7 @@ class Workspace < ApplicationRecord
   has_many :qr_codes, dependent: :destroy
   has_many :stt_transcripts, dependent: :destroy
   has_many :dynamic_forms,   dependent: :destroy
+  has_many :quiz_sets,       dependent: :destroy
   has_one  :current_subscription, -> { where(status: :active).order(created_at: :desc) }, class_name: "Subscription"
 
   enum :status, { active: 0, inactive: 1, suspended: 2 }

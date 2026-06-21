@@ -66,15 +66,6 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   def publish
-    subscription = current_workspace.active_subscription
-    unless subscription&.within_survey_limit?
-      msg = subscription&.free? ? t("surveys.limit_reached_free", date: subscription.next_reset_date_formatted) : t("surveys.limit_reached")
-      respond_to do |format|
-        format.json { render json: { error: msg }, status: :forbidden }
-        format.html { redirect_to surveys_path, alert: msg }
-      end
-      return
-    end
     @survey.update!(status: :active)
     audit_log("survey.publish", resource: @survey)
     respond_to do |format|
@@ -811,7 +802,7 @@ class Admin::SurveysController < Admin::BaseController
 
     current_workspace.active_subscription&.deduct_credits!(3)
 
-    result = ClaudeService.sonnet_long.call_full(
+    result = ClaudeService.for_feature("survey_report", timeout: 240).call_full(
       system_prompt: system_prompt,
       user_prompt:   user_prompt,
       max_tokens:    300

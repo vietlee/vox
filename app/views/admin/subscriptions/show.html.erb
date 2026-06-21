@@ -1,122 +1,59 @@
 <% content_for :title, t("subscription.title") %>
 <div class="flex items-center gap-3 mb-6">
   <%= render "admin/shared/back_btn" %>
-  <h1 class="text-[21px] font-extrabold text-slate-900">💳 <%= t("subscription.title") %></h1>
+  <h1 class="text-[21px] font-extrabold text-slate-900"><%= t("subscription.title") %></h1>
 </div>
 
 <% if @subscription %>
-  <div class="grid grid-cols-3 gap-5 mb-6">
-    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5 col-span-2">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="px-3 py-1 bg-blue-500 text-white text-[13px] font-bold rounded-full"><%= @subscription.plan.upcase %></div>
-        <% if @subscription.ends_at %>
-          <span class="text-[13px] text-slate-500"><%= t("subscription.expires_at") %> <%= I18n.l(@subscription.ends_at.to_date) %></span>
-          <% if @subscription.expires_soon? %>
-            <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[11px] font-semibold rounded-full">⚠ <%= t("subscription.expires_soon") %></span>
-          <% end %>
-        <% else %>
-          <span class="text-[13px] text-slate-500"><%= t("subscription.no_limit") %></span>
-        <% end %>
-        <div class="ml-auto">
-          <%= link_to billing_subscription_path, class: "px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[13px] font-semibold rounded-lg transition-colors" do %>
-            <%= @subscription.free? ? t("subscription.upgrade") : t("subscription.renew") %>
-          <% end %>
-        </div>
-      </div>
-      <div class="grid grid-cols-3 gap-3 text-center mb-5">
-        <% [
-          [@subscription.max_surveys,       t("kpi.surveys")],
-          [@subscription.max_votes,         t("kpi.votes")],
-          [@subscription.max_feedbacks,     t("kpi.feedback")],
-          [@subscription.max_dynamic_forms, t("dynamic_forms.nav")],
-          [@subscription.max_supporters,    t("members.title")],
-          [@subscription.max_ai_credits,    t("dashboard.ai_credits")]
-        ].each do |val, label| %>
-          <div class="bg-slate-50 rounded-lg p-3">
-            <div class="text-[18px] font-bold text-slate-900"><%= val.nil? ? "∞" : val %></div>
-            <div class="text-[11px] text-slate-500"><%= label %></div>
-          </div>
-        <% end %>
-      </div>
-      <% if !@subscription.enterprise? %>
-        <div class="flex gap-2">
-          <% ["pro", "enterprise"].reject { |p| p == @subscription.plan }.each do |plan| %>
-            <%= button_to upgrade_subscription_path, params: { plan: plan }, method: :post, class: "px-4 py-2 bg-blue-500 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-600" do %><%= t("subscription.upgrade_to") %> <%= plan.capitalize %><% end %>
-          <% end %>
-        </div>
-      <% end %>
-    </div>
-
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+    <!-- AI Credits card -->
     <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
-      <h3 class="text-[13px] font-bold text-slate-900 mb-3">🎯 <%= t("dashboard.ai_credits") %></h3>
+      <h3 class="text-[13px] font-bold text-slate-900 mb-3"><%= t("dashboard.ai_credits") %></h3>
       <div class="text-[28px] font-black text-slate-900 mb-1"><%= @subscription.credit_balance %></div>
-      <div class="text-[12px] text-slate-500 mb-3"><%= t("subscription.remaining") %> / <%= @subscription.max_ai_credits || "∞" %></div>
-      <% if @subscription.max_ai_credits %>
-        <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+      <div class="text-[12px] text-slate-500 mb-3"><%= t("subscription.remaining") %></div>
+      <% if @subscription.max_ai_credits.to_i > 0 %>
+        <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
           <div class="h-2 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full" style="width: <%= @subscription.credit_percentage %>%"></div>
         </div>
       <% end %>
+      <div class="text-[11px] text-slate-400">
+        <%= t("subscription.monthly_credits_info", count: Subscription.monthly_free_credits, date: @subscription.next_credit_reset_formatted) %>
+      </div>
+    </div>
+
+    <!-- Info card -->
+    <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5">
+      <h3 class="text-[13px] font-bold text-slate-900 mb-3"><%= t("subscription.plan_info") %></h3>
+      <div class="space-y-2 text-[13px] text-slate-600">
+        <div class="flex justify-between"><span><%= t("kpi.surveys") %></span><span class="font-bold text-slate-900">&infin;</span></div>
+        <div class="flex justify-between"><span><%= t("kpi.votes") %></span><span class="font-bold text-slate-900">&infin;</span></div>
+        <div class="flex justify-between"><span><%= t("kpi.feedback") %></span><span class="font-bold text-slate-900">&infin;</span></div>
+        <div class="flex justify-between"><span><%= t("dynamic_forms.nav") %></span><span class="font-bold text-slate-900">&infin;</span></div>
+        <div class="flex justify-between"><span><%= t("members.title") %></span><span class="font-bold text-slate-900">&infin;</span></div>
+      </div>
+      <div class="mt-3 text-[11px] text-emerald-600 font-semibold"><%= t("subscription.all_features_free") %></div>
     </div>
   </div>
 
-  <!-- Add-on packs -->
-  <% if @addon_resources.any? || @addon_credits.any? %>
+  <!-- AI Credits add-on packs -->
+  <% if @addon_credits.any? %>
     <div class="mb-6">
-      <div class="flex items-baseline gap-2 mb-3">
-        <h2 class="text-[16px] font-extrabold text-slate-900"><%= t("subscription.buy_more") %></h2>
-        <span class="text-[12px] text-slate-400"><%= t("subscription.buy_more_desc") %></span>
-      </div>
-
-      <div class="grid grid-cols-2 gap-5">
-        <% if @addon_resources.any? %>
-          <div>
-            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">📦 <%= t("subscription.resource_packs") %></p>
-            <div class="space-y-3">
-              <% @addon_resources.each do |addon| %>
-                <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4 flex items-center gap-4">
-                  <div class="flex-1 min-w-0">
-                    <div class="text-[14px] font-bold text-slate-900"><%= addon.name %></div>
-                    <div class="text-[11px] text-slate-400 mb-1"><%= addon.description %></div>
-                    <div class="flex flex-wrap gap-x-3 text-[12px] text-slate-500">
-                      <% if addon.surveys_bonus.to_i > 0 %><span>+<%= addon.surveys_bonus %> <%= t("kpi.surveys") %></span><% end %>
-                      <% if addon.votes_bonus.to_i > 0 %><span>+<%= addon.votes_bonus %> <%= t("kpi.votes") %></span><% end %>
-                      <% if addon.feedbacks_bonus.to_i > 0 %><span>+<%= addon.feedbacks_bonus %> <%= t("kpi.feedback") %></span><% end %>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-3 flex-shrink-0">
-                    <span class="text-[13px] font-semibold text-slate-600"><%= addon.price_formatted %></span>
-                    <%= button_to checkout_addon_subscription_path(addon_config_id: addon.id), method: :post,
-                          data: { turbo: false },
-                          class: "px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 whitespace-nowrap" do %>
-                      <%= t("subscription.buy_now") %>
-                    <% end %>
-                  </div>
-                </div>
-              <% end %>
+      <h2 class="text-[16px] font-extrabold text-slate-900 mb-1"><%= t("subscription.buy_more_credits") %></h2>
+      <p class="text-[12px] text-slate-400 mb-4"><%= t("subscription.buy_more_credits_desc") %></p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <% @addon_credits.each do |addon| %>
+          <div class="bg-white rounded-[10px] border border-violet-200 shadow-sm p-4 flex items-center gap-4">
+            <div class="flex-1 min-w-0">
+              <div class="text-[14px] font-bold text-slate-900"><%= addon.name %></div>
+              <div class="text-[11px] text-slate-400 mb-1"><%= addon.description %></div>
+              <div class="text-[12px] font-semibold text-violet-600">+<%= addon.ai_credits_bonus %> AI Credits</div>
             </div>
-          </div>
-        <% end %>
-
-        <% if @addon_credits.any? %>
-          <div>
-            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2"><%= t("subscription.ai_credit_packs") %> ✨</p>
-            <div class="space-y-3">
-              <% @addon_credits.each do |addon| %>
-                <div class="bg-white rounded-[10px] border border-violet-200 shadow-sm p-4 flex items-center gap-4">
-                  <div class="flex-1 min-w-0">
-                    <div class="text-[14px] font-bold text-slate-900"><%= addon.name %></div>
-                    <div class="text-[11px] text-slate-400 mb-1"><%= addon.description %></div>
-                    <div class="text-[12px] font-semibold text-violet-600">+<%= addon.ai_credits_bonus %> <%= t("dashboard.ai_credits") %></div>
-                  </div>
-                  <div class="flex items-center gap-3 flex-shrink-0">
-                    <span class="text-[13px] font-semibold text-slate-600"><%= addon.price_formatted %></span>
-                    <%= button_to checkout_addon_subscription_path(addon_config_id: addon.id), method: :post,
-                          data: { turbo: false },
-                          class: "px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 whitespace-nowrap" do %>
-                      <%= t("subscription.buy_now") %>
-                    <% end %>
-                  </div>
-                </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+              <span class="text-[13px] font-semibold text-slate-600"><%= addon.price_formatted %></span>
+              <%= button_to checkout_addon_subscription_path(addon_config_id: addon.id), method: :post,
+                    data: { turbo: false },
+                    class: "px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-bold rounded-lg cursor-pointer border-0 whitespace-nowrap" do %>
+                <%= t("subscription.buy_now") %>
               <% end %>
             </div>
           </div>
@@ -137,7 +74,6 @@
             <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("subscription.col_date") %></th>
             <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("subscription.col_description") %></th>
             <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("subscription.col_amount") %></th>
-            <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("subscription.col_gateway") %></th>
             <th class="text-left text-[11px] font-semibold text-slate-500 uppercase px-4 py-2.5"><%= t("subscription.col_status") %></th>
           </tr>
         </thead>
@@ -145,23 +81,8 @@
           <% @payments.each do |payment| %>
             <tr class="border-b border-slate-100">
               <td class="px-4 py-3 text-[12px] text-slate-500 whitespace-nowrap"><%= I18n.l(payment.created_at.to_date) %></td>
-              <td class="px-4 py-3 text-[13px] text-slate-700">
-                <% if payment.addon_config_id? %>
-                  <span class="inline-flex items-center gap-1">
-                    <span class="text-[10px] px-1.5 py-0.5 rounded font-bold <%= payment.addon_config&.addon_type == 'ai_credits' ? 'bg-violet-100 text-violet-700' : 'bg-indigo-100 text-indigo-700' %>">
-                      <%= payment.addon_config&.addon_type == 'ai_credits' ? '✨ Credits' : '📦 Pack' %>
-                    </span>
-                    <%= payment.description_label %>
-                  </span>
-                <% else %>
-                  <span class="inline-flex items-center gap-1">
-                    <span class="text-[10px] px-1.5 py-0.5 rounded font-bold bg-slate-100 text-slate-600">💳 <%= t("subscription.plan_label") %></span>
-                    <%= payment.subscription&.plan&.upcase %>
-                  </span>
-                <% end %>
-              </td>
+              <td class="px-4 py-3 text-[13px] text-slate-700"><%= payment.description_label %></td>
               <td class="px-4 py-3 text-[13px] font-semibold text-slate-900 whitespace-nowrap"><%= payment.amount_formatted %></td>
-              <td class="px-4 py-3 text-[12px] text-slate-500"><%= payment.gateway_label %></td>
               <td class="px-4 py-3">
                 <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full <%= payment.completed? ? 'bg-emerald-50 text-emerald-700' : payment.failed? ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700' %>">
                   <%= t("status.#{payment.status}", default: payment.status.capitalize) %>

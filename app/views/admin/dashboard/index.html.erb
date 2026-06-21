@@ -15,19 +15,12 @@
 </div>
 
 <!-- KPI Cards -->
-<% sub = @subscription %>
-<% free_reset_date = sub&.free? ? sub.next_reset_date_formatted : nil %>
 <div class="grid grid-cols-5 gap-4 mb-5 flex-shrink-0">
-  <%= render "admin/dashboard/kpi_card", icon: "📋", label: t("kpi.surveys"), value: @surveys_count, color: "bg-indigo-50",
-      used: sub&.surveys_used, max: sub&.max_surveys, pct: sub&.surveys_pct, reset_date: free_reset_date %>
-  <%= render "admin/dashboard/kpi_card", icon: "🗳️", label: t("kpi.votes"), value: @votes_count, color: "bg-violet-50",
-      used: sub&.votes_used, max: sub&.max_votes, pct: sub&.votes_pct, reset_date: free_reset_date %>
-  <%= render "admin/dashboard/kpi_card", icon: "💬", label: t("kpi.feedback"), value: @feedbacks_count, color: "bg-emerald-50",
-      used: sub&.feedbacks_used, max: sub&.max_feedbacks, pct: sub&.feedbacks_pct, reset_date: free_reset_date %>
-  <%= render "admin/dashboard/kpi_card", icon: "📝", label: t("dynamic_forms.nav"), value: @dynamic_forms_count, color: "bg-purple-50",
-      used: sub&.dynamic_forms_used, max: sub&.max_dynamic_forms, pct: sub&.dynamic_forms_pct, reset_date: free_reset_date %>
-  <%= render "admin/dashboard/kpi_card", icon: "👥", label: t("kpi.supporters"), value: @supporters_count, color: "bg-sky-50",
-      used: sub&.supporters_used, max: sub&.max_supporters, pct: sub&.supporters_pct %>
+  <%= render "admin/dashboard/kpi_card", icon: "📋", label: t("kpi.surveys"), value: @surveys_count, color: "bg-indigo-50" %>
+  <%= render "admin/dashboard/kpi_card", icon: "🗳️", label: t("kpi.votes"), value: @votes_count, color: "bg-violet-50" %>
+  <%= render "admin/dashboard/kpi_card", icon: "💬", label: t("kpi.feedback"), value: @feedbacks_count, color: "bg-emerald-50" %>
+  <%= render "admin/dashboard/kpi_card", icon: "📝", label: t("dynamic_forms.nav"), value: @dynamic_forms_count, color: "bg-purple-50" %>
+  <%= render "admin/dashboard/kpi_card", icon: "👥", label: t("kpi.supporters"), value: @supporters_count, color: "bg-sky-50" %>
 </div>
 
 <!-- Content grid — fills remaining viewport height, each block scrolls independently -->
@@ -131,7 +124,7 @@
     </div>
 
     <!-- AI Credits -->
-    <% if (sub = @subscription) && !sub.nil? && !sub.free? %>
+    <% if (sub = @subscription) %>
       <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-5 flex-shrink-0">
         <h2 class="text-[14px] font-bold text-slate-900 mb-3">🎯 <%= t("dashboard.ai_credits") %></h2>
         <div class="flex justify-between text-[12px] mb-1.5">

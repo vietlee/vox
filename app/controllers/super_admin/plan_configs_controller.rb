@@ -26,7 +26,7 @@ class SuperAdmin::PlanConfigsController < SuperAdmin::BaseController
   end
 
   def plan_config_params
-    base = params.require(:plan_config).permit(:display_name, :price_vnd, :billing_cycle)
+    base = params.require(:plan_config).permit(:display_name, :price_vnd, :billing_cycle, :monthly_free_credits)
 
     # Process limits — blank string → nil (unlimited), number → integer
     raw_limits = params.dig(:plan_config, :limits) || {}

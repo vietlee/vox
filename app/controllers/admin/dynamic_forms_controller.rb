@@ -27,12 +27,6 @@ class Admin::DynamicFormsController < Admin::BaseController
   end
 
   def create
-    subscription = current_workspace.active_subscription
-    unless subscription&.within_dynamic_form_limit?
-      msg = subscription&.free? ? t("dynamic_forms.limit_reached_free", date: subscription.next_reset_date_formatted) : t("dynamic_forms.limit_reached")
-      redirect_to dynamic_forms_path, alert: msg and return
-    end
-
     @form = current_workspace.dynamic_forms.build(form_params)
     @form.user = current_user
 

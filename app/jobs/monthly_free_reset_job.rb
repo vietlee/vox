@@ -1,23 +1,20 @@
 class MonthlyFreeResetJob < ApplicationJob
   queue_as :default
 
+  # Runs on the 1st of every month via Sidekiq cron.
+  # Grants 100 free AI credits to every workspace's active subscription.
   def perform
-    reset_at = Time.current
+    monthly_credits = PlanConfig.monthly_free_credits
+    count = 0
 
-    # Find all workspaces on the free plan
-    free_workspace_ids = Subscription.active.free.pluck(:workspace_id)
-    return if free_workspace_ids.empty?
-
-    Workspace.where(id: free_workspace_ids).find_each do |workspace|
-      workspace.update_columns(
-        surveys_created_count:       0,
-        votes_created_count:         0,
-        feedbacks_created_count:     0,
-        dynamic_forms_created_count: 0,
-        counts_reset_at:             reset_at
+    Subscription.active.find_each do |sub|
+      sub.update_columns(
+        credit_balance: sub.credit_balance + monthly_credits,
+        max_ai_credits: [sub.max_ai_credits.to_i, monthly_credits].max
       )
+      count += 1
     end
 
-    Rails.logger.info("[MonthlyFreeReset] Reset counts for #{free_workspace_ids.size} free workspaces at #{reset_at}")
+    Rails.logger.info("[MonthlyCreditsReset] Granted #{monthly_credits} AI credits to #{count} active subscriptions")
   end
 end

@@ -1,0 +1,95 @@
+<% content_for :title, "Cấu hình Model AI" %>
+
+<div class="max-w-3xl mx-auto">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="flex-1">
+      <h1 class="text-[22px] font-extrabold text-slate-900">Cấu hình Model AI</h1>
+      <p class="text-[13px] text-slate-500 mt-0.5">Chọn model Claude cho từng tính năng. Thay đổi có hiệu lực ngay lập tức.</p>
+    </div>
+  </div>
+
+  <% if notice %>
+    <div class="mb-5 flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[13px] font-semibold">
+      ✅ <%= notice %>
+    </div>
+  <% end %>
+
+  <!-- Model legend -->
+  <div class="grid grid-cols-3 gap-3 mb-6">
+    <% AiModelConfig::AVAILABLE_MODELS.each do |m| %>
+      <div class="bg-white border <%= m[:recommended] ? 'border-indigo-300 ring-1 ring-indigo-200' : 'border-slate-200' %> rounded-xl p-4 relative">
+        <% if m[:recommended] %>
+          <span class="absolute top-3 right-3 text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Khuyến nghị</span>
+        <% end %>
+        <div class="text-[13px] font-bold text-slate-800 mb-1"><%= m[:name] %></div>
+        <div class="text-[11px] text-slate-500 leading-relaxed"><%= m[:desc] %></div>
+      </div>
+    <% end %>
+  </div>
+
+  <%= form_with url: super_admin_ai_model_configs_path, method: :patch, local: true do |f| %>
+    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+      <div class="px-5 py-3 bg-slate-50 border-b border-slate-200">
+        <div class="grid grid-cols-12 gap-4">
+          <div class="col-span-5 text-[11px] font-bold text-slate-500 uppercase">Tính năng</div>
+          <div class="col-span-5 text-[11px] font-bold text-slate-500 uppercase">Model</div>
+          <div class="col-span-2 text-[11px] font-bold text-slate-500 uppercase">Chi phí</div>
+        </div>
+      </div>
+
+      <%
+        groups = {
+          "Quiz"      => AiModelConfig::FEATURES.select { |k, _| k.start_with?("quiz") },
+          "Khảo sát"  => AiModelConfig::FEATURES.select { |k, _| k.start_with?("survey") },
+          "Khác"      => AiModelConfig::FEATURES.reject { |k, _| k.start_with?("quiz") || k.start_with?("survey") },
+        }
+      %>
+
+      <% groups.each do |group_name, features| %>
+        <div class="px-5 py-2 bg-slate-50/60 border-b border-slate-100">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider"><%= group_name %></span>
+        </div>
+        <% features.each do |key, feature| %>
+          <% current = @configs[key] || feature[:default] %>
+          <div class="px-5 py-4 border-b border-slate-100 last:border-0">
+            <div class="grid grid-cols-12 gap-4 items-center">
+              <div class="col-span-5">
+                <div class="text-[13px] font-semibold text-slate-800"><%= feature[:label] %></div>
+                <div class="text-[11px] text-slate-400 mt-0.5">
+                  Default: <span class="font-mono"><%= AiModelConfig::AVAILABLE_MODELS.find { |m| m[:id] == feature[:default] }&.dig(:name) || feature[:default] %></span>
+                </div>
+              </div>
+              <div class="col-span-5">
+                <div class="relative">
+                  <select name="configs[<%= key %>]"
+                          class="w-full text-[13px] font-semibold pl-3 pr-8 py-2 rounded-lg border border-slate-200 bg-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                          style="background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 10px center;">
+                    <% AiModelConfig::AVAILABLE_MODELS.each do |m| %>
+                      <option value="<%= m[:id] %>" <%= 'selected' if current == m[:id] %>>
+                        <%= m[:name] %><%= m[:recommended] ? " ★" : "" %>
+                      </option>
+                    <% end %>
+                  </select>
+                </div>
+                <% if current != feature[:default] %>
+                  <div class="text-[10px] text-amber-600 font-semibold mt-1">⚠ Đã thay đổi từ default</div>
+                <% end %>
+              </div>
+              <div class="col-span-2">
+                <span class="text-[11px] text-slate-400"><%= feature[:credit_note] %></span>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+
+    <div class="flex items-center justify-between mt-5">
+      <p class="text-[12px] text-slate-400">Thay đổi có hiệu lực ngay sau khi lưu (cache được xoá tự động).</p>
+      <button type="submit"
+              class="px-6 py-2.5 rounded-xl text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white border-0 cursor-pointer transition-colors shadow-sm">
+        💾 Lưu cấu hình
+      </button>
+    </div>
+  <% end %>
+</div>

@@ -23,7 +23,7 @@ class AiModerationJob < ApplicationJob
       Safe: constructive feedback, opinions, suggestions
     PROMPT
 
-    result_text = ClaudeService.haiku.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 256)
+    result_text = ClaudeService.for_feature("moderation").call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 256)
     result = JSON.parse(result_text.match(/\{.*\}/m)&.to_s || result_text)
 
     moderation_status = case result["decision"]
