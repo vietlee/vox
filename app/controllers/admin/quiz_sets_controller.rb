@@ -332,8 +332,11 @@ class Admin::QuizSetsController < Admin::BaseController
     case ext
     when ".pdf"
       extract_pdf(file)
-    when ".doc", ".docx"
+    when ".docx"
       extract_docx(file)
+    when ".doc"
+      # Old .doc format: try antiword, otherwise treat as binary text
+      extract_doc(file)
     when ".txt"
       file.read.force_encoding("UTF-8").encode("UTF-8", invalid: :replace, undef: :replace)
     when ".png", ".jpg", ".jpeg", ".webp", ".gif"
@@ -349,28 +352,75 @@ class Admin::QuizSetsController < Admin::BaseController
     tmp.binmode
     tmp.write(file.read)
     tmp.flush
+    # Try pdftotext first, fall back to python3 pdfminer if available
     stdout, _stderr, status = Open3.capture3("pdftotext", "-enc", "UTF-8", tmp.path, "-")
+    if status.success? && stdout.strip.present?
+      tmp.close!
+      return stdout.strip
+    end
+    # Fallback: python3 with pdfminer.six or pypdf
+    py_out, _e, py_st = Open3.capture3(
+      "python3", "-c",
+      "import sys\ntry:\n from pdfminer.high_level import extract_text\n print(extract_text(sys.argv[1]))\nexcept:\n try:\n  from pypdf import PdfReader\n  r=PdfReader(sys.argv[1])\n  print(''.join(p.extract_text() or '' for p in r.pages))\n except: pass",
+      tmp.path
+    )
     tmp.close!
-    status.success? ? stdout.strip : nil
+    py_st.success? && py_out.strip.present? ? py_out.strip : nil
   rescue
     nil
   end
 
+  # Extract text from DOCX/DOC using pure Ruby (no external tools needed).
+  # DOCX is a ZIP archive containing word/document.xml with the text content.
   def extract_docx(file)
+    require "zip"
+    data = file.read
+    io = StringIO.new(data)
+    Zip::File.open_buffer(io) do |zip|
+      entry = zip.find_entry("word/document.xml")
+      return nil unless entry
+      xml = entry.get_input_stream.read.force_encoding("UTF-8")
+      # Strip XML tags, collapse whitespace, preserve paragraph breaks
+      xml.gsub(/<w:p[ >]/, "\n<w:p>")
+         .gsub(/<[^>]+>/, " ")
+         .gsub(/\s{2,}/, " ")
+         .gsub(/\n /, "\n")
+         .strip
+    end
+  rescue => e
+    # Fallback: try docx2txt if installed
+    begin
+      require "open3"
+      tmp = Tempfile.new(["quiz_upload", ".docx"])
+      tmp.binmode; tmp.write(data); tmp.flush
+      out, _e, st = Open3.capture3("docx2txt.pl", tmp.path, "-")
+      tmp.close!
+      st.success? ? out.strip.presence : nil
+    rescue
+      nil
+    end
+  end
+
+  def extract_doc(file)
     require "open3"
-    tmp = Tempfile.new(["quiz_upload", File.extname(file.original_filename)])
-    tmp.binmode
-    tmp.write(file.read)
-    tmp.flush
-    stdout, _stderr, status = Open3.capture3("docx2txt.pl", tmp.path, "-")
+    data = file.read
+    tmp = Tempfile.new(["quiz_upload", ".doc"])
+    tmp.binmode; tmp.write(data); tmp.flush
+    out, _e, st = Open3.capture3("antiword", tmp.path)
     tmp.close!
-    status.success? ? stdout.strip : nil
+    return out.strip if st.success? && out.strip.present?
+    # Fallback: strip binary, keep printable ASCII/UTF-8 runs (rough extraction)
+    data.force_encoding("binary")
+        .scan(/[\x20-\x7E\n\r]{4,}/)
+        .join(" ")
+        .gsub(/\s+/, " ")
+        .strip
+        .presence
   rescue
     nil
   end
 
   def extract_image_via_ai(file)
-    # Return base64-encoded image data so call_ai_generate can send it as vision
     { image_base64: Base64.strict_encode64(file.read), mime_type: file.content_type }
   end
 
