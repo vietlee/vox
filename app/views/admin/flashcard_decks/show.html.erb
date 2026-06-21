@@ -170,8 +170,13 @@ document.getElementById('ai-gen-form').addEventListener('ajax:before', function(
   document.getElementById('ai-gen-btn').disabled = true;
 });
 document.getElementById('ai-gen-form').addEventListener('ajax:success', function(e) {
-  var data = e.detail[0];
-  if (data.error) { alert(data.error); document.getElementById('ai-gen-btn').disabled = false; return; }
+  var data = e.detail[0]; var resp = e.detail[2];
+  if (data.error) {
+    document.getElementById('ai-gen-btn').disabled = false;
+    if (handleAiError(data, { status: resp.status })) return;
+    alert(data.error);
+    return;
+  }
   document.getElementById('fc-overlay').style.display = 'flex';
   _fcRingCtrl = makeFcProgressRing();
   pollFcStatus(data.poll_url, data.show_url);

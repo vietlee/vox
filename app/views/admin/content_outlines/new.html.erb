@@ -181,7 +181,11 @@ async function runCoGenerate() {
       body: formData
     });
     var data = await res.json();
-    if (data.error) { showCoError(data.error); return; }
+    if (data.error) {
+      document.getElementById('ai-submit-btn').disabled = false;
+      if (handleAiError(data, res)) return;
+      showCoError(data.error); return;
+    }
     if (data.pending) {
       setTimeout(function() { pollCoStatus(data.poll_url, data.show_url); }, 2000);
     } else {

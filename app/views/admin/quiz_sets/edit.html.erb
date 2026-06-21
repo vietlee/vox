@@ -361,7 +361,7 @@
   <div style="background:#fff; border-radius:20px; padding:32px 40px; text-align:center;
               box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%;">
     <div id="ai-ring-container"></div>
-    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Có thể mất 10–30 giây tuỳ kích thước tài liệu</p>
+    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Đừng tắt trang này.</p>
   </div>
 </div>
 
@@ -975,9 +975,10 @@ async function runAiGenerate() {
     const data = await res.json();
     if (data.error) {
       hideAiLoadingOverlay();
+      document.getElementById('ai-generate-btn').disabled = false;
+      if (handleAiError(data, res)) return;
       document.getElementById('ai-error').textContent = data.error;
       document.getElementById('ai-error').classList.remove('hidden');
-      document.getElementById('ai-generate-btn').disabled = false;
       return;
     }
     if (data.pending && data.poll_url) {

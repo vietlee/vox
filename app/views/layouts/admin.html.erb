@@ -373,6 +373,14 @@
     }
     return false;
   };
+  /* Returns true if error was a credits issue (and opens modal), false otherwise */
+  window.handleAiError = function(data, resp) {
+    if ((resp && resp.status === 402) || data?.insufficient_credits) {
+      showAiCreditsModal();
+      return true;
+    }
+    return false;
+  };
 
   document.addEventListener('turbo:before-cache', function() {
     document.querySelectorAll('[id$="-modal"]').forEach(function(el) {

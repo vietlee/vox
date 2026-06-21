@@ -72,6 +72,7 @@ class ApplicationController < ActionController::Base
       respond_to do |format|
         format.json { render json: { insufficient_credits: true, error: t("ai.insufficient_credits") }, status: :payment_required }
         format.turbo_stream { render turbo_stream: turbo_stream.replace("ai-result", partial: "shared/no_credits") }
+        format.html { redirect_to billing_subscription_path, alert: t("ai.insufficient_credits") }
         format.any  { render json: { insufficient_credits: true, error: t("ai.insufficient_credits") }, status: :payment_required }
       end
       return false
