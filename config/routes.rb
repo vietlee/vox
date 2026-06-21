@@ -93,6 +93,7 @@ Rails.application.routes.draw do
   scope module: "admin" do
     get "dashboard", to: "dashboard#index", as: :dashboard
     post "switch_workspace/:workspace_id", to: "workspace_switcher#switch", as: :switch_workspace
+    resources :workspaces, only: [:new, :create], path: "new_workspace"
 
     resources :surveys do
       member do

@@ -1,0 +1,41 @@
+<% content_for :title, I18n.locale == :vi ? "Tạo không gian mới" : "Create new workspace" %>
+
+<div class="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <div class="mb-6">
+      <div class="text-2xl mb-2">✨</div>
+      <h1 class="text-[20px] font-extrabold text-slate-900">
+        <%= I18n.locale == :vi ? "Tạo không gian làm việc mới" : "Create a new workspace" %>
+      </h1>
+      <p class="text-[13px] text-slate-500 mt-1">
+        <%= I18n.locale == :vi ? "Có thể là lớp học, nhóm dự án, câu lạc bộ, tổ chức..." : "Could be a class, project team, club, organization..." %>
+      </p>
+    </div>
+
+    <% if flash[:alert] %>
+      <div class="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-[13px]"><%= flash[:alert] %></div>
+    <% end %>
+
+    <%= form_with url: admin_workspaces_path, method: :post, local: true do %>
+      <div class="mb-5">
+        <label class="block text-[12px] font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
+          <%= I18n.locale == :vi ? "Tên không gian" : "Workspace name" %> *
+        </label>
+        <input type="text" name="workspace_name" autofocus required
+               placeholder="<%= I18n.locale == :vi ? 'VD: Lớp 10A, Nhóm Marketing, CLB Robotics...' : 'e.g. Class 10A, Marketing Team, Robotics Club...' %>"
+               class="w-full px-4 py-3 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+      </div>
+
+      <button type="submit"
+              class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-[14px] font-bold rounded-xl transition-colors cursor-pointer border-0">
+        <%= I18n.locale == :vi ? "Tạo không gian →" : "Create workspace →" %>
+      </button>
+    <% end %>
+
+    <div class="mt-4 text-center">
+      <%= link_to dashboard_path, class: "text-[13px] text-slate-400 hover:text-slate-600" do %>
+        ← <%= I18n.locale == :vi ? "Quay lại" : "Back" %>
+      <% end %>
+    </div>
+  </div>
+</div>

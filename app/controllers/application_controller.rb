@@ -25,19 +25,21 @@ class ApplicationController < ActionController::Base
     session[:current_workspace_id] = @current_workspace&.id
   end
 
-  # All workspaces this user can access (own + active memberships in other workspaces)
+  # All workspaces this user can access (all owned + active memberships in other workspaces)
   def accessible_workspaces
     @accessible_workspaces ||= begin
-      own = current_user&.workspace ? [current_user.workspace] : []
+      owned  = current_user&.owned_workspaces&.to_a || []
+      # legacy: user.workspace may be set before owner_id migration
+      legacy = (current_user&.workspace && owned.none? { |w| w.id == current_user.workspace_id }) ? [current_user.workspace] : []
       others = current_user&.workspace_memberships&.active&.includes(:workspace)&.map(&:workspace)&.compact || []
-      (own + others).uniq(&:id)
+      (owned + legacy + others).uniq(&:id)
     end
   end
 
   # Role of the current user *in the current workspace*
   def current_workspace_role
     return nil unless current_user && current_workspace
-    return :admin if current_user.workspace_id == current_workspace.id
+    return :admin if current_workspace.owner_id == current_user.id || current_user.workspace_id == current_workspace.id
     membership = current_user.workspace_memberships.find_by(workspace: current_workspace, status: :active)
     membership&.role&.to_sym
   end

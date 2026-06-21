@@ -1,5 +1,6 @@
 class Workspace < ApplicationRecord
   include Sluggable
+  belongs_to :owner, class_name: "User", optional: true
   has_many :users, dependent: :destroy
   has_many :workspace_memberships, dependent: :destroy
   has_many :members, through: :workspace_memberships, source: :user

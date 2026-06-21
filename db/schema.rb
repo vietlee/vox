@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_21_000004) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_21_000005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -732,6 +732,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_000004) do
     t.boolean "notify_on_new_feedback", default: false, null: false
     t.boolean "notify_on_new_response", default: false, null: false
     t.integer "dynamic_forms_created_count", default: 0, null: false
+    t.bigint "owner_id"
+    t.index ["owner_id"], name: "index_workspaces_on_owner_id"
     t.index ["slug"], name: "index_workspaces_on_slug", unique: true
     t.index ["status"], name: "index_workspaces_on_status"
   end

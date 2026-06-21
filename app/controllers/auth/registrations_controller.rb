@@ -22,9 +22,10 @@ class Auth::RegistrationsController < Devise::RegistrationsController
     workspace = Workspace.new(name: workspace_name, status: :active)
 
     ActiveRecord::Base.transaction do
-      workspace.save!
-      @user.workspace = workspace
       @user.save!
+      workspace.owner = @user
+      workspace.save!
+      @user.update_columns(workspace_id: workspace.id)
 
       workspace.subscriptions.create!(
         plan:           :free,

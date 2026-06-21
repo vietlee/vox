@@ -7,6 +7,7 @@ class User < ApplicationRecord
          omniauth_providers: [:google_oauth2, :entra_id]
 
   belongs_to :workspace, optional: true
+  has_many :owned_workspaces, class_name: "Workspace", foreign_key: :owner_id, dependent: :nullify
   has_many :workspace_memberships, dependent: :destroy
   has_many :workspaces, through: :workspace_memberships
   has_many :surveys, dependent: :nullify

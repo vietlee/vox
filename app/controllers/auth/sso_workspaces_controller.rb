@@ -35,10 +35,10 @@ class Auth::SsoWorkspacesController < ApplicationController
         )
       end
 
-      workspace = Workspace.new(name: workspace_name, status: :active)
+      user.save! unless user.persisted?
+      workspace = Workspace.new(name: workspace_name, status: :active, owner: user)
       workspace.save!
-      user.workspace = workspace
-      user.save!
+      user.update_columns(workspace_id: workspace.id)
 
       workspace.subscriptions.create!(
         plan:           :free,
