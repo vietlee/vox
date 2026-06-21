@@ -1,5 +1,5 @@
 class Admin::FlashcardDecksController < Admin::BaseController
-  before_action :set_deck, only: [:show, :edit, :update, :destroy, :ai_generate, :study, :review]
+  before_action :set_deck, only: [:show, :edit, :update, :destroy, :ai_generate, :ai_status, :study, :review]
 
   def index
     @decks = current_workspace.flashcard_decks.includes(:created_by).order(created_at: :desc)
@@ -30,6 +30,10 @@ class Admin::FlashcardDecksController < Admin::BaseController
   def destroy
     @deck.destroy
     redirect_to flashcard_decks_path, notice: "Đã xóa."
+  end
+
+  def ai_status
+    render json: { pending: @deck.ai_generating? }
   end
 
   def ai_generate

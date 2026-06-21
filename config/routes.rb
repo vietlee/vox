@@ -266,7 +266,10 @@ Rails.application.routes.draw do
 
     # Module 1: Tạo nội dung AI
     resources :content_outlines, only: [:index, :new, :create, :show, :destroy] do
-      member { post :regenerate }
+      member do
+        post :regenerate
+        get  :status
+      end
     end
 
     # Module 2 + 3: Lộ trình học
@@ -274,6 +277,7 @@ Rails.application.routes.draw do
       member do
         patch :publish
         post  :ai_generate
+        get   :ai_status
         post  :assign
       end
       resources :learning_path_items, only: [:create, :update, :destroy] do
@@ -288,13 +292,16 @@ Rails.application.routes.draw do
     resources :flashcard_decks do
       member do
         post :ai_generate
+        get  :ai_status
         get  :study
         post :review
       end
     end
 
     # Module 3: Tóm tắt tài liệu
-    resources :document_summaries, only: [:index, :new, :create, :show, :destroy]
+    resources :document_summaries, only: [:index, :new, :create, :show, :destroy] do
+      member { get :ai_status }
+    end
 
     # Module 3: AI Tutor & Writing
     get  "ai/tutor",   to: "ai#tutor_page",  as: :ai_tutor_page

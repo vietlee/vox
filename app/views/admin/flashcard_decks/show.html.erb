@@ -1,11 +1,10 @@
 <% content_for :title, @deck.title %>
 
 <% if @deck.ai_generating? %>
-  <meta http-equiv="refresh" content="4">
-  <div class="mb-4 flex items-center gap-3 bg-violet-50 border border-violet-200 text-violet-700 rounded-2xl px-5 py-4 text-[14px] font-medium">
-    <svg class="w-5 h-5 animate-spin shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-    AI đang tạo flashcard, trang sẽ tự cập nhật...
-  </div>
+  <%= render "admin/shared/ai_generating_overlay",
+        poll_url: ai_status_flashcard_deck_path(@deck, format: :json),
+        message: "AI đang tạo flashcard...",
+        submessage: "Thường mất 10–30 giây. Đừng tắt trang này." %>
 <% end %>
 
 <div class="flex items-center gap-3 mb-6">

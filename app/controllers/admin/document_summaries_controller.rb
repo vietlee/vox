@@ -1,5 +1,5 @@
 class Admin::DocumentSummariesController < Admin::BaseController
-  before_action :set_summary, only: [:show, :destroy]
+  before_action :set_summary, only: [:show, :destroy, :ai_status]
 
   def index
     @summaries = current_workspace.document_summaries.includes(:created_by).order(created_at: :desc)
@@ -34,6 +34,10 @@ class Admin::DocumentSummariesController < Admin::BaseController
   end
 
   def show; end
+
+  def ai_status
+    render json: { pending: @summary.pending?, failed: @summary.failed? }
+  end
 
   def destroy
     @summary.destroy

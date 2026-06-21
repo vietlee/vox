@@ -1,5 +1,5 @@
 class Admin::ContentOutlinesController < Admin::BaseController
-  before_action :set_outline, only: [:show, :destroy, :regenerate]
+  before_action :set_outline, only: [:show, :destroy, :regenerate, :status]
 
   def index
     @outlines = current_workspace.content_outlines.includes(:created_by).order(created_at: :desc)
@@ -20,6 +20,10 @@ class Admin::ContentOutlinesController < Admin::BaseController
   end
 
   def show; end
+
+  def status
+    render json: { pending: @outline.pending?, failed: @outline.failed? }
+  end
 
   def regenerate
     @outline.update!(status: :pending, content: nil)

@@ -1,5 +1,5 @@
 class Admin::LearningPathsController < Admin::BaseController
-  before_action :set_path, only: [:show, :edit, :update, :destroy, :publish, :ai_generate, :assign]
+  before_action :set_path, only: [:show, :edit, :update, :destroy, :publish, :ai_generate, :ai_status, :assign]
 
   def index
     @learning_paths = current_workspace.learning_paths.includes(:created_by, :learning_path_items).order(created_at: :desc)
@@ -48,6 +48,10 @@ class Admin::LearningPathsController < Admin::BaseController
   def publish
     @learning_path.update!(status: :published)
     redirect_to learning_path_path(@learning_path), notice: "Đã phát hành."
+  end
+
+  def ai_status
+    render json: { pending: @learning_path.ai_generating? }
   end
 
   def ai_generate

@@ -1,0 +1,95 @@
+<%#
+  Renders a full-page loading overlay while an AI job runs in the background.
+  Polls `poll_url` every 2.5s; reloads page when done (or shows error).
+
+  Required locals:
+    poll_url  - JSON endpoint returning { pending: true } or { pending: false, failed: true/false }
+    message   - Main loading message (e.g. "AI đang tạo slide...")
+    submessage - Secondary hint (e.g. "Thường mất 15-30 giây")
+%>
+<div id="ai-gen-overlay"
+     class="fixed inset-0 z-50 flex flex-col items-center justify-center"
+     style="background: rgba(15,23,42,0.82); backdrop-filter: blur(6px);">
+
+  <!-- Animated ring -->
+  <div class="relative mb-8">
+    <svg class="w-24 h-24" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+      <circle id="ai-gen-ring" cx="48" cy="48" r="40" fill="none"
+              stroke="url(#aiGrad)" stroke-width="6"
+              stroke-linecap="round"
+              stroke-dasharray="251.2"
+              stroke-dashoffset="188.4"
+              style="transform-origin:center; transform:rotate(-90deg)">
+        <animateTransform attributeName="transform" type="rotate"
+          from="-90 48 48" to="270 48 48" dur="1.4s" repeatCount="indefinite"/>
+      </circle>
+      <defs>
+        <linearGradient id="aiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#818cf8"/>
+          <stop offset="100%" stop-color="#38bdf8"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <!-- Sparkle icon in center -->
+    <div class="absolute inset-0 flex items-center justify-center text-3xl">✨</div>
+  </div>
+
+  <h2 class="text-white text-[18px] font-bold mb-2 text-center px-6"><%= message %></h2>
+  <p class="text-slate-300 text-[13px] text-center mb-8 px-8"><%= submessage %></p>
+
+  <!-- Animated dots progress bar -->
+  <div class="flex gap-1.5 mb-10">
+    <% 5.times do |i| %>
+      <div class="w-2 h-2 rounded-full bg-indigo-400 ai-dot" style="animation: aiPulse 1.4s ease-in-out <%= i * 0.2 %>s infinite;"></div>
+    <% end %>
+  </div>
+
+  <!-- Hidden error state -->
+  <div id="ai-gen-error" class="hidden flex-col items-center text-center">
+    <div class="text-4xl mb-3">⚠️</div>
+    <p class="text-red-300 text-[14px] font-medium mb-4">Có lỗi xảy ra trong quá trình tạo nội dung</p>
+    <button onclick="location.reload()" class="px-5 py-2.5 bg-white text-slate-800 text-[13px] font-bold rounded-xl hover:bg-slate-100 transition-colors border-0 cursor-pointer">
+      Tải lại trang
+    </button>
+  </div>
+</div>
+
+<style>
+@keyframes aiPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50%       { opacity: 1;   transform: scale(1.15); }
+}
+</style>
+
+<script>
+(function() {
+  var pollUrl = '<%= j poll_url %>';
+  var overlay  = document.getElementById('ai-gen-overlay');
+  var errorEl  = document.getElementById('ai-gen-error');
+
+  function poll() {
+    fetch(pollUrl, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.failed) {
+          // Show error state inside overlay
+          overlay.querySelector('svg').closest('div').classList.add('hidden');
+          overlay.querySelectorAll('h2, p.text-slate-300, .flex.gap-1\\.5').forEach(function(el){ el.classList.add('hidden'); });
+          errorEl.classList.remove('hidden');
+          errorEl.classList.add('flex');
+        } else if (data.pending) {
+          setTimeout(poll, 2500);
+        } else {
+          // Done — reload to show result
+          location.reload();
+        }
+      })
+      .catch(function() {
+        setTimeout(poll, 3000);
+      });
+  }
+
+  setTimeout(poll, 1500);
+})();
+</script>

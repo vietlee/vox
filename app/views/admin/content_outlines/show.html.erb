@@ -18,14 +18,10 @@
 </div>
 
 <% if @outline.pending? %>
-  <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-    <div class="flex items-center justify-center mb-4">
-      <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-    </div>
-    <h3 class="text-[15px] font-bold text-slate-700 mb-1">AI đang tạo nội dung...</h3>
-    <p class="text-[13px] text-slate-400">Thường mất 10–30 giây. Trang sẽ tự tải lại.</p>
-    <meta http-equiv="refresh" content="4">
-  </div>
+  <%= render "admin/shared/ai_generating_overlay",
+        poll_url: status_content_outline_path(@outline, format: :json),
+        message: "AI đang tạo #{@outline.output_type == 'slide' ? 'slide' : 'nội dung'}...",
+        submessage: "Thường mất 15–60 giây. Đừng tắt trang này." %>
 <% elsif @outline.failed? %>
   <div class="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
     <div class="text-4xl mb-3">⚠️</div>
