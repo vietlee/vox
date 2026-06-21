@@ -120,54 +120,49 @@
     </div>
     <p class="text-[11px] text-slate-400 text-center mt-3">Nhấn vào thẻ để lật · Hover để thêm ảnh</p>
 
-    <!-- Image upload saving toast -->
-    <div id="img-toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[13px] font-semibold px-4 py-2 rounded-xl shadow-lg hidden z-50 transition-all">
-      Đã lưu ảnh ✓
-    </div>
 
     <script>
     function uploadCardImage(input, patchUrl, cardDomId) {
       var file = input.files[0]; if (!file) return;
-      /* resize to max 800px before encoding to keep DB size sane */
+      var label = input.closest('label');
+      if (label) label.style.opacity = '0.5';
+
       var img = new Image();
       var reader = new FileReader();
       reader.onload = function(e) {
         img.onload = function() {
-          var maxW = 800, maxH = 600;
+          /* resize to max 900×675 JPEG 0.85 — ~150-300KB base64 */
+          var maxW = 900, maxH = 675;
           var w = img.width, h = img.height;
           if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
           if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
           var canvas = document.createElement('canvas');
           canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-          /* patch to server */
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
           var csrf = document.querySelector('meta[name="csrf-token"]').content;
           fetch(patchUrl, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
             body: JSON.stringify({ image_data: dataUrl })
-          }).then(function(r) { return r.json(); }).then(function(d) {
+          })
+          .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+          })
+          .then(function(d) {
             if (d.ok) {
-              /* update card height + show image without reload */
-              var cardEl = document.getElementById(cardDomId);
-              if (cardEl) {
-                cardEl.style.height = '200px';
-                /* update front face to show image */
-                var front = cardEl.querySelector('.absolute:first-child');
-                if (front) {
-                  front.innerHTML =
-                    '<div class="flex-shrink-0" style="height:110px;overflow:hidden;border-radius:12px 12px 0 0;">' +
-                      '<img src="' + dataUrl + '" style="width:100%;height:100%;object-fit:cover;">' +
-                    '</div>' +
-                    '<div class="flex-1 flex flex-col items-center justify-center p-3 text-center">' +
-                      front.querySelector('p') ? ('<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.7);margin-bottom:4px;">' + (front.querySelector('[class*="tracking"]')||{}).textContent + '</div><p style="font-size:12px;font-weight:700;color:#fff;line-height:1.4;">' + (front.querySelector('p')||{}).textContent + '</p>') : '' +
-                    '</div>';
-                }
-              }
-              var t = document.getElementById('img-toast');
-              t.classList.remove('hidden'); setTimeout(function() { t.classList.add('hidden'); }, 2000);
+              /* reload page so image renders from DB (avoids complex DOM patching) */
+              window.location.reload();
+            } else {
+              alert('Lỗi lưu ảnh: ' + (d.error || 'unknown'));
+              if (label) label.style.opacity = '1';
             }
+          })
+          .catch(function(err) {
+            alert('Lỗi upload ảnh: ' + err.message);
+            if (label) label.style.opacity = '1';
           });
         };
         img.src = e.target.result;
