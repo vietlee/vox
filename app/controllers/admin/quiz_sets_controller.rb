@@ -225,37 +225,20 @@ class Admin::QuizSetsController < Admin::BaseController
     end
 
     questions_count = params[:questions_count].to_i
-    auto_mode = questions_count <= 0
+    auto_mode       = questions_count <= 0
     questions_count = questions_count.clamp(3, 50) unless auto_mode
-    custom_prompt = params[:custom_prompt].to_s.strip.presence
-    result = call_ai_generate(content, auto_mode ? nil : questions_count, custom_prompt)
+    custom_prompt   = params[:custom_prompt].to_s.strip.presence
 
-    if result[:error]
-      return render json: { error: result[:error] }, status: :unprocessable_entity
-    end
+    # Store extracted content in cache so the job can pick it up (TTL 10 minutes)
+    cache_key = "quiz_content_#{@quiz_set.id}_#{Time.now.to_i}"
+    Rails.cache.write(cache_key, content, expires_in: 10.minutes)
 
-    ActiveRecord::Base.transaction do
-      current_workspace.active_subscription.deduct_credits!(5)
-      @quiz_set.update!(source_type: :ai_generated)
-      result[:questions].each_with_index do |q, idx|
-        question = @quiz_set.quiz_questions.create!(
-          question_text: q[:question],
-          question_type: :multiple_choice,
-          explanation:   q[:explanation],
-          position:      @quiz_set.quiz_questions.count + idx
-        )
-        q[:options].each_with_index do |opt, oi|
-          question.quiz_options.create!(
-            option_text: opt[:text],
-            is_correct:  opt[:correct],
-            position:    oi
-          )
-        end
-      end
-    end
+    @quiz_set.update!(ai_generating: true)
+    GenerateQuizQuestionsJob.perform_later(@quiz_set.id, cache_key, auto_mode ? nil : questions_count, custom_prompt)
 
-    render json: { success: true, redirect: edit_quiz_set_path(@quiz_set) }
+    render json: { pending: true, poll_url: ai_generate_status_quiz_set_path(@quiz_set) }
   rescue => e
+    @quiz_set&.update(ai_generating: false)
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
@@ -272,6 +255,19 @@ class Admin::QuizSetsController < Admin::BaseController
     return render json: { error: "Chưa có đánh giá AI" }, status: :unprocessable_entity if attempt.ai_evaluation.blank?
     QuizResultMailer.ai_evaluation_email(attempt, @quiz_set).deliver_later
     render json: { success: true }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  # GET /admin/quiz_sets/:id/ai_generate_status
+  def ai_generate_status
+    request.format = :json
+    @quiz_set = current_workspace.quiz_sets.find(params[:id])
+    if @quiz_set.ai_generating?
+      render json: { pending: true }
+    else
+      render json: { success: true, redirect: edit_quiz_set_path(@quiz_set) }
+    end
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

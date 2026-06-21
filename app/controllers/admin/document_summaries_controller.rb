@@ -24,8 +24,8 @@ class Admin::DocumentSummariesController < Admin::BaseController
 
     @summary.save!
     require_credits!(2)
-    generate_summary(@summary)
     deduct_credits!(2)
+    GenerateDocumentSummaryJob.perform_later(@summary.id)
     redirect_to document_summary_path(@summary)
   rescue => e
     @summary&.update_columns(status: 2)
@@ -46,27 +46,4 @@ class Admin::DocumentSummariesController < Admin::BaseController
     @summary = current_workspace.document_summaries.find(params[:id])
   end
 
-  def generate_summary(summary)
-    text = summary.source_text.presence
-    if text.blank? && summary.source_file.attached?
-      # Extract text from attached file (basic)
-      text = summary.source_file.download.force_encoding("UTF-8").scrub
-    end
-    return summary.update!(status: :failed) if text.blank?
-
-    text_input = text.to_s.truncate(15000)
-    svc = ClaudeService.for_feature("feedback_analysis", timeout: 180)
-    result = svc.call(
-      system_prompt: "Bạn là trợ lý tóm tắt tài liệu chuyên nghiệp. Trả về JSON hợp lệ.",
-      user_prompt: "Tóm tắt tài liệu sau.\n\nTài liệu:\n#{text_input}\n\nJSON: {\"summary\":\"tóm tắt tổng quan 3-5 câu\",\"key_points\":[\"điểm chính 1\",\"điểm chính 2\",...],\"title_suggestion\":\"tiêu đề gợi ý nếu không có\"}",
-      max_tokens: 2000
-    )
-    data = JSON.parse(result.match(/\{.*\}/m)&.to_s || result)
-    summary.update!(
-      summary:    data["summary"],
-      key_points: data["key_points"].to_json,
-      title:      summary.title.presence || data["title_suggestion"],
-      status:     :done
-    )
-  end
 end

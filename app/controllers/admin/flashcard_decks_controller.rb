@@ -35,22 +35,12 @@ class Admin::FlashcardDecksController < Admin::BaseController
   def ai_generate
     require_credits!(3)
     topic = params[:topic].to_s.strip.presence || @deck.title
-    count = (params[:count].to_i.clamp(5, 30))
-    svc = ClaudeService.for_feature("quiz_generate", timeout: 120)
-    raw = svc.call(
-      system_prompt: "Tạo flashcard học tập. Trả về JSON hợp lệ. Ngắn gọn, dễ nhớ.",
-      user_prompt: "Tạo #{count} flashcards cho chủ đề: \"#{topic}\".\nJSON: {\"cards\":[{\"front\":\"Câu hỏi/khái niệm\",\"back\":\"Định nghĩa/đáp án ngắn gọn\"},...]}\nMặt trước: câu hỏi hoặc khái niệm. Mặt sau: đáp án/giải thích ngắn (1-3 câu).",
-      max_tokens: 3000
-    )
-    data = JSON.parse(raw.match(/\{.*\}/m)&.to_s || raw)
-    cards = data["cards"] || []
-    ActiveRecord::Base.transaction do
-      cards.each_with_index { |c, i| @deck.flashcards.create!(front: c["front"], back: c["back"], position: @deck.flashcards.count + i) }
-      @deck.update!(ai_generated: true, card_count: @deck.flashcards.count)
-    end
-    deduct_credits!(3)
-    redirect_to flashcard_deck_path(@deck), notice: "AI đã tạo #{cards.size} thẻ."
+    count = params[:count].to_i.clamp(5, 30)
+    @deck.update!(ai_generating: true)
+    GenerateFlashcardsJob.perform_later(@deck.id, topic, count, current_user.id)
+    redirect_to flashcard_deck_path(@deck), notice: "AI đang tạo flashcard, vui lòng chờ..."
   rescue => e
+    @deck.update(ai_generating: false)
     redirect_to flashcard_deck_path(@deck), alert: "Lỗi: #{e.message.truncate(100)}"
   end
 

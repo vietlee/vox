@@ -249,6 +249,7 @@ Rails.application.routes.draw do
         patch :unpublish
         get   :results
         post  :ai_generate
+        get   :ai_generate_status
         post  :send_result_email
         get   :attempt_detail
         post  :ai_evaluate_attempt

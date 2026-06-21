@@ -973,20 +973,44 @@ async function runAiGenerate() {
       body: formData
     });
     const data = await res.json();
-    if (data.success) {
-      if (_aiRingCtrl) _aiRingCtrl.finish();
-      window.location.href = data.redirect;
-    } else {
+    if (data.error) {
       hideAiLoadingOverlay();
       document.getElementById('ai-error').textContent = data.error;
       document.getElementById('ai-error').classList.remove('hidden');
+      document.getElementById('ai-generate-btn').disabled = false;
+      return;
+    }
+    if (data.pending && data.poll_url) {
+      pollAiStatus(data.poll_url);
+    } else if (data.success) {
+      if (_aiRingCtrl) _aiRingCtrl.finish();
+      window.location.href = data.redirect;
     }
   } catch(e) {
     hideAiLoadingOverlay();
     document.getElementById('ai-error').textContent = e.message;
     document.getElementById('ai-error').classList.remove('hidden');
-  } finally {
     document.getElementById('ai-generate-btn').disabled = false;
+  }
+}
+
+async function pollAiStatus(pollUrl) {
+  try {
+    const res = await fetch(pollUrl, { headers: { 'Accept': 'application/json' } });
+    const data = await res.json();
+    if (data.pending) {
+      setTimeout(() => pollAiStatus(pollUrl), 3000);
+    } else if (data.success) {
+      if (_aiRingCtrl) _aiRingCtrl.finish();
+      window.location.href = data.redirect;
+    } else {
+      hideAiLoadingOverlay();
+      document.getElementById('ai-error').textContent = data.error || 'Lỗi không xác định';
+      document.getElementById('ai-error').classList.remove('hidden');
+      document.getElementById('ai-generate-btn').disabled = false;
+    }
+  } catch(e) {
+    setTimeout(() => pollAiStatus(pollUrl), 3000);
   }
 }
 </script>

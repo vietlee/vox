@@ -55,35 +55,11 @@ class Admin::LearningPathsController < Admin::BaseController
     prompt = params[:prompt].to_s.strip
     return redirect_to(learning_path_path(@learning_path), alert: "Cần nhập yêu cầu.") if prompt.blank?
 
-    system_prompt = "Bạn là trợ lý thiết kế lộ trình học tập/đào tạo. Trả lời bằng JSON hợp lệ theo schema được yêu cầu. Không dùng từ 'giáo viên/học sinh' — dùng 'người tổ chức/người tham gia'."
-    user_prompt = <<~P
-      Tạo lộ trình cho: "#{@learning_path.title}"
-      Yêu cầu: #{prompt}
-
-      Trả về JSON: {"items":[{"title":"...","item_type":"lesson","content":"...nội dung markdown...","estimated_minutes":15},{"title":"Kiểm tra...","item_type":"quiz","estimated_minutes":20},...]}
-      Tạo 5-8 items, xen kẽ lesson và quiz. Content lesson phải đầy đủ, có cấu trúc markdown.
-    P
-
-    svc = ClaudeService.for_feature("quiz_generate", timeout: 180)
-    raw = svc.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 4000)
-    data = JSON.parse(raw.match(/\{.*\}/m)&.to_s || raw)
-
-    ActiveRecord::Base.transaction do
-      data["items"].each_with_index do |item, i|
-        @learning_path.learning_path_items.create!(
-          title: item["title"],
-          item_type: item["item_type"] == "quiz" ? :quiz : :lesson,
-          content: item["content"].to_s,
-          estimated_minutes: item["estimated_minutes"].to_i.clamp(5, 120),
-          position: i
-        )
-      end
-      @learning_path.update!(ai_generated: true)
-    end
-
-    deduct_credits!(5)
-    redirect_to learning_path_path(@learning_path), notice: "AI đã tạo #{data['items'].size} bài học."
+    @learning_path.update!(ai_generating: true)
+    GenerateLearningPathJob.perform_later(@learning_path.id, prompt)
+    redirect_to learning_path_path(@learning_path), notice: "AI đang tạo lộ trình, vui lòng chờ..."
   rescue => e
+    @learning_path.update(ai_generating: false)
     redirect_to learning_path_path(@learning_path), alert: "Lỗi: #{e.message.truncate(100)}"
   end
 

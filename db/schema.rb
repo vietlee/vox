@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_21_100004) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_21_181611) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -330,6 +330,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_100004) do
     t.integer "card_count", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "ai_generating", default: false
     t.index ["created_by_id"], name: "index_flashcard_decks_on_created_by_id"
     t.index ["workspace_id"], name: "index_flashcard_decks_on_workspace_id"
   end
@@ -408,6 +409,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_100004) do
     t.boolean "ai_generated", default: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "ai_generating", default: false
     t.index ["created_by_id"], name: "index_learning_paths_on_created_by_id"
     t.index ["workspace_id"], name: "index_learning_paths_on_workspace_id"
   end
@@ -593,6 +595,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_100004) do
     t.integer "passing_score", default: 50, null: false
     t.text "ai_class_evaluation"
     t.datetime "ai_class_evaluated_at"
+    t.boolean "ai_generating", default: false
     t.index ["share_token"], name: "index_quiz_sets_on_share_token", unique: true
     t.index ["user_id"], name: "index_quiz_sets_on_user_id"
     t.index ["workspace_id", "status"], name: "index_quiz_sets_on_workspace_id_and_status"
