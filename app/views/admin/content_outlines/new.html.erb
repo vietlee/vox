@@ -59,9 +59,9 @@
 </div>
 
 <!-- Loading overlay — hiện ngay khi submit, che trang cho đến khi redirect sang show page -->
-<div id="co-submit-overlay" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center"
+<div id="co-submit-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center"
      data-turbo-temporary
-     style="background: rgba(15,23,42,0.82); backdrop-filter: blur(6px);">
+     style="display:none; background: rgba(15,23,42,0.82); backdrop-filter: blur(6px);">
   <div class="relative mb-8">
     <svg class="w-24 h-24" viewBox="0 0 96 96">
       <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
@@ -88,7 +88,7 @@
 (function() {
   function hideOverlay() {
     var el = document.getElementById('co-submit-overlay');
-    if (el) el.classList.add('hidden');
+    if (el) el.style.display = 'none';
     var btn = document.getElementById('ai-submit-btn');
     if (btn) btn.disabled = false;
   }
@@ -99,7 +99,7 @@
     var type = document.querySelector('[name="content_outline[output_type]"]:checked')?.value;
     var label = type === 'slide' ? 'slide' : type === 'lesson_plan' ? 'kế hoạch buổi học' : 'dàn ý';
     document.getElementById('co-overlay-msg').textContent = 'AI đang tạo ' + label + '...';
-    document.getElementById('co-submit-overlay').classList.remove('hidden');
+    document.getElementById('co-submit-overlay').style.display = 'flex';
     document.getElementById('ai-submit-btn').disabled = true;
   });
 
