@@ -81,141 +81,293 @@
   <div id="slide-data" class="hidden"><%= raw @outline.content %></div>
 
   <style>
-    #slide-viewer * { box-sizing: border-box; }
-    @keyframes slideIn { from { opacity:0; transform:translateX(24px); } to { opacity:1; transform:translateX(0); } }
-    @keyframes fadeUp  { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-    .slide-anim { animation: slideIn 0.32s ease forwards; }
-    .bullet-anim { animation: fadeUp 0.3s ease both; }
+    #slide-viewer * { box-sizing:border-box; }
+    @keyframes sIn  { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+    @keyframes fUp  { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    .s-in  { animation:sIn  0.35s ease forwards; }
+    .f-up  { animation:fUp  0.28s ease both; }
   </style>
 
   <script>
   (function() {
     var el = document.getElementById('slide-data').querySelector('#slide-deck-root');
     var slides = JSON.parse(el.dataset.slides || '[]');
-    var current = 0;
-    var total = slides.length;
+    var current = 0, total = slides.length;
 
-    // Theme palette — each slide gets a unique scheme
+    /* ── 6 full design themes ─────────────────────────────────────────── */
     var THEMES = [
-      { bg: 'linear-gradient(135deg,#1e1b4b 0%,#312e81 100%)', accent: '#a5b4fc', card: 'rgba(255,255,255,0.07)', num: '#818cf8' },
-      { bg: 'linear-gradient(135deg,#0c1445 0%,#1e3a5f 100%)', accent: '#7dd3fc', card: 'rgba(255,255,255,0.07)', num: '#38bdf8' },
-      { bg: 'linear-gradient(135deg,#064e3b 0%,#065f46 100%)', accent: '#6ee7b7', card: 'rgba(255,255,255,0.07)', num: '#34d399' },
-      { bg: 'linear-gradient(135deg,#431407 0%,#7c2d12 100%)', accent: '#fdba74', card: 'rgba(255,255,255,0.07)', num: '#fb923c' },
-      { bg: 'linear-gradient(135deg,#2d1b69 0%,#4c1d95 100%)', accent: '#d8b4fe', card: 'rgba(255,255,255,0.07)', num: '#c084fc' },
-      { bg: 'linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)', accent: '#67e8f9', card: 'rgba(255,255,255,0.07)', num: '#22d3ee' },
+      /* 0 · INDIGO CORPORATE — diagonal split + circles */
+      {
+        name:'corporate',
+        coverBg: function() {
+          return '<rect width="1280" height="720" fill="#1e1b4b"/>' +
+            '<polygon points="0,0 780,0 560,720 0,720" fill="#312e81"/>' +
+            '<circle cx="1150" cy="100" r="220" fill="#4338ca" opacity=".35"/>' +
+            '<circle cx="1050" cy="620" r="140" fill="#6366f1" opacity=".2"/>' +
+            '<rect x="0" y="0" width="7" height="720" fill="#818cf8"/>' +
+            '<rect x="0" y="0" width="1280" height="5" fill="#818cf8"/>';
+        },
+        contentBg: function() {
+          return '<rect width="1280" height="720" fill="#0f0e2a"/>' +
+            '<rect x="0" y="0" width="320" height="720" fill="#1e1b4b"/>' +
+            '<circle cx="320" cy="360" r="80" fill="#312e81" opacity=".6"/>' +
+            '<rect x="0" y="0" width="7" height="720" fill="#818cf8"/>';
+        },
+        accent:'#a5b4fc', text:'#fff', sub:'rgba(255,255,255,0.65)',
+        card:'rgba(129,140,248,0.12)', cardBorder:'#6366f1', num:'#818cf8',
+        titleX: 370, titleW: 860, bullX: 370, bullW: 860
+      },
+      /* 1 · OCEAN BLUE — wave shape */
+      {
+        name:'ocean',
+        coverBg: function() {
+          return '<rect width="1280" height="720" fill="#0c1445"/>' +
+            '<path d="M0,400 Q320,320 640,400 Q960,480 1280,380 L1280,720 L0,720 Z" fill="#1e3a5f"/>' +
+            '<circle cx="200" cy="180" r="180" fill="#1d4ed8" opacity=".25"/>' +
+            '<circle cx="1100" cy="500" r="140" fill="#0ea5e9" opacity=".18"/>' +
+            '<rect x="0" y="0" width="1280" height="5" fill="#38bdf8"/>' +
+            '<rect x="0" y="715" width="1280" height="5" fill="#38bdf8"/>';
+        },
+        contentBg: function() {
+          return '<rect width="1280" height="720" fill="#071528"/>' +
+            '<path d="M0,580 Q640,500 1280,580 L1280,720 L0,720 Z" fill="#0c1f3f"/>' +
+            '<rect x="0" y="0" width="1280" height="6" fill="#38bdf8"/>';
+        },
+        accent:'#7dd3fc', text:'#fff', sub:'rgba(255,255,255,0.6)',
+        card:'rgba(56,189,248,0.1)', cardBorder:'#0ea5e9', num:'#38bdf8',
+        titleX: 80, titleW: 1120, bullX: 80, bullW: 1120
+      },
+      /* 2 · EMERALD NATURE — leaf/organic curves */
+      {
+        name:'nature',
+        coverBg: function() {
+          return '<rect width="1280" height="720" fill="#052e16"/>' +
+            '<ellipse cx="1100" cy="80" rx="320" ry="200" fill="#065f46" opacity=".7"/>' +
+            '<ellipse cx="200" cy="640" rx="260" ry="160" fill="#064e3b" opacity=".8"/>' +
+            '<path d="M0,0 Q200,200 0,400" stroke="#10b981" stroke-width="3" fill="none" opacity=".4"/>' +
+            '<path d="M1280,720 Q1080,520 1280,320" stroke="#10b981" stroke-width="3" fill="none" opacity=".4"/>' +
+            '<rect x="0" y="0" width="1280" height="5" fill="#34d399"/>';
+        },
+        contentBg: function() {
+          return '<rect width="1280" height="720" fill="#021a0e"/>' +
+            '<rect x="0" y="0" width="280" height="720" fill="#052e16"/>' +
+            '<ellipse cx="280" cy="720" rx="200" ry="200" fill="#064e3b" opacity=".5"/>' +
+            '<rect x="0" y="0" width="6" height="720" fill="#34d399"/>';
+        },
+        accent:'#6ee7b7', text:'#fff', sub:'rgba(255,255,255,0.6)',
+        card:'rgba(52,211,153,0.1)', cardBorder:'#10b981', num:'#34d399',
+        titleX: 340, titleW: 900, bullX: 340, bullW: 900
+      },
+      /* 3 · SUNSET — diagonal warm split */
+      {
+        name:'sunset',
+        coverBg: function() {
+          return '<rect width="1280" height="720" fill="#1c0a00"/>' +
+            '<polygon points="1280,0 1280,720 400,720" fill="#7c2d12"/>' +
+            '<polygon points="1280,0 900,0 1280,300" fill="#b45309" opacity=".6"/>' +
+            '<circle cx="120" cy="100" r="160" fill="#92400e" opacity=".3"/>' +
+            '<rect x="0" y="715" width="1280" height="5" fill="#fb923c"/>' +
+            '<rect x="0" y="0" width="1280" height="5" fill="#f97316"/>';
+        },
+        contentBg: function() {
+          return '<rect width="1280" height="720" fill="#1c0a00"/>' +
+            '<polygon points="1280,0 1280,720 900,720" fill="#7c2d12" opacity=".8"/>' +
+            '<rect x="0" y="0" width="1280" height="5" fill="#fb923c"/>';
+        },
+        accent:'#fdba74', text:'#fff', sub:'rgba(255,255,255,0.6)',
+        card:'rgba(251,146,60,0.1)', cardBorder:'#f97316', num:'#fdba74',
+        titleX: 80, titleW: 780, bullX: 80, bullW: 780
+      },
+      /* 4 · VIOLET CREATIVE — random circles/blobs */
+      {
+        name:'creative',
+        coverBg: function() {
+          return '<rect width="1280" height="720" fill="#1a0533"/>' +
+            '<circle cx="640" cy="360" r="380" fill="#4c1d95" opacity=".4"/>' +
+            '<circle cx="200" cy="600" r="200" fill="#7c3aed" opacity=".25"/>' +
+            '<circle cx="1100" cy="120" r="240" fill="#6d28d9" opacity=".3"/>' +
+            '<circle cx="950" cy="580" r="120" fill="#a855f7" opacity=".2"/>' +
+            '<rect x="0" y="0" width="1280" height="4" fill="#c084fc"/>' +
+            '<rect x="0" y="716" width="1280" height="4" fill="#c084fc"/>';
+        },
+        contentBg: function() {
+          return '<rect width="1280" height="720" fill="#120224"/>' +
+            '<circle cx="1200" cy="100" r="200" fill="#4c1d95" opacity=".3"/>' +
+            '<circle cx="100" cy="620" r="150" fill="#7c3aed" opacity=".2"/>' +
+            '<rect x="0" y="0" width="1280" height="5" fill="#c084fc"/>';
+        },
+        accent:'#d8b4fe', text:'#fff', sub:'rgba(255,255,255,0.65)',
+        card:'rgba(192,132,252,0.12)', cardBorder:'#a855f7', num:'#c084fc',
+        titleX: 80, titleW: 1120, bullX: 80, bullW: 1120
+      },
+      /* 5 · SLATE MINIMAL — clean lines, light left panel */
+      {
+        name:'minimal',
+        coverBg: function() {
+          return '<rect width="1280" height="720" fill="#f8fafc"/>' +
+            '<rect x="0" y="0" width="440" height="720" fill="#0f172a"/>' +
+            '<rect x="440" y="0" width="4" height="720" fill="#6366f1"/>' +
+            '<circle cx="220" cy="360" r="160" fill="#1e293b" opacity=".5"/>' +
+            '<rect x="0" y="0" width="4" height="720" fill="#6366f1"/>';
+        },
+        contentBg: function() {
+          return '<rect width="1280" height="720" fill="#f1f5f9"/>' +
+            '<rect x="0" y="0" width="8" height="720" fill="#6366f1"/>' +
+            '<rect x="0" y="0" width="1280" height="72" fill="#fff"/>' +
+            '<rect x="0" y="72" width="1280" height="2" fill="#e2e8f0"/>';
+        },
+        accent:'#6366f1', text:'#1e293b', sub:'#475569',
+        coverText:'#fff', coverSub:'rgba(255,255,255,0.7)',
+        card:'rgba(99,102,241,0.08)', cardBorder:'#6366f1', num:'#6366f1',
+        titleX: 500, titleW: 720, bullX: 60, bullW: 1160,
+        light: true
+      },
     ];
 
-    function getTheme(i) { return THEMES[i % THEMES.length]; }
+    function T(i) { return THEMES[i % THEMES.length]; }
 
-    function renderCover(s, theme) {
-      return '<div class="slide-anim" style="position:absolute;inset:0;background:' + theme.bg + ';display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6% 10%;text-align:center;">' +
-        // Top decorative bar
-        '<div style="position:absolute;top:0;left:0;right:0;height:5px;background:' + theme.accent + ';"></div>' +
-        // Corner decoration
-        '<div style="position:absolute;top:20px;right:24px;font-size:11px;font-weight:700;letter-spacing:3px;color:' + theme.accent + ';opacity:0.6;text-transform:uppercase;">01 / ' + String(total).padStart(2,'0') + '</div>' +
-        // Big title
-        '<div style="font-size:clamp(22px,4vw,42px);font-weight:900;color:#fff;line-height:1.15;margin-bottom:20px;text-shadow:0 2px 24px rgba(0,0,0,0.4);">' + s.title + '</div>' +
-        // Divider line
-        '<div style="width:60px;height:4px;border-radius:2px;background:' + theme.accent + ';margin-bottom:20px;"></div>' +
-        // Subtitle from bullets
-        (s.bullets.length ? '<div style="font-size:clamp(13px,1.6vw,18px);color:rgba(255,255,255,0.75);line-height:1.7;max-width:72%;">' + s.bullets.join(' &nbsp;·&nbsp; ') + '</div>' : '') +
-        // Bottom decorative bar
-        '<div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,' + theme.accent + ',transparent);"></div>' +
-      '</div>';
+    /* ── SVG background wrapper ─────────────────────────────────────── */
+    function svgBg(innerSvg) {
+      return '<svg style="position:absolute;inset:0;width:100%;height:100%;" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">' + innerSvg + '</svg>';
     }
 
-    function renderContent(s, i, theme) {
-      var bulletsHtml = s.bullets.map(function(b, bi) {
-        return '<div class="bullet-anim" style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:' + theme.card + ';border-radius:10px;border-left:3px solid ' + theme.accent + ';animation-delay:' + (bi*0.07) + 's;">' +
-          '<span style="font-size:13px;font-weight:800;color:' + theme.accent + ';margin-top:1px;flex-shrink:0;">' + String(bi+1).padStart(2,'0') + '</span>' +
-          '<span style="color:#f1f5f9;font-size:clamp(12px,1.4vw,15px);line-height:1.55;">' + b + '</span>' +
-        '</div>';
-      }).join('');
+    /* ── Cover slide ────────────────────────────────────────────────── */
+    function renderCover(s, t) {
+      var isLight = t.name === 'minimal';
+      var tColor  = isLight ? (t.coverText || '#fff') : t.text;
+      var sColor  = isLight ? (t.coverSub  || t.sub)  : t.sub;
+      var tx = t.name === 'minimal' ? 500 : 100;
+      var tw = t.name === 'minimal' ? 720 : 1080;
 
-      return '<div class="slide-anim" style="position:absolute;inset:0;background:' + theme.bg + ';display:flex;flex-direction:column;padding:4% 5% 3%;">' +
-        // Header
-        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:4%;padding-bottom:3%;border-bottom:1px solid rgba(255,255,255,0.1);">' +
-          '<div style="background:' + theme.accent + ';color:#0f172a;font-size:11px;font-weight:900;padding:4px 10px;border-radius:20px;letter-spacing:1px;flex-shrink:0;">' + String(i+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') + '</div>' +
-          '<h2 style="color:#fff;font-size:clamp(16px,2.2vw,26px);font-weight:800;margin:0;line-height:1.2;">' + s.title + '</h2>' +
+      return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
+        svgBg(t.coverBg()) +
+        '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;' +
+          'padding:6% ' + Math.round(tx/12.8) + '% 6% ' + Math.round(tx/12.8) + '%;' +
+          (t.name==='minimal' ? 'margin-left:36%;' : '') + '">' +
+          '<div style="font-size:11px;font-weight:800;letter-spacing:4px;color:' + t.accent + ';text-transform:uppercase;margin-bottom:18px;opacity:.9;">01 / ' + String(total).padStart(2,'0') + '</div>' +
+          '<div style="font-size:clamp(20px,3.6vw,44px);font-weight:900;color:' + tColor + ';line-height:1.15;margin-bottom:22px;text-shadow:0 2px 16px rgba(0,0,0,.3);">' + s.title + '</div>' +
+          '<div style="width:56px;height:4px;border-radius:2px;background:' + t.accent + ';margin-bottom:20px;"></div>' +
+          (s.bullets.length ? '<div style="font-size:clamp(12px,1.5vw,17px);color:' + sColor + ';line-height:1.8;">' + s.bullets.map(function(b){ return '· ' + b; }).join('<br>') + '</div>' : '') +
         '</div>' +
-        // Bullets
-        '<div style="flex:1;display:flex;flex-direction:column;gap:8px;overflow:hidden;">' + bulletsHtml + '</div>' +
-        // Bottom accent
-        '<div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,' + theme.accent + ',transparent);"></div>' +
       '</div>';
     }
 
-    function renderSummary(s, theme) {
+    /* ── Content slide ──────────────────────────────────────────────── */
+    function renderContent(s, idx, t) {
+      var isLight = t.light;
+      var tColor  = isLight ? t.text : '#fff';
+      var leftPad = t.name === 'corporate' || t.name === 'nature' ? '27%' : '5%';
+
       var bulletsHtml = s.bullets.map(function(b, bi) {
-        var icons = ['✅','💡','🎯','📌','⭐','🔑'];
-        return '<div class="bullet-anim" style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:rgba(255,255,255,0.06);border-radius:10px;animation-delay:' + (bi*0.08) + 's;">' +
-          '<span style="font-size:16px;">' + (icons[bi] || '▸') + '</span>' +
-          '<span style="color:#f1f5f9;font-size:clamp(12px,1.4vw,14px);line-height:1.5;">' + b + '</span>' +
+        return '<div class="f-up" style="display:flex;align-items:flex-start;gap:14px;padding:11px 16px;' +
+          'background:' + t.card + ';border-radius:10px;border-left:3px solid ' + t.cardBorder + ';' +
+          'animation-delay:' + (bi*0.08) + 's;margin-bottom:8px;">' +
+          '<span style="font-size:12px;font-weight:900;color:' + t.num + ';flex-shrink:0;min-width:22px;margin-top:2px;">' + String(bi+1).padStart(2,'0') + '</span>' +
+          '<span style="color:' + tColor + ';font-size:clamp(12px,1.35vw,15px);line-height:1.6;">' + b + '</span>' +
         '</div>';
       }).join('');
 
-      return '<div class="slide-anim" style="position:absolute;inset:0;background:' + theme.bg + ';display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5% 8%;text-align:center;">' +
-        '<div style="position:absolute;top:0;left:0;right:0;height:5px;background:' + theme.accent + ';"></div>' +
-        '<div style="font-size:11px;font-weight:800;letter-spacing:3px;color:' + theme.accent + ';margin-bottom:14px;text-transform:uppercase;">Tóm tắt</div>' +
-        '<h2 style="color:#fff;font-size:clamp(18px,2.8vw,32px);font-weight:900;margin:0 0 20px;line-height:1.2;">' + s.title + '</h2>' +
-        '<div style="width:50px;height:3px;background:' + theme.accent + ';border-radius:2px;margin-bottom:24px;"></div>' +
-        '<div style="width:100%;max-width:640px;display:flex;flex-direction:column;gap:8px;text-align:left;">' + bulletsHtml + '</div>' +
-        '<div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,' + theme.accent + ',transparent);"></div>' +
+      return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
+        svgBg(t.contentBg()) +
+        '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;padding:0 4% 3% ' + leftPad + ';">' +
+          /* header row */
+          '<div style="height:72px;display:flex;align-items:center;gap:14px;">' +
+            '<span style="background:' + t.accent + ';color:#0f172a;font-size:11px;font-weight:900;padding:4px 12px;border-radius:20px;letter-spacing:1px;flex-shrink:0;">' + String(idx+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') + '</span>' +
+            '<h2 style="color:' + tColor + ';font-size:clamp(15px,2vw,24px);font-weight:800;margin:0;line-height:1.25;">' + s.title + '</h2>' +
+          '</div>' +
+          /* bullets */
+          '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + bulletsHtml + '</div>' +
+        '</div>' +
       '</div>';
     }
 
-    function render(direction) {
+    /* ── Summary slide ──────────────────────────────────────────────── */
+    function renderSummary(s, t) {
+      var icons = ['✅','💡','🎯','📌','⭐','🔑','🚀'];
+      var isLight = t.light;
+      var tColor = isLight ? t.text : '#fff';
+
+      var bulletsHtml = s.bullets.map(function(b, bi) {
+        return '<div class="f-up" style="display:flex;align-items:center;gap:12px;padding:10px 16px;' +
+          'background:' + t.card + ';border-radius:10px;animation-delay:' + (bi*0.08) + 's;margin-bottom:8px;">' +
+          '<span style="font-size:18px;flex-shrink:0;">' + (icons[bi]||'▸') + '</span>' +
+          '<span style="color:' + tColor + ';font-size:clamp(12px,1.3vw,14px);line-height:1.55;">' + b + '</span>' +
+        '</div>';
+      }).join('');
+
+      return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
+        svgBg(t.coverBg()) +
+        '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5% 8%;text-align:center;">' +
+          '<div style="font-size:11px;font-weight:800;letter-spacing:4px;color:' + t.accent + ';text-transform:uppercase;margin-bottom:14px;">Tóm tắt · ' + String(total).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') + '</div>' +
+          '<h2 style="color:' + (t.name==='minimal'?t.coverText||'#fff':tColor) + ';font-size:clamp(18px,2.6vw,34px);font-weight:900;margin:0 0 16px;line-height:1.2;">' + s.title + '</h2>' +
+          '<div style="width:50px;height:4px;background:' + t.accent + ';border-radius:2px;margin-bottom:24px;"></div>' +
+          '<div style="width:100%;max-width:680px;text-align:left;">' + bulletsHtml + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    /* ── Theme picker UI ────────────────────────────────────────────── */
+    var pickerHtml = THEMES.map(function(t, i) {
+      var labels = {corporate:'🏢 Corporate', ocean:'🌊 Ocean', nature:'🌿 Nature', sunset:'🌅 Sunset', creative:'✨ Creative', minimal:'⬜ Minimal'};
+      return '<button onclick="setTheme(' + i + ')" id="theme-btn-' + i + '" ' +
+        'style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;border:2px solid transparent;cursor:pointer;transition:all .15s;background:#f1f5f9;color:#475569;">' +
+        (labels[t.name]||t.name) + '</button>';
+    }).join('');
+    document.getElementById('slide-dots').insertAdjacentHTML('beforebegin',
+      '<div id="theme-picker" style="display:flex;gap:6px;flex-wrap:wrap;">' + pickerHtml + '</div>'
+    );
+
+    var activeThemeIdx = 0;
+    window.setTheme = function(i) {
+      activeThemeIdx = i;
+      document.querySelectorAll('[id^="theme-btn-"]').forEach(function(b,j){
+        b.style.background = j===i ? '#6366f1' : '#f1f5f9';
+        b.style.color      = j===i ? '#fff'    : '#475569';
+        b.style.borderColor= j===i ? '#6366f1' : 'transparent';
+      });
+      render();
+    };
+    setTheme(0);
+
+    /* ── Render ─────────────────────────────────────────────────────── */
+    function render() {
       if (!slides.length) return;
       var s = slides[current];
-      var theme = getTheme(current);
-      var isFirst = current === 0;
-      var isLast  = current === total - 1;
+      var t = THEMES[activeThemeIdx];
+      var isFirst = current === 0, isLast = current === total - 1;
 
-      var html;
-      if (isFirst)     html = renderCover(s, theme);
-      else if (isLast) html = renderSummary(s, theme);
-      else             html = renderContent(s, current, theme);
-
+      var html = isFirst ? renderCover(s, t) : isLast ? renderSummary(s, t) : renderContent(s, current, t);
       document.getElementById('slide-viewer').innerHTML = html;
       document.getElementById('slide-counter').textContent = (current+1) + ' / ' + total;
 
-      // Progress dots
       var dots = document.getElementById('slide-dots');
       dots.innerHTML = slides.map(function(_, i) {
-        return '<div style="width:' + (i===current?'18px':'6px') + ';height:6px;border-radius:3px;background:' + (i===current?'#6366f1':'#cbd5e1') + ';transition:all 0.2s;"></div>';
+        return '<div style="width:' + (i===current?'18px':'6px') + ';height:6px;border-radius:3px;background:' + (i===current?'#6366f1':'#cbd5e1') + ';transition:all .2s;"></div>';
       }).join('');
 
-      // Speaker note
       var noteEl = document.getElementById('slide-note');
-      if (s.note) {
-        document.getElementById('slide-note-text').textContent = s.note;
-        noteEl.classList.remove('hidden');
-      } else {
-        noteEl.classList.add('hidden');
-      }
+      if (s.note) { document.getElementById('slide-note-text').textContent = s.note; noteEl.classList.remove('hidden'); }
+      else { noteEl.classList.add('hidden'); }
     }
 
     window.prevSlide = function() { if (current > 0) { current--; render(); } };
     window.nextSlide = function() { if (current < total-1) { current++; render(); } };
     window.enterFullscreen = function() {
-      var wrapper = document.getElementById('slide-viewer').parentElement;
-      (wrapper.requestFullscreen || wrapper.webkitRequestFullscreen || function(){}).call(wrapper);
+      var w = document.getElementById('slide-viewer').parentElement;
+      (w.requestFullscreen || w.webkitRequestFullscreen || function(){}).call(w);
     };
 
     document.addEventListener('keydown', function(e) {
       if (e.key==='ArrowRight'||e.key==='ArrowDown') nextSlide();
-      if (e.key==='ArrowLeft'||e.key==='ArrowUp')   prevSlide();
+      if (e.key==='ArrowLeft' ||e.key==='ArrowUp')   prevSlide();
     });
-
-    // Swipe support
-    var touchX = null;
-    document.getElementById('slide-viewer').addEventListener('touchstart', function(e){ touchX = e.touches[0].clientX; });
-    document.getElementById('slide-viewer').addEventListener('touchend', function(e) {
-      if (!touchX) return;
-      var dx = e.changedTouches[0].clientX - touchX;
-      if (dx < -40) nextSlide();
-      else if (dx > 40) prevSlide();
-      touchX = null;
+    var tx = null;
+    document.getElementById('slide-viewer').addEventListener('touchstart', function(e){ tx = e.touches[0].clientX; });
+    document.getElementById('slide-viewer').addEventListener('touchend', function(e){
+      if (!tx) return;
+      var dx = e.changedTouches[0].clientX - tx;
+      if (dx < -40) nextSlide(); else if (dx > 40) prevSlide();
+      tx = null;
     });
 
     render();
