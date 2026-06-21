@@ -60,53 +60,116 @@
   <% end %>
 </div>
 
-<!-- Loading overlay -->
-<div id="co-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center"
-     style="display:none; background:rgba(15,23,42,0.85); backdrop-filter:blur(6px);">
-  <div class="relative mb-8">
-    <svg class="w-24 h-24" viewBox="0 0 96 96">
-      <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
-      <circle cx="48" cy="48" r="40" fill="none" stroke="url(#coGrad)" stroke-width="6"
-              stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="188.4"
-              style="transform-origin:center;transform:rotate(-90deg)">
-        <animateTransform attributeName="transform" type="rotate"
-          from="-90 48 48" to="270 48 48" dur="1.4s" repeatCount="indefinite"/>
-      </circle>
-      <defs>
-        <linearGradient id="coGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#818cf8"/>
-          <stop offset="100%" stop-color="#38bdf8"/>
-        </linearGradient>
-      </defs>
-    </svg>
-    <div class="absolute inset-0 flex items-center justify-center text-3xl">✨</div>
-  </div>
-  <h2 id="co-overlay-msg" class="text-white text-[18px] font-bold mb-2 text-center px-6">AI đang tạo nội dung...</h2>
-  <p class="text-slate-300 text-[13px]">Đừng tắt trang này.</p>
-  <div class="flex gap-1.5 mt-6">
-    <% 5.times do |i| %>
-      <div class="w-2 h-2 rounded-full bg-indigo-400" style="animation:aiPulse 1.4s ease-in-out <%= i*0.2 %>s infinite;"></div>
-    <% end %>
+<!-- Loading overlay — same style as quiz_sets -->
+<div id="co-overlay"
+     style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center;
+            background:rgba(15,23,42,0.65); backdrop-filter:blur(4px);">
+  <div style="background:#fff; border-radius:20px; padding:32px 40px; text-align:center;
+              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%;">
+    <div id="co-ring-container"></div>
+    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Đừng tắt trang này.</p>
   </div>
 </div>
 
-<style>@keyframes aiPulse{0%,100%{opacity:.3;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}</style>
+<div id="co-error-box" style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center; background:rgba(15,23,42,0.65);">
+  <div style="background:#fff; border-radius:20px; padding:32px 40px; text-align:center; max-width:320px; width:90%;">
+    <div style="font-size:2rem; margin-bottom:12px;">⚠️</div>
+    <p id="co-error-msg" style="font-size:14px; color:#ef4444; margin:0 0 16px;"></p>
+    <button onclick="document.getElementById('co-error-box').style.display='none'; document.getElementById('ai-submit-btn').disabled=false;"
+            style="padding:8px 20px; background:#6366f1; color:#fff; border:0; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer;">
+      Đóng
+    </button>
+  </div>
+</div>
+
+<style>
+@keyframes vox-pulse {
+  0%,100% { transform:scale(1); opacity:1; }
+  50%      { transform:scale(0.88); opacity:0.75; }
+}
+</style>
 
 <script>
-var _coPollUrl = null;
+var CO_PHASES_BY_TYPE = {
+  slide:       ['Đang phân tích chủ đề...', 'Đang tạo cấu trúc slide...', 'Đang viết nội dung...', 'Đang tạo file PowerPoint...', 'Đang hoàn thiện...'],
+  lesson_plan: ['Đang phân tích chủ đề...', 'Đang thiết kế cấu trúc...', 'Đang viết nội dung...', 'Đang hoàn thiện...'],
+  outline:     ['Đang phân tích chủ đề...', 'Đang tạo dàn ý...', 'Đang hoàn thiện...']
+};
+
+var _coRingCtrl = null;
+
+function makeCoProgressRing(phases) {
+  var cid = 'co-ring-container';
+  var totalPhases = phases.length;
+  var phase = 0, pct = 0, timer = null;
+  document.getElementById(cid).innerHTML = [
+    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0;gap:8px;">',
+      '<span id="co-ring-pct" style="font-size:13px;font-weight:800;color:#7c3aed;letter-spacing:-0.3px;">0%</span>',
+      '<div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;">',
+        '<svg width="88" height="88" viewBox="0 0 88 88" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">',
+          '<circle cx="44" cy="44" r="38" stroke="#ede9fe" stroke-width="6"/>',
+          '<circle id="co-ring-arc" cx="44" cy="44" r="38" stroke="#7c3aed" stroke-width="6" stroke-linecap="round"',
+            'stroke-dasharray="238.8" stroke-dashoffset="238.8" style="transition:stroke-dashoffset 0.6s ease;"/>',
+        '</svg>',
+        '<div style="position:relative;z-index:2;animation:vox-pulse 1.6s ease-in-out infinite;">',
+          '<svg width="32" height="32" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">',
+            '<rect x="0" y="0" width="36" height="36" rx="9" fill="#1A6BFF"/>',
+            '<polygon points="10,24 6,31 16,24" fill="white"/>',
+            '<rect x="6" y="6" width="24" height="19" rx="5" fill="white"/>',
+            '<rect x="10" y="11" width="4" height="7" rx="1" fill="#1A6BFF"/>',
+            '<rect x="16" y="8" width="4" height="13" rx="1" fill="#1A6BFF"/>',
+            '<rect x="23" y="10" width="4" height="9" rx="1" fill="#1A6BFF"/>',
+          '</svg>',
+        '</div>',
+      '</div>',
+      '<p id="co-ring-phase" style="font-size:12px;font-weight:600;color:#6366f1;text-align:center;max-width:220px;margin:0;">' + phases[0] + '</p>',
+    '</div>'
+  ].join('');
+
+  var ring  = document.getElementById('co-ring-arc');
+  var pctEl = document.getElementById('co-ring-pct');
+  var phEl  = document.getElementById('co-ring-phase');
+  var milestones = phases.map(function(_, i) { return Math.round(((i + 1) / totalPhases) * 85); });
+
+  function setProgress(p) {
+    ring.style.strokeDashoffset = 238.8 * (1 - p / 100);
+    pctEl.textContent = Math.round(p) + '%';
+  }
+
+  timer = setInterval(function() {
+    var target = milestones[phase] || 85;
+    pct = Math.min(pct + 1, target);
+    setProgress(pct);
+    if (pct >= (milestones[phase] || 85) && phase < totalPhases - 1) {
+      phase++;
+      phEl.textContent = phases[phase];
+    }
+    if (pct >= 85 && phase >= totalPhases - 1) {
+      clearInterval(timer);
+      timer = setInterval(function() {
+        if (pct >= 98) { clearInterval(timer); return; }
+        pct = Math.min(pct + 0.4, 98);
+        setProgress(pct);
+      }, 3000);
+    }
+  }, 300);
+
+  return {
+    finish: function() { clearInterval(timer); ring.style.strokeDashoffset = '0'; pctEl.textContent = '100%'; }
+  };
+}
 
 async function runCoGenerate() {
   var form = document.getElementById('co-form');
   var title = form.querySelector('[name="content_outline[title]"]').value.trim();
   if (!title) { form.querySelector('[name="content_outline[title]"]').focus(); return; }
 
-  var type = form.querySelector('[name="content_outline[output_type]"]:checked')?.value;
-  var labels = { slide: 'slide PowerPoint', lesson_plan: 'kế hoạch buổi học', outline: 'dàn ý' };
-  document.getElementById('co-overlay-msg').textContent = 'AI đang tạo ' + (labels[type] || 'nội dung') + '...';
+  var type = form.querySelector('[name="content_outline[output_type]"]:checked')?.value || 'outline';
+  var phases = CO_PHASES_BY_TYPE[type] || CO_PHASES_BY_TYPE.outline;
 
-  document.getElementById('co-error').classList.add('hidden');
   document.getElementById('ai-submit-btn').disabled = true;
   document.getElementById('co-overlay').style.display = 'flex';
+  _coRingCtrl = makeCoProgressRing(phases);
 
   var formData = new FormData(form);
   formData.append('authenticity_token', document.querySelector('meta[name="csrf-token"]').content);
@@ -118,17 +181,15 @@ async function runCoGenerate() {
       body: formData
     });
     var data = await res.json();
-
-    if (data.error) {
-      showError(data.error);
-    } else if (data.pending) {
-      _coPollUrl = data.poll_url;
+    if (data.error) { showCoError(data.error); return; }
+    if (data.pending) {
       setTimeout(function() { pollCoStatus(data.poll_url, data.show_url); }, 2000);
     } else {
-      window.location.href = data.show_url || '<%= content_outlines_path %>';
+      if (_coRingCtrl) _coRingCtrl.finish();
+      window.location.href = data.show_url;
     }
   } catch(e) {
-    showError(e.message);
+    showCoError(e.message);
   }
 }
 
@@ -137,27 +198,24 @@ function pollCoStatus(pollUrl, showUrl) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (data.failed) {
-        showError('AI gặp lỗi khi tạo nội dung. Vui lòng thử lại.');
+        showCoError('AI gặp lỗi khi tạo nội dung. Vui lòng thử lại.');
       } else if (data.pending) {
         setTimeout(function() { pollCoStatus(pollUrl, showUrl); }, 2500);
       } else {
-        window.location.href = showUrl;
+        if (_coRingCtrl) _coRingCtrl.finish();
+        setTimeout(function() { window.location.href = showUrl; }, 400);
       }
     })
-    .catch(function() {
-      setTimeout(function() { pollCoStatus(pollUrl, showUrl); }, 3000);
-    });
+    .catch(function() { setTimeout(function() { pollCoStatus(pollUrl, showUrl); }, 3000); });
 }
 
-function showError(msg) {
+function showCoError(msg) {
   document.getElementById('co-overlay').style.display = 'none';
   document.getElementById('ai-submit-btn').disabled = false;
-  var el = document.getElementById('co-error');
-  el.textContent = msg;
-  el.classList.remove('hidden');
+  document.getElementById('co-error-msg').textContent = msg;
+  document.getElementById('co-error-box').style.display = 'flex';
 }
 
-// Cleanup on Turbo navigate away
 document.addEventListener('turbo:before-cache', function() {
   document.getElementById('co-overlay').style.display = 'none';
   document.getElementById('ai-submit-btn').disabled = false;
