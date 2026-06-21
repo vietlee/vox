@@ -814,48 +814,190 @@
     }
 
     /* ─────────────────────────────────────────────────────────────────
-       CONTENT
+       CONTENT — shared header helper
     ───────────────────────────────────────────────────────────────── */
-    function renderContent(s, idx, t) {
+    function slideHeader(s, idx, t) {
       var tColor = t.light ? t.text : '#fff';
-      var numBg    = t.numBg    || (t.light ? t.accent : t.accent);
-      var numColor = t.numColor || (t.light ? '#fff'   : '#0a0a0a');
+      var badgeColor = t.numColor || (t.light ? '#fff' : '#0a0a0a');
+      return '<div style="height:72px;display:flex;align-items:center;gap:14px;flex-shrink:0;">' +
+        '<span style="background:' + t.accent + ';color:' + badgeColor + ';' +
+          'font-size:10px;font-weight:900;padding:5px 13px;border-radius:20px;letter-spacing:1px;flex-shrink:0;">' +
+          String(idx+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') +
+        '</span>' +
+        '<h2 style="color:' + tColor + ';font-size:clamp(15px,2vw,25px);font-weight:800;margin:0;line-height:1.2;">' + s.title + '</h2>' +
+      '</div>';
+    }
+
+    function slideWrap(bgSvg, inner) {
+      return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
+        svgBg(bgSvg) +
+        '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;padding:0 5% 3%;">' +
+          inner +
+        '</div>' +
+      '</div>';
+    }
+
+    /* ── LAYOUT: bullets ── */
+    function layoutBullets(s, t) {
+      var tColor = t.light ? t.text : '#fff';
+      var numBg    = t.numBg    || t.accent;
+      var numColor = t.numColor || (t.light ? '#fff' : '#0a0a0a');
       var defaultCard = 'background:' + t.glass + ';border:1px solid ' + t.glassBorder + ';border-radius:14px;' + (t.light ? '' : 'backdrop-filter:blur(8px);');
       var cardCss  = t.cardStyle || defaultCard;
-
-      var bulletsHtml = s.bullets.map(function(b, bi) {
-        return '<div class="f-up" style="' +
-          'display:flex;align-items:flex-start;gap:14px;' +
-          'padding:12px 18px 12px 16px;' +
-          cardCss +
-          'animation-delay:' + (bi*0.09) + 's;' +
-          'margin-bottom:9px;">' +
-          '<div style="min-width:28px;height:28px;border-radius:8px;' +
-            'background:' + numBg + ';color:' + numColor + ';' +
+      var bullets = (s.bullets || []).slice(0, 5);
+      var html = bullets.map(function(b, bi) {
+        return '<div class="f-up" style="display:flex;align-items:flex-start;gap:14px;padding:11px 18px 11px 14px;' + cardCss + 'animation-delay:' + (bi*0.08) + 's;margin-bottom:8px;">' +
+          '<div style="min-width:28px;height:28px;border-radius:8px;background:' + numBg + ';color:' + numColor + ';' +
             (t.numBorderColor ? 'border:1.5px solid ' + t.numBorderColor + ';background:transparent;' : '') +
             'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:1px;">' +
             String(bi+1).padStart(2,'0') +
           '</div>' +
-          '<span style="color:' + tColor + ';font-size:clamp(12px,1.35vw,15px);line-height:1.65;">' + b + '</span>' +
+          '<span style="color:' + tColor + ';font-size:clamp(12px,1.3vw,15px);line-height:1.65;">' + b + '</span>' +
         '</div>';
       }).join('');
+      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + html + '</div>';
+    }
 
-      return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
-        svgBg(t.contentBg()) +
-        '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;padding:0 5% 3%;">' +
-          /* ─ header ─ */
-          '<div style="height:76px;display:flex;align-items:center;gap:14px;">' +
-            '<span style="background:' + t.accent + ';' +
-              'color:' + (t.numColor || (t.light ? '#fff' : '#0a0a0a')) + ';' +
-              'font-size:10px;font-weight:900;padding:5px 13px;border-radius:20px;letter-spacing:1px;flex-shrink:0;">' +
-              String(idx+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') +
-            '</span>' +
-            '<h2 style="color:' + tColor + ';font-size:clamp(16px,2.1vw,26px);font-weight:800;margin:0;line-height:1.2;">' + s.title + '</h2>' +
+    /* ── LAYOUT: stats — 4 KPI cards in 2×2 grid ── */
+    function layoutStats(s, t) {
+      var tColor = t.light ? t.text : '#fff';
+      var items  = s.items || [];
+      // Fallback: parse bullets as "value :: label" if items missing
+      if (!items.length && s.bullets) {
+        items = s.bullets.map(function(b) {
+          var p = b.split('::'); return { value: (p[0]||'').trim(), label: (p[1]||b).trim() };
+        });
+      }
+      items = items.slice(0, 4);
+      var cols = items.length <= 3 ? items.length : 2;
+      var cards = items.map(function(it, i) {
+        var delay = (i * 0.1).toFixed(1);
+        return '<div class="f-up" style="' +
+          'background:' + t.glass + ';border:1px solid ' + t.glassBorder + ';border-radius:18px;' +
+          (t.light ? '' : 'backdrop-filter:blur(10px);') +
+          'padding:22px 18px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+          'animation-delay:' + delay + 's;">' +
+          '<div style="font-size:clamp(28px,3.8vw,52px);font-weight:900;color:' + t.accent + ';line-height:1;letter-spacing:-1px;margin-bottom:8px;">' + (it.value||'—') + '</div>' +
+          '<div style="font-size:clamp(11px,1.2vw,13px);color:' + tColor + ';opacity:.85;font-weight:600;line-height:1.4;max-width:140px;">' + (it.label||'') + '</div>' +
+        '</div>';
+      }).join('');
+      return '<div style="flex:1;display:flex;align-items:center;">' +
+        '<div style="display:grid;grid-template-columns:repeat(' + cols + ',1fr);gap:16px;width:100%;">' + cards + '</div>' +
+      '</div>';
+    }
+
+    /* ── LAYOUT: chart — SVG horizontal bar chart ── */
+    function layoutChart(s, t) {
+      var tColor = t.light ? t.text : '#fff';
+      var items  = s.items || [];
+      if (!items.length && s.bullets) {
+        items = s.bullets.map(function(b) {
+          var p = b.split('::'); return { value: parseInt(p[0])||0, label: (p[1]||b).trim() };
+        });
+      }
+      items = items.slice(0, 5);
+      var maxVal = Math.max.apply(null, items.map(function(i){ return i.value||0; })) || 1;
+      var barColor = t.accent;
+      var bars = items.map(function(it, i) {
+        var pct = Math.round(((it.value||0) / maxVal) * 100);
+        var delay = (i * 0.12).toFixed(2);
+        return '<div class="f-up" style="display:flex;align-items:center;gap:12px;margin-bottom:14px;animation-delay:' + delay + 's;">' +
+          '<div style="width:90px;text-align:right;color:' + tColor + ';font-size:clamp(10px,1.1vw,13px);font-weight:600;opacity:.85;flex-shrink:0;">' + it.label + '</div>' +
+          '<div style="flex:1;height:32px;background:' + t.glass + ';border:1px solid ' + t.glassBorder + ';border-radius:8px;overflow:hidden;position:relative;">' +
+            '<div style="position:absolute;inset:0;width:' + pct + '%;' +
+              'background:linear-gradient(90deg,' + barColor + ',' + barColor + 'aa);' +
+              'border-radius:8px;transition:width 0.8s ease;">' +
+            '</div>' +
           '</div>' +
-          /* ─ bullets ─ */
-          '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + bulletsHtml + '</div>' +
+          '<div style="width:44px;text-align:left;color:' + t.accent + ';font-size:clamp(11px,1.2vw,14px);font-weight:900;flex-shrink:0;">' + (it.value||0) + (it.value<=100?'%':'') + '</div>' +
+        '</div>';
+      }).join('');
+      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + bars + '</div>';
+    }
+
+    /* ── LAYOUT: two-col ── */
+    function layoutTwoCol(s, t) {
+      var tColor = t.light ? t.text : '#fff';
+      var cardCss = 'background:' + t.glass + ';border:1px solid ' + t.glassBorder + ';border-radius:14px;' + (t.light ? '' : 'backdrop-filter:blur(8px);');
+      var headers = s.headers || ['', ''];
+      var col1 = (s.col1 || []);
+      var col2 = (s.col2 || []);
+      // Fallback: split bullets alternating if parsed cols missing
+      if (!col1.length && s.bullets) {
+        var bArr = s.bullets.filter(function(b){ return !b.startsWith('HEADERS:'); });
+        bArr.forEach(function(b, i) {
+          var text = b.replace(/^COL[12]:\s*/,'');
+          if (i % 2 === 0) col1.push(text); else col2.push(text);
+        });
+      }
+      function colHtml(items, color) {
+        return items.map(function(item, i) {
+          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;' + cardCss + 'margin-bottom:7px;animation-delay:' + (i*0.09) + 's;">' +
+            '<div style="width:6px;height:6px;border-radius:50%;background:' + color + ';margin-top:6px;flex-shrink:0;"></div>' +
+            '<span style="color:' + tColor + ';font-size:clamp(11px,1.2vw,13.5px);line-height:1.55;">' + item + '</span>' +
+          '</div>';
+        }).join('');
+      }
+      var accentAlt = t.light ? '#6366f1' : (t.accent === '#fff' ? '#a5f3fc' : t.accent);
+      return '<div style="flex:1;display:flex;gap:16px;align-items:stretch;">' +
+        '<div style="flex:1;display:flex;flex-direction:column;">' +
+          (headers[0] ? '<div style="font-size:12px;font-weight:800;color:' + t.accent + ';letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;padding-left:4px;">' + headers[0] + '</div>' : '') +
+          colHtml(col1, t.accent) +
+        '</div>' +
+        '<div style="width:1px;background:' + t.glassBorder + ';margin:0 4px;flex-shrink:0;"></div>' +
+        '<div style="flex:1;display:flex;flex-direction:column;">' +
+          (headers[1] ? '<div style="font-size:12px;font-weight:800;color:' + accentAlt + ';letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;padding-left:4px;">' + headers[1] + '</div>' : '') +
+          colHtml(col2, accentAlt) +
         '</div>' +
       '</div>';
+    }
+
+    /* ── LAYOUT: timeline ── */
+    function layoutTimeline(s, t) {
+      var tColor = t.light ? t.text : '#fff';
+      var items  = s.items || [];
+      if (!items.length && s.bullets) {
+        items = s.bullets.map(function(b) {
+          var p = b.split('::'); return { step: (p[0]||'').trim(), desc: (p[1]||'').trim() };
+        });
+      }
+      items = items.slice(0, 4);
+      var cards = items.map(function(it, i) {
+        var delay = (i * 0.12).toFixed(2);
+        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;animation-delay:' + delay + 's;">' +
+          /* connector line */
+          (i < items.length-1 ? '<div style="position:absolute;top:22px;left:50%;width:100%;height:2px;background:' + t.glassBorder + ';z-index:0;"></div>' : '') +
+          /* circle number */
+          '<div style="width:44px;height:44px;border-radius:50%;background:' + t.accent + ';display:flex;align-items:center;justify-content:center;' +
+            'font-size:16px;font-weight:900;color:' + (t.numColor || '#0a0a0a') + ';position:relative;z-index:1;flex-shrink:0;margin-bottom:12px;">' +
+            String(i+1) +
+          '</div>' +
+          /* step label */
+          '<div style="font-size:clamp(11px,1.2vw,14px);font-weight:800;color:' + t.accent + ';margin-bottom:6px;line-height:1.2;">' + it.step + '</div>' +
+          /* desc */
+          '<div style="font-size:clamp(10px,1.05vw,12.5px);color:' + tColor + ';opacity:.8;line-height:1.5;padding:0 4px;">' + it.desc + '</div>' +
+        '</div>';
+      }).join('');
+      return '<div style="flex:1;display:flex;align-items:center;">' +
+        '<div style="display:flex;gap:0;width:100%;">' + cards + '</div>' +
+      '</div>';
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       CONTENT — dispatch to layout
+    ───────────────────────────────────────────────────────────────── */
+    function renderContent(s, idx, t) {
+      var bodyHtml;
+      var layout = s.layout || 'bullets';
+      // Fallback: if layout-specific data missing, use bullets
+      switch (layout) {
+        case 'stats':    bodyHtml = layoutStats(s, t);   break;
+        case 'chart':    bodyHtml = layoutChart(s, t);   break;
+        case 'two-col':  bodyHtml = layoutTwoCol(s, t);  break;
+        case 'timeline': bodyHtml = layoutTimeline(s, t); break;
+        default:         bodyHtml = layoutBullets(s, t); break;
+      }
+      return slideWrap(t.contentBg(), slideHeader(s, idx, t) + bodyHtml);
     }
 
     /* ─────────────────────────────────────────────────────────────────

@@ -30,36 +30,60 @@ class ContentOutlineGenerator
   # ── AI prompts ──────────────────────────────────────────────────────────────
 
   def slide_system
-    "Bạn là chuyên gia tạo slide thuyết trình chuyên nghiệp. Trả lời bằng tiếng Việt."
+    "Bạn là chuyên gia thiết kế slide thuyết trình chuyên nghiệp. Trả lời bằng tiếng Việt. Chỉ xuất đúng format được yêu cầu, không thêm văn bản khác."
   end
 
   def slide_user
     <<~PROMPT
-      Tạo bộ slide thuyết trình CHUYÊN NGHIỆP cho chủ đề: "#{@outline.title}"#{@outline.subject.present? ? " (#{@outline.subject})" : ""}.
+      Tạo bộ slide thuyết trình CHUYÊN NGHIỆP, TRỰC QUAN cho chủ đề: "#{@outline.title}"#{@outline.subject.present? ? " (#{@outline.subject})" : ""}.
       Yêu cầu bổ sung: #{@outline.prompt_input.presence || 'Không có'}
 
-      Tạo 8–10 slide chất lượng cao, mỗi slide theo đúng format này (không thêm gì khác):
+      Tạo 8–10 slide, mỗi slide theo đúng format này:
 
       ---SLIDE---
-      TITLE: Tiêu đề rõ ràng, hấp dẫn
+      TITLE: Tiêu đề slide
+      LAYOUT: [xem bên dưới]
       BODY:
-      - Nội dung cụ thể, có số liệu hoặc ví dụ thực tế khi có thể
-      - Mỗi bullet là một ý hoàn chỉnh, giá trị cao (không chung chung)
-      - Tối đa 4 bullets, mỗi bullet 8–15 từ
-      NOTE: Ghi chú 1-2 câu cho người trình bày: giải thích sâu hơn, ví dụ thực tế, hoặc câu hỏi tương tác
+      [nội dung theo từng LAYOUT]
+      NOTE: Ghi chú ngắn cho người trình bày
       ---END---
 
-      Yêu cầu nội dung:
-      - Slide 1 (Bìa): tiêu đề chính + 2-3 từ khóa/điểm nhấn ngắn ở BODY
-      - Slide 2: Tổng quan / Mục tiêu — người nghe sẽ học được gì
-      - Slide 3-7: Nội dung cốt lõi, mỗi slide một chủ đề riêng biệt, có chiều sâu
-      - Slide áp chót: Ứng dụng thực tế / Case study
-      - Slide cuối: Tóm tắt điểm chính + Call-to-action cụ thể
+      CÁC LOẠI LAYOUT VÀ FORMAT BODY:
 
-      Tiêu chuẩn chất lượng:
-      - Bullets phải CỤ THỂ: có số liệu, ví dụ, hoặc hành động rõ ràng (tránh câu chung chung như "rất quan trọng")
-      - Flow logic: mỗi slide dẫn tự nhiên sang slide tiếp theo
-      - NOTE phải hữu ích: câu hỏi tương tác hoặc thông tin bổ sung thực chất
+      1. LAYOUT: bullets
+         Dùng cho: nội dung có 3–4 điểm chính
+         BODY format: mỗi dòng bắt đầu bằng "- " rồi nội dung cụ thể, có số liệu/ví dụ
+
+      2. LAYOUT: stats
+         Dùng cho: slide có 3–4 con số/chỉ số quan trọng (kết quả, số liệu thống kê)
+         BODY format: mỗi dòng "- GIÁ_TRỊ :: MÔ_TẢ_NGẮN" (ví dụ: - 87% :: Học sinh đạt mục tiêu)
+
+      3. LAYOUT: chart
+         Dùng cho: so sánh theo thời gian, tiến trình, hoặc phân bổ theo nhóm
+         BODY format: mỗi dòng "- SỐ :: NHÃN" (SỐ là số nguyên 0–100, ví dụ: - 45 :: Quý 1)
+         Tối đa 5 cột.
+
+      4. LAYOUT: two-col
+         Dùng cho: so sánh 2 phía, pros/cons, trước/sau
+         BODY format: dòng lẻ "- COL1: nội dung", dòng chẵn "- COL2: nội dung"
+         Thêm dòng đầu tiên: "- HEADERS: Tiêu đề cột 1 | Tiêu đề cột 2"
+
+      5. LAYOUT: timeline
+         Dùng cho: các bước, giai đoạn, quy trình tuần tự
+         BODY format: mỗi dòng "- BƯỚC_NGẮN :: Mô tả chi tiết" (tối đa 4 bước)
+
+      YÊU CẦU NỘI DUNG:
+      - Slide 1 (Bìa): LAYOUT: bullets, tiêu đề lớn + 2-3 từ khóa ngắn
+      - Slide 2: Mục tiêu / Tổng quan — LAYOUT: bullets hoặc stats
+      - Slide 3–4: Nội dung cốt lõi — ưu tiên dùng stats, chart, two-col để trực quan hóa
+      - Slide 5–7: Phân tích sâu — dùng timeline hoặc two-col cho so sánh/quy trình
+      - Slide áp chót: Case study / Ví dụ thực tế — LAYOUT: bullets hoặc two-col
+      - Slide cuối: Tóm tắt — LAYOUT: bullets hoặc stats
+
+      TIÊU CHUẨN:
+      - Mỗi slide CÓ SỐ LIỆU cụ thể (%, số, tỉ lệ) khi có thể
+      - Ưu tiên layout stats và chart cho các slide giữa (tránh dùng bullets cho quá nhiều slide liên tiếp)
+      - NOTE phải là câu hỏi tương tác hoặc thông tin bổ sung có giá trị
     PROMPT
   end
 
@@ -79,11 +103,47 @@ class ContentOutlineGenerator
     return [] if raw.empty?
 
     raw.map do |s|
-      title   = s[/TITLE:\s*(.+)/, 1]&.strip || "Slide"
-      body    = s[/BODY:\n(.*?)(?:NOTE:|$)/m, 1]&.strip || ""
-      note    = s[/NOTE:\s*(.+)/, 1]&.strip || ""
-      bullets = body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
-      { "title" => title, "bullets" => bullets, "note" => note }
+      title  = s[/TITLE:\s*(.+)/, 1]&.strip || "Slide"
+      layout = s[/LAYOUT:\s*(\S+)/, 1]&.strip&.downcase || "bullets"
+      body   = s[/BODY:\n(.*?)(?:\nNOTE:|\z)/m, 1]&.strip || ""
+      note   = s[/NOTE:\s*(.+)/, 1]&.strip || ""
+      lines  = body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
+
+      slide = { "title" => title, "layout" => layout, "note" => note }
+
+      case layout
+      when "stats"
+        slide["items"] = lines.map do |l|
+          parts = l.split("::", 2).map(&:strip)
+          { "value" => parts[0], "label" => parts[1] || "" }
+        end
+        slide["bullets"] = lines  # fallback
+      when "chart"
+        slide["items"] = lines.map do |l|
+          parts = l.split("::", 2).map(&:strip)
+          { "value" => parts[0].to_i, "label" => parts[1] || "" }
+        end
+        slide["bullets"] = lines
+      when "two-col"
+        headers_line = lines.find { |l| l.start_with?("HEADERS:") }
+        headers = headers_line ? headers_line.sub("HEADERS:", "").split("|").map(&:strip) : ["", ""]
+        col1 = lines.select { |l| l.start_with?("COL1:") }.map { |l| l.sub("COL1:", "").strip }
+        col2 = lines.select { |l| l.start_with?("COL2:") }.map { |l| l.sub("COL2:", "").strip }
+        slide["headers"] = headers
+        slide["col1"] = col1
+        slide["col2"] = col2
+        slide["bullets"] = lines.reject { |l| l.start_with?("HEADERS:") }
+      when "timeline"
+        slide["items"] = lines.map do |l|
+          parts = l.split("::", 2).map(&:strip)
+          { "step" => parts[0], "desc" => parts[1] || "" }
+        end
+        slide["bullets"] = lines
+      else
+        slide["bullets"] = lines
+      end
+
+      slide
     end
   end
 
