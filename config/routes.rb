@@ -255,12 +255,50 @@ Rails.application.routes.draw do
         post  :ai_evaluate_results
         patch :update_ai_evaluation
         post  :send_ai_evaluation_email
+        post  :ai_grade_essay         # chấm tự luận
       end
       resources :quiz_questions, only: [:create, :update, :destroy] do
         collection { post :reorder }
         resources :quiz_options, only: [:create, :update, :destroy]
       end
     end
+
+    # Module 1: Tạo nội dung AI
+    resources :content_outlines, only: [:index, :new, :create, :show, :destroy] do
+      member { post :regenerate }
+    end
+
+    # Module 2 + 3: Lộ trình học
+    resources :learning_paths do
+      member do
+        patch :publish
+        post  :ai_generate
+        post  :assign
+      end
+      resources :learning_path_items, only: [:create, :update, :destroy] do
+        collection { patch :reorder }
+      end
+    end
+    resources :learning_path_assignments, only: [:show, :destroy] do
+      member { patch :update_progress }
+    end
+
+    # Module 3: Flashcards
+    resources :flashcard_decks do
+      member do
+        post :ai_generate
+        get  :study
+        post :review
+      end
+    end
+
+    # Module 3: Tóm tắt tài liệu
+    resources :document_summaries, only: [:index, :new, :create, :show, :destroy]
+
+    # Module 3: AI Tutor & Writing
+    get  "ai/tutor",   to: "ai#tutor_page",  as: :ai_tutor_page
+    post "ai/tutor",   to: "ai#tutor",       as: :ai_tutor
+    post "ai/writing", to: "ai#writing",     as: :ai_writing
   end
 
   # Public quiz routes (học sinh làm bài)

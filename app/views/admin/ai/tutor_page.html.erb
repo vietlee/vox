@@ -1,0 +1,85 @@
+<% content_for :title, "AI Tutor" %>
+
+<div class="h-full flex flex-col max-w-3xl mx-auto p-6">
+  <div class="mb-4">
+    <h1 class="text-[20px] font-extrabold text-slate-900">🤖 AI Tutor</h1>
+    <p class="text-[13px] text-slate-500 mt-0.5">
+      <% if @context_title.present? %>
+        Đang học về: <strong><%= @context_title %></strong>
+      <% else %>
+        Hỏi bất cứ điều gì — AI sẽ dẫn dắt bạn hiểu, không đưa đáp án thẳng
+      <% end %>
+    </p>
+  </div>
+
+  <div id="chat-messages" class="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0" style="max-height:60vh">
+    <div class="flex gap-3">
+      <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-[14px] shrink-0">🤖</div>
+      <div class="bg-white border border-slate-200 rounded-xl px-4 py-3 text-[13px] text-slate-700 max-w-[85%]">
+        Xin chào! Tôi là AI Tutor. Hãy hỏi tôi bất kỳ điều gì bạn muốn hiểu. Tôi sẽ dẫn dắt bạn từng bước thay vì đưa đáp án thẳng — cách này giúp bạn thực sự hiểu và nhớ lâu hơn. 💡
+      </div>
+    </div>
+  </div>
+
+  <div class="flex gap-2">
+    <textarea id="tutor-input" placeholder="Hỏi bất cứ điều gì..." rows="2"
+      class="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[14px] resize-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none"
+      oninput="toggleSend()" onkeyup="toggleSend()" oncompositionend="toggleSend()"></textarea>
+    <button id="send-btn" onclick="sendTutor()" disabled
+      class="px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+      Gửi
+    </button>
+  </div>
+  <div class="text-[11px] text-slate-400 mt-2">1 AI Credit mỗi tin nhắn</div>
+</div>
+
+<script>
+let history = [];
+const contextType = '<%= @context_type %>';
+const contextId = '<%= @context_id %>';
+
+function toggleSend() {
+  document.getElementById('send-btn').disabled = !document.getElementById('tutor-input').value.trim();
+}
+
+async function sendTutor() {
+  const input = document.getElementById('tutor-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  addMessage('user', msg);
+  input.value = '';
+  toggleSend();
+  history.push({ role: 'user', content: msg });
+
+  const thinking = addMessage('assistant', '...');
+  const res = await fetch('<%= ai_tutor_path %>', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content },
+    body: JSON.stringify({ message: msg, history, context_type: contextType, context_id: contextId })
+  });
+  const data = await res.json();
+  thinking.innerHTML = formatMd(data.response || data.error || 'Lỗi không xác định');
+  if (data.response) history.push({ role: 'assistant', content: data.response });
+}
+
+function addMessage(role, text) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'flex gap-3' + (role === 'user' ? ' justify-end' : '');
+  div.innerHTML = role === 'user'
+    ? `<div class="bg-purple-600 text-white rounded-xl px-4 py-3 text-[13px] max-w-[85%]">${text}</div>`
+    : `<div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-[14px] shrink-0">🤖</div><div class="bg-white border border-slate-200 rounded-xl px-4 py-3 text-[13px] text-slate-700 max-w-[85%] leading-relaxed">${formatMd(text)}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return role === 'user' ? null : div.querySelector('.bg-white');
+}
+
+function formatMd(t) {
+  return (t||'').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+}
+
+document.getElementById('tutor-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!document.getElementById('send-btn').disabled) sendTutor(); }
+});
+</script>

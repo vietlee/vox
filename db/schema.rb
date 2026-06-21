@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_21_000005) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_21_100004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -154,6 +154,37 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_000005) do
     t.index ["workspace_id"], name: "index_audit_logs_on_workspace_id"
   end
 
+  create_table "content_outlines", force: :cascade do |t|
+    t.bigint "workspace_id", null: false
+    t.bigint "created_by_id", null: false
+    t.string "title", null: false
+    t.string "subject"
+    t.string "output_type"
+    t.text "prompt_input"
+    t.text "content"
+    t.integer "status", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_content_outlines_on_created_by_id"
+    t.index ["workspace_id"], name: "index_content_outlines_on_workspace_id"
+  end
+
+  create_table "document_summaries", force: :cascade do |t|
+    t.bigint "workspace_id", null: false
+    t.bigint "created_by_id", null: false
+    t.string "title"
+    t.string "source_type"
+    t.string "source_filename"
+    t.text "source_text"
+    t.text "summary"
+    t.text "key_points"
+    t.integer "status", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_document_summaries_on_created_by_id"
+    t.index ["workspace_id"], name: "index_document_summaries_on_workspace_id"
+  end
+
   create_table "dynamic_form_assignments", force: :cascade do |t|
     t.bigint "dynamic_form_id", null: false
     t.bigint "user_id", null: false
@@ -290,6 +321,97 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_000005) do
     t.index ["workspace_id"], name: "index_feedbacks_on_workspace_id"
   end
 
+  create_table "flashcard_decks", force: :cascade do |t|
+    t.bigint "workspace_id", null: false
+    t.bigint "created_by_id", null: false
+    t.string "title", null: false
+    t.string "subject"
+    t.boolean "ai_generated", default: false
+    t.integer "card_count", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_flashcard_decks_on_created_by_id"
+    t.index ["workspace_id"], name: "index_flashcard_decks_on_workspace_id"
+  end
+
+  create_table "flashcard_reviews", force: :cascade do |t|
+    t.bigint "flashcard_id", null: false
+    t.bigint "user_id", null: false
+    t.integer "rating", default: 0
+    t.integer "interval_days", default: 1
+    t.float "ease_factor", default: 2.5
+    t.datetime "next_review_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["flashcard_id", "user_id"], name: "index_flashcard_reviews_on_flashcard_id_and_user_id", unique: true
+    t.index ["flashcard_id"], name: "index_flashcard_reviews_on_flashcard_id"
+    t.index ["user_id", "next_review_at"], name: "index_flashcard_reviews_on_user_id_and_next_review_at"
+    t.index ["user_id"], name: "index_flashcard_reviews_on_user_id"
+  end
+
+  create_table "flashcards", force: :cascade do |t|
+    t.bigint "flashcard_deck_id", null: false
+    t.text "front", null: false
+    t.text "back", null: false
+    t.integer "position", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["flashcard_deck_id"], name: "index_flashcards_on_flashcard_deck_id"
+  end
+
+  create_table "learning_item_progresses", force: :cascade do |t|
+    t.bigint "learning_path_assignment_id", null: false
+    t.bigint "learning_path_item_id", null: false
+    t.integer "status", default: 0
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learning_path_assignment_id"], name: "index_learning_item_progresses_on_learning_path_assignment_id"
+    t.index ["learning_path_item_id"], name: "index_learning_item_progresses_on_learning_path_item_id"
+  end
+
+  create_table "learning_path_assignments", force: :cascade do |t|
+    t.bigint "learning_path_id", null: false
+    t.bigint "assigned_by_id", null: false
+    t.bigint "assignee_id", null: false
+    t.date "due_date"
+    t.integer "status", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assigned_by_id"], name: "index_learning_path_assignments_on_assigned_by_id"
+    t.index ["assignee_id"], name: "index_learning_path_assignments_on_assignee_id"
+    t.index ["learning_path_id", "assignee_id"], name: "idx_on_learning_path_id_assignee_id_44b44d6f23", unique: true
+    t.index ["learning_path_id"], name: "index_learning_path_assignments_on_learning_path_id"
+  end
+
+  create_table "learning_path_items", force: :cascade do |t|
+    t.bigint "learning_path_id", null: false
+    t.integer "item_type", null: false
+    t.bigint "quiz_set_id"
+    t.string "title", null: false
+    t.text "content"
+    t.integer "position", default: 0
+    t.integer "estimated_minutes", default: 15
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learning_path_id", "position"], name: "index_learning_path_items_on_learning_path_id_and_position"
+    t.index ["learning_path_id"], name: "index_learning_path_items_on_learning_path_id"
+  end
+
+  create_table "learning_paths", force: :cascade do |t|
+    t.bigint "workspace_id", null: false
+    t.bigint "created_by_id", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.string "subject"
+    t.integer "status", default: 0
+    t.boolean "ai_generated", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_learning_paths_on_created_by_id"
+    t.index ["workspace_id"], name: "index_learning_paths_on_workspace_id"
+  end
+
   create_table "notifications", force: :cascade do |t|
     t.bigint "workspace_id", null: false
     t.bigint "user_id", null: false
@@ -399,6 +521,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_000005) do
     t.boolean "is_correct", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "essay_text"
+    t.integer "ai_grade"
+    t.text "ai_feedback"
+    t.datetime "ai_graded_at"
     t.index ["quiz_attempt_id"], name: "index_quiz_attempt_answers_on_quiz_attempt_id"
     t.index ["quiz_option_id"], name: "index_quiz_attempt_answers_on_quiz_option_id"
     t.index ["quiz_question_id"], name: "index_quiz_attempt_answers_on_quiz_question_id"
@@ -445,6 +571,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_000005) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "allow_multiple", default: false, null: false
+    t.text "essay_rubric"
     t.index ["quiz_set_id", "position"], name: "index_quiz_questions_on_quiz_set_id_and_position"
     t.index ["quiz_set_id"], name: "index_quiz_questions_on_quiz_set_id"
   end
@@ -750,6 +877,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_000005) do
   add_foreign_key "answers", "responses"
   add_foreign_key "audit_logs", "users"
   add_foreign_key "audit_logs", "workspaces"
+  add_foreign_key "content_outlines", "users", column: "created_by_id"
+  add_foreign_key "content_outlines", "workspaces"
+  add_foreign_key "document_summaries", "users", column: "created_by_id"
+  add_foreign_key "document_summaries", "workspaces"
   add_foreign_key "dynamic_form_assignments", "dynamic_forms"
   add_foreign_key "dynamic_form_assignments", "users"
   add_foreign_key "dynamic_form_fields", "dynamic_forms"
@@ -762,6 +893,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_000005) do
   add_foreign_key "feedback_upvotes", "feedbacks"
   add_foreign_key "feedbacks", "feedback_boards"
   add_foreign_key "feedbacks", "workspaces"
+  add_foreign_key "flashcard_decks", "users", column: "created_by_id"
+  add_foreign_key "flashcard_decks", "workspaces"
+  add_foreign_key "flashcard_reviews", "flashcards"
+  add_foreign_key "flashcard_reviews", "users"
+  add_foreign_key "flashcards", "flashcard_decks"
+  add_foreign_key "learning_item_progresses", "learning_path_assignments"
+  add_foreign_key "learning_item_progresses", "learning_path_items"
+  add_foreign_key "learning_path_assignments", "learning_paths"
+  add_foreign_key "learning_path_assignments", "users", column: "assigned_by_id"
+  add_foreign_key "learning_path_assignments", "users", column: "assignee_id"
+  add_foreign_key "learning_path_items", "learning_paths"
+  add_foreign_key "learning_paths", "users", column: "created_by_id"
+  add_foreign_key "learning_paths", "workspaces"
   add_foreign_key "notifications", "users"
   add_foreign_key "notifications", "workspaces"
   add_foreign_key "payments", "subscriptions"

@@ -1,0 +1,7 @@
+class ContentOutline < ApplicationRecord
+  belongs_to :workspace
+  belongs_to :created_by, class_name: "User"
+
+  enum :status, { pending: 0, done: 1, failed: 2 }
+  TYPES = %w[outline slide_script lesson_plan].freeze
+end

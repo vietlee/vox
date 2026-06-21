@@ -1,0 +1,36 @@
+<% content_for :title, "Flashcards" %>
+<div class="p-6 max-w-5xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-[20px] font-extrabold text-slate-900">🃏 Flashcards</h1>
+      <p class="text-[13px] text-slate-500 mt-0.5">Học và ghi nhớ theo phương pháp spaced repetition</p>
+    </div>
+    <%= link_to new_flashcard_deck_path, class: "px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-lg" do %>+ Tạo bộ thẻ<% end %>
+  </div>
+
+  <% if @decks.empty? %>
+    <div class="text-center py-16 text-slate-400">
+      <div class="text-5xl mb-3">🃏</div>
+      <p class="text-[14px]">Chưa có bộ thẻ nào.</p>
+      <%= link_to "+ Tạo bộ thẻ đầu tiên", new_flashcard_deck_path, class: "mt-2 inline-block text-indigo-600 text-[13px] font-semibold" %>
+    </div>
+  <% else %>
+    <div class="grid grid-cols-2 gap-4">
+      <% @decks.each do |deck| %>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="text-[15px] font-bold text-slate-900"><%= deck.title %></div>
+              <div class="text-[12px] text-slate-500 mt-0.5"><%= deck.subject.presence || "Tổng hợp" %> · <%= deck.flashcards.count %> thẻ<% if deck.ai_generated? %> · <span class="text-purple-600">✨ AI</span><% end %></div>
+            </div>
+            <div class="text-2xl">🃏</div>
+          </div>
+          <div class="flex gap-2 mt-4">
+            <%= link_to study_flashcard_deck_path(deck), class: "flex-1 text-center py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-bold rounded-lg" do %>📚 Học ngay<% end %>
+            <%= link_to flashcard_deck_path(deck), class: "px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12px] rounded-lg" do %>Xem<% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

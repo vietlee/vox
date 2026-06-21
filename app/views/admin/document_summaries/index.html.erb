@@ -1,0 +1,36 @@
+<% content_for :title, "Tóm tắt tài liệu" %>
+<div class="p-6 max-w-5xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-[20px] font-extrabold text-slate-900">📄 Tóm tắt tài liệu</h1>
+      <p class="text-[13px] text-slate-500 mt-0.5">Tóm tắt tài liệu, văn bản nhanh bằng AI</p>
+    </div>
+    <%= link_to new_document_summary_path, class: "px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-lg" do %>+ Tóm tắt mới<% end %>
+  </div>
+
+  <% if @summaries.empty? %>
+    <div class="text-center py-16 text-slate-400">
+      <div class="text-5xl mb-3">📄</div>
+      <p class="text-[14px]">Chưa có tài liệu nào.</p>
+      <%= link_to "+ Thêm tài liệu đầu tiên", new_document_summary_path, class: "mt-2 inline-block text-indigo-600 text-[13px] font-semibold" %>
+    </div>
+  <% else %>
+    <div class="space-y-3">
+      <% @summaries.each do |doc| %>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
+          <div class="text-2xl"><%= { "pdf" => "📕", "audio" => "🎧", "text" => "📝" }[doc.source_type] || "📄" %></div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[14px] font-bold text-slate-900 truncate"><%= doc.title.presence || doc.source_filename.presence || "Không có tiêu đề" %></div>
+            <div class="text-[12px] text-slate-500"><%= doc.source_type&.upcase %> · <%= doc.created_at.strftime("%d/%m/%Y") %></div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] px-2 py-0.5 rounded-full <%= doc.done? ? 'bg-emerald-100 text-emerald-700' : doc.pending? ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700' %>">
+              <%= doc.done? ? "Hoàn thành" : doc.pending? ? "Đang xử lý..." : "Thất bại" %>
+            </span>
+            <%= link_to document_summary_path(doc), class: "text-[12px] px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg" do %>Xem<% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

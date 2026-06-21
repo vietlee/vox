@@ -1,0 +1,45 @@
+<% content_for :title, "Tạo nội dung AI" %>
+
+<div class="p-6 max-w-5xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-[20px] font-extrabold text-slate-900">✍️ Tạo nội dung AI</h1>
+      <p class="text-[13px] text-slate-500 mt-0.5">Tạo dàn ý, slide, kế hoạch buổi học với AI</p>
+    </div>
+    <%= link_to new_content_outline_path, class: "px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-lg transition-colors" do %>
+      + Tạo mới
+    <% end %>
+  </div>
+
+  <% if @outlines.empty? %>
+    <div class="text-center py-16 text-slate-400">
+      <div class="text-5xl mb-3">✍️</div>
+      <p class="text-[14px]">Chưa có nội dung nào. Tạo đầu tiên!</p>
+      <%= link_to "+ Tạo ngay", new_content_outline_path, class: "mt-2 inline-block text-indigo-600 text-[13px] font-semibold" %>
+    </div>
+  <% else %>
+    <div class="grid gap-4">
+      <% @outlines.each do |o| %>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-start gap-4">
+          <div class="text-2xl"><%= { "outline" => "📋", "slide_script" => "🖥️", "lesson_plan" => "📚" }[o.output_type] || "📄" %></div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[14px] font-bold text-slate-900"><%= o.title %></span>
+              <% if o.done? %>
+                <span class="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">Hoàn thành</span>
+              <% elsif o.pending? %>
+                <span class="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">Đang tạo...</span>
+              <% end %>
+            </div>
+            <div class="text-[12px] text-slate-500 mt-0.5"><%= o.subject.presence || "Không có môn cụ thể" %> · <%= o.created_at.strftime("%d/%m/%Y") %></div>
+          </div>
+          <div class="flex gap-2">
+            <%= link_to content_outline_path(o), class: "text-[12px] px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg" do %>Xem<% end %>
+            <%= button_to regenerate_content_outline_path(o), method: :post, class: "text-[12px] px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border-0 cursor-pointer" do %>Tạo lại<% end %>
+            <%= button_to content_outline_path(o), method: :delete, data: { confirm: "Xóa?" }, class: "text-[12px] px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border-0 cursor-pointer" do %>Xóa<% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

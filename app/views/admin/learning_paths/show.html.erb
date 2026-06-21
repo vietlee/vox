@@ -1,0 +1,146 @@
+<% content_for :title, @learning_path.title %>
+
+<div class="p-6 max-w-5xl mx-auto">
+  <!-- Header -->
+  <div class="flex items-start justify-between mb-6">
+    <div>
+      <%= link_to "← Lộ trình", learning_paths_path, class: "text-[13px] text-slate-500 hover:text-slate-700" %>
+      <h1 class="text-[20px] font-extrabold text-slate-900 mt-1"><%= @learning_path.title %></h1>
+      <div class="flex items-center gap-2 mt-1 flex-wrap">
+        <span class="text-[10px] px-2 py-0.5 rounded-full <%= @learning_path.published? ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' %>">
+          <%= @learning_path.published? ? "Đã phát hành" : "Nháp" %>
+        </span>
+        <% if @learning_path.subject.present? %><span class="text-[12px] text-slate-500"><%= @learning_path.subject %></span><% end %>
+        <% if @learning_path.description.present? %><span class="text-[12px] text-slate-400">· <%= @learning_path.description.truncate(60) %></span><% end %>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <% unless @learning_path.published? %>
+        <%= button_to publish_learning_path_path(@learning_path), method: :patch, class: "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-lg border-0 cursor-pointer" do %>Phát hành<% end %>
+      <% end %>
+      <%= link_to edit_learning_path_path(@learning_path), class: "px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[13px] font-bold rounded-lg" do %>Chỉnh sửa<% end %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-[1fr_320px] gap-6">
+    <!-- Left: items -->
+    <div>
+      <!-- AI Generate section -->
+      <div class="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-5 mb-5">
+        <h3 class="text-[13px] font-bold text-purple-900 mb-1">✨ Tạo bài học bằng AI</h3>
+        <p class="text-[12px] text-purple-700 mb-3">AI sẽ tạo tự động 5-8 bài học xen kẽ với bài kiểm tra (5 credits)</p>
+        <%= form_with url: ai_generate_learning_path_path(@learning_path), method: :post, local: true do %>
+          <div class="flex gap-2">
+            <input type="text" name="prompt" placeholder="Mô tả thêm về đối tượng, mức độ, trọng tâm..." class="flex-1 px-3 py-2 border border-purple-300 rounded-lg text-[13px] bg-white focus:border-purple-500 outline-none">
+            <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-[13px] font-bold rounded-lg border-0 cursor-pointer">Tạo</button>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Items list -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between p-4 border-b border-slate-100">
+          <h3 class="text-[14px] font-bold text-slate-900">📚 Danh sách bài học (<%= @items.size %>)</h3>
+          <button onclick="document.getElementById('add-item-form').classList.toggle('hidden')" class="text-[12px] px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg">+ Thêm bài</button>
+        </div>
+
+        <!-- Add item inline form -->
+        <div id="add-item-form" class="hidden p-4 bg-slate-50 border-b border-slate-100">
+          <div class="flex gap-2">
+            <input type="text" id="new-item-title" placeholder="Tên bài học..." class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none">
+            <select id="new-item-type" class="px-3 py-2 border border-slate-200 rounded-lg text-[13px] bg-white">
+              <option value="lesson">Bài học</option>
+              <option value="quiz">Bài kiểm tra</option>
+            </select>
+            <button onclick="addItem()" class="px-4 py-2 bg-indigo-600 text-white text-[13px] font-bold rounded-lg border-0 cursor-pointer">Thêm</button>
+          </div>
+        </div>
+
+        <% if @items.empty? %>
+          <div class="text-center py-12 text-slate-400 text-[13px]">Chưa có bài học. Tạo bằng AI hoặc thêm thủ công.</div>
+        <% else %>
+          <div class="divide-y divide-slate-100">
+            <% @items.each_with_index do |item, i| %>
+              <div class="flex items-center gap-3 p-4 hover:bg-slate-50" data-item-id="<%= item.id %>">
+                <div class="text-slate-400 cursor-grab text-[18px]">⠿</div>
+                <div class="text-[18px]"><%= item.quiz? ? "📝" : "📖" %></div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] font-semibold text-slate-900"><%= i+1 %>. <%= item.title %></div>
+                  <div class="text-[11px] text-slate-500"><%= item.quiz? ? "Bài kiểm tra" : "Bài học" %> · ~<%= item.estimated_minutes %> phút</div>
+                </div>
+                <% if @my_assignment %>
+                  <% prog = @my_assignment.learning_item_progresses.find_by(learning_path_item: item) %>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full <%= prog&.completed? ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' %>">
+                    <%= prog&.completed? ? "✓ Xong" : "Chưa học" %>
+                  </span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Right: assignments -->
+    <div class="space-y-4">
+      <!-- Giao lộ trình -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <h3 class="text-[13px] font-bold text-slate-900 mb-3">👤 Giao cho người tham gia</h3>
+        <%= form_with url: assign_learning_path_path(@learning_path), method: :post, local: true do %>
+          <div class="space-y-3">
+            <div class="max-h-40 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
+              <% if @workspace_members.empty? %>
+                <div class="p-3 text-[12px] text-slate-400">Chưa có thành viên trong workspace</div>
+              <% else %>
+                <% @workspace_members.each do |member| %>
+                  <label class="flex items-center gap-2 p-2.5 hover:bg-slate-50 cursor-pointer">
+                    <input type="checkbox" name="user_ids[]" value="<%= member.id %>" class="rounded">
+                    <div>
+                      <div class="text-[12px] font-semibold text-slate-800"><%= member.name %></div>
+                      <div class="text-[10px] text-slate-400"><%= member.email %></div>
+                    </div>
+                  </label>
+                <% end %>
+              <% end %>
+            </div>
+            <input type="date" name="due_date" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px]" placeholder="Hạn nộp (tuỳ chọn)">
+            <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-lg border-0 cursor-pointer">Giao lộ trình</button>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Danh sách đã giao -->
+      <% if @assignments.any? %>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <h3 class="text-[13px] font-bold text-slate-900 mb-3">📊 Tiến độ (<%= @assignments.size %>)</h3>
+          <div class="space-y-3">
+            <% @assignments.each do |asgn| %>
+              <div>
+                <div class="flex items-center justify-between text-[12px]">
+                  <span class="font-semibold text-slate-700"><%= asgn.assignee.name rescue "?" %></span>
+                  <span class="text-slate-500"><%= asgn.progress_pct %>%</span>
+                </div>
+                <div class="mt-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-1.5 bg-indigo-500 rounded-full" style="width: <%= asgn.progress_pct %>%"></div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+function addItem() {
+  const title = document.getElementById('new-item-title').value.trim();
+  const type = document.getElementById('new-item-type').value;
+  if (!title) return;
+  fetch('<%= learning_path_learning_path_items_path(@learning_path) %>', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content },
+    body: JSON.stringify({ learning_path_item: { title, item_type: type, estimated_minutes: 15 } })
+  }).then(() => location.reload());
+}
+</script>

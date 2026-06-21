@@ -1,0 +1,86 @@
+<% content_for :title, "Học: #{@assignment.learning_path.title}" %>
+
+<div class="p-6 max-w-4xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <%= link_to "← Lộ trình", learning_paths_path, class: "text-[13px] text-slate-500 hover:text-slate-700" %>
+      <h1 class="text-[20px] font-extrabold text-slate-900 mt-1"><%= @assignment.learning_path.title %></h1>
+      <div class="flex items-center gap-3 mt-1">
+        <div class="text-[12px] text-slate-500">Tiến độ: <strong><%= @assignment.progress_pct %>%</strong></div>
+        <% if @assignment.due_date %>
+          <div class="text-[12px] text-slate-500">Hạn: <%= @assignment.due_date.strftime("%d/%m/%Y") %></div>
+        <% end %>
+      </div>
+      <div class="mt-2 h-2 w-64 bg-slate-100 rounded-full overflow-hidden">
+        <div id="overall-progress" class="h-2 bg-indigo-600 rounded-full transition-all duration-500" style="width: <%= @assignment.progress_pct %>%"></div>
+      </div>
+    </div>
+    <%= link_to ai_tutor_page_path(context_type: "learning_path_item", context_id: @items.first&.id), class: "px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-[13px] font-bold rounded-lg" do %>
+      🤖 Hỏi AI Tutor
+    <% end %>
+  </div>
+
+  <div class="space-y-3">
+    <% @items.each_with_index do |item, i| %>
+      <% prog = @progresses[item.id] %>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="flex items-center gap-4 p-4">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0
+            <%= prog&.completed? ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' %>">
+            <%= prog&.completed? ? "✓" : (i+1) %>
+          </div>
+          <div class="text-xl flex-shrink-0"><%= item.quiz? ? "📝" : "📖" %></div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[14px] font-bold text-slate-900"><%= item.title %></div>
+            <div class="text-[12px] text-slate-500"><%= item.quiz? ? "Bài kiểm tra" : "Bài học" %> · ~<%= item.estimated_minutes %> phút</div>
+          </div>
+          <div class="flex gap-2 flex-shrink-0">
+            <% unless prog&.completed? %>
+              <button onclick="markProgress(<%= @assignment.id %>, <%= item.id %>, 'completed', this)"
+                      class="text-[12px] px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border-0 cursor-pointer">
+                ✓ Đánh dấu xong
+              </button>
+            <% else %>
+              <button onclick="markProgress(<%= @assignment.id %>, <%= item.id %>, 'not_started', this)"
+                      class="text-[12px] px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg border-0 cursor-pointer">
+                Bỏ đánh dấu
+              </button>
+            <% end %>
+            <button onclick="toggleContent(this)" data-expanded="false"
+                    class="text-[12px] px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
+              Xem nội dung
+            </button>
+          </div>
+        </div>
+
+        <% if item.content.present? %>
+          <div class="item-content hidden border-t border-slate-100 px-6 py-4 bg-slate-50 prose max-w-none text-[14px]">
+            <%= raw item.content %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+function toggleContent(btn) {
+  const card = btn.closest('.bg-white');
+  const content = card.querySelector('.item-content');
+  if (content) {
+    const hidden = content.classList.toggle('hidden');
+    btn.textContent = hidden ? 'Xem nội dung' : 'Thu lại';
+  }
+}
+
+function markProgress(asgmtId, itemId, status, btn) {
+  fetch(`/admin/learning_path_assignments/${asgmtId}/update_progress`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content },
+    body: JSON.stringify({ item_id: itemId, status })
+  }).then(r => r.json()).then(data => {
+    document.getElementById('overall-progress').style.width = data.pct + '%';
+    location.reload();
+  });
+}
+</script>

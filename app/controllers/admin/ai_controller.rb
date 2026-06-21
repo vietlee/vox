@@ -75,4 +75,75 @@ class Admin::AiController < Admin::BaseController
       error:  job.failed? ? job.error_message : nil
     }
   end
+
+  # AI Tutor — hỏi đáp Socratic, không đưa đáp án thẳng
+  def tutor_page
+    @context_type = params[:context_type]   # 'learning_path_item', 'document_summary', etc.
+    @context_id   = params[:context_id]
+    @context_title = resolve_tutor_context
+  end
+
+  def tutor
+    return unless require_credits!(1)
+    message  = params[:message].to_s.strip
+    history  = params[:history] || []
+    context  = params[:context].to_s.strip
+
+    system_prompt = <<~PROMPT
+      Bạn là AI gia sư/trợ lý học tập. Nhiệm vụ:
+      - Giúp người dùng HIỂU, không đưa đáp án thẳng ngay
+      - Dẫn dắt bằng câu hỏi gợi mở, ví dụ, phân tích từng bước
+      - Nếu người dùng thực sự bí và hỏi đáp án, mới giải thích đầy đủ
+      - Ngôn ngữ thân thiện, khuyến khích
+      #{context.present? ? "\n=== NỘI DUNG TÀI LIỆU ===\n#{context.truncate(8000)}\n=== HẾT ===" : ""}
+      Trả lời bằng tiếng Việt với markdown.
+    PROMPT
+
+    messages = history.map { |h| { role: h["role"], content: h["content"] } }
+    messages << { role: "user", content: message }
+
+    current_workspace.active_subscription&.deduct_credits!(1)
+    result = ClaudeService.for_feature("ai_chat").call(system_prompt: system_prompt, messages: messages, max_tokens: 1024)
+    render json: { response: result }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  # AI Writing assistant — sửa lỗi và cải thiện văn bản
+  def writing
+    return unless require_credits!(1)
+    text   = params[:text].to_s.strip
+    action = params[:action_type].to_s  # 'correct', 'improve', 'summarize', 'rewrite'
+
+    instructions = {
+      "correct"   => "Sửa lỗi chính tả, ngữ pháp. Giữ nguyên ý nghĩa. Giải thích các lỗi đã sửa.",
+      "improve"   => "Cải thiện văn phong, làm rõ ý hơn, chuyên nghiệp hơn. Giải thích thay đổi.",
+      "summarize" => "Tóm tắt ngắn gọn, giữ ý chính.",
+      "rewrite"   => "Viết lại hoàn toàn theo cách khác, giữ nguyên nội dung.",
+    }
+    instruction = instructions[action] || instructions["correct"]
+
+    current_workspace.active_subscription&.deduct_credits!(1)
+    result = ClaudeService.for_feature("ai_chat").call(
+      system_prompt: "Bạn là trợ lý viết văn bản chuyên nghiệp. #{instruction} Trả lời bằng tiếng Việt với markdown.",
+      user_prompt: "Văn bản cần xử lý:\n\n#{text.truncate(5000)}",
+      max_tokens: 2048
+    )
+    render json: { result: result }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  private
+
+  def resolve_tutor_context
+    case params[:context_type]
+    when "learning_path_item"
+      item = LearningPathItem.joins(:learning_path).where(learning_paths: { workspace: current_workspace }).find_by(id: params[:context_id])
+      item&.title
+    when "document_summary"
+      doc = current_workspace.document_summaries.find_by(id: params[:context_id])
+      doc&.title
+    end
+  end
 end
