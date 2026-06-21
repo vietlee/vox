@@ -1746,10 +1746,28 @@
 
     /* Save */
     window.saveSlides = function() {
+      /* flush any pending item edits from textareas into slides data */
+      var textareas = document.querySelectorAll('#edit-items-list textarea');
+      var s = slides[current];
+      if (textareas.length) {
+        var vals = Array.from(textareas).map(function(ta) { return ta.value; });
+        s.bullets = vals;
+        /* clear s.items so layout functions use s.bullets */
+        delete s.items;
+      }
+      /* flush title + note from inputs */
+      var titleIn = document.getElementById('edit-title');
+      if (titleIn) s.title = titleIn.value;
+      var noteIn = document.getElementById('edit-note');
+      if (noteIn) s.note = noteIn.value;
+
+      /* re-render slide with updated data */
+      render();
+
+      /* then persist to server */
       var btn = document.getElementById('save-slides-btn');
       btn.disabled = true; btn.textContent = '...';
       var token = document.querySelector('meta[name="csrf-token"]').content;
-      /* strip large base64 images from slides for size, keep reference */
       fetch('<%= update_slides_content_outline_path(@outline) %>', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token, 'Accept': 'application/json' },
