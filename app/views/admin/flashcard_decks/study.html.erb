@@ -52,6 +52,10 @@
                 style="border-color:#e2e8f0; color:#64748b; background:#fff;">
           🔊 <span id="tts-label">Đọc to: Tắt</span>
         </button>
+        <button id="tts-replay-btn" onclick="replayTTS()" title="Đọc lại" class="hidden flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[12px] font-semibold border transition-all flex-shrink-0"
+                style="border-color:#6366f1; color:#4f46e5; background:#eef2ff;">
+          ↺
+        </button>
       </div>
 
       <!-- Rating buttons — hidden until flip -->
@@ -190,10 +194,11 @@
     ttsOn = !ttsOn;
     var btn = document.getElementById('tts-btn');
     var lbl = document.getElementById('tts-label');
+    var replayBtn = document.getElementById('tts-replay-btn');
     if (ttsOn) {
       btn.style.borderColor = '#6366f1'; btn.style.color = '#4f46e5'; btn.style.background = '#eef2ff';
       lbl.textContent = 'Đọc to: Bật';
-      /* queue current card to speak after voices load */
+      replayBtn.classList.remove('hidden');
       if (cards[current]) _pendingSpeak = cards[current].front;
       loadElevenLabsVoices();
     } else {
@@ -201,8 +206,17 @@
       _pendingSpeak = null;
       btn.style.borderColor = '#e2e8f0'; btn.style.color = '#64748b'; btn.style.background = '#fff';
       lbl.textContent = 'Đọc to: Tắt';
+      replayBtn.classList.add('hidden');
       ['vi-voice-label','fc-vi-voice','en-voice-label','fc-en-voice'].forEach(hideEl);
     }
+  };
+
+  window.replayTTS = function() {
+    if (!ttsOn) return;
+    var card = cards[current];
+    if (!card) return;
+    /* replay whichever side is currently shown */
+    speak(flipped ? card.back : card.front);
   };
 
   function speak(text) {
