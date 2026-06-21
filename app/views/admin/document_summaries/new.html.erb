@@ -57,7 +57,8 @@
       </div>
 
       <div class="flex gap-2 pt-1">
-        <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl cursor-pointer transition-colors border-0">
+        <button type="submit" id="ai-submit-btn"
+                class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl cursor-pointer transition-colors border-0">
           ✨ Tóm tắt ngay
         </button>
         <%= link_to "Hủy", document_summaries_path, class: "px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[13px] font-semibold rounded-xl transition-colors" %>
@@ -65,6 +66,15 @@
     </div>
   <% end %>
 </div>
+
+<%= render "shared/ai_loading_overlay", phases: ["Đang đọc tài liệu...", "Đang phân tích nội dung...", "Đang trích xuất ý chính...", "Đang tổng hợp kết quả..."] %>
+
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+  document.getElementById('ai-submit-btn').disabled = true;
+  showAiLoadingOverlay();
+});
+</script>
 
 <script>
 function switchTab(type) {

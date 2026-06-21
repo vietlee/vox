@@ -42,11 +42,11 @@
           <div class="text-[12px] text-violet-700 mt-0.5">AI sẽ tạo 5–8 bài học xen kẽ bài kiểm tra dựa trên chủ đề · <strong>5 credits</strong></div>
         </div>
       </div>
-      <%= form_with url: ai_generate_learning_path_path(@learning_path), method: :post, local: true do %>
+      <%= form_with url: ai_generate_learning_path_path(@learning_path), method: :post, local: true, id: "ai-lp-form" do %>
         <div class="flex gap-2">
           <input type="text" name="prompt" placeholder="Mô tả thêm: đối tượng, mức độ, trọng tâm..."
                  class="flex-1 px-3 py-2 border border-violet-200 rounded-xl text-[13px] bg-white focus:border-violet-400 outline-none">
-          <button type="submit" class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
+          <button type="submit" id="ai-lp-btn" class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
             Tạo ngay
           </button>
         </div>
@@ -188,4 +188,10 @@ function deleteItem(id) {
     headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
   }).then(() => location.reload());
 }
+document.getElementById('ai-lp-form').addEventListener('submit', function() {
+  document.getElementById('ai-lp-btn').disabled = true;
+  showAiLoadingOverlay();
+});
 </script>
+
+<%= render "shared/ai_loading_overlay", phases: ["Đang phân tích yêu cầu...", "Đang thiết kế lộ trình...", "Đang tạo bài học...", "Đang sắp xếp thứ tự..."] %>

@@ -27,7 +27,7 @@
       <div class="text-[12px] text-violet-700 mt-0.5">AI tự động tạo flashcard cho chủ đề bạn chọn · <strong>3 credits</strong></div>
     </div>
   </div>
-  <%= form_with url: ai_generate_flashcard_deck_path(@deck), method: :post, local: true do %>
+  <%= form_with url: ai_generate_flashcard_deck_path(@deck), method: :post, local: true, id: "ai-gen-form" do %>
     <div class="flex gap-2">
       <input type="text" name="topic" placeholder="Chủ đề (mặc định: <%= @deck.title %>)"
              class="flex-1 px-3 py-2 border border-violet-200 rounded-xl text-[13px] bg-white focus:border-violet-400 outline-none">
@@ -36,7 +36,7 @@
                class="w-16 px-3 py-2 text-[13px] border-0 outline-none text-center">
         <span class="pr-3 text-[11px] text-slate-400">thẻ</span>
       </div>
-      <button type="submit" class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">Tạo</button>
+      <button type="submit" id="ai-gen-btn" class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">Tạo</button>
     </div>
   <% end %>
 </div>
@@ -69,3 +69,12 @@
     </div>
   <% end %>
 </div>
+
+<%= render "shared/ai_loading_overlay", phases: ["Đang kết nối AI...", "Đang tạo câu hỏi...", "Đang soạn đáp án...", "Đang hoàn thiện bộ thẻ..."] %>
+
+<script>
+document.getElementById('ai-gen-form').addEventListener('submit', function() {
+  document.getElementById('ai-gen-btn').disabled = true;
+  showAiLoadingOverlay();
+});
+</script>

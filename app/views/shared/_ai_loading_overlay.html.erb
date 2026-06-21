@@ -1,0 +1,88 @@
+<%# Usage: render "shared/ai_loading_overlay", phases: [...optional array...]
+<%  phases = local_assigns[:phases] || ["Đang kết nối AI...", "Đang phân tích...", "Đang tạo nội dung...", "Đang hoàn thiện..."] %>
+
+<div id="ai-loading-overlay"
+     style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center;
+            background:rgba(15,23,42,0.65); backdrop-filter:blur(4px);">
+  <div style="background:#fff; border-radius:20px; padding:32px 40px; text-align:center;
+              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%;">
+    <div id="ai-ring-container"></div>
+    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Có thể mất 10–30 giây tuỳ độ phức tạp</p>
+  </div>
+</div>
+
+<style>
+@keyframes vox-pulse {
+  0%,100% { transform:scale(1); opacity:1; }
+  50%      { transform:scale(0.88); opacity:0.75; }
+}
+</style>
+
+<script>
+(function() {
+  var AI_PHASES = <%= raw phases.to_json %>;
+
+  function makeProgressRing(containerId, phases, intervalMs) {
+    var totalPhases = phases.length;
+    var phase = 0, pct = 0, timer = null;
+    var html = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0;gap:8px;">' +
+      '<span id="' + containerId + '-pct" style="font-size:13px;font-weight:800;color:#7c3aed;letter-spacing:-0.3px;">0%</span>' +
+      '<div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;">' +
+        '<svg width="88" height="88" viewBox="0 0 88 88" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">' +
+          '<circle cx="44" cy="44" r="38" stroke="#ede9fe" stroke-width="6"/>' +
+          '<circle id="' + containerId + '-ring" cx="44" cy="44" r="38" stroke="#7c3aed" stroke-width="6" stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="238.8" style="transition:stroke-dashoffset 0.6s ease;"/>' +
+        '</svg>' +
+        '<div style="position:relative;z-index:2;animation:vox-pulse 1.6s ease-in-out infinite;">' +
+          '<svg width="32" height="32" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">' +
+            '<rect x="0" y="0" width="36" height="36" rx="9" fill="#1A6BFF"/>' +
+            '<polygon points="10,24 6,31 16,24" fill="white"/>' +
+            '<rect x="6" y="6" width="24" height="19" rx="5" fill="white"/>' +
+            '<rect x="10" y="11" width="4" height="7" rx="1" fill="#1A6BFF"/>' +
+            '<rect x="16" y="8" width="4" height="13" rx="1" fill="#1A6BFF"/>' +
+            '<rect x="23" y="10" width="4" height="9" rx="1" fill="#1A6BFF"/>' +
+          '</svg>' +
+        '</div>' +
+      '</div>' +
+      '<p id="' + containerId + '-phase" style="font-size:12px;font-weight:600;color:#6366f1;text-align:center;max-width:220px;margin:0;">' + phases[0] + '</p>' +
+    '</div>';
+    document.getElementById(containerId).innerHTML = html;
+    var ring  = document.getElementById(containerId + '-ring');
+    var pctEl = document.getElementById(containerId + '-pct');
+    var phEl  = document.getElementById(containerId + '-phase');
+    function setProgress(p) {
+      ring.style.strokeDashoffset = 238.8 * (1 - p / 100);
+      pctEl.textContent = Math.round(p) + '%';
+    }
+    var milestones = phases.map(function(_, i) { return Math.round(((i + 1) / totalPhases) * 85); });
+    timer = setInterval(function() {
+      var target = milestones[phase] || 85;
+      pct = Math.min(pct + 1, target);
+      setProgress(pct);
+      if (pct >= (milestones[phase] || 85) && phase < totalPhases - 1) {
+        phase++;
+        phEl.textContent = phases[phase];
+      }
+      if (pct >= 85 && phase >= totalPhases - 1) {
+        clearInterval(timer);
+        timer = setInterval(function() {
+          if (pct >= 98) { clearInterval(timer); return; }
+          pct = Math.min(pct + 0.4, 98);
+          setProgress(pct);
+        }, 3000);
+      }
+    }, intervalMs);
+    return { finish: function() { clearInterval(timer); ring.style.strokeDashoffset = '0'; pctEl.textContent = '100%'; } };
+  }
+
+  var _aiRingCtrl = null;
+  window.showAiLoadingOverlay = function() {
+    document.getElementById('ai-loading-overlay').style.display = 'flex';
+    _aiRingCtrl = makeProgressRing('ai-ring-container', AI_PHASES, 300);
+  };
+  window.hideAiLoadingOverlay = function() {
+    if (_aiRingCtrl) _aiRingCtrl.finish();
+    document.getElementById('ai-loading-overlay').style.display = 'none';
+    _aiRingCtrl = null;
+  };
+})();
+</script>

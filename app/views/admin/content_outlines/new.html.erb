@@ -48,9 +48,21 @@
       </div>
 
       <div class="flex gap-2 pt-1">
-        <%= f.submit "✨ Tạo với AI", class: "px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl cursor-pointer transition-colors" %>
+        <button type="submit" id="ai-submit-btn"
+                class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl cursor-pointer transition-colors border-0">
+          ✨ Tạo với AI
+        </button>
         <%= link_to "Hủy", content_outlines_path, class: "px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[13px] font-semibold rounded-xl transition-colors" %>
       </div>
     </div>
   <% end %>
 </div>
+
+<%= render "shared/ai_loading_overlay", phases: ["Đang kết nối AI...", "Đang phân tích chủ đề...", "Đang soạn nội dung...", "Đang định dạng kết quả..."] %>
+
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+  document.getElementById('ai-submit-btn').disabled = true;
+  showAiLoadingOverlay();
+});
+</script>
