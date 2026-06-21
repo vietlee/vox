@@ -35,10 +35,20 @@
       <!-- Card area — built entirely by JS -->
       <div id="card-area" class="mb-5"></div>
 
-      <!-- TTS toggle -->
-      <div class="flex justify-end mb-2">
+      <!-- TTS controls -->
+      <div class="flex items-center gap-2 justify-end mb-2 flex-wrap">
+        <select id="vi-voice-select" title="Giọng tiếng Việt"
+                class="hidden px-2 py-1.5 rounded-xl text-[12px] font-semibold border outline-none"
+                style="border-color:#6366f1; color:#4f46e5; background:#eef2ff; max-width:200px;"
+                onchange="onVoiceChange()">
+        </select>
+        <select id="en-voice-select" title="Giọng tiếng Anh"
+                class="hidden px-2 py-1.5 rounded-xl text-[12px] font-semibold border outline-none"
+                style="border-color:#0284c7; color:#0369a1; background:#e0f2fe; max-width:200px;"
+                onchange="onVoiceChange()">
+        </select>
         <button id="tts-btn" onclick="toggleTTS()" title="Bật/tắt đọc to"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-all"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-all flex-shrink-0"
                 style="border-color:#e2e8f0; color:#64748b; background:#fff;">
           🔊 <span id="tts-label">Đọc to: Tắt</span>
         </button>
@@ -107,58 +117,88 @@
   ];
 
   /* ── TTS ── */
-  var _voices = [];
-  function loadVoices() {
-    _voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-  }
-  if (window.speechSynthesis) {
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-  }
+  var _allVoices = [];
+  var _selectedViVoice = null;  /* SpeechSynthesisVoice object chosen by user */
+  var _selectedEnVoice = null;
 
-  /*
-   * Language detection — priority:
-   * 1. Vietnamese diacritics present → vi  (ă â đ ê ô ơ ư + tone marks)
-   * 2. Only plain Latin letters (no diacritics) → en
-   * 3. Mixed or ambiguous → vi (default for this app)
-   */
-  var VI_CHARS = /[àáảãạăắặằẳẵâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵÀÁẢÃẠĂẮẶẰẲẴÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ]/;
-  var EN_ONLY  = /^[a-zA-Z0-9\s\.,!?;:()\-'"\/\[\]%&@#\+\*=]+$/;
-
+  /* Vietnamese diacritics → vi; pure ASCII letters → en; else vi */
+  var VI_RE  = /[àáảãạăắặằẳẵâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵÀÁẢÃẠĂẮẶẰẲẴÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ]/;
+  var EN_RE  = /^[a-zA-Z0-9\s.,!?;:()\-'"\/\[\]%&@#+*=]+$/;
   function detectLang(text) {
-    if (VI_CHARS.test(text)) return 'vi';   /* has Vietnamese diacritics → definitely Vietnamese */
-    if (EN_ONLY.test(text))  return 'en';   /* only ASCII/Latin no diacritics → English */
-    return 'vi';                             /* default */
+    if (VI_RE.test(text)) return 'vi';
+    if (EN_RE.test(text)) return 'en';
+    return 'vi';
   }
 
-  /* pick best available voice for a lang */
-  function pickVoice(lang) {
-    var voices = _voices.length ? _voices : (window.speechSynthesis ? window.speechSynthesis.getVoices() : []);
-    if (lang === 'en') {
-      return voices.find(function(v){ return /google/i.test(v.name) && v.lang === 'en-US'; }) ||
-             voices.find(function(v){ return /microsoft/i.test(v.name) && /natural|neural/i.test(v.name) && v.lang.startsWith('en'); }) ||
-             voices.find(function(v){ return v.lang === 'en-US'; }) ||
-             voices.find(function(v){ return v.lang.startsWith('en'); }) ||
-             null;
-    } else {
-      return voices.find(function(v){ return /google/i.test(v.name) && v.lang === 'vi-VN'; }) ||
-             voices.find(function(v){ return v.lang === 'vi-VN'; }) ||
-             voices.find(function(v){ return v.lang.startsWith('vi'); }) ||
-             null;
+  function populateVoiceSelects() {
+    _allVoices = window.speechSynthesis.getVoices();
+    var viVoices = _allVoices.filter(function(v){ return v.lang.startsWith('vi'); });
+    var enVoices = _allVoices.filter(function(v){ return v.lang.startsWith('en'); });
+
+    var viSel = document.getElementById('vi-voice-select');
+    var enSel = document.getElementById('en-voice-select');
+
+    viSel.innerHTML = '';
+    viVoices.forEach(function(v) {
+      var opt = document.createElement('option');
+      opt.value = v.name;
+      opt.textContent = '🇻🇳 ' + v.name.replace(/Microsoft |Google /,'');
+      viSel.appendChild(opt);
+    });
+    /* auto-pick: prefer Google, then first available */
+    var bestVi = viVoices.find(function(v){ return /google/i.test(v.name); }) || viVoices[0];
+    if (bestVi) { viSel.value = bestVi.name; _selectedViVoice = bestVi; }
+
+    enSel.innerHTML = '';
+    enVoices.forEach(function(v) {
+      var opt = document.createElement('option');
+      opt.value = v.name;
+      opt.textContent = '🇺🇸 ' + v.name.replace(/Microsoft |Google /,'');
+      enSel.appendChild(opt);
+    });
+    var bestEn = enVoices.find(function(v){ return /google/i.test(v.name) && v.lang === 'en-US'; }) ||
+                 enVoices.find(function(v){ return v.lang === 'en-US'; }) ||
+                 enVoices[0];
+    if (bestEn) { enSel.value = bestEn.name; _selectedEnVoice = bestEn; }
+
+    /* show selects only when TTS is on */
+    if (ttsOn) {
+      if (viVoices.length) viSel.classList.remove('hidden');
+      if (enVoices.length) enSel.classList.remove('hidden');
     }
+  }
+
+  window.onVoiceChange = function() {
+    var viSel = document.getElementById('vi-voice-select');
+    var enSel = document.getElementById('en-voice-select');
+    _selectedViVoice = _allVoices.find(function(v){ return v.name === viSel.value; }) || null;
+    _selectedEnVoice = _allVoices.find(function(v){ return v.name === enSel.value; }) || null;
+  };
+
+  if (window.speechSynthesis) {
+    /* Chrome loads voices async */
+    if (window.speechSynthesis.getVoices().length) populateVoiceSelects();
+    window.speechSynthesis.onvoiceschanged = populateVoiceSelects;
   }
 
   window.toggleTTS = function() {
     ttsOn = !ttsOn;
-    var btn = document.getElementById('tts-btn');
-    var lbl = document.getElementById('tts-label');
+    var btn   = document.getElementById('tts-btn');
+    var lbl   = document.getElementById('tts-label');
+    var viSel = document.getElementById('vi-voice-select');
+    var enSel = document.getElementById('en-voice-select');
     if (ttsOn) {
       btn.style.borderColor = '#6366f1'; btn.style.color = '#4f46e5'; btn.style.background = '#eef2ff';
       lbl.textContent = 'Đọc to: Bật';
+      populateVoiceSelects();
+      if (viSel.options.length) viSel.classList.remove('hidden');
+      if (enSel.options.length) enSel.classList.remove('hidden');
     } else {
       window.speechSynthesis && window.speechSynthesis.cancel();
       btn.style.borderColor = '#e2e8f0'; btn.style.color = '#64748b'; btn.style.background = '#fff';
       lbl.textContent = 'Đọc to: Tắt';
+      viSel.classList.add('hidden');
+      enSel.classList.add('hidden');
     }
   };
 
@@ -166,11 +206,11 @@
     if (!ttsOn || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     var lang  = detectLang(text);
-    var voice = pickVoice(lang);
+    var voice = lang === 'vi' ? _selectedViVoice : _selectedEnVoice;
     var u = new SpeechSynthesisUtterance(text);
     if (voice) { u.voice = voice; u.lang = voice.lang; }
     else        { u.lang  = lang === 'en' ? 'en-US' : 'vi-VN'; }
-    u.rate  = lang === 'en' ? 0.88 : 0.82;
+    u.rate  = lang === 'en' ? 0.88 : 0.84;
     u.pitch = 1.0;
     window.speechSynthesis.speak(u);
   }
