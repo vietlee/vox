@@ -107,6 +107,40 @@
   ];
 
   /* ── TTS ── */
+  var _voices = [];
+  function loadVoices() {
+    _voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  }
+  if (window.speechSynthesis) {
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
+
+  /* detect language: if ≥ 40% chars are ASCII letters → English */
+  function detectLang(text) {
+    var ascii = (text.match(/[a-zA-Z]/g) || []).length;
+    return (ascii / text.replace(/\s/g,'').length) >= 0.4 ? 'en' : 'vi';
+  }
+
+  /* pick best available voice for a lang */
+  function pickVoice(lang) {
+    var voices = _voices.length ? _voices : (window.speechSynthesis ? window.speechSynthesis.getVoices() : []);
+    if (lang === 'en') {
+      /* prefer: Google US English > Microsoft > any en-US > any en */
+      return voices.find(function(v){ return /google/i.test(v.name) && v.lang === 'en-US'; }) ||
+             voices.find(function(v){ return /microsoft/i.test(v.name) && v.lang === 'en-US'; }) ||
+             voices.find(function(v){ return v.lang === 'en-US'; }) ||
+             voices.find(function(v){ return v.lang.startsWith('en'); }) ||
+             null;
+    } else {
+      /* prefer: Google Vietnamese > any vi-VN > any vi */
+      return voices.find(function(v){ return /google/i.test(v.name) && v.lang === 'vi-VN'; }) ||
+             voices.find(function(v){ return v.lang === 'vi-VN'; }) ||
+             voices.find(function(v){ return v.lang.startsWith('vi'); }) ||
+             null;
+    }
+  }
+
   window.toggleTTS = function() {
     ttsOn = !ttsOn;
     var btn = document.getElementById('tts-btn');
@@ -124,9 +158,13 @@
   function speak(text) {
     if (!ttsOn || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
+    var lang = detectLang(text);
     var u = new SpeechSynthesisUtterance(text);
-    u.lang = 'vi-VN';
-    u.rate = 0.9;
+    var voice = pickVoice(lang);
+    if (voice) u.voice = voice;
+    u.lang  = lang === 'en' ? 'en-US' : 'vi-VN';
+    u.rate  = lang === 'en' ? 0.92 : 0.85;  /* EN slightly faster, VI slower for clarity */
+    u.pitch = 1.05;
     window.speechSynthesis.speak(u);
   }
 
@@ -154,26 +192,29 @@
       '<span style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:' + hdrClr + ';">' + label + '</span>' +
       '<span style="font-size:11px;color:' + hdrClr + ';font-weight:600;opacity:.7;">' + (isBack ? '✓ Đáp án' : (current+1) + ' / ' + cards.length) + '</span>';
 
-    /* image (front only if has image) */
+    div.appendChild(header);
+
+    /* image — show prominently when present (front face only) */
     if (!isBack && card.image_data) {
       var imgWrap = document.createElement('div');
-      imgWrap.style.cssText = 'flex-shrink:0;height:180px;overflow:hidden;';
+      imgWrap.style.cssText = 'flex-shrink:0;height:260px;overflow:hidden;position:relative;';
       var img = document.createElement('img');
       img.src = card.image_data;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      /* subtle gradient overlay at bottom so text reads on top of image */
+      var grad = document.createElement('div');
+      grad.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(transparent,rgba(0,0,0,0.55));pointer-events:none;';
       imgWrap.appendChild(img);
-      div.appendChild(header);
+      imgWrap.appendChild(grad);
       div.appendChild(imgWrap);
-    } else {
-      div.appendChild(header);
     }
 
-    /* body */
-    var minH = (!isBack && card.image_data) ? '80px' : '200px';
+    /* body text */
+    var hasImg = !isBack && card.image_data;
     var body = document.createElement('div');
-    body.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;padding:24px 28px;text-align:center;min-height:' + minH + ';';
+    body.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;padding:' + (hasImg ? '16px 24px' : '28px 28px') + ';text-align:center;min-height:' + (hasImg ? '64px' : '200px') + ';';
     var p = document.createElement('p');
-    var fs = text.length > 80 ? '16' : text.length > 40 ? '20' : '26';
+    var fs = text.length > 80 ? '15' : text.length > 40 ? '19' : '24';
     p.style.cssText = 'margin:0;font-size:' + fs + 'px;font-weight:700;line-height:1.5;color:' + (isBack ? '#1e293b' : '#fff') + ';';
     p.textContent = text;
     body.appendChild(p);
