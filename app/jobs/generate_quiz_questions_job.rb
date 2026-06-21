@@ -64,6 +64,6 @@ class GenerateQuizQuestionsJob < ApplicationJob
   end
 
   def sanitize_latex(str)
-    str.gsub(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/, '\\\\')
+    str.gsub(/\\(?!["\\\/bfnrt]|u[0-9a-fA-F]{4})/, '\\\\')
   end
 end
