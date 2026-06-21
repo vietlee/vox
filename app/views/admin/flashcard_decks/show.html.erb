@@ -41,32 +41,55 @@
   <% end %>
 </div>
 
-<!-- Card list -->
-<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-  <div class="px-5 py-4 border-b border-slate-100">
+<!-- Card grid -->
+<div>
+  <div class="flex items-center justify-between mb-3">
     <h3 class="text-[14px] font-bold text-slate-900">Danh sách thẻ (<%= @cards.count %>)</h3>
   </div>
   <% if @cards.empty? %>
-    <div class="p-12 text-center">
-      <div class="text-4xl mb-3">🃏</div>
-      <p class="text-[13px] text-slate-400">Chưa có thẻ nào. Dùng AI để tạo hoặc thêm thủ công (sắp có).</p>
+    <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+      <div class="text-5xl mb-3">🃏</div>
+      <p class="text-[13px] text-slate-400">Chưa có thẻ nào. Dùng AI để tạo bên trên.</p>
     </div>
   <% else %>
-    <div class="divide-y divide-slate-100">
+    <%
+      gradients = [
+        'linear-gradient(135deg,#667eea,#764ba2)',
+        'linear-gradient(135deg,#4facfe,#00f2fe)',
+        'linear-gradient(135deg,#43e97b,#38f9d7)',
+        'linear-gradient(135deg,#fa709a,#fee140)',
+        'linear-gradient(135deg,#30cfd0,#330867)',
+        'linear-gradient(135deg,#f093fb,#f5576c)',
+        'linear-gradient(135deg,#ffecd2,#fcb69f)',
+        'linear-gradient(135deg,#a1c4fd,#c2e9fb)',
+      ]
+    %>
+    <div class="grid grid-cols-3 gap-4">
       <% @cards.each_with_index do |card, i| %>
-        <details class="group">
-          <summary class="flex items-center gap-3 px-5 py-3.5 cursor-pointer hover:bg-slate-50 list-none">
-            <span class="text-[12px] text-slate-400 w-7 shrink-0 font-mono"><%= i+1 %>.</span>
-            <span class="flex-1 text-[13px] font-semibold text-slate-900 truncate"><%= card.front.truncate(100) %></span>
-            <svg class="w-4 h-4 text-slate-400 shrink-0 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </summary>
-          <div class="px-5 pb-4 bg-indigo-50 border-t border-indigo-100">
-            <div class="text-[11px] font-bold text-indigo-500 uppercase tracking-wide mt-3 mb-1.5">Đáp án</div>
-            <p class="text-[13px] text-slate-700 leading-relaxed"><%= card.back %></p>
+        <div class="group" style="perspective:800px;">
+          <div class="relative cursor-pointer card-mini-flip"
+               style="transform-style:preserve-3d; -webkit-transform-style:preserve-3d; transition:transform 0.4s ease; height:140px;"
+               onclick="this.style.transform = this.style.transform.includes('180') ? 'rotateY(0)' : 'rotateY(180deg)'">
+            <!-- Front -->
+            <div class="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-4 text-center"
+                 style="backface-visibility:hidden; -webkit-backface-visibility:hidden;
+                        background:<%= gradients[i % gradients.size] %>;">
+              <div class="text-[9px] font-bold uppercase tracking-widest text-white/70 mb-2">Thẻ <%= i+1 %></div>
+              <p class="text-[13px] font-bold text-white leading-tight line-clamp-3"><%= card.front %></p>
+            </div>
+            <!-- Back -->
+            <div class="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-4 text-center bg-white border-2"
+                 style="backface-visibility:hidden; -webkit-backface-visibility:hidden;
+                        transform:rotateY(180deg); -webkit-transform:rotateY(180deg);
+                        border-color: <%= ['#a78bfa','#60a5fa','#34d399','#f472b6','#38bdf8','#c084fc','#fb923c','#93c5fd'][i % 8] %>;">
+              <div class="text-[9px] font-bold uppercase tracking-widest mb-2" style="color:<%= ['#7c3aed','#2563eb','#059669','#db2777','#0284c7','#9333ea','#ea580c','#1d4ed8'][i % 8] %>">Đáp án</div>
+              <p class="text-[12px] text-slate-700 leading-snug line-clamp-4"><%= card.back %></p>
+            </div>
           </div>
-        </details>
+        </div>
       <% end %>
     </div>
+    <p class="text-[11px] text-slate-400 text-center mt-3">Nhấn vào thẻ để lật xem đáp án</p>
   <% end %>
 </div>
 

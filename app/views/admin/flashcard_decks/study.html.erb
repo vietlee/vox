@@ -1,84 +1,115 @@
 <% content_for :title, "Học: #{@deck.title}" %>
-<% content_for :main_class, 'flex-1 overflow-hidden flex flex-col bg-slate-50' %>
+<% content_for :main_class, 'flex-1 overflow-y-auto bg-slate-50' %>
 <meta name="turbo-visit-control" content="reload">
 
-<div class="flex-1 flex flex-col items-center justify-center p-6">
-  <div class="w-full max-w-lg">
+<div class="min-h-full flex flex-col items-center justify-center p-6">
+  <div class="w-full max-w-xl">
+
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-4 mb-8">
       <%= link_to flashcard_deck_path(@deck),
-          class: "flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-700 transition-colors" do %>
+          class: "flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-700 transition-colors flex-shrink-0" do %>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
         Quay lại
       <% end %>
-      <div class="text-center">
-        <div class="text-[14px] font-bold text-slate-900 line-clamp-1"><%= @deck.title %></div>
-        <div class="text-[12px] text-slate-400"><span id="card-counter">1</span> / <%= @study_cards.size %> thẻ</div>
-      </div>
-      <div class="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
-        <div id="progress-bar" class="h-2 bg-indigo-500 rounded-full transition-all duration-300" style="width:0%"></div>
+      <div class="flex-1">
+        <div class="text-[13px] font-bold text-slate-700 truncate"><%= @deck.title %></div>
+        <div class="flex items-center gap-2 mt-1">
+          <div class="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            <div id="progress-bar" class="h-1.5 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500" style="width:0%"></div>
+          </div>
+          <span id="card-counter" class="text-[11px] text-slate-400 font-semibold flex-shrink-0">1 / <%= @study_cards.size %></span>
+        </div>
       </div>
     </div>
 
     <% if @study_cards.empty? %>
       <!-- Done state -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
-        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-lg p-14 text-center">
+        <div class="w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-200">
+          <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
-        <h2 class="text-[18px] font-extrabold text-slate-900 mb-2">Học xong hôm nay! 🎉</h2>
-        <p class="text-[13px] text-slate-500 mb-6">Hệ thống sẽ nhắc bạn ôn lại vào đúng thời điểm tốt nhất.</p>
-        <%= link_to "Xem bộ thẻ", flashcard_deck_path(@deck), class: "inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-bold rounded-xl" %>
+        <h2 class="text-[22px] font-extrabold text-slate-900 mb-2">Học xong hôm nay! 🎉</h2>
+        <p class="text-[13px] text-slate-500 mb-7">Hệ thống sẽ nhắc bạn ôn lại vào đúng thời điểm tốt nhất.</p>
+        <%= link_to "Xem bộ thẻ", flashcard_deck_path(@deck), class: "inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white text-[14px] font-bold rounded-2xl hover:bg-indigo-700 transition-colors shadow-md" %>
       </div>
     <% else %>
-      <!-- Flashcard -->
-      <div style="perspective:1200px" class="mb-5">
-        <div id="card-flip" onclick="flipCard()"
-             class="relative cursor-pointer select-none"
-             style="transform-style:preserve-3d; transition:transform 0.45s ease; height:220px;">
-          <!-- Front -->
-          <div class="absolute inset-0 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center p-8 text-center"
-               style="backface-visibility:hidden;">
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Câu hỏi</div>
-            <p id="front-text" class="text-[18px] font-semibold text-slate-900 leading-relaxed"></p>
-            <div class="mt-6 text-[11px] text-slate-400 flex items-center gap-1">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
-              Nhấn để xem đáp án
+
+      <!-- Card flip container -->
+      <div class="mb-5" style="perspective:1400px;">
+        <div id="card-flip" onclick="flipCard()" class="relative cursor-pointer select-none"
+             style="transform-style:preserve-3d; -webkit-transform-style:preserve-3d; transition:transform 0.5s cubic-bezier(0.4,0,0.2,1); height:300px;">
+
+          <!-- FRONT -->
+          <div class="absolute inset-0 rounded-3xl flex flex-col overflow-hidden"
+               style="backface-visibility:hidden; -webkit-backface-visibility:hidden;
+                      background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+                      box-shadow:0 20px 60px rgba(102,126,234,0.4);">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-white/20">
+              <span class="text-[11px] font-bold uppercase tracking-widest text-white/70">Câu hỏi</span>
+              <div id="card-num-front" class="text-[11px] text-white/60 font-semibold"></div>
+            </div>
+            <div class="flex-1 flex flex-col items-center justify-center px-8 text-center">
+              <p id="front-text" class="text-[22px] font-bold text-white leading-relaxed"></p>
+            </div>
+            <div class="flex items-center justify-center gap-1.5 pb-5 text-white/50">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span class="text-[11px] font-medium">Nhấn để xem đáp án</span>
             </div>
           </div>
-          <!-- Back -->
-          <div class="absolute inset-0 bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl border border-indigo-200 shadow-sm flex flex-col items-center justify-center p-8 text-center"
-               style="backface-visibility:hidden; transform:rotateY(180deg);">
-            <div class="text-[11px] font-bold text-indigo-400 uppercase tracking-widest mb-4">Đáp án</div>
-            <p id="back-text" class="text-[16px] text-slate-700 leading-relaxed"></p>
+
+          <!-- BACK -->
+          <div class="absolute inset-0 rounded-3xl flex flex-col overflow-hidden"
+               style="backface-visibility:hidden; -webkit-backface-visibility:hidden;
+                      transform:rotateY(180deg); -webkit-transform:rotateY(180deg);
+                      background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);
+                      box-shadow:0 20px 60px rgba(240,147,251,0.4);">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-white/20">
+              <span class="text-[11px] font-bold uppercase tracking-widest text-white/70">Đáp án</span>
+              <div class="text-[11px] text-white/60 font-semibold">✓</div>
+            </div>
+            <div class="flex-1 flex flex-col items-center justify-center px-8 text-center">
+              <p id="back-text" class="text-[18px] text-white leading-relaxed font-semibold"></p>
+            </div>
+            <div class="pb-5 text-center text-white/50 text-[11px]">Chọn mức độ ghi nhớ bên dưới</div>
           </div>
+
         </div>
       </div>
 
-      <!-- Rating buttons -->
-      <div id="rating-btns" class="hidden grid grid-cols-4 gap-2">
-        <button onclick="rate(0)" class="flex flex-col items-center py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-xl cursor-pointer transition-colors">
-          <span class="text-[18px] mb-0.5">😓</span>
-          <span class="text-[11px] font-bold">Quên</span>
-          <span class="text-[10px] text-red-500 mt-0.5">1 phút</span>
+      <!-- Rating buttons (hidden until flipped) -->
+      <div id="rating-btns" class="hidden grid grid-cols-4 gap-2.5 mb-4">
+        <button onclick="rate(0)"
+                class="flex flex-col items-center py-4 bg-white hover:bg-red-50 border-2 border-red-200 hover:border-red-400 text-red-600 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md group">
+          <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">😵</span>
+          <span class="text-[12px] font-bold">Quên</span>
+          <span class="text-[10px] text-red-400 mt-0.5">1 phút</span>
         </button>
-        <button onclick="rate(1)" class="flex flex-col items-center py-3 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 rounded-xl cursor-pointer transition-colors">
-          <span class="text-[18px] mb-0.5">😬</span>
-          <span class="text-[11px] font-bold">Khó</span>
-          <span class="text-[10px] text-orange-500 mt-0.5">10 phút</span>
+        <button onclick="rate(1)"
+                class="flex flex-col items-center py-4 bg-white hover:bg-orange-50 border-2 border-orange-200 hover:border-orange-400 text-orange-600 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md group">
+          <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">😅</span>
+          <span class="text-[12px] font-bold">Khó</span>
+          <span class="text-[10px] text-orange-400 mt-0.5">10 phút</span>
         </button>
-        <button onclick="rate(2)" class="flex flex-col items-center py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl cursor-pointer transition-colors">
-          <span class="text-[18px] mb-0.5">👍</span>
-          <span class="text-[11px] font-bold">Ổn</span>
-          <span id="good-days" class="text-[10px] text-blue-500 mt-0.5">1 ngày</span>
+        <button onclick="rate(2)"
+                class="flex flex-col items-center py-4 bg-white hover:bg-blue-50 border-2 border-blue-200 hover:border-blue-400 text-blue-600 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md group">
+          <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">👍</span>
+          <span class="text-[12px] font-bold">Ổn</span>
+          <span id="good-days" class="text-[10px] text-blue-400 mt-0.5">1 ngày</span>
         </button>
-        <button onclick="rate(3)" class="flex flex-col items-center py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-xl cursor-pointer transition-colors">
-          <span class="text-[18px] mb-0.5">⭐</span>
-          <span class="text-[11px] font-bold">Dễ</span>
-          <span id="easy-days" class="text-[10px] text-emerald-500 mt-0.5">2 ngày</span>
+        <button onclick="rate(3)"
+                class="flex flex-col items-center py-4 bg-white hover:bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-400 text-emerald-600 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md group">
+          <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">⭐</span>
+          <span class="text-[12px] font-bold">Dễ</span>
+          <span id="easy-days" class="text-[10px] text-emerald-400 mt-0.5">2 ngày</span>
         </button>
       </div>
-      <div id="flip-hint" class="text-center text-[12px] text-slate-400 mt-3">Nhấn thẻ để lật xem đáp án</div>
+
+      <!-- Hint -->
+      <div id="flip-hint" class="text-center">
+        <span class="text-[12px] text-slate-400">Nhấn vào thẻ hoặc nhấn <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-[10px] font-mono">Space</kbd> để lật</span>
+      </div>
+
     <% end %>
   </div>
 </div>
@@ -88,18 +119,45 @@ const cards = <%= raw @study_cards.map { |c| { id: c.id, front: c.front, back: c
 let current = 0;
 let flipped = false;
 
+const GRADIENTS_FRONT = [
+  'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
+  'linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)',
+  'linear-gradient(135deg,#43e97b 0%,#38f9d7 100%)',
+  'linear-gradient(135deg,#fa709a 0%,#fee140 100%)',
+  'linear-gradient(135deg,#30cfd0 0%,#330867 100%)',
+];
+const SHADOWS_FRONT = [
+  '0 20px 60px rgba(102,126,234,0.4)',
+  '0 20px 60px rgba(79,172,254,0.4)',
+  '0 20px 60px rgba(67,233,123,0.35)',
+  '0 20px 60px rgba(250,112,154,0.4)',
+  '0 20px 60px rgba(48,207,208,0.4)',
+];
+
 function showCard(i) {
   if (i >= cards.length) {
-    document.querySelector('[style*="perspective"]').outerHTML =
-      '<div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center mb-5"><div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4"><svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><h2 class="text-[18px] font-extrabold text-slate-900 mb-2">Hoàn thành phiên học! 🎉</h2><a href="<%= flashcard_deck_path(@deck) %>" class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-bold rounded-xl mt-4">Xem bộ thẻ</a></div>';
+    document.querySelector('[style*="perspective"]').innerHTML =
+      '<div style="background:linear-gradient(135deg,#43e97b 0%,#38f9d7 100%);border-radius:24px;padding:56px 32px;text-align:center;box-shadow:0 20px 60px rgba(67,233,123,0.3);">' +
+      '<div style="font-size:48px;margin-bottom:16px;">🎉</div>' +
+      '<h2 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 8px;">Hoàn thành phiên học!</h2>' +
+      '<p style="color:rgba(255,255,255,0.8);font-size:13px;margin:0 0 24px;">Tuyệt vời! Hệ thống sẽ nhắc ôn lại vào đúng lúc.</p>' +
+      '<a href="<%= flashcard_deck_path(@deck) %>" style="display:inline-block;background:#fff;color:#059669;font-size:13px;font-weight:700;padding:12px 24px;border-radius:16px;text-decoration:none;">← Xem bộ thẻ</a>' +
+      '</div>';
     document.getElementById('rating-btns')?.remove();
     document.getElementById('flip-hint')?.remove();
     return;
   }
   const card = cards[i];
+  const front = document.getElementById('card-flip').children[0];
+  const grad = GRADIENTS_FRONT[i % GRADIENTS_FRONT.length];
+  const shadow = SHADOWS_FRONT[i % SHADOWS_FRONT.length];
+  front.style.background = grad;
+  front.style.boxShadow = shadow;
+
   document.getElementById('front-text').textContent = card.front;
   document.getElementById('back-text').textContent = card.back;
-  document.getElementById('card-counter').textContent = i + 1;
+  document.getElementById('card-counter').textContent = (i + 1) + ' / ' + cards.length;
+  document.getElementById('card-num-front').textContent = (i+1) + ' / ' + cards.length;
   document.getElementById('card-flip').style.transform = 'rotateY(0deg)';
   document.getElementById('rating-btns').classList.add('hidden');
   document.getElementById('flip-hint').style.display = '';
@@ -121,11 +179,16 @@ function rate(rating) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
     body: JSON.stringify({ card_id: card.id, rating })
-  }).then(() => {
-    current++;
-    showCard(current);
-  });
+  }).then(() => { current++; showCard(current); });
 }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
+  if (e.key === '1') rate(0);
+  if (e.key === '2') rate(1);
+  if (e.key === '3') rate(2);
+  if (e.key === '4') rate(3);
+});
 
 if (cards.length > 0) showCard(0);
 </script>
