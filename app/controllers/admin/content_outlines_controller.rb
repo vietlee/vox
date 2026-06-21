@@ -43,13 +43,55 @@ class Admin::ContentOutlinesController < Admin::BaseController
   end
 
   def generate_outline(outline)
-    type_label = { "outline" => "dàn ý chi tiết", "slide_script" => "nội dung slide thuyết trình", "lesson_plan" => "giáo án / kế hoạch buổi học" }[outline.output_type] || "dàn ý"
-    system_prompt = "Bạn là trợ lý tạo nội dung giáo dục/đào tạo chuyên nghiệp. Trả lời bằng tiếng Việt với markdown rõ ràng. Không dùng từ ngữ chỉ riêng giáo viên/học sinh — hướng tới mọi loại người tổ chức và người tham gia."
-    user_prompt = "Tạo #{type_label} cho chủ đề: \"#{outline.title}\"#{outline.subject.present? ? " (môn/lĩnh vực: #{outline.subject})" : ""}.\n\nYêu cầu bổ sung: #{outline.prompt_input.presence || 'Không có'}\n\nTạo nội dung đầy đủ, có cấu trúc rõ ràng với tiêu đề, nội dung chính, ví dụ thực tế."
     svc = ClaudeService.for_feature("quiz_generate", timeout: 120)
-    result = svc.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 3000)
-    html = markdown_to_html(result)
+
+    if outline.output_type == "slide"
+      system_prompt = "Bạn là chuyên gia tạo slide thuyết trình. Trả lời bằng tiếng Việt."
+      user_prompt = <<~PROMPT
+        Tạo bộ slide thuyết trình cho chủ đề: "#{outline.title}"#{outline.subject.present? ? " (#{outline.subject})" : ""}.
+        Yêu cầu bổ sung: #{outline.prompt_input.presence || 'Không có'}
+
+        Tạo 6–10 slide. Mỗi slide PHẢI theo đúng format sau (không thêm gì khác):
+
+        ---SLIDE---
+        TITLE: Tiêu đề slide
+        BODY:
+        - Điểm chính 1
+        - Điểm chính 2
+        - Điểm chính 3
+        NOTE: Ghi chú cho người trình bày (1-2 câu ngắn)
+        ---END---
+
+        Slide đầu tiên là trang bìa (title slide), slide cuối là tóm tắt/kết luận.
+        Mỗi slide tối đa 5 bullet points. Ngắn gọn, súc tích, dễ nhớ.
+      PROMPT
+      result = svc.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 3000)
+      html = slides_to_html(result)
+    else
+      type_label = { "outline" => "dàn ý chi tiết", "lesson_plan" => "giáo án / kế hoạch buổi học" }[outline.output_type] || "dàn ý"
+      system_prompt = "Bạn là trợ lý tạo nội dung giáo dục/đào tạo chuyên nghiệp. Trả lời bằng tiếng Việt với markdown rõ ràng."
+      user_prompt = "Tạo #{type_label} cho chủ đề: \"#{outline.title}\"#{outline.subject.present? ? " (môn/lĩnh vực: #{outline.subject})" : ""}.\n\nYêu cầu bổ sung: #{outline.prompt_input.presence || 'Không có'}\n\nTạo nội dung đầy đủ, có cấu trúc rõ ràng với tiêu đề, nội dung chính, ví dụ thực tế."
+      result = svc.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 3000)
+      html = markdown_to_html(result)
+    end
+
     outline.update!(content: html, status: :done)
+  end
+
+  def slides_to_html(text)
+    raw_slides = text.scan(/---SLIDE---(.*?)---END---/m).flatten
+    return markdown_to_html(text) if raw_slides.empty?
+
+    slides_json = raw_slides.map do |s|
+      title = s[/TITLE:\s*(.+)/, 1]&.strip || "Slide"
+      body_raw = s[/BODY:\n(.*?)(?:NOTE:|$)/m, 1]&.strip || ""
+      note = s[/NOTE:\s*(.+)/, 1]&.strip || ""
+      bullets = body_raw.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
+      { title: title, bullets: bullets, note: note }
+    end
+
+    json_str = slides_json.to_json.gsub("'", "\\'")
+    "<div id='slide-deck-root' data-slides='#{ERB::Util.html_escape(slides_json.to_json)}'></div>"
   end
 
   def markdown_to_html(text)
