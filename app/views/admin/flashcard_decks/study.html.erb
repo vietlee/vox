@@ -116,24 +116,31 @@
     window.speechSynthesis.onvoiceschanged = loadVoices;
   }
 
-  /* detect language: if ≥ 40% chars are ASCII letters → English */
+  /*
+   * Language detection — priority:
+   * 1. Vietnamese diacritics present → vi  (ă â đ ê ô ơ ư + tone marks)
+   * 2. Only plain Latin letters (no diacritics) → en
+   * 3. Mixed or ambiguous → vi (default for this app)
+   */
+  var VI_CHARS = /[àáảãạăắặằẳẵâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵÀÁẢÃẠĂẮẶẰẲẴÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ]/;
+  var EN_ONLY  = /^[a-zA-Z0-9\s\.,!?;:()\-'"\/\[\]%&@#\+\*=]+$/;
+
   function detectLang(text) {
-    var ascii = (text.match(/[a-zA-Z]/g) || []).length;
-    return (ascii / text.replace(/\s/g,'').length) >= 0.4 ? 'en' : 'vi';
+    if (VI_CHARS.test(text)) return 'vi';   /* has Vietnamese diacritics → definitely Vietnamese */
+    if (EN_ONLY.test(text))  return 'en';   /* only ASCII/Latin no diacritics → English */
+    return 'vi';                             /* default */
   }
 
   /* pick best available voice for a lang */
   function pickVoice(lang) {
     var voices = _voices.length ? _voices : (window.speechSynthesis ? window.speechSynthesis.getVoices() : []);
     if (lang === 'en') {
-      /* prefer: Google US English > Microsoft > any en-US > any en */
       return voices.find(function(v){ return /google/i.test(v.name) && v.lang === 'en-US'; }) ||
-             voices.find(function(v){ return /microsoft/i.test(v.name) && v.lang === 'en-US'; }) ||
+             voices.find(function(v){ return /microsoft/i.test(v.name) && /natural|neural/i.test(v.name) && v.lang.startsWith('en'); }) ||
              voices.find(function(v){ return v.lang === 'en-US'; }) ||
              voices.find(function(v){ return v.lang.startsWith('en'); }) ||
              null;
     } else {
-      /* prefer: Google Vietnamese > any vi-VN > any vi */
       return voices.find(function(v){ return /google/i.test(v.name) && v.lang === 'vi-VN'; }) ||
              voices.find(function(v){ return v.lang === 'vi-VN'; }) ||
              voices.find(function(v){ return v.lang.startsWith('vi'); }) ||
@@ -158,13 +165,13 @@
   function speak(text) {
     if (!ttsOn || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
-    var lang = detectLang(text);
-    var u = new SpeechSynthesisUtterance(text);
+    var lang  = detectLang(text);
     var voice = pickVoice(lang);
-    if (voice) u.voice = voice;
-    u.lang  = lang === 'en' ? 'en-US' : 'vi-VN';
-    u.rate  = lang === 'en' ? 0.92 : 0.85;  /* EN slightly faster, VI slower for clarity */
-    u.pitch = 1.05;
+    var u = new SpeechSynthesisUtterance(text);
+    if (voice) { u.voice = voice; u.lang = voice.lang; }
+    else        { u.lang  = lang === 'en' ? 'en-US' : 'vi-VN'; }
+    u.rate  = lang === 'en' ? 0.88 : 0.82;
+    u.pitch = 1.0;
     window.speechSynthesis.speak(u);
   }
 
