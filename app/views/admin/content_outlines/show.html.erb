@@ -101,14 +101,52 @@
       '<filter id="blur60" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="60"/></filter>' +
       '<filter id="blur40" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="40"/></filter>' +
       '<filter id="blur80" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="80"/></filter>' +
+      '<filter id="blur100" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="100"/></filter>' +
       '<filter id="glow"   x="-40%" y="-40%" width="180%" height="180%">' +
         '<feGaussianBlur stdDeviation="8" result="blur"/>' +
         '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>' +
       '</filter>' +
-      /* dot grid pattern */ '<pattern id="dots" width="32" height="32" patternUnits="userSpaceOnUse">' +
+      '<filter id="glow-strong" x="-60%" y="-60%" width="220%" height="220%">' +
+        '<feGaussianBlur stdDeviation="16" result="blur"/>' +
+        '<feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>' +
+      '</filter>' +
+      /* dot grid */ '<pattern id="dots" width="32" height="32" patternUnits="userSpaceOnUse">' +
         '<circle cx="2" cy="2" r="1.2" fill="rgba(255,255,255,0.12)"/>' +
       '</pattern>' +
       /* fine grid */ '<pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">' +
+        '<path d="M60,0 L0,0 0,60" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>' +
+      '</pattern>' +
+      /* blueprint grid */ '<pattern id="blueprint-grid" width="40" height="40" patternUnits="userSpaceOnUse">' +
+        '<path d="M40,0 L0,0 0,40" fill="none" stroke="rgba(100,180,255,0.15)" stroke-width="0.8"/>' +
+        '<path d="M0,20 L40,20 M20,0 L20,40" fill="none" stroke="rgba(100,180,255,0.06)" stroke-width="0.5"/>' +
+      '</pattern>' +
+      /* scanlines */ '<pattern id="scanlines" width="1" height="4" patternUnits="userSpaceOnUse">' +
+        '<rect width="1" height="2" fill="rgba(0,0,0,0.18)"/>' +
+      '</pattern>' +
+      /* memphis dots */ '<pattern id="memphis-dots" width="24" height="24" patternUnits="userSpaceOnUse">' +
+        '<circle cx="12" cy="12" r="2.5" fill="rgba(0,0,0,0.07)"/>' +
+      '</pattern>' +
+      /* diagonal hatch */ '<pattern id="hatch" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">' +
+        '<line x1="0" y1="0" x2="0" y2="10" stroke="rgba(0,0,0,0.06)" stroke-width="3"/>' +
+      '</pattern>' +
+      /* iridescent gradient */ '<linearGradient id="holo1" x1="0%" y1="0%" x2="100%" y2="100%">' +
+        '<stop offset="0%"   stop-color="#ff6ef7"/>' +
+        '<stop offset="25%"  stop-color="#7ef7ff"/>' +
+        '<stop offset="50%"  stop-color="#7fffb2"/>' +
+        '<stop offset="75%"  stop-color="#ffe57e"/>' +
+        '<stop offset="100%" stop-color="#ff7eb3"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">' +
+        '<stop offset="0%"   stop-color="#f5c842"/>' +
+        '<stop offset="40%"  stop-color="#fff8dc"/>' +
+        '<stop offset="100%" stop-color="#c8960c"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="sunset-grad" x1="0%" y1="0%" x2="100%" y2="100%">' +
+        '<stop offset="0%"   stop-color="#f97316"/>' +
+        '<stop offset="40%"  stop-color="#ec4899"/>' +
+        '<stop offset="100%" stop-color="#8b5cf6"/>' +
+      '</linearGradient>' +
+      /* fine grid old compat */ '<pattern id="grid-old" width="60" height="60" patternUnits="userSpaceOnUse">' +
         '<path d="M60,0 L0,0 0,60" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>' +
       '</pattern>' +
     '</defs>';
@@ -270,12 +308,9 @@
         coverBg: function() {
           return DEFS +
             '<rect width="1280" height="720" fill="#fff"/>' +
-            /* subtle colored strips top-left */
             '<rect x="0" y="0" width="420" height="720" fill="#f8faff"/>' +
             '<rect x="420" y="0" width="2" height="720" fill="#e0e7ff"/>' +
-            /* accent bar top */
             '<rect x="0" y="0" width="420" height="6" fill="#6366f1"/>' +
-            /* decorative circles on left panel */
             '<circle cx="210" cy="480" r="280" fill="#eef2ff" opacity=".8"/>' +
             '<circle cx="210" cy="480" r="140" fill="#e0e7ff" opacity=".5"/>' +
             '<circle cx="210" cy="480" r="60"  fill="#c7d2fe" opacity=".4"/>';
@@ -283,12 +318,416 @@
         contentBg: function() {
           return DEFS +
             '<rect width="1280" height="720" fill="#fff"/>' +
-            /* thin top bar */
             '<rect x="0" y="0" width="1280" height="76" fill="#f8faff"/>' +
             '<rect x="0" y="76" width="1280" height="2" fill="#e0e7ff"/>' +
             '<rect x="0" y="0" width="4" height="76" fill="#6366f1"/>';
         },
         coverLayout: 'left-panel',
+      },
+
+      /* ── 6  HOLOGRAPHIC ── iridescent mesh, white glassy ── */
+      {
+        label: '🌈 Holo',
+        accent: '#a855f7', accentAlt: '#06b6d4', num: '#a855f7',
+        text: '#0f172a', sub: '#334155',
+        glass: 'rgba(255,255,255,0.55)', glassBorder: 'rgba(255,255,255,0.8)',
+        numBg: '#a855f7', numColor: '#fff',
+        cardStyle: 'background:rgba(255,255,255,0.55);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.8);border-radius:14px;',
+        light: true,
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#fff"/>' +
+            /* large iridescent blobs */
+            '<ellipse cx="200"  cy="200"  rx="420" ry="320" fill="#f0abfc" filter="url(#blur100)" opacity=".55"/>' +
+            '<ellipse cx="1100" cy="500"  rx="400" ry="300" fill="#67e8f9" filter="url(#blur100)" opacity=".5"/>' +
+            '<ellipse cx="640"  cy="100"  rx="300" ry="200" fill="#fde68a" filter="url(#blur80)"  opacity=".4"/>' +
+            '<ellipse cx="900"  cy="650"  rx="280" ry="200" fill="#86efac" filter="url(#blur80)"  opacity=".4"/>' +
+            '<ellipse cx="100"  cy="600"  rx="220" ry="180" fill="#c4b5fd" filter="url(#blur80)"  opacity=".45"/>' +
+            /* shimmer overlay */
+            '<rect width="1280" height="720" fill="url(#holo1)" opacity=".06"/>';
+        },
+        contentBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#f8faff"/>' +
+            '<ellipse cx="100"  cy="100"  rx="300" ry="240" fill="#f0abfc" filter="url(#blur80)" opacity=".45"/>' +
+            '<ellipse cx="1200" cy="620"  rx="280" ry="220" fill="#67e8f9" filter="url(#blur80)" opacity=".4"/>' +
+            '<ellipse cx="700"  cy="760"  rx="300" ry="180" fill="#fde68a" filter="url(#blur80)" opacity=".3"/>' +
+            '<rect width="1280" height="720" fill="rgba(255,255,255,0.3)"/>' +
+            '<rect x="0" y="0" width="1280" height="76" fill="rgba(255,255,255,0.6)"/>' +
+            '<rect x="0" y="76" width="1280" height="1.5" fill="rgba(168,85,247,0.3)"/>';
+        },
+        coverLayout: 'center',
+      },
+
+      /* ── 7  NEOBRUTALISM ── flat yellow, thick black borders, offset shadows ── */
+      {
+        label: '💥 Neo',
+        accent: '#000', accentAlt: '#ff4500', num: '#000',
+        text: '#000', sub: '#1a1a1a',
+        glass: '#fff', glassBorder: '#000',
+        numBg: '#000', numColor: '#faff00',
+        cardStyle: 'background:#fff;border:2.5px solid #000;border-radius:10px;box-shadow:4px 4px 0 #000;',
+        light: true,
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#faff00"/>' +
+            '<rect width="1280" height="720" fill="url(#memphis-dots)"/>' +
+            /* thick border frame */
+            '<rect x="0"  y="0"   width="1280" height="12" fill="#000"/>' +
+            '<rect x="0"  y="708" width="1280" height="12" fill="#000"/>' +
+            '<rect x="0"  y="0"   width="12"   height="720" fill="#000"/>' +
+            '<rect x="1268" y="0" width="12"   height="720" fill="#000"/>' +
+            /* accent block top-right */
+            '<rect x="780" y="12" width="488" height="340" fill="#ff4500"/>' +
+            '<rect x="780" y="12" width="488" height="340" fill="url(#hatch)"/>' +
+            /* diagonal stripe */
+            '<line x1="780" y1="352" x2="1268" y2="352" stroke="#000" stroke-width="4"/>' +
+            '<line x1="780" y1="12"  x2="780"  y2="708" stroke="#000" stroke-width="4"/>';
+        },
+        contentBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#faff00"/>' +
+            '<rect width="1280" height="720" fill="url(#memphis-dots)"/>' +
+            '<rect x="0"  y="0"   width="1280" height="8"  fill="#000"/>' +
+            '<rect x="0"  y="712" width="1280" height="8"  fill="#000"/>' +
+            '<rect x="0"  y="0"   width="8"    height="720" fill="#000"/>' +
+            '<rect x="1272" y="0" width="8"    height="720" fill="#000"/>' +
+            '<rect x="8" y="8" width="1264" height="76" fill="#000"/>';
+        },
+        coverLayout: 'left',
+        coverBranding: true,
+      },
+
+      /* ── 8  BLUEPRINT ── technical dark navy, grid, engineering style ── */
+      {
+        label: '📐 Blueprint',
+        accent: '#60a5fa', accentAlt: '#93c5fd', num: '#60a5fa',
+        text: '#fff', sub: 'rgba(255,255,255,0.6)',
+        glass: 'rgba(96,165,250,0.08)', glassBorder: 'rgba(96,165,250,0.35)',
+        numBg: '#1e3a5f', numColor: '#60a5fa',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#0a1628"/>' +
+            '<rect width="1280" height="720" fill="url(#blueprint-grid)"/>' +
+            /* cross-hairs corner decorations */
+            '<line x1="60" y1="0"  x2="60"  y2="120" stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
+            '<line x1="0"  y1="60" x2="120" y2="60"  stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
+            '<circle cx="60" cy="60" r="4" fill="none" stroke="#60a5fa" stroke-width="1.5" opacity=".6"/>' +
+            '<line x1="1220" y1="0"  x2="1220" y2="120" stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
+            '<line x1="1160" y1="60" x2="1280" y2="60" stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
+            '<circle cx="1220" cy="60" r="4" fill="none" stroke="#60a5fa" stroke-width="1.5" opacity=".6"/>' +
+            '<line x1="60" y1="600" x2="60"  y2="720" stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
+            '<line x1="0"  y1="660" x2="120" y2="660" stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
+            '<circle cx="60" cy="660" r="4" fill="none" stroke="#60a5fa" stroke-width="1.5" opacity=".6"/>' +
+            /* center circle */
+            '<circle cx="640" cy="360" r="200" fill="none" stroke="#60a5fa" stroke-width="1" opacity=".15"/>' +
+            '<circle cx="640" cy="360" r="100" fill="none" stroke="#60a5fa" stroke-width="0.8" opacity=".1"/>' +
+            /* diagonal measurement lines */
+            '<line x1="0" y1="720" x2="640" y2="360" stroke="#60a5fa" stroke-width="0.5" opacity=".08"/>' +
+            '<line x1="1280" y1="0" x2="640" y2="360" stroke="#60a5fa" stroke-width="0.5" opacity=".08"/>' +
+            /* header bar */
+            '<rect x="0" y="0" width="1280" height="4" fill="#60a5fa" opacity=".9"/>' +
+            '<rect x="0" y="716" width="1280" height="4" fill="#60a5fa" opacity=".5"/>';
+        },
+        contentBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#0a1628"/>' +
+            '<rect width="1280" height="720" fill="url(#blueprint-grid)"/>' +
+            /* corner crosshairs */
+            '<line x1="40" y1="0"  x2="40"  y2="80"  stroke="#60a5fa" stroke-width="1" opacity=".4"/>' +
+            '<line x1="0"  y1="40" x2="80"  y2="40"  stroke="#60a5fa" stroke-width="1" opacity=".4"/>' +
+            '<line x1="1240" y1="0" x2="1240" y2="80" stroke="#60a5fa" stroke-width="1" opacity=".4"/>' +
+            '<line x1="1200" y1="40" x2="1280" y2="40" stroke="#60a5fa" stroke-width="1" opacity=".4"/>' +
+            '<rect x="0" y="0" width="1280" height="76" fill="rgba(10,22,40,0.7)"/>' +
+            '<rect x="0" y="0" width="1280" height="3" fill="#60a5fa"/>' +
+            '<rect x="0" y="76" width="1280" height="1" fill="rgba(96,165,250,0.3)"/>';
+        },
+        coverLayout: 'center',
+      },
+
+      /* ── 9  CYBERPUNK ── dark + hot pink/cyan neon, scanlines ── */
+      {
+        label: '🤖 Cyber',
+        accent: '#f0abfc', accentAlt: '#00f5c4', num: '#f0abfc',
+        text: '#fff', sub: 'rgba(255,255,255,0.6)',
+        glass: 'rgba(240,171,252,0.08)', glassBorder: 'rgba(240,171,252,0.4)',
+        numBg: 'transparent', numColor: '#f0abfc',
+        numBorderColor: '#f0abfc',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#050009"/>' +
+            /* scanlines */
+            '<rect width="1280" height="720" fill="url(#scanlines)" opacity=".6"/>' +
+            /* big glow orbs */
+            '<ellipse cx="220"  cy="360" rx="300" ry="240" fill="#c026d3" filter="url(#blur80)" opacity=".4"/>' +
+            '<ellipse cx="1100" cy="280" rx="260" ry="200" fill="#00f5c4" filter="url(#blur80)" opacity=".3"/>' +
+            '<ellipse cx="800"  cy="600" rx="200" ry="160" fill="#a855f7" filter="url(#blur60)" opacity=".35"/>' +
+            /* diagonal glitch cut */
+            '<polygon points="0,0 520,0 420,720 0,720" fill="rgba(192,0,255,0.04)"/>' +
+            /* neon lines */
+            '<line x1="0"   y1="0"   x2="1280" y2="0"   stroke="#f0abfc" stroke-width="2" filter="url(#glow-strong)"/>' +
+            '<line x1="0"   y1="720" x2="1280" y2="720" stroke="#00f5c4" stroke-width="2" filter="url(#glow-strong)"/>' +
+            '<line x1="0"   y1="0"   x2="0"    y2="720" stroke="#f0abfc" stroke-width="1.5" filter="url(#glow)"/>' +
+            /* corner brackets */
+            '<polyline points="40,20 20,20 20,60"   fill="none" stroke="#f0abfc" stroke-width="2" filter="url(#glow)"/>' +
+            '<polyline points="1240,20 1260,20 1260,60" fill="none" stroke="#00f5c4" stroke-width="2" filter="url(#glow)"/>' +
+            '<polyline points="40,700 20,700 20,660"    fill="none" stroke="#00f5c4" stroke-width="2" filter="url(#glow)"/>' +
+            '<polyline points="1240,700 1260,700 1260,660" fill="none" stroke="#f0abfc" stroke-width="2" filter="url(#glow)"/>';
+        },
+        contentBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#050009"/>' +
+            '<rect width="1280" height="720" fill="url(#scanlines)" opacity=".5"/>' +
+            '<ellipse cx="100"  cy="100"  rx="200" ry="160" fill="#c026d3" filter="url(#blur60)" opacity=".3"/>' +
+            '<ellipse cx="1200" cy="620"  rx="200" ry="160" fill="#00f5c4" filter="url(#blur60)" opacity=".25"/>' +
+            '<rect x="0" y="0"   width="1280" height="2" fill="#f0abfc" filter="url(#glow)"/>' +
+            '<rect x="0" y="76"  width="1280" height="1" fill="rgba(240,171,252,0.3)"/>' +
+            '<rect x="0" y="0"   width="1280" height="76" fill="rgba(5,0,9,0.6)"/>';
+        },
+        coverLayout: 'left',
+      },
+
+      /* ── 10  SUNSET IG ── orange→pink→purple, Instagram-era gradient ── */
+      {
+        label: '🌅 Sunset',
+        accent: '#fde68a', accentAlt: '#fda4af', num: '#fde68a',
+        text: '#fff', sub: 'rgba(255,255,255,0.7)',
+        glass: 'rgba(255,255,255,0.12)', glassBorder: 'rgba(255,255,255,0.3)',
+        numBg: 'rgba(255,255,255,0.2)', numColor: '#fff',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="url(#sunset-grad)"/>' +
+            /* soft glow blobs for depth */
+            '<ellipse cx="200"  cy="200" rx="300" ry="240" fill="#f97316" filter="url(#blur80)" opacity=".4"/>' +
+            '<ellipse cx="1100" cy="500" rx="280" ry="220" fill="#7c3aed" filter="url(#blur80)" opacity=".4"/>' +
+            '<ellipse cx="640"  cy="680" rx="400" ry="200" fill="#ec4899" filter="url(#blur60)" opacity=".3"/>' +
+            /* light ray sweep */
+            '<polygon points="640,360 0,0 0,200"     fill="rgba(255,255,255,0.03)"/>' +
+            '<polygon points="640,360 1280,0 1280,200" fill="rgba(255,255,255,0.03)"/>';
+        },
+        contentBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="url(#sunset-grad)"/>' +
+            '<ellipse cx="0"    cy="0"   rx="250" ry="200" fill="#f97316" filter="url(#blur80)" opacity=".3"/>' +
+            '<ellipse cx="1280" cy="720" rx="250" ry="200" fill="#7c3aed" filter="url(#blur80)" opacity=".3"/>' +
+            '<rect x="0" y="0"  width="1280" height="76" fill="rgba(0,0,0,0.18)"/>' +
+            '<rect x="0" y="76" width="1280" height="1"  fill="rgba(255,255,255,0.2)"/>';
+        },
+        coverLayout: 'center',
+      },
+
+      /* ── 11  DARK ACADEMIA ── warm dark tones, serif elegance, book aesthetic ── */
+      {
+        label: '📚 Academia',
+        accent: '#d4a757', accentAlt: '#c8956c', num: '#d4a757',
+        text: '#fff', sub: 'rgba(255,240,200,0.6)',
+        glass: 'rgba(212,167,87,0.1)', glassBorder: 'rgba(212,167,87,0.3)',
+        numBg: '#2d1a00', numColor: '#d4a757',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#1a0e00"/>' +
+            /* warm vignette blobs */
+            '<ellipse cx="640" cy="360" rx="700" ry="500" fill="#3d2200" filter="url(#blur80)" opacity=".8"/>' +
+            '<ellipse cx="200" cy="100" rx="300" ry="200" fill="#5c3400" filter="url(#blur60)" opacity=".5"/>' +
+            '<ellipse cx="1100" cy="620" rx="280" ry="200" fill="#4a2800" filter="url(#blur60)" opacity=".5"/>' +
+            /* decorative frame corners */
+            '<rect x="40"   y="40"  width="180" height="2"  fill="#d4a757" opacity=".5"/>' +
+            '<rect x="40"   y="40"  width="2"   height="120" fill="#d4a757" opacity=".5"/>' +
+            '<rect x="1060" y="40"  width="180" height="2"   fill="#d4a757" opacity=".5"/>' +
+            '<rect x="1238" y="40"  width="2"   height="120" fill="#d4a757" opacity=".5"/>' +
+            '<rect x="40"   y="678" width="180" height="2"   fill="#d4a757" opacity=".5"/>' +
+            '<rect x="40"   y="558" width="2"   height="122" fill="#d4a757" opacity=".5"/>' +
+            '<rect x="1060" y="678" width="180" height="2"   fill="#d4a757" opacity=".5"/>' +
+            '<rect x="1238" y="558" width="2"   height="122" fill="#d4a757" opacity=".5"/>' +
+            /* center divider line */
+            '<line x1="560" y1="220" x2="720" y2="220" stroke="#d4a757" stroke-width="1" opacity=".4"/>' +
+            '<line x1="560" y1="500" x2="720" y2="500" stroke="#d4a757" stroke-width="1" opacity=".4"/>';
+        },
+        contentBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#140b00"/>' +
+            '<ellipse cx="640" cy="360" rx="700" ry="500" fill="#2d1a00" filter="url(#blur80)" opacity=".9"/>' +
+            '<rect x="0" y="0" width="1280" height="76" fill="rgba(20,11,0,0.7)"/>' +
+            '<rect x="0" y="0" width="1280" height="3"  fill="#d4a757" opacity=".6"/>' +
+            '<rect x="0" y="76" width="1280" height="1" fill="rgba(212,167,87,0.2)"/>' +
+            '<rect x="40" y="90" width="1200" height="1" fill="rgba(212,167,87,0.1)"/>';
+        },
+        coverLayout: 'center',
+      },
+
+      /* ── 12  OBSIDIAN GOLD ── ultra dark, luxury gold accent, premium feel ── */
+      {
+        label: '✨ Obsidian',
+        accent: '#f5c842', accentAlt: '#fff8dc', num: '#f5c842',
+        text: '#fff', sub: 'rgba(255,255,255,0.55)',
+        glass: 'rgba(245,200,66,0.07)', glassBorder: 'rgba(245,200,66,0.25)',
+        numBg: '#1a1100', numColor: '#f5c842',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#080808"/>' +
+            /* very subtle texture */
+            '<rect width="1280" height="720" fill="url(#dots)" opacity=".3"/>' +
+            /* gold glow center */
+            '<ellipse cx="640" cy="360" rx="500" ry="360" fill="#f5c842" filter="url(#blur100)" opacity=".06"/>' +
+            /* top/bottom gold rules */
+            '<rect x="0"   y="0"   width="1280" height="2" fill="url(#gold-grad)"/>' +
+            '<rect x="0"   y="718" width="1280" height="2" fill="url(#gold-grad)"/>' +
+            /* left gold stripe */
+            '<rect x="0" y="0" width="5" height="720" fill="url(#gold-grad)"/>' +
+            /* decorative thin lines */
+            '<line x1="60"  y1="0"  x2="60"  y2="720" stroke="#f5c842" stroke-width="0.5" opacity=".12"/>' +
+            '<line x1="1220" y1="0" x2="1220" y2="720" stroke="#f5c842" stroke-width="0.5" opacity=".12"/>' +
+            '<line x1="0" y1="80"  x2="1280" y2="80"  stroke="#f5c842" stroke-width="0.5" opacity=".08"/>' +
+            '<line x1="0" y1="640" x2="1280" y2="640" stroke="#f5c842" stroke-width="0.5" opacity=".08"/>' +
+            /* corner diamonds */
+            '<polygon points="60,40 80,60 60,80 40,60" fill="#f5c842" opacity=".3"/>' +
+            '<polygon points="1220,40 1240,60 1220,80 1200,60" fill="#f5c842" opacity=".3"/>';
+        },
+        contentBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#080808"/>' +
+            '<rect width="1280" height="720" fill="url(#dots)" opacity=".25"/>' +
+            '<rect x="0" y="0"   width="1280" height="2"  fill="url(#gold-grad)"/>' +
+            '<rect x="0" y="0"   width="5"    height="720" fill="url(#gold-grad)"/>' +
+            '<rect x="0" y="0"   width="1280" height="76" fill="rgba(8,8,8,0.85)"/>' +
+            '<rect x="0" y="76"  width="1280" height="1"  fill="rgba(245,200,66,0.2)"/>';
+        },
+        coverLayout: 'left',
+      },
+
+      /* ── 13  MEMPHIS 90s ── geometric shapes, bold retro colors ── */
+      {
+        label: '🎨 Memphis',
+        accent: '#ff006e', accentAlt: '#3a86ff', num: '#ff006e',
+        text: '#fff', sub: 'rgba(255,255,255,.7)',
+        glass: 'rgba(255,0,110,0.1)', glassBorder: 'rgba(255,0,110,0.4)',
+        numBg: '#ff006e', numColor: '#fff',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#1a0a2e"/>' +
+            /* colorful geometric shapes scattered */
+            '<circle cx="120"  cy="80"  r="70"  fill="#ff006e" opacity=".9"/>' +
+            '<circle cx="1160" cy="640" r="90"  fill="#3a86ff" opacity=".9"/>' +
+            '<circle cx="1050" cy="100" r="55"  fill="#ffbe0b" opacity=".9"/>' +
+            '<circle cx="200"  cy="620" r="65"  fill="#8338ec" opacity=".9"/>' +
+            '<rect x="900"  y="480" width="120" height="120" rx="0" fill="#06d6a0" opacity=".8" transform="rotate(15 960 540)"/>' +
+            '<rect x="80"   y="300" width="80"  height="80"  rx="0" fill="#ffbe0b" opacity=".8" transform="rotate(-10 120 340)"/>' +
+            '<rect x="560"  y="580" width="60"  height="60"  rx="0" fill="#fb5607" opacity=".9" transform="rotate(20 590 610)"/>' +
+            /* triangles */
+            '<polygon points="350,50 420,180 280,180" fill="#3a86ff" opacity=".85"/>' +
+            '<polygon points="1000,600 1080,720 920,720" fill="#ff006e" opacity=".8"/>' +
+            '<polygon points="700,60 760,160 640,160" fill="#06d6a0" opacity=".75"/>' +
+            /* squiggly lines */
+            '<path d="M0,360 Q80,300 160,360 Q240,420 320,360 Q400,300 480,360 Q560,420 640,360 Q720,300 800,360 Q880,420 960,360 Q1040,300 1120,360 Q1200,420 1280,360" fill="none" stroke="#ffbe0b" stroke-width="3" opacity=".5"/>' +
+            '<path d="M0,400 Q80,340 160,400 Q240,460 320,400 Q400,340 480,400 Q560,460 640,400 Q720,340 800,400 Q880,460 960,400 Q1040,340 1120,400 Q1200,460 1280,400" fill="none" stroke="#f0abfc" stroke-width="2" opacity=".4"/>' +
+            /* dots pattern large */
+            '<circle cx="500" cy="200" r="8"  fill="#ffbe0b" opacity=".6"/>' +
+            '<circle cx="540" cy="200" r="8"  fill="#ffbe0b" opacity=".6"/>' +
+            '<circle cx="580" cy="200" r="8"  fill="#ffbe0b" opacity=".6"/>' +
+            '<circle cx="500" cy="240" r="8"  fill="#ffbe0b" opacity=".4"/>' +
+            '<circle cx="540" cy="240" r="8"  fill="#ffbe0b" opacity=".4"/>' +
+            '<circle cx="580" cy="240" r="8"  fill="#ffbe0b" opacity=".4"/>';
+        },
+        contentBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#1a0a2e"/>' +
+            /* corner accents */
+            '<circle cx="0"    cy="0"   r="120" fill="#ff006e" opacity=".7"/>' +
+            '<circle cx="1280" cy="720" r="100" fill="#3a86ff" opacity=".7"/>' +
+            '<circle cx="1280" cy="0"   r="80"  fill="#ffbe0b" opacity=".6"/>' +
+            '<circle cx="0"    cy="720" r="80"  fill="#8338ec" opacity=".6"/>' +
+            '<rect x="0" y="0"   width="1280" height="76" fill="rgba(26,10,46,0.85)"/>' +
+            '<rect x="0" y="76"  width="1280" height="3"  fill="#ff006e" opacity=".6"/>' +
+            '<rect x="0" y="0"   width="1280" height="4"  fill="#ff006e"/>';
+        },
+        coverLayout: 'center',
+      },
+
+      /* ── 14  COTTON CANDY ── ultra soft pastel, dreamy clouds ── */
+      {
+        label: '🍬 Pastel',
+        accent: '#a855f7', accentAlt: '#ec4899', num: '#a855f7',
+        text: '#1e1b4b', sub: '#4c1d95',
+        glass: 'rgba(255,255,255,0.5)', glassBorder: 'rgba(255,255,255,0.8)',
+        numBg: '#a855f7', numColor: '#fff',
+        cardStyle: 'background:rgba(255,255,255,0.55);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.9);border-radius:14px;',
+        light: true,
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#fdf4ff"/>' +
+            /* soft pastel blobs */
+            '<ellipse cx="200"  cy="200" rx="400" ry="300" fill="#f5d0fe" filter="url(#blur80)"  opacity=".7"/>' +
+            '<ellipse cx="1100" cy="520" rx="380" ry="280" fill="#fbcfe8" filter="url(#blur80)"  opacity=".7"/>' +
+            '<ellipse cx="640"  cy="100" rx="300" ry="200" fill="#ddd6fe" filter="url(#blur60)"  opacity=".6"/>' +
+            '<ellipse cx="900"  cy="680" rx="260" ry="180" fill="#bfdbfe" filter="url(#blur60)"  opacity=".5"/>' +
+            '<ellipse cx="100"  cy="600" rx="220" ry="160" fill="#a5f3fc" filter="url(#blur60)"  opacity=".45"/>' +
+            /* sparkle dots */
+            '<circle cx="400" cy="120" r="4" fill="#a855f7" opacity=".4"/>' +
+            '<circle cx="450" cy="100" r="3" fill="#ec4899" opacity=".4"/>' +
+            '<circle cx="380" cy="150" r="2" fill="#7c3aed" opacity=".5"/>' +
+            '<circle cx="850" cy="80"  r="4" fill="#ec4899" opacity=".4"/>' +
+            '<circle cx="900" cy="110" r="3" fill="#a855f7" opacity=".4"/>' +
+            '<circle cx="820" cy="50"  r="2" fill="#f472b6" opacity=".5"/>';
+        },
+        contentBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#fdf4ff"/>' +
+            '<ellipse cx="0"    cy="0"   rx="300" ry="240" fill="#f5d0fe" filter="url(#blur80)" opacity=".6"/>' +
+            '<ellipse cx="1280" cy="720" rx="280" ry="220" fill="#fbcfe8" filter="url(#blur80)" opacity=".6"/>' +
+            '<ellipse cx="640"  cy="800" rx="400" ry="200" fill="#ddd6fe" filter="url(#blur60)" opacity=".5"/>' +
+            '<rect x="0" y="0"  width="1280" height="76" fill="rgba(253,244,255,0.7)"/>' +
+            '<rect x="0" y="76" width="1280" height="2"  fill="rgba(168,85,247,0.2)"/>' +
+            '<rect x="0" y="0"  width="1280" height="4"  fill="#a855f7"/>';
+        },
+        coverLayout: 'center',
+      },
+
+      /* ── 15  FOREST NIGHT ── deep dark green, moonlight, organic ── */
+      {
+        label: '🌲 Forest',
+        accent: '#4ade80', accentAlt: '#86efac', num: '#4ade80',
+        text: '#fff', sub: 'rgba(200,255,220,0.6)',
+        glass: 'rgba(74,222,128,0.08)', glassBorder: 'rgba(74,222,128,0.25)',
+        numBg: '#052e16', numColor: '#4ade80',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#010d06"/>' +
+            /* moonlight glow top center */
+            '<ellipse cx="640" cy="-80" rx="400" ry="300" fill="#4ade80" filter="url(#blur100)" opacity=".2"/>' +
+            '<ellipse cx="640" cy="-60" rx="200" ry="200" fill="#bbf7d0" filter="url(#blur80)"  opacity=".12"/>' +
+            /* deep forest ground */
+            '<ellipse cx="640" cy="820" rx="800" ry="300" fill="#052e16" filter="url(#blur60)" opacity=".9"/>' +
+            '<ellipse cx="100" cy="600" rx="200" ry="300" fill="#064e3b" filter="url(#blur60)" opacity=".7"/>' +
+            '<ellipse cx="1180" cy="580" rx="200" ry="300" fill="#064e3b" filter="url(#blur60)" opacity=".7"/>' +
+            /* tree silhouette paths */
+            '<path d="M100,720 L160,400 L200,500 L240,350 L280,450 L320,720 Z" fill="#052e16" opacity=".8"/>' +
+            '<path d="M960,720 L1020,380 L1060,480 L1100,330 L1140,440 L1180,720 Z" fill="#052e16" opacity=".8"/>' +
+            /* stars */
+            '<circle cx="300"  cy="80"  r="1.5" fill="#fff" opacity=".6"/>' +
+            '<circle cx="450"  cy="50"  r="1"   fill="#fff" opacity=".5"/>' +
+            '<circle cx="600"  cy="90"  r="1.5" fill="#fff" opacity=".7"/>' +
+            '<circle cx="750"  cy="40"  r="1"   fill="#fff" opacity=".5"/>' +
+            '<circle cx="900"  cy="70"  r="1.5" fill="#fff" opacity=".6"/>' +
+            '<circle cx="1050" cy="55"  r="1"   fill="#fff" opacity=".4"/>' +
+            '<circle cx="200"  cy="160" r="1"   fill="#fff" opacity=".4"/>' +
+            '<circle cx="1100" cy="140" r="1.5" fill="#fff" opacity=".5"/>' +
+            /* accent line */
+            '<rect x="0" y="0" width="1280" height="2" fill="#4ade80" opacity=".6"/>';
+        },
+        contentBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#010d06"/>' +
+            '<ellipse cx="640" cy="-120" rx="350" ry="280" fill="#4ade80" filter="url(#blur100)" opacity=".15"/>' +
+            '<ellipse cx="0"   cy="720"  rx="200" ry="200" fill="#064e3b" filter="url(#blur60)"  opacity=".7"/>' +
+            '<ellipse cx="1280" cy="720" rx="200" ry="200" fill="#064e3b" filter="url(#blur60)"  opacity=".7"/>' +
+            /* star dots */
+            '<circle cx="900" cy="40"  r="1.2" fill="#fff" opacity=".5"/>' +
+            '<circle cx="1100" cy="30" r="1"   fill="#fff" opacity=".4"/>' +
+            '<rect x="0" y="0"   width="1280" height="76" fill="rgba(1,13,6,0.8)"/>' +
+            '<rect x="0" y="0"   width="1280" height="2"  fill="#4ade80" opacity=".7"/>' +
+            '<rect x="0" y="76"  width="1280" height="1"  fill="rgba(74,222,128,0.2)"/>';
+        },
+        coverLayout: 'center',
       },
 
     ]; /* end THEMES */
@@ -343,16 +782,17 @@
           '</div>';
 
       } else if (layout === 'left') {
-        /* Bold theme: left-aligned, no glass card */
+        var coverTxt = (t.name === 'neo' || t.coverBranding) ? t.text : '#fff';
+        var coverSub2 = (t.name === 'neo' || t.coverBranding) ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,.58)';
         contentHtml =
           '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:8% 5% 8% 8%;">' +
             '<div style="font-size:10px;font-weight:800;letter-spacing:4px;color:' + t.accent + ';text-transform:uppercase;margin-bottom:24px;opacity:.9;">01 / ' + String(total).padStart(2,'0') + '</div>' +
-            '<div style="font-size:clamp(28px,5vw,64px);font-weight:900;color:#fff;line-height:1.05;margin-bottom:24px;max-width:700px;">' + s.title + '</div>' +
+            '<div style="font-size:clamp(28px,5vw,64px);font-weight:900;color:' + coverTxt + ';line-height:1.05;margin-bottom:24px;max-width:700px;">' + s.title + '</div>' +
             '<div style="display:flex;align-items:center;gap:16px;margin-bottom:28px;">' +
               '<div style="width:48px;height:5px;border-radius:3px;background:' + t.accent + ';"></div>' +
               '<div style="width:20px;height:5px;border-radius:3px;background:' + t.accentAlt + ';opacity:.7;"></div>' +
             '</div>' +
-            (s.bullets.length ? '<div style="font-size:clamp(13px,1.5vw,17px);color:rgba(255,255,255,.58);line-height:1.85;max-width:600px;">' + s.bullets.map(function(b){ return '· ' + b; }).join('<br>') + '</div>' : '') +
+            (s.bullets.length ? '<div style="font-size:clamp(13px,1.5vw,17px);color:' + coverSub2 + ';line-height:1.85;max-width:600px;">' + s.bullets.map(function(b){ return '· ' + b; }).join('<br>') + '</div>' : '') +
           '</div>';
 
       } else {
@@ -378,20 +818,21 @@
     ───────────────────────────────────────────────────────────────── */
     function renderContent(s, idx, t) {
       var tColor = t.light ? t.text : '#fff';
+      var numBg    = t.numBg    || (t.light ? t.accent : t.accent);
+      var numColor = t.numColor || (t.light ? '#fff'   : '#0a0a0a');
+      var defaultCard = 'background:' + t.glass + ';border:1px solid ' + t.glassBorder + ';border-radius:14px;' + (t.light ? '' : 'backdrop-filter:blur(8px);');
+      var cardCss  = t.cardStyle || defaultCard;
 
       var bulletsHtml = s.bullets.map(function(b, bi) {
         return '<div class="f-up" style="' +
           'display:flex;align-items:flex-start;gap:14px;' +
           'padding:12px 18px 12px 16px;' +
-          'background:' + t.glass + ';' +
-          'border:1px solid ' + t.glassBorder + ';' +
-          'border-radius:14px;' +
-          (t.light ? '' : 'backdrop-filter:blur(8px);') +
+          cardCss +
           'animation-delay:' + (bi*0.09) + 's;' +
           'margin-bottom:9px;">' +
-          /* Number chip */
-          '<div style="min-width:28px;height:28px;border-radius:8px;background:' + t.accent + ';' +
-            (t.light ? 'color:#fff;' : 'color:#0a0a0a;') +
+          '<div style="min-width:28px;height:28px;border-radius:8px;' +
+            'background:' + numBg + ';color:' + numColor + ';' +
+            (t.numBorderColor ? 'border:1.5px solid ' + t.numBorderColor + ';background:transparent;' : '') +
             'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:1px;">' +
             String(bi+1).padStart(2,'0') +
           '</div>' +
@@ -405,7 +846,7 @@
           /* ─ header ─ */
           '<div style="height:76px;display:flex;align-items:center;gap:14px;">' +
             '<span style="background:' + t.accent + ';' +
-              (t.light ? 'color:#fff;' : 'color:#0a0a0a;') +
+              'color:' + (t.numColor || (t.light ? '#fff' : '#0a0a0a')) + ';' +
               'font-size:10px;font-weight:900;padding:5px 13px;border-radius:20px;letter-spacing:1px;flex-shrink:0;">' +
               String(idx+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') +
             '</span>' +
@@ -450,7 +891,7 @@
     /* ─────────────────────────────────────────────────────────────────
        THEME PICKER — color swatches
     ───────────────────────────────────────────────────────────────── */
-    var swatchColors = ['#7c3aed','#00f5c4','#a21caf','#facc15','#be123c','#6366f1'];
+    var swatchColors = ['#7c3aed','#00f5c4','#a21caf','#facc15','#be123c','#6366f1','#c026d3','#faff00','#1e3a5f','#f0abfc','#f97316','#d4a757','#1a1100','#ff006e','#f5d0fe','#4ade80'];
     var pickerHtml = THEMES.map(function(t, i) {
       return '<button onclick="setTheme(' + i + ')" id="theme-btn-' + i + '" title="' + t.label + '" ' +
         'style="width:28px;height:28px;border-radius:50%;border:3px solid transparent;cursor:pointer;' +
