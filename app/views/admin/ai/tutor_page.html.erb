@@ -1,85 +1,128 @@
 <% content_for :title, "AI Tutor" %>
+<% content_for :main_class, 'flex-1 overflow-hidden flex flex-col' %>
 
-<div class="h-full flex flex-col max-w-3xl mx-auto p-6">
-  <div class="mb-4">
-    <h1 class="text-[20px] font-extrabold text-slate-900">🤖 AI Tutor</h1>
-    <p class="text-[13px] text-slate-500 mt-0.5">
+<!-- Header -->
+<div class="flex items-center gap-3 px-6 py-4 border-b border-slate-200 bg-white flex-shrink-0">
+  <%= render "admin/shared/back_btn" %>
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 bg-violet-100 rounded-lg flex items-center justify-center text-[14px]">🤖</div>
+      <div class="text-[15px] font-extrabold text-slate-900">AI Tutor</div>
+    </div>
+    <div class="text-[12px] text-slate-400 mt-0.5 ml-9">
       <% if @context_title.present? %>
-        Đang học về: <strong><%= @context_title %></strong>
+        Đang hỗ trợ: <strong class="text-slate-600"><%= @context_title %></strong>
       <% else %>
-        Hỏi bất cứ điều gì — AI sẽ dẫn dắt bạn hiểu, không đưa đáp án thẳng
+        Dẫn dắt bạn hiểu vấn đề — không đưa đáp án thẳng
       <% end %>
-    </p>
-  </div>
-
-  <div id="chat-messages" class="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0" style="max-height:60vh">
-    <div class="flex gap-3">
-      <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-[14px] shrink-0">🤖</div>
-      <div class="bg-white border border-slate-200 rounded-xl px-4 py-3 text-[13px] text-slate-700 max-w-[85%]">
-        Xin chào! Tôi là AI Tutor. Hãy hỏi tôi bất kỳ điều gì bạn muốn hiểu. Tôi sẽ dẫn dắt bạn từng bước thay vì đưa đáp án thẳng — cách này giúp bạn thực sự hiểu và nhớ lâu hơn. 💡
-      </div>
     </div>
   </div>
+  <div class="text-[11px] text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+    1 credit / tin nhắn
+  </div>
+</div>
 
-  <div class="flex gap-2">
-    <textarea id="tutor-input" placeholder="Hỏi bất cứ điều gì..." rows="2"
-      class="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[14px] resize-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none"
-      oninput="toggleSend()" onkeyup="toggleSend()" oncompositionend="toggleSend()"></textarea>
-    <button id="send-btn" onclick="sendTutor()" disabled
-      class="px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-      Gửi
+<!-- Messages -->
+<div id="chat-messages" class="flex-1 overflow-y-auto p-5 space-y-4">
+  <!-- Welcome -->
+  <div class="flex gap-3 max-w-2xl">
+    <div class="w-8 h-8 bg-violet-100 rounded-xl flex items-center justify-center text-[14px] shrink-0 mt-0.5">🤖</div>
+    <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm max-w-lg">
+      <p class="text-[13px] text-slate-700 leading-relaxed">
+        Xin chào! Tôi là AI Tutor. Hãy hỏi tôi bất kỳ điều gì bạn muốn hiểu.
+      </p>
+      <p class="text-[13px] text-slate-700 leading-relaxed mt-2">
+        💡 Tôi sẽ <strong>dẫn dắt bạn tư duy</strong> thay vì đưa đáp án thẳng — cách này giúp bạn hiểu sâu và nhớ lâu hơn nhiều.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Input area -->
+<div class="border-t border-slate-200 bg-white p-4 flex-shrink-0">
+  <div class="flex gap-2 max-w-3xl mx-auto">
+    <textarea id="tutor-input"
+              placeholder="Hỏi bất cứ điều gì bạn muốn hiểu..."
+              rows="2"
+              class="flex-1 px-4 py-3 border border-slate-200 rounded-2xl text-[14px] resize-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none transition-all"
+              oninput="toggleSend(this.value)" onkeyup="toggleSend(this.value)" oncompositionend="toggleSend(this.value)"></textarea>
+    <button id="send-btn" onclick="sendMsg()" disabled
+            class="px-5 py-3 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-2xl border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
     </button>
   </div>
-  <div class="text-[11px] text-slate-400 mt-2">1 AI Credit mỗi tin nhắn</div>
+  <div class="text-center text-[11px] text-slate-400 mt-2">Enter để gửi · Shift+Enter xuống dòng</div>
 </div>
 
 <script>
 let history = [];
 const contextType = '<%= @context_type %>';
 const contextId = '<%= @context_id %>';
+const csrf = () => document.querySelector('meta[name="csrf-token"]').content;
 
-function toggleSend() {
-  document.getElementById('send-btn').disabled = !document.getElementById('tutor-input').value.trim();
+function toggleSend(v) {
+  document.getElementById('send-btn').disabled = !v.trim();
 }
 
-async function sendTutor() {
+async function sendMsg() {
   const input = document.getElementById('tutor-input');
   const msg = input.value.trim();
   if (!msg) return;
-
-  addMessage('user', msg);
-  input.value = '';
-  toggleSend();
+  input.value = ''; toggleSend(''); input.style.height = '';
   history.push({ role: 'user', content: msg });
-
-  const thinking = addMessage('assistant', '...');
-  const res = await fetch('<%= ai_tutor_path %>', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content },
-    body: JSON.stringify({ message: msg, history, context_type: contextType, context_id: contextId })
-  });
-  const data = await res.json();
-  thinking.innerHTML = formatMd(data.response || data.error || 'Lỗi không xác định');
-  if (data.response) history.push({ role: 'assistant', content: data.response });
+  appendMsg('user', msg);
+  const thinkingEl = appendMsg('assistant', '<span class="inline-flex gap-1"><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:0s"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:.15s"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:.3s"></span></span>', true);
+  try {
+    const res = await fetch('<%= ai_tutor_path %>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf() },
+      body: JSON.stringify({ message: msg, history: history.slice(0,-1), context_type: contextType, context_id: contextId })
+    });
+    const data = await res.json();
+    const reply = data.response || data.error || 'Lỗi không xác định';
+    thinkingEl.innerHTML = md(reply);
+    if (data.response) history.push({ role: 'assistant', content: data.response });
+  } catch(e) {
+    thinkingEl.innerHTML = '<span class="text-red-500">Lỗi kết nối. Thử lại.</span>';
+  }
 }
 
-function addMessage(role, text) {
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = 'flex gap-3' + (role === 'user' ? ' justify-end' : '');
-  div.innerHTML = role === 'user'
-    ? `<div class="bg-purple-600 text-white rounded-xl px-4 py-3 text-[13px] max-w-[85%]">${text}</div>`
-    : `<div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-[14px] shrink-0">🤖</div><div class="bg-white border border-slate-200 rounded-xl px-4 py-3 text-[13px] text-slate-700 max-w-[85%] leading-relaxed">${formatMd(text)}</div>`;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return role === 'user' ? null : div.querySelector('.bg-white');
+function appendMsg(role, html, raw = false) {
+  const container = document.getElementById('chat-messages');
+  const wrapper = document.createElement('div');
+  const isUser = role === 'user';
+  wrapper.className = 'flex gap-3 max-w-2xl' + (isUser ? ' ml-auto flex-row-reverse' : '');
+  if (!isUser) {
+    const av = document.createElement('div');
+    av.className = 'w-8 h-8 bg-violet-100 rounded-xl flex items-center justify-center text-[14px] shrink-0 mt-0.5';
+    av.textContent = '🤖';
+    wrapper.appendChild(av);
+  }
+  const bubble = document.createElement('div');
+  bubble.className = isUser
+    ? 'bg-violet-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 max-w-sm text-[13px]'
+    : 'bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm max-w-lg text-[13px] text-slate-700 leading-relaxed';
+  bubble.innerHTML = raw ? html : (isUser ? escHtml(html) : md(html));
+  wrapper.appendChild(bubble);
+  container.appendChild(wrapper);
+  container.scrollTop = container.scrollHeight;
+  return bubble;
 }
 
-function formatMd(t) {
-  return (t||'').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+function md(t) {
+  return (t||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code class="bg-slate-100 px-1 rounded text-[12px] font-mono">$1</code>')
+    .replace(/\n/g,'<br>');
 }
+function escHtml(t) { return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 document.getElementById('tutor-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!document.getElementById('send-btn').disabled) sendTutor(); }
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (!document.getElementById('send-btn').disabled) sendMsg();
+  }
 });
 </script>

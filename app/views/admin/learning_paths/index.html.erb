@@ -1,62 +1,126 @@
 <% content_for :title, "Lộ trình học tập" %>
 
-<div class="p-6 max-w-5xl mx-auto">
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <h1 class="text-[20px] font-extrabold text-slate-900">🗺️ Lộ trình học tập</h1>
-      <p class="text-[13px] text-slate-500 mt-0.5">Tạo và quản lý lộ trình học có cấu trúc</p>
-    </div>
-    <%= link_to new_learning_path_path, class: "px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-lg" do %>
-      + Tạo lộ trình
-    <% end %>
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-[22px] font-extrabold text-slate-900">🗺️ Lộ trình học tập</h1>
+    <p class="text-[13px] text-slate-500 mt-0.5">Tạo và quản lý lộ trình học có cấu trúc, giao cho người tham gia</p>
   </div>
-
-  <% if @my_assignments.any? %>
-    <div class="mb-6">
-      <h2 class="text-[13px] font-bold text-slate-700 mb-3 uppercase tracking-wide">📌 Lộ trình được giao cho tôi</h2>
-      <div class="grid gap-3">
-        <% @my_assignments.each do |asgn| %>
-          <%= link_to learning_path_assignment_path(asgn), class: "block bg-indigo-50 border border-indigo-200 rounded-xl p-4 hover:bg-indigo-100 transition-colors" do %>
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="text-[14px] font-bold text-indigo-900"><%= asgn.learning_path.title %></div>
-                <div class="text-[12px] text-indigo-700 mt-0.5">Tiến độ: <%= asgn.progress_pct %>%<%= asgn.due_date ? " · Hạn: #{asgn.due_date.strftime('%d/%m/%Y')}" : "" %></div>
-              </div>
-              <div class="text-[12px] text-indigo-600 font-semibold">Học ngay →</div>
-            </div>
-            <div class="mt-2 h-1.5 bg-indigo-200 rounded-full overflow-hidden">
-              <div class="h-1.5 bg-indigo-600 rounded-full" style="width: <%= asgn.progress_pct %>%"></div>
-            </div>
-          <% end %>
-        <% end %>
-      </div>
-    </div>
-  <% end %>
-
-  <% if @learning_paths.any? %>
-    <div class="grid gap-4">
-      <% @learning_paths.each do |lp| %>
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-start gap-4">
-          <div class="text-2xl">🗺️</div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-[14px] font-bold text-slate-900"><%= lp.title %></span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full <%= lp.published? ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' %>"><%= lp.published? ? "Đã phát hành" : "Nháp" %></span>
-              <% if lp.ai_generated? %><span class="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">✨ AI</span><% end %>
-            </div>
-            <div class="text-[12px] text-slate-500 mt-0.5"><%= lp.learning_path_items.size %> bài · <%= lp.subject.presence || "Tổng hợp" %> · <%= lp.created_by.name rescue "?" %></div>
-          </div>
-          <div class="flex gap-2">
-            <%= link_to learning_path_path(lp), class: "text-[12px] px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg" do %>Xem<% end %>
-          </div>
-        </div>
-      <% end %>
-    </div>
-  <% else %>
-    <div class="text-center py-16 text-slate-400">
-      <div class="text-5xl mb-3">🗺️</div>
-      <p class="text-[14px]">Chưa có lộ trình nào. Tạo lộ trình đầu tiên!</p>
-      <%= link_to "+ Tạo lộ trình", new_learning_path_path, class: "mt-2 inline-block text-indigo-600 text-[13px] font-semibold" %>
-    </div>
+  <%= link_to new_learning_path_path, class: "flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl transition-colors" do %>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+    Tạo lộ trình
   <% end %>
 </div>
+
+<% if flash[:notice] %>
+  <div class="mb-4 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[13px] font-semibold flex items-center gap-2">
+    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    <%= flash[:notice] %>
+  </div>
+<% end %>
+
+<% if @my_assignments.any? %>
+  <div class="mb-6">
+    <div class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">📌 Được giao cho tôi</div>
+    <div class="grid grid-cols-2 gap-3">
+      <% @my_assignments.each do |asgn| %>
+        <a href="<%= learning_path_assignment_path(asgn) %>" class="block bg-white border border-indigo-200 hover:border-indigo-400 rounded-xl p-4 transition-colors group">
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <div class="text-[14px] font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1"><%= asgn.learning_path.title %></div>
+            <span class="text-[12px] font-bold text-indigo-600 shrink-0"><%= asgn.progress_pct %>%</span>
+          </div>
+          <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-1.5 bg-indigo-500 rounded-full transition-all" style="width: <%= asgn.progress_pct %>%"></div>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400">
+            <%= asgn.learning_path.learning_path_items.count %> bài
+            <% if asgn.due_date %> · Hạn <%= asgn.due_date.strftime("%d/%m/%Y") %><% end %>
+          </div>
+        </a>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<% if @learning_paths.empty? && @my_assignments.empty? %>
+  <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+    <div class="text-5xl mb-4">🗺️</div>
+    <h3 class="text-[16px] font-bold text-slate-700 mb-2">Chưa có lộ trình nào</h3>
+    <p class="text-[13px] text-slate-400 mb-6">Tạo lộ trình học có cấu trúc, giao cho thành viên và theo dõi tiến độ</p>
+    <%= link_to "Tạo lộ trình đầu tiên", new_learning_path_path, class: "inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-bold rounded-xl" %>
+  </div>
+<% elsif @learning_paths.any? %>
+  <% if @my_assignments.any? %>
+    <div class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">📚 Lộ trình của workspace</div>
+  <% end %>
+  <div class="space-y-3">
+    <% @learning_paths.each do |lp| %>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 <%= lp.published? ? 'bg-indigo-50' : 'bg-slate-100' %>">
+          <span class="text-xl">🗺️</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+            <%= link_to lp.title, learning_path_path(lp), class: "text-[14px] font-bold text-slate-900 hover:text-indigo-600 truncate transition-colors" %>
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold <%= lp.published? ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' %>">
+              <%= lp.published? ? "Đã phát hành" : "Nháp" %>
+            </span>
+            <% if lp.ai_generated? %>
+              <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-violet-100 text-violet-700">✨ AI</span>
+            <% end %>
+          </div>
+          <div class="flex items-center gap-3 text-[12px] text-slate-400">
+            <span>📖 <%= lp.learning_path_items.size %> bài học</span>
+            <% if lp.subject.present? %><span>· <%= lp.subject %></span><% end %>
+            <span>· <%= lp.learning_path_assignments.count %> người đang học</span>
+            <span>· <%= lp.created_at.strftime("%d/%m/%Y") %></span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1 flex-shrink-0">
+          <%= link_to learning_path_path(lp), title: "Xem",
+              class: "p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" do %>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          <% end %>
+          <%= link_to edit_learning_path_path(lp), title: "Chỉnh sửa",
+              class: "p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" do %>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          <% end %>
+          <button type="button" onclick="confirmDeleteLP('<%= learning_path_path(lp) %>', '<%= j lp.title %>')"
+                  class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<div id="lp-delete-modal" style="display:none; position:fixed; inset:0; z-index:60; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,0.5);">
+  <div style="background:#fff; border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.18); width:100%; max-width:380px; padding:28px 24px;">
+    <div style="width:48px; height:48px; border-radius:50%; background:#FEE2E2; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+      <svg style="width:24px;height:24px;" fill="none" stroke="#EF4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    </div>
+    <h3 style="font-size:16px;font-weight:800;color:#1E293B;text-align:center;margin:0 0 8px;">Xóa lộ trình?</h3>
+    <p id="lp-delete-desc" style="font-size:13px;color:#64748B;text-align:center;margin:0 0 20px;"></p>
+    <div style="display:flex;gap:8px;">
+      <button id="lp-delete-btn" onclick="executeDeleteLP()" style="flex:1;padding:11px;background:#EF4444;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">Xóa</button>
+      <button onclick="document.getElementById('lp-delete-modal').style.display='none'" style="flex:1;padding:11px;background:#F1F5F9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">Hủy</button>
+    </div>
+  </div>
+</div>
+<script>
+let _lpDeletePath = null;
+function confirmDeleteLP(path, title) {
+  _lpDeletePath = path;
+  document.getElementById('lp-delete-desc').textContent = 'Xóa "' + title + '" sẽ xóa toàn bộ bài học và dữ liệu giao bài. Không thể hoàn tác.';
+  document.getElementById('lp-delete-modal').style.display = 'flex';
+}
+function executeDeleteLP() {
+  if (!_lpDeletePath) return;
+  const btn = document.getElementById('lp-delete-btn');
+  btn.disabled = true; btn.textContent = '...';
+  const form = document.createElement('form'); form.method='POST'; form.action=_lpDeletePath;
+  const m = document.createElement('input'); m.type='hidden'; m.name='_method'; m.value='delete';
+  const c = document.createElement('input'); c.type='hidden'; c.name='authenticity_token'; c.value=document.querySelector('meta[name="csrf-token"]').content;
+  form.appendChild(m); form.appendChild(c); document.body.appendChild(form); form.submit();
+}
+</script>

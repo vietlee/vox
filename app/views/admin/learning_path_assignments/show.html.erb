@@ -1,85 +1,106 @@
 <% content_for :title, "Học: #{@assignment.learning_path.title}" %>
 
-<div class="p-6 max-w-4xl mx-auto">
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <%= link_to "← Lộ trình", learning_paths_path, class: "text-[13px] text-slate-500 hover:text-slate-700" %>
-      <h1 class="text-[20px] font-extrabold text-slate-900 mt-1"><%= @assignment.learning_path.title %></h1>
-      <div class="flex items-center gap-3 mt-1">
-        <div class="text-[12px] text-slate-500">Tiến độ: <strong><%= @assignment.progress_pct %>%</strong></div>
-        <% if @assignment.due_date %>
-          <div class="text-[12px] text-slate-500">Hạn: <%= @assignment.due_date.strftime("%d/%m/%Y") %></div>
-        <% end %>
-      </div>
-      <div class="mt-2 h-2 w-64 bg-slate-100 rounded-full overflow-hidden">
-        <div id="overall-progress" class="h-2 bg-indigo-600 rounded-full transition-all duration-500" style="width: <%= @assignment.progress_pct %>%"></div>
-      </div>
+<div class="flex items-center gap-3 mb-5">
+  <%= render "admin/shared/back_btn" %>
+  <div class="flex-1 min-w-0">
+    <h1 class="text-[20px] font-extrabold text-slate-900 truncate"><%= @assignment.learning_path.title %></h1>
+    <div class="flex items-center gap-3 mt-0.5 text-[12px] text-slate-500">
+      <span>Tiến độ: <strong class="text-indigo-600" id="pct-label"><%= @assignment.progress_pct %>%</strong></span>
+      <% if @assignment.due_date %>
+        <span>· Hạn: <%= @assignment.due_date.strftime("%d/%m/%Y") %></span>
+      <% end %>
+      <span>· <%= @items.size %> bài học</span>
     </div>
-    <%= link_to ai_tutor_page_path(context_type: "learning_path_item", context_id: @items.first&.id), class: "px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-[13px] font-bold rounded-lg" do %>
-      🤖 Hỏi AI Tutor
-    <% end %>
   </div>
-
-  <div class="space-y-3">
-    <% @items.each_with_index do |item, i| %>
-      <% prog = @progresses[item.id] %>
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="flex items-center gap-4 p-4">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0
-            <%= prog&.completed? ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' %>">
-            <%= prog&.completed? ? "✓" : (i+1) %>
-          </div>
-          <div class="text-xl flex-shrink-0"><%= item.quiz? ? "📝" : "📖" %></div>
-          <div class="flex-1 min-w-0">
-            <div class="text-[14px] font-bold text-slate-900"><%= item.title %></div>
-            <div class="text-[12px] text-slate-500"><%= item.quiz? ? "Bài kiểm tra" : "Bài học" %> · ~<%= item.estimated_minutes %> phút</div>
-          </div>
-          <div class="flex gap-2 flex-shrink-0">
-            <% unless prog&.completed? %>
-              <button onclick="markProgress(<%= @assignment.id %>, <%= item.id %>, 'completed', this)"
-                      class="text-[12px] px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border-0 cursor-pointer">
-                ✓ Đánh dấu xong
-              </button>
-            <% else %>
-              <button onclick="markProgress(<%= @assignment.id %>, <%= item.id %>, 'not_started', this)"
-                      class="text-[12px] px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg border-0 cursor-pointer">
-                Bỏ đánh dấu
-              </button>
-            <% end %>
-            <button onclick="toggleContent(this)" data-expanded="false"
-                    class="text-[12px] px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
-              Xem nội dung
-            </button>
-          </div>
-        </div>
-
-        <% if item.content.present? %>
-          <div class="item-content hidden border-t border-slate-100 px-6 py-4 bg-slate-50 prose max-w-none text-[14px]">
-            <%= raw item.content %>
-          </div>
-        <% end %>
-      </div>
+  <div class="flex items-center gap-2 shrink-0">
+    <div class="text-[12px] font-bold text-slate-900 mr-1" id="pct-badge"><%= @assignment.progress_pct %>%</div>
+    <div class="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+      <div id="progress-bar" class="h-2 bg-indigo-600 rounded-full transition-all duration-500" style="width:<%= @assignment.progress_pct %>%"></div>
+    </div>
+    <%= link_to ai_tutor_page_path(context_type: "learning_path"), class: "flex items-center gap-1.5 px-3 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl transition-colors" do %>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+      AI Tutor
     <% end %>
   </div>
 </div>
 
+<div class="space-y-2">
+  <% @items.each_with_index do |item, i| %>
+    <% prog = @progresses[item.id] %>
+    <% is_done = prog&.completed? %>
+    <div class="bg-white rounded-xl border <%= is_done ? 'border-emerald-200' : 'border-slate-200' %> shadow-sm overflow-hidden">
+      <div class="flex items-center gap-3 px-4 py-3.5">
+        <!-- Step indicator -->
+        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[13px] shrink-0
+            <%= is_done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' %>">
+          <%= is_done ? "✓" : (i+1) %>
+        </div>
+        <!-- Icon -->
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[13px] shrink-0
+            <%= item.quiz? ? 'bg-violet-50' : 'bg-indigo-50' %>">
+          <%= item.quiz? ? "📝" : "📖" %>
+        </div>
+        <!-- Info -->
+        <div class="flex-1 min-w-0">
+          <div class="text-[13px] font-semibold text-slate-900 truncate"><%= item.title %></div>
+          <div class="text-[11px] text-slate-400 mt-0.5">
+            <%= item.quiz? ? "Bài kiểm tra" : "Bài học" %> · ~<%= item.estimated_minutes %> phút
+          </div>
+        </div>
+        <!-- Actions -->
+        <div class="flex items-center gap-2 shrink-0">
+          <% if item.content.present? %>
+            <button onclick="toggleContent(this)"
+                    class="flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-lg transition-colors border border-slate-200 cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Nội dung
+            </button>
+          <% end %>
+          <% if is_done %>
+            <button onclick="markItem(this, <%= @assignment.id %>, <%= item.id %>, 'not_started')"
+                    class="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 text-[11px] font-bold rounded-lg border border-emerald-200 cursor-pointer hover:bg-emerald-100 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              Hoàn thành
+            </button>
+          <% else %>
+            <button onclick="markItem(this, <%= @assignment.id %>, <%= item.id %>, 'completed')"
+                    class="flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 text-[11px] font-semibold rounded-lg border border-slate-200 hover:border-emerald-300 cursor-pointer transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              Đánh dấu xong
+            </button>
+          <% end %>
+        </div>
+      </div>
+      <!-- Content panel -->
+      <% if item.content.present? %>
+        <div class="item-content hidden border-t border-slate-100 bg-slate-50 px-5 py-4 prose prose-slate max-w-none text-[13px]">
+          <%= raw item.content %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
 <script>
 function toggleContent(btn) {
-  const card = btn.closest('.bg-white');
-  const content = card.querySelector('.item-content');
-  if (content) {
-    const hidden = content.classList.toggle('hidden');
-    btn.textContent = hidden ? 'Xem nội dung' : 'Thu lại';
-  }
+  const panel = btn.closest('.bg-white').querySelector('.item-content');
+  if (!panel) return;
+  const hidden = panel.classList.toggle('hidden');
+  btn.querySelector('svg').style.transform = hidden ? '' : 'rotate(180deg)';
+  btn.querySelector('svg').style.transition = 'transform .2s';
 }
 
-function markProgress(asgmtId, itemId, status, btn) {
-  fetch(`/admin/learning_path_assignments/${asgmtId}/update_progress`, {
+function markItem(btn, asgmtId, itemId, status) {
+  btn.disabled = true; btn.style.opacity = '0.5';
+  fetch('/admin/learning_path_assignments/' + asgmtId + '/update_progress', {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content },
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
     body: JSON.stringify({ item_id: itemId, status })
   }).then(r => r.json()).then(data => {
-    document.getElementById('overall-progress').style.width = data.pct + '%';
+    const pct = data.pct;
+    document.getElementById('pct-label').textContent = pct + '%';
+    document.getElementById('pct-badge').textContent = pct + '%';
+    document.getElementById('progress-bar').style.width = pct + '%';
     location.reload();
   });
 }

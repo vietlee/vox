@@ -1,51 +1,83 @@
 <% content_for :title, "Học: #{@deck.title}" %>
+<% content_for :main_class, 'flex-1 overflow-hidden flex flex-col bg-slate-50' %>
 
-<div class="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-  <div class="w-full max-w-xl">
+<div class="flex-1 flex flex-col items-center justify-center p-6">
+  <div class="w-full max-w-lg">
+    <!-- Header -->
     <div class="flex items-center justify-between mb-6">
-      <%= link_to "← Quay lại", flashcard_deck_path(@deck), class: "text-[13px] text-slate-500 hover:text-slate-700" %>
-      <div class="text-[12px] text-slate-500">🃏 <%= @deck.title %> · <span id="card-counter">1</span>/<%= @study_cards.size %></div>
+      <%= link_to flashcard_deck_path(@deck),
+          class: "flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-700 transition-colors" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+        Quay lại
+      <% end %>
+      <div class="text-center">
+        <div class="text-[14px] font-bold text-slate-900 line-clamp-1"><%= @deck.title %></div>
+        <div class="text-[12px] text-slate-400"><span id="card-counter">1</span> / <%= @study_cards.size %> thẻ</div>
+      </div>
+      <div class="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
+        <div id="progress-bar" class="h-2 bg-indigo-500 rounded-full transition-all duration-300" style="width:0%"></div>
+      </div>
     </div>
 
     <% if @study_cards.empty? %>
+      <!-- Done state -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
-        <div class="text-5xl mb-4">🎉</div>
-        <h2 class="text-[18px] font-bold text-slate-900">Bạn đã học xong hôm nay!</h2>
-        <p class="text-[13px] text-slate-500 mt-2">Quay lại sau để ôn tiếp theo lịch.</p>
-        <%= link_to flashcard_deck_path(@deck), class: "mt-4 inline-block px-6 py-3 bg-indigo-600 text-white text-[13px] font-bold rounded-xl" do %>Xem bộ thẻ<% end %>
+        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <h2 class="text-[18px] font-extrabold text-slate-900 mb-2">Học xong hôm nay! 🎉</h2>
+        <p class="text-[13px] text-slate-500 mb-6">Hệ thống sẽ nhắc bạn ôn lại vào đúng thời điểm tốt nhất.</p>
+        <%= link_to "Xem bộ thẻ", flashcard_deck_path(@deck), class: "inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-bold rounded-xl" %>
       </div>
     <% else %>
       <!-- Flashcard -->
-      <div class="relative" style="perspective:1200px">
-        <div id="card-container" class="relative cursor-pointer" style="transform-style:preserve-3d;transition:transform 0.5s;height:260px" onclick="flipCard()">
+      <div style="perspective:1200px" class="mb-5">
+        <div id="card-flip" onclick="flipCard()"
+             class="relative cursor-pointer select-none"
+             style="transform-style:preserve-3d; transition:transform 0.45s ease; height:220px;">
           <!-- Front -->
-          <div class="absolute inset-0 bg-white rounded-2xl border border-slate-200 shadow-lg p-8 flex items-center justify-center" style="backface-visibility:hidden">
-            <p id="front-text" class="text-[18px] font-semibold text-slate-900 text-center leading-relaxed"></p>
+          <div class="absolute inset-0 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center p-8 text-center"
+               style="backface-visibility:hidden;">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Câu hỏi</div>
+            <p id="front-text" class="text-[18px] font-semibold text-slate-900 leading-relaxed"></p>
+            <div class="mt-6 text-[11px] text-slate-400 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
+              Nhấn để xem đáp án
+            </div>
           </div>
           <!-- Back -->
-          <div class="absolute inset-0 bg-indigo-50 rounded-2xl border border-indigo-200 shadow-lg p-8 flex items-center justify-center" style="backface-visibility:hidden;transform:rotateY(180deg)">
-            <p id="back-text" class="text-[16px] text-slate-700 text-center leading-relaxed"></p>
+          <div class="absolute inset-0 bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl border border-indigo-200 shadow-sm flex flex-col items-center justify-center p-8 text-center"
+               style="backface-visibility:hidden; transform:rotateY(180deg);">
+            <div class="text-[11px] font-bold text-indigo-400 uppercase tracking-widest mb-4">Đáp án</div>
+            <p id="back-text" class="text-[16px] text-slate-700 leading-relaxed"></p>
           </div>
         </div>
       </div>
 
-      <!-- Rating buttons (hidden until flipped) -->
-      <div id="rating-btns" class="hidden grid grid-cols-4 gap-2 mt-6">
-        <button onclick="rate(0)" class="py-3 bg-red-100 hover:bg-red-200 text-red-700 text-[12px] font-bold rounded-xl border-0 cursor-pointer">
-          ❌ Lại<div class="text-[10px] font-normal mt-0.5">&lt;1 min</div>
+      <!-- Rating buttons -->
+      <div id="rating-btns" class="hidden grid grid-cols-4 gap-2">
+        <button onclick="rate(0)" class="flex flex-col items-center py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-xl cursor-pointer transition-colors">
+          <span class="text-[18px] mb-0.5">😓</span>
+          <span class="text-[11px] font-bold">Quên</span>
+          <span class="text-[10px] text-red-500 mt-0.5">1 phút</span>
         </button>
-        <button onclick="rate(1)" class="py-3 bg-orange-100 hover:bg-orange-200 text-orange-700 text-[12px] font-bold rounded-xl border-0 cursor-pointer">
-          😓 Khó<div class="text-[10px] font-normal mt-0.5">&lt;10 min</div>
+        <button onclick="rate(1)" class="flex flex-col items-center py-3 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 rounded-xl cursor-pointer transition-colors">
+          <span class="text-[18px] mb-0.5">😬</span>
+          <span class="text-[11px] font-bold">Khó</span>
+          <span class="text-[10px] text-orange-500 mt-0.5">10 phút</span>
         </button>
-        <button onclick="rate(2)" class="py-3 bg-blue-100 hover:bg-blue-200 text-blue-700 text-[12px] font-bold rounded-xl border-0 cursor-pointer">
-          👍 Ổn<div class="text-[10px] font-normal mt-0.5">~<span id="good-days">1</span> ngày</div>
+        <button onclick="rate(2)" class="flex flex-col items-center py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl cursor-pointer transition-colors">
+          <span class="text-[18px] mb-0.5">👍</span>
+          <span class="text-[11px] font-bold">Ổn</span>
+          <span id="good-days" class="text-[10px] text-blue-500 mt-0.5">1 ngày</span>
         </button>
-        <button onclick="rate(3)" class="py-3 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-[12px] font-bold rounded-xl border-0 cursor-pointer">
-          ⭐ Dễ<div class="text-[10px] font-normal mt-0.5">~<span id="easy-days">2</span> ngày</div>
+        <button onclick="rate(3)" class="flex flex-col items-center py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-xl cursor-pointer transition-colors">
+          <span class="text-[18px] mb-0.5">⭐</span>
+          <span class="text-[11px] font-bold">Dễ</span>
+          <span id="easy-days" class="text-[10px] text-emerald-500 mt-0.5">2 ngày</span>
         </button>
       </div>
-
-      <div class="text-center mt-4 text-[12px] text-slate-400">Nhấn thẻ để xem đáp án</div>
+      <div id="flip-hint" class="text-center text-[12px] text-slate-400 mt-3">Nhấn thẻ để lật xem đáp án</div>
     <% end %>
   </div>
 </div>
@@ -57,31 +89,36 @@ let flipped = false;
 
 function showCard(i) {
   if (i >= cards.length) {
-    document.querySelector('[style*="perspective"]').innerHTML = '<div class="bg-white rounded-2xl border border-slate-200 shadow-lg p-12 text-center"><div class="text-5xl mb-4">🎉</div><h2 class="text-[18px] font-bold text-slate-900">Hoàn thành phiên học!</h2><a href="<%= flashcard_deck_path(@deck) %>" class="mt-4 inline-block px-6 py-3 bg-indigo-600 text-white text-[13px] font-bold rounded-xl">Xem bộ thẻ</a></div>';
+    document.querySelector('[style*="perspective"]').outerHTML =
+      '<div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center mb-5"><div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4"><svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><h2 class="text-[18px] font-extrabold text-slate-900 mb-2">Hoàn thành phiên học! 🎉</h2><a href="<%= flashcard_deck_path(@deck) %>" class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-bold rounded-xl mt-4">Xem bộ thẻ</a></div>';
     document.getElementById('rating-btns')?.remove();
+    document.getElementById('flip-hint')?.remove();
     return;
   }
   const card = cards[i];
   document.getElementById('front-text').textContent = card.front;
   document.getElementById('back-text').textContent = card.back;
   document.getElementById('card-counter').textContent = i + 1;
-  document.getElementById('card-container').style.transform = 'rotateY(0deg)';
+  document.getElementById('card-flip').style.transform = 'rotateY(0deg)';
   document.getElementById('rating-btns').classList.add('hidden');
+  document.getElementById('flip-hint').style.display = '';
+  document.getElementById('progress-bar').style.width = (i / cards.length * 100) + '%';
   flipped = false;
 }
 
 function flipCard() {
   if (flipped) return;
   flipped = true;
-  document.getElementById('card-container').style.transform = 'rotateY(180deg)';
+  document.getElementById('card-flip').style.transform = 'rotateY(180deg)';
   document.getElementById('rating-btns').classList.remove('hidden');
+  document.getElementById('flip-hint').style.display = 'none';
 }
 
 function rate(rating) {
   const card = cards[current];
   fetch('<%= review_flashcard_deck_path(@deck) %>', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content },
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
     body: JSON.stringify({ card_id: card.id, rating })
   }).then(() => {
     current++;
@@ -89,5 +126,5 @@ function rate(rating) {
   });
 }
 
-showCard(0);
+if (cards.length > 0) showCard(0);
 </script>
