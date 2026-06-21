@@ -8,167 +8,163 @@
     <!-- Header -->
     <div class="flex items-center gap-4 mb-8">
       <%= link_to flashcard_deck_path(@deck),
-          class: "flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-700 transition-colors flex-shrink-0" do %>
+          class: "flex items-center gap-1.5 text-[13px] font-semibold text-slate-500 hover:text-slate-800 transition-colors flex-shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm hover:shadow-md" do %>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
         Quay lại
       <% end %>
-      <div class="flex-1">
+      <div class="flex-1 min-w-0">
         <div class="text-[13px] font-bold text-slate-700 truncate"><%= @deck.title %></div>
-        <div class="flex items-center gap-2 mt-1">
+        <div class="flex items-center gap-2 mt-1.5">
           <div class="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
             <div id="progress-bar" class="h-1.5 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500" style="width:0%"></div>
           </div>
-          <span id="card-counter" class="text-[11px] text-slate-400 font-semibold flex-shrink-0">1 / <%= @study_cards.size %></span>
+          <span id="card-counter" class="text-[11px] text-slate-500 font-bold flex-shrink-0 bg-white border border-slate-200 rounded-lg px-2 py-0.5">1 / <%= @study_cards.size %></span>
         </div>
       </div>
     </div>
 
     <% if @study_cards.empty? %>
-      <!-- Done state -->
       <div class="bg-white rounded-3xl border border-slate-200 shadow-lg p-14 text-center">
-        <div class="w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-200">
-          <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        </div>
-        <h2 class="text-[22px] font-extrabold text-slate-900 mb-2">Học xong hôm nay! 🎉</h2>
+        <div class="text-5xl mb-4">🎉</div>
+        <h2 class="text-[22px] font-extrabold text-slate-900 mb-2">Học xong hôm nay!</h2>
         <p class="text-[13px] text-slate-500 mb-7">Hệ thống sẽ nhắc bạn ôn lại vào đúng thời điểm tốt nhất.</p>
-        <%= link_to "Xem bộ thẻ", flashcard_deck_path(@deck), class: "inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white text-[14px] font-bold rounded-2xl hover:bg-indigo-700 transition-colors shadow-md" %>
+        <%= link_to "← Xem bộ thẻ", flashcard_deck_path(@deck), class: "inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white text-[14px] font-bold rounded-2xl hover:bg-indigo-700 transition-colors" %>
       </div>
     <% else %>
 
-      <!-- Card flip container -->
-      <div class="mb-5" style="perspective:1400px;">
-        <div id="card-flip" onclick="flipCard()" class="relative cursor-pointer select-none"
-             style="transform-style:preserve-3d; -webkit-transform-style:preserve-3d; transition:transform 0.5s cubic-bezier(0.4,0,0.2,1); height:300px;">
+      <!-- Card -->
+      <div id="card-wrap" class="mb-5 cursor-pointer" onclick="flipCard()">
 
-          <!-- FRONT -->
-          <div class="absolute inset-0 rounded-3xl flex flex-col overflow-hidden"
-               style="backface-visibility:hidden; -webkit-backface-visibility:hidden;
-                      background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
-                      box-shadow:0 20px 60px rgba(102,126,234,0.4);">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-white/20">
-              <span class="text-[11px] font-bold uppercase tracking-widest text-white/70">Câu hỏi</span>
-              <div id="card-num-front" class="text-[11px] text-white/60 font-semibold"></div>
-            </div>
-            <div class="flex-1 flex flex-col items-center justify-center px-8 text-center">
-              <p id="front-text" class="text-[22px] font-bold text-white leading-relaxed"></p>
-            </div>
-            <div class="flex items-center justify-center gap-1.5 pb-5 text-white/50">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-              <span class="text-[11px] font-medium">Nhấn để xem đáp án</span>
-            </div>
+        <!-- FRONT -->
+        <div id="card-front" class="rounded-3xl overflow-hidden shadow-2xl"
+             style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:280px; display:flex; flex-direction:column;">
+          <div class="flex items-center justify-between px-6 py-4" style="border-bottom:1px solid rgba(255,255,255,0.2);">
+            <span class="text-[11px] font-bold uppercase tracking-widest" style="color:rgba(255,255,255,0.7)">Câu hỏi</span>
+            <span id="card-num-badge" class="text-[11px] font-bold" style="color:rgba(255,255,255,0.6)"></span>
           </div>
-
-          <!-- BACK -->
-          <div class="absolute inset-0 rounded-3xl flex flex-col overflow-hidden"
-               style="backface-visibility:hidden; -webkit-backface-visibility:hidden;
-                      transform:rotateY(180deg); -webkit-transform:rotateY(180deg);
-                      background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);
-                      box-shadow:0 20px 60px rgba(240,147,251,0.4);">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-white/20">
-              <span class="text-[11px] font-bold uppercase tracking-widest text-white/70">Đáp án</span>
-              <div class="text-[11px] text-white/60 font-semibold">✓</div>
-            </div>
-            <div class="flex-1 flex flex-col items-center justify-center px-8 text-center">
-              <p id="back-text" class="text-[18px] text-white leading-relaxed font-semibold"></p>
-            </div>
-            <div class="pb-5 text-center text-white/50 text-[11px]">Chọn mức độ ghi nhớ bên dưới</div>
+          <div class="flex-1 flex items-center justify-center px-8 py-8 text-center">
+            <p id="front-text" class="text-[24px] font-bold leading-relaxed" style="color:#fff;"></p>
           </div>
-
+          <div class="flex items-center justify-center gap-1.5 pb-5" style="color:rgba(255,255,255,0.5);">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span class="text-[11px] font-medium">Nhấn để xem đáp án</span>
+          </div>
         </div>
+
+        <!-- BACK (hidden initially) -->
+        <div id="card-back" class="rounded-3xl overflow-hidden shadow-2xl" style="display:none; min-height:280px; flex-direction:column;
+             background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);">
+          <div class="flex items-center justify-between px-6 py-4" style="border-bottom:1px solid rgba(255,255,255,0.2);">
+            <span class="text-[11px] font-bold uppercase tracking-widest" style="color:rgba(255,255,255,0.7)">Đáp án</span>
+            <span style="color:rgba(255,255,255,0.7); font-size:14px;">✓</span>
+          </div>
+          <div class="flex-1 flex items-center justify-center px-8 py-8 text-center">
+            <p id="back-text" class="text-[20px] font-semibold leading-relaxed" style="color:#fff;"></p>
+          </div>
+          <div class="pb-5 text-center text-[11px] font-medium" style="color:rgba(255,255,255,0.6);">Chọn mức độ ghi nhớ bên dưới</div>
+        </div>
+
       </div>
 
-      <!-- Rating buttons (hidden until flipped) -->
+      <!-- Rating buttons -->
       <div id="rating-btns" class="hidden grid grid-cols-4 gap-2.5 mb-4">
-        <button onclick="rate(0)"
-                class="flex flex-col items-center py-4 bg-white hover:bg-red-50 border-2 border-red-200 hover:border-red-400 text-red-600 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md group">
+        <button onclick="rate(0)" class="flex flex-col items-center py-4 bg-white border-2 border-red-200 hover:border-red-400 hover:bg-red-50 text-red-600 rounded-2xl cursor-pointer transition-all shadow-sm group border-0">
           <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">😵</span>
           <span class="text-[12px] font-bold">Quên</span>
           <span class="text-[10px] text-red-400 mt-0.5">1 phút</span>
         </button>
-        <button onclick="rate(1)"
-                class="flex flex-col items-center py-4 bg-white hover:bg-orange-50 border-2 border-orange-200 hover:border-orange-400 text-orange-600 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md group">
+        <button onclick="rate(1)" class="flex flex-col items-center py-4 bg-white border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-600 rounded-2xl cursor-pointer transition-all shadow-sm group border-0">
           <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">😅</span>
           <span class="text-[12px] font-bold">Khó</span>
           <span class="text-[10px] text-orange-400 mt-0.5">10 phút</span>
         </button>
-        <button onclick="rate(2)"
-                class="flex flex-col items-center py-4 bg-white hover:bg-blue-50 border-2 border-blue-200 hover:border-blue-400 text-blue-600 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md group">
+        <button onclick="rate(2)" class="flex flex-col items-center py-4 bg-white border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-blue-600 rounded-2xl cursor-pointer transition-all shadow-sm group border-0">
           <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">👍</span>
           <span class="text-[12px] font-bold">Ổn</span>
-          <span id="good-days" class="text-[10px] text-blue-400 mt-0.5">1 ngày</span>
+          <span class="text-[10px] text-blue-400 mt-0.5">1 ngày</span>
         </button>
-        <button onclick="rate(3)"
-                class="flex flex-col items-center py-4 bg-white hover:bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-400 text-emerald-600 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md group">
+        <button onclick="rate(3)" class="flex flex-col items-center py-4 bg-white border-2 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 text-emerald-600 rounded-2xl cursor-pointer transition-all shadow-sm group border-0">
           <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">⭐</span>
           <span class="text-[12px] font-bold">Dễ</span>
-          <span id="easy-days" class="text-[10px] text-emerald-400 mt-0.5">2 ngày</span>
+          <span class="text-[10px] text-emerald-400 mt-0.5">2 ngày</span>
         </button>
       </div>
 
-      <!-- Hint -->
       <div id="flip-hint" class="text-center">
-        <span class="text-[12px] text-slate-400">Nhấn vào thẻ hoặc nhấn <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-[10px] font-mono">Space</kbd> để lật</span>
+        <span class="text-[12px] text-slate-400">Nhấn vào thẻ hoặc <kbd class="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono shadow-sm">Space</kbd> để lật</span>
       </div>
 
     <% end %>
   </div>
 </div>
 
+<style>
+#rating-btns button { border-width: 2px !important; }
+@keyframes cardIn {
+  from { opacity:0; transform:scale(0.95) translateY(8px); }
+  to   { opacity:1; transform:scale(1)    translateY(0); }
+}
+.card-animate { animation: cardIn 0.25s ease forwards; }
+</style>
+
 <script>
 const cards = <%= raw @study_cards.map { |c| { id: c.id, front: c.front, back: c.back } }.to_json %>;
 let current = 0;
 let flipped = false;
 
-const GRADIENTS_FRONT = [
+const FRONTS = [
   'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
   'linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)',
   'linear-gradient(135deg,#43e97b 0%,#38f9d7 100%)',
-  'linear-gradient(135deg,#fa709a 0%,#fee140 100%)',
+  'linear-gradient(135deg,#f093fb 0%,#f5576c 100%)',
   'linear-gradient(135deg,#30cfd0 0%,#330867 100%)',
-];
-const SHADOWS_FRONT = [
-  '0 20px 60px rgba(102,126,234,0.4)',
-  '0 20px 60px rgba(79,172,254,0.4)',
-  '0 20px 60px rgba(67,233,123,0.35)',
-  '0 20px 60px rgba(250,112,154,0.4)',
-  '0 20px 60px rgba(48,207,208,0.4)',
 ];
 
 function showCard(i) {
   if (i >= cards.length) {
-    document.querySelector('[style*="perspective"]').innerHTML =
-      '<div style="background:linear-gradient(135deg,#43e97b 0%,#38f9d7 100%);border-radius:24px;padding:56px 32px;text-align:center;box-shadow:0 20px 60px rgba(67,233,123,0.3);">' +
-      '<div style="font-size:48px;margin-bottom:16px;">🎉</div>' +
+    document.getElementById('card-wrap').innerHTML =
+      '<div class="card-animate rounded-3xl overflow-hidden shadow-2xl p-14 text-center" style="background:linear-gradient(135deg,#43e97b,#38f9d7)">' +
+      '<div style="font-size:52px;margin-bottom:16px;">🎉</div>' +
       '<h2 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 8px;">Hoàn thành phiên học!</h2>' +
-      '<p style="color:rgba(255,255,255,0.8);font-size:13px;margin:0 0 24px;">Tuyệt vời! Hệ thống sẽ nhắc ôn lại vào đúng lúc.</p>' +
+      '<p style="color:rgba(255,255,255,0.85);font-size:13px;margin:0 0 24px;">Tuyệt vời! Ôn lại vào đúng thời điểm tốt nhất.</p>' +
       '<a href="<%= flashcard_deck_path(@deck) %>" style="display:inline-block;background:#fff;color:#059669;font-size:13px;font-weight:700;padding:12px 24px;border-radius:16px;text-decoration:none;">← Xem bộ thẻ</a>' +
       '</div>';
     document.getElementById('rating-btns')?.remove();
     document.getElementById('flip-hint')?.remove();
     return;
   }
-  const card = cards[i];
-  const front = document.getElementById('card-flip').children[0];
-  const grad = GRADIENTS_FRONT[i % GRADIENTS_FRONT.length];
-  const shadow = SHADOWS_FRONT[i % SHADOWS_FRONT.length];
-  front.style.background = grad;
-  front.style.boxShadow = shadow;
 
+  const card = cards[i];
+  const frontEl = document.getElementById('card-front');
+  const backEl  = document.getElementById('card-back');
+
+  frontEl.style.background = FRONTS[i % FRONTS.length];
   document.getElementById('front-text').textContent = card.front;
-  document.getElementById('back-text').textContent = card.back;
+  document.getElementById('back-text').textContent  = card.back;
   document.getElementById('card-counter').textContent = (i + 1) + ' / ' + cards.length;
-  document.getElementById('card-num-front').textContent = (i+1) + ' / ' + cards.length;
-  document.getElementById('card-flip').style.transform = 'rotateY(0deg)';
+  document.getElementById('card-num-badge').textContent = (i + 1) + ' / ' + cards.length;
+  document.getElementById('progress-bar').style.width = (i / cards.length * 100) + '%';
+
+  // Show front, hide back
+  frontEl.style.display = 'flex';
+  backEl.style.display  = 'none';
+  frontEl.classList.add('card-animate');
+  setTimeout(() => frontEl.classList.remove('card-animate'), 300);
+
   document.getElementById('rating-btns').classList.add('hidden');
   document.getElementById('flip-hint').style.display = '';
-  document.getElementById('progress-bar').style.width = (i / cards.length * 100) + '%';
   flipped = false;
 }
 
 function flipCard() {
   if (flipped) return;
   flipped = true;
-  document.getElementById('card-flip').style.transform = 'rotateY(180deg)';
+  const frontEl = document.getElementById('card-front');
+  const backEl  = document.getElementById('card-back');
+  frontEl.style.display = 'none';
+  backEl.style.display  = 'flex';
+  backEl.classList.add('card-animate');
+  setTimeout(() => backEl.classList.remove('card-animate'), 300);
   document.getElementById('rating-btns').classList.remove('hidden');
   document.getElementById('flip-hint').style.display = 'none';
 }
