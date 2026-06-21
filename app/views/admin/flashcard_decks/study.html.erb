@@ -37,15 +37,15 @@
 
       <!-- TTS controls -->
       <div class="flex items-center gap-2 justify-end mb-2 flex-wrap">
-        <label class="hidden text-[10px] font-bold text-slate-400 uppercase tracking-wide" id="vi-voice-label">🇻🇳</label>
-        <select id="fc-vi-voice" title="Giọng tiếng Việt"
+        <label class="hidden text-[10px] font-bold uppercase tracking-wide" id="front-voice-label" style="color:#7c3aed;">Mặt trước</label>
+        <select id="fc-front-voice" title="Giọng đọc mặt trước"
                 class="hidden px-2 py-1.5 rounded-xl text-[12px] font-semibold border outline-none"
-                style="border-color:#6366f1; color:#4f46e5; background:#eef2ff; max-width:190px;">
+                style="border-color:#7c3aed; color:#7c3aed; background:#f5f3ff; max-width:180px;">
         </select>
-        <label class="hidden text-[10px] font-bold text-slate-400 uppercase tracking-wide" id="en-voice-label">🇺🇸</label>
-        <select id="fc-en-voice" title="Giọng tiếng Anh"
+        <label class="hidden text-[10px] font-bold uppercase tracking-wide" id="back-voice-label" style="color:#0369a1;">Mặt sau</label>
+        <select id="fc-back-voice" title="Giọng đọc mặt sau"
                 class="hidden px-2 py-1.5 rounded-xl text-[12px] font-semibold border outline-none"
-                style="border-color:#0ea5e9; color:#0369a1; background:#e0f2fe; max-width:190px;">
+                style="border-color:#0ea5e9; color:#0369a1; background:#e0f2fe; max-width:180px;">
         </select>
         <button id="tts-btn" onclick="toggleTTS()" title="Bật/tắt đọc to"
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-all flex-shrink-0"
@@ -171,33 +171,31 @@
     return fetch(VOICES_URL, { headers: { 'Accept': 'application/json' } })
       .then(function(r) { return r.json(); })
       .then(function(voices) {
-        var viSel = document.getElementById('fc-vi-voice');
-        var enSel = document.getElementById('fc-en-voice');
-        viSel.innerHTML = ''; enSel.innerHTML = '';
+        var frontSel = document.getElementById('fc-front-voice');
+        var backSel  = document.getElementById('fc-back-voice');
+        frontSel.innerHTML = ''; backSel.innerHTML = '';
 
         voices.forEach(function(v) {
-          var name = v.name.length > 28 ? v.name.substring(0, 28) + '…' : v.name;
-          /* put voice into both lists — user picks the right one per language */
-          var opt1 = document.createElement('option'); opt1.value = v.id; opt1.textContent = name; viSel.appendChild(opt1);
-          var opt2 = document.createElement('option'); opt2.value = v.id; opt2.textContent = name; enSel.appendChild(opt2);
+          var name = v.name.length > 26 ? v.name.substring(0, 26) + '…' : v.name;
+          var o1 = document.createElement('option'); o1.value = v.id; o1.textContent = name; frontSel.appendChild(o1);
+          var o2 = document.createElement('option'); o2.value = v.id; o2.textContent = name; backSel.appendChild(o2);
         });
 
-        restoreVoice(viSel, 'fc_tts_vi_voice');
-        restoreVoice(enSel, 'fc_tts_en_voice');
+        restoreVoice(frontSel, 'fc_tts_front_voice');
+        restoreVoice(backSel,  'fc_tts_back_voice');
 
-        ['vi-voice-label','fc-vi-voice','en-voice-label','fc-en-voice'].forEach(showEl);
+        ['front-voice-label','fc-front-voice','back-voice-label','fc-back-voice'].forEach(showEl);
         _voicesLoaded = true;
 
-        /* speak card #1 if it was pending */
         if (_pendingSpeak !== null) {
-          var t = _pendingSpeak; _pendingSpeak = null;
-          speak(t);
+          var p = _pendingSpeak; _pendingSpeak = null;
+          speak(p.text, p.isFront);
         }
       })
       .catch(function() {
-        var viSel = document.getElementById('fc-vi-voice');
-        viSel.innerHTML = '<option value="">⚠️ Lỗi tải giọng</option>';
-        showEl('fc-vi-voice');
+        var s = document.getElementById('fc-front-voice');
+        s.innerHTML = '<option value="">⚠️ Lỗi tải giọng</option>';
+        showEl('fc-front-voice');
       });
   }
 
@@ -210,7 +208,7 @@
       btn.style.borderColor = '#6366f1'; btn.style.color = '#4f46e5'; btn.style.background = '#eef2ff';
       lbl.textContent = 'Đọc to: Bật';
       replayBtn.classList.remove('hidden');
-      if (cards[current]) _pendingSpeak = cards[current].front;
+      if (cards[current]) _pendingSpeak = { text: cards[current].front, isFront: true };
       loadElevenLabsVoices();
     } else {
       if (_fcAudio) { _fcAudio.pause(); _fcAudio = null; }
@@ -218,7 +216,7 @@
       btn.style.borderColor = '#e2e8f0'; btn.style.color = '#64748b'; btn.style.background = '#fff';
       lbl.textContent = 'Đọc to: Tắt';
       replayBtn.classList.add('hidden');
-      ['vi-voice-label','fc-vi-voice','en-voice-label','fc-en-voice'].forEach(hideEl);
+      ['front-voice-label','fc-front-voice','back-voice-label','fc-back-voice'].forEach(hideEl);
     }
   };
 
@@ -227,16 +225,16 @@
     var card = cards[current];
     if (!card) return;
     /* replay whichever side is currently shown */
-    speak(flipped ? card.back : card.front);
+    speak(flipped ? card.back : card.front, !flipped);
   };
 
-  function speak(text) {
+  function speak(text, isFront) {
     if (!ttsOn) return;
-    if (!_voicesLoaded) { _pendingSpeak = text; return; }  /* wait for voices */
+    if (!_voicesLoaded) { _pendingSpeak = { text: text, isFront: isFront }; return; }
     if (_fcAudio) { _fcAudio.pause(); _fcAudio = null; }
 
-    var lang    = detectLang(text);
-    var selId   = lang === 'vi' ? 'fc-vi-voice' : 'fc-en-voice';
+    /* isFront=true → front voice, isFront=false → back voice */
+    var selId   = (isFront !== false) ? 'fc-front-voice' : 'fc-back-voice';
     var voiceId = document.getElementById(selId).value;
     if (!voiceId) return;
 
@@ -350,7 +348,7 @@
     var g = GRADIENTS[i % GRADIENTS.length];
     var frontEl = makeCard(card, 'Câu hỏi', g[0], g[1], false);
     frontEl.onclick = function() { flipCard(card, i); };
-    speak(card.front);
+    speak(card.front, true);
 
     area.innerHTML = '';
     area.appendChild(frontEl);
@@ -369,7 +367,7 @@
     var area = document.getElementById('card-area');
     var g = GRADIENTS[(i + 3) % GRADIENTS.length];
     var backEl = makeCard(card, 'Đáp án', g[0], g[1], true);
-    speak(card.back);
+    speak(card.back, false);
     backEl.onclick = null;
     area.innerHTML = '';
     area.appendChild(backEl);
