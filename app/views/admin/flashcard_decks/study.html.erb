@@ -170,15 +170,20 @@
     if (_voicesLoaded) return Promise.resolve();
     return fetch(VOICES_URL, { headers: { 'Accept': 'application/json' } })
       .then(function(r) { return r.json(); })
-      .then(function(voices) {
+      .then(function(data) {
+        /* ElevenLabsService may return array directly or {voices:[...]} */
+        var voices = Array.isArray(data) ? data : (data.voices || []);
+        if (!voices.length) throw new Error(data.error || 'Không có giọng nào');
+
         var frontSel = document.getElementById('fc-front-voice');
         var backSel  = document.getElementById('fc-back-voice');
         frontSel.innerHTML = ''; backSel.innerHTML = '';
 
         voices.forEach(function(v) {
-          var name = v.name.length > 26 ? v.name.substring(0, 26) + '…' : v.name;
-          var o1 = document.createElement('option'); o1.value = v.id; o1.textContent = name; frontSel.appendChild(o1);
-          var o2 = document.createElement('option'); o2.value = v.id; o2.textContent = name; backSel.appendChild(o2);
+          var vid  = v.voice_id || v.id;
+          var name = (v.name || vid).substring(0, 26);
+          var o1 = document.createElement('option'); o1.value = vid; o1.textContent = name; frontSel.appendChild(o1);
+          var o2 = document.createElement('option'); o2.value = vid; o2.textContent = name; backSel.appendChild(o2);
         });
 
         restoreVoice(frontSel, 'fc_tts_front_voice');
@@ -192,10 +197,16 @@
           speak(p.text, p.isFront);
         }
       })
-      .catch(function() {
-        var s = document.getElementById('fc-front-voice');
-        s.innerHTML = '<option value="">⚠️ Lỗi tải giọng</option>';
-        showEl('fc-front-voice');
+      .catch(function(err) {
+        /* Retry once after 2s in case of transient network error */
+        if (!loadElevenLabsVoices._retried) {
+          loadElevenLabsVoices._retried = true;
+          setTimeout(function() { loadElevenLabsVoices(); }, 2000);
+        } else {
+          var s = document.getElementById('fc-front-voice');
+          s.innerHTML = '<option value="">⚠️ ' + (err.message || 'Lỗi tải giọng') + '</option>';
+          showEl('fc-front-voice');
+        }
       });
   }
 
