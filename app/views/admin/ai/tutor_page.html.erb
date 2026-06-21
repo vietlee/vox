@@ -18,8 +18,14 @@
       <% end %>
     </div>
   </div>
-  <div class="text-[11px] text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
-    1 credit / tin nhắn
+  <div class="flex items-center gap-2">
+    <button onclick="clearHistory()" title="Xóa lịch sử"
+            class="text-[11px] text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded-xl px-3 py-1.5 transition-colors cursor-pointer bg-slate-50">
+      🗑 Xóa lịch sử
+    </button>
+    <div class="text-[11px] text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+      1 credit / tin nhắn
+    </div>
   </div>
 </div>
 
@@ -56,10 +62,41 @@
 </div>
 
 <script>
-let chatHistory = [];
 const contextType = '<%= @context_type %>';
-const contextId = '<%= @context_id %>';
+const contextId   = '<%= @context_id %>';
+const STORAGE_KEY = 'vox_tutor_history_<%= current_workspace.id %>_<%= current_user.id %>';
+const MAX_STORED  = 40; // số tin nhắn tối đa lưu
 const csrf = () => document.querySelector('meta[name="csrf-token"]').content;
+
+// Load history từ localStorage
+let chatHistory = [];
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) chatHistory = JSON.parse(saved);
+} catch(e) { chatHistory = []; }
+
+// Render lại lịch sử khi tải trang
+(function restoreHistory() {
+  if (!chatHistory.length) return;
+  chatHistory.forEach(m => appendMsg(m.role, m.content));
+  // scroll xuống cuối
+  const c = document.getElementById('chat-messages');
+  if (c) c.scrollTop = c.scrollHeight;
+})();
+
+function saveHistory() {
+  try {
+    // Giữ tối đa MAX_STORED tin nhắn gần nhất
+    const trimmed = chatHistory.slice(-MAX_STORED);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+  } catch(e) {}
+}
+
+function clearHistory() {
+  chatHistory = [];
+  localStorage.removeItem(STORAGE_KEY);
+  document.getElementById('chat-messages').innerHTML = '';
+}
 
 function toggleSend(v) {
   document.getElementById('send-btn').disabled = !v.trim();
@@ -71,6 +108,7 @@ async function sendMsg() {
   if (!msg) return;
   input.value = ''; toggleSend(''); input.style.height = '';
   chatHistory.push({ role: 'user', content: msg });
+  saveHistory();
   appendMsg('user', msg);
   const thinkingEl = appendMsg('assistant', '<span class="inline-flex gap-1"><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:0s"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:.15s"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:.3s"></span></span>', true);
   try {
@@ -82,7 +120,10 @@ async function sendMsg() {
     const data = await res.json();
     const reply = data.response || data.error || 'Lỗi không xác định';
     thinkingEl.innerHTML = md(reply);
-    if (data.response) chatHistory.push({ role: 'assistant', content: data.response });
+    if (data.response) {
+      chatHistory.push({ role: 'assistant', content: data.response });
+      saveHistory();
+    }
   } catch(e) {
     thinkingEl.innerHTML = '<span class="text-red-500">Lỗi kết nối. Thử lại.</span>';
   }
