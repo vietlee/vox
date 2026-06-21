@@ -1,4 +1,6 @@
 class ContentOutlineGenerator
+  PPTX_SCRIPT = Rails.root.join("scripts", "generate_pptx.py").to_s
+
   def self.call(outline)
     new(outline).call
   end
@@ -12,19 +14,23 @@ class ContentOutlineGenerator
 
     if @outline.output_type == "slide"
       result = svc.call(system_prompt: slide_system, user_prompt: slide_user, max_tokens: 4000)
-      html = slides_to_html(result)
+      slides = parse_slides(result)
+      html   = slides_to_html(slides)
+      pptx_path = generate_pptx(slides)
+      @outline.update!(content: html, slide_json: slides.to_json, status: :done)
+      attach_pptx(pptx_path) if pptx_path
     else
       result = svc.call(system_prompt: generic_system, user_prompt: generic_user, max_tokens: 3000)
-      html = markdown_to_html(result)
+      @outline.update!(content: markdown_to_html(result), status: :done)
     end
-
-    @outline.update!(content: html, status: :done)
   end
 
   private
 
+  # ── AI prompts ──────────────────────────────────────────────────────────────
+
   def slide_system
-    "Bạn là chuyên gia tạo slide thuyết trình. Trả lời bằng tiếng Việt."
+    "Bạn là chuyên gia tạo slide thuyết trình chuyên nghiệp. Trả lời bằng tiếng Việt."
   end
 
   def slide_user
@@ -32,18 +38,22 @@ class ContentOutlineGenerator
       Tạo bộ slide thuyết trình cho chủ đề: "#{@outline.title}"#{@outline.subject.present? ? " (#{@outline.subject})" : ""}.
       Yêu cầu bổ sung: #{@outline.prompt_input.presence || 'Không có'}
 
-      Tạo 6–8 slide. Mỗi slide theo đúng format (không thêm gì khác):
+      Tạo 7–9 slide chất lượng cao. Mỗi slide theo đúng format:
 
       ---SLIDE---
       TITLE: Tiêu đề slide
       BODY:
-      - Điểm chính 1
+      - Điểm chính 1 (ngắn gọn, súc tích)
       - Điểm chính 2
       - Điểm chính 3
-      NOTE: Ghi chú ngắn cho người trình bày
+      NOTE: Ghi chú cho người trình bày (1-2 câu giải thích thêm)
       ---END---
 
-      Slide đầu là trang bìa, slide cuối là tóm tắt. Mỗi slide tối đa 4 bullets.
+      Quy tắc:
+      - Slide 1: trang bìa hấp dẫn, có thể thêm subtitle
+      - Slide cuối: tóm tắt & call-to-action
+      - Mỗi slide tối đa 4 bullets, mỗi bullet tối đa 12 từ
+      - Nội dung phải logic, có flow rõ ràng
     PROMPT
   end
 
@@ -56,20 +66,56 @@ class ContentOutlineGenerator
     "Tạo #{type_label} cho chủ đề: \"#{@outline.title}\"#{@outline.subject.present? ? " (#{@outline.subject})" : ""}.\n\nYêu cầu bổ sung: #{@outline.prompt_input.presence || 'Không có'}\n\nTạo nội dung đầy đủ, có cấu trúc rõ ràng."
   end
 
-  def slides_to_html(text)
-    raw_slides = text.scan(/---SLIDE---(.*?)---END---/m).flatten
-    return markdown_to_html(text) if raw_slides.empty?
+  # ── Slide parsing & HTML viewer ─────────────────────────────────────────────
 
-    slides_json = raw_slides.map do |s|
+  def parse_slides(text)
+    raw = text.scan(/---SLIDE---(.*?)---END---/m).flatten
+    return [] if raw.empty?
+
+    raw.map do |s|
       title   = s[/TITLE:\s*(.+)/, 1]&.strip || "Slide"
       body    = s[/BODY:\n(.*?)(?:NOTE:|$)/m, 1]&.strip || ""
       note    = s[/NOTE:\s*(.+)/, 1]&.strip || ""
       bullets = body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
-      { title: title, bullets: bullets, note: note }
+      { "title" => title, "bullets" => bullets, "note" => note }
     end
-
-    "<div id='slide-deck-root' data-slides='#{ERB::Util.html_escape(slides_json.to_json)}'></div>"
   end
+
+  def slides_to_html(slides)
+    return "<p>Không thể tạo slide.</p>" if slides.empty?
+    "<div id='slide-deck-root' data-slides='#{ERB::Util.html_escape(slides.to_json)}'></div>"
+  end
+
+  # ── PPTX generation ─────────────────────────────────────────────────────────
+
+  def generate_pptx(slides)
+    return nil if slides.empty?
+    return nil unless File.exist?(PPTX_SCRIPT)
+
+    out_path = Rails.root.join("tmp", "slide_#{@outline.id}_#{Time.now.to_i}.pptx").to_s
+    require "open3"
+    stdout, stderr, status = Open3.capture3(
+      "python3", PPTX_SCRIPT, slides.to_json, out_path
+    )
+    Rails.logger.error "[PPTX] #{stderr}" if stderr.present?
+    status.success? && File.exist?(out_path) ? out_path : nil
+  rescue => e
+    Rails.logger.error "[PPTX] #{e.message}"
+    nil
+  end
+
+  def attach_pptx(path)
+    filename = "#{@outline.title.parameterize}.pptx"
+    @outline.pptx_file.attach(
+      io: File.open(path),
+      filename: filename,
+      content_type: "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    )
+  ensure
+    File.delete(path) rescue nil
+  end
+
+  # ── Markdown → HTML ─────────────────────────────────────────────────────────
 
   def markdown_to_html(text)
     colors = %w[#10b981 #f59e0b #6366f1 #3b82f6 #ec4899]

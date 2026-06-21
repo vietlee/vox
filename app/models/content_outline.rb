@@ -4,4 +4,6 @@ class ContentOutline < ApplicationRecord
 
   enum :status, { pending: 0, done: 1, failed: 2 }
   TYPES = %w[outline slide_script lesson_plan].freeze
+
+  has_one_attached :pptx_file
 end
