@@ -1,5 +1,6 @@
 <% content_for :title, "AI Tutor" %>
 <% content_for :main_class, 'flex-1 overflow-hidden flex flex-col' %>
+<meta name="turbo-visit-control" content="reload">
 
 <!-- Header -->
 <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-200 bg-white flex-shrink-0">
@@ -55,7 +56,7 @@
 </div>
 
 <script>
-let history = [];
+let chatHistory = [];
 const contextType = '<%= @context_type %>';
 const contextId = '<%= @context_id %>';
 const csrf = () => document.querySelector('meta[name="csrf-token"]').content;
@@ -69,19 +70,19 @@ async function sendMsg() {
   const msg = input.value.trim();
   if (!msg) return;
   input.value = ''; toggleSend(''); input.style.height = '';
-  history.push({ role: 'user', content: msg });
+  chatHistory.push({ role: 'user', content: msg });
   appendMsg('user', msg);
   const thinkingEl = appendMsg('assistant', '<span class="inline-flex gap-1"><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:0s"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:.15s"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:.3s"></span></span>', true);
   try {
     const res = await fetch('<%= ai_tutor_path %>', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf() },
-      body: JSON.stringify({ message: msg, history: history.slice(0,-1), context_type: contextType, context_id: contextId })
+      body: JSON.stringify({ message: msg, history: chatHistory.slice(0,-1), context_type: contextType, context_id: contextId })
     });
     const data = await res.json();
     const reply = data.response || data.error || 'Lỗi không xác định';
     thinkingEl.innerHTML = md(reply);
-    if (data.response) history.push({ role: 'assistant', content: data.response });
+    if (data.response) chatHistory.push({ role: 'assistant', content: data.response });
   } catch(e) {
     thinkingEl.innerHTML = '<span class="text-red-500">Lỗi kết nối. Thử lại.</span>';
   }
