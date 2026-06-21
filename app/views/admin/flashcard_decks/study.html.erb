@@ -37,9 +37,15 @@
 
       <!-- TTS controls -->
       <div class="flex items-center gap-2 justify-end mb-2 flex-wrap">
-        <select id="fc-voice-select" title="Chọn giọng đọc"
+        <label class="hidden text-[10px] font-bold text-slate-400 uppercase tracking-wide" id="vi-voice-label">🇻🇳</label>
+        <select id="fc-vi-voice" title="Giọng tiếng Việt"
                 class="hidden px-2 py-1.5 rounded-xl text-[12px] font-semibold border outline-none"
-                style="border-color:#6366f1; color:#4f46e5; background:#eef2ff; max-width:220px;">
+                style="border-color:#6366f1; color:#4f46e5; background:#eef2ff; max-width:190px;">
+        </select>
+        <label class="hidden text-[10px] font-bold text-slate-400 uppercase tracking-wide" id="en-voice-label">🇺🇸</label>
+        <select id="fc-en-voice" title="Giọng tiếng Anh"
+                class="hidden px-2 py-1.5 rounded-xl text-[12px] font-semibold border outline-none"
+                style="border-color:#0ea5e9; color:#0369a1; background:#e0f2fe; max-width:190px;">
         </select>
         <button id="tts-btn" onclick="toggleTTS()" title="Bật/tắt đọc to"
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-all flex-shrink-0"
@@ -110,18 +116,24 @@
     ['#a18cd1','#fbc2eb'],
   ];
 
-  /* ── TTS via ElevenLabs (reuses existing /tts/voices + /tts/generate) ── */
-  var VOICES_URL   = '<%= tts_voices_path %>';
-  var GENERATE_URL = '<%= tts_generate_path %>';
-  var CSRF_TOKEN_TTS = document.querySelector('meta[name="csrf-token"]').content;
+  /* ── TTS via ElevenLabs ── */
+  var VOICES_URL     = '<%= tts_voices_path %>';
+  var GENERATE_URL   = '<%= tts_generate_path %>';
+  var CSRF_TTS       = document.querySelector('meta[name="csrf-token"]').content;
+  var _fcAudio       = null;
+  var _voicesLoaded  = false;
+  var _pendingSpeak  = null;   /* text to speak once voices finish loading */
 
-  var _fcAudio = null;   /* current Audio instance */
-  var _voicesLoaded = false;
-
-  /* Vietnamese diacritics → vi; pure ASCII → en; else vi */
   var VI_RE = /[àáảãạăắặằẳẵâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵÀÁẢÃẠĂẮẶẰẲẴÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ]/;
-  function detectLang(text) {
-    return VI_RE.test(text) ? 'vi' : 'en';
+  function detectLang(text) { return VI_RE.test(text) ? 'vi' : 'en'; }
+
+  function showEl(id)  { document.getElementById(id).classList.remove('hidden'); }
+  function hideEl(id)  { document.getElementById(id).classList.add('hidden'); }
+
+  function restoreVoice(sel, key) {
+    var saved = localStorage.getItem(key);
+    if (saved && Array.from(sel.options).find(function(o){ return o.value === saved; })) sel.value = saved;
+    sel.onchange = function() { localStorage.setItem(key, sel.value); };
   }
 
   function loadElevenLabsVoices() {
@@ -129,27 +141,33 @@
     return fetch(VOICES_URL, { headers: { 'Accept': 'application/json' } })
       .then(function(r) { return r.json(); })
       .then(function(voices) {
-        var sel = document.getElementById('fc-voice-select');
-        sel.innerHTML = '';
+        var viSel = document.getElementById('fc-vi-voice');
+        var enSel = document.getElementById('fc-en-voice');
+        viSel.innerHTML = ''; enSel.innerHTML = '';
+
         voices.forEach(function(v) {
-          var opt = document.createElement('option');
-          opt.value = v.id;
-          opt.textContent = v.name.length > 30 ? v.name.substring(0, 30) + '…' : v.name;
-          sel.appendChild(opt);
+          var name = v.name.length > 28 ? v.name.substring(0, 28) + '…' : v.name;
+          /* put voice into both lists — user picks the right one per language */
+          var opt1 = document.createElement('option'); opt1.value = v.id; opt1.textContent = name; viSel.appendChild(opt1);
+          var opt2 = document.createElement('option'); opt2.value = v.id; opt2.textContent = name; enSel.appendChild(opt2);
         });
-        /* restore last used voice */
-        var saved = localStorage.getItem('fc_tts_voice');
-        if (saved && Array.from(sel.options).find(function(o){ return o.value === saved; })) {
-          sel.value = saved;
-        }
-        sel.onchange = function() { localStorage.setItem('fc_tts_voice', sel.value); };
+
+        restoreVoice(viSel, 'fc_tts_vi_voice');
+        restoreVoice(enSel, 'fc_tts_en_voice');
+
+        ['vi-voice-label','fc-vi-voice','en-voice-label','fc-en-voice'].forEach(showEl);
         _voicesLoaded = true;
-        sel.classList.remove('hidden');
+
+        /* speak card #1 if it was pending */
+        if (_pendingSpeak !== null) {
+          var t = _pendingSpeak; _pendingSpeak = null;
+          speak(t);
+        }
       })
-      .catch(function(e) {
-        var sel = document.getElementById('fc-voice-select');
-        sel.innerHTML = '<option value="">⚠️ Không tải được giọng</option>';
-        sel.classList.remove('hidden');
+      .catch(function() {
+        var viSel = document.getElementById('fc-vi-voice');
+        viSel.innerHTML = '<option value="">⚠️ Lỗi tải giọng</option>';
+        showEl('fc-vi-voice');
       });
   }
 
@@ -160,28 +178,33 @@
     if (ttsOn) {
       btn.style.borderColor = '#6366f1'; btn.style.color = '#4f46e5'; btn.style.background = '#eef2ff';
       lbl.textContent = 'Đọc to: Bật';
+      /* queue current card to speak after voices load */
+      if (cards[current]) _pendingSpeak = cards[current].front;
       loadElevenLabsVoices();
     } else {
       if (_fcAudio) { _fcAudio.pause(); _fcAudio = null; }
+      _pendingSpeak = null;
       btn.style.borderColor = '#e2e8f0'; btn.style.color = '#64748b'; btn.style.background = '#fff';
       lbl.textContent = 'Đọc to: Tắt';
-      document.getElementById('fc-voice-select').classList.add('hidden');
+      ['vi-voice-label','fc-vi-voice','en-voice-label','fc-en-voice'].forEach(hideEl);
     }
   };
 
   function speak(text) {
     if (!ttsOn) return;
-    /* stop any in-progress audio */
+    if (!_voicesLoaded) { _pendingSpeak = text; return; }  /* wait for voices */
     if (_fcAudio) { _fcAudio.pause(); _fcAudio = null; }
 
-    var voiceId = document.getElementById('fc-voice-select').value;
+    var lang    = detectLang(text);
+    var selId   = lang === 'vi' ? 'fc-vi-voice' : 'fc-en-voice';
+    var voiceId = document.getElementById(selId).value;
     if (!voiceId) return;
 
     var fd = new FormData();
     fd.append('text',          text);
     fd.append('voice_id',      voiceId);
     fd.append('model',         'eleven_turbo_v2_5');
-    fd.append('speed',         detectLang(text) === 'en' ? '1.0' : '0.9');
+    fd.append('speed',         lang === 'en' ? '1.0' : '0.9');
     fd.append('stability',     '0.5');
     fd.append('similarity',    '0.75');
     fd.append('style',         '0.0');
@@ -189,13 +212,10 @@
 
     fetch(GENERATE_URL, {
       method:  'POST',
-      headers: { 'X-CSRF-Token': CSRF_TOKEN_TTS, 'Accept': 'audio/mpeg, application/json' },
+      headers: { 'X-CSRF-Token': CSRF_TTS, 'Accept': 'audio/mpeg, application/json' },
       body:    fd
     })
-    .then(function(r) {
-      if (!r.ok) return;
-      return r.blob();
-    })
+    .then(function(r) { return r.ok ? r.blob() : null; })
     .then(function(blob) {
       if (!blob || !ttsOn) return;
       var url = URL.createObjectURL(blob);
@@ -203,7 +223,7 @@
       _fcAudio.onended = function() { URL.revokeObjectURL(url); };
       _fcAudio.play();
     })
-    .catch(function() { /* silent fail — don't interrupt study flow */ });
+    .catch(function() {});
   }
 
   function makeCard(card, label, g1, g2, isBack) {
