@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_21_181612) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_21_181613) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -597,6 +597,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_21_181612) do
     t.text "ai_class_evaluation"
     t.datetime "ai_class_evaluated_at"
     t.boolean "ai_generating", default: false
+    t.boolean "ai_failed", default: false, null: false
     t.index ["share_token"], name: "index_quiz_sets_on_share_token", unique: true
     t.index ["user_id"], name: "index_quiz_sets_on_user_id"
     t.index ["workspace_id", "status"], name: "index_quiz_sets_on_workspace_id_and_status"

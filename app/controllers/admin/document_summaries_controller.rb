@@ -8,6 +8,8 @@ class Admin::DocumentSummariesController < Admin::BaseController
   def new; @summary = DocumentSummary.new; end
 
   def create
+    return unless require_credits!(2)
+
     @summary = current_workspace.document_summaries.new(
       title:        params[:title].to_s.strip,
       source_type:  params[:source_type],
@@ -23,20 +25,30 @@ class Admin::DocumentSummariesController < Admin::BaseController
     end
 
     @summary.save!
-    require_credits!(2)
-    deduct_credits!(2)
     GenerateDocumentSummaryJob.perform_later(@summary.id)
-    redirect_to document_summary_path(@summary)
+
+    respond_to do |format|
+      format.json { render json: { pending: true, poll_url: ai_status_document_summary_path(@summary, format: :json), show_url: document_summary_path(@summary) } }
+      format.html { redirect_to document_summary_path(@summary) }
+    end
   rescue => e
     @summary&.update_columns(status: 2)
-    flash.now[:alert] = e.message
-    render :new, status: :unprocessable_entity
+    respond_to do |format|
+      format.json { render json: { error: e.message }, status: :unprocessable_entity }
+      format.html { flash.now[:alert] = e.message; render :new, status: :unprocessable_entity }
+    end
   end
 
   def show; end
 
   def ai_status
-    render json: { pending: @summary.pending?, failed: @summary.failed? }
+    if @summary.pending?
+      render json: { pending: true }
+    elsif @summary.failed?
+      render json: { failed: true, error: "AI gặp lỗi khi tóm tắt. Vui lòng thử lại." }
+    else
+      render json: { success: true, redirect: document_summary_path(@summary) }
+    end
   end
 
   def destroy
@@ -49,5 +61,4 @@ class Admin::DocumentSummariesController < Admin::BaseController
   def set_summary
     @summary = current_workspace.document_summaries.find(params[:id])
   end
-
 end
