@@ -43,77 +43,179 @@
 <% elsif @outline.output_type.in?(["slide", "slide_script"]) && @outline.content.include?("slide-deck-root") %>
   <!-- Slide viewer -->
   <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-    <div class="border-b border-slate-100 px-6 py-3 flex items-center justify-between">
-      <span class="text-[12px] text-slate-400 font-semibold uppercase tracking-wide">🖥️ Slide thuyết trình</span>
-      <button id="fullscreen-btn" onclick="enterFullscreen()"
+    <div class="border-b border-slate-100 px-5 py-2.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-[11px] text-slate-400 font-bold uppercase tracking-widest">🖥️ Slide thuyết trình</span>
+        <!-- Progress dots -->
+        <div id="slide-dots" class="flex gap-1"></div>
+      </div>
+      <button onclick="enterFullscreen()"
               class="text-[12px] text-slate-500 hover:text-indigo-600 px-3 py-1 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors border-0 cursor-pointer">
         ⛶ Toàn màn hình
       </button>
     </div>
-    <div id="slide-viewer" class="relative select-none" style="background:#1e1b4b; min-height:420px;">
-      <!-- Rendered by JS -->
+
+    <!-- 16:9 aspect ratio wrapper -->
+    <div style="position:relative; padding-bottom:56.25%; background:#0f172a; overflow:hidden;">
+      <div id="slide-viewer" style="position:absolute; inset:0; overflow:hidden;"></div>
     </div>
-    <div class="border-t border-slate-100 px-6 py-3 flex items-center justify-between bg-slate-50">
-      <button onclick="prevSlide()" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[13px] font-semibold text-slate-600 hover:bg-slate-100 transition-colors border-0 cursor-pointer shadow-sm">← Trước</button>
+
+    <div class="border-t border-slate-100 px-5 py-2.5 flex items-center justify-between bg-slate-50">
+      <button onclick="prevSlide()"
+              style="border:1px solid #e2e8f0;"
+              class="px-4 py-2 bg-white rounded-xl text-[13px] font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shadow-sm">
+        ← Trước
+      </button>
       <span id="slide-counter" class="text-[12px] text-slate-500 font-semibold"></span>
-      <button onclick="nextSlide()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-[13px] font-bold text-white transition-colors border-0 cursor-pointer shadow-sm">Tiếp →</button>
+      <button onclick="nextSlide()"
+              class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-[13px] font-bold text-white transition-colors border-0 cursor-pointer shadow-sm">
+        Tiếp →
+      </button>
     </div>
-    <!-- Speaker note -->
-    <div id="slide-note" class="hidden border-t border-slate-100 px-6 py-3 bg-amber-50">
-      <div class="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-1">Ghi chú người trình bày</div>
-      <p id="slide-note-text" class="text-[12px] text-amber-800"></p>
+    <div id="slide-note" class="hidden border-t border-slate-100 px-5 py-3 bg-amber-50">
+      <div class="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-1">💬 Ghi chú người trình bày</div>
+      <p id="slide-note-text" class="text-[13px] text-amber-800 leading-relaxed"></p>
     </div>
   </div>
 
   <div id="slide-data" class="hidden"><%= raw @outline.content %></div>
+
+  <style>
+    #slide-viewer * { box-sizing: border-box; }
+    @keyframes slideIn { from { opacity:0; transform:translateX(24px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes fadeUp  { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    .slide-anim { animation: slideIn 0.32s ease forwards; }
+    .bullet-anim { animation: fadeUp 0.3s ease both; }
+  </style>
 
   <script>
   (function() {
     var el = document.getElementById('slide-data').querySelector('#slide-deck-root');
     var slides = JSON.parse(el.dataset.slides || '[]');
     var current = 0;
+    var total = slides.length;
 
-    var BG_COLORS = ['#1e1b4b','#0f172a','#1a1f3a','#0d1b2a','#1c1c2e'];
-    var ACCENT_COLORS = ['#818cf8','#38bdf8','#34d399','#fb923c','#f472b6'];
+    // Theme palette — each slide gets a unique scheme
+    var THEMES = [
+      { bg: 'linear-gradient(135deg,#1e1b4b 0%,#312e81 100%)', accent: '#a5b4fc', card: 'rgba(255,255,255,0.07)', num: '#818cf8' },
+      { bg: 'linear-gradient(135deg,#0c1445 0%,#1e3a5f 100%)', accent: '#7dd3fc', card: 'rgba(255,255,255,0.07)', num: '#38bdf8' },
+      { bg: 'linear-gradient(135deg,#064e3b 0%,#065f46 100%)', accent: '#6ee7b7', card: 'rgba(255,255,255,0.07)', num: '#34d399' },
+      { bg: 'linear-gradient(135deg,#431407 0%,#7c2d12 100%)', accent: '#fdba74', card: 'rgba(255,255,255,0.07)', num: '#fb923c' },
+      { bg: 'linear-gradient(135deg,#2d1b69 0%,#4c1d95 100%)', accent: '#d8b4fe', card: 'rgba(255,255,255,0.07)', num: '#c084fc' },
+      { bg: 'linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)', accent: '#67e8f9', card: 'rgba(255,255,255,0.07)', num: '#22d3ee' },
+    ];
 
-    function render() {
-      if (!slides.length) return;
-      var s = slides[current];
-      var bg = BG_COLORS[current % BG_COLORS.length];
-      var accent = ACCENT_COLORS[current % ACCENT_COLORS.length];
-      var isFirst = current === 0;
-      var bulletsHtml = s.bullets.map(function(b) {
-        return '<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">' +
-          '<span style="width:6px;height:6px;border-radius:50%;background:' + accent + ';flex-shrink:0;margin-top:6px;"></span>' +
-          '<span style="color:#e2e8f0;font-size:15px;line-height:1.5;">' + b + '</span>' +
+    function getTheme(i) { return THEMES[i % THEMES.length]; }
+
+    function renderCover(s, theme) {
+      return '<div class="slide-anim" style="position:absolute;inset:0;background:' + theme.bg + ';display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6% 10%;text-align:center;">' +
+        // Top decorative bar
+        '<div style="position:absolute;top:0;left:0;right:0;height:5px;background:' + theme.accent + ';"></div>' +
+        // Corner decoration
+        '<div style="position:absolute;top:20px;right:24px;font-size:11px;font-weight:700;letter-spacing:3px;color:' + theme.accent + ';opacity:0.6;text-transform:uppercase;">01 / ' + String(total).padStart(2,'0') + '</div>' +
+        // Big title
+        '<div style="font-size:clamp(22px,4vw,42px);font-weight:900;color:#fff;line-height:1.15;margin-bottom:20px;text-shadow:0 2px 24px rgba(0,0,0,0.4);">' + s.title + '</div>' +
+        // Divider line
+        '<div style="width:60px;height:4px;border-radius:2px;background:' + theme.accent + ';margin-bottom:20px;"></div>' +
+        // Subtitle from bullets
+        (s.bullets.length ? '<div style="font-size:clamp(13px,1.6vw,18px);color:rgba(255,255,255,0.75);line-height:1.7;max-width:72%;">' + s.bullets.join(' &nbsp;·&nbsp; ') + '</div>' : '') +
+        // Bottom decorative bar
+        '<div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,' + theme.accent + ',transparent);"></div>' +
+      '</div>';
+    }
+
+    function renderContent(s, i, theme) {
+      var bulletsHtml = s.bullets.map(function(b, bi) {
+        return '<div class="bullet-anim" style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:' + theme.card + ';border-radius:10px;border-left:3px solid ' + theme.accent + ';animation-delay:' + (bi*0.07) + 's;">' +
+          '<span style="font-size:13px;font-weight:800;color:' + theme.accent + ';margin-top:1px;flex-shrink:0;">' + String(bi+1).padStart(2,'0') + '</span>' +
+          '<span style="color:#f1f5f9;font-size:clamp(12px,1.4vw,15px);line-height:1.55;">' + b + '</span>' +
         '</div>';
       }).join('');
 
-      var html = '<div style="min-height:420px;display:flex;flex-direction:column;justify-content:center;align-items:center;background:' + bg + ';padding:40px 60px;text-align:center;">' +
-        (isFirst ? '' : '<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:' + accent + ';margin-bottom:12px;text-transform:uppercase;">Slide ' + (current+1) + ' / ' + slides.length + '</div>') +
-        '<h2 style="color:#fff;font-size:' + (isFirst?'28':'22') + 'px;font-weight:800;margin:0 0 ' + (s.bullets.length?'28px':'0') + ';line-height:1.3;max-width:700px;">' + s.title + '</h2>' +
-        (s.bullets.length ? '<div style="text-align:left;max-width:620px;width:100%;">' + bulletsHtml + '</div>' : '') +
+      return '<div class="slide-anim" style="position:absolute;inset:0;background:' + theme.bg + ';display:flex;flex-direction:column;padding:4% 5% 3%;">' +
+        // Header
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:4%;padding-bottom:3%;border-bottom:1px solid rgba(255,255,255,0.1);">' +
+          '<div style="background:' + theme.accent + ';color:#0f172a;font-size:11px;font-weight:900;padding:4px 10px;border-radius:20px;letter-spacing:1px;flex-shrink:0;">' + String(i+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') + '</div>' +
+          '<h2 style="color:#fff;font-size:clamp(16px,2.2vw,26px);font-weight:800;margin:0;line-height:1.2;">' + s.title + '</h2>' +
+        '</div>' +
+        // Bullets
+        '<div style="flex:1;display:flex;flex-direction:column;gap:8px;overflow:hidden;">' + bulletsHtml + '</div>' +
+        // Bottom accent
+        '<div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,' + theme.accent + ',transparent);"></div>' +
+      '</div>';
+    }
+
+    function renderSummary(s, theme) {
+      var bulletsHtml = s.bullets.map(function(b, bi) {
+        var icons = ['✅','💡','🎯','📌','⭐','🔑'];
+        return '<div class="bullet-anim" style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:rgba(255,255,255,0.06);border-radius:10px;animation-delay:' + (bi*0.08) + 's;">' +
+          '<span style="font-size:16px;">' + (icons[bi] || '▸') + '</span>' +
+          '<span style="color:#f1f5f9;font-size:clamp(12px,1.4vw,14px);line-height:1.5;">' + b + '</span>' +
         '</div>';
+      }).join('');
+
+      return '<div class="slide-anim" style="position:absolute;inset:0;background:' + theme.bg + ';display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5% 8%;text-align:center;">' +
+        '<div style="position:absolute;top:0;left:0;right:0;height:5px;background:' + theme.accent + ';"></div>' +
+        '<div style="font-size:11px;font-weight:800;letter-spacing:3px;color:' + theme.accent + ';margin-bottom:14px;text-transform:uppercase;">Tóm tắt</div>' +
+        '<h2 style="color:#fff;font-size:clamp(18px,2.8vw,32px);font-weight:900;margin:0 0 20px;line-height:1.2;">' + s.title + '</h2>' +
+        '<div style="width:50px;height:3px;background:' + theme.accent + ';border-radius:2px;margin-bottom:24px;"></div>' +
+        '<div style="width:100%;max-width:640px;display:flex;flex-direction:column;gap:8px;text-align:left;">' + bulletsHtml + '</div>' +
+        '<div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,' + theme.accent + ',transparent);"></div>' +
+      '</div>';
+    }
+
+    function render(direction) {
+      if (!slides.length) return;
+      var s = slides[current];
+      var theme = getTheme(current);
+      var isFirst = current === 0;
+      var isLast  = current === total - 1;
+
+      var html;
+      if (isFirst)     html = renderCover(s, theme);
+      else if (isLast) html = renderSummary(s, theme);
+      else             html = renderContent(s, current, theme);
 
       document.getElementById('slide-viewer').innerHTML = html;
-      document.getElementById('slide-counter').textContent = (current+1) + ' / ' + slides.length;
+      document.getElementById('slide-counter').textContent = (current+1) + ' / ' + total;
 
+      // Progress dots
+      var dots = document.getElementById('slide-dots');
+      dots.innerHTML = slides.map(function(_, i) {
+        return '<div style="width:' + (i===current?'18px':'6px') + ';height:6px;border-radius:3px;background:' + (i===current?'#6366f1':'#cbd5e1') + ';transition:all 0.2s;"></div>';
+      }).join('');
+
+      // Speaker note
       var noteEl = document.getElementById('slide-note');
-      var noteTxtEl = document.getElementById('slide-note-text');
-      if (s.note) { noteTxtEl.textContent = s.note; noteEl.classList.remove('hidden'); }
-      else { noteEl.classList.add('hidden'); }
+      if (s.note) {
+        document.getElementById('slide-note-text').textContent = s.note;
+        noteEl.classList.remove('hidden');
+      } else {
+        noteEl.classList.add('hidden');
+      }
     }
 
     window.prevSlide = function() { if (current > 0) { current--; render(); } };
-    window.nextSlide = function() { if (current < slides.length-1) { current++; render(); } };
+    window.nextSlide = function() { if (current < total-1) { current++; render(); } };
     window.enterFullscreen = function() {
-      var el = document.getElementById('slide-viewer').parentElement;
-      if (el.requestFullscreen) el.requestFullscreen();
+      var wrapper = document.getElementById('slide-viewer').parentElement;
+      (wrapper.requestFullscreen || wrapper.webkitRequestFullscreen || function(){}).call(wrapper);
     };
 
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextSlide();
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevSlide();
+      if (e.key==='ArrowRight'||e.key==='ArrowDown') nextSlide();
+      if (e.key==='ArrowLeft'||e.key==='ArrowUp')   prevSlide();
+    });
+
+    // Swipe support
+    var touchX = null;
+    document.getElementById('slide-viewer').addEventListener('touchstart', function(e){ touchX = e.touches[0].clientX; });
+    document.getElementById('slide-viewer').addEventListener('touchend', function(e) {
+      if (!touchX) return;
+      var dx = e.changedTouches[0].clientX - touchX;
+      if (dx < -40) nextSlide();
+      else if (dx > 40) prevSlide();
+      touchX = null;
     });
 
     render();

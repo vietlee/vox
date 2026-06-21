@@ -35,25 +35,31 @@ class ContentOutlineGenerator
 
   def slide_user
     <<~PROMPT
-      Tạo bộ slide thuyết trình cho chủ đề: "#{@outline.title}"#{@outline.subject.present? ? " (#{@outline.subject})" : ""}.
+      Tạo bộ slide thuyết trình CHUYÊN NGHIỆP cho chủ đề: "#{@outline.title}"#{@outline.subject.present? ? " (#{@outline.subject})" : ""}.
       Yêu cầu bổ sung: #{@outline.prompt_input.presence || 'Không có'}
 
-      Tạo 7–9 slide chất lượng cao. Mỗi slide theo đúng format:
+      Tạo 8–10 slide chất lượng cao, mỗi slide theo đúng format này (không thêm gì khác):
 
       ---SLIDE---
-      TITLE: Tiêu đề slide
+      TITLE: Tiêu đề rõ ràng, hấp dẫn
       BODY:
-      - Điểm chính 1 (ngắn gọn, súc tích)
-      - Điểm chính 2
-      - Điểm chính 3
-      NOTE: Ghi chú cho người trình bày (1-2 câu giải thích thêm)
+      - Nội dung cụ thể, có số liệu hoặc ví dụ thực tế khi có thể
+      - Mỗi bullet là một ý hoàn chỉnh, giá trị cao (không chung chung)
+      - Tối đa 4 bullets, mỗi bullet 8–15 từ
+      NOTE: Ghi chú 1-2 câu cho người trình bày: giải thích sâu hơn, ví dụ thực tế, hoặc câu hỏi tương tác
       ---END---
 
-      Quy tắc:
-      - Slide 1: trang bìa hấp dẫn, có thể thêm subtitle
-      - Slide cuối: tóm tắt & call-to-action
-      - Mỗi slide tối đa 4 bullets, mỗi bullet tối đa 12 từ
-      - Nội dung phải logic, có flow rõ ràng
+      Yêu cầu nội dung:
+      - Slide 1 (Bìa): tiêu đề chính + 2-3 từ khóa/điểm nhấn ngắn ở BODY
+      - Slide 2: Tổng quan / Mục tiêu — người nghe sẽ học được gì
+      - Slide 3-7: Nội dung cốt lõi, mỗi slide một chủ đề riêng biệt, có chiều sâu
+      - Slide áp chót: Ứng dụng thực tế / Case study
+      - Slide cuối: Tóm tắt điểm chính + Call-to-action cụ thể
+
+      Tiêu chuẩn chất lượng:
+      - Bullets phải CỤ THỂ: có số liệu, ví dụ, hoặc hành động rõ ràng (tránh câu chung chung như "rất quan trọng")
+      - Flow logic: mỗi slide dẫn tự nhiên sang slide tiếp theo
+      - NOTE phải hữu ích: câu hỏi tương tác hoặc thông tin bổ sung thực chất
     PROMPT
   end
 
