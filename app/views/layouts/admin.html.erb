@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= content_for?(:title) ? "#{yield(:title)} — Vox" : "Vox" %></title>
   <meta name="csrf-token" content="<%= form_authenticity_token %>">
-  <meta name="turbo-cache-control" content="no-preview">
+  <meta name="turbo-cache-control" content="no-cache">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="icon" href="/icon.png" type="image/png">
   <%= stylesheet_link_tag "tailwind", data: { turbo_track: "reload" } %>
@@ -379,6 +379,18 @@
       el.classList.add('hidden');
     });
   });
+
+  // Fallback: nếu Turbo navigation bị stuck > 8s, hard-reload trang đích
+  var _turboNavTimer = null;
+  document.addEventListener('turbo:click', function(e) {
+    clearTimeout(_turboNavTimer);
+    _turboNavTimer = setTimeout(function() {
+      var href = e.detail && e.detail.url;
+      if (href) window.location.href = href;
+    }, 8000);
+  });
+  document.addEventListener('turbo:load', function() { clearTimeout(_turboNavTimer); });
+  document.addEventListener('turbo:render', function() { clearTimeout(_turboNavTimer); });
 </script>
 
 <script>
