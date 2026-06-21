@@ -36,11 +36,17 @@
 
       <div id="panel-file" class="hidden">
         <label id="file-drop-zone"
-               class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-10 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-colors">
+               class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-8 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-colors">
           <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-3 text-2xl">📁</div>
           <div class="text-[13px] font-semibold text-slate-700">Chọn hoặc kéo file vào đây</div>
-          <div class="text-[12px] text-slate-400 mt-1">TXT, PDF, DOC, DOCX</div>
-          <input type="file" id="ds-file" class="hidden" accept=".txt,.pdf,.doc,.docx"
+          <div class="flex flex-wrap justify-center gap-1 mt-2">
+            <% [["PDF","#ef4444"],["Word","#2563eb"],["Excel","#16a34a"],["PPT","#ea580c"],["Ảnh","#7c3aed"],["TXT","#64748b"]].each do |label, color| %>
+              <span style="background:<%= color %>15;color:<%= color %>;border:1px solid <%= color %>30;"
+                    class="text-[10px] font-bold px-2 py-0.5 rounded-full"><%= label %></span>
+            <% end %>
+          </div>
+          <input type="file" id="ds-file" class="hidden"
+                 accept=".txt,.csv,.pdf,.doc,.docx,.xlsx,.xls,.pptx,.png,.jpg,.jpeg,.webp,.gif,.bmp"
                  onchange="onFileSelected(this)">
         </label>
         <div id="file-name" class="hidden mt-2 flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-[13px] text-slate-700">
@@ -236,11 +242,15 @@ function switchTab(type) {
 }
 
 function onFileSelected(input) {
-  var name = input.files[0]?.name;
-  if (name) {
-    document.getElementById('file-name').classList.remove('hidden');
-    document.getElementById('file-name-text').textContent = name;
-  }
+  var file = input.files[0];
+  if (!file) return;
+  var name = file.name;
+  var ext  = name.split('.').pop().toLowerCase();
+  var icons = { pdf:'📄', doc:'📝', docx:'📝', xlsx:'📊', xls:'📊', pptx:'📑', txt:'📃', csv:'📃',
+                png:'🖼️', jpg:'🖼️', jpeg:'🖼️', gif:'🖼️', webp:'🖼️', bmp:'🖼️' };
+  var icon = icons[ext] || '📁';
+  document.getElementById('file-name').classList.remove('hidden');
+  document.getElementById('file-name-text').textContent = icon + ' ' + name;
 }
 
 document.addEventListener('turbo:before-cache', function() {
