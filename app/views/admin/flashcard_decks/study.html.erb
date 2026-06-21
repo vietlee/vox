@@ -80,8 +80,23 @@
         </div>
       </div>
 
-      <div id="flip-hint" class="text-center">
-        <span class="text-[12px] text-slate-400">Nhấn thẻ hoặc <kbd class="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono shadow-sm">Space</kbd> để xem đáp án</span>
+      <!-- Prev / Next navigation -->
+      <div class="flex items-center justify-between mt-3">
+        <button id="nav-prev" onclick="navPrev()"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold border transition-all"
+                style="border-color:#e2e8f0; color:#94a3b8; background:#fff; cursor:not-allowed;" disabled>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+          Trước
+        </button>
+        <div id="flip-hint" class="text-center">
+          <span class="text-[12px] text-slate-400">Nhấn thẻ hoặc <kbd class="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono shadow-sm">Space</kbd> để lật</span>
+        </div>
+        <button id="nav-next" onclick="navNext()"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold border transition-all"
+                style="border-color:#e2e8f0; color:#64748b; background:#fff;">
+          Sau
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+        </button>
       </div>
 
     <% end %>
@@ -320,6 +335,7 @@
     if (ratingEl) ratingEl.style.display = 'none';
     if (hintEl)   hintEl.style.display   = '';
     flipped = false;
+    updateNavBtns(i);
   }
 
   function flipCard(card, i) {
@@ -348,6 +364,34 @@
   }
 
   window.rate = rate;
+
+  function updateNavBtns(i) {
+    var prev = document.getElementById('nav-prev');
+    var next = document.getElementById('nav-next');
+    if (!prev || !next) return;
+    if (i <= 0) {
+      prev.disabled = true;
+      prev.style.color = '#cbd5e1'; prev.style.cursor = 'not-allowed'; prev.style.borderColor = '#f1f5f9';
+    } else {
+      prev.disabled = false;
+      prev.style.color = '#64748b'; prev.style.cursor = 'pointer'; prev.style.borderColor = '#e2e8f0';
+    }
+    if (i >= cards.length - 1) {
+      next.disabled = true;
+      next.style.color = '#cbd5e1'; next.style.cursor = 'not-allowed'; next.style.borderColor = '#f1f5f9';
+    } else {
+      next.disabled = false;
+      next.style.color = '#64748b'; next.style.cursor = 'pointer'; next.style.borderColor = '#e2e8f0';
+    }
+  }
+
+  window.navPrev = function() {
+    if (current > 0) { current--; showCard(current); }
+  };
+
+  window.navNext = function() {
+    if (current < cards.length - 1) { current++; showCard(current); }
+  };
 
   document.addEventListener('keydown', function(e) {
     if (e.key === ' ' || e.key === 'Enter') {
