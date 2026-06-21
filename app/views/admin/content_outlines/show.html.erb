@@ -1032,43 +1032,102 @@
       '</div>';
     }
 
-    /* ── LAYOUT: chart — SVG horizontal bar chart ── */
+    /* multi-accent palette */
+    var ACCENTS = ['#0099CC','#FF8C42','#7C3AED','#00B074','#F59E0B','#EF4444'];
+    function ac(i) { return ACCENTS[i % ACCENTS.length]; }
+    /* lighter tint for bg */
+    function acTint(hex, a) { return hex + Math.round(a*255).toString(16).padStart(2,'0'); }
+
+    /* ── LAYOUT: bullets — premium list with left accent bars ── */
+    function layoutBullets(s, t) {
+      var tColor = t.light ? t.text : '#fff';
+      var subClr = t.light ? '#475569' : 'rgba(255,255,255,.7)';
+      var bullets = s.bullets || [];
+      if (!bullets.length) return '';
+      var rows = bullets.map(function(b, i) {
+        var color = ac(i);
+        var num   = String(i+1).padStart(2,'0');
+        return '<div class="f-up" style="display:flex;align-items:flex-start;gap:14px;padding:11px 16px;margin-bottom:8px;' +
+          'border-radius:12px;border-left:3px solid ' + color + ';' +
+          'background:' + (t.light ? 'rgba(0,0,0,.03)' : 'rgba(255,255,255,.06)') + ';' +
+          'animation-delay:' + (i*0.08) + 's;">' +
+          '<span style="font-size:10px;font-weight:900;color:' + color + ';letter-spacing:1px;min-width:22px;margin-top:1px;flex-shrink:0;">' + num + '</span>' +
+          '<span style="color:' + tColor + ';font-size:clamp(12px,1.3vw,15px);line-height:1.65;font-weight:500;">' + b + '</span>' +
+        '</div>';
+      }).join('');
+      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + rows + '</div>';
+    }
+
+    /* ── LAYOUT: stats — big KPI cards in a row ── */
+    function layoutStats(s, t) {
+      var tColor = t.light ? t.text : '#fff';
+      var subClr = t.light ? '#64748b' : 'rgba(255,255,255,.6)';
+      var items  = s.items || [];
+      if (!items.length && s.bullets) {
+        items = s.bullets.map(function(b) {
+          var p = b.split('::'); return { value: (p[0]||'').trim(), label: (p[1]||b).trim() };
+        });
+      }
+      items = items.slice(0, 4);
+      var cards = items.map(function(it, i) {
+        var color = ac(i);
+        var bgs   = t.light ? '#fff' : 'rgba(255,255,255,.07)';
+        var bdr   = t.light ? '#e2e8f0' : 'rgba(255,255,255,.12)';
+        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;' +
+          'padding:20px 12px;border-radius:18px;border:1px solid ' + bdr + ';background:' + bgs + ';' +
+          'position:relative;overflow:hidden;animation-delay:' + (i*0.1) + 's;">' +
+          /* subtle top accent */
+          '<div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,' + color + ',' + ac(i+1) + ');"></div>' +
+          /* glow circle behind number */
+          '<div style="position:absolute;width:100px;height:100px;border-radius:50%;background:' + color + ';opacity:.08;top:50%;left:50%;transform:translate(-50%,-50%);"></div>' +
+          '<div style="font-size:clamp(28px,4vw,52px);font-weight:900;color:' + color + ';line-height:1;margin-bottom:10px;letter-spacing:-1px;">' + it.value + '</div>' +
+          '<div style="width:32px;height:2px;background:' + color + ';border-radius:2px;margin-bottom:8px;opacity:.6;"></div>' +
+          '<div style="font-size:clamp(10px,1.1vw,13px);color:' + subClr + ';line-height:1.4;font-weight:600;max-width:110px;">' + it.label + '</div>' +
+        '</div>';
+      }).join('');
+      return '<div style="flex:1;display:flex;align-items:center;">' +
+        '<div style="display:flex;gap:12px;width:100%;">' + cards + '</div>' +
+      '</div>';
+    }
+
+    /* ── LAYOUT: chart — layered bar chart with value labels ── */
     function layoutChart(s, t) {
       var tColor = t.light ? t.text : '#fff';
+      var subClr = t.light ? '#64748b' : 'rgba(255,255,255,.55)';
       var items  = s.items || [];
       if (!items.length && s.bullets) {
         items = s.bullets.map(function(b) {
           var p = b.split('::'); return { value: parseInt(p[0])||0, label: (p[1]||b).trim() };
         });
       }
-      items = items.slice(0, 5);
+      items = items.slice(0, 6);
       var maxVal = Math.max.apply(null, items.map(function(i){ return i.value||0; })) || 1;
-      var barColor = t.accent;
       var bars = items.map(function(it, i) {
-        var pct = Math.round(((it.value||0) / maxVal) * 100);
-        var delay = (i * 0.12).toFixed(2);
-        return '<div class="f-up" style="display:flex;align-items:center;gap:12px;margin-bottom:14px;animation-delay:' + delay + 's;">' +
-          '<div style="width:90px;text-align:right;color:' + tColor + ';font-size:clamp(10px,1.1vw,13px);font-weight:600;opacity:.85;flex-shrink:0;">' + it.label + '</div>' +
-          '<div style="flex:1;height:32px;background:' + t.glass + ';border:1px solid ' + t.glassBorder + ';border-radius:8px;overflow:hidden;position:relative;">' +
-            '<div style="position:absolute;inset:0;width:' + pct + '%;' +
-              'background:linear-gradient(90deg,' + barColor + ',' + barColor + 'aa);' +
-              'border-radius:8px;transition:width 0.8s ease;">' +
+        var pct   = Math.round(((it.value||0) / maxVal) * 100);
+        var color = ac(i);
+        var delay = (i * 0.1).toFixed(2);
+        return '<div class="f-up" style="display:flex;align-items:center;gap:14px;margin-bottom:12px;animation-delay:' + delay + 's;">' +
+          '<div style="width:96px;text-align:right;color:' + tColor + ';font-size:clamp(10px,1.1vw,12.5px);font-weight:600;flex-shrink:0;line-height:1.3;">' + it.label + '</div>' +
+          '<div style="flex:1;height:28px;background:' + (t.light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.08)') + ';border-radius:20px;overflow:hidden;position:relative;">' +
+            '<div style="position:absolute;left:0;top:0;bottom:0;width:' + pct + '%;' +
+              'background:linear-gradient(90deg,' + color + 'cc,' + color + ');' +
+              'border-radius:20px;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;">' +
+              '<span style="font-size:10px;font-weight:800;color:#fff;white-space:nowrap;">' + (it.value||0) + (it.value <= 100 ? '%' : '') + '</span>' +
             '</div>' +
           '</div>' +
-          '<div style="width:44px;text-align:left;color:' + t.accent + ';font-size:clamp(11px,1.2vw,14px);font-weight:900;flex-shrink:0;">' + (it.value||0) + (it.value<=100?'%':'') + '</div>' +
+          '<div style="width:36px;text-align:left;color:' + color + ';font-size:clamp(11px,1.2vw,13px);font-weight:900;flex-shrink:0;">' + pct + '%</div>' +
         '</div>';
       }).join('');
-      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + bars + '</div>';
+      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 4px;">' + bars + '</div>';
     }
 
-    /* ── LAYOUT: two-col ── */
+    /* ── LAYOUT: two-col — split comparison with header badges ── */
     function layoutTwoCol(s, t) {
       var tColor = t.light ? t.text : '#fff';
-      var cardCss = 'background:' + t.glass + ';border:1px solid ' + t.glassBorder + ';border-radius:14px;' + (t.light ? '' : 'backdrop-filter:blur(8px);');
+      var subClr = t.light ? '#475569' : 'rgba(255,255,255,.8)';
       var headers = s.headers || ['', ''];
-      var col1 = (s.col1 || []);
-      var col2 = (s.col2 || []);
-      // Fallback: split bullets alternating if parsed cols missing
+      var col1 = (s.col1 || []).slice();
+      var col2 = (s.col2 || []).slice();
       if (!col1.length && s.bullets) {
         var bArr = s.bullets.filter(function(b){ return !b.startsWith('HEADERS:'); });
         bArr.forEach(function(b, i) {
@@ -1076,67 +1135,63 @@
           if (i % 2 === 0) col1.push(text); else col2.push(text);
         });
       }
-      function colHtml(items, color) {
-        return items.map(function(item, i) {
-          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;' + cardCss + 'margin-bottom:7px;animation-delay:' + (i*0.09) + 's;">' +
-            '<div style="width:6px;height:6px;border-radius:50%;background:' + color + ';margin-top:6px;flex-shrink:0;"></div>' +
-            '<span style="color:' + tColor + ';font-size:clamp(11px,1.2vw,13.5px);line-height:1.55;">' + item + '</span>' +
+      var c1 = t.accent, c2 = t.accentAlt || ac(1);
+      if (t.light) { c2 = '#6366f1'; }
+      function colHtml(items, color, label) {
+        var hdr = label ? '<div style="display:inline-flex;align-items:center;gap:6px;background:' + color + ';color:#fff;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border-radius:20px;margin-bottom:10px;">' + label + '</div>' : '';
+        var rows = items.map(function(item, i) {
+          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:10px;padding:9px 14px;margin-bottom:6px;' +
+            'background:' + (t.light ? '#f8fafc' : 'rgba(255,255,255,.05)') + ';border-left:2px solid ' + color + ';border-radius:0 10px 10px 0;' +
+            'animation-delay:' + (i*0.07) + 's;">' +
+            '<span style="color:' + subClr + ';font-size:clamp(11px,1.2vw,13px);line-height:1.6;">' + item + '</span>' +
           '</div>';
         }).join('');
+        return '<div>' + hdr + rows + '</div>';
       }
-      var accentAlt = t.light ? '#6366f1' : (t.accent === '#fff' ? '#a5f3fc' : t.accent);
-      return '<div style="flex:1;display:flex;gap:16px;align-items:stretch;">' +
-        '<div style="flex:1;display:flex;flex-direction:column;">' +
-          (headers[0] ? '<div style="font-size:12px;font-weight:800;color:' + t.accent + ';letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;padding-left:4px;">' + headers[0] + '</div>' : '') +
-          colHtml(col1, t.accent) +
-        '</div>' +
-        '<div style="width:1px;background:' + t.glassBorder + ';margin:0 4px;flex-shrink:0;"></div>' +
-        '<div style="flex:1;display:flex;flex-direction:column;">' +
-          (headers[1] ? '<div style="font-size:12px;font-weight:800;color:' + accentAlt + ';letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;padding-left:4px;">' + headers[1] + '</div>' : '') +
-          colHtml(col2, accentAlt) +
-        '</div>' +
+      return '<div style="flex:1;display:flex;gap:20px;align-items:stretch;">' +
+        '<div style="flex:1;">' + colHtml(col1, c1, headers[0]) + '</div>' +
+        '<div style="width:1px;background:' + (t.light ? '#e2e8f0' : 'rgba(255,255,255,.12)') + ';"></div>' +
+        '<div style="flex:1;">' + colHtml(col2, c2, headers[1]) + '</div>' +
       '</div>';
     }
 
-    /* ── LAYOUT: timeline ── */
+    /* ── LAYOUT: timeline — horizontal steps with progress connector ── */
     function layoutTimeline(s, t) {
       var tColor = t.light ? t.text : '#fff';
+      var subClr = t.light ? '#64748b' : 'rgba(255,255,255,.65)';
       var items  = s.items || [];
       if (!items.length && s.bullets) {
         items = s.bullets.map(function(b) {
           var p = b.split('::'); return { step: (p[0]||'').trim(), desc: (p[1]||'').trim() };
         });
       }
-      items = items.slice(0, 4);
+      items = items.slice(0, 5);
       var cards = items.map(function(it, i) {
-        var delay = (i * 0.12).toFixed(2);
-        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;animation-delay:' + delay + 's;">' +
-          /* connector line */
-          (i < items.length-1 ? '<div style="position:absolute;top:22px;left:50%;width:100%;height:2px;background:' + t.glassBorder + ';z-index:0;"></div>' : '') +
-          /* circle number */
-          '<div style="width:44px;height:44px;border-radius:50%;background:' + t.accent + ';display:flex;align-items:center;justify-content:center;' +
-            'font-size:16px;font-weight:900;color:' + (t.numColor || '#0a0a0a') + ';position:relative;z-index:1;flex-shrink:0;margin-bottom:12px;">' +
-            String(i+1) +
+        var color = ac(i);
+        var isLast = i === items.length - 1;
+        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;animation-delay:' + (i*0.12) + 's;padding:0 6px;">' +
+          /* connector */
+          (!isLast ? '<div style="position:absolute;top:24px;left:calc(50% + 24px);right:calc(-50% + 24px);height:2px;background:linear-gradient(90deg,' + color + '55,' + ac(i+1) + '55);z-index:0;"></div>' : '') +
+          /* icon circle with gradient */
+          '<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,' + color + ',' + ac(i+1) + ');' +
+            'display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;' +
+            'position:relative;z-index:1;flex-shrink:0;margin-bottom:12px;' +
+            'box-shadow:0 4px 16px ' + color + '55;">' + String(i+1) +
           '</div>' +
-          /* step label */
-          '<div style="font-size:clamp(11px,1.2vw,14px);font-weight:800;color:' + t.accent + ';margin-bottom:6px;line-height:1.2;">' + it.step + '</div>' +
+          /* step badge */
+          '<div style="font-size:clamp(10px,1.1vw,12px);font-weight:800;color:' + color + ';letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;">' + it.step + '</div>' +
           /* desc */
-          '<div style="font-size:clamp(10px,1.05vw,12.5px);color:' + tColor + ';opacity:.8;line-height:1.5;padding:0 4px;">' + it.desc + '</div>' +
+          '<div style="font-size:clamp(9.5px,1vw,12px);color:' + subClr + ';line-height:1.55;padding:0 4px;">' + it.desc + '</div>' +
         '</div>';
       }).join('');
-      return '<div style="flex:1;display:flex;align-items:center;">' +
-        '<div style="display:flex;gap:0;width:100%;">' + cards + '</div>' +
+      return '<div style="flex:1;display:flex;align-items:flex-start;padding-top:20px;">' +
+        '<div style="display:flex;gap:4px;width:100%;align-items:flex-start;">' + cards + '</div>' +
       '</div>';
     }
 
-    /* multi-accent palette — cycles per item regardless of theme */
-    var ACCENTS = ['#0099CC','#FF8C42','#7C3AED','#00B074','#F59E0B','#EF4444'];
-    function ac(i) { return ACCENTS[i % ACCENTS.length]; }
-
-    /* ── LAYOUT: pillars — 3-4 column vision/strategy cards ── */
+    /* ── LAYOUT: pillars — 3-4 cards with gradient header + bullets ── */
     function layoutPillars(s, t) {
-      var tColor  = t.light ? t.text : '#fff';
-      var subClr  = t.light ? '#475569' : 'rgba(255,255,255,.72)';
+      var subClr  = t.light ? '#374151' : 'rgba(255,255,255,.75)';
       var items   = s.items || [];
       if (!items.length && s.bullets) {
         items = s.bullets.map(function(b) {
@@ -1145,23 +1200,19 @@
       }
       items = items.slice(0, 4);
       var cols = items.map(function(it, i) {
-        var color = ac(i);
-        var bgs   = t.light ? 'rgba(0,0,0,.04)' : 'rgba(255,255,255,.06)';
-        var bdr   = t.light ? 'rgba(0,0,0,.08)'  : 'rgba(255,255,255,.12)';
-        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;' +
-          'background:' + bgs + ';border:1px solid ' + bdr + ';animation-delay:' + (i*0.1) + 's;">' +
-          /* colored top bar */
-          '<div style="height:4px;background:' + color + ';flex-shrink:0;"></div>' +
-          /* header */
-          '<div style="padding:14px 16px 10px;border-bottom:1px solid ' + bdr + ';">' +
-            '<div style="font-size:clamp(11px,1.25vw,14px);font-weight:800;color:' + color + ';line-height:1.25;">' + it.title + '</div>' +
+        var c1 = ac(i), c2 = ac(i+1);
+        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;' +
+          'box-shadow:0 4px 20px rgba(0,0,0,.18);animation-delay:' + (i*0.1) + 's;">' +
+          /* gradient header */
+          '<div style="background:linear-gradient(135deg,' + c1 + ',' + c2 + ');padding:16px 16px 14px;">' +
+            '<div style="font-size:clamp(11px,1.3vw,15px);font-weight:900;color:#fff;line-height:1.2;letter-spacing:.2px;">' + it.title + '</div>' +
           '</div>' +
-          /* bullets */
-          '<div style="padding:10px 16px 14px;flex:1;display:flex;flex-direction:column;gap:6px;">' +
-            it.bullets.map(function(b) {
-              return '<div style="display:flex;align-items:flex-start;gap:7px;">' +
-                '<div style="width:5px;height:5px;border-radius:50%;background:' + color + ';margin-top:5px;flex-shrink:0;opacity:.8;"></div>' +
-                '<span style="color:' + subClr + ';font-size:clamp(9.5px,1.05vw,12px);line-height:1.5;">' + b + '</span>' +
+          /* body */
+          '<div style="flex:1;padding:12px 16px 16px;background:' + (t.light ? '#fff' : 'rgba(255,255,255,.07)') + ';">' +
+            it.bullets.map(function(b, bi) {
+              return '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;">' +
+                '<div style="width:4px;height:4px;border-radius:50%;background:' + c1 + ';margin-top:6px;flex-shrink:0;"></div>' +
+                '<span style="color:' + subClr + ';font-size:clamp(9.5px,1.05vw,12px);line-height:1.55;">' + b + '</span>' +
               '</div>';
             }).join('') +
           '</div>' +
@@ -1170,7 +1221,7 @@
       return '<div style="flex:1;display:flex;align-items:stretch;gap:12px;">' + cols + '</div>';
     }
 
-    /* ── LAYOUT: agenda — numbered card grid ── */
+    /* ── LAYOUT: agenda — 2-col grid with big numbered badges ── */
     function layoutAgenda(s, t) {
       var tColor = t.light ? t.text : '#fff';
       var subClr = t.light ? '#64748b' : 'rgba(255,255,255,.6)';
@@ -1181,19 +1232,28 @@
           return { num: p[0]||String(i+1).padStart(2,'0'), title: (p[1]||b).trim(), desc: (p[2]||'').trim() };
         });
       }
-      items = items.slice(0, 10);
-      var cols = Math.ceil(items.length / 2);
-      var bgs  = t.light ? '#f8fafc' : 'rgba(255,255,255,.06)';
-      var bdr  = t.light ? '#e2e8f0' : 'rgba(255,255,255,.1)';
+      items = items.slice(0, 8);
       var cards = items.map(function(it, i) {
         var color = ac(i);
-        return '<div class="f-up" style="display:flex;align-items:center;gap:12px;padding:10px 14px;' +
-          'background:' + bgs + ';border:1px solid ' + bdr + ';border-radius:12px;animation-delay:' + (i*0.07) + 's;">' +
-          '<div style="width:32px;height:32px;border-radius:10px;background:' + color + ';display:flex;align-items:center;justify-content:center;' +
-            'font-size:11px;font-weight:900;color:#fff;flex-shrink:0;">' + it.num + '</div>' +
-          '<div style="min-width:0;">' +
-            '<div style="font-size:clamp(11px,1.2vw,13px);font-weight:700;color:' + tColor + ';line-height:1.25;margin-bottom:2px;">' + it.title + '</div>' +
-            (it.desc ? '<div style="font-size:clamp(9px,.95vw,11px);color:' + subClr + ';line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + it.desc + '</div>' : '') +
+        var bgs   = t.light ? '#fff' : 'rgba(255,255,255,.07)';
+        var bdr   = t.light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.1)';
+        return '<div class="f-up" style="display:flex;align-items:center;gap:14px;padding:12px 16px;' +
+          'background:' + bgs + ';border:1px solid ' + bdr + ';border-radius:14px;' +
+          'box-shadow:0 2px 8px rgba(0,0,0,.06);animation-delay:' + (i*0.07) + 's;">' +
+          /* big badge */
+          '<div style="width:40px;height:40px;border-radius:12px;flex-shrink:0;' +
+            'background:linear-gradient(135deg,' + color + 'dd,' + color + ');' +
+            'display:flex;align-items:center;justify-content:center;' +
+            'box-shadow:0 4px 12px ' + color + '55;">' +
+            '<span style="font-size:13px;font-weight:900;color:#fff;">' + it.num.toString().replace(/^\d+\s*/,'').substring(0,2) || it.num + '</span>' +
+          '</div>' +
+          '<div style="min-width:0;flex:1;">' +
+            '<div style="font-size:clamp(11px,1.25vw,14px);font-weight:700;color:' + tColor + ';line-height:1.3;margin-bottom:3px;">' + it.title + '</div>' +
+            (it.desc ? '<div style="font-size:clamp(9px,.95vw,11px);color:' + subClr + ';line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;">' + it.desc + '</div>' : '') +
+          '</div>' +
+          /* arrow indicator */
+          '<div style="width:20px;height:20px;border-radius:50%;background:' + color + '22;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+            '<svg width="8" height="8" viewBox="0 0 8 8"><path d="M2 1l4 3-4 3" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -1202,13 +1262,12 @@
       '</div>';
     }
 
-    /* ── LAYOUT: roles — 2-3 role cards with dark header ── */
+    /* ── LAYOUT: roles — full-height cards with gradient header + responsibility list ── */
     function layoutRoles(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var subClr = t.light ? '#475569' : 'rgba(255,255,255,.72)';
+      var subClr = t.light ? '#374151' : 'rgba(255,255,255,.78)';
       var items  = s.items || [];
       if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b, i) {
+        items = s.bullets.map(function(b) {
           var p = b.split('::');
           var krs = (p[2]||'').split('|').map(function(x){return x.trim();}).filter(Boolean);
           return { role: (p[0]||'').trim(), type: (p[1]||'').trim(), bullets: krs };
@@ -1216,37 +1275,39 @@
       }
       items = items.slice(0, 3);
       var cols = items.map(function(it, i) {
-        var color = ac(i);
-        var darkBg = t.light ? color : color;
-        var bdr    = t.light ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.1)';
-        var cardBg = t.light ? '#f8fafc' : 'rgba(255,255,255,.05)';
-        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;' +
-          'border:1px solid ' + bdr + ';animation-delay:' + (i*0.1) + 's;">' +
-          /* colored header */
-          '<div style="background:' + darkBg + ';padding:12px 16px;">' +
-            '<div style="font-size:clamp(10px,1.15vw,13px);font-weight:900;color:#fff;letter-spacing:.5px;margin-bottom:3px;">' + it.role + '</div>' +
-            '<div style="font-size:clamp(8.5px,.9vw,10px);color:rgba(255,255,255,.75);font-weight:600;">' + it.type + '</div>' +
+        var c1 = ac(i), c2 = ac(i+2);
+        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;' +
+          'box-shadow:0 6px 24px rgba(0,0,0,.2);animation-delay:' + (i*0.1) + 's;">' +
+          /* gradient header */
+          '<div style="background:linear-gradient(145deg,' + c1 + ',' + c2 + ');padding:18px 18px 14px;">' +
+            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.2);' +
+              'border-radius:20px;padding:3px 10px 3px 6px;margin-bottom:8px;">' +
+              '<div style="width:6px;height:6px;border-radius:50%;background:#fff;"></div>' +
+              '<span style="font-size:9px;font-weight:800;color:rgba(255,255,255,.9);text-transform:uppercase;letter-spacing:1px;">' + it.type + '</span>' +
+            '</div>' +
+            '<div style="font-size:clamp(13px,1.5vw,17px);font-weight:900;color:#fff;line-height:1.2;">' + it.role + '</div>' +
           '</div>' +
           /* body */
-          '<div style="background:' + cardBg + ';padding:12px 16px;flex:1;">' +
-            '<div style="font-size:10px;font-weight:800;color:' + color + ';letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Trách nhiệm chính</div>' +
+          '<div style="flex:1;padding:14px 18px;background:' + (t.light ? '#fff' : 'rgba(255,255,255,.06)') + ';">' +
+            '<div style="font-size:9px;font-weight:800;color:' + c1 + ';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;opacity:.9;">TRÁCH NHIỆM</div>' +
             it.bullets.map(function(b) {
-              return '<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:5px;">' +
-                '<div style="width:5px;height:5px;border-radius:50%;background:' + color + ';margin-top:5px;flex-shrink:0;"></div>' +
-                '<span style="color:' + subClr + ';font-size:clamp(9.5px,1.05vw,12px);line-height:1.5;">' + b + '</span>' +
+              return '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;">' +
+                '<div style="width:16px;height:16px;border-radius:50%;background:' + c1 + '18;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">' +
+                  '<svg width="7" height="7" viewBox="0 0 7 7"><path d="M1 3.5l2 2 3-3" fill="none" stroke="' + c1 + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+                '</div>' +
+                '<span style="color:' + subClr + ';font-size:clamp(9.5px,1.05vw,12px);line-height:1.55;">' + b + '</span>' +
               '</div>';
             }).join('') +
           '</div>' +
         '</div>';
       }).join('');
-      return '<div style="flex:1;display:flex;align-items:stretch;gap:12px;">' + cols + '</div>';
+      return '<div style="flex:1;display:flex;align-items:stretch;gap:14px;">' + cols + '</div>';
     }
 
-    /* ── LAYOUT: okr — objective + key results rows ── */
+    /* ── LAYOUT: okr — objective rows with gradient badge + KR chips ── */
     function layoutOkr(s, t) {
       var tColor = t.light ? t.text : '#fff';
       var subClr = t.light ? '#475569' : 'rgba(255,255,255,.7)';
-      var krClr  = t.light ? '#1e293b' : 'rgba(255,255,255,.9)';
       var items  = s.items || [];
       if (!items.length && s.bullets) {
         items = s.bullets.map(function(b) {
@@ -1255,25 +1316,27 @@
           return { objective: (p[0]||'').trim(), krs: krs };
         });
       }
-      items = items.slice(0, 5);
+      items = items.slice(0, 4);
       var rows = items.map(function(it, i) {
-        var color = ac(i);
-        var bgs   = t.light ? 'rgba(0,0,0,.03)' : 'rgba(255,255,255,.05)';
-        var bdr   = t.light ? 'rgba(0,0,0,.07)' : 'rgba(255,255,255,.1)';
-        var label = it.objective.match(/^[Oo]\d+/) ? it.objective.match(/^[Oo]\d+/)[0] : String(i+1);
+        var c1 = ac(i), c2 = ac(i+1);
+        var bgs = t.light ? '#fff' : 'rgba(255,255,255,.06)';
+        var bdr = t.light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.1)';
+        var label = it.objective.match(/^[Oo]\d+/) ? it.objective.match(/^[Oo]\d+/)[0].toUpperCase() : 'O' + (i+1);
         var title = it.objective.replace(/^[Oo]\d+\s*[-–—]?\s*/,'');
-        return '<div class="f-up" style="display:flex;align-items:stretch;gap:0;border-radius:12px;overflow:hidden;' +
-          'border:1px solid ' + bdr + ';margin-bottom:8px;animation-delay:' + (i*0.08) + 's;">' +
-          /* label badge */
-          '<div style="width:48px;background:' + color + ';display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;padding:8px 4px;">' +
-            '<div style="font-size:9px;font-weight:900;color:#fff;letter-spacing:-.2px;text-align:center;">' + label + '</div>' +
+        return '<div class="f-up" style="display:flex;align-items:stretch;gap:0;border-radius:14px;overflow:hidden;' +
+          'border:1px solid ' + bdr + ';margin-bottom:9px;box-shadow:0 2px 12px rgba(0,0,0,.07);animation-delay:' + (i*0.09) + 's;">' +
+          /* gradient left badge */
+          '<div style="width:56px;background:linear-gradient(180deg,' + c1 + ',' + c2 + ');display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;padding:8px 4px;">' +
+            '<div style="font-size:10px;font-weight:900;color:rgba(255,255,255,.6);letter-spacing:1px;">' + label.replace(/\d+/,'') + '</div>' +
+            '<div style="font-size:20px;font-weight:900;color:#fff;line-height:1;">' + (label.match(/\d+/)||[''])[0] + '</div>' +
           '</div>' +
-          /* objective + KRs */
-          '<div style="background:' + bgs + ';padding:9px 14px;flex:1;display:flex;flex-direction:column;justify-content:center;">' +
-            '<div style="font-size:clamp(11px,1.2vw,13.5px);font-weight:700;color:' + tColor + ';margin-bottom:4px;">' + title + '</div>' +
-            '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;">' +
-              it.krs.map(function(kr) {
-                return '<span style="font-size:clamp(8.5px,.92vw,10.5px);color:' + subClr + ';">• ' + kr + '</span>';
+          /* content */
+          '<div style="background:' + bgs + ';padding:10px 16px;flex:1;">' +
+            '<div style="font-size:clamp(11px,1.25vw,14px);font-weight:700;color:' + tColor + ';margin-bottom:7px;">' + title + '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:5px;">' +
+              it.krs.map(function(kr, ki) {
+                return '<span style="display:inline-flex;align-items:center;gap:4px;background:' + c1 + '12;border:1px solid ' + c1 + '30;' +
+                  'border-radius:20px;padding:3px 9px;font-size:clamp(8px,.9vw,10.5px);color:' + (t.light ? '#1e293b' : tColor) + ';line-height:1.3;">· ' + kr + '</span>';
               }).join('') +
             '</div>' +
           '</div>' +
@@ -1284,8 +1347,7 @@
 
     /* ── LAYOUT: principles — icon/color title + description list ── */
     function layoutPrinciples(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var subClr = t.light ? '#475569' : 'rgba(255,255,255,.72)';
+      var subClr = t.light ? '#374151' : 'rgba(255,255,255,.75)';
       var items  = s.items || [];
       if (!items.length && s.bullets) {
         items = s.bullets.map(function(b) {
@@ -1296,17 +1358,25 @@
       var half = Math.ceil(items.length / 2);
       var col1 = items.slice(0, half);
       var col2 = items.slice(half);
+      /* icon shapes cycle: circle, square, diamond, triangle stub */
+      var ICONS = ['◆','▲','●','■','★','◉'];
       function colHtml(arr, offset) {
         return arr.map(function(it, i) {
           var color = ac(i + offset);
-          var bgs   = t.light ? 'rgba(0,0,0,.03)' : 'rgba(255,255,255,.04)';
-          var bdr   = t.light ? 'rgba(0,0,0,.07)' : 'rgba(255,255,255,.08)';
-          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:11px;padding:10px 14px;' +
-            'background:' + bgs + ';border:1px solid ' + bdr + ';border-radius:12px;margin-bottom:8px;animation-delay:' + ((i+offset)*0.08) + 's;">' +
-            '<div style="width:8px;height:8px;border-radius:50%;background:' + color + ';margin-top:5px;flex-shrink:0;"></div>' +
-            '<div>' +
-              '<div style="font-size:clamp(11px,1.15vw,13px);font-weight:800;color:' + color + ';margin-bottom:3px;">' + it.title + '</div>' +
-              '<div style="font-size:clamp(9.5px,1vw,12px);color:' + subClr + ';line-height:1.55;">' + it.desc + '</div>' +
+          var bgs   = t.light ? '#fff' : 'rgba(255,255,255,.05)';
+          var bdr   = t.light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.1)';
+          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;' +
+            'background:' + bgs + ';border:1px solid ' + bdr + ';border-radius:14px;margin-bottom:9px;' +
+            'box-shadow:0 2px 10px rgba(0,0,0,.05);animation-delay:' + ((i+offset)*0.08) + 's;">' +
+            /* icon badge */
+            '<div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,' + color + 'cc,' + color + ');' +
+              'display:flex;align-items:center;justify-content:center;flex-shrink:0;' +
+              'box-shadow:0 3px 8px ' + color + '44;">' +
+              '<span style="font-size:12px;color:#fff;">' + ICONS[(i+offset) % ICONS.length] + '</span>' +
+            '</div>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:clamp(11px,1.2vw,13.5px);font-weight:800;color:' + color + ';margin-bottom:4px;line-height:1.2;">' + it.title + '</div>' +
+              '<div style="font-size:clamp(9.5px,1vw,11.5px);color:' + subClr + ';line-height:1.6;">' + it.desc + '</div>' +
             '</div>' +
           '</div>';
         }).join('');
@@ -1430,6 +1500,8 @@
       (w.requestFullscreen || w.webkitRequestFullscreen || function(){}).call(w);
     };
     document.addEventListener('keydown', function(e) {
+      var tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.key==='ArrowRight'||e.key==='ArrowDown') nextSlide();
       if (e.key==='ArrowLeft' ||e.key==='ArrowUp')   prevSlide();
     });
@@ -1586,18 +1658,17 @@
       else if (s.items && s.items.length) {
         var it = s.items[idx];
         if (typeof it === 'string') { s.items[idx] = val; return; }
-        /* update the raw string representation in bullets */
         if (!s.bullets) s.bullets = [];
         s.bullets[idx] = val;
       }
-      render();
+      /* no realtime render — update on Save only */
     };
 
     window.removeItem = function(idx) {
       var s = slides[current];
       if (s.bullets) s.bullets.splice(idx, 1);
       if (s.items)   s.items.splice(idx, 1);
-      render(); refreshEditor();
+      refreshEditor(); /* rebuild item list only, no slide re-render */
     };
 
     window.reorderItem = function(fromIdx, toIdx) {
@@ -1608,33 +1679,37 @@
         arr.splice(toIdx, 0, item);
       }
       move(s.bullets); move(s.items);
-      render(); refreshEditor();
+      refreshEditor();
     };
 
     window.addItemToSlide = function() {
       var s = slides[current];
       if (!s.bullets) s.bullets = [];
       s.bullets.push('Nội dung mới...');
-      render(); refreshEditor();
+      refreshEditor();
     };
 
     window.updateCurrentSlide = function(key, val) {
       slides[current][key] = val;
-      if (key === 'title' || key === 'layout') render();
+      /* layout change: re-render preview immediately so user sees layout change */
+      if (key === 'layout') { render(); }
     };
 
-    /* Font controls */
+    /* Font controls — store values, apply preview only on Save */
     window.updateFontScale = function(val) {
       slides[current].fontScale = parseInt(val);
       document.getElementById('font-scale-val').textContent = val + '%';
-      applyFontOverrides();
+      /* light preview: just scale the viewer div, no full re-render */
+      var viewer = document.getElementById('slide-viewer');
+      if (viewer) viewer.style.fontSize = (parseInt(val)/100*100) + '%';
     };
     window.updateFontFamily = function(val) {
       slides[current].fontFamily = val;
-      applyFontOverrides();
+      var viewer = document.getElementById('slide-viewer');
+      if (viewer) viewer.style.fontFamily = val || '';
     };
 
-    /* Image controls */
+    /* Image controls — realtime overlay preview is OK (no re-render needed) */
     window.handleImageUpload = function(input) {
       var file = input.files[0]; if (!file) return;
       var reader = new FileReader();
@@ -1660,7 +1735,7 @@
       document.getElementById('img-x-val').textContent = x + '%';
       document.getElementById('img-y-val').textContent = y + '%';
       document.getElementById('img-w-val').textContent = w + '%';
-      renderImageOverlay();
+      renderImageOverlay(); /* overlay only, slide content untouched */
     };
 
     window.removeImage = function() {
