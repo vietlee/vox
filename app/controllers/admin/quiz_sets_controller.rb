@@ -229,12 +229,18 @@ class Admin::QuizSetsController < Admin::BaseController
     questions_count = questions_count.clamp(3, 50) unless auto_mode
     custom_prompt   = params[:custom_prompt].to_s.strip.presence
 
-    # Store extracted content in cache so the job can pick it up (TTL 10 minutes)
-    cache_key = "quiz_content_#{@quiz_set.id}_#{Time.now.to_i}"
-    Rails.cache.write(cache_key, content, expires_in: 10.minutes)
+    # For image content (hash with base64), write to a shared temp file accessible by Sidekiq.
+    # For text content, pass directly as job argument (avoids cross-process cache issues).
+    if content.is_a?(Hash)
+      tmp_path = Rails.root.join("tmp", "quiz_upload_#{@quiz_set.id}_#{Time.now.to_i}.json")
+      File.write(tmp_path, content.to_json)
+      job_content = { tmp_file: tmp_path.to_s }
+    else
+      job_content = content.to_s.truncate(14000)
+    end
 
     @quiz_set.update!(ai_generating: true)
-    GenerateQuizQuestionsJob.perform_later(@quiz_set.id, cache_key, auto_mode ? nil : questions_count, custom_prompt)
+    GenerateQuizQuestionsJob.perform_later(@quiz_set.id, job_content, auto_mode ? nil : questions_count, custom_prompt)
 
     render json: { pending: true, poll_url: ai_generate_status_quiz_set_path(@quiz_set) }
   rescue => e

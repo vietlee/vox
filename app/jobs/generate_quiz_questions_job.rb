@@ -1,12 +1,12 @@
 class GenerateQuizQuestionsJob < ApplicationJob
   queue_as :default
 
-  def perform(quiz_set_id, cache_key, questions_count, custom_prompt)
+  def perform(quiz_set_id, job_content, questions_count, custom_prompt)
     quiz_set = QuizSet.find_by(id: quiz_set_id)
     return unless quiz_set
 
-    content = Rails.cache.read(cache_key)
-    raise "Uploaded content expired. Please re-upload the file." if content.blank?
+    content = resolve_content(job_content)
+    raise "Nội dung tải lên không còn hợp lệ. Vui lòng tải lại file." if content.blank?
 
     svc = ClaudeService.for_feature("quiz_generate", timeout: 180)
 
@@ -46,14 +46,27 @@ class GenerateQuizQuestionsJob < ApplicationJob
         end
       end
     end
-
-    Rails.cache.delete(cache_key)
   rescue => e
     quiz_set&.update(ai_generating: false)
     Rails.logger.error "[GenerateQuizQuestionsJob] #{quiz_set_id}: #{e.message}"
+  ensure
+    # Clean up temp file if used
+    if job_content.is_a?(Hash) && job_content["tmp_file"]
+      File.delete(job_content["tmp_file"]) rescue nil
+    end
   end
 
   private
+
+  def resolve_content(job_content)
+    if job_content.is_a?(Hash) && job_content["tmp_file"]
+      path = job_content["tmp_file"]
+      return nil unless File.exist?(path)
+      JSON.parse(File.read(path), symbolize_names: true)
+    else
+      job_content
+    end
+  end
 
   def build_prompt(count, custom_prompt)
     count_instruction = count.nil? \
