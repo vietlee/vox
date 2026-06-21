@@ -165,9 +165,9 @@ class AiChatJob < ApplicationJob
     if forms.any?
       lines << "## DYNAMIC FORMS"
       forms.each do |f|
-        sub_count = f.form_submissions.count
+        sub_count = f.dynamic_form_submissions.count
         lines << "### #{f.title} [#{f.status}, #{sub_count} submissions]"
-        pending = f.form_submissions.where(status: "pending").count
+        pending = f.dynamic_form_submissions.where(status: "pending").count
         lines << "  Pending review: #{pending}" if pending > 0
         lines << ""
       end
