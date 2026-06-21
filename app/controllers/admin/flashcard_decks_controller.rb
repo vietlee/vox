@@ -42,10 +42,16 @@ class Admin::FlashcardDecksController < Admin::BaseController
     count = params[:count].to_i.clamp(5, 30)
     @deck.update!(ai_generating: true)
     GenerateFlashcardsJob.perform_later(@deck.id, topic, count, current_user.id)
-    redirect_to flashcard_deck_path(@deck), notice: "AI đang tạo flashcard, vui lòng chờ..."
+    respond_to do |format|
+      format.json { render json: { pending: true, poll_url: ai_status_flashcard_deck_path(@deck, format: :json), show_url: flashcard_deck_path(@deck) } }
+      format.html { redirect_to flashcard_deck_path(@deck) }
+    end
   rescue => e
     @deck.update(ai_generating: false)
-    redirect_to flashcard_deck_path(@deck), alert: "Lỗi: #{e.message.truncate(100)}"
+    respond_to do |format|
+      format.json { render json: { error: e.message.truncate(100) }, status: :unprocessable_entity }
+      format.html { redirect_to flashcard_deck_path(@deck), alert: "Lỗi: #{e.message.truncate(100)}" }
+    end
   end
 
   def study

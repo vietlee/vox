@@ -1,11 +1,6 @@
 <% content_for :title, @deck.title %>
 
-<% if @deck.ai_generating? %>
-  <%= render "admin/shared/ai_generating_overlay",
-        poll_url: ai_status_flashcard_deck_path(@deck, format: :json),
-        message: "AI đang tạo flashcard...",
-        submessage: "Đừng tắt trang này." %>
-<% end %>
+<%# overlay rendered at bottom of page %>
 
 <div class="flex items-center gap-3 mb-6">
   <%= render "admin/shared/back_btn" %>
@@ -34,7 +29,7 @@
       <div class="text-[12px] text-violet-700 mt-0.5">AI tự động tạo flashcard cho chủ đề bạn chọn · <strong>3 credits</strong></div>
     </div>
   </div>
-  <%= form_with url: ai_generate_flashcard_deck_path(@deck), method: :post, local: true, id: "ai-gen-form" do %>
+  <%= form_with url: ai_generate_flashcard_deck_path(@deck), method: :post, local: false, id: "ai-gen-form" do %>
     <div class="flex gap-2">
       <input type="text" name="topic" placeholder="Chủ đề (mặc định: <%= @deck.title %>)"
              class="flex-1 px-3 py-2 border border-violet-200 rounded-xl text-[13px] bg-white focus:border-violet-400 outline-none">
@@ -100,11 +95,116 @@
   <% end %>
 </div>
 
-<%= render "shared/ai_loading_overlay", phases: ["Đang kết nối AI...", "Đang tạo câu hỏi...", "Đang soạn đáp án...", "Đang hoàn thiện bộ thẻ..."] %>
+<!-- Single overlay — quiz_sets style -->
+<div id="fc-overlay"
+     style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center;
+            background:rgba(15,23,42,0.65); backdrop-filter:blur(4px);">
+  <div style="background:#fff; border-radius:20px; padding:32px 40px; text-align:center;
+              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%;">
+    <div id="fc-ring-container"></div>
+    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Đừng tắt trang này.</p>
+  </div>
+</div>
+
+<style>
+@keyframes vox-fc-pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(0.88);opacity:.75} }
+</style>
 
 <script>
-document.getElementById('ai-gen-form').addEventListener('submit', function() {
+var _fcRingCtrl = null;
+var FC_PHASES = ['Đang kết nối AI...', 'Đang phân tích chủ đề...', 'Đang tạo flashcard...', 'Đang soạn đáp án...', 'Đang hoàn thiện bộ thẻ...'];
+
+function makeFcProgressRing() {
+  var phases = FC_PHASES, totalPhases = phases.length;
+  var phase = 0, pct = 0, timer = null;
+  document.getElementById('fc-ring-container').innerHTML = [
+    '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0;">',
+      '<span id="fc-pct" style="font-size:13px;font-weight:800;color:#7c3aed;">0%</span>',
+      '<div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;">',
+        '<svg width="88" height="88" viewBox="0 0 88 88" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">',
+          '<circle cx="44" cy="44" r="38" stroke="#ede9fe" stroke-width="6"/>',
+          '<circle id="fc-arc" cx="44" cy="44" r="38" stroke="#7c3aed" stroke-width="6" stroke-linecap="round"',
+            ' stroke-dasharray="238.8" stroke-dashoffset="238.8" style="transition:stroke-dashoffset 0.6s ease;"/>',
+        '</svg>',
+        '<div style="position:relative;z-index:2;animation:vox-fc-pulse 1.6s ease-in-out infinite;">',
+          '<svg width="32" height="32" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">',
+            '<rect width="36" height="36" rx="9" fill="#1A6BFF"/>',
+            '<polygon points="10,24 6,31 16,24" fill="white"/>',
+            '<rect x="6" y="6" width="24" height="19" rx="5" fill="white"/>',
+            '<rect x="10" y="11" width="4" height="7" rx="1" fill="#1A6BFF"/>',
+            '<rect x="16" y="8" width="4" height="13" rx="1" fill="#1A6BFF"/>',
+            '<rect x="23" y="10" width="4" height="9" rx="1" fill="#1A6BFF"/>',
+          '</svg>',
+        '</div>',
+      '</div>',
+      '<p id="fc-phase" style="font-size:12px;font-weight:600;color:#6366f1;text-align:center;max-width:220px;margin:0;">' + phases[0] + '</p>',
+    '</div>'
+  ].join('');
+
+  var arc   = document.getElementById('fc-arc');
+  var pctEl = document.getElementById('fc-pct');
+  var phEl  = document.getElementById('fc-phase');
+  var milestones = phases.map(function(_, i){ return Math.round(((i+1)/totalPhases)*85); });
+
+  function setProgress(p) {
+    arc.style.strokeDashoffset = 238.8 * (1 - p/100);
+    pctEl.textContent = Math.round(p) + '%';
+  }
+
+  timer = setInterval(function() {
+    var target = milestones[phase] || 85;
+    pct = Math.min(pct + 1, target);
+    setProgress(pct);
+    if (pct >= (milestones[phase]||85) && phase < totalPhases-1) { phase++; phEl.textContent = phases[phase]; }
+    if (pct >= 85 && phase >= totalPhases-1) {
+      clearInterval(timer);
+      timer = setInterval(function(){ if(pct>=98){clearInterval(timer);return;} pct=Math.min(pct+0.4,98); setProgress(pct); }, 3000);
+    }
+  }, 300);
+
+  return { finish: function(){ clearInterval(timer); arc.style.strokeDashoffset='0'; pctEl.textContent='100%'; } };
+}
+
+// AJAX submit
+document.getElementById('ai-gen-form').addEventListener('ajax:before', function() {
   document.getElementById('ai-gen-btn').disabled = true;
-  showAiLoadingOverlay();
+});
+document.getElementById('ai-gen-form').addEventListener('ajax:success', function(e) {
+  var data = e.detail[0];
+  if (data.error) { alert(data.error); document.getElementById('ai-gen-btn').disabled = false; return; }
+  document.getElementById('fc-overlay').style.display = 'flex';
+  _fcRingCtrl = makeFcProgressRing();
+  pollFcStatus(data.poll_url, data.show_url);
+});
+document.getElementById('ai-gen-form').addEventListener('ajax:error', function() {
+  document.getElementById('ai-gen-btn').disabled = false;
+  alert('Có lỗi xảy ra. Vui lòng thử lại.');
+});
+
+function pollFcStatus(pollUrl, showUrl) {
+  fetch(pollUrl, { headers: { 'Accept': 'application/json' } })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (!data.pending) {
+        if (_fcRingCtrl) _fcRingCtrl.finish();
+        setTimeout(function(){ window.location.href = showUrl; }, 400);
+      } else {
+        setTimeout(function(){ pollFcStatus(pollUrl, showUrl); }, 2500);
+      }
+    })
+    .catch(function(){ setTimeout(function(){ pollFcStatus(pollUrl, showUrl); }, 3000); });
+}
+
+// Auto-start polling if page loaded while ai_generating
+<% if @deck.ai_generating? %>
+(function() {
+  document.getElementById('fc-overlay').style.display = 'flex';
+  _fcRingCtrl = makeFcProgressRing();
+  pollFcStatus('<%= ai_status_flashcard_deck_path(@deck, format: :json) %>', '<%= flashcard_deck_path(@deck) %>');
+})();
+<% end %>
+
+document.addEventListener('turbo:before-cache', function() {
+  document.getElementById('fc-overlay').style.display = 'none';
 });
 </script>
