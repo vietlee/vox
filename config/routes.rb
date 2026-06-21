@@ -269,6 +269,7 @@ Rails.application.routes.draw do
       member do
         post :regenerate
         get  :status
+        patch :update_slides
       end
     end
 

@@ -137,22 +137,27 @@ class ContentOutlineGenerator
         - Cải tiến liên tục :: Học hỏi từ mỗi sprint, apply cải tiến ngay lập tức
 
       ═══════════════════════════════════════════
-      YÊU CẦU CẤU TRÚC NỘI DUNG:
+      HƯỚNG DẪN CHỌN LAYOUT:
       ═══════════════════════════════════════════
 
-      - Slide 1 (Bìa): LAYOUT: bullets — tiêu đề chính + 2-3 key highlights ngắn
-      - Slide 2 (Agenda): LAYOUT: agenda — liệt kê 4-6 nội dung sẽ trình bày
-      - Slide 3-4 (Tổng quan/Context): LAYOUT: pillars hoặc stats — context + big numbers
-      - Slide 5-7 (Nội dung cốt lõi): LAYOUT đa dạng — roles, chart, two-col, timeline
-      - Slide 8 (OKR/Mục tiêu): LAYOUT: okr hoặc stats
-      - Slide 9 (Văn hóa/Nguyên tắc nếu phù hợp): LAYOUT: principles
-      - Slide cuối (Tóm tắt + CTA): LAYOUT: bullets
+      Chọn layout PHÙ HỢP NHẤT với nội dung của từng slide — không có thứ tự cố định.
+      Hãy để nội dung quyết định layout:
+      - Có nhiều số liệu, KPI → stats hoặc chart
+      - Có nhiều trụ cột/chiến lược song song → pillars
+      - Có nhiều vai trò, bộ phận → roles
+      - Có mục tiêu, key results → okr
+      - Có quy trình tuần tự → timeline
+      - Có 2 phía so sánh → two-col
+      - Slide mở đầu overview → agenda
+      - Giá trị, nguyên tắc → principles
+      - Nội dung tổng quát → bullets
 
       TIÊU CHUẨN CHẤT LƯỢNG:
       - Nội dung PHẢI CỤ THỂ: có con số, %, tỉ lệ, ví dụ thực tế (không chung chung)
       - KHÔNG dùng bullets cho 3 slide liên tiếp — phải xen kẽ layout đa dạng
       - Mỗi item trong pillars/roles phải có ít nhất 3 bullets sau "::"
       - NOTE phải là câu hỏi tương tác hay insight bổ sung thực sự có giá trị
+      - Slide đầu tiên nên là cover/giới thiệu chủ đề, slide cuối nên là tóm tắt hoặc CTA
     PROMPT
   end
 

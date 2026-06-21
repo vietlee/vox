@@ -1,97 +1,131 @@
 <% content_for :title, "Tóm tắt tài liệu" %>
+<% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
 
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <h1 class="text-[22px] font-extrabold text-slate-900">📄 Tóm tắt tài liệu</h1>
-    <p class="text-[13px] text-slate-500 mt-0.5">Tóm tắt văn bản và tài liệu nhanh bằng AI</p>
-  </div>
-  <%= link_to new_document_summary_path, class: "flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl transition-colors" do %>
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-    Tóm tắt mới
-  <% end %>
-</div>
-
-<% if flash[:notice] %>
-  <div class="mb-4 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[13px] font-semibold flex items-center gap-2">
-    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-    <%= flash[:notice] %>
-  </div>
-<% end %>
-
-<% if @summaries.empty? %>
-  <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-    <div class="text-5xl mb-4">📄</div>
-    <h3 class="text-[16px] font-bold text-slate-700 mb-2">Chưa có tài liệu nào</h3>
-    <p class="text-[13px] text-slate-400 mb-6">Dán văn bản hoặc upload file để AI tóm tắt và rút điểm chính</p>
-    <%= link_to "Tóm tắt tài liệu đầu tiên", new_document_summary_path, class: "inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-bold rounded-xl" %>
-  </div>
-<% else %>
-  <div class="space-y-3">
-    <% @summaries.each do |doc| %>
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0
-            <%= doc.done? ? 'bg-emerald-50' : doc.pending? ? 'bg-amber-50' : 'bg-red-50' %>">
-          <%= { "pdf" => "📕", "audio" => "🎧", "text" => "📝" }[doc.source_type] || "📄" %>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-0.5 flex-wrap">
-            <%= link_to doc.title.presence || "Không có tiêu đề", document_summary_path(doc),
-                class: "text-[14px] font-bold text-slate-900 hover:text-indigo-600 truncate transition-colors" %>
-            <% if doc.done? %>
-              <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700">Hoàn thành</span>
-            <% elsif doc.pending? %>
-              <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700">Đang xử lý...</span>
-            <% else %>
-              <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-red-100 text-red-600">Thất bại</span>
-            <% end %>
-          </div>
-          <div class="text-[12px] text-slate-400">
-            <%= { "pdf" => "📕 PDF", "audio" => "🎧 Audio", "text" => "📝 Văn bản" }[doc.source_type] || "Tài liệu" %>
-            · <%= doc.created_at.strftime("%d/%m/%Y %H:%M") %>
-          </div>
-        </div>
-        <div class="flex items-center gap-1 shrink-0">
-          <%= link_to document_summary_path(doc), title: "Xem",
-              class: "p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" do %>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-          <% end %>
-          <button type="button" onclick="confirmDeleteDoc('<%= document_summary_path(doc) %>', '<%= j(doc.title.presence || "Tài liệu") %>')"
-                  class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          </button>
-        </div>
+<div class="flex-shrink-0 px-6 pt-5 pb-0 bg-slate-100">
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-3">
+      <%= render "admin/shared/back_btn" %>
+      <div>
+        <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">📄 Tóm tắt tài liệu</h1>
+        <p class="text-[12px] text-slate-500 mt-0.5"><%= @summaries.count %> tài liệu</p>
       </div>
+    </div>
+    <%= link_to new_document_summary_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors" do %>
+      + Tóm tắt mới
     <% end %>
   </div>
-<% end %>
+</div>
 
-<div id="doc-delete-modal" style="display:none; position:fixed; inset:0; z-index:60; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,0.5);">
+<div class="flex-1 min-h-0 overflow-hidden px-6 pt-3 pb-5">
+  <div class="rounded-[12px] border overflow-hidden flex flex-col h-full" style="border-color:rgba(99,102,241,0.2); background:rgba(238,242,255,0.5);">
+
+    <div class="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b" style="background:rgba(99,102,241,0.06); border-color:rgba(99,102,241,0.15);">
+      <div class="relative flex-1 max-w-sm">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+        <input type="text" placeholder="Tìm kiếm tài liệu..."
+          class="w-full pl-8 pr-3 py-1.5 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white"
+          oninput="filterRows(this,'ds-row','ds-no-results')">
+      </div>
+      <span class="text-[11px] text-slate-400 ml-auto"><%= @summaries.count %> tài liệu</span>
+    </div>
+
+    <div class="flex-1 min-h-0 overflow-y-auto">
+      <% if @summaries.any? %>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200" style="position:sticky;top:0;z-index:1;background:rgba(248,250,252,0.97);">
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Tên tài liệu</th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Loại</th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Trạng thái</th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Tạo lúc</th>
+              <th class="px-4 py-2.5"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="ds-no-results" class="hidden">
+              <td colspan="5" class="px-4 py-10 text-center text-[13px] text-slate-400">Không tìm thấy kết quả</td>
+            </tr>
+            <% @summaries.each do |doc| %>
+              <% type_icon = {"pdf"=>"📕","audio"=>"🎧","text"=>"📝"}[doc.source_type] || "📄" %>
+              <% type_label = {"pdf"=>"PDF / File","audio"=>"Âm thanh","text"=>"Văn bản"}[doc.source_type] || "Tài liệu" %>
+              <tr class="ds-row border-b border-slate-200 hover:bg-white/70 transition-colors"
+                  data-title="<%= (doc.title.presence || '').downcase %>">
+                <td class="px-4 py-3">
+                  <%= link_to doc.title.presence || "Không có tiêu đề", document_summary_path(doc),
+                      class: "text-[13px] font-semibold text-slate-800 hover:text-indigo-600 transition-colors" %>
+                </td>
+                <td class="px-4 py-3 text-[12px] text-slate-500"><%= type_icon %> <%= type_label %></td>
+                <td class="px-4 py-3">
+                  <% if doc.done? %>
+                    <span class="text-[11px] font-bold text-emerald-600">Hoàn thành</span>
+                  <% elsif doc.pending? %>
+                    <span class="text-[11px] font-semibold text-amber-500">Đang xử lý...</span>
+                  <% else %>
+                    <span class="text-[11px] font-semibold text-red-500">Thất bại</span>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3 text-[12px] text-slate-400"><%= doc.created_at.strftime("%d/%m %H:%M") %></td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-1 justify-end">
+                    <%= link_to "Xem", document_summary_path(doc),
+                        class: "text-[12px] text-slate-500 hover:text-indigo-600 font-semibold px-2 py-1 rounded hover:bg-indigo-50 transition-colors" %>
+                    <button type="button" onclick="confirmDelete('<%= document_summary_path(doc) %>', '<%= j(doc.title.presence || "tài liệu này") %>')"
+                            class="text-[12px] text-red-400 hover:text-red-600 font-semibold px-2 py-1 rounded hover:bg-red-50 transition-colors border-0 bg-transparent cursor-pointer">Xóa</button>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% else %>
+        <div class="py-20 text-center">
+          <div class="text-5xl mb-4">📄</div>
+          <h3 class="text-[15px] font-bold text-slate-700 mb-2">Chưa có tài liệu nào</h3>
+          <p class="text-[13px] text-slate-400 mb-5">Dán văn bản hoặc upload file để AI tóm tắt và rút điểm chính</p>
+          <%= link_to "Tóm tắt tài liệu đầu tiên", new_document_summary_path, class: "inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-[13px] font-bold rounded-xl" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Delete modal -->
+<div id="ds-delete-modal" style="display:none; position:fixed; inset:0; z-index:60; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,0.5);">
   <div style="background:#fff; border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.18); width:100%; max-width:380px; padding:28px 24px;">
     <div style="width:48px; height:48px; border-radius:50%; background:#FEE2E2; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
       <svg style="width:24px;height:24px;" fill="none" stroke="#EF4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
     </div>
-    <h3 style="font-size:16px;font-weight:800;color:#1E293B;text-align:center;margin:0 0 8px;">Xóa tài liệu?</h3>
-    <p id="doc-delete-desc" style="font-size:13px;color:#64748B;text-align:center;margin:0 0 20px;"></p>
-    <div style="display:flex;gap:8px;">
-      <button id="doc-delete-btn" onclick="executeDeleteDoc()" style="flex:1;padding:11px;background:#EF4444;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">Xóa</button>
-      <button onclick="document.getElementById('doc-delete-modal').style.display='none'" style="flex:1;padding:11px;background:#F1F5F9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">Hủy</button>
+    <h3 style="font-size:16px; font-weight:800; color:#1E293B; text-align:center; margin:0 0 8px;">Xóa tài liệu?</h3>
+    <p id="ds-delete-desc" style="font-size:13px; color:#64748B; text-align:center; margin:0 0 20px;"></p>
+    <div style="display:flex; gap:8px;">
+      <button id="ds-delete-btn" onclick="executeDelete()"
+              style="flex:1; padding:11px; background:#EF4444; color:#fff; font-weight:700; font-size:13px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;">Xóa</button>
+      <button onclick="document.getElementById('ds-delete-modal').style.display='none'"
+              style="flex:1; padding:11px; background:#F1F5F9; color:#475569; font-weight:600; font-size:13px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;">Hủy</button>
     </div>
   </div>
 </div>
+
 <script>
-let _docDeletePath = null;
-function confirmDeleteDoc(path, title) {
-  _docDeletePath = path;
-  document.getElementById('doc-delete-desc').textContent = 'Bạn sắp xóa "' + title + '". Hành động này không thể hoàn tác.';
-  document.getElementById('doc-delete-modal').style.display = 'flex';
+let _dsDeletePath = null;
+function confirmDelete(path, title) {
+  _dsDeletePath = path;
+  document.getElementById('ds-delete-desc').textContent = 'Bạn sắp xóa "' + title + '". Hành động này không thể hoàn tác.';
+  document.getElementById('ds-delete-modal').style.display = 'flex';
 }
-function executeDeleteDoc() {
-  if (!_docDeletePath) return;
-  const btn = document.getElementById('doc-delete-btn');
-  btn.disabled = true; btn.textContent = '...';
-  const form = document.createElement('form'); form.method='POST'; form.action=_docDeletePath;
+function executeDelete() {
+  if (!_dsDeletePath) return;
+  const btn = document.getElementById('ds-delete-btn'); btn.disabled = true; btn.textContent = '...';
+  const f = document.createElement('form'); f.method = 'POST'; f.action = _dsDeletePath;
   const m = document.createElement('input'); m.type='hidden'; m.name='_method'; m.value='delete';
   const c = document.createElement('input'); c.type='hidden'; c.name='authenticity_token'; c.value=document.querySelector('meta[name="csrf-token"]').content;
-  form.appendChild(m); form.appendChild(c); document.body.appendChild(form); form.submit();
+  f.appendChild(m); f.appendChild(c); document.body.appendChild(f); f.submit();
+}
+function filterRows(input, rowClass, noResultId) {
+  var q = input.value.toLowerCase();
+  var rows = document.querySelectorAll('.' + rowClass);
+  var found = 0;
+  rows.forEach(function(r) { var show = !q || (r.dataset.title||'').includes(q); r.style.display = show ? '' : 'none'; if(show) found++; });
+  document.getElementById(noResultId).classList.toggle('hidden', found > 0 || !q);
 }
 </script>

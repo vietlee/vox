@@ -43,6 +43,18 @@ class Admin::ContentOutlinesController < Admin::BaseController
     redirect_to content_outlines_path, notice: "Đã xóa."
   end
 
+  def update_slides
+    slide_json = params[:slide_json]
+    return render json: { error: "Missing slide_json" }, status: 422 if slide_json.blank?
+
+    slides = JSON.parse(slide_json)
+    html   = "<div id='slide-deck-root' data-slides='#{ERB::Util.html_escape(slides.to_json)}'></div>"
+    @outline.update!(slide_json: slides.to_json, content: html)
+    render json: { ok: true }
+  rescue JSON::ParserError
+    render json: { error: "Invalid JSON" }, status: 422
+  end
+
   private
 
   def set_outline
