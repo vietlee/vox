@@ -64,6 +64,7 @@ gem "dotenv-rails"
 
 # HTTP client (for Claude API)
 gem "httparty"
+gem "pdf-reader", "~> 2.0"
 
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", require: false

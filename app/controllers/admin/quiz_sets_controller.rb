@@ -350,24 +350,31 @@ class Admin::QuizSetsController < Admin::BaseController
 
   def extract_pdf(file)
     require "open3"
+    data = file.read
     tmp = Tempfile.new(["quiz_upload", ".pdf"])
     tmp.binmode
-    tmp.write(file.read)
+    tmp.write(data)
     tmp.flush
-    # Try pdftotext first, fall back to python3 pdfminer if available
+
+    # 1. pdftotext (poppler-utils)
     stdout, _stderr, status = Open3.capture3("pdftotext", "-enc", "UTF-8", tmp.path, "-")
     if status.success? && stdout.strip.present?
       tmp.close!
       return stdout.strip
     end
-    # Fallback: python3 with pdfminer.six or pypdf
-    py_out, _e, py_st = Open3.capture3(
-      "python3", "-c",
-      "import sys\ntry:\n from pdfminer.high_level import extract_text\n print(extract_text(sys.argv[1]))\nexcept:\n try:\n  from pypdf import PdfReader\n  r=PdfReader(sys.argv[1])\n  print(''.join(p.extract_text() or '' for p in r.pages))\n except: pass",
-      tmp.path
-    )
+
+    # 2. pdf-reader gem (pure Ruby, no system deps)
+    begin
+      require "pdf-reader"
+      reader = PDF::Reader.new(StringIO.new(data))
+      text = reader.pages.map(&:text).join("\n").strip
+      tmp.close!
+      return text if text.present?
+    rescue
+    end
+
     tmp.close!
-    py_st.success? && py_out.strip.present? ? py_out.strip : nil
+    nil
   rescue
     nil
   end
