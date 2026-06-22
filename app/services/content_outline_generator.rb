@@ -38,6 +38,18 @@ class ContentOutlineGenerator
       Tạo bộ slide thuyết trình CHUYÊN NGHIỆP, TRỰC QUAN, PHONG PHÚ cho chủ đề: "#{@outline.title}"#{@outline.subject.present? ? " (#{@outline.subject})" : ""}.
       Yêu cầu bổ sung: #{@outline.prompt_input.presence || 'Không có'}
 
+      ĐẦU TIÊN, chọn THEME MÀU phù hợp nhất cho chủ đề (dòng đầu tiên trước ---SLIDE---):
+      THEME: [tên theme]
+
+      Các theme có sẵn:
+      - green: xanh lá (phù hợp: môi trường, nông nghiệp, sức khỏe, thực phẩm, bền vững)
+      - blue: xanh dương (phù hợp: công nghệ, doanh nghiệp, tài chính, giáo dục)
+      - purple: tím (phù hợp: sáng tạo, nghệ thuật, thời trang, marketing)
+      - red: đỏ cam (phù hợp: startup, năng lượng, thể thao, y tế khẩn cấp)
+      - teal: xanh ngọc (phù hợp: du lịch, hospitality, spa, wellness)
+      - amber: vàng nâu (phù hợp: xây dựng, bất động sản, F&B, truyền thống)
+      - slate: xám đậm (phù hợp: luật, tư vấn, corporate, cao cấp)
+
       Tạo 8–10 slide, mỗi slide theo đúng format này:
 
       ---SLIDE---
@@ -173,6 +185,8 @@ class ContentOutlineGenerator
   # ── Slide parsing & HTML viewer ─────────────────────────────────────────────
 
   def parse_slides(text)
+    @slide_theme = text[/THEME:\s*(\w+)/i, 1]&.strip&.downcase || "blue"
+
     raw = text.scan(/---SLIDE---(.*?)---END---/m).flatten
     return [] if raw.empty?
 
@@ -266,9 +280,10 @@ class ContentOutlineGenerator
     return nil unless File.exist?(PPTX_SCRIPT)
 
     out_path = Rails.root.join("tmp", "slide_#{@outline.id}_#{Time.now.to_i}.pptx").to_s
+    theme = @slide_theme || "blue"
     require "open3"
     stdout, stderr, status = Open3.capture3(
-      "python3", PPTX_SCRIPT, slides.to_json, out_path
+      "python3", PPTX_SCRIPT, slides.to_json, out_path, theme
     )
     Rails.logger.error "[PPTX] #{stderr}" if stderr.present?
     status.success? && File.exist?(out_path) ? out_path : nil
