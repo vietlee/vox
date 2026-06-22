@@ -48,8 +48,11 @@ class Admin::TtsController < Admin::BaseController
       return
     end
 
-    credits_needed = tts_credits_for(text, model)
-    return unless require_credits!(credits_needed)
+    skip_credits = params[:source] == "flashcard"
+    unless skip_credits
+      credits_needed = tts_credits_for(text, model)
+      return unless require_credits!(credits_needed)
+    end
 
     service = ElevenLabsService.new
     audio   = service.text_to_speech(
@@ -64,7 +67,7 @@ class Admin::TtsController < Admin::BaseController
     )
 
     Rails.cache.write(cache_key, audio, expires_in: 24.hours)
-    current_workspace.active_subscription&.deduct_credits!(credits_needed)
+    current_workspace.active_subscription&.deduct_credits!(credits_needed) unless skip_credits
 
     response.headers["X-Credits-Used"] = credits_needed.to_s
     response.headers["X-Cache"]        = "MISS"
@@ -82,6 +85,7 @@ class Admin::TtsController < Admin::BaseController
   private
 
   def check_tts_feature
+    return if params[:source] == "flashcard"
     unless current_workspace&.active_subscription&.has_feature?(:tts)
       render json: { error: t("tts.upgrade_required"), upgrade_required: true }, status: :payment_required
     end

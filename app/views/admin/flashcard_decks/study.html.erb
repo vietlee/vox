@@ -173,8 +173,8 @@
     return fetch(VOICES_URL, { headers: { 'Accept': 'application/json' } })
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        /* 402 upgrade_required → hide TTS button silently */
-        if (data && data.upgrade_required) {
+        /* 402: no feature or no credits → hide TTS silently */
+        if (data && (data.upgrade_required || data.insufficient_credits)) {
           document.getElementById('tts-btn').style.display = 'none';
           ttsOn = false; return;
         }
@@ -269,13 +269,23 @@
     fd.append('similarity',    '0.75');
     fd.append('style',         '0.0');
     fd.append('output_format', 'mp3_44100_128');
+    fd.append('source',        'flashcard');
 
     fetch(GENERATE_URL, {
       method:  'POST',
       headers: { 'X-CSRF-Token': CSRF_TTS, 'Accept': 'audio/mpeg, application/json' },
       body:    fd
     })
-    .then(function(r) { return r.ok ? r.blob() : null; })
+    .then(function(r) {
+      if (r.status === 402) {
+        return r.json().then(function(d) {
+          if (d.insufficient_credits || d.upgrade_required)
+            document.getElementById('tts-btn').style.display = 'none';
+          return null;
+        });
+      }
+      return r.ok ? r.blob() : null;
+    })
     .then(function(blob) {
       if (!blob || !ttsOn) return;
       var url = URL.createObjectURL(blob);
