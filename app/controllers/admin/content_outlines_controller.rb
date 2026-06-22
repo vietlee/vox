@@ -1,5 +1,5 @@
 class Admin::ContentOutlinesController < Admin::BaseController
-  before_action :set_outline, only: [:show, :destroy, :regenerate, :status]
+  before_action :set_outline, only: [:show, :destroy, :regenerate, :status, :update_slides]
 
   def index
     @outlines = current_workspace.content_outlines.includes(:created_by).order(created_at: :desc)
@@ -48,7 +48,9 @@ class Admin::ContentOutlinesController < Admin::BaseController
     return render json: { error: "Missing slide_json" }, status: 422 if slide_json.blank?
 
     slides = JSON.parse(slide_json)
-    html   = "<div id='slide-deck-root' data-slides='#{ERB::Util.html_escape(slides.to_json)}'></div>"
+    theme  = @outline.content&.[](/data-theme='([^']+)'/, 1) || ""
+    theme_attr = theme.present? ? " data-theme='#{ERB::Util.html_escape(theme)}'" : ""
+    html   = "<div id='slide-deck-root' data-slides='#{ERB::Util.html_escape(slides.to_json)}'#{theme_attr}></div>"
     @outline.update!(slide_json: slides.to_json, content: html)
     render json: { ok: true }
   rescue JSON::ParserError
