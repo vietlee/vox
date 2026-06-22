@@ -1,5 +1,5 @@
 class Admin::QuizSetsController < Admin::BaseController
-  before_action :set_quiz_set, only: [:show, :edit, :update, :destroy, :publish, :unpublish, :results, :attempt_detail, :send_result_email, :ai_evaluate_attempt, :ai_evaluate_results, :update_ai_evaluation, :send_ai_evaluation_email]
+  before_action :set_quiz_set, only: [:show, :edit, :update, :destroy, :publish, :unpublish, :results, :attempt_detail, :send_result_email, :ai_evaluate_attempt, :ai_evaluate_results, :update_ai_evaluation, :send_ai_evaluation_email, :ai_grade_essay]
 
   def index
     @quiz_sets = current_workspace.quiz_sets.order(created_at: :desc)
@@ -278,6 +278,59 @@ class Admin::QuizSetsController < Admin::BaseController
     else
       render json: { success: true, redirect: edit_quiz_set_path(@quiz_set) }
     end
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def ai_grade_essay
+    attempt = @quiz_set.quiz_attempts.find(params[:attempt_id])
+    answer  = attempt.quiz_attempt_answers.find(params[:answer_id])
+    question = answer.quiz_question
+
+    return render(json: { error: "Không phải câu tự luận" }, status: :unprocessable_entity) unless question.short_answer?
+
+    # Return cached if already graded
+    if answer.ai_feedback.present? && !params[:force].present?
+      return render json: { grade: answer.ai_grade, feedback: answer.ai_feedback, cached: true }
+    end
+
+    return unless require_credits!(1)
+
+    student_answer = answer.text_answer.to_s.strip
+    if student_answer.blank?
+      return render json: { grade: 0, feedback: "Không có câu trả lời.", cached: false }
+    end
+
+    max_pts = question.points || 1
+    prompt = <<~PROMPT
+      Chấm câu trả lời tự luận sau.
+
+      **Câu hỏi:** #{plain_text(question.question_text)}
+      #{question.explanation.present? ? "**Đáp án mẫu/Gợi ý:** #{plain_text(question.explanation)}" : ""}
+      **Điểm tối đa:** #{max_pts}
+      **Câu trả lời của học sinh:** #{student_answer}
+
+      Trả về JSON duy nhất, không có text nào khác:
+      {"grade": <số điểm từ 0 đến #{max_pts}>, "feedback": "<nhận xét ngắn 2-3 câu bằng tiếng Việt, chỉ ra đúng/sai ở đâu, gợi ý cải thiện>"}
+    PROMPT
+
+    svc = ClaudeService.for_feature("quiz_eval_student", timeout: 60)
+    raw = svc.call(
+      system_prompt: "Bạn là giáo viên chấm bài tự luận. Chỉ trả về JSON, không giải thích thêm.",
+      user_prompt: prompt,
+      max_tokens: 500
+    )
+
+    data = JSON.parse(raw.match(/\{.*\}/m)&.to_s || raw)
+    grade    = [data["grade"].to_i, max_pts].min
+    feedback = data["feedback"].to_s
+
+    current_workspace.active_subscription.deduct_credits!(1)
+    answer.update_columns(ai_grade: grade, ai_feedback: feedback, ai_graded_at: Time.current)
+
+    render json: { grade: grade, feedback: feedback, max_points: max_pts, cached: false }
+  rescue JSON::ParserError
+    render json: { error: "AI trả về kết quả không hợp lệ" }, status: :unprocessable_entity
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

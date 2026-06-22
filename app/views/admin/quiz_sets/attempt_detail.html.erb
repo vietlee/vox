@@ -218,11 +218,29 @@
       <!-- Options -->
       <div class="px-5 py-4">
         <% if q.short_answer? %>
-          <% text_ans = my_answers.first&.text_answer %>
+          <% answer_record = my_answers.first %>
+          <% text_ans = answer_record&.text_answer %>
           <% if text_ans.present? %>
             <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-[13px] text-slate-700"><%= text_ans %></div>
           <% else %>
             <p class="text-[13px] text-slate-400 italic">Không có câu trả lời</p>
+          <% end %>
+          <% if answer_record && text_ans.present? %>
+            <div id="ai-essay-<%= answer_record.id %>" class="mt-3">
+              <% if answer_record.ai_feedback.present? %>
+                <div class="bg-violet-50 border border-violet-200 rounded-lg px-4 py-3">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-[11px] font-bold text-violet-600">✨ AI chấm: <%= answer_record.ai_grade %>/<%= q.points || 1 %> điểm</span>
+                    <button onclick="gradeEssay(<%= answer_record.id %>, true)" class="text-[10px] text-violet-400 hover:text-violet-600 cursor-pointer bg-transparent border-0">↻ Chấm lại</button>
+                  </div>
+                  <p class="text-[12px] text-slate-600 m-0"><%= answer_record.ai_feedback %></p>
+                </div>
+              <% else %>
+                <button onclick="gradeEssay(<%= answer_record.id %>)" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-600 text-[12px] font-semibold rounded-lg border border-violet-200 cursor-pointer transition-colors">
+                  ✨ AI chấm bài (1 credit)
+                </button>
+              <% end %>
+            </div>
           <% end %>
         <% else %>
           <div class="space-y-2">
@@ -266,6 +284,7 @@
 @keyframes rb-orbit  { to { transform:rotate(360deg); } }
 </style>
 <script>
+var AI_GRADE_ESSAY_URL = '<%= ai_grade_essay_quiz_set_path(@quiz_set) %>';
 var AI_EVAL_URL        = '<%= ai_evaluate_attempt_quiz_set_path(@quiz_set) %>';
 var AI_UPDATE_URL      = '<%= update_ai_evaluation_quiz_set_path(@quiz_set) %>';
 var AI_SEND_EMAIL_URL  = '<%= send_ai_evaluation_email_quiz_set_path(@quiz_set) %>';
@@ -413,6 +432,36 @@ function sendEmail(btn) {
     }
   });
 }
+function gradeEssay(answerId, force) {
+  var container = document.getElementById('ai-essay-' + answerId);
+  container.innerHTML = '<div class="flex items-center gap-2 text-[12px] text-violet-500"><svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> AI đang chấm...</div>';
+  fetch(AI_GRADE_ESSAY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+    body: JSON.stringify({ attempt_id: ATTEMPT_ID, answer_id: answerId, force: force ? '1' : '' })
+  }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+  .then(function(res) {
+    if (!res.ok) {
+      container.innerHTML = '<p class="text-[12px] text-red-500">Lỗi: ' + (res.data.error || 'Không thể chấm') + '</p>' +
+        '<button onclick="gradeEssay(' + answerId + ')" class="mt-1 text-[11px] text-violet-500 hover:text-violet-700 bg-transparent border-0 cursor-pointer">Thử lại</button>';
+      return;
+    }
+    var d = res.data;
+    var mp = d.max_points || 1;
+    container.innerHTML =
+      '<div class="bg-violet-50 border border-violet-200 rounded-lg px-4 py-3">' +
+        '<div class="flex items-center justify-between mb-2">' +
+          '<span class="text-[11px] font-bold text-violet-600">✨ AI chấm: ' + d.grade + '/' + mp + ' điểm</span>' +
+          '<button onclick="gradeEssay(' + answerId + ', true)" class="text-[10px] text-violet-400 hover:text-violet-600 cursor-pointer bg-transparent border-0">↻ Chấm lại</button>' +
+        '</div>' +
+        '<p class="text-[12px] text-slate-600 m-0">' + d.feedback + '</p>' +
+      '</div>';
+  }).catch(function() {
+    container.innerHTML = '<p class="text-[12px] text-red-500">Lỗi kết nối</p>' +
+      '<button onclick="gradeEssay(' + answerId + ')" class="mt-1 text-[11px] text-violet-500 hover:text-violet-700 bg-transparent border-0 cursor-pointer">Thử lại</button>';
+  });
+}
+
 function showToast(msg, err) {
   var t = document.getElementById('email-toast');
   t.textContent = msg; t.style.background = err ? '#DC2626' : '#1E293B'; t.style.display = 'block';
