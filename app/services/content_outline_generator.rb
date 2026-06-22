@@ -23,6 +23,8 @@ class ContentOutlineGenerator
       result = svc.call(system_prompt: generic_system, user_prompt: generic_user, max_tokens: 3000)
       @outline.update!(content: markdown_to_html(result), status: :done)
     end
+
+    @outline.workspace.active_subscription&.deduct_credits!(2)
   end
 
   private
