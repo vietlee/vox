@@ -2,796 +2,745 @@
 """
 Generate a professional PPTX from slide JSON.
 Usage: python3 generate_pptx.py <slides_json> <output_path>
-
-Inspired by corporate presentation style: white backgrounds, colored accent shapes,
-icon placeholders, multi-column card layouts, professional typography.
 """
-import sys, json, math
+import sys, json, math, io, tempfile, os
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
+from PIL import Image, ImageDraw
 
-# ── Dimensions (standard 16:9) ──────────────────────────────────────────
-W = Inches(13.33)
-H = Inches(7.5)
+# ── Dimensions (standard widescreen 16:9) ─────────────────────────────
+SW = 9144000   # 10 inches
+SH = 5143500   # ~5.63 inches
 
-# ── Color Palettes ──────────────────────────────────────────────────────
-PALETTES = [
-    {   # Indigo/Purple (default)
-        "primary":   RGBColor(0x4F, 0x46, 0xE5),
-        "primary_l": RGBColor(0xE0, 0xE7, 0xFF),
-        "accent1":   RGBColor(0x06, 0xB6, 0xD4),
-        "accent2":   RGBColor(0x10, 0xB9, 0x81),
-        "accent3":   RGBColor(0xF5, 0x9E, 0x0B),
-        "accent4":   RGBColor(0xEF, 0x44, 0x44),
-        "accent5":   RGBColor(0x8B, 0x5C, 0xF6),
-        "header_bg": RGBColor(0x31, 0x30, 0x8C),
-    },
-    {   # Teal/Cyan
-        "primary":   RGBColor(0x0D, 0x94, 0x88),
-        "primary_l": RGBColor(0xCC, 0xFB, 0xF1),
-        "accent1":   RGBColor(0x64, 0x74, 0x8B),
-        "accent2":   RGBColor(0xF5, 0x9E, 0x0B),
-        "accent3":   RGBColor(0xEF, 0x44, 0x44),
-        "accent4":   RGBColor(0x8B, 0x5C, 0xF6),
-        "accent5":   RGBColor(0x06, 0xB6, 0xD4),
-        "header_bg": RGBColor(0x11, 0x50, 0x4A),
-    },
+def I(inches):
+    return int(inches * 914400)
+
+# ── Colors ─────────────────────────────────────────────────────────────
+C_PRIMARY    = RGBColor(0x4F, 0x46, 0xE5)
+C_PRIMARY_DK = RGBColor(0x31, 0x30, 0x8C)
+C_PRIMARY_LT = RGBColor(0xE8, 0xEB, 0xFF)
+C_PRIMARY_XL = RGBColor(0xF0, 0xF0, 0xFF)
+WHITE        = RGBColor(0xFF, 0xFF, 0xFF)
+DARK         = RGBColor(0x1E, 0x29, 0x3B)
+MID          = RGBColor(0x47, 0x55, 0x69)
+LIGHT_TEXT   = RGBColor(0x94, 0xA3, 0xB8)
+CARD_BORDER  = RGBColor(0xE2, 0xE8, 0xF0)
+BG_GRAY      = RGBColor(0xF8, 0xFA, 0xFC)
+
+ACCENTS = [
+    RGBColor(0x4F, 0x46, 0xE5),  # indigo
+    RGBColor(0x06, 0xB6, 0xD4),  # teal
+    RGBColor(0x10, 0xB9, 0x81),  # green
+    RGBColor(0xF5, 0x9E, 0x0B),  # amber
+    RGBColor(0xEF, 0x44, 0x44),  # red
+    RGBColor(0x8B, 0x5C, 0xF6),  # violet
+    RGBColor(0x38, 0xBD, 0xF8),  # sky
 ]
 
-WHITE      = RGBColor(0xFF, 0xFF, 0xFF)
-NEAR_WHITE = RGBColor(0xF8, 0xFA, 0xFC)
-DARK_TEXT   = RGBColor(0x1E, 0x29, 0x3B)
-MID_TEXT    = RGBColor(0x47, 0x55, 0x69)
-LIGHT_TEXT  = RGBColor(0x94, 0xA3, 0xB8)
-CARD_BG     = RGBColor(0xF1, 0xF5, 0xF9)
-CARD_BORDER = RGBColor(0xE2, 0xE8, 0xF0)
+ACCENT_LIGHT = [
+    RGBColor(0xE8, 0xEB, 0xFF),
+    RGBColor(0xE0, 0xF7, 0xFA),
+    RGBColor(0xD1, 0xFA, 0xE5),
+    RGBColor(0xFE, 0xF3, 0xC7),
+    RGBColor(0xFE, 0xE2, 0xE2),
+    RGBColor(0xED, 0xE9, 0xFE),
+    RGBColor(0xE0, 0xF2, 0xFE),
+]
 
-# Icon symbols for different contexts
-ICONS = ["📋", "🎯", "💡", "📊", "🔧", "🚀", "⚡", "🏆", "📈", "✅",
-         "🔍", "💼", "🌐", "🎓", "📱", "🛡️", "⭐", "🔄", "📌", "🎯"]
+# ── Icon generation (PNG via Pillow) ───────────────────────────────────
+_icon_cache = {}
+
+def _make_icon_png(accent_rgb, size=120):
+    """Create a simple circular icon PNG with inner shape."""
+    key = (accent_rgb[0], accent_rgb[1], accent_rgb[2], size)
+    if key in _icon_cache:
+        return _icon_cache[key]
+
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    r, g, b = accent_rgb
+    # Outer circle
+    draw.ellipse([0, 0, size-1, size-1], fill=(r, g, b, 255))
+    # Inner white circle
+    m = size // 4
+    draw.ellipse([m, m, size-m-1, size-m-1], fill=(255, 255, 255, 255))
+    # Center dot
+    m2 = size * 3 // 8
+    draw.ellipse([m2, m2, size-m2-1, size-m2-1], fill=(r, g, b, 255))
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    _icon_cache[key] = buf.getvalue()
+    return _icon_cache[key]
 
 
-def get_palette(idx=0):
-    return PALETTES[idx % len(PALETTES)]
+def _make_avatar_png(accent_rgb, size=120):
+    """Create an avatar-style circular icon."""
+    key = ("avatar", accent_rgb[0], accent_rgb[1], accent_rgb[2], size)
+    if key in _icon_cache:
+        return _icon_cache[key]
+
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    r, g, b = accent_rgb
+    # Circle bg
+    draw.ellipse([0, 0, size-1, size-1], fill=(r, g, b, 255))
+    # Head
+    hx, hy = size // 2, size * 5 // 14
+    hr = size // 7
+    draw.ellipse([hx-hr, hy-hr, hx+hr, hy+hr], fill=(255, 255, 255, 255))
+    # Shoulders
+    sw = size // 3
+    sh = size // 5
+    sy = size * 9 // 14
+    draw.ellipse([hx-sw, sy, hx+sw, sy+sh*2], fill=(255, 255, 255, 255))
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    _icon_cache[key] = buf.getvalue()
+    return _icon_cache[key]
 
 
-def set_bg_white(slide):
-    fill = slide.background.fill
-    fill.solid()
-    fill.fore_color.rgb = WHITE
+def _add_icon(slide, left, top, size, accent_rgb, avatar=False):
+    """Embed a PNG icon into the slide."""
+    png_data = _make_avatar_png(accent_rgb, 120) if avatar else _make_icon_png(accent_rgb, 120)
+    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    tmp.write(png_data)
+    tmp.close()
+    pic = slide.shapes.add_picture(tmp.name, left, top, size, size)
+    os.unlink(tmp.name)
+    return pic
 
 
-def set_bg_light(slide):
-    fill = slide.background.fill
-    fill.solid()
-    fill.fore_color.rgb = NEAR_WHITE
+# ── Shape helpers ──────────────────────────────────────────────────────
 
-
-def add_rounded_rect(slide, left, top, width, height, fill_color, line_color=None, corner_radius=Inches(0.15)):
-    shape = slide.shapes.add_shape(
-        MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height
-    )
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = fill_color
-    if line_color:
-        shape.line.color.rgb = line_color
-        shape.line.width = Pt(1)
+def _shape(slide, stype, l, t, w, h, fill=None, line=None):
+    s = slide.shapes.add_shape(stype, l, t, w, h)
+    if fill:
+        s.fill.solid(); s.fill.fore_color.rgb = fill
     else:
-        shape.line.fill.background()
-    # Adjust corner radius
-    shape.adjustments[0] = 0.06
-    return shape
-
-
-def add_rect(slide, left, top, width, height, fill_color, line_color=None):
-    shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, width, height)
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = fill_color
-    if line_color:
-        shape.line.color.rgb = line_color
-        shape.line.width = Pt(1)
+        s.fill.background()
+    if line:
+        s.line.color.rgb = line; s.line.width = Pt(0.75)
     else:
-        shape.line.fill.background()
-    return shape
+        s.line.fill.background()
+    return s
 
+def _rect(slide, l, t, w, h, fill, line=None):
+    return _shape(slide, MSO_SHAPE.RECTANGLE, l, t, w, h, fill, line)
 
-def add_circle(slide, left, top, size, fill_color):
-    shape = slide.shapes.add_shape(MSO_SHAPE.OVAL, left, top, size, size)
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = fill_color
-    shape.line.fill.background()
-    return shape
+def _rrect(slide, l, t, w, h, fill=WHITE, line=CARD_BORDER, radius=0.06):
+    s = _shape(slide, MSO_SHAPE.ROUNDED_RECTANGLE, l, t, w, h, fill, line)
+    s.adjustments[0] = radius
+    return s
 
+def _oval(slide, cx, cy, r, fill):
+    return _shape(slide, MSO_SHAPE.OVAL, cx - r, cy - r, r*2, r*2, fill)
 
-def add_text(slide, text, left, top, width, height,
-             font_size=14, bold=False, color=DARK_TEXT,
-             align=PP_ALIGN.LEFT, italic=False, font_name="Segoe UI"):
-    txBox = slide.shapes.add_textbox(left, top, width, height)
-    tf = txBox.text_frame
+def _tb(slide, text, l, t, w, h, sz=12, bold=False, color=DARK, align=PP_ALIGN.LEFT, font="Segoe UI"):
+    """Add text via a shape (not textbox) — cleaner editing in PowerPoint."""
+    s = _shape(slide, MSO_SHAPE.RECTANGLE, l, t, w, h)
+    s.fill.background()
+    tf = s.text_frame
     tf.word_wrap = True
+    tf.margin_left = Pt(2); tf.margin_right = Pt(2)
+    tf.margin_top = Pt(1); tf.margin_bottom = Pt(1)
     p = tf.paragraphs[0]
     p.alignment = align
-    p.space_before = Pt(0)
-    p.space_after = Pt(0)
-    run = p.add_run()
-    run.text = text
-    run.font.size = Pt(font_size)
-    run.font.bold = bold
-    run.font.italic = italic
-    run.font.color.rgb = color
-    run.font.name = font_name
-    return txBox
+    p.space_before = Pt(0); p.space_after = Pt(0)
+    r = p.add_run()
+    r.text = text
+    r.font.size = Pt(sz); r.font.bold = bold; r.font.color.rgb = color; r.font.name = font
+    return s
 
-
-def add_rich_text_in_shape(shape, lines, font_size=12, color=MID_TEXT, line_spacing=Pt(6), bullet_color=None):
-    """Add multiple lines of text into an existing shape's text frame."""
-    tf = shape.text_frame
+def _tb_multi(slide, lines, l, t, w, h, font="Segoe UI"):
+    """Multi-line text shape: list of (text, size, bold, color)."""
+    s = _shape(slide, MSO_SHAPE.RECTANGLE, l, t, w, h)
+    s.fill.background()
+    tf = s.text_frame
     tf.word_wrap = True
-    tf.margin_left = Inches(0.2)
-    tf.margin_right = Inches(0.2)
-    tf.margin_top = Inches(0.15)
-    tf.margin_bottom = Inches(0.1)
-
-    for i, line in enumerate(lines):
+    tf.margin_left = Pt(4); tf.margin_right = Pt(4)
+    tf.margin_top = Pt(2); tf.margin_bottom = Pt(2)
+    for i, (text, sz, bold, color) in enumerate(lines):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.space_before = line_spacing
-        p.space_after = Pt(2)
-        if bullet_color:
-            dot = p.add_run()
-            dot.text = "●  "
-            dot.font.size = Pt(8)
-            dot.font.color.rgb = bullet_color
-        run = p.add_run()
-        run.text = line
-        run.font.size = Pt(font_size)
-        run.font.color.rgb = color
-        run.font.name = "Segoe UI"
+        p.space_before = Pt(2); p.space_after = Pt(1)
+        r = p.add_run()
+        r.text = text
+        r.font.size = Pt(sz); r.font.bold = bold; r.font.color.rgb = color; r.font.name = font
+    return s
 
 
-def add_header_bar(slide, pal, title, subtitle="", slide_num="", total=""):
-    """Standard content slide header: colored top bar + title + subtitle."""
-    # Top colored bar
-    add_rect(slide, Inches(0), Inches(0), W, Inches(0.06), pal["primary"])
+def _bg_white(slide):
+    f = slide.background.fill; f.solid(); f.fore_color.rgb = WHITE
 
-    # Header background
-    add_rect(slide, Inches(0), Inches(0.06), W, Inches(0.94), pal["header_bg"])
+def _bg_gray(slide):
+    f = slide.background.fill; f.solid(); f.fore_color.rgb = BG_GRAY
 
-    # Title text
-    add_text(slide, title,
-             Inches(0.6), Inches(0.18), Inches(10.5), Inches(0.65),
-             font_size=22, bold=True, color=WHITE)
 
-    # Slide number badge
-    if slide_num:
-        num_text = f"{slide_num}"
-        add_text(slide, num_text,
-                 W - Inches(1.2), Inches(0.25), Inches(0.8), Inches(0.5),
-                 font_size=11, color=RGBColor(0xA5, 0xB4, 0xFC), align=PP_ALIGN.RIGHT)
+# ── Shared components ──────────────────────────────────────────────────
 
-    # Subtitle
+def _header_bar(slide, title, subtitle=""):
+    """Dark header bar with title + subtitle."""
+    _rect(slide, 0, 0, SW, I(0.04), C_PRIMARY)
+    _rect(slide, 0, I(0.04), SW, I(0.7), C_PRIMARY_DK)
+    _tb(slide, title, I(0.4), I(0.1), I(7), I(0.35),
+        sz=16, bold=True, color=WHITE, font="Segoe UI Semibold")
     if subtitle:
-        add_text(slide, subtitle,
-                 Inches(0.6), Inches(0.62), Inches(10), Inches(0.35),
-                 font_size=12, color=RGBColor(0xA5, 0xB4, 0xFC), italic=True)
+        _tb(slide, subtitle, I(0.4), I(0.42), I(8), I(0.28),
+            sz=9, color=RGBColor(0xC7, 0xD2, 0xFE))
+
+def _page_num(slide, num, total):
+    _tb(slide, f"{num:02d} / {total:02d}",
+        SW - I(0.8), SH - I(0.35), I(0.65), I(0.25),
+        sz=8, bold=True, color=LIGHT_TEXT, align=PP_ALIGN.RIGHT)
+
+def _source_note(slide, text):
+    bar = _rrect(slide, I(0.4), SH - I(0.55), SW - I(0.8), I(0.4), C_PRIMARY_XL, line=None)
+    _tb(slide, text, I(0.55), SH - I(0.5), SW - I(1.1), I(0.3),
+        sz=8, color=C_PRIMARY)
 
 
-def add_footer(slide, pal, page_num, total):
-    """Subtle footer with page number."""
-    add_rect(slide, Inches(0), H - Inches(0.35), W, Inches(0.35), pal["primary_l"])
-    add_text(slide, f"{page_num} / {total}",
-             W - Inches(1.5), H - Inches(0.32), Inches(1.2), Inches(0.3),
-             font_size=9, color=pal["primary"], align=PP_ALIGN.RIGHT, bold=True)
+# ── Content card (icon + title + description) ─────────────────────────
+
+def _content_card(slide, x, y, w, h, accent_idx, title, desc=""):
+    """Card matching co-work style: rounded rect + embedded icon + title + description."""
+    ac = ACCENTS[accent_idx % len(ACCENTS)]
+    ac_lt = ACCENT_LIGHT[accent_idx % len(ACCENT_LIGHT)]
+    ac_rgb = (ac.red if hasattr(ac, 'red') else int(str(ac)[:2], 16),
+              ac.green if hasattr(ac, 'green') else int(str(ac)[2:4], 16),
+              ac.blue if hasattr(ac, 'blue') else int(str(ac)[4:6], 16))
+    # Parse RGB from RGBColor
+    s = str(ac)
+    ac_rgb = (int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16))
+
+    # Card
+    _rrect(slide, x, y, w, h, WHITE, CARD_BORDER)
+
+    # Icon
+    icon_sz = I(0.38)
+    icon_x = x + I(0.15)
+    icon_y = y + (h - icon_sz) // 2
+    _add_icon(slide, icon_x, icon_y, icon_sz, ac_rgb)
+
+    # Title
+    tx = x + I(0.62)
+    tw = w - I(0.77)
+    if desc:
+        _tb(slide, title, tx, y + I(0.08), tw, I(0.25),
+            sz=11, bold=True, color=DARK)
+        _tb(slide, desc, tx, y + I(0.32), tw, h - I(0.4),
+            sz=9, color=MID)
+    else:
+        _tb(slide, title, tx, y + (h - I(0.3)) // 2, tw, I(0.3),
+            sz=11, bold=True, color=DARK)
 
 
 # ═══════════════════════════════════════════════════════════════════════
 # SLIDE BUILDERS
 # ═══════════════════════════════════════════════════════════════════════
 
-def make_cover(prs, s, idx, total, pal):
-    """Title/cover slide with large centered text."""
+def make_cover(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_white(slide)
+    _bg_white(slide)
 
-    # Full-width colored band
-    add_rect(slide, Inches(0), Inches(0), W, Inches(0.08), pal["primary"])
-    add_rect(slide, Inches(0), H - Inches(0.08), W, Inches(0.08), pal["primary"])
+    # Decorative circles
+    _oval(slide, SW - I(1.2), I(0.5), I(1.8), C_PRIMARY_XL)
+    _oval(slide, SW - I(0.1), I(-0.4), I(1.0), C_PRIMARY_LT)
+    _oval(slide, I(-0.8), SH - I(1.5), I(1.2), C_PRIMARY_XL)
 
     # Left accent stripe
-    add_rect(slide, Inches(0), Inches(0.08), Inches(0.3), H - Inches(0.16), pal["primary"])
-
-    # Decorative circle top-right
-    add_circle(slide, W - Inches(2.5), Inches(0.5), Inches(1.5), pal["primary_l"])
+    _rect(slide, 0, 0, I(0.15), SH, C_PRIMARY)
+    # Top/bottom lines
+    _rect(slide, I(0.15), 0, SW, I(0.03), C_PRIMARY)
+    _rect(slide, 0, SH - I(0.03), SW, I(0.03), C_PRIMARY)
 
     # Title
-    add_text(slide, s["title"],
-             Inches(1.2), Inches(2.0), Inches(10.5), Inches(1.8),
-             font_size=40, bold=True, color=pal["header_bg"], align=PP_ALIGN.LEFT,
-             font_name="Segoe UI Black")
+    _tb(slide, s["title"], I(0.8), I(1.2), I(7.5), I(1.2),
+        sz=28, bold=True, color=C_PRIMARY_DK, font="Segoe UI Black")
 
-    # Subtitle line
+    # Decorative line
+    _rect(slide, I(0.8), I(2.5), I(2.2), Pt(3), C_PRIMARY)
+
+    # Subtitle from bullets
     if s.get("bullets"):
         sub = " · ".join(s["bullets"][:3])
-        add_text(slide, sub,
-                 Inches(1.2), Inches(4.0), Inches(10), Inches(0.8),
-                 font_size=16, color=MID_TEXT, italic=True)
+        _tb(slide, sub, I(0.8), I(2.75), I(7.5), I(0.5),
+            sz=11, color=MID)
 
     # Bottom info bar
-    bar = add_rounded_rect(slide, Inches(0.6), H - Inches(1.0), Inches(10), Inches(0.45),
-                           pal["primary_l"])
-    add_rich_text_in_shape(bar, [s.get("note", "")], font_size=11, color=pal["primary"])
-
-
-def make_section_divider(prs, s, idx, total, pal):
-    """Section title slide - large centered text like '1. EXECUTIVE SUMMARY'."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_white(slide)
-
-    # Accent bar top
-    add_rect(slide, Inches(0), Inches(0), W, Inches(0.06), pal["primary"])
-
-    # Large centered title
-    add_text(slide, s["title"],
-             Inches(1), Inches(2.5), Inches(11.3), Inches(2),
-             font_size=36, bold=True, color=pal["header_bg"], align=PP_ALIGN.CENTER,
-             font_name="Segoe UI Black")
-
-    # Decorative line under title
-    add_rect(slide, Inches(5.5), Inches(4.3), Inches(2.3), Pt(4), pal["primary"])
-
     if s.get("note"):
-        add_text(slide, s["note"],
-                 Inches(2), Inches(4.8), Inches(9.3), Inches(0.6),
-                 font_size=14, color=MID_TEXT, align=PP_ALIGN.CENTER, italic=True)
-
-    add_footer(slide, pal, idx, total)
+        _rrect(slide, I(0.35), SH - I(0.65), SW - I(0.7), I(0.4), C_PRIMARY_XL, line=None)
+        _tb(slide, s["note"], I(0.5), SH - I(0.6), SW - I(1.0), I(0.3),
+            sz=9, color=C_PRIMARY)
 
 
-def make_bullets_slide(prs, s, idx, total, pal):
-    """Content slide with bullet points in cards."""
+def make_section(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_light(slide)
+    _bg_white(slide)
+    _rect(slide, 0, 0, SW, I(0.03), C_PRIMARY)
+    _oval(slide, SW // 2, I(1.2), I(2.5), C_PRIMARY_XL)
+    _tb(slide, s["title"], I(0.5), I(1.5), SW - I(1.0), I(1.0),
+        sz=26, bold=True, color=C_PRIMARY_DK, align=PP_ALIGN.CENTER, font="Segoe UI Black")
+    _rect(slide, SW // 2 - I(1), I(2.7), I(2), Pt(3), C_PRIMARY)
+    if s.get("note"):
+        _tb(slide, s["note"], I(1), I(3.0), SW - I(2), I(0.4),
+            sz=10, color=MID, align=PP_ALIGN.CENTER)
+    _page_num(slide, idx, total)
 
-    subtitle = s.get("note", "")
-    add_header_bar(slide, pal, s["title"], subtitle, str(idx), str(total))
+
+def make_bullets(prs, s, idx, total):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    _bg_gray(slide)
+    _header_bar(slide, s["title"], s.get("note", ""))
 
     bullets = s.get("bullets", [])
-    if not bullets:
-        return
+    if not bullets: return
 
-    # Layout: bullets in 2 columns of cards
-    cols = 2 if len(bullets) >= 4 else 1
-    col_w = Inches(5.8) if cols == 2 else Inches(12)
-    start_y = Inches(1.3)
-    card_h = Inches(0.7)
-    gap = Inches(0.12)
-    accents = [pal["primary"], pal["accent1"], pal["accent2"], pal["accent3"], pal["accent4"], pal["accent5"]]
+    n = len(bullets)
+    content_top = I(0.95)
+    avail_h = SH - content_top - I(0.45)
 
-    for i, bullet in enumerate(bullets):
-        col = i % cols if cols == 2 else 0
-        row = i // cols if cols == 2 else i
-        x = Inches(0.5) + col * (col_w + Inches(0.4))
-        y = start_y + row * (card_h + gap)
+    if n >= 4:
+        cols = 2
+        col_w = (SW - I(1.1)) // 2
+        card_h = min(avail_h // ((n + 1) // 2) - I(0.08), I(0.72))
+        for i, b in enumerate(bullets[:10]):
+            c = i % 2
+            r = i // 2
+            x = I(0.35) + c * (col_w + I(0.2))
+            y = content_top + r * (card_h + I(0.08))
+            if y + card_h > SH - I(0.4): break
+            _content_card(slide, x, y, col_w, card_h, i, b)
+    else:
+        card_h = min(avail_h // n - I(0.08), I(0.85))
+        for i, b in enumerate(bullets):
+            y = content_top + i * (card_h + I(0.08))
+            if y + card_h > SH - I(0.4): break
+            _content_card(slide, I(0.35), y, SW - I(0.7), card_h, i, b)
 
-        if y + card_h > H - Inches(0.5):
-            break
-
-        ac = accents[i % len(accents)]
-
-        # Card background
-        card = add_rounded_rect(slide, x, y, col_w, card_h, WHITE, CARD_BORDER)
-
-        # Left accent stripe on card
-        add_rect(slide, x, y + Inches(0.08), Pt(5), card_h - Inches(0.16), ac)
-
-        # Icon circle
-        add_circle(slide, x + Inches(0.25), y + Inches(0.12), Inches(0.45), pal["primary_l"])
-        add_text(slide, ICONS[i % len(ICONS)],
-                 x + Inches(0.27), y + Inches(0.12), Inches(0.45), Inches(0.45),
-                 font_size=14, align=PP_ALIGN.CENTER)
-
-        # Bullet text
-        add_text(slide, bullet,
-                 x + Inches(0.85), y + Inches(0.12), col_w - Inches(1.1), card_h - Inches(0.2),
-                 font_size=13, color=DARK_TEXT)
-
-    add_footer(slide, pal, idx, total)
+    _page_num(slide, idx, total)
 
 
-def make_stats_slide(prs, s, idx, total, pal):
-    """KPI / stats cards in a row."""
+def make_stats(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_light(slide)
-
-    add_header_bar(slide, pal, s["title"], s.get("note", ""), str(idx), str(total))
+    _bg_gray(slide)
+    _header_bar(slide, s["title"], s.get("note", ""))
 
     items = s.get("items", [])
-    if not items:
-        return
+    if not items: return
 
     n = min(len(items), 4)
-    card_w = Inches(2.8)
-    total_w = n * card_w + (n - 1) * Inches(0.3)
-    start_x = (Emu(W.emu) - Emu(total_w.emu if hasattr(total_w, 'emu') else int(total_w))) // 2
-    # Recalculate properly
-    gap = Inches(0.3)
-    total_width = n * card_w.emu + (n - 1) * gap.emu
-    start_x = (W.emu - total_width) // 2
-
-    accents = [pal["primary"], pal["accent1"], pal["accent2"], pal["accent3"]]
+    gap = I(0.2)
+    card_w = (SW - I(0.7) - gap * (n - 1)) // n
+    start_x = I(0.35)
+    cy = I(0.95)
+    card_h = SH - cy - I(0.55)
 
     for i, item in enumerate(items[:n]):
-        x = start_x + i * (card_w.emu + gap.emu)
-        y = Inches(2.0)
-        ac = accents[i % len(accents)]
+        ac = ACCENTS[i % len(ACCENTS)]
+        s_ac = str(ac)
+        ac_rgb = (int(s_ac[0:2], 16), int(s_ac[2:4], 16), int(s_ac[4:6], 16))
+        x = start_x + i * (card_w + gap)
 
         # Card
-        card = add_rounded_rect(slide, x, y, card_w, Inches(3.5), WHITE, CARD_BORDER)
+        _rrect(slide, x, cy, card_w, card_h, WHITE, CARD_BORDER)
+        # Top accent
+        _rect(slide, x, cy, card_w, I(0.04), ac)
 
-        # Top colored bar inside card
-        add_rect(slide, x, y, card_w, Inches(0.06), ac)
+        # Icon
+        icon_sz = I(0.4)
+        _add_icon(slide, x + (card_w - icon_sz) // 2, cy + I(0.18), icon_sz, ac_rgb)
 
-        # Big number
-        add_text(slide, item.get("value", ""),
-                 x, y + Inches(0.5), card_w, Inches(1.2),
-                 font_size=42, bold=True, color=ac, align=PP_ALIGN.CENTER,
-                 font_name="Segoe UI Black")
+        # Big value
+        _tb(slide, item.get("value", ""),
+            x + I(0.08), cy + I(0.7), card_w - I(0.16), I(0.55),
+            sz=28, bold=True, color=ac, align=PP_ALIGN.CENTER, font="Segoe UI Black")
+
+        # Divider
+        _rect(slide, x + card_w // 4, cy + I(1.3), card_w // 2, Pt(2), ac)
 
         # Label
-        add_text(slide, item.get("label", ""),
-                 x + Inches(0.2), y + Inches(1.8), card_w - Inches(0.4), Inches(1.2),
-                 font_size=13, color=MID_TEXT, align=PP_ALIGN.CENTER)
+        _tb(slide, item.get("label", ""),
+            x + I(0.1), cy + I(1.45), card_w - I(0.2), card_h - I(1.6),
+            sz=9, color=MID, align=PP_ALIGN.CENTER)
 
-    add_footer(slide, pal, idx, total)
+    if s.get("note"):
+        _source_note(slide, s["note"])
+    _page_num(slide, idx, total)
 
 
-def make_chart_slide(prs, s, idx, total, pal):
-    """Bar chart built from shapes."""
+def make_chart(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_light(slide)
-
-    add_header_bar(slide, pal, s["title"], s.get("note", ""), str(idx), str(total))
+    _bg_gray(slide)
+    _header_bar(slide, s["title"], s.get("note", ""))
 
     items = s.get("items", [])
-    if not items:
-        return
+    if not items: return
 
     n = min(len(items), 6)
     max_val = max(item.get("value", 1) for item in items[:n]) or 1
-    chart_h = Inches(4.0)
-    chart_y = Inches(2.2)
-    bar_w = Inches(1.2)
-    gap = Inches(0.5)
-    total_width = n * bar_w.emu + (n - 1) * gap.emu
-    start_x = (W.emu - total_width) // 2
 
-    accents = [pal["primary"], pal["accent1"], pal["accent2"], pal["accent3"], pal["accent4"], pal["accent5"]]
+    # Chart card
+    _rrect(slide, I(0.35), I(0.95), SW - I(0.7), SH - I(1.5), WHITE, CARD_BORDER)
 
-    # Chart area background
-    add_rounded_rect(slide, Inches(0.6), Inches(1.5), Inches(12.1), Inches(5.5), WHITE, CARD_BORDER)
+    chart_h = I(2.6)
+    chart_top = I(1.3)
+    bar_w = I(0.9)
+    gap = I(0.35)
+    total_w = n * bar_w + (n - 1) * gap
+    start_x = (SW - total_w) // 2
 
     for i, item in enumerate(items[:n]):
+        ac = ACCENTS[i % len(ACCENTS)]
         val = item.get("value", 0)
-        pct = val / max_val
-        bar_h_emu = int(chart_h.emu * pct)
-        x = start_x + i * (bar_w.emu + gap.emu)
-        y_bar = chart_y.emu + chart_h.emu - bar_h_emu
-        ac = accents[i % len(accents)]
+        pct = val / max_val if max_val else 0
+        bar_h = max(int(chart_h * pct), I(0.15))
+        x = start_x + i * (bar_w + gap)
+        y_bar = chart_top + chart_h - bar_h
 
-        # Bar
-        bar = add_rounded_rect(slide, x, y_bar, bar_w, bar_h_emu, ac)
-        bar.adjustments[0] = 0.08
+        _rrect(slide, x, y_bar, bar_w, bar_h, ac, radius=0.08)
+        _tb(slide, str(val), x, y_bar - I(0.25), bar_w, I(0.22),
+            sz=11, bold=True, color=ac, align=PP_ALIGN.CENTER)
+        _tb(slide, item.get("label", ""),
+            x - I(0.1), chart_top + chart_h + I(0.1), bar_w + I(0.2), I(0.4),
+            sz=8, color=MID, align=PP_ALIGN.CENTER)
 
-        # Value on top of bar
-        add_text(slide, str(val),
-                 x, y_bar - Inches(0.35), bar_w, Inches(0.3),
-                 font_size=16, bold=True, color=ac, align=PP_ALIGN.CENTER)
-
-        # Label below bar
-        add_text(slide, item.get("label", ""),
-                 x - Inches(0.15), chart_y.emu + chart_h.emu + Inches(0.15).emu, bar_w + Inches(0.3), Inches(0.5),
-                 font_size=11, color=MID_TEXT, align=PP_ALIGN.CENTER)
-
-    add_footer(slide, pal, idx, total)
+    _page_num(slide, idx, total)
 
 
-def make_two_col_slide(prs, s, idx, total, pal):
-    """Two-column comparison slide."""
+def make_two_col(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_light(slide)
-
-    add_header_bar(slide, pal, s["title"], s.get("note", ""), str(idx), str(total))
+    _bg_gray(slide)
+    _header_bar(slide, s["title"], s.get("note", ""))
 
     headers = s.get("headers", ["", ""])
     col1 = s.get("col1", [])
     col2 = s.get("col2", [])
+    gap = I(0.2)
+    col_w = (SW - I(0.7) - gap) // 2
+    positions = [
+        (I(0.35), ACCENTS[4]),   # red
+        (I(0.35) + col_w + gap, ACCENTS[2]),  # green
+    ]
 
-    col_w = Inches(5.8)
-    left1 = Inches(0.5)
-    left2 = Inches(7.0)
-    top = Inches(1.3)
-    hdr_h = Inches(0.55)
+    for ci, (items, (sx, ac)) in enumerate(zip([col1, col2], positions)):
+        hdr_text = headers[ci] if ci < len(headers) else ""
+        s_ac = str(ac)
+        ac_rgb = (int(s_ac[0:2], 16), int(s_ac[2:4], 16), int(s_ac[4:6], 16))
 
-    # Column headers
-    for ci, (header, x, ac) in enumerate([
-        (headers[0] if len(headers) > 0 else "", left1, pal["accent4"]),
-        (headers[1] if len(headers) > 1 else "", left2, pal["accent2"])
-    ]):
-        hdr_card = add_rounded_rect(slide, x, top, col_w, hdr_h, ac)
-        hdr_card.adjustments[0] = 0.12
-        add_text(slide, header,
-                 x + Inches(0.2), top + Inches(0.08), col_w - Inches(0.4), Inches(0.4),
-                 font_size=14, bold=True, color=WHITE)
+        # Column header
+        hdr = _rrect(slide, sx, I(0.95), col_w, I(0.35), ac, line=None, radius=0.1)
+        _tb(slide, hdr_text, sx + I(0.1), I(0.97), col_w - I(0.2), I(0.28),
+            sz=11, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
 
-    # Column items
-    for ci, (items, x, ac) in enumerate([
-        (col1, left1, pal["accent4"]),
-        (col2, left2, pal["accent2"])
-    ]):
-        for i, item in enumerate(items):
-            y = top + hdr_h + Inches(0.15) + i * Inches(0.7)
-            if y + Inches(0.6) > H - Inches(0.5):
-                break
-            card = add_rounded_rect(slide, x, y, col_w, Inches(0.6), WHITE, CARD_BORDER)
-            add_rect(slide, x, y + Inches(0.08), Pt(4), Inches(0.44), ac)
-            add_text(slide, item,
-                     x + Inches(0.25), y + Inches(0.1), col_w - Inches(0.5), Inches(0.4),
-                     font_size=12, color=DARK_TEXT)
+        # Items
+        for i, item in enumerate(items[:6]):
+            y = I(1.4) + i * I(0.52)
+            if y + I(0.45) > SH - I(0.4): break
+            _rrect(slide, sx, y, col_w, I(0.45), WHITE, CARD_BORDER)
 
-    add_footer(slide, pal, idx, total)
+            # Icon
+            _add_icon(slide, sx + I(0.1), y + I(0.06), I(0.32), ac_rgb)
+
+            _tb(slide, item, sx + I(0.5), y + I(0.06), col_w - I(0.6), I(0.33),
+                sz=9, color=DARK)
+
+    _page_num(slide, idx, total)
 
 
-def make_timeline_slide(prs, s, idx, total, pal):
-    """Timeline / process steps."""
+def make_timeline(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_light(slide)
-
-    add_header_bar(slide, pal, s["title"], s.get("note", ""), str(idx), str(total))
+    _bg_gray(slide)
+    _header_bar(slide, s["title"], s.get("note", ""))
 
     items = s.get("items", [])
-    if not items:
-        return
+    if not items: return
 
     n = min(len(items), 5)
-    step_w = Inches(2.2)
-    gap = Inches(0.3)
-    total_width = n * step_w.emu + (n - 1) * gap.emu
-    start_x = (W.emu - total_width) // 2
-    y = Inches(2.0)
-    accents = [pal["primary"], pal["accent1"], pal["accent2"], pal["accent3"], pal["accent4"]]
+    gap = I(0.15)
+    step_w = (SW - I(0.7) - gap * (n - 1)) // n
+    start_x = I(0.35)
+    y = I(1.05)
+    card_h = SH - y - I(0.55)
+
+    # Connector line
+    line_y = y + I(0.55)
+    _rect(slide, start_x, line_y, SW - I(0.7), Pt(2), C_PRIMARY_LT)
 
     for i, item in enumerate(items[:n]):
-        x = start_x + i * (step_w.emu + gap.emu)
-        ac = accents[i % len(accents)]
+        ac = ACCENTS[i % len(ACCENTS)]
+        s_ac = str(ac)
+        ac_rgb = (int(s_ac[0:2], 16), int(s_ac[2:4], 16), int(s_ac[4:6], 16))
+        x = start_x + i * (step_w + gap)
 
-        # Step card
-        card = add_rounded_rect(slide, x, y, step_w, Inches(4.2), WHITE, CARD_BORDER)
-
-        # Top colored section
-        add_rect(slide, x, y, step_w, Inches(0.06), ac)
+        # Card
+        _rrect(slide, x, y, step_w, card_h, WHITE, CARD_BORDER)
+        _rect(slide, x, y, step_w, I(0.03), ac)
 
         # Number circle
-        circ = add_circle(slide, x + step_w.emu // 2 - Inches(0.35).emu, y + Inches(0.3),
-                          Inches(0.7), ac)
-        add_text(slide, str(i + 1),
-                 x + step_w.emu // 2 - Inches(0.35).emu, y + Inches(0.35),
-                 Inches(0.7), Inches(0.6),
-                 font_size=22, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+        num_sz = I(0.35)
+        num_x = x + (step_w - num_sz) // 2
+        num_y = y + I(0.12)
+        _oval(slide, num_x + num_sz // 2, num_y + num_sz // 2, num_sz // 2, ac)
+        _tb(slide, str(i + 1), num_x, num_y + I(0.02), num_sz, I(0.25),
+            sz=14, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
 
         # Step name
-        add_text(slide, item.get("step", ""),
-                 x + Inches(0.15), y + Inches(1.2), step_w - Inches(0.3), Inches(0.5),
-                 font_size=14, bold=True, color=DARK_TEXT, align=PP_ALIGN.CENTER)
+        _tb(slide, item.get("step", ""),
+            x + I(0.08), y + I(0.55), step_w - I(0.16), I(0.35),
+            sz=10, bold=True, color=ac, align=PP_ALIGN.CENTER)
 
         # Description
-        add_text(slide, item.get("desc", ""),
-                 x + Inches(0.15), y + Inches(1.75), step_w - Inches(0.3), Inches(2.0),
-                 font_size=11, color=MID_TEXT, align=PP_ALIGN.CENTER)
+        _tb(slide, item.get("desc", ""),
+            x + I(0.08), y + I(0.95), step_w - I(0.16), card_h - I(1.1),
+            sz=8, color=MID, align=PP_ALIGN.CENTER)
 
-        # Arrow between steps
-        if i < n - 1:
-            arrow_x = x + step_w.emu + gap.emu // 4
-            add_text(slide, "→",
-                     arrow_x, y + Inches(1.0), Inches(0.3), Inches(0.5),
-                     font_size=20, color=LIGHT_TEXT, align=PP_ALIGN.CENTER)
-
-    add_footer(slide, pal, idx, total)
+    if s.get("note"):
+        _source_note(slide, s["note"])
+    _page_num(slide, idx, total)
 
 
-def make_pillars_slide(prs, s, idx, total, pal):
-    """3-4 pillar cards side by side with bullet points."""
+def make_pillars(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_light(slide)
-
-    add_header_bar(slide, pal, s["title"], s.get("note", ""), str(idx), str(total))
+    _bg_gray(slide)
+    _header_bar(slide, s["title"], s.get("note", ""))
 
     items = s.get("items", [])
-    if not items:
-        return
+    if not items: return
 
     n = min(len(items), 4)
-    col_w = Inches(2.8) if n >= 4 else Inches(3.5) if n == 3 else Inches(5.5)
-    gap = Inches(0.3)
-    total_width = n * col_w.emu + (n - 1) * gap.emu
-    start_x = (W.emu - total_width) // 2
-    y = Inches(1.5)
-    card_h = Inches(5.0)
-    accents = [pal["primary"], pal["accent1"], pal["accent2"], pal["accent3"]]
+    gap = I(0.15)
+    col_w = (SW - I(0.7) - gap * (n - 1)) // n
+    start_x = I(0.35)
+    y = I(0.95)
+    card_h = SH - y - I(0.5)
 
     for i, item in enumerate(items[:n]):
-        x = start_x + i * (col_w.emu + gap.emu)
-        ac = accents[i % len(accents)]
+        ac = ACCENTS[i % len(ACCENTS)]
+        s_ac = str(ac)
+        ac_rgb = (int(s_ac[0:2], 16), int(s_ac[2:4], 16), int(s_ac[4:6], 16))
+        x = start_x + i * (col_w + gap)
 
         # Card
-        card = add_rounded_rect(slide, x, y, col_w, card_h, WHITE, CARD_BORDER)
+        _rrect(slide, x, y, col_w, card_h, WHITE, CARD_BORDER)
+        _rect(slide, x, y, col_w, I(0.03), ac)
 
-        # Top accent bar
-        add_rect(slide, x, y, col_w, Inches(0.06), ac)
-
-        # Icon circle
-        circ_x = x + col_w.emu // 2 - Inches(0.3).emu
-        add_circle(slide, circ_x, y + Inches(0.3), Inches(0.6), pal["primary_l"])
-        add_text(slide, ICONS[i % len(ICONS)],
-                 circ_x, y + Inches(0.3), Inches(0.6), Inches(0.6),
-                 font_size=18, align=PP_ALIGN.CENTER)
-
-        # Pillar title
-        add_text(slide, item.get("title", ""),
-                 x + Inches(0.15), y + Inches(1.1), col_w - Inches(0.3), Inches(0.5),
-                 font_size=14, bold=True, color=ac, align=PP_ALIGN.CENTER)
-
-        # Bullet points
-        bullets = item.get("bullets", [])
-        for bi, b in enumerate(bullets[:5]):
-            by = y + Inches(1.7) + bi * Inches(0.55)
-            if by + Inches(0.4) > y + card_h:
-                break
-            add_text(slide, f"●  {b}",
-                     x + Inches(0.2), by, col_w - Inches(0.4), Inches(0.5),
-                     font_size=11, color=MID_TEXT)
-
-    add_footer(slide, pal, idx, total)
-
-
-def make_agenda_slide(prs, s, idx, total, pal):
-    """Agenda / table of contents."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_light(slide)
-
-    add_header_bar(slide, pal, s["title"], s.get("note", ""), str(idx), str(total))
-
-    items = s.get("items", [])
-    if not items:
-        return
-
-    start_y = Inches(1.4)
-    row_h = Inches(0.72)
-    accents = [pal["primary"], pal["accent1"], pal["accent2"], pal["accent3"],
-               pal["accent4"], pal["accent5"], pal["primary"], pal["accent1"]]
-
-    for i, item in enumerate(items[:8]):
-        y = start_y + i * (row_h + Inches(0.08))
-        if y + row_h > H - Inches(0.5):
-            break
-        ac = accents[i % len(accents)]
-
-        # Row card
-        card = add_rounded_rect(slide, Inches(0.6), y, Inches(12), row_h, WHITE, CARD_BORDER)
-
-        # Number circle
-        add_circle(slide, Inches(0.9), y + Inches(0.1), Inches(0.5), ac)
-        add_text(slide, item.get("num", str(i + 1)),
-                 Inches(0.9), y + Inches(0.1), Inches(0.5), Inches(0.5),
-                 font_size=14, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+        # Icon
+        icon_sz = I(0.4)
+        _add_icon(slide, x + (col_w - icon_sz) // 2, y + I(0.12), icon_sz, ac_rgb)
 
         # Title
-        add_text(slide, item.get("title", ""),
-                 Inches(1.7), y + Inches(0.08), Inches(4), Inches(0.35),
-                 font_size=15, bold=True, color=DARK_TEXT)
+        _tb(slide, item.get("title", ""),
+            x + I(0.08), y + I(0.6), col_w - I(0.16), I(0.3),
+            sz=11, bold=True, color=ac, align=PP_ALIGN.CENTER)
 
-        # Description
-        add_text(slide, item.get("desc", ""),
-                 Inches(1.7), y + Inches(0.38), Inches(9), Inches(0.3),
-                 font_size=11, color=MID_TEXT)
+        # Bullets
+        bullets = item.get("bullets", [])
+        for bi, b in enumerate(bullets[:6]):
+            by = y + I(1.0) + bi * I(0.42)
+            if by + I(0.35) > y + card_h - I(0.08): break
+            # Bullet dot
+            dot_y = by + I(0.08)
+            _oval(slide, x + I(0.18), dot_y, Pt(3), ac)
+            _tb(slide, b, x + I(0.32), by, col_w - I(0.4), I(0.35),
+                sz=8, color=MID)
 
-    add_footer(slide, pal, idx, total)
+    _page_num(slide, idx, total)
 
 
-def make_roles_slide(prs, s, idx, total, pal):
-    """Roles / team structure slide."""
+def make_agenda(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_light(slide)
-
-    add_header_bar(slide, pal, s["title"], s.get("note", ""), str(idx), str(total))
+    _bg_gray(slide)
+    _header_bar(slide, s["title"], s.get("note", ""))
 
     items = s.get("items", [])
-    if not items:
-        return
+    if not items: return
+
+    row_h = I(0.55)
+    gap = I(0.06)
+
+    for i, item in enumerate(items[:8]):
+        ac = ACCENTS[i % len(ACCENTS)]
+        s_ac = str(ac)
+        ac_rgb = (int(s_ac[0:2], 16), int(s_ac[2:4], 16), int(s_ac[4:6], 16))
+        y = I(0.95) + i * (row_h + gap)
+        if y + row_h > SH - I(0.4): break
+
+        # Row card
+        _rrect(slide, I(0.35), y, SW - I(0.7), row_h, WHITE, CARD_BORDER)
+
+        # Number circle
+        num_sz = I(0.3)
+        _oval(slide, I(0.6) + num_sz // 2, y + row_h // 2, num_sz // 2, ac)
+        _tb(slide, item.get("num", str(i + 1)),
+            I(0.6), y + (row_h - I(0.22)) // 2, num_sz, I(0.22),
+            sz=10, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+
+        # Title + desc
+        _tb(slide, item.get("title", ""),
+            I(1.05), y + I(0.04), I(3.5), I(0.22),
+            sz=11, bold=True, color=DARK)
+        _tb(slide, item.get("desc", ""),
+            I(1.05), y + I(0.26), SW - I(1.5), I(0.22),
+            sz=8, color=MID)
+
+    _page_num(slide, idx, total)
+
+
+def make_roles(prs, s, idx, total):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    _bg_gray(slide)
+    _header_bar(slide, s["title"], s.get("note", ""))
+
+    items = s.get("items", [])
+    if not items: return
 
     n = min(len(items), 3)
-    col_w = Inches(3.8) if n == 3 else Inches(5.5)
-    gap = Inches(0.35)
-    total_width = n * col_w.emu + (n - 1) * gap.emu
-    start_x = (W.emu - total_width) // 2
-    y = Inches(1.5)
-    card_h = Inches(5.2)
-    accents = [pal["primary"], pal["accent1"], pal["accent2"]]
+    gap = I(0.2)
+    col_w = (SW - I(0.7) - gap * (n - 1)) // n
+    start_x = I(0.35)
+    y = I(0.95)
+    card_h = SH - y - I(0.5)
 
     for i, item in enumerate(items[:n]):
-        x = start_x + i * (col_w.emu + gap.emu)
-        ac = accents[i % len(accents)]
+        ac = ACCENTS[i % len(ACCENTS)]
+        s_ac = str(ac)
+        ac_rgb = (int(s_ac[0:2], 16), int(s_ac[2:4], 16), int(s_ac[4:6], 16))
+        x = start_x + i * (col_w + gap)
 
         # Card
-        add_rounded_rect(slide, x, y, col_w, card_h, WHITE, CARD_BORDER)
-        add_rect(slide, x, y, col_w, Inches(0.06), ac)
+        _rrect(slide, x, y, col_w, card_h, WHITE, CARD_BORDER)
+        _rect(slide, x, y, col_w, I(0.04), ac)
 
-        # Role icon
-        circ_x = x + col_w.emu // 2 - Inches(0.35).emu
-        add_circle(slide, circ_x, y + Inches(0.25), Inches(0.7), ac)
-        add_text(slide, ICONS[(i + 5) % len(ICONS)],
-                 circ_x, y + Inches(0.28), Inches(0.7), Inches(0.7),
-                 font_size=20, align=PP_ALIGN.CENTER)
+        # Avatar
+        av_sz = I(0.55)
+        _add_icon(slide, x + (col_w - av_sz) // 2, y + I(0.12), av_sz, ac_rgb, avatar=True)
 
-        # Role name
-        add_text(slide, item.get("role", ""),
-                 x + Inches(0.1), y + Inches(1.1), col_w - Inches(0.2), Inches(0.45),
-                 font_size=16, bold=True, color=ac, align=PP_ALIGN.CENTER)
+        # Name
+        _tb(slide, item.get("role", ""),
+            x + I(0.05), y + I(0.75), col_w - I(0.1), I(0.25),
+            sz=12, bold=True, color=ac, align=PP_ALIGN.CENTER)
 
         # Type badge
         if item.get("type"):
-            badge = add_rounded_rect(slide,
-                                     x + col_w.emu // 2 - Inches(1.2).emu, y + Inches(1.55),
-                                     Inches(2.4), Inches(0.35), pal["primary_l"])
-            add_text(slide, item["type"],
-                     x + col_w.emu // 2 - Inches(1.1).emu, y + Inches(1.58),
-                     Inches(2.2), Inches(0.3),
-                     font_size=10, color=pal["primary"], align=PP_ALIGN.CENTER, italic=True)
+            badge_w = min(col_w - I(0.3), I(2.0))
+            _rrect(slide, x + (col_w - badge_w) // 2, y + I(1.02),
+                   badge_w, I(0.22), C_PRIMARY_XL, line=None, radius=0.3)
+            _tb(slide, item["type"],
+                x + (col_w - badge_w) // 2, y + I(1.04), badge_w, I(0.18),
+                sz=8, color=C_PRIMARY, align=PP_ALIGN.CENTER)
 
-        # Responsibilities
+        # Separator
+        _rect(slide, x + I(0.2), y + I(1.32), col_w - I(0.4), Pt(1), CARD_BORDER)
+
+        # Bullets
         bullets = item.get("bullets", [])
         for bi, b in enumerate(bullets[:5]):
-            by = y + Inches(2.1) + bi * Inches(0.55)
-            if by + Inches(0.4) > y + card_h:
-                break
-            add_text(slide, f"●  {b}",
-                     x + Inches(0.2), by, col_w - Inches(0.4), Inches(0.5),
-                     font_size=11, color=MID_TEXT)
+            by = y + I(1.45) + bi * I(0.42)
+            if by + I(0.35) > y + card_h - I(0.08): break
+            _oval(slide, x + I(0.18), by + I(0.08), Pt(3), ac)
+            _tb(slide, b, x + I(0.32), by, col_w - I(0.4), I(0.35),
+                sz=8, color=MID)
 
-    add_footer(slide, pal, idx, total)
+    if s.get("note"):
+        _source_note(slide, s["note"])
+    _page_num(slide, idx, total)
 
 
-def make_okr_slide(prs, s, idx, total, pal):
-    """OKR / objectives and key results."""
+def make_okr(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_light(slide)
-
-    add_header_bar(slide, pal, s["title"], s.get("note", ""), str(idx), str(total))
+    _bg_gray(slide)
+    _header_bar(slide, s["title"], s.get("note", ""))
 
     items = s.get("items", [])
-    if not items:
-        return
+    if not items: return
 
-    start_y = Inches(1.4)
-    accents = [pal["primary"], pal["accent1"], pal["accent2"], pal["accent3"], pal["accent4"]]
-
+    row_h = I(0.7)
     for i, item in enumerate(items[:5]):
-        ac = accents[i % len(accents)]
-        y = start_y + i * Inches(1.1)
-        if y + Inches(0.95) > H - Inches(0.5):
-            break
+        ac = ACCENTS[i % len(ACCENTS)]
+        y = I(0.95) + i * (row_h + I(0.08))
+        if y + row_h > SH - I(0.4): break
 
-        # Row card
-        add_rounded_rect(slide, Inches(0.5), y, Inches(12.3), Inches(0.95), WHITE, CARD_BORDER)
-        add_rect(slide, Inches(0.5), y + Inches(0.1), Pt(5), Inches(0.75), ac)
+        _rrect(slide, I(0.35), y, SW - I(0.7), row_h, WHITE, CARD_BORDER)
+        _rect(slide, I(0.35), y + I(0.08), Pt(4), row_h - I(0.16), ac)
 
-        # Objective
-        add_text(slide, item.get("objective", ""),
-                 Inches(0.85), y + Inches(0.08), Inches(3.5), Inches(0.4),
-                 font_size=14, bold=True, color=ac)
+        _tb(slide, item.get("objective", ""),
+            I(0.65), y + I(0.05), I(3), I(0.25),
+            sz=10, bold=True, color=ac)
 
-        # Key Results
         krs = item.get("krs", [])
         for ki, kr in enumerate(krs[:3]):
-            kx = Inches(4.5) + ki * Inches(2.7)
-            add_text(slide, f"✓  {kr}",
-                     kx, y + Inches(0.1), Inches(2.6), Inches(0.7),
-                     font_size=10, color=MID_TEXT)
+            kx = I(3.8) + ki * I(1.8)
+            _tb(slide, f"✓ {kr}", kx, y + I(0.05), I(1.7), row_h - I(0.1),
+                sz=8, color=MID)
 
-    add_footer(slide, pal, idx, total)
+    _page_num(slide, idx, total)
 
 
-def make_principles_slide(prs, s, idx, total, pal):
-    """Principles / values grid."""
+def make_principles(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_light(slide)
-
-    add_header_bar(slide, pal, s["title"], s.get("note", ""), str(idx), str(total))
+    _bg_gray(slide)
+    _header_bar(slide, s["title"], s.get("note", ""))
 
     items = s.get("items", [])
-    if not items:
-        return
+    if not items: return
 
     cols = 2
-    col_w = Inches(5.8)
-    card_h = Inches(1.3)
-    gap_x = Inches(0.5)
-    gap_y = Inches(0.15)
-    start_y = Inches(1.4)
-    accents = [pal["primary"], pal["accent1"], pal["accent2"], pal["accent3"], pal["accent4"], pal["accent5"]]
+    gap_x = I(0.15)
+    gap_y = I(0.1)
+    col_w = (SW - I(0.7) - gap_x) // 2
+    card_h = I(0.75)
 
     for i, item in enumerate(items[:6]):
-        col = i % cols
-        row = i // cols
-        x = Inches(0.5) + col * (col_w + gap_x)
-        y = start_y + row * (card_h + gap_y)
-        ac = accents[i % len(accents)]
+        c = i % cols
+        r = i // cols
+        x = I(0.35) + c * (col_w + gap_x)
+        y = I(0.95) + r * (card_h + gap_y)
+        if y + card_h > SH - I(0.4): break
 
-        if y + card_h > H - Inches(0.5):
-            break
+        _content_card(slide, x, y, col_w, card_h, i,
+                      item.get("title", ""), item.get("desc", ""))
 
-        # Card
-        add_rounded_rect(slide, x, y, col_w, card_h, WHITE, CARD_BORDER)
-        add_rect(slide, x, y + Inches(0.12), Pt(5), card_h - Inches(0.24), ac)
-
-        # Icon
-        add_circle(slide, x + Inches(0.2), y + Inches(0.2), Inches(0.5), pal["primary_l"])
-        add_text(slide, ICONS[i % len(ICONS)],
-                 x + Inches(0.22), y + Inches(0.22), Inches(0.5), Inches(0.5),
-                 font_size=14, align=PP_ALIGN.CENTER)
-
-        # Title
-        add_text(slide, item.get("title", ""),
-                 x + Inches(0.85), y + Inches(0.12), col_w - Inches(1.1), Inches(0.35),
-                 font_size=14, bold=True, color=ac)
-
-        # Description
-        add_text(slide, item.get("desc", ""),
-                 x + Inches(0.85), y + Inches(0.5), col_w - Inches(1.1), Inches(0.7),
-                 font_size=11, color=MID_TEXT)
-
-    add_footer(slide, pal, idx, total)
+    _page_num(slide, idx, total)
 
 
-def make_summary_slide(prs, s, idx, total, pal):
-    """Summary / closing slide."""
+def make_summary(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_bg_white(slide)
+    _bg_white(slide)
 
-    # Top and bottom bars
-    add_rect(slide, Inches(0), Inches(0), W, Inches(0.08), pal["primary"])
-    add_rect(slide, Inches(0), H - Inches(0.08), W, Inches(0.08), pal["primary"])
+    # Decorative
+    _oval(slide, SW // 2, I(0.8), I(2.2), C_PRIMARY_XL)
+    _oval(slide, I(0.5), SH - I(1.2), I(1.3), C_PRIMARY_XL)
 
-    # Centered title
-    add_text(slide, s["title"],
-             Inches(1), Inches(1.5), Inches(11.3), Inches(1.2),
-             font_size=32, bold=True, color=pal["header_bg"], align=PP_ALIGN.CENTER,
-             font_name="Segoe UI Black")
+    _rect(slide, 0, 0, SW, I(0.03), C_PRIMARY)
+    _rect(slide, 0, SH - I(0.03), SW, I(0.03), C_PRIMARY)
 
-    # Decorative line
-    add_rect(slide, Inches(5.5), Inches(2.8), Inches(2.3), Pt(4), pal["primary"])
+    # Title
+    _tb(slide, s["title"], I(0.5), I(0.8), SW - I(1.0), I(0.8),
+        sz=22, bold=True, color=C_PRIMARY_DK, align=PP_ALIGN.CENTER, font="Segoe UI Black")
 
-    # Summary bullets
+    _rect(slide, SW // 2 - I(0.8), I(1.7), I(1.6), Pt(3), C_PRIMARY)
+
+    # Accent bullets
     bullets = s.get("bullets", [])
-    if bullets:
-        for i, b in enumerate(bullets):
-            y = Inches(3.3) + i * Inches(0.65)
-            if y > H - Inches(1.2):
-                break
+    for i, b in enumerate(bullets[:5]):
+        y = I(2.0) + i * I(0.45)
+        if y > SH - I(1.0): break
+        _rrect(slide, I(1.0), y, SW - I(2.0), I(0.36), C_PRIMARY_XL, line=None)
+        _oval(slide, I(1.15), y + I(0.14), Pt(4), C_PRIMARY)
+        _tb(slide, b, I(1.35), y + I(0.04), SW - I(2.5), I(0.28),
+            sz=10, color=C_PRIMARY)
 
-            add_rounded_rect(slide, Inches(1.5), y, Inches(10.3), Inches(0.55), pal["primary_l"])
-            add_text(slide, f"●  {b}",
-                     Inches(1.8), y + Inches(0.08), Inches(9.5), Inches(0.4),
-                     font_size=13, color=pal["primary"])
-
-    # Note
     if s.get("note"):
-        add_text(slide, s["note"],
-                 Inches(2), H - Inches(1.3), Inches(9.3), Inches(0.5),
-                 font_size=12, color=MID_TEXT, align=PP_ALIGN.CENTER, italic=True)
+        _tb(slide, s["note"], I(1), SH - I(0.65), SW - I(2), I(0.35),
+            sz=9, color=MID, align=PP_ALIGN.CENTER)
 
-    add_footer(slide, pal, idx, total)
+    _page_num(slide, idx, total)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -799,50 +748,35 @@ def make_summary_slide(prs, s, idx, total, pal):
 # ═══════════════════════════════════════════════════════════════════════
 
 LAYOUT_MAP = {
-    "bullets":    make_bullets_slide,
-    "stats":      make_stats_slide,
-    "chart":      make_chart_slide,
-    "two-col":    make_two_col_slide,
-    "timeline":   make_timeline_slide,
-    "pillars":    make_pillars_slide,
-    "agenda":     make_agenda_slide,
-    "roles":      make_roles_slide,
-    "okr":        make_okr_slide,
-    "principles": make_principles_slide,
+    "bullets": make_bullets, "stats": make_stats, "chart": make_chart,
+    "two-col": make_two_col, "timeline": make_timeline, "pillars": make_pillars,
+    "agenda": make_agenda, "roles": make_roles, "okr": make_okr,
+    "principles": make_principles,
 }
-
 
 def generate(slides_json_str, output_path):
     slides = json.loads(slides_json_str)
     total = len(slides)
-    pal = get_palette(0)
-
     prs = Presentation()
-    prs.slide_width = W
-    prs.slide_height = H
+    prs.slide_width = SW
+    prs.slide_height = SH
 
     for i, s in enumerate(slides):
         idx = i + 1
         layout = s.get("layout", "bullets")
-
         if i == 0:
-            make_cover(prs, s, idx, total, pal)
+            make_cover(prs, s, idx, total)
         elif i == total - 1:
-            make_summary_slide(prs, s, idx, total, pal)
+            make_summary(prs, s, idx, total)
         elif layout in LAYOUT_MAP:
-            LAYOUT_MAP[layout](prs, s, idx, total, pal)
+            LAYOUT_MAP[layout](prs, s, idx, total)
         else:
-            make_bullets_slide(prs, s, idx, total, pal)
-
-        # Speaker notes
+            make_bullets(prs, s, idx, total)
         if s.get("note"):
-            slide = prs.slides[-1]
-            notes = slide.notes_slide
-            notes.notes_text_frame.text = s["note"]
+            prs.slides[-1].notes_slide.notes_text_frame.text = s["note"]
 
     prs.save(output_path)
     print(f"OK:{output_path}")
-
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
