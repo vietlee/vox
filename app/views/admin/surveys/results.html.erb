@@ -81,32 +81,35 @@
 </div>
 
 <!-- Tabs -->
-<div class="flex gap-0 border-b border-slate-200">
+<div class="flex" style="border-bottom:2px solid #e2e8f0;">
   <button id="tab-summary" onclick="switchTab('summary')"
-    class="px-4 py-2.5 text-[13px] font-semibold text-indigo-600 border-b-2 border-slate-600 -mb-px bg-transparent transition-colors">
-    <%= t("surveys.results.tab_summary") %>
+    style="flex:1;padding:10px 16px;font-size:13px;font-weight:700;color:#1e293b;background:#fff;border:0;border-bottom:2px solid #6366f1;margin-bottom:-2px;cursor:pointer;transition:all .15s;">
+    📋 <%= t("surveys.results.tab_summary") %>
   </button>
+  <div style="width:1px;background:#e2e8f0;margin:8px 0 10px;flex-shrink:0;"></div>
   <button id="tab-individual" onclick="switchTab('individual')"
-    class="px-4 py-2.5 text-[13px] font-semibold text-slate-400 border-b-2 border-transparent -mb-px bg-transparent hover:text-slate-600 transition-colors">
-    <%= t("surveys.results.tab_individual", count: @total_responses) %>
+    style="flex:1;padding:10px 16px;font-size:13px;font-weight:600;color:#94a3b8;background:#fff;border:0;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;transition:all .15s;">
+    👤 <%= t("surveys.results.tab_individual", count: @total_responses) %>
   </button>
+  <div style="width:1px;background:#e2e8f0;margin:8px 0 10px;flex-shrink:0;"></div>
   <button id="tab-ai" onclick="switchTab('ai')"
-    class="px-4 py-2.5 text-[13px] font-semibold text-slate-400 border-b-2 border-transparent -mb-px bg-transparent hover:text-slate-600 transition-colors flex items-center gap-1.5">
-    <%= t("surveys.results.tab_ai") %>
+    style="flex:1;padding:10px 16px;font-size:13px;font-weight:600;color:#94a3b8;background:#fff;border:0;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;transition:all .15s;">
+    ✨ <%= t("surveys.results.tab_ai") %>
     <% if @ai_analysis %>
-      <span id="ai-tab-dot" class="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block"></span>
+      <span id="ai-tab-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#8b5cf6;margin-left:4px;vertical-align:middle;"></span>
     <% else %>
-      <span id="ai-tab-dot" class="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block hidden"></span>
+      <span id="ai-tab-dot" style="display:none;width:7px;height:7px;border-radius:50%;background:#8b5cf6;margin-left:4px;vertical-align:middle;"></span>
     <% end %>
   </button>
+  <div style="width:1px;background:#e2e8f0;margin:8px 0 10px;flex-shrink:0;"></div>
   <% latest_report_check = @survey.ai_analysis_results.where(result_type: "executive_report").exists? %>
   <button id="tab-report" onclick="switchTab('report')"
-    class="px-4 py-2.5 text-[13px] font-semibold text-slate-400 border-b-2 border-transparent -mb-px bg-transparent hover:text-slate-600 transition-colors flex items-center gap-1.5">
-    <%= t("surveys.results.tab_report") %>
+    style="flex:1;padding:10px 16px;font-size:13px;font-weight:600;color:#94a3b8;background:#fff;border:0;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;transition:all .15s;">
+    📊 <%= t("surveys.results.tab_report") %>
     <% if latest_report_check %>
-      <span id="report-tab-dot" class="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block"></span>
+      <span id="report-tab-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#8b5cf6;margin-left:4px;vertical-align:middle;"></span>
     <% else %>
-      <span id="report-tab-dot" class="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block hidden"></span>
+      <span id="report-tab-dot" style="display:none;width:7px;height:7px;border-radius:50%;background:#8b5cf6;margin-left:4px;vertical-align:middle;"></span>
     <% end %>
   </button>
 </div>
@@ -750,12 +753,11 @@ function switchTab(tab) {
     }
     const btn = document.getElementById('tab-' + t);
     if (!btn) return;
+    var base = 'flex:1;padding:10px 16px;font-size:13px;background:#fff;border:0;margin-bottom:-2px;cursor:pointer;transition:all .15s;';
     if (t === tab) {
-      btn.classList.add('text-indigo-600', 'border-slate-600');
-      btn.classList.remove('text-slate-400', 'border-transparent', 'hover:text-slate-600');
+      btn.style.cssText = base + 'font-weight:700;color:#1e293b;border-bottom:2px solid #6366f1;';
     } else {
-      btn.classList.remove('text-indigo-600', 'border-slate-600');
-      btn.classList.add('text-slate-400', 'border-transparent', 'hover:text-slate-600');
+      btn.style.cssText = base + 'font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;';
     }
   });
   // Toggle outer wrapper: AI tab fills viewport, others scroll freely
