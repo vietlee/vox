@@ -270,7 +270,8 @@ class ContentOutlineGenerator
 
   def slides_to_html(slides)
     return "<p>Không thể tạo slide.</p>" if slides.empty?
-    "<div id='slide-deck-root' data-slides='#{ERB::Util.html_escape(slides.to_json)}'></div>"
+    theme = @slide_theme || "blue"
+    "<div id='slide-deck-root' data-slides='#{ERB::Util.html_escape(slides.to_json)}' data-theme='#{ERB::Util.html_escape(theme)}'></div>"
   end
 
   # ── PPTX generation ─────────────────────────────────────────────────────────

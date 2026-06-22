@@ -1454,7 +1454,17 @@
       '</div>'
     );
 
-    var activeThemeIdx = 0;
+    var AI_THEME_MAP = {
+      green:  15, // Forest
+      blue:    8, // Blueprint
+      purple:  2, // Glass Violet
+      red:     4, // Coral Dusk
+      teal:    1, // Neon
+      amber:   3, // Bold Ink
+      slate:  12, // Obsidian Gold
+    };
+    var aiTheme = el.dataset.theme || '';
+    var activeThemeIdx = (aiTheme && AI_THEME_MAP[aiTheme] != null) ? AI_THEME_MAP[aiTheme] : 0;
     window.setTheme = function(i) {
       activeThemeIdx = i;
       document.querySelectorAll('[id^="theme-btn-"]').forEach(function(b, j) {
@@ -1464,7 +1474,7 @@
       });
       render();
     };
-    setTheme(0);
+    setTheme(activeThemeIdx);
 
     /* ─────────────────────────────────────────────────────────────────
        RENDER
