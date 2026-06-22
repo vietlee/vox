@@ -4,6 +4,7 @@ class QuizSet < ApplicationRecord
 
   has_many :quiz_questions, -> { order(:position) }, dependent: :destroy
   has_many :quiz_attempts,  dependent: :destroy
+  has_one  :qr_code, as: :resource, dependent: :destroy
 
   enum :status,      { draft: 0, published: 1 }
   enum :source_type, { manual: 0, ai_generated: 1 }

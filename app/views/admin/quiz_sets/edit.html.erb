@@ -241,18 +241,19 @@
       </div>
     <% end %>
 
-    <!-- QR Code — separate card like survey -->
-    <% if @quiz_set.published? %>
+    <!-- QR Code — same style as survey -->
+    <% if @quiz_set.published? && @quiz_set.qr_code %>
       <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-4 text-center">
         <h3 class="text-[13px] font-bold text-slate-900 mb-3">QR Code</h3>
-        <div id="qr-code-container" class="mx-auto w-36 h-36 flex items-center justify-center rounded-lg overflow-hidden mb-2"></div>
+        <img id="quiz-qr-img" src="<%= qr_image_path(@quiz_set.qr_code.token) %>" alt="QR Code" class="mx-auto w-36 h-36 rounded-lg" crossorigin="anonymous">
+        <p class="text-[11px] text-slate-400 mt-2 mb-3"><%= @quiz_set.qr_code.scan_count %> lượt scan</p>
         <div class="flex gap-2 justify-center">
-          <button onclick="copyQrCode(this)"
+          <button onclick="copyQrImage(document.getElementById('quiz-qr-img'), this)"
                   class="vox-copy-btn">
             <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="11" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3H3.5A1.5 1.5 0 0 0 2 4.5V13.5A1.5 1.5 0 0 0 3.5 15H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
             <span>Copy QR</span>
           </button>
-          <a href="#" id="qr-download-link" download="quiz-qr.png"
+          <a href="<%= qr_image_path(@quiz_set.qr_code.token) %>" download="quiz-qr.png"
              class="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-lg hover:bg-slate-200 transition-colors">
             ⬇ Tải QR
           </a>
@@ -1023,68 +1024,3 @@ async function pollAiStatus(pollUrl) {
 }
 </script>
 
-<% if @quiz_set.published? %>
-<script>
-(function() {
-  const SHARE_URL = '<%= j quiz_url(@quiz_set.share_token) %>';
-
-  function initQr() {
-    const qrEl = document.getElementById('qr-code-container');
-    if (!qrEl) return;
-
-    // Clear loading spinner
-    qrEl.innerHTML = '';
-
-    new QRCode(qrEl, {
-      text: SHARE_URL,
-      width:  144,
-      height: 144,
-      colorDark:  '#1E293B',
-      colorLight: '#FFFFFF',
-      correctLevel: QRCode.CorrectLevel.M
-    });
-
-    // Set up download link after canvas renders
-    setTimeout(function() {
-      const canvas = qrEl.querySelector('canvas');
-      const link = document.getElementById('qr-download-link');
-      if (canvas && link) {
-        link.href = canvas.toDataURL('image/png');
-        link.style.opacity = '1';
-      }
-    }, 200);
-  }
-
-  window.copyQrCode = function(btn) {
-    const canvas = document.querySelector('#qr-code-container canvas');
-    if (!canvas) return;
-    canvas.toBlob(function(blob) {
-      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-        .then(function() {
-          const orig = btn.textContent;
-          btn.textContent = '✓ Đã copy!';
-          setTimeout(function() { btn.textContent = orig; }, 2000);
-        })
-        .catch(function() {
-          // Fallback: trigger download instead
-          const link = document.getElementById('qr-download-link');
-          if (link) link.click();
-        });
-    });
-  };
-
-  // Load qrcodejs dynamically — avoids integrity/CDN issues
-  var script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
-  script.onload = initQr;
-  script.onerror = function() {
-    // Fallback CDN
-    var s2 = document.createElement('script');
-    s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-    s2.onload = initQr;
-    document.head.appendChild(s2);
-  };
-  document.head.appendChild(script);
-})();
-</script>
-<% end %>

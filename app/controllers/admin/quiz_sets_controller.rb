@@ -25,6 +25,9 @@ class Admin::QuizSetsController < Admin::BaseController
 
   def edit
     @questions = @quiz_set.quiz_questions.includes(:quiz_options)
+    if @quiz_set.published? && !@quiz_set.qr_code
+      @quiz_set.create_qr_code!(workspace: current_workspace, token: SecureRandom.urlsafe_base64(12))
+    end
   end
 
   def update
@@ -42,6 +45,7 @@ class Admin::QuizSetsController < Admin::BaseController
 
   def publish
     @quiz_set.update!(status: :published)
+    @quiz_set.create_qr_code!(workspace: current_workspace, token: SecureRandom.urlsafe_base64(12)) unless @quiz_set.qr_code
     redirect_to edit_quiz_set_path(@quiz_set), notice: t("quiz.published")
   end
 
