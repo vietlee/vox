@@ -31,11 +31,12 @@ class Admin::TtsController < Admin::BaseController
     stability     = (params[:stability].presence  || 0.5).to_f.clamp(0.0, 1.0)
     similarity    = (params[:similarity].presence || 0.75).to_f.clamp(0.0, 1.0)
     style         = (params[:style].presence      || 0.0).to_f.clamp(0.0, 1.0)
+    language_code = params[:language_code].presence
     output_format = params[:output_format].presence&.then { |f|
       %w[mp3_44100_64 mp3_44100_128 mp3_44100_192].include?(f) ? f : "mp3_44100_128"
     } || "mp3_44100_128"
 
-    cache_key = tts_cache_key(text, voice_id, model, speed, stability, similarity, style, output_format)
+    cache_key = tts_cache_key(text, voice_id, model, speed, stability, similarity, style, output_format, language_code)
     cached    = Rails.cache.read(cache_key)
 
     if cached
@@ -55,7 +56,7 @@ class Admin::TtsController < Admin::BaseController
     end
 
     service = ElevenLabsService.new
-    audio   = service.text_to_speech(
+    tts_opts = {
       text:          text,
       voice_id:      voice_id,
       model:         model,
@@ -64,7 +65,9 @@ class Admin::TtsController < Admin::BaseController
       similarity:    similarity,
       style:         style,
       output_format: output_format
-    )
+    }
+    tts_opts[:language_code] = language_code if language_code
+    audio = service.text_to_speech(**tts_opts)
 
     Rails.cache.write(cache_key, audio, expires_in: 24.hours)
     current_workspace.active_subscription&.deduct_credits!(credits_needed) unless skip_credits
@@ -105,8 +108,8 @@ class Admin::TtsController < Admin::BaseController
     "eleven_monolingual_v1"  => 250,
   }.freeze
 
-  def tts_cache_key(text, voice_id, model, speed, stability, similarity, style, output_format)
-    digest = Digest::SHA256.hexdigest([text, voice_id, model, speed, stability, similarity, style, output_format].join("|"))
+  def tts_cache_key(text, voice_id, model, speed, stability, similarity, style, output_format, language_code = nil)
+    digest = Digest::SHA256.hexdigest([text, voice_id, model, speed, stability, similarity, style, output_format, language_code].join("|"))
     "tts/audio/#{digest}"
   end
 

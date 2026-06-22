@@ -76,7 +76,7 @@ class ElevenLabsService
 
   # Returns raw audio bytes (mp3). Auto-retries on 429 and 5xx (transient errors).
   # speed: ElevenLabs voice_settings supports 0.7–1.2 (Flash v2.5, v3, Multilingual v2)
-  def text_to_speech(text:, voice_id: DEFAULT_VOICE, model: "eleven_turbo_v2_5", speed: 1.0, stability: 0.5, similarity: 0.75, style: 0.0, output_format: "mp3_44100_128")
+  def text_to_speech(text:, voice_id: DEFAULT_VOICE, model: "eleven_turbo_v2_5", speed: 1.0, stability: 0.5, similarity: 0.75, style: 0.0, output_format: "mp3_44100_128", language_code: nil)
     max_attempts = 3
 
     payload = {
@@ -89,7 +89,9 @@ class ElevenLabsService
         use_speaker_boost: true,
         speed:             speed.to_f.clamp(0.7, 1.2)
       }
-    }.to_json
+    }
+    payload[:language_code] = language_code if language_code.present?
+    payload = payload.to_json
 
     Rails.logger.info "ElevenLabs TTS start: model=#{model} voice=#{voice_id} chars=#{text.length}"
 

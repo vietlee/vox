@@ -260,14 +260,16 @@
     var voiceId = document.getElementById(selId).value;
     if (!voiceId) return;
 
+    var lang = detectLang(text);
     var fd = new FormData();
     fd.append('text',          text);
     fd.append('voice_id',      voiceId);
-    fd.append('model',         'eleven_turbo_v2_5');
-    fd.append('speed',         '0.9');
-    fd.append('stability',     '0.5');
-    fd.append('similarity',    '0.75');
-    fd.append('style',         '0.0');
+    fd.append('model',         'eleven_multilingual_v2');
+    fd.append('language_code', lang === 'vi' ? 'vi' : 'en');
+    fd.append('speed',         lang === 'vi' ? '0.88' : '0.95');
+    fd.append('stability',     '0.55');
+    fd.append('similarity',    '0.78');
+    fd.append('style',         '0.05');
     fd.append('output_format', 'mp3_44100_128');
     fd.append('source',        'flashcard');
 
