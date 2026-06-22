@@ -302,7 +302,28 @@
     ───────────────────────────────────────────────────────────────── */
     var THEMES = [
 
-      /* ── 0  AURORA MESH ── soft glow blobs on deep navy ── */
+      /* ── 0  ORIGINAL ── clean neutral, works with any topic ── */
+      {
+        label: '⚪ Original',
+        accent: '#6366f1', accentAlt: '#8b5cf6', num: '#6366f1',
+        text: '#fff', sub: 'rgba(255,255,255,.7)',
+        glass: 'rgba(255,255,255,0.08)', glassBorder: 'rgba(255,255,255,0.18)',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#1e1b4b"/>' +
+            '<ellipse cx="200" cy="200" rx="350" ry="280" fill="#312e81" filter="url(#blur80)" opacity=".8"/>' +
+            '<ellipse cx="1100" cy="520" rx="320" ry="260" fill="#1e3a5f" filter="url(#blur80)" opacity=".7"/>';
+        },
+        contentBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#0f172a"/>' +
+            '<rect x="0" y="0" width="1280" height="76" fill="rgba(255,255,255,0.04)"/>' +
+            '<rect x="0" y="76" width="1280" height="1" fill="rgba(255,255,255,0.08)"/>';
+        },
+        coverLayout: 'center',
+      },
+
+      /* ── 1  AURORA MESH ── soft glow blobs on deep navy ── */
       {
         label: '🌌 Aurora',
         accent: '#e879f9', accentAlt: '#67e8f9', num: '#e879f9',
@@ -1441,7 +1462,7 @@
     /* ─────────────────────────────────────────────────────────────────
        THEME PICKER — color swatches
     ───────────────────────────────────────────────────────────────── */
-    var swatchColors = ['#7c3aed','#00f5c4','#a21caf','#facc15','#be123c','#6366f1','#c026d3','#faff00','#1e3a5f','#f0abfc','#f97316','#d4a757','#1a1100','#ff006e','#f5d0fe','#4ade80'];
+    var swatchColors = ['#1e1b4b','#7c3aed','#00f5c4','#a21caf','#facc15','#be123c','#6366f1','#c026d3','#faff00','#1e3a5f','#f0abfc','#f97316','#d4a757','#1a1100','#ff006e','#f5d0fe','#4ade80'];
     var pickerHtml = THEMES.map(function(t, i) {
       return '<button onclick="setTheme(' + i + ')" id="theme-btn-' + i + '" title="' + t.label + '" ' +
         'style="width:28px;height:28px;border-radius:50%;border:3px solid transparent;cursor:pointer;' +
@@ -1455,13 +1476,13 @@
     );
 
     var AI_THEME_MAP = {
-      green:  15, // Forest
-      blue:    8, // Blueprint
-      purple:  2, // Glass Violet
-      red:     4, // Coral Dusk
-      teal:    1, // Neon
-      amber:   3, // Bold Ink
-      slate:  12, // Obsidian Gold
+      green:  16, // Forest
+      blue:    9, // Blueprint
+      purple:  3, // Glass Violet
+      red:     5, // Coral Dusk
+      teal:    2, // Neon
+      amber:   4, // Bold Ink
+      slate:  13, // Obsidian Gold
     };
     var aiTheme = el.dataset.theme || '';
     var activeThemeIdx = (aiTheme && AI_THEME_MAP[aiTheme] != null) ? AI_THEME_MAP[aiTheme] : 0;
