@@ -286,7 +286,20 @@
           return null;
         });
       }
-      return r.ok ? r.blob() : null;
+      if (!r.ok) {
+        /* Retry with turbo model as fallback */
+        if (fd.get('model') === 'eleven_multilingual_v2') {
+          fd.set('model', 'eleven_turbo_v2_5');
+          fd.delete('language_code');
+          return fetch(GENERATE_URL, {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': CSRF_TTS, 'Accept': 'audio/mpeg, application/json' },
+            body: fd
+          }).then(function(r2) { return r2.ok ? r2.blob() : null; });
+        }
+        return null;
+      }
+      return r.blob();
     })
     .then(function(blob) {
       if (!blob || !ttsOn) return;
