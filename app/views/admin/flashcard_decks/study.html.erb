@@ -160,9 +160,14 @@
   function showEl(id)  { document.getElementById(id).classList.remove('hidden'); }
   function hideEl(id)  { document.getElementById(id).classList.add('hidden'); }
 
-  function restoreVoice(sel, key) {
+  function restoreVoice(sel, key, fallbackIndex) {
     var saved = localStorage.getItem(key);
-    if (saved && Array.from(sel.options).find(function(o){ return o.value === saved; })) sel.value = saved;
+    if (saved && Array.from(sel.options).find(function(o){ return o.value === saved; })) {
+      sel.value = saved;
+    } else if (fallbackIndex !== undefined && sel.options[fallbackIndex]) {
+      sel.selectedIndex = fallbackIndex;
+      localStorage.setItem(key, sel.options[fallbackIndex].value);
+    }
     sel.onchange = function() { localStorage.setItem(key, sel.value); };
   }
 
@@ -186,8 +191,15 @@
           var o2 = document.createElement('option'); o2.value = vid; o2.textContent = name; backSel.appendChild(o2);
         });
 
-        restoreVoice(frontSel, 'fc_tts_front_voice');
-        restoreVoice(backSel,  'fc_tts_back_voice');
+        /* migrate old vi/en keys → front/back on first load */
+        if (!localStorage.getItem('fc_tts_front_voice') && localStorage.getItem('fc_tts_vi_voice'))
+          localStorage.setItem('fc_tts_front_voice', localStorage.getItem('fc_tts_vi_voice'));
+        if (!localStorage.getItem('fc_tts_back_voice') && localStorage.getItem('fc_tts_en_voice'))
+          localStorage.setItem('fc_tts_back_voice', localStorage.getItem('fc_tts_en_voice'));
+
+        /* front → index 0, back → index 1 (different voice by default) */
+        restoreVoice(frontSel, 'fc_tts_front_voice', 0);
+        restoreVoice(backSel,  'fc_tts_back_voice',  Math.min(1, voices.length - 1));
 
         ['front-voice-label','fc-front-voice','back-voice-label','fc-back-voice'].forEach(showEl);
         _voicesLoaded = true;
