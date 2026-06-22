@@ -186,22 +186,42 @@
         var backSel  = document.getElementById('fc-back-voice');
         frontSel.innerHTML = ''; backSel.innerHTML = '';
 
-        voices.forEach(function(v) {
-          var vid  = v.voice_id || v.id;
-          var name = (v.name || vid).substring(0, 26);
-          var o1 = document.createElement('option'); o1.value = vid; o1.textContent = name; frontSel.appendChild(o1);
-          var o2 = document.createElement('option'); o2.value = vid; o2.textContent = name; backSel.appendChild(o2);
-        });
+        /* Sort: VI voices first, then EN, then others */
+        var viVoices = voices.filter(function(v) { return v.language === 'vi'; });
+        var enVoices = voices.filter(function(v) { return v.language === 'en'; });
+        var otherVoices = voices.filter(function(v) { return v.language !== 'vi' && v.language !== 'en'; });
 
-        /* migrate old vi/en keys → front/back on first load */
+        function addGroup(sel, label, list) {
+          if (!list.length) return;
+          var grp = document.createElement('optgroup');
+          grp.label = label;
+          list.forEach(function(v) {
+            var vid = v.voice_id || v.id;
+            var name = (v.name || vid).substring(0, 28);
+            var o = document.createElement('option'); o.value = vid; o.textContent = name;
+            grp.appendChild(o);
+          });
+          sel.appendChild(grp);
+        }
+
+        addGroup(frontSel, '🇻🇳 Tiếng Việt', viVoices);
+        addGroup(frontSel, '🇺🇸 English', enVoices);
+        addGroup(frontSel, '🌐 Khác', otherVoices);
+        addGroup(backSel, '🇻🇳 Tiếng Việt', viVoices);
+        addGroup(backSel, '🇺🇸 English', enVoices);
+        addGroup(backSel, '🌐 Khác', otherVoices);
+
+        /* migrate old keys */
         if (!localStorage.getItem('fc_tts_front_voice') && localStorage.getItem('fc_tts_vi_voice'))
           localStorage.setItem('fc_tts_front_voice', localStorage.getItem('fc_tts_vi_voice'));
         if (!localStorage.getItem('fc_tts_back_voice') && localStorage.getItem('fc_tts_en_voice'))
           localStorage.setItem('fc_tts_back_voice', localStorage.getItem('fc_tts_en_voice'));
 
-        /* front → index 0, back → index 1 (different voice by default) */
-        restoreVoice(frontSel, 'fc_tts_front_voice', 0);
-        restoreVoice(backSel,  'fc_tts_back_voice',  Math.min(1, voices.length - 1));
+        /* Default: front → first VI voice, back → first EN voice (or second VI) */
+        var defaultFront = viVoices.length ? 0 : 0;
+        var defaultBack  = viVoices.length + (enVoices.length ? 0 : Math.min(1, viVoices.length - 1));
+        restoreVoice(frontSel, 'fc_tts_front_voice', defaultFront);
+        restoreVoice(backSel,  'fc_tts_back_voice',  defaultBack);
 
         ['front-voice-label','fc-front-voice','back-voice-label','fc-back-voice'].forEach(showEl);
         _voicesLoaded = true;
@@ -260,16 +280,14 @@
     var voiceId = document.getElementById(selId).value;
     if (!voiceId) return;
 
-    var lang = detectLang(text);
     var fd = new FormData();
     fd.append('text',          text);
     fd.append('voice_id',      voiceId);
-    fd.append('model',         'eleven_multilingual_v2');
-    fd.append('language_code', lang === 'vi' ? 'vi' : 'en');
-    fd.append('speed',         lang === 'vi' ? '0.88' : '0.95');
-    fd.append('stability',     '0.55');
-    fd.append('similarity',    '0.78');
-    fd.append('style',         '0.05');
+    fd.append('model',         'eleven_turbo_v2_5');
+    fd.append('speed',         '0.92');
+    fd.append('stability',     '0.5');
+    fd.append('similarity',    '0.75');
+    fd.append('style',         '0.0');
     fd.append('output_format', 'mp3_44100_128');
     fd.append('source',        'flashcard');
 
@@ -286,20 +304,7 @@
           return null;
         });
       }
-      if (!r.ok) {
-        /* Retry with turbo model as fallback */
-        if (fd.get('model') === 'eleven_multilingual_v2') {
-          fd.set('model', 'eleven_turbo_v2_5');
-          fd.delete('language_code');
-          return fetch(GENERATE_URL, {
-            method: 'POST',
-            headers: { 'X-CSRF-Token': CSRF_TTS, 'Accept': 'audio/mpeg, application/json' },
-            body: fd
-          }).then(function(r2) { return r2.ok ? r2.blob() : null; });
-        }
-        return null;
-      }
-      return r.blob();
+      return r.ok ? r.blob() : null;
     })
     .then(function(blob) {
       if (!blob || !ttsOn) return;

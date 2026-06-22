@@ -66,7 +66,8 @@ class ElevenLabsService
         id:          v["voice_id"],
         name:        v["name"],
         preview_url: v["preview_url"],
-        category:    v["category"] || "custom"
+        category:    v["category"] || "custom",
+        language:    v.dig("labels", "language") || "en"
       }
     end
   rescue => e
