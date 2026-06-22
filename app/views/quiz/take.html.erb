@@ -1,16 +1,17 @@
 <% content_for :title, @quiz_set.title %>
 
 <style>
-html, body { background:linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%); min-height:100%; scrollbar-width:none; -ms-overflow-style:none; }
-html::-webkit-scrollbar, body::-webkit-scrollbar { display:none; }
-.q-card { background:#ffffff; border-radius:16px; border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 16px rgba(99,102,241,0.06); padding:16px 20px; margin-bottom:16px; }
-.q-num { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#a855f7); color:#fff; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
-.q-text { font-size:15px; font-weight:600; color:#1E293B; line-height:1.5; }
+html, body { background:linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%) !important; min-height:100vh; }
+.q-card { background:#fff; border-radius:16px; border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 16px rgba(99,102,241,0.06); padding:16px 20px; margin-bottom:16px; }
+.q-head { display:flex; align-items:flex-start; gap:10px; margin-bottom:14px; }
+.q-num { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#a855f7); color:#fff; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+.q-text { font-size:15px; font-weight:600; color:#1E293B; line-height:1.5; margin:0; }
 .opt-label { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:14px; border:2px solid #e2e8f0; background:rgba(255,255,255,0.85); cursor:pointer; margin-bottom:8px; transition:all .15s ease; }
 .opt-label:hover { border-color:#a5b4fc; background:rgba(238,240,255,0.5); }
-.opt-label input:checked ~ span { color:#4338ca; font-weight:600; }
+.opt-label input { position:absolute; opacity:0; width:0; height:0; pointer-events:none; }
 .opt-label:has(input:checked) { border-color:#6366f1; background:rgba(238,240,255,0.9); }
-.opt-dot { flex-shrink:0; width:18px; height:18px; border-radius:50%; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.opt-label:has(input:checked) .opt-text { color:#4338ca; font-weight:600; }
+.opt-dot { flex-shrink:0; width:18px; height:18px; border-radius:50%; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition:all .15s; position:relative; }
 .opt-label:has(input[type=radio]:checked) .opt-dot { border-color:#6366f1; background:#6366f1; }
 .opt-label:has(input[type=radio]:checked) .opt-dot::after { content:''; width:7px; height:7px; border-radius:50%; background:#fff; }
 .opt-box { flex-shrink:0; width:18px; height:18px; border-radius:5px; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition:all .15s; }
@@ -18,111 +19,102 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display:none; }
 .opt-label:has(input[type=checkbox]:checked) .opt-box::after { content:'✓'; color:#fff; font-size:11px; font-weight:900; }
 .short-answer-ta { width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; font-family:inherit; resize:vertical; outline:none; transition:border-color .15s; box-sizing:border-box; background:rgba(255,255,255,0.85); }
 .short-answer-ta:focus { border-color:#6366f1; }
+.quiz-submit-btn { width:100%; padding:14px; background:linear-gradient(135deg,#6366f1,#a855f7); color:#fff; font-size:15px; font-weight:700; border:none; border-radius:14px; cursor:pointer; font-family:inherit; transition:all .2s; box-shadow:0 2px 8px rgba(99,102,241,0.25); }
+.quiz-submit-btn:hover { opacity:0.9; box-shadow:0 4px 16px rgba(99,102,241,0.35); }
+.multi-hint { font-size:11px; color:#94a3b8; margin-bottom:8px; }
 </style>
 
-<div class="min-h-screen flex flex-col" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%)">
-
-  <!-- Progress bar — fixed -->
-  <div id="progress-fixed" class="px-4 sm:px-6 py-2.5"
-       style="position:fixed; left:0; right:0; z-index:9997;
-              background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
-              border-bottom:1px solid rgba(226,232,240,0.6);
-              box-shadow:0 1px 8px rgba(99,102,241,0.06);">
-    <div class="max-w-[680px] mx-auto">
-      <div class="flex justify-between text-[11px] text-slate-500 mb-1.5">
-        <span><span id="answered-count">0</span> / <%= @questions.count %> câu đã trả lời</span>
-        <% if @quiz_set.time_limit_minutes.to_i > 0 %>
-          <span id="timer" style="font-family:monospace; font-weight:700; color:#1E293B;">--:--</span>
-        <% end %>
-      </div>
-      <div class="h-1.5 bg-white/60 rounded-full overflow-hidden" style="border:1px solid rgba(99,102,241,0.15);">
-        <div id="progress-bar" class="h-full rounded-full transition-all duration-500" style="width:0%; background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
-      </div>
+<!-- Progress bar — fixed -->
+<div id="progress-fixed" style="position:fixed; left:0; right:0; z-index:9997; padding:8px 16px;
+     background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
+     border-bottom:1px solid rgba(226,232,240,0.6);
+     box-shadow:0 1px 8px rgba(99,102,241,0.06);">
+  <div style="max-width:680px; margin:0 auto;">
+    <div style="display:flex; justify-content:space-between; font-size:11px; color:#64748b; margin-bottom:6px;">
+      <span><span id="answered-count">0</span> / <%= @questions.count %> câu đã trả lời</span>
+      <% if @quiz_set.time_limit_minutes.to_i > 0 %>
+        <span id="timer" style="font-family:monospace; font-weight:700; color:#1E293B;">--:--</span>
+      <% end %>
     </div>
-  </div>
-  <div id="progress-spacer"></div>
-  <script>
-    (function() {
-      var bar = document.getElementById('progress-fixed');
-      var spacer = document.getElementById('progress-spacer');
-      function syncProgress() {
-        var navH = window.innerWidth >= 640 ? 57 : 47;
-        bar.style.top = navH + 'px';
-        spacer.style.height = bar.offsetHeight + 'px';
-      }
-      syncProgress();
-      window.addEventListener('resize', syncProgress);
-      window.addEventListener('load', syncProgress);
-    })();
-  </script>
-
-  <!-- Quiz header -->
-  <div class="border-b" style="background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%); border-color:rgba(226,232,240,0.7);">
-    <div class="max-w-[680px] mx-auto px-4 py-5 text-center">
-      <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @quiz_set.title %></h1>
-      <span class="text-[11px] text-slate-400"><%= @questions.count %> câu hỏi</span>
-    </div>
-  </div>
-
-  <!-- Content -->
-  <div class="flex-1 flex flex-col px-2 sm:px-4 py-4">
-    <div class="max-w-[680px] mx-auto w-full px-1 sm:px-4 pt-4 pb-5">
-
-      <form action="<%= submit_quiz_path(@quiz_set.share_token, attempt_id: @attempt.id) %>" method="post" id="quiz-form" class="space-y-4">
-        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-        <input type="hidden" name="time_spent" id="time-spent-input" value="0">
-
-        <% @questions.each_with_index do |q, i| %>
-          <div class="q-card" id="question-<%= q.id %>">
-            <div class="flex items-start gap-3 mb-4">
-              <span class="q-num mt-0.5"><%= i + 1 %></span>
-              <p class="q-text"><%= q.question_text %></p>
-            </div>
-            <% if q.short_answer? %>
-              <textarea name="answers[<%= q.id %>]" rows="3" class="short-answer-ta"
-                        data-qid="<%= q.id %>" data-qtype="short"
-                        placeholder="<%= t('quiz.type_your_answer') %>"
-                        onchange="onAnswer(<%= q.id %>); saveAnswer(this)"
-                        oninput="onAnswer(<%= q.id %>)"></textarea>
-            <% elsif q.allow_multiple %>
-              <p class="text-[11px] text-slate-400 mb-2"><%= t('quiz.select_all_correct') %></p>
-              <% q.quiz_options.each do |opt| %>
-                <label class="opt-label">
-                  <input type="checkbox" name="answers[<%= q.id %>][]" value="<%= opt.id %>"
-                         data-qid="<%= q.id %>" data-qtype="multi"
-                         onchange="onAnswer(<%= q.id %>); saveAnswer(this)"
-                         class="hidden">
-                  <span class="opt-box"></span>
-                  <span style="font-size:14px; color:#334155;"><%= opt.option_text %></span>
-                </label>
-              <% end %>
-            <% else %>
-              <% q.quiz_options.each do |opt| %>
-                <label class="opt-label">
-                  <input type="radio" name="answers[<%= q.id %>]" value="<%= opt.id %>"
-                         data-qid="<%= q.id %>" data-qtype="single"
-                         onchange="onAnswer(<%= q.id %>); saveAnswer(this)"
-                         class="hidden">
-                  <span class="opt-dot"></span>
-                  <span style="font-size:14px; color:#334155;"><%= opt.option_text %></span>
-                </label>
-              <% end %>
-            <% end %>
-          </div>
-        <% end %>
-
-        <div class="pt-4 pb-10">
-          <button type="button" onclick="submitQuiz()"
-                  class="w-full py-3 text-[14px] font-semibold text-white rounded-lg transition-all"
-                  style="background:linear-gradient(135deg,#6366f1,#a855f7); border:0; box-shadow:0 2px 8px rgba(99,102,241,0.25);">
-            <%= t("quiz.submit") %>
-          </button>
-        </div>
-      </form>
-
+    <div style="height:6px; background:rgba(255,255,255,0.6); border-radius:99px; overflow:hidden; border:1px solid rgba(99,102,241,0.15);">
+      <div id="progress-bar" style="height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,#6366f1,#a855f7); transition:width .5s ease;"></div>
     </div>
   </div>
 </div>
+<div id="progress-spacer"></div>
+<script>
+(function() {
+  var bar = document.getElementById('progress-fixed');
+  var spacer = document.getElementById('progress-spacer');
+  function sync() {
+    var navH = 42;
+    var el = document.querySelector('[style*="background:#1E293B"]');
+    if (el) navH = el.offsetHeight;
+    bar.style.top = navH + 'px';
+    spacer.style.height = bar.offsetHeight + 'px';
+  }
+  sync();
+  window.addEventListener('resize', sync);
+  window.addEventListener('load', sync);
+})();
+</script>
+
+<!-- Quiz header -->
+<div style="border-bottom:1px solid rgba(226,232,240,0.7); padding:20px 16px; text-align:center;">
+  <h1 style="font-size:18px; font-weight:800; color:#1e293b; margin:0 0 4px; line-height:1.4;"><%= @quiz_set.title %></h1>
+  <span style="font-size:11px; color:#94a3b8;"><%= @questions.count %> câu hỏi</span>
+</div>
+
+<!-- Content -->
+<form action="<%= submit_quiz_path(@quiz_set.share_token, attempt_id: @attempt.id) %>" method="post" id="quiz-form">
+  <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+  <input type="hidden" name="time_spent" id="time-spent-input" value="0">
+
+  <div style="padding-top:16px;">
+    <% @questions.each_with_index do |q, i| %>
+      <div class="q-card" id="question-<%= q.id %>">
+        <div class="q-head">
+          <span class="q-num"><%= i + 1 %></span>
+          <p class="q-text"><%= q.question_text %></p>
+        </div>
+        <% if q.short_answer? %>
+          <textarea name="answers[<%= q.id %>]" rows="3" class="short-answer-ta"
+                    data-qid="<%= q.id %>" data-qtype="short"
+                    placeholder="<%= t('quiz.type_your_answer') %>"
+                    onchange="onAnswer(<%= q.id %>); saveAnswer(this)"
+                    oninput="onAnswer(<%= q.id %>)"></textarea>
+        <% elsif q.allow_multiple %>
+          <p class="multi-hint"><%= t('quiz.select_all_correct') %></p>
+          <% q.quiz_options.each do |opt| %>
+            <label class="opt-label">
+              <input type="checkbox" name="answers[<%= q.id %>][]" value="<%= opt.id %>"
+                     data-qid="<%= q.id %>" data-qtype="multi"
+                     onchange="onAnswer(<%= q.id %>); saveAnswer(this)">
+              <span class="opt-box"></span>
+              <span class="opt-text" style="font-size:14px; color:#334155;"><%= opt.option_text %></span>
+            </label>
+          <% end %>
+        <% else %>
+          <% q.quiz_options.each do |opt| %>
+            <label class="opt-label">
+              <input type="radio" name="answers[<%= q.id %>]" value="<%= opt.id %>"
+                     data-qid="<%= q.id %>" data-qtype="single"
+                     onchange="onAnswer(<%= q.id %>); saveAnswer(this)">
+              <span class="opt-dot"></span>
+              <span class="opt-text" style="font-size:14px; color:#334155;"><%= opt.option_text %></span>
+            </label>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div style="padding:16px 0 40px;">
+    <button type="button" onclick="submitQuiz()" class="quiz-submit-btn">
+      <%= t("quiz.submit") %>
+    </button>
+  </div>
+</form>
 
 <!-- Submit confirm modal -->
 <div id="submit-modal" style="display:none; position:fixed; inset:0; z-index:50; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,0.55);">
