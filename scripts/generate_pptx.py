@@ -423,44 +423,24 @@ def make_bullets(prs, s, idx, total):
                 _tb(slide, it["desc"], cx, top + I(1.45), tw, I(1.25),
                     sz=10.5, color=DARK)
 
-    elif b_items and n == 4:
-        # 2x2 grid with WHITE cards (cowork slide 4)
-        gap_x, gap_y = I(0.30), I(0.20)
-        col_w = (CW - gap_x) // 2
-        card_h = I(1.55)
-        icon_circle = I(0.60)
-        icon_sz = I(0.30)
-        for i, it in enumerate(b_items[:4]):
-            ac = accents[i % len(accents)]
-            c, r = i % 2, i // 2
-            bx = LM + c * (col_w + gap_x)
-            by = top + r * (card_h + gap_y)
-            _rrect(slide, bx, by, col_w, card_h, WHITE, radius=0.04)
-            _oval(slide, bx + I(0.22) + icon_circle//2, by + I(0.22) + icon_circle//2, icon_circle//2, ac)
-            _add_icon(slide, bx + I(0.22) + (icon_circle - icon_sz)//2, by + I(0.22) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
-            tx = bx + I(0.95)
-            tw = col_w - I(1.15)
-            _tb(slide, it.get("title", ""), tx, by + I(0.18), tw, I(0.45),
-                sz=13.5, bold=True, color=T["primary_dk"], font="Trebuchet MS")
-            if it.get("desc"):
-                _tb(slide, it["desc"], tx, by + I(0.60), tw, I(0.85),
-                    sz=10.5, color=DARK)
-
-    elif b_items:
-        # ≥5: stacked icon-left list
-        row_h = I(0.85)
-        for i, it in enumerate(b_items[:8]):
+    elif b_items and n >= 4:
+        # 4+ items: vertical stacked icon-left (cowork slide 3)
+        icon_circle = I(0.55)
+        icon_sz = I(0.28)
+        avail = bot - top - I(0.10)
+        row_h = min(avail // n, I(0.90))
+        content_w = I(5.50)
+        for i, it in enumerate(b_items[:6]):
             ac = accents[i % len(accents)]
             y = top + i * row_h
-            if y + I(0.70) > bot: break
-            icon_sz = I(0.30)
-            _add_icon(slide, LM + I(0.16), y + I(0.15), icon_sz, ac)
-            tx = LM + I(0.80)
-            tw = CW - I(1.0)
-            _tb(slide, it.get("title", ""), tx, y, tw, I(0.35),
+            if y + I(0.60) > bot: break
+            _oval(slide, LM + icon_circle//2, y + I(0.08) + icon_circle//2, icon_circle//2, ac)
+            _add_icon(slide, LM + (icon_circle - icon_sz)//2, y + I(0.08) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
+            tx = LM + I(0.75)
+            _tb(slide, it.get("title", ""), tx, y, content_w, I(0.32),
                 sz=14, bold=True, color=T["primary_dk"], font="Trebuchet MS")
             if it.get("desc"):
-                _tb(slide, it["desc"], tx, y + I(0.34), tw, I(0.55),
+                _tb(slide, it["desc"], tx, y + I(0.32), content_w, I(0.55),
                     sz=10.5, color=DARK)
     else:
         # Simple bullets without desc — 3-column or stacked

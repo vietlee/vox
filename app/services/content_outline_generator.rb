@@ -287,16 +287,17 @@ class ContentOutlineGenerator
 
       Chọn layout PHÙ HỢP NHẤT với nội dung của từng slide — không có thứ tự cố định.
       Hãy để nội dung quyết định layout:
-      - Có nhiều số liệu, KPI → stats hoặc chart
+      - Vấn đề thị trường, giải pháp, tính năng → bullets (3-4 items với ::)
+      - Có nhiều số liệu, KPI → stats (tối đa 2-3 items)
       - Có phân bổ ngân sách, tỷ lệ % → donut
-      - Có nhiều trụ cột/chiến lược song song → pillars
+      - Có mô hình kinh doanh, nguồn thu → bullets (4 items với ::, sẽ hiện dạng 2x2 cards nếu không có desc dài)
       - Có nhiều vai trò, bộ phận → roles
       - Có mục tiêu, key results → okr
       - Có quy trình tuần tự → timeline
       - Có 2 phía so sánh → two-col
       - Slide mở đầu overview → agenda
       - Giá trị, nguyên tắc → principles
-      - Nội dung tổng quát → bullets
+      - KHÔNG dùng pillars cho giải pháp/tính năng — dùng bullets với :: thay vào
 
       ═══════════════════════════════════════════
       TÙY CHỌN STYLE (dòng STYLE: tùy chọn, dùng dấu phẩy ngăn cách):
