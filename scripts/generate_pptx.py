@@ -230,8 +230,14 @@ def _setup_content_slide(prs, s):
             _tb(slide, cat, LM, I(0.42), CW, I(0.35), sz=13, bold=True, color=T["accent"])
         _tb(slide, s["title"], LM, I(0.78), CW, I(0.70), sz=28, bold=True, color=T["primary_dk"], font="Trebuchet MS")
 
-    if s.get("footer"):
-        _tb(slide, s["footer"], LM, SH - I(0.32), I(8.0), I(0.30), sz=9, color=MID)
+    note = s.get("note", "")
+    footer = s.get("footer", "")
+    if note:
+        _insight_bar(slide, note)
+        if footer:
+            _tb(slide, footer, LM, SH - I(0.18), I(8.0), I(0.25), sz=8, color=MID)
+    elif footer:
+        _tb(slide, footer, LM, SH - I(0.32), I(8.0), I(0.30), sz=9, color=MID)
     return slide, I(1.70)
 
 def _page_num(slide, num, total):

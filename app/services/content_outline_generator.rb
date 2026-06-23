@@ -174,8 +174,8 @@ class ContentOutlineGenerator
       BODY:
       [nội dung theo format của layout đã chọn]
       STYLE: [tùy chọn style, xem bên dưới]
-      FOOTER: [ghi chú nhỏ ở cuối slide — tùy chọn, dùng cho footnote/disclaimer]
-      NOTE: Ghi chú 1-2 câu cho người trình bày (câu hỏi tương tác hoặc insight bổ sung)
+      FOOTER: [nguồn dữ liệu nhỏ — VD: "Nguồn: IMARC Group 2023"]
+      NOTE: [SỐ LIỆU NỔI BẬT — hiển thị dạng dark banner. VD: "58,85 triệu USD → 175,41 triệu USD   Quy mô thị trường thuần chay Việt Nam, 2024 → 2033 (CAGR 11,54%)". Chỉ dùng cho slide có data đáng highlight]
       ---END---
 
       ═══════════════════════════════════════════
