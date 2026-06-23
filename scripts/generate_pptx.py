@@ -880,8 +880,17 @@ def make_summary(prs, s, idx, total):
     _oval(slide, I(-0.30), I(5.10), I(2.50), T["primary"])
     _oval(slide, I(9.70), I(0.30), I(1.70), T["primary_dk"])
 
-    # Logo centered
-    _rrect(slide, SW//2 - I(0.45), I(0.55), I(0.90), I(0.90), T["primary"], radius=0.15)
+    # Inner border frame (cowork summary)
+    from pptx.util import Pt as Pt2
+    frame = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+        I(0.40), I(0.40), SW - I(0.80), SH - I(0.80))
+    frame.fill.background()
+    frame.line.color.rgb = RGBColor(*T["primary_lt"])
+    frame.line.width = Pt2(1)
+    frame.rotation = 0
+
+    # Logo centered (circle like cowork)
+    _oval(slide, SW//2, I(1.00), I(0.50), T["primary"])
     _add_icon(slide, SW//2 - I(0.23), I(0.77), I(0.46), T["primary_lt"])
 
     _tb(slide, s["title"], I(0.80), I(1.70), SW - I(1.60), I(1.30),

@@ -356,8 +356,9 @@ class ContentOutlineGenerator
 
       ═══ QUY TẮC SUMMARY (slide cuối) ═══
       - TITLE = câu call-to-action mạnh, KHÔNG dùng emoji (ví dụ: "Cùng GreenBite dẫn đầu làn sóng thuần chay tại Việt Nam")
-      - Bullet đầu tiên = lời kêu gọi ngắn (sẽ hiển thị dạng nút bấm). KHÔNG emoji.
+      - Bullet đầu tiên = CTA CỤ THỂ có số tiền/mục tiêu (sẽ hiển thị dạng nút bấm). VD: "Gọi vốn Series A: 500.000 USD". KHÔNG viết generic.
       - Các bullet sau = thông tin liên hệ (email, website). KHÔNG emoji.
+      - STYLE: bg=dark (BẮT BUỘC)
     PROMPT
   end
 
