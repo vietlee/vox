@@ -228,7 +228,7 @@ def _setup_content_slide(prs, s):
     else:
         if cat:
             _tb(slide, cat, LM, I(0.42), CW, I(0.35), sz=13, bold=True, color=T["accent"])
-        _tb(slide, s["title"], LM, I(0.78), CW, I(0.70), sz=28, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+        _tb(slide, s["title"], LM, I(0.78), CW, I(0.85), sz=28, bold=True, color=T["primary_dk"], font="Trebuchet MS")
 
     note = s.get("note", "")
     footer = s.get("footer", "")
@@ -246,10 +246,10 @@ def _page_num(slide, num, total):
         sz=9, color=MID, align=PP_ALIGN.RIGHT)
 
 def _insight_bar(slide, text):
-    """Dark bar at bottom with insight/source text (cowork style)"""
-    _rrect(slide, LM - I(0.25), SH - I(0.68), CW + I(0.50), I(0.50),
+    """Dark bar at bottom with insight/source text (cowork slide 2 exact)"""
+    _rrect(slide, LM, I(4.45), CW, I(0.68),
            T["primary_dk"], radius=0.04)
-    _tb(slide, text, LM - I(0.05), SH - I(0.63), CW + I(0.10), I(0.40),
+    _tb(slide, text, LM + I(0.25), I(4.45), CW - I(0.50), I(0.68),
         sz=12, bold=True, color=T["primary_xl"])
 
 # ── Chart helpers ─────────────────────────────────────────────────────
@@ -333,10 +333,10 @@ def make_cover(prs, s, idx, total):
     is_dark = _style(s, "bg", "dark") == "dark"
     _bg(slide, T["cover_bg"] if is_dark else T["content_bg"])
 
-    # Decorative circles (cowork style)
+    # Decorative circles (cowork cover exact)
     if is_dark:
-        _oval(slide, I(9.50), I(1.00), I(2.60), T["primary"])
-        _oval(slide, I(9.10), I(4.50), I(1.50), T["primary_dk"])
+        _oval(slide, I(10.00), I(-0.80), I(2.60), T["primary"])
+        _oval(slide, I(10.10), I(4.50), I(1.50), T["primary_dk"])
 
     # Logo: large circle bg + icon (cowork style)
     logo_bg = T["primary_lt"] if is_dark else T["primary_xl"]
@@ -409,45 +409,47 @@ def make_bullets(prs, s, idx, total):
     bot = SH - I(0.50)
 
     if b_items and n <= 3:
-        # 3-column layout with WHITE cards (cowork slide 2)
-        gap = I(0.20)
+        # 3-column layout with WHITE cards (cowork slide 2 exact)
+        gap = I(0.30)
         col_w = (CW - gap * (n - 1)) // n
-        card_h = I(2.80)
-        icon_circle = I(0.55)
-        icon_sz = I(0.28)
+        card_top = top + I(0.15)
+        card_h = I(2.35)
+        icon_circle = I(0.65)
+        icon_sz = I(0.33)
         for i, it in enumerate(b_items[:n]):
             ac = accents[i % len(accents)]
             x = LM + i * (col_w + gap)
-            _rrect(slide, x, top, col_w, card_h, WHITE, radius=0.04)
-            cx = x + I(0.20)
-            tw = col_w - I(0.40)
-            _oval(slide, cx + icon_circle//2, top + I(0.25) + icon_circle//2, icon_circle//2, ac)
-            _add_icon(slide, cx + (icon_circle - icon_sz)//2, top + I(0.25) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
-            _tb(slide, it.get("title", ""), cx, top + I(0.90), tw, I(0.55),
-                sz=13, bold=True, color=T["primary_dk"], font="Trebuchet MS")
-            if it.get("desc"):
-                _tb(slide, it["desc"], cx, top + I(1.45), tw, I(1.25),
-                    sz=10.5, color=DARK)
-
-    elif b_items and n >= 4:
-        # 4+ items: vertical stacked icon-left (cowork slide 3)
-        icon_circle = I(0.55)
-        icon_sz = I(0.28)
-        avail = bot - top - I(0.10)
-        row_h = min(avail // n, I(0.90))
-        content_w = I(5.50)
-        for i, it in enumerate(b_items[:6]):
-            ac = accents[i % len(accents)]
-            y = top + i * row_h
-            if y + I(0.60) > bot: break
-            _oval(slide, LM + icon_circle//2, y + I(0.08) + icon_circle//2, icon_circle//2, ac)
-            _add_icon(slide, LM + (icon_circle - icon_sz)//2, y + I(0.08) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
-            tx = LM + I(0.75)
-            _tb(slide, it.get("title", ""), tx, y, content_w, I(0.32),
+            _rrect(slide, x, card_top, col_w, card_h, WHITE, radius=0.04)
+            cx = x + I(0.25)
+            tw = col_w - I(0.50)
+            _oval(slide, cx + icon_circle//2, card_top + I(0.25) + icon_circle//2, icon_circle//2, ac)
+            _add_icon(slide, cx + (icon_circle - icon_sz)//2, card_top + I(0.25) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
+            _tb(slide, it.get("title", ""), cx, card_top + I(1.00), tw, I(0.55),
                 sz=14, bold=True, color=T["primary_dk"], font="Trebuchet MS")
             if it.get("desc"):
-                _tb(slide, it["desc"], tx, y + I(0.32), content_w, I(0.55),
-                    sz=10.5, color=DARK)
+                _tb(slide, it["desc"], cx, card_top + I(1.50), tw, I(0.80),
+                    sz=11, color=DARK)
+
+    elif b_items and n >= 4:
+        # 4+ items: vertical stacked icon-left (cowork slide 3 exact)
+        icon_circle = I(0.62)
+        icon_sz = I(0.30)
+        list_top = top + I(0.25)
+        avail = bot - list_top - I(0.10)
+        row_h = min(avail // n, I(0.92))
+        tx = LM + I(0.80)
+        content_w = I(4.60)
+        for i, it in enumerate(b_items[:6]):
+            ac = accents[i % len(accents)]
+            y = list_top + i * row_h
+            if y + I(0.60) > bot: break
+            _oval(slide, LM + icon_circle//2, y + I(0.06) + icon_circle//2, icon_circle//2, ac)
+            _add_icon(slide, LM + (icon_circle - icon_sz)//2, y + I(0.06) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
+            _tb(slide, it.get("title", ""), tx, y - I(0.04), I(4.50), I(0.35),
+                sz=14, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+            if it.get("desc"):
+                _tb(slide, it["desc"], tx, y + I(0.30), content_w, I(0.55),
+                    sz=10, color=DARK)
     else:
         # Simple bullets without desc — 3-column or stacked
         if n <= 3:
@@ -492,20 +494,20 @@ def make_stats(prs, s, idx, total):
     has_chart = len(chart_data) >= 3
 
     if has_chart:
-        # Split layout: stats left, chart right (cowork slide 5)
+        # Split layout: stats left, chart right (cowork slide 5 exact)
         stat_w = I(2.90)
         gap_y = I(0.15)
-        card_h = I(1.35)
+        card_h = I(1.50)
         for i, item in enumerate(items[:2]):
             ac = accents[i % len(accents)]
-            cy = top_y + I(0.18) + i * (card_h + gap_y)
-            _rrect(slide, LM + I(0.30), cy, stat_w, card_h, T["primary_dk"], radius=0.05)
-            _rect(slide, LM + I(0.30), cy, I(0.09), card_h, ac)
+            cy = top_y + i * (card_h + gap_y)
+            _rrect(slide, LM, cy, stat_w, card_h, T["primary_dk"], radius=0.05)
+            _rect(slide, LM, cy, I(0.09), card_h, ac)
             _tb(slide, item.get("value", ""),
-                LM + I(0.60), cy + I(0.10), stat_w - I(0.60), I(0.75),
+                LM + I(0.30), cy + I(0.18), stat_w - I(0.50), I(0.75),
                 sz=34, bold=True, color=WHITE, font="Trebuchet MS")
             _tb(slide, item.get("label", ""),
-                LM + I(0.60), cy + I(0.85), stat_w - I(0.60), I(0.45),
+                LM + I(0.30), cy + I(0.95), stat_w - I(0.50), I(0.50),
                 sz=11, color=T["primary_xl"])
 
         # Chart on right
@@ -640,13 +642,12 @@ def make_donut(prs, s, idx, total):
             (center_sub, 18, True, T["primary_dk"]),
         ], I(1.85), I(2.85), I(1.80), I(1.10), align=PP_ALIGN.CENTER)
 
-    # Legend items on right (cowork: icon circle + title + pct · detail)
-    legend_x = I(5.30)
-    legend_y_start = top_y + I(0.15)
-    avail = bot - legend_y_start - I(0.30)
-    item_h = min(avail // n, I(0.95))
-    icon_circle = I(0.55)
-    icon_sz = I(0.28)
+    # Legend items on right (cowork slide 7 exact: small icon + 2-line text)
+    legend_x = I(5.35)
+    legend_y_start = top_y
+    item_h = I(0.82)
+    icon_circle = I(0.50)
+    icon_sz = I(0.26)
 
     for i, it in enumerate(items[:n]):
         ac = accents[i % len(accents)]
@@ -658,7 +659,7 @@ def make_donut(prs, s, idx, total):
         _tb2(slide, [
             (it.get("label", ""), 11.5, True, T["primary_dk"]),
             (f"{pct}%  ·  {detail}" if detail else f"{pct}%", 11.5, False, MID),
-        ], legend_x + I(0.75), y + I(0.08), I(3.35), I(0.65))
+        ], legend_x + I(0.65), y, I(3.40), I(0.60))
 
     _page_num(slide, idx, total)
 
@@ -719,32 +720,38 @@ def make_timeline(prs, s, idx, total):
 
 
 def make_pillars(prs, s, idx, total):
+    """Cowork slide 4: 2x2 grid cards with icon + title + desc."""
     slide, top_y = _setup_content_slide(prs, s)
     items = s.get("items", [])
     if not items: _page_num(slide, idx, total); return
 
     n = min(len(items), 4)
-    gap = I(0.15)
-    col_w = (CW - gap * (n - 1)) // n
     accents = _accents()
-    max_bullets = max((len(it.get("bullets", [])) for it in items[:n]), default=3)
-    card_h = min(I(0.95) + min(max_bullets, 5) * I(0.36), SH - top_y - I(0.50))
+    gap_x = I(0.30)
+    gap_y = I(0.20)
+    cols = 2 if n >= 4 else n
+    rows = (n + cols - 1) // cols
+    col_w = (CW - gap_x * (cols - 1)) // cols
+    card_h = I(1.55)
+    icon_circle = I(0.60)
+    icon_sz = I(0.30)
 
     for i, item in enumerate(items[:n]):
         ac = accents[i % len(accents)]
-        x = LM + i * (col_w + gap)
-        _rrect(slide, x, top_y, col_w, card_h, WHITE, radius=0.04)
-        _rect(slide, x, top_y, col_w, I(0.04), ac)
-        ic = I(0.50)
-        _add_icon(slide, x + (col_w - ic)//2, top_y + I(0.12), ic, ac)
-        _tb(slide, item.get("title", ""),
-            x + I(0.08), top_y + I(0.68), col_w - I(0.16), I(0.28),
-            sz=12, bold=True, color=T["primary_dk"], align=PP_ALIGN.CENTER, font="Trebuchet MS")
-        for bi, b in enumerate(item.get("bullets", [])[:5]):
-            by = top_y + I(1.00) + bi * I(0.35)
-            if by + I(0.28) > top_y + card_h - I(0.05): break
-            _oval(slide, x + I(0.15), by + I(0.10), Pt(3), ac)
-            _tb(slide, b, x + I(0.28), by, col_w - I(0.36), I(0.30), sz=9, color=DARK)
+        c, r = i % cols, i // cols
+        x = LM + c * (col_w + gap_x)
+        y = top_y + r * (card_h + gap_y)
+        _rrect(slide, x, y, col_w, card_h, WHITE, radius=0.04)
+        _oval(slide, x + I(0.22) + icon_circle//2, y + I(0.22) + icon_circle//2, icon_circle//2, ac)
+        _add_icon(slide, x + I(0.22) + (icon_circle - icon_sz)//2, y + I(0.22) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
+        tx = x + I(0.95)
+        tw = col_w - I(1.15)
+        _tb(slide, item.get("title", ""), tx, y + I(0.18), tw, I(0.45),
+            sz=13, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+        desc = " ".join(item.get("bullets", [])[:3])
+        if desc:
+            _tb(slide, desc, tx, y + I(0.60), tw, I(0.85),
+                sz=10, color=DARK)
     _page_num(slide, idx, total)
 
 
@@ -884,20 +891,11 @@ def make_summary(prs, s, idx, total):
     _bg(slide, T["cover_bg"])
 
     # Decorative circles (cowork style)
-    _oval(slide, I(-0.30), I(5.10), I(2.50), T["primary"])
-    _oval(slide, I(9.70), I(0.30), I(1.70), T["primary_dk"])
+    _oval(slide, I(-0.90), I(2.60), I(2.50), T["primary"])
+    _oval(slide, I(8.00), I(-0.70), I(1.70), T["primary_dk"])
 
-    # Inner border frame (cowork summary)
-    from pptx.util import Pt as Pt2
-    frame = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
-        I(0.40), I(0.40), SW - I(0.80), SH - I(0.80))
-    frame.fill.background()
-    frame.line.color.rgb = RGBColor(*T["primary_lt"])
-    frame.line.width = Pt2(1)
-    frame.rotation = 0
-
-    # Logo centered (circle like cowork)
-    _oval(slide, SW//2, I(1.00), I(0.50), T["primary"])
+    # Logo centered (rounded-rect like cowork slide 8)
+    _rrect(slide, SW//2 - I(0.45), I(0.55), I(0.90), I(0.90), T["primary"], radius=0.15)
     _add_icon(slide, SW//2 - I(0.23), I(0.77), I(0.46), T["primary_lt"])
 
     _tb(slide, s["title"], I(0.80), I(1.70), SW - I(1.60), I(1.30),
