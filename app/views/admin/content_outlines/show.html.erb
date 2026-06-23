@@ -56,7 +56,7 @@
             <button onclick="toggleEditor()"
                     id="editor-toggle-btn"
                     class="text-[12px] text-indigo-600 hover:text-indigo-700 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border-0 cursor-pointer font-semibold">
-              ✏️ Chỉnh sửa
+              ✨ Sửa bằng AI
             </button>
             <button onclick="enterFullscreen()"
                     class="text-[12px] text-slate-500 hover:text-indigo-600 px-3 py-1 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors border-0 cursor-pointer">
@@ -85,161 +85,47 @@
       </div>
     </div><!-- end slide-viewer-col -->
 
-    <!-- RIGHT: editor panel (hidden by default) -->
-    <div id="slide-editor-panel" style="display:none; width:320px; flex-shrink:0;">
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm" style="max-height:80vh;overflow-y:auto;">
-        <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
-          <div>
-            <div class="text-[12px] font-bold text-slate-700">✏️ Chỉnh sửa slide</div>
-            <div id="editor-slide-label" class="text-[11px] text-slate-400"></div>
-          </div>
-          <div class="flex gap-2">
-            <button onclick="saveSlides()" id="save-slides-btn"
-                    class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-bold rounded-lg border-0 cursor-pointer transition-colors">
-              💾 Lưu
-            </button>
-            <button onclick="toggleEditor()"
-                    class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 text-[12px] rounded-lg border-0 cursor-pointer">✕</button>
+    <!-- RIGHT: AI edit panel (hidden by default) -->
+    <div id="slide-editor-panel" style="display:none; width:360px; flex-shrink:0;">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+          <div class="text-[13px] font-bold text-slate-700">✨ Chỉnh sửa bằng AI</div>
+          <button onclick="toggleEditor()"
+                  class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 text-[12px] rounded-lg border-0 cursor-pointer">✕</button>
+        </div>
+
+        <div id="ai-edit-body" class="p-4 space-y-3">
+          <p class="text-[12px] text-slate-500 leading-relaxed">
+            Mô tả thay đổi bạn muốn. AI sẽ chỉnh sửa nội dung và tạo lại slide.
+          </p>
+
+          <textarea id="ai-edit-input" rows="4"
+                    placeholder="VD:&#10;• Đổi tiêu đề slide 1&#10;• Thêm slide về đội ngũ&#10;• Bỏ slide cuối&#10;• Thay số liệu tăng trưởng..."
+                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[13px] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"></textarea>
+
+          <button onclick="submitAiEdit()" id="ai-edit-btn"
+                  class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
+            ✨ Áp dụng thay đổi
+          </button>
+
+          <div id="ai-edit-history" class="space-y-2 pt-2 border-t border-slate-100 hidden">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Lịch sử chỉnh sửa</div>
+            <div id="ai-edit-history-list" class="space-y-1"></div>
           </div>
         </div>
 
-        <div class="p-4 space-y-4">
-          <!-- Title -->
-          <div>
-            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Tiêu đề slide</label>
-            <input id="edit-title" type="text"
-                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none"
-                   oninput="updateCurrentSlide('title', this.value)">
+        <!-- Loading overlay inside panel -->
+        <div id="ai-edit-loading" class="hidden">
+          <div class="p-6 flex flex-col items-center justify-center gap-3">
+            <div style="width:40px;height:40px;border:3px solid #c7d2fe;border-top-color:#4f46e5;border-radius:50%;animation:aispin 0.8s linear infinite;"></div>
+            <div class="text-[13px] font-semibold text-indigo-600">AI đang chỉnh sửa...</div>
+            <p class="text-[11px] text-slate-400 text-center">Đang phân tích yêu cầu và tạo lại slide. Quá trình này mất khoảng 30-60 giây.</p>
           </div>
-
-          <!-- Layout -->
-          <div>
-            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Layout</label>
-            <select id="edit-layout"
-                    class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-400 outline-none bg-white"
-                    onchange="updateCurrentSlide('layout', this.value); refreshEditor();">
-              <option value="bullets">Bullets</option>
-              <option value="stats">Stats (số liệu)</option>
-              <option value="chart">Chart (biểu đồ)</option>
-              <option value="two-col">Two-col (2 cột)</option>
-              <option value="timeline">Timeline</option>
-              <option value="pillars">Pillars (trụ cột)</option>
-              <option value="agenda">Agenda</option>
-              <option value="roles">Roles (vai trò)</option>
-              <option value="okr">OKR</option>
-              <option value="principles">Principles</option>
-            </select>
-          </div>
-
-          <!-- Items list (editable) -->
-          <div>
-            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-2">Nội dung (kéo để sắp xếp)</label>
-            <div id="edit-items-list" class="space-y-1.5"></div>
-            <button onclick="addItemToSlide()"
-                    class="mt-2 w-full py-1.5 border border-dashed border-slate-300 rounded-lg text-[12px] text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer bg-transparent">
-              + Thêm mục
-            </button>
-          </div>
-
-          <!-- Image upload -->
-          <div>
-            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-2">🖼️ Ảnh trên slide</label>
-            <label class="block cursor-pointer">
-              <input type="file" id="slide-image-input" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
-              <div class="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-lg p-3 text-center transition-colors">
-                <div id="img-upload-label" class="text-[12px] text-slate-400">Chọn hoặc kéo ảnh vào đây</div>
-              </div>
-            </label>
-            <div id="img-controls" class="hidden mt-3 space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-[11px] text-slate-500 font-semibold">X (ngang)</span>
-                <input type="range" id="img-x" min="0" max="90" value="30" step="1"
-                       class="w-28" oninput="updateImagePos()">
-                <span id="img-x-val" class="text-[11px] text-slate-400 w-7 text-right">30%</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-[11px] text-slate-500 font-semibold">Y (dọc)</span>
-                <input type="range" id="img-y" min="0" max="85" value="10" step="1"
-                       class="w-28" oninput="updateImagePos()">
-                <span id="img-y-val" class="text-[11px] text-slate-400 w-7 text-right">10%</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-[11px] text-slate-500 font-semibold">Kích thước</span>
-                <input type="range" id="img-w" min="10" max="80" value="35" step="1"
-                       class="w-28" oninput="updateImagePos()">
-                <span id="img-w-val" class="text-[11px] text-slate-400 w-7 text-right">35%</span>
-              </div>
-              <button onclick="removeImage()"
-                      class="w-full py-1 text-[11px] text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 rounded-lg transition-colors cursor-pointer bg-transparent">
-                🗑️ Xóa ảnh
-              </button>
-            </div>
-          </div>
-
-          <!-- Font controls -->
-          <div>
-            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-2">🔤 Font chữ</label>
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-[11px] text-slate-500 font-semibold">Cỡ chữ</span>
-                <input type="range" id="font-scale" min="70" max="140" value="100" step="5"
-                       class="w-28" oninput="updateFontScale(this.value)">
-                <span id="font-scale-val" class="text-[11px] text-slate-400 w-7 text-right">100%</span>
-              </div>
-              <div>
-                <select id="font-family"
-                        class="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-400 outline-none bg-white"
-                        onchange="updateFontFamily(this.value)">
-                  <option value="">Mặc định (System)</option>
-                  <option value="'Arial', sans-serif">Arial</option>
-                  <option value="'Georgia', serif">Georgia (Serif)</option>
-                  <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
-                  <option value="'Verdana', sans-serif">Verdana</option>
-                  <option value="'Courier New', monospace">Courier (Mono)</option>
-                  <option value="'Times New Roman', serif">Times New Roman</option>
-                  <option value="'Impact', sans-serif">Impact (Bold)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <!-- Note -->
-          <div>
-            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">💬 Ghi chú người trình bày</label>
-            <textarea id="edit-note" rows="2"
-                      class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-400 outline-none resize-none"
-                      oninput="updateCurrentSlide('note', this.value)"></textarea>
-          </div>
-
-          <!-- Slide nav in editor -->
-          <div class="flex gap-2 pt-2 border-t border-slate-100">
-            <button onclick="prevSlide()" class="flex-1 py-1.5 border border-slate-200 rounded-lg text-[12px] text-slate-500 hover:bg-slate-50 cursor-pointer bg-white">← Trước</button>
-            <button onclick="nextSlide()" class="flex-1 py-1.5 border border-slate-200 rounded-lg text-[12px] text-slate-500 hover:bg-slate-50 cursor-pointer bg-white">Tiếp →</button>
-          </div>
-
-          <div id="save-status" class="hidden text-center text-[12px] text-emerald-600 font-semibold py-1">✓ Đã lưu!</div>
         </div>
       </div>
     </div><!-- end editor panel -->
 
   </div><!-- end slide-editor-layout -->
-
-  <!-- AI Edit Prompt -->
-  <div class="mt-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-    <div class="flex items-center gap-3 mb-2">
-      <span class="text-[12px] font-bold text-slate-600">🤖 Chỉnh sửa slide bằng AI</span>
-      <span class="text-[11px] text-slate-400">Nhập yêu cầu sửa đổi và AI sẽ cập nhật toàn bộ slide</span>
-    </div>
-    <div class="flex gap-2">
-      <input id="ai-edit-input" type="text" placeholder="VD: Thêm slide về đội ngũ, đổi tiêu đề slide 3, bỏ slide cuối..."
-             class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-[13px] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none">
-      <button onclick="submitAiEdit()" id="ai-edit-btn"
-              class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors whitespace-nowrap">
-        ✨ Sửa bằng AI
-      </button>
-    </div>
-    <div id="ai-edit-status" class="hidden mt-2 text-[12px] text-indigo-600 font-semibold">⏳ Đang xử lý...</div>
-  </div>
 
   <div id="slide-data" class="hidden"><%= raw @outline.content %></div>
   <% if @outline.slide_images.attached? %>
@@ -252,6 +138,7 @@
     @keyframes fUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
     .s-in { animation:sIn .38s cubic-bezier(.22,.68,0,1.2) forwards; }
     .f-up { animation:fUp .3s ease both; }
+    @keyframes aispin { to { transform:rotate(360deg); } }
   </style>
 
   <script>
@@ -1797,11 +1684,10 @@
       document.getElementById('slide-editor-panel').style.display = editorOpen ? 'block' : 'none';
       var btn = document.getElementById('editor-toggle-btn');
       if (btn) {
-        btn.textContent = editorOpen ? '✕ Đóng' : '✏️ Chỉnh sửa';
+        btn.textContent = editorOpen ? '✕ Đóng' : '✨ Sửa bằng AI';
         btn.classList.toggle('bg-indigo-50', !editorOpen);
         btn.classList.toggle('bg-slate-100', editorOpen);
       }
-      if (editorOpen) refreshEditor();
     };
 
     window.refreshEditor = function() {
@@ -2036,12 +1922,9 @@
       var input = document.getElementById('ai-edit-input');
       var prompt = input.value.trim();
       if (!prompt) return;
-      var btn = document.getElementById('ai-edit-btn');
-      var status = document.getElementById('ai-edit-status');
-      btn.disabled = true;
-      btn.textContent = '⏳ Đang xử lý...';
-      btn.classList.add('opacity-50');
-      status.classList.remove('hidden');
+
+      document.getElementById('ai-edit-body').classList.add('hidden');
+      document.getElementById('ai-edit-loading').classList.remove('hidden');
 
       fetch('<%= ai_edit_content_outline_path(@outline) %>', {
         method: 'POST',
@@ -2049,21 +1932,21 @@
         body: JSON.stringify({ edit_prompt: prompt })
       }).then(function(r) { return r.json(); }).then(function(data) {
         if (data.poll_url) {
-          status.textContent = '⏳ AI đang chỉnh sửa slide... vui lòng đợi';
           var poll = setInterval(function() {
             fetch(data.poll_url).then(function(r) { return r.json(); }).then(function(s) {
               if (!s.pending) { clearInterval(poll); location.reload(); }
             });
           }, 3000);
         } else {
-          status.textContent = '❌ ' + (data.error || 'Lỗi');
-          btn.disabled = false; btn.textContent = '✨ Sửa bằng AI'; btn.classList.remove('opacity-50');
+          document.getElementById('ai-edit-loading').classList.add('hidden');
+          document.getElementById('ai-edit-body').classList.remove('hidden');
+          alert(data.error || 'Lỗi');
         }
       });
     };
 
     document.getElementById('ai-edit-input').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') submitAiEdit();
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitAiEdit();
     });
   })();
   </script>
