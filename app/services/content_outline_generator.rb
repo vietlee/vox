@@ -60,16 +60,46 @@ class ContentOutlineGenerator
   def _do_ai_edit(svc, current_slides, edit_prompt, image_info, image_paths)
     image_note = image_info.present? ? "\n\nẢnh đính kèm:\n#{image_info}\nĐể chèn ảnh vào slide, thêm bullet có nội dung: IMAGE:image_1 (hoặc image_2, ...)\n" : ""
 
+    existing_theme = @outline.content&.[](/data-theme='([^']+)'/, 1) || "green"
+    slides_text = current_slides.each_with_index.map { |s, _|
+      layout = s["layout"] || "bullets"
+      lines = case layout
+      when "stats"
+        (s["items"] || []).map { |it| "- #{it['value']} :: #{it['label']}" }
+      when "chart"
+        (s["items"] || []).map { |it| "- #{it['value']} :: #{it['label']}" }
+      when "two-col"
+        arr = []
+        arr << "- HEADERS: #{(s['headers'] || []).join(' | ')}"
+        (s["col1"] || []).each { |c| arr << "- COL1: #{c}" }
+        (s["col2"] || []).each { |c| arr << "- COL2: #{c}" }
+        arr
+      when "timeline", "pillars", "roles", "agenda"
+        (s["items"] || []).map { |it| "- #{it.is_a?(Hash) ? it.values.join(' :: ') : it}" }
+      else
+        (s["bullets"] || []).map { |b| "- #{b.is_a?(Hash) ? b.values.join(' :: ') : b}" }
+      end
+      body = lines.join("\n")
+      "---SLIDE---\nTITLE: #{s['title']}\nLAYOUT: #{layout}\nBODY:\n#{body}\nNOTE: #{s['note']}\n---END---"
+    }.join("\n\n")
+
     prompt = <<~PROMPT
-      Đây là nội dung slide hiện tại (JSON):
-      #{current_slides.to_json}
+      Đây là nội dung slide hiện tại:
+
+      THEME: #{existing_theme}
+      #{slides_text}
 
       Yêu cầu chỉnh sửa từ người dùng: #{edit_prompt}#{image_note}
 
-      Hãy chỉnh sửa slide theo yêu cầu. Giữ nguyên format JSON giống hệt cấu trúc cũ.
-      Trả về slide đã chỉnh sửa theo đúng format:
-      THEME: #{@outline.content&.[](/data-theme='([^']+)'/, 1) || "green"}
-      SLIDE 1 ...
+      Hãy chỉnh sửa slide theo yêu cầu và trả về ĐÚNG FORMAT sau (bắt buộc dùng ---SLIDE--- và ---END---):
+      THEME: #{existing_theme}
+      ---SLIDE---
+      TITLE: ...
+      LAYOUT: ...
+      BODY:
+      - ...
+      NOTE: ...
+      ---END---
     PROMPT
 
     result = svc.call(system_prompt: slide_system, user_prompt: prompt, max_tokens: 8000)
