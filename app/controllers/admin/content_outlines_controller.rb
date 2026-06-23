@@ -1,5 +1,5 @@
 class Admin::ContentOutlinesController < Admin::BaseController
-  before_action :set_outline, only: [:show, :destroy, :regenerate, :status, :update_slides]
+  before_action :set_outline, only: [:show, :destroy, :regenerate, :status, :update_slides, :ai_edit]
 
   def index
     @outlines = current_workspace.content_outlines.includes(:created_by).order(created_at: :desc)
@@ -36,6 +36,17 @@ class Admin::ContentOutlinesController < Admin::BaseController
     @outline.pptx_file.purge if @outline.pptx_file.attached?
     GenerateContentOutlineJob.perform_later(@outline.id)
     redirect_to content_outline_path(@outline)
+  end
+
+  def ai_edit
+    edit_prompt = params[:edit_prompt].to_s.strip
+    return render json: { error: "Vui lòng nhập yêu cầu chỉnh sửa" }, status: 422 if edit_prompt.blank?
+
+    @outline.update!(status: :pending)
+    @outline.pptx_file.purge if @outline.pptx_file.attached?
+    @outline.slide_images.purge if @outline.slide_images.attached?
+    AiEditSlideJob.perform_later(@outline.id, edit_prompt)
+    render json: { pending: true, poll_url: status_content_outline_path(@outline, format: :json) }
   end
 
   def destroy

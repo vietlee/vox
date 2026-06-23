@@ -5,6 +5,10 @@ class ContentOutlineGenerator
     new(outline).call
   end
 
+  def self.ai_edit(outline, edit_prompt)
+    new(outline).ai_edit(edit_prompt)
+  end
+
   def initialize(outline)
     @outline = outline
   end
@@ -28,6 +32,34 @@ class ContentOutlineGenerator
     end
 
     @outline.workspace.active_subscription&.deduct_credits!(2)
+  end
+
+  def ai_edit(edit_prompt)
+    current_slides = JSON.parse(@outline.slide_json || "[]")
+    svc = ClaudeService.for_feature("quiz_generate", timeout: 180)
+
+    prompt = <<~PROMPT
+      Đây là nội dung slide hiện tại (JSON):
+      #{current_slides.to_json}
+
+      Yêu cầu chỉnh sửa từ người dùng: #{edit_prompt}
+
+      Hãy chỉnh sửa slide theo yêu cầu. Giữ nguyên format JSON giống hệt cấu trúc cũ.
+      Trả về slide đã chỉnh sửa theo đúng format:
+      THEME: #{@outline.content&.[](/data-theme='([^']+)'/, 1) || "green"}
+      SLIDE 1 ...
+    PROMPT
+
+    result = svc.call(system_prompt: slide_system, user_prompt: prompt, max_tokens: 4000)
+    slides = parse_slides(result)
+    html   = slides_to_html(slides)
+    pptx_path = generate_pptx(slides)
+    @outline.update!(content: html, slide_json: slides.to_json, status: :done)
+    if pptx_path
+      generate_slide_images(pptx_path)
+      attach_pptx(pptx_path)
+    end
+    @outline.workspace.active_subscription&.deduct_credits!(1)
   end
 
   private
@@ -305,7 +337,7 @@ class ContentOutlineGenerator
       pdf = Dir.glob(File.join(dir, "*.pdf")).first
       return unless pdf
 
-      system("pdftoppm", "-jpeg", "-r", "200", pdf, File.join(dir, "slide"))
+      system("pdftoppm", "-jpeg", "-r", "300", "-jpegopt", "quality=95", pdf, File.join(dir, "slide"))
       jpgs = Dir.glob(File.join(dir, "slide-*.jpg")).sort
 
       @outline.slide_images.purge if @outline.slide_images.attached?

@@ -424,7 +424,18 @@
       "Bash(ssh deploy@188.166.189.119 \"tail -300 /var/www/vox/shared/log/sidekiq.log\")",
       "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && bundle list | grep -E 'pdf|zip|rubyzip'\")",
       "Bash(ssh deploy@188.166.189.119 \"ls /var/www/vox/shared/tmp/ 2>/dev/null | head -10 && echo '---' && ls /var/www/vox/current/tmp/ 2>/dev/null | head -5\")",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(python3 /Users/mac/Desktop/VOX/scripts/generate_pptx.py '[ *)",
+      "Bash(mdfind \"kMDItemKind == 'Application'\")",
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && tail -100 log/production.log | grep -A 5 -i 'pptx\\\\|slide\\\\|theme\\\\|outline'\")",
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && ls log/ && tail -100 log/*.log 2>/dev/null | grep -i 'pptx\\\\|error\\\\|stderr'\")",
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && tail -200 log/sidekiq.log\")",
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && tail -500 log/sidekiq.log\")",
+      "Bash(python3 -m markitdown \"slide-thuy-t-trinh-d-an \\(2\\).pptx\")",
+      "Bash(python3 -m markitdown \"/Users/mac/Desktop/slide-thuy-t-trinh-d-an \\(2\\).pptx\")",
+      "Bash(ssh deploy@188.166.189.119 \"cd /var/www/vox/current && RAILS_ENV=production /home/deploy/.rbenv/bin/rbenv exec bundle exec rails dbconsole -- -t -c \\\\\"SELECT id, created_at, substring\\(content from 'data-theme=..\\([^.]+\\)'\\) as theme FROM content_outlines ORDER BY created_at DESC LIMIT 3\\\\\"\")",
+      "Bash(ssh deploy@188.166.189.119 \"cat /var/www/vox/shared/config/database.yml\")",
+      "Bash(ssh deploy@188.166.189.119 'source /var/www/vox/shared/.env && psql $DATABASE_URL -t -c \"SELECT slide_json FROM content_outlines WHERE id=2\"')"
     ]
   }
 }

@@ -268,6 +268,7 @@ Rails.application.routes.draw do
     resources :content_outlines, only: [:index, :new, :create, :show, :destroy] do
       member do
         post :regenerate
+        post :ai_edit
         get  :status
         patch :update_slides
       end
