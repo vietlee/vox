@@ -6,4 +6,5 @@ class ContentOutline < ApplicationRecord
   TYPES = %w[outline slide_script lesson_plan].freeze
 
   has_one_attached :pptx_file
+  has_many_attached :slide_images
 end

@@ -18,7 +18,10 @@ class ContentOutlineGenerator
       html   = slides_to_html(slides)
       pptx_path = generate_pptx(slides)
       @outline.update!(content: html, slide_json: slides.to_json, status: :done)
-      attach_pptx(pptx_path) if pptx_path
+      if pptx_path
+        generate_slide_images(pptx_path)
+        attach_pptx(pptx_path)
+      end
     else
       result = svc.call(system_prompt: generic_system, user_prompt: generic_user, max_tokens: 3000)
       @outline.update!(content: markdown_to_html(result), status: :done)
@@ -293,6 +296,29 @@ class ContentOutlineGenerator
   rescue => e
     Rails.logger.error "[PPTX] #{e.message}"
     nil
+  end
+
+  def generate_slide_images(pptx_path)
+    Dir.mktmpdir do |dir|
+      pdf_path = File.join(dir, "slides.pdf")
+      system("soffice", "--headless", "--convert-to", "pdf", "--outdir", dir, pptx_path, [:out, :err] => "/dev/null")
+      pdf = Dir.glob(File.join(dir, "*.pdf")).first
+      return unless pdf
+
+      system("pdftoppm", "-jpeg", "-r", "200", pdf, File.join(dir, "slide"))
+      jpgs = Dir.glob(File.join(dir, "slide-*.jpg")).sort
+
+      @outline.slide_images.purge if @outline.slide_images.attached?
+      jpgs.each_with_index do |jpg, i|
+        @outline.slide_images.attach(
+          io: File.open(jpg),
+          filename: "slide-#{i + 1}.jpg",
+          content_type: "image/jpeg"
+        )
+      end
+    end
+  rescue => e
+    Rails.logger.error "[SlideImages] #{e.message}"
   end
 
   def attach_pptx(path)

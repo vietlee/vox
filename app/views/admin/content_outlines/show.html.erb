@@ -225,6 +225,9 @@
   </div><!-- end slide-editor-layout -->
 
   <div id="slide-data" class="hidden"><%= raw @outline.content %></div>
+  <% if @outline.slide_images.attached? %>
+    <div id="slide-image-urls" class="hidden" data-urls="<%= @outline.slide_images.order(:id).map { |img| rails_blob_path(img) }.to_json %>"></div>
+  <% end %>
 
   <style>
     #slide-viewer * { box-sizing:border-box; }
@@ -239,6 +242,11 @@
     var el = document.getElementById('slide-data').querySelector('#slide-deck-root');
     var slides = JSON.parse(el.dataset.slides || '[]');
     var current = 0, total = slides.length;
+
+    /* ── Image mode: use PPTX-rendered images if available ── */
+    var imgUrlsEl = document.getElementById('slide-image-urls');
+    var slideImageUrls = imgUrlsEl ? JSON.parse(imgUrlsEl.dataset.urls || '[]') : [];
+    var useImageMode = slideImageUrls.length > 0;
 
     /* ─────────────────────────────────────────────────────────────────
        SVG DEFS shared across themes  (blur filter for glow blobs)
@@ -1666,6 +1674,13 @@
     };
     setTheme(activeThemeIdx);
 
+    if (useImageMode) {
+      var tp = document.getElementById('theme-picker');
+      if (tp) tp.style.display = 'none';
+      var eb = document.getElementById('editor-toggle-btn');
+      if (eb) eb.style.display = 'none';
+    }
+
     /* ─────────────────────────────────────────────────────────────────
        RENDER
     ───────────────────────────────────────────────────────────────── */
@@ -1675,26 +1690,35 @@
       var t = THEMES[activeThemeIdx];
       var isFirst = current === 0, isLast = current === total - 1;
 
-      document.getElementById('slide-viewer').innerHTML =
-        isFirst ? renderCover(s, t) :
-        isLast  ? renderSummary(s, t) :
-                  renderContent(s, current, t);
+      if (useImageMode && slideImageUrls[current]) {
+        document.getElementById('slide-viewer').innerHTML =
+          '<div class="s-in" style="position:absolute;inset:0;">' +
+            '<img src="' + slideImageUrls[current] + '" style="width:100%;height:100%;object-fit:contain;background:#0f172a;">' +
+          '</div>';
+      } else {
+        document.getElementById('slide-viewer').innerHTML =
+          isFirst ? renderCover(s, t) :
+          isLast  ? renderSummary(s, t) :
+                    renderContent(s, current, t);
+      }
 
       document.getElementById('slide-counter').textContent = (current+1) + ' / ' + total;
 
       /* progress dots */
-      document.getElementById('slide-dots').innerHTML = slides.map(function(_, i) {
+      var dotTotal = useImageMode ? slideImageUrls.length : slides.length;
+      document.getElementById('slide-dots').innerHTML = Array.from({length: dotTotal}, function(_, i) {
         return '<div style="width:' + (i===current?'18px':'5px') + ';height:5px;border-radius:3px;' +
           'background:' + (i===current?'#6366f1':'#cbd5e1') + ';transition:all .25s;"></div>';
       }).join('');
 
       var noteEl = document.getElementById('slide-note');
-      if (s.note) { document.getElementById('slide-note-text').textContent = s.note; noteEl.classList.remove('hidden'); }
+      if (s && s.note) { document.getElementById('slide-note-text').textContent = s.note; noteEl.classList.remove('hidden'); }
       else { noteEl.classList.add('hidden'); }
     }
 
+    var navTotal = useImageMode ? slideImageUrls.length : total;
     window.prevSlide = function() { if (current > 0) { current--; render(); } };
-    window.nextSlide = function() { if (current < total-1) { current++; render(); } };
+    window.nextSlide = function() { if (current < navTotal-1) { current++; render(); } };
     window.enterFullscreen = function() {
       var w = document.getElementById('slide-viewer').parentElement;
       (w.requestFullscreen || w.webkitRequestFullscreen || function(){}).call(w);
