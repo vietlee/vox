@@ -26,7 +26,8 @@
   </div>
 </div>
 
-<% if @outline.pending? %>
+<% slide_images_pending = @outline.output_type == "slide" && @outline.done? && !@outline.slide_images.attached? %>
+<% if @outline.pending? || slide_images_pending %>
   <%= render "admin/shared/ai_generating_overlay",
         poll_url: status_content_outline_path(@outline, format: :json),
         message: "AI đang tạo #{@outline.output_type == 'slide' ? 'slide' : 'nội dung'}...",
