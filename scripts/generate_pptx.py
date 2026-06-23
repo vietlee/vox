@@ -288,8 +288,6 @@ def make_cover(prs, s, idx, total):
         sub = " · ".join(s["bullets"][:3])
         _tb(slide, sub, I(0.7), I(2.7), I(7), I(0.5), sz=11, color=T["primary_lt"])
 
-    # Separator
-    _rect(slide, 0, SH - I(0.5), SW, Pt(1), T["primary_lt"])
 
 
 def make_section(prs, s, idx, total):
