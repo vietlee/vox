@@ -199,13 +199,24 @@ class ContentOutlineGenerator
         - 92% :: Mức độ hài lòng phụ huynh
 
       LAYOUT: chart
-        Khi nào dùng: so sánh theo thời gian, tiến độ tăng trưởng, phân bổ theo nhóm
-        Format: mỗi dòng "- SỐ_NGUYÊN_0_TO_100 :: NHÃN" (tối đa 5 cột)
+        Khi nào dùng: so sánh theo thời gian, tiến độ tăng trưởng
+        Format: mỗi dòng "- SỐ :: NHÃN" (tối đa 6 cột, dùng STYLE: chart_type=line hoặc chart_type=bar)
         Ví dụ:
         - 45 :: Quý 1
         - 62 :: Quý 2
         - 78 :: Quý 3
         - 91 :: Quý 4
+
+      LAYOUT: donut
+        Khi nào dùng: phân bổ ngân sách, tỷ lệ phần trăm, cơ cấu
+        Format: mỗi dòng "- SỐ :: NHÃN :: Chi tiết bổ sung"
+        Thêm CENTER: dòng trung tâm (VD: "CENTER: 500.000 :: USD")
+        Ví dụ:
+        - 30 :: Công nghệ & Sản phẩm :: 150.000 USD
+        - 35 :: Marketing & Thu hút :: 175.000 USD
+        - 20 :: Mở rộng thị trường :: 100.000 USD
+        - 15 :: Vận hành & Nhân sự :: 75.000 USD
+        CENTER: 500.000 :: USD
 
       LAYOUT: two-col
         Khi nào dùng: so sánh 2 phía (pros/cons, trước/sau, lý thuyết/thực tế)
@@ -273,6 +284,7 @@ class ContentOutlineGenerator
       Chọn layout PHÙ HỢP NHẤT với nội dung của từng slide — không có thứ tự cố định.
       Hãy để nội dung quyết định layout:
       - Có nhiều số liệu, KPI → stats hoặc chart
+      - Có phân bổ ngân sách, tỷ lệ % → donut
       - Có nhiều trụ cột/chiến lược song song → pillars
       - Có nhiều vai trò, bộ phận → roles
       - Có mục tiêu, key results → okr
@@ -290,11 +302,9 @@ class ContentOutlineGenerator
       Format: STYLE: key1=value1, key2=value2
 
       Các thuộc tính:
-      - category=TÊN_NHÓM       → Nhãn nhỏ phía trên title (VD: "Vấn đề", "Giải pháp", "Tăng trưởng"). BẮT BUỘC cho mọi content slide.
-      - decorations=true|false  → Hiện/ẩn hình trang trí (vòng tròn, đường kẻ). Mặc định: true
-      - separator=true|false    → Hiện/ẩn đường kẻ phân cách. Mặc định: false
-      - bg=dark|light           → Nền tối (cover_bg) hoặc sáng (content_bg). Mặc định: tùy layout
-      - card_style=icon|plain   → Bullets: có icon tròn (icon) hoặc không (plain). Mặc định: icon
+      - category=TÊN_NHÓM       → Nhãn nhỏ phía trên title. BẮT BUỘC cho mọi content slide.
+      - bg=dark|light           → Nền tối hoặc sáng. Mặc định: light
+      - chart_type=line|bar     → Loại biểu đồ (chỉ cho LAYOUT: chart). Mặc định: bar
 
       Ví dụ:
       STYLE: category=Vấn đề thị trường
@@ -387,6 +397,19 @@ class ContentOutlineGenerator
         slide["items"] = lines.map do |l|
           parts = l.split("::", 2).map(&:strip)
           { "value" => parts[0].to_i, "label" => parts[1] || "" }
+        end
+        slide["bullets"] = lines
+      when "donut"
+        center_line = lines.find { |l| l.start_with?("CENTER:") }
+        data_lines = lines.reject { |l| l.start_with?("CENTER:") }
+        slide["items"] = data_lines.map do |l|
+          parts = l.split("::", 3).map(&:strip)
+          { "value" => parts[0].to_i, "label" => parts[1] || "", "detail" => parts[2] || "" }
+        end
+        if center_line
+          cp = center_line.sub("CENTER:", "").split("::", 2).map(&:strip)
+          slide["center_text"] = cp[0] || ""
+          slide["center_sub"] = cp[1] || ""
         end
         slide["bullets"] = lines
       when "two-col"
