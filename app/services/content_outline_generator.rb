@@ -50,7 +50,7 @@ class ContentOutlineGenerator
       SLIDE 1 ...
     PROMPT
 
-    result = svc.call(system_prompt: slide_system, user_prompt: prompt, max_tokens: 4000)
+    result = svc.call(system_prompt: slide_system, user_prompt: prompt, max_tokens: 8000)
     slides = parse_slides(result)
     html   = slides_to_html(slides)
     pptx_path = generate_pptx(slides)
