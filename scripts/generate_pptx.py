@@ -226,12 +226,20 @@ def _bg(slide, color):
 # ── Shared components ──────────────────────────────────────────────────
 
 def _header_bar(slide, title, subtitle=""):
-    _rect(slide, 0, 0, SW, I(0.74), T["primary_dk"])
-    _tb(slide, title, I(0.4), I(0.1), I(7), I(0.35),
-        sz=16, bold=True, color=WHITE, font="Segoe UI Semibold")
+    _rect(slide, 0, 0, SW, I(0.85), T["primary_dk"])
+    _tb(slide, title, I(0.45), I(0.12), I(8), I(0.42),
+        sz=20, bold=True, color=WHITE, font="Segoe UI Black")
     if subtitle:
-        _tb(slide, subtitle, I(0.4), I(0.42), I(8), I(0.28),
-            sz=9, color=T["primary_lt"])
+        _tb(slide, subtitle, I(0.45), I(0.52), I(8), I(0.28),
+            sz=10, color=T["primary_lt"])
+
+def _slide_subtitle(slide, text, y):
+    _tb(slide, text, I(0.45), y, SW - I(0.9), I(0.28),
+        sz=10, color=MID, font="Segoe UI")
+
+def _footer_note(slide, text):
+    _tb(slide, text, I(0.45), SH - I(0.45), SW - I(0.9), I(0.25),
+        sz=8, color=LIGHT_TEXT, align=PP_ALIGN.CENTER)
 
 def _page_num(slide, num, total):
     _tb(slide, f"{num:02d} / {total:02d}",
@@ -250,17 +258,15 @@ def _content_card(slide, x, y, w, h, idx, title, desc=""):
     accents = _accents()
     ac = accents[idx % len(accents)]
     _rrect(slide, x, y, w, h, T["card_bg"], CARD_BORDER)
-    # Icon
     icon_sz = I(0.38)
-    _add_icon(slide, x + I(0.12), y + (h - icon_sz) // 2, icon_sz, ac)
-    # Text
-    tx = x + I(0.58)
-    tw = w - I(0.7)
+    _add_icon(slide, x + I(0.15), y + (h - icon_sz) // 2, icon_sz, ac)
+    tx = x + I(0.62)
+    tw = w - I(0.78)
     if desc:
-        _tb(slide, title, tx, y + I(0.06), tw, I(0.22), sz=11, bold=True, color=DARK)
-        _tb(slide, desc, tx, y + I(0.28), tw, h - I(0.34), sz=9, color=MID)
+        _tb(slide, title, tx, y + I(0.08), tw, I(0.24), sz=12, bold=True, color=DARK)
+        _tb(slide, desc, tx, y + I(0.34), tw, h - I(0.42), sz=9, color=MID)
     else:
-        _tb(slide, title, tx, y + (h - I(0.25)) // 2, tw, I(0.25), sz=11, bold=True, color=DARK)
+        _tb(slide, title, tx, y + (h - I(0.28)) // 2, tw, I(0.28), sz=12, bold=True, color=DARK)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -272,32 +278,33 @@ def _style(s, key, default=None):
 
 def make_cover(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    bg = T["cover_bg"] if _style(s, "bg", "dark") == "dark" else T["content_bg"]
+    is_dark = _style(s, "bg", "dark") == "dark"
+    bg = T["cover_bg"] if is_dark else T["content_bg"]
     _bg(slide, bg)
 
     if _style(s, "decorations", True):
-        _oval(slide, SW - I(1.5), I(0.3), I(2.2), T["primary"])
-        _oval(slide, SW + I(0.3), I(1.5), I(1.5), T["primary_lt"])
-        _oval(slide, I(-0.5), SH - I(0.8), I(0.8), T["primary_lt"])
+        _oval(slide, SW - I(1.2), I(0.2), I(2.5), T["primary"])
+        _oval(slide, SW + I(0.4), I(1.8), I(1.8), T["primary_lt"])
+        _oval(slide, I(-0.6), SH - I(1.0), I(1.0), T["primary_lt"])
 
-    title_color = WHITE if _style(s, "bg", "dark") == "dark" else DARK
-    _tb(slide, s["title"], I(0.7), I(1.0), I(7), I(1.3),
-        sz=30, bold=True, color=title_color, font="Segoe UI Black")
+    title_color = WHITE if is_dark else DARK
+    _tb(slide, s["title"], I(0.7), I(0.8), I(7.5), I(1.5),
+        sz=36, bold=True, color=title_color, font="Segoe UI Black")
 
     if _style(s, "decorations", True):
-        _rect(slide, I(0.7), I(2.45), I(2.2), Pt(3), T["primary_lt"])
+        _rect(slide, I(0.7), I(2.5), I(2.5), Pt(3), T["primary_lt"])
 
     if _style(s, "separator", False):
         _rect(slide, 0, SH - I(0.5), SW, Pt(1), T["primary_lt"])
 
     if s.get("bullets"):
-        sub_color = T["primary_lt"] if _style(s, "bg", "dark") == "dark" else MID
+        sub_color = T["primary_lt"] if is_dark else MID
         if _style(s, "subtitle", "join") == "lines":
             for i, b in enumerate(s["bullets"][:5]):
-                _tb(slide, b, I(0.7), I(2.7) + i * I(0.25), I(7), I(0.25), sz=11, color=sub_color)
+                _tb(slide, b, I(0.7), I(2.8) + i * I(0.28), I(7.5), I(0.28), sz=12, color=sub_color)
         else:
             sub = " · ".join(s["bullets"][:3])
-            _tb(slide, sub, I(0.7), I(2.7), I(7), I(0.5), sz=11, color=sub_color)
+            _tb(slide, sub, I(0.7), I(2.8), I(7.5), I(0.6), sz=12, color=sub_color)
 
 
 
@@ -305,11 +312,14 @@ def make_section(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["cover_bg"])
     if _style(s, "decorations", True):
-        _oval(slide, SW // 2, I(1.0), I(2.5), T["primary"])
-    _tb(slide, s["title"], I(0.5), I(1.5), SW - I(1.0), I(1.0),
-        sz=26, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Segoe UI Black")
+        _oval(slide, SW // 2, I(0.8), I(2.8), T["primary"])
+    _tb(slide, s["title"], I(0.5), I(1.3), SW - I(1.0), I(1.2),
+        sz=30, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Segoe UI Black")
     if _style(s, "decorations", True):
-        _rect(slide, SW // 2 - I(1), I(2.7), I(2), Pt(3), T["primary_lt"])
+        _rect(slide, SW // 2 - I(1.2), I(2.7), I(2.4), Pt(3), T["primary_lt"])
+    if s.get("subtitle"):
+        _tb(slide, s["subtitle"], I(0.8), I(2.9), SW - I(1.6), I(0.4),
+            sz=12, color=T["primary_lt"], align=PP_ALIGN.CENTER)
     _page_num(slide, idx, total)
 
 
@@ -366,16 +376,24 @@ def make_bullets(prs, s, idx, total):
 
 def _setup_content_slide(prs, s):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    bg = T["cover_bg"] if _style(s, "bg") == "dark" else T["content_bg"]
+    is_dark = _style(s, "bg") == "dark"
+    bg = T["cover_bg"] if is_dark else T["content_bg"]
     _bg(slide, bg)
+    subtitle = s.get("subtitle", "")
     if _style(s, "header", True):
-        _header_bar(slide, s["title"])
-        return slide, I(0.9)
+        _header_bar(slide, s["title"], subtitle)
+        top = I(1.0)
     else:
-        tc = WHITE if _style(s, "bg") == "dark" else DARK
-        _tb(slide, s["title"], I(0.35), I(0.15), SW - I(0.7), I(0.4),
-            sz=18, bold=True, color=tc, font="Segoe UI Semibold")
-        return slide, I(0.6)
+        tc = WHITE if is_dark else DARK
+        _tb(slide, s["title"], I(0.45), I(0.18), SW - I(0.9), I(0.45),
+            sz=22, bold=True, color=tc, font="Segoe UI Black")
+        top = I(0.7)
+        if subtitle:
+            _slide_subtitle(slide, subtitle, top)
+            top += I(0.35)
+    if s.get("footer"):
+        _footer_note(slide, s["footer"])
+    return slide, top
 
 def make_stats(prs, s, idx, total):
     slide, top_y = _setup_content_slide(prs, s)
@@ -384,31 +402,27 @@ def make_stats(prs, s, idx, total):
     if not items: return
 
     n = min(len(items), 4)
-    gap = I(0.15)
-    card_w = (SW - I(0.7) - gap * (n - 1)) // n
-    sx = I(0.35)
-    cy = top_y
-    card_h = SH - cy - I(0.65)
+    gap = I(0.18)
+    card_w = (SW - I(0.9) - gap * (n - 1)) // n
+    sx = I(0.45)
+    cy = top_y + I(0.05)
+    card_h = SH - cy - I(0.7)
     accents = _accents()
 
     for i, item in enumerate(items[:n]):
         ac = accents[i % len(accents)]
         x = sx + i * (card_w + gap)
 
-        # Dark stat card (like co-work)
-        _rrect(slide, x, cy, card_w, card_h, T["primary_dk"], radius=0.04)
-        # Accent side bar
-        _rect(slide, x + card_w - I(0.05), cy + I(0.1), I(0.05), card_h - I(0.2), ac)
+        _rrect(slide, x, cy, card_w, card_h, T["primary_dk"], radius=0.05)
+        _rect(slide, x, cy, card_w, I(0.04), ac)
 
-        # Big value (white on dark)
         _tb(slide, item.get("value", ""),
-            x + I(0.1), cy + I(0.25), card_w - I(0.2), I(0.55),
-            sz=28, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Segoe UI Black")
+            x + I(0.15), cy + I(0.3), card_w - I(0.3), I(0.7),
+            sz=36, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Segoe UI Black")
 
-        # Label (light on dark)
         _tb(slide, item.get("label", ""),
-            x + I(0.1), cy + I(0.85), card_w - I(0.2), card_h - I(1.0),
-            sz=9, color=T["primary_lt"], align=PP_ALIGN.CENTER)
+            x + I(0.15), cy + I(1.05), card_w - I(0.3), card_h - I(1.2),
+            sz=10, color=T["primary_lt"], align=PP_ALIGN.CENTER)
 
     _page_num(slide, idx, total)
 
@@ -667,22 +681,20 @@ def make_summary(prs, s, idx, total):
     _bg(slide, T["cover_bg"])
 
     if _style(s, "decorations", True):
-        _oval(slide, SW // 2, I(0.6), I(2.2), T["primary"])
-        _oval(slide, I(0.3), SH - I(1.0), I(1.2), T["primary"])
+        _oval(slide, SW // 2, I(0.5), I(2.5), T["primary"])
+        _oval(slide, I(0.2), SH - I(1.2), I(1.4), T["primary"])
 
-    # Title
-    _tb(slide, s["title"], I(0.5), I(0.6), SW - I(1.0), I(0.9),
-        sz=22, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Segoe UI Black")
-    _rect(slide, SW // 2 - I(0.8), I(1.55), I(1.6), Pt(3), T["primary_lt"])
+    _tb(slide, s["title"], I(0.5), I(0.5), SW - I(1.0), I(1.0),
+        sz=28, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Segoe UI Black")
+    _rect(slide, SW // 2 - I(1.0), I(1.6), I(2.0), Pt(3), T["primary_lt"])
 
-    # Bullets on dark bg
     for i, b in enumerate(s.get("bullets", [])[:5]):
-        y = I(1.8) + i * I(0.42)
+        y = I(1.85) + i * I(0.45)
         if y > SH - I(0.8): break
-        _rrect(slide, I(0.8), y, SW - I(1.6), I(0.34), T["primary"], radius=0.04)
-        _oval(slide, I(0.95), y + I(0.13), Pt(4), T["primary_lt"])
-        _tb(slide, b, I(1.15), y + I(0.04), SW - I(2.1), I(0.26),
-            sz=10, color=WHITE)
+        _rrect(slide, I(0.8), y, SW - I(1.6), I(0.38), T["primary"], radius=0.04)
+        _add_icon(slide, I(0.92), y + I(0.04), I(0.3), T["primary_lt"])
+        _tb(slide, b, I(1.3), y + I(0.06), SW - I(2.3), I(0.28),
+            sz=11, color=WHITE)
 
     _page_num(slide, idx, total)
 

@@ -82,7 +82,9 @@ class ContentOutlineGenerator
       body = lines.join("\n")
       style_str = (s["style"] || {}).map { |k, v| "#{k}=#{v}" }.join(", ")
       style_line = style_str.present? ? "\nSTYLE: #{style_str}" : ""
-      "---SLIDE---\nTITLE: #{s['title']}\nLAYOUT: #{layout}\nBODY:\n#{body}#{style_line}\nNOTE: #{s['note']}\n---END---"
+      subtitle_line = s["subtitle"].present? ? "\nSUBTITLE: #{s['subtitle']}" : ""
+      footer_line = s["footer"].present? ? "\nFOOTER: #{s['footer']}" : ""
+      "---SLIDE---\nTITLE: #{s['title']}#{subtitle_line}\nLAYOUT: #{layout}\nBODY:\n#{body}#{style_line}#{footer_line}\nNOTE: #{s['note']}\n---END---"
     }.join("\n\n")
 
     prompt = <<~PROMPT
@@ -97,14 +99,18 @@ class ContentOutlineGenerator
       THEME: #{existing_theme}
       ---SLIDE---
       TITLE: ...
+      SUBTITLE: ... (mô tả ngắn 1 câu)
       LAYOUT: ...
       BODY:
       - ...
-      STYLE: key=value, key=value (tùy chọn — dùng để thay đổi thiết kế: decorations=true|false, separator=true|false, header=true|false, bg=dark|light, card_style=icon|plain, subtitle=join|lines)
+      STYLE: key=value, key=value (tùy chọn: decorations, separator, header, bg, card_style, subtitle)
+      FOOTER: ... (tùy chọn)
       NOTE: ...
       ---END---
 
-      QUAN TRỌNG: Nếu người dùng yêu cầu thay đổi THIẾT KẾ (bỏ border, thêm/bỏ trang trí, đổi nền, v.v.), hãy dùng dòng STYLE để điều chỉnh.
+      QUAN TRỌNG:
+      - Nếu người dùng yêu cầu thay đổi THIẾT KẾ, dùng dòng STYLE.
+      - Mỗi content slide NÊN có SUBTITLE mô tả ngắn.
     PROMPT
 
     result = svc.call(system_prompt: slide_system, user_prompt: prompt, max_tokens: 8000)
@@ -124,7 +130,7 @@ class ContentOutlineGenerator
   # ── AI prompts ──────────────────────────────────────────────────────────────
 
   def slide_system
-    "Bạn là chuyên gia thiết kế slide thuyết trình doanh nghiệp chuyên nghiệp. Trả lời bằng tiếng Việt. Chỉ xuất đúng format được yêu cầu, không thêm văn bản khác."
+    "Bạn là chuyên gia thiết kế slide thuyết trình doanh nghiệp cấp cao. Slide phải CỤ THỂ, CHUYÊN NGHIỆP như slide consultant (McKinsey, BCG). Mỗi slide có SUBTITLE mô tả ngắn. Nội dung có số liệu cụ thể, insight sâu sắc. Trả lời bằng tiếng Việt. Chỉ xuất đúng format được yêu cầu, không thêm văn bản khác."
   end
 
   def slide_user
@@ -147,11 +153,13 @@ class ContentOutlineGenerator
       Tạo 8–10 slide, mỗi slide theo đúng format này:
 
       ---SLIDE---
-      TITLE: Tiêu đề slide (IN HOA, súc tích)
+      TITLE: Tiêu đề slide (IN HOA, súc tích, có thể dùng — để phân cách)
+      SUBTITLE: Dòng mô tả ngắn bổ sung cho title (italic, 1 câu giải thích ngữ cảnh)
       LAYOUT: [tên layout]
       BODY:
       [nội dung theo format của layout đã chọn]
       STYLE: [tùy chọn style, xem bên dưới]
+      FOOTER: [ghi chú nhỏ ở cuối slide — tùy chọn, dùng cho footnote/disclaimer]
       NOTE: Ghi chú 1-2 câu cho người trình bày (câu hỏi tương tác hoặc insight bổ sung)
       ---END---
 
@@ -279,12 +287,16 @@ class ContentOutlineGenerator
       STYLE: bg=dark, card_style=plain
       STYLE: decorations=true, subtitle=lines
 
-      TIÊU CHUẨN CHẤT LƯỢNG:
+      TIÊU CHUẨN CHẤT LƯỢNG (QUAN TRỌNG):
       - Nội dung PHẢI CỤ THỂ: có con số, %, tỉ lệ, ví dụ thực tế (không chung chung)
       - KHÔNG dùng bullets cho 3 slide liên tiếp — phải xen kẽ layout đa dạng
       - Mỗi item trong pillars/roles phải có ít nhất 3 bullets sau "::"
       - NOTE phải là câu hỏi tương tác hay insight bổ sung thực sự có giá trị
       - Slide đầu tiên nên là cover/giới thiệu chủ đề, slide cuối nên là tóm tắt hoặc CTA
+      - SUBTITLE rất quan trọng — mỗi content slide NÊN có SUBTITLE mô tả ngắn (1 câu italic giải thích bối cảnh/mục đích của slide)
+      - TITLE nên IN HOA, dùng — để phân cách (ví dụ: "TỔNG QUAN — TÌNH HÌNH HIỆN TẠI")
+      - Nội dung mỗi bullet nên đủ dài, CỤ THỂ, không quá ngắn (tránh bullet chỉ 2-3 từ)
+      - Dùng FOOTER cho disclaimer, ghi chú nguồn, hoặc footnote khi cần
     PROMPT
   end
 
@@ -306,11 +318,13 @@ class ContentOutlineGenerator
     return [] if raw.empty?
 
     raw.map do |s|
-      title  = s[/TITLE:\s*(.+)/, 1]&.strip || "Slide"
-      layout = s[/LAYOUT:\s*(\S+)/, 1]&.strip&.downcase || "bullets"
-      body   = s[/BODY:\n(.*?)(?:\nSTYLE:|\nNOTE:|\z)/m, 1]&.strip || ""
+      title    = s[/TITLE:\s*(.+)/, 1]&.strip || "Slide"
+      subtitle = s[/SUBTITLE:\s*(.+)/, 1]&.strip || ""
+      layout   = s[/LAYOUT:\s*(\S+)/, 1]&.strip&.downcase || "bullets"
+      body     = s[/BODY:\n(.*?)(?:\nSTYLE:|\nFOOTER:|\nNOTE:|\z)/m, 1]&.strip || ""
       style_raw = s[/STYLE:\s*(.+)/, 1]&.strip || ""
-      note   = s[/NOTE:\s*(.+)/, 1]&.strip || ""
+      footer   = s[/FOOTER:\s*(.+)/, 1]&.strip || ""
+      note     = s[/NOTE:\s*(.+)/, 1]&.strip || ""
       lines  = body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
 
       style = {}
@@ -325,6 +339,8 @@ class ContentOutlineGenerator
       end
 
       slide = { "title" => title, "layout" => layout, "note" => note }
+      slide["subtitle"] = subtitle if subtitle.present?
+      slide["footer"] = footer if footer.present?
       slide["style"] = style if style.any?
 
       case layout
