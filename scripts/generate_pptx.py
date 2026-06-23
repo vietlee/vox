@@ -235,9 +235,9 @@ def _setup_content_slide(prs, s):
     if note:
         _insight_bar(slide, note)
         if footer:
-            _tb(slide, footer, LM, SH - I(0.18), I(8.0), I(0.25), sz=8, color=MID)
+            _tb(slide, footer, LM, SH - I(0.35), I(8.0), I(0.25), sz=8, color=MID)
     elif footer:
-        _tb(slide, footer, LM, SH - I(0.32), I(8.0), I(0.30), sz=9, color=MID)
+        _tb(slide, footer, LM, SH - I(0.35), I(8.0), I(0.30), sz=9, color=MID)
     return slide, I(1.70)
 
 def _page_num(slide, num, total):
@@ -333,14 +333,14 @@ def make_cover(prs, s, idx, total):
     is_dark = _style(s, "bg", "dark") == "dark"
     _bg(slide, T["cover_bg"] if is_dark else T["content_bg"])
 
-    # Decorative circles (cowork cover exact)
+    # Decorative circles (cowork cover exact: 7.40,-1.60 r2.60 and 8.60,3.00 r1.50)
     if is_dark:
-        _oval(slide, I(10.00), I(-0.80), I(2.60), T["primary"])
+        _oval(slide, I(10.00), I(1.00), I(2.60), T["primary"])
         _oval(slide, I(10.10), I(4.50), I(1.50), T["primary_dk"])
 
-    # Logo: large circle bg + icon (cowork style)
+    # Logo: rounded-rect (cowork: 0.70,0.65 0.90x0.90)
     logo_bg = T["primary_lt"] if is_dark else T["primary_xl"]
-    _oval(slide, I(1.15), I(1.10), I(0.65), logo_bg)
+    _rrect(slide, I(0.70), I(0.65), I(0.90), I(0.90), logo_bg, radius=0.15)
     _add_icon(slide, I(0.92), I(0.87), I(0.46), T["primary_dk"])
 
     cat = _style(s, "category", "")
@@ -361,9 +361,8 @@ def make_cover(prs, s, idx, total):
     if s.get("bullets"):
         # Vertical bar + bullet text (cowork style)
         bar_color = WHITE if is_dark else T["primary_dk"]
-        _rect(slide, I(0.70), I(4.55), Pt(3), I(0.55), bar_color)
-        # First bullet bold, rest normal
-        s_tf = _shape(slide, MSO_SHAPE.RECTANGLE, I(0.90), I(4.55), I(6.0), I(0.55))
+        _rect(slide, I(0.70), I(4.55), Pt(3), I(0.40), bar_color)
+        s_tf = _shape(slide, MSO_SHAPE.RECTANGLE, I(0.90), I(4.55), I(6.0), I(0.40))
         s_tf.fill.background(); s_tf.line.fill.background()
         tf = s_tf.text_frame; tf.word_wrap = True
         tf.margin_left = Pt(2); tf.margin_right = Pt(2)
@@ -380,7 +379,7 @@ def make_cover(prs, s, idx, total):
             r.font.color.rgb = WHITE if is_dark else T["primary_dk"]
 
     if s.get("footer"):
-        _tb(slide, s["footer"], I(0.65), SH - I(0.47), I(7.0), I(0.30),
+        _tb(slide, s["footer"], I(0.65), SH - I(0.48), I(7.0), I(0.30),
             sz=10, color=T["primary_lt"] if is_dark else MID)
 
 
@@ -409,9 +408,9 @@ def make_bullets(prs, s, idx, total):
     bot = SH - I(0.50)
 
     if b_items and n <= 3:
-        # 3-column layout with WHITE cards (cowork slide 2 exact)
+        # 3-column layout with WHITE cards (cowork slide 2 exact: 2.80" cards, 0.30" gap)
         gap = I(0.30)
-        col_w = (CW - gap * (n - 1)) // n
+        col_w = I(2.80)
         card_top = top + I(0.15)
         card_h = I(2.35)
         icon_circle = I(0.65)
@@ -435,16 +434,15 @@ def make_bullets(prs, s, idx, total):
         icon_circle = I(0.62)
         icon_sz = I(0.30)
         list_top = top + I(0.25)
-        avail = bot - list_top - I(0.10)
-        row_h = min(avail // n, I(0.92))
+        row_h = I(0.92)
         tx = LM + I(0.80)
         content_w = I(4.60)
         for i, it in enumerate(b_items[:6]):
             ac = accents[i % len(accents)]
             y = list_top + i * row_h
             if y + I(0.60) > bot: break
-            _oval(slide, LM + icon_circle//2, y + I(0.06) + icon_circle//2, icon_circle//2, ac)
-            _add_icon(slide, LM + (icon_circle - icon_sz)//2, y + I(0.06) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
+            _oval(slide, LM + icon_circle//2, y + icon_circle//2, icon_circle//2, ac)
+            _add_icon(slide, LM + (icon_circle - icon_sz)//2, y + (icon_circle - icon_sz)//2, icon_sz, WHITE)
             _tb(slide, it.get("title", ""), tx, y - I(0.04), I(4.50), I(0.35),
                 sz=14, bold=True, color=T["primary_dk"], font="Trebuchet MS")
             if it.get("desc"):
@@ -529,17 +527,17 @@ def make_stats(prs, s, idx, total):
         # Standard stats layout
         if n <= 2:
             card_w = I(2.90)
-            card_h = I(1.35)
+            card_h = I(1.50)
             for i, item in enumerate(items[:n]):
                 ac = accents[i % len(accents)]
                 cy = top_y + i * (card_h + I(0.15))
                 _rrect(slide, LM, cy, card_w, card_h, T["primary_dk"], radius=0.05)
                 _rect(slide, LM, cy, I(0.09), card_h, ac)
                 _tb(slide, item.get("value", ""),
-                    LM + I(0.30), cy + I(0.10), card_w - I(0.50), I(0.75),
+                    LM + I(0.30), cy + I(0.18), card_w - I(0.50), I(0.75),
                     sz=34, bold=True, color=WHITE, font="Trebuchet MS")
                 _tb(slide, item.get("label", ""),
-                    LM + I(0.30), cy + I(0.85), card_w - I(0.50), I(0.45),
+                    LM + I(0.30), cy + I(0.95), card_w - I(0.50), I(0.50),
                     sz=11, color=T["primary_xl"])
         elif n == 3:
             # 3 stats in a row — wider cards
@@ -644,7 +642,7 @@ def make_donut(prs, s, idx, total):
 
     # Legend items on right (cowork slide 7 exact: small icon + 2-line text)
     legend_x = I(5.35)
-    legend_y_start = top_y
+    legend_y_start = top_y - I(0.05)
     item_h = I(0.82)
     icon_circle = I(0.50)
     icon_sz = I(0.26)
@@ -727,11 +725,12 @@ def make_pillars(prs, s, idx, total):
 
     n = min(len(items), 4)
     accents = _accents()
+    top_y = top_y - I(0.05)
     gap_x = I(0.30)
     gap_y = I(0.20)
     cols = 2 if n >= 4 else n
     rows = (n + cols - 1) // cols
-    col_w = (CW - gap_x * (cols - 1)) // cols
+    col_w = I(4.35)
     card_h = I(1.55)
     icon_circle = I(0.60)
     icon_sz = I(0.30)
@@ -745,7 +744,7 @@ def make_pillars(prs, s, idx, total):
         _oval(slide, x + I(0.22) + icon_circle//2, y + I(0.22) + icon_circle//2, icon_circle//2, ac)
         _add_icon(slide, x + I(0.22) + (icon_circle - icon_sz)//2, y + I(0.22) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
         tx = x + I(0.95)
-        tw = col_w - I(1.15)
+        tw = I(3.20)
         _tb(slide, item.get("title", ""), tx, y + I(0.18), tw, I(0.45),
             sz=13, bold=True, color=T["primary_dk"], font="Trebuchet MS")
         desc = " ".join(item.get("bullets", [])[:3])
@@ -787,9 +786,10 @@ def make_roles(prs, s, idx, total):
     items = s.get("items", [])
     if not items: _page_num(slide, idx, total); return
 
+    top_y = top_y + I(0.05)
     n = min(len(items), 3)
     gap = I(0.15)
-    col_w = (CW - gap * (n - 1)) // n
+    col_w = I(2.80)
     accents = _accents()
 
     card_h = I(3.35)
@@ -798,18 +798,15 @@ def make_roles(prs, s, idx, total):
         x = LM + i * (col_w + gap)
         cx = x + col_w // 2
 
-        # Card with accent top bar (cowork slide 6)
         _rrect(slide, x, top_y, col_w, card_h, WHITE, radius=0.04)
         _rect(slide, x, top_y, col_w, I(0.08), ac)
 
-        # Avatar circle
         avatar_circle = I(1.00)
         avatar_sz = I(0.54)
         _oval(slide, cx, top_y + I(0.35) + avatar_circle//2, avatar_circle//2, T["primary_xl"])
         _add_icon(slide, cx - avatar_sz//2, top_y + I(0.35) + (avatar_circle - avatar_sz)//2, avatar_sz, T["primary_dk"], avatar=True)
 
-        # Name
-        name_y = top_y + I(1.50)
+        name_y = top_y + I(1.55)
         _tb(slide, item.get("role", ""),
             x + I(0.15), name_y, col_w - I(0.30), I(0.40),
             sz=14.5, bold=True, color=T["primary_dk"], align=PP_ALIGN.CENTER, font="Trebuchet MS")
@@ -891,8 +888,8 @@ def make_summary(prs, s, idx, total):
     _bg(slide, T["cover_bg"])
 
     # Decorative circles (cowork style)
-    _oval(slide, I(-0.90), I(2.60), I(2.50), T["primary"])
-    _oval(slide, I(8.00), I(-0.70), I(1.70), T["primary_dk"])
+    _oval(slide, I(0.70), I(5.10), I(2.50), T["primary"])
+    _oval(slide, I(9.70), I(0.30), I(1.70), T["primary_dk"])
 
     # Logo centered (rounded-rect like cowork slide 8)
     _rrect(slide, SW//2 - I(0.45), I(0.55), I(0.90), I(0.90), T["primary"], radius=0.15)
