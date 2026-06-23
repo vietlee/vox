@@ -7,4 +7,5 @@ class ContentOutline < ApplicationRecord
 
   has_one_attached :pptx_file
   has_many_attached :slide_images
+  has_many_attached :edit_images
 end

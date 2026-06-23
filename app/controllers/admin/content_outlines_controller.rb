@@ -46,6 +46,12 @@ class Admin::ContentOutlinesController < Admin::BaseController
     @outline.update!(status: :pending)
     @outline.pptx_file.purge if @outline.pptx_file.attached?
     @outline.slide_images.purge if @outline.slide_images.attached?
+    @outline.edit_images.purge if @outline.edit_images.attached?
+
+    if params[:images].present?
+      params[:images].each { |img| @outline.edit_images.attach(img) }
+    end
+
     AiEditSlideJob.perform_later(@outline.id, edit_prompt)
     render json: { pending: true, poll_url: status_content_outline_path(@outline, format: :json) }
   end

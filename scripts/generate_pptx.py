@@ -673,9 +673,36 @@ LAYOUT_MAP = {
     "principles": make_principles,
 }
 
-def generate(slides_json_str, output_path, theme_name="blue"):
+def _embed_images(slide, s, image_map):
+    """Replace IMAGE:image_N bullets with actual images on the slide."""
+    if not image_map or not s.get("bullets"):
+        return
+    new_bullets = []
+    for b in s["bullets"]:
+        text = b if isinstance(b, str) else (b.get("text", "") if isinstance(b, dict) else str(b))
+        if text.strip().startswith("IMAGE:"):
+            key = text.strip().split(":", 1)[1].strip()
+            img_path = image_map.get(key)
+            if img_path and os.path.exists(img_path):
+                try:
+                    pic = slide.shapes.add_picture(img_path, I(1), I(2), I(4), I(2.5))
+                except Exception:
+                    new_bullets.append(b)
+            else:
+                new_bullets.append(b)
+        else:
+            new_bullets.append(b)
+    s["bullets"] = new_bullets
+
+
+def generate(slides_json_str, output_path, theme_name="blue", image_paths=None):
     global T
     T = _resolve_theme(theme_name)
+
+    image_map = {}
+    if image_paths:
+        for i, p in enumerate(image_paths):
+            image_map[f"image_{i+1}"] = p
 
     slides = json.loads(slides_json_str)
     total = len(slides)
@@ -685,6 +712,8 @@ def generate(slides_json_str, output_path, theme_name="blue"):
 
     for i, s in enumerate(slides):
         idx = i + 1
+        if image_map:
+            _embed_images(None, s, {})  # pre-filter bullets before layout
         layout = s.get("layout", "bullets")
         if i == 0:
             make_cover(prs, s, idx, total)
@@ -694,15 +723,36 @@ def generate(slides_json_str, output_path, theme_name="blue"):
             LAYOUT_MAP[layout](prs, s, idx, total)
         else:
             make_bullets(prs, s, idx, total)
+        if image_map:
+            _embed_slide_images(prs.slides[-1], s, image_map)
         if s.get("note"):
             prs.slides[-1].notes_slide.notes_text_frame.text = s["note"]
 
     prs.save(output_path)
     print(f"OK:{output_path}")
 
+
+def _embed_slide_images(slide, s, image_map):
+    """Add images referenced in original bullets to the slide."""
+    if not s.get("_images"):
+        return
+    for img_key in s["_images"]:
+        img_path = image_map.get(img_key)
+        if img_path and os.path.exists(img_path):
+            try:
+                slide.shapes.add_picture(img_path, I(5), I(1.5), I(3.5), I(3))
+            except Exception:
+                pass
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: generate_pptx.py <slides_json> <output_path> [theme]", file=sys.stderr)
+        print("Usage: generate_pptx.py <slides_json> <output_path> [theme] [--images path1,path2]", file=sys.stderr)
         sys.exit(1)
     theme = sys.argv[3] if len(sys.argv) > 3 else "blue"
-    generate(sys.argv[1], sys.argv[2], theme)
+    img_paths = None
+    if "--images" in sys.argv:
+        idx = sys.argv.index("--images")
+        if idx + 1 < len(sys.argv):
+            img_paths = [p for p in sys.argv[idx + 1].split(",") if p]
+    generate(sys.argv[1], sys.argv[2], theme, img_paths)

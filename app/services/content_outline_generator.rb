@@ -38,11 +38,33 @@ class ContentOutlineGenerator
     current_slides = JSON.parse(@outline.slide_json || "[]")
     svc = ClaudeService.for_feature("quiz_generate", timeout: 180)
 
+    image_info = ""
+    image_paths = []
+    if @outline.edit_images.attached?
+      Dir.mktmpdir do |dir|
+        @outline.edit_images.each_with_index do |img, i|
+          path = File.join(dir, img.filename.to_s)
+          File.open(path, "wb") { |f| img.download { |chunk| f.write(chunk) } }
+          image_paths << path
+          image_info += "  - image_#{i + 1}: #{img.filename} (dùng IMAGE:image_#{i + 1} trong bullet để chèn)\n"
+        end
+
+        _do_ai_edit(svc, current_slides, edit_prompt, image_info, image_paths)
+        return
+      end
+    end
+
+    _do_ai_edit(svc, current_slides, edit_prompt, image_info, image_paths)
+  end
+
+  def _do_ai_edit(svc, current_slides, edit_prompt, image_info, image_paths)
+    image_note = image_info.present? ? "\n\nẢnh đính kèm:\n#{image_info}\nĐể chèn ảnh vào slide, thêm bullet có nội dung: IMAGE:image_1 (hoặc image_2, ...)\n" : ""
+
     prompt = <<~PROMPT
       Đây là nội dung slide hiện tại (JSON):
       #{current_slides.to_json}
 
-      Yêu cầu chỉnh sửa từ người dùng: #{edit_prompt}
+      Yêu cầu chỉnh sửa từ người dùng: #{edit_prompt}#{image_note}
 
       Hãy chỉnh sửa slide theo yêu cầu. Giữ nguyên format JSON giống hệt cấu trúc cũ.
       Trả về slide đã chỉnh sửa theo đúng format:
@@ -53,7 +75,7 @@ class ContentOutlineGenerator
     result = svc.call(system_prompt: slide_system, user_prompt: prompt, max_tokens: 8000)
     slides = parse_slides(result)
     html   = slides_to_html(slides)
-    pptx_path = generate_pptx(slides)
+    pptx_path = generate_pptx(slides, image_paths: image_paths)
     @outline.update!(content: html, slide_json: slides.to_json, status: :done)
     if pptx_path
       generate_slide_images(pptx_path)
@@ -313,16 +335,16 @@ class ContentOutlineGenerator
 
   # ── PPTX generation ─────────────────────────────────────────────────────────
 
-  def generate_pptx(slides)
+  def generate_pptx(slides, image_paths: [])
     return nil if slides.empty?
     return nil unless File.exist?(PPTX_SCRIPT)
 
     out_path = Rails.root.join("tmp", "slide_#{@outline.id}_#{Time.now.to_i}.pptx").to_s
     theme = @slide_theme || "blue"
     require "open3"
-    stdout, stderr, status = Open3.capture3(
-      "python3", PPTX_SCRIPT, slides.to_json, out_path, theme
-    )
+    args = ["python3", PPTX_SCRIPT, slides.to_json, out_path, theme]
+    args += ["--images", image_paths.compact.join(",")] if image_paths.compact.any?
+    stdout, stderr, status = Open3.capture3(*args)
     Rails.logger.error "[PPTX] #{stderr}" if stderr.present?
     status.success? && File.exist?(out_path) ? out_path : nil
   rescue => e
