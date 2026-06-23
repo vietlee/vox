@@ -39,7 +39,10 @@ class Admin::ContentOutlinesController < Admin::BaseController
     @outline.pptx_file.purge if @outline.pptx_file.attached?
     @outline.slide_images.purge if @outline.slide_images.attached?
     GenerateContentOutlineJob.perform_later(@outline.id)
-    redirect_to content_outline_path(@outline)
+    respond_to do |format|
+      format.json { render json: { pending: true, poll_url: status_content_outline_path(@outline, format: :json) } }
+      format.html { redirect_to content_outline_path(@outline) }
+    end
   end
 
   def ai_edit
