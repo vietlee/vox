@@ -130,7 +130,20 @@ class ContentOutlineGenerator
   # ── AI prompts ──────────────────────────────────────────────────────────────
 
   def slide_system
-    "Bạn là chuyên gia thiết kế slide thuyết trình doanh nghiệp cấp cao (như McKinsey, BCG). Trả lời bằng tiếng Việt. Chỉ xuất đúng format, không thêm gì khác.\n\nQUY TẮC VÀNG:\n1. COVER: TITLE chỉ chứa TÊN THƯƠNG HIỆU/DỰ ÁN (1-3 từ). Mô tả chi tiết đặt vào SUBTITLE.\n2. MỖI BULLET TỐI ĐA 60 KÝ TỰ — ngắn gọn, súc tích, có số liệu.\n3. TITLE content slide: 1 câu ngắn truyền tải insight chính (tối đa 50 ký tự).\n4. Mỗi slide PHẢI có STYLE: category=... (nhãn 2-4 từ phía trên title).\n5. KHÔNG lặp layout — xen kẽ: stats, pillars, two-col, timeline, roles."
+    <<~SYS.squish
+      Bạn là chuyên gia thiết kế slide thuyết trình doanh nghiệp cấp cao (McKinsey, BCG).
+      Trả lời bằng tiếng Việt. Chỉ xuất đúng format, không thêm gì khác.
+
+      QUY TẮC VÀNG:
+      1. COVER: TITLE = TÊN DỰ ÁN (1-3 từ). Mô tả đặt vào SUBTITLE. KHÔNG nhồi nhét số liệu vào cover.
+      2. NỘI DUNG PHẢI SÂU VÀ CỤ THỂ — mỗi bullet/item phải có thông tin thực sự hữu ích, có ngữ cảnh, có số liệu kèm nguồn khi có thể.
+      3. TITLE content slide: 1 câu insight (tối đa 55 ký tự), viết thường tự nhiên.
+      4. Mỗi slide PHẢI có STYLE: category=... (nhãn 2-4 từ phía trên title).
+      5. KHÔNG lặp layout — xen kẽ đa dạng: stats, pillars, two-col, timeline, roles, chart.
+      6. TUYỆT ĐỐI KHÔNG dùng emoji (🌱💰📈❌). Slide chuyên nghiệp không có emoji.
+      7. FOOTER dùng cho nguồn dữ liệu (VD: "Nguồn: Nielsen Vietnam 2023") hoặc disclaimer.
+      8. Nội dung phải tự nhiên, có chiều sâu — KHÔNG viết kiểu liệt kê khô khan.
+    SYS
   end
 
   def slide_user
@@ -169,10 +182,12 @@ class ContentOutlineGenerator
 
       LAYOUT: bullets
         Khi nào dùng: 3–5 điểm chính, mỗi điểm độc lập
-        Format: mỗi dòng "- nội dung CỤ THỂ, có số liệu/ví dụ"
+        Format: mỗi dòng "- Tiêu đề ngắn gọn :: Mô tả chi tiết 1-2 câu giải thích cụ thể"
+        Nếu không có "::" → chỉ hiển thị title ngắn (dùng khi mỗi bullet đã rõ ràng)
         Ví dụ:
-        - 87% học sinh cải thiện điểm sau 4 tuần áp dụng phương pháp mới
-        - Giảm thời gian chuẩn bị bài 40% nhờ AI-assisted planning
+        - Khó tìm quán ăn uy tín :: Người dùng phải lọc thủ công giữa hàng nghìn quán không liên quan trên các app hiện có.
+        - Thiếu bộ lọc chuyên biệt :: Không có công cụ phân loại theo phong cách ăn hay nguy cơ lẫn nguyên liệu.
+        - Quán nhỏ thiếu kênh số :: Nhiều quán ăn gia đình chưa có kênh tiếp cận khách hàng trực tuyến.
 
       LAYOUT: stats
         Khi nào dùng: 3–4 con số/chỉ số quan trọng (KPI, kết quả đo lường được)
@@ -289,31 +304,32 @@ class ContentOutlineGenerator
       TIÊU CHUẨN CHẤT LƯỢNG (RẤT QUAN TRỌNG — PHẢI TUÂN THỦ):
 
       ═══ QUY TẮC COVER (slide đầu tiên) ═══
-      - TITLE = TÊN THƯƠNG HIỆU/DỰ ÁN (1–3 từ, ví dụ: "GreenBite", "EduTech Pro")
-      - SUBTITLE = Mô tả 1 câu dài hơn (ví dụ: "Ứng dụng đặt đồ ăn thuần chay đầu tiên tại Việt Nam")
-      - Bullets = thông tin bổ sung ngắn (loại vốn, thời gian, v.v.)
+      - TITLE = TÊN DỰ ÁN (1–3 từ, ví dụ: "GreenBite")
+      - SUBTITLE = Mô tả 1 câu (ví dụ: "Ứng dụng đặt đồ ăn thuần chay đầu tiên dành riêng cho người Việt")
+      - Bullets = 2-3 thông tin ngắn gọn (loại vốn, thời gian). KHÔNG nhồi nhét số liệu.
       - FOOTER = thông tin liên hệ
+      - TUYỆT ĐỐI KHÔNG dùng emoji trên cover
 
       ═══ QUY TẮC NỘI DUNG ═══
-      - MỖI BULLET TỐI ĐA 60 KÝ TỰ — ngắn, đọc 1 giây hiểu ngay
-      - KHÔNG viết đoạn văn dài trong bullet — chỉ cần ý chính + 1 con số
-      - VD tốt: "Giảm 40% thời gian xử lý đơn hàng"
-      - VD xấu: "Giúp giảm thời gian xử lý đơn hàng xuống còn 40% so với trước đây nhờ tự động hóa quy trình"
-      - TITLE content slide: tối đa 50 ký tự, truyền tải insight chính
-      - VD tốt: "Bốn nguồn doanh thu, lợi nhuận đa tầng"
-      - VD xấu: "Mô hình doanh thu đa tầng — không phụ thuộc vào một nguồn thu duy nhất"
+      - Bullets dùng format "Tiêu đề :: Mô tả chi tiết" — phần mô tả 1-2 câu giải thích cụ thể, có ngữ cảnh
+      - VD tốt: "Quán ăn được kiểm định 100% :: Mọi đối tác đều được xác minh thuần chay trước khi lên ứng dụng."
+      - VD xấu: "Kiểm định 100% quán ăn" (quá ngắn, thiếu chi tiết)
+      - Số liệu phải CỤ THỂ và có nguồn — ví dụ: "$58.85M → $175.41M (CAGR 11.54%, IMARC Group)"
+      - KHÔNG dùng emoji bất kỳ đâu trong nội dung
+      - TITLE content slide: tối đa 55 ký tự, truyền tải insight chính, viết thường tự nhiên
 
       ═══ QUY TẮC LAYOUT ═══
       - KHÔNG dùng bullets cho 3 slide liên tiếp — xen kẽ đa dạng
       - Mỗi item trong pillars/roles: ít nhất 3 bullets sau "::"
       - STYLE: category=... BẮT BUỘC cho mọi content slide
-      - Dùng FOOTER cho nguồn dữ liệu, disclaimer
+      - Dùng FOOTER cho nguồn dữ liệu (VD: "Nguồn: Nielsen Vietnam 2023, Statista")
+      - Dùng FOOTER cho disclaimer khi cần (VD: "* Thông tin minh hoạ — thay bằng dữ liệu thật trước khi gửi")
       - Slide cuối nên là summary/CTA ngắn gọn
 
       ═══ QUY TẮC SUMMARY (slide cuối) ═══
-      - TITLE = câu call-to-action mạnh (ví dụ: "Cùng GreenBite dẫn đầu làn sóng thuần chay")
-      - Bullet đầu tiên = lời kêu gọi chính (sẽ hiển thị dạng nút bấm)
-      - Các bullet sau = thông tin liên hệ
+      - TITLE = câu call-to-action mạnh, KHÔNG dùng emoji (ví dụ: "Cùng GreenBite dẫn đầu làn sóng thuần chay tại Việt Nam")
+      - Bullet đầu tiên = lời kêu gọi ngắn (sẽ hiển thị dạng nút bấm). KHÔNG emoji.
+      - Các bullet sau = thông tin liên hệ (email, website). KHÔNG emoji.
     PROMPT
   end
 
@@ -422,7 +438,14 @@ class ContentOutlineGenerator
         end
         slide["bullets"] = lines
       else
-        slide["bullets"] = lines
+        has_desc = lines.any? { |l| l.include?("::") }
+        if has_desc
+          slide["bullet_items"] = lines.map do |l|
+            parts = l.split("::", 2).map(&:strip)
+            { "title" => parts[0], "desc" => parts[1] || "" }
+          end
+        end
+        slide["bullets"] = lines.map { |l| l.split("::", 2).first.strip }
       end
 
       slide

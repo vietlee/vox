@@ -419,6 +419,7 @@ def make_section(prs, s, idx, total):
 def make_bullets(prs, s, idx, total):
     slide, top = _setup_content_slide(prs, s)
     bullets = s.get("bullets", [])
+    b_items = s.get("bullet_items", [])
     if not bullets: _page_num(slide, idx, total); return
 
     n = len(bullets)
@@ -426,10 +427,44 @@ def make_bullets(prs, s, idx, total):
     avail = bot - top
     accents = _accents()
     gap = I(0.15)
+    has_desc = len(b_items) > 0
 
-    if n <= 3:
+    if has_desc and n <= 4:
+        if n <= 2:
+            col_w = (CW - gap * (n - 1)) // n
+            max_desc_h = max(_est_text_height(it.get("desc", ""), (col_w - I(1.0)) / 914400, 10) for it in b_items)
+            card_h = min(I(max(max_desc_h + 1.0, 1.60)), avail)
+            for i, it in enumerate(b_items[:n]):
+                ac = accents[i % len(accents)]
+                x = LM + i * (col_w + gap)
+                _rrect(slide, x, top, col_w, card_h, T["card_bg"], CARD_BORDER)
+                ic = I(0.62)
+                _icon_circle_in_card(slide, x + I(0.15), top + I(0.18), ic, ac)
+                _tb(slide, it.get("title", ""), x + I(0.15), top + I(0.90), col_w - I(0.30), I(0.30),
+                    sz=13, bold=True, color=T["primary_dk"])
+                if it.get("desc"):
+                    _tb(slide, it["desc"], x + I(0.15), top + I(1.22), col_w - I(0.30), card_h - I(1.35),
+                        sz=10, color=DARK)
+        else:
+            max_desc_h = max(_est_text_height(it.get("desc", ""), (CW - I(1.0)) / 914400, 10) for it in b_items)
+            card_h = I(min(max(0.50 + max_desc_h, 0.80), 1.10))
+            card_gap = I(0.10)
+            for i, it in enumerate(b_items[:n]):
+                ac = accents[i % len(accents)]
+                y = top + i * (card_h + card_gap)
+                if y + card_h > bot: break
+                _rrect(slide, LM, y, CW, card_h, T["card_bg"], CARD_BORDER)
+                ic = I(0.55)
+                _icon_circle_in_card(slide, LM + I(0.15), y + (card_h - ic) // 2, ic, ac)
+                tx = LM + I(0.85)
+                tw = CW - I(1.0)
+                _tb(slide, it.get("title", ""), tx, y + I(0.08), tw, I(0.28),
+                    sz=13, bold=True, color=T["primary_dk"])
+                if it.get("desc"):
+                    _tb(slide, it["desc"], tx, y + I(0.38), tw, card_h - I(0.45),
+                        sz=10, color=DARK)
+    elif n <= 3:
         col_w = (CW - gap * (n - 1)) // n
-        # Dynamic card height based on longest text
         max_text_h = max(_est_text_height(b, (col_w - I(0.30)) / 914400, 13) for b in bullets)
         card_h = min(I(max(max_text_h + 1.2, 2.0)), avail)
         for i, b in enumerate(bullets):
@@ -456,7 +491,6 @@ def make_bullets(prs, s, idx, total):
                 sz=13, bold=True, color=T["primary_dk"])
     else:
         card_gap = I(0.10)
-        cols = 2
         col_w = (CW - gap) // 2
         rows = (n + 1) // 2
         card_h = min(I(0.78), (avail - card_gap * (rows - 1)) // rows)
