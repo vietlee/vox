@@ -193,14 +193,22 @@ class ContentOutlineGenerator
         - Quán nhỏ thiếu kênh số :: Nhiều quán ăn chay gia đình chưa có kênh tiếp cận khách hàng trực tuyến hiệu quả.
 
       LAYOUT: stats
-        Khi nào dùng: 2–3 con số/chỉ số quan trọng nhất (KPI, kết quả đo lường được). TỐI ĐA 3 items.
-        Format: mỗi dòng "- GIÁ_TRỊ :: MÔ_TẢ_NGẮN (tối đa 8 từ)"
-        GIÁ TRỊ phải NGẮN (tối đa 6 ký tự): "87%", "3.2x", "50K+", "200K". KHÔNG viết dài như "14.000.000".
-        MÔ TẢ phải ngắn gọn: tối đa 8 từ, KHÔNG viết cả câu dài.
+        Khi nào dùng: 2 con số KPI quan trọng + biểu đồ tăng trưởng (stats+chart combo).
+        TỐI ĐA 2 items stats. GIÁ TRỊ phải NGẮN (tối đa 6 ký tự): "50K+", "200K", "87%".
+        MÔ TẢ phải ngắn: tối đa 8 từ.
+        KẾT HỢP CHART: Thêm CHART_ITEMS dạng "- SỐ :: NHÃN" (tối đa 6 điểm) và CHART_LABEL.
+        Stats hiển thị bên TRÁI (dark cards), chart bên PHẢI.
         Ví dụ:
-        - 87% :: Tỷ lệ đạt mục tiêu
-        - 3.2x :: Cải thiện điểm trung bình
-        - 12 tuần :: Thời gian hoàn thành
+        - 50K+ :: Người dùng hoạt động hàng tháng (MAU)
+        - 200K :: USD/tháng · Tổng giá trị giao dịch (GMV)
+        CHART_LABEL: Người dùng hoạt động hàng tháng (MAU, nghìn)
+        CHART_ITEMS:
+        - 8 :: T1
+        - 16 :: T2
+        - 24 :: T3
+        - 33 :: T4
+        - 42 :: T5
+        - 50 :: T6
 
       LAYOUT: chart
         Khi nào dùng: so sánh theo thời gian, tiến độ tăng trưởng
@@ -288,16 +296,16 @@ class ContentOutlineGenerator
       Chọn layout PHÙ HỢP NHẤT với nội dung của từng slide — không có thứ tự cố định.
       Hãy để nội dung quyết định layout:
       - Vấn đề thị trường, giải pháp, tính năng → bullets (3-4 items với ::)
-      - Có nhiều số liệu, KPI → stats (tối đa 2-3 items)
-      - Có phân bổ ngân sách, tỷ lệ % → donut
-      - Có mô hình kinh doanh, nguồn thu → bullets (4 items với ::, sẽ hiện dạng 2x2 cards nếu không có desc dài)
-      - Có nhiều vai trò, bộ phận → roles
-      - Có mục tiêu, key results → okr
-      - Có quy trình tuần tự → timeline
-      - Có 2 phía so sánh → two-col
+      - Tăng trưởng, KPI → stats (2 stats + chart_items combo)
+      - Phân bổ ngân sách, tỷ lệ % → donut
+      - Mô hình kinh doanh, nguồn thu → pillars (3-4 trụ cột, mỗi trụ 2-3 bullets)
+      - Nhiều vai trò, bộ phận → roles
+      - Mục tiêu, key results → okr
+      - Quy trình tuần tự → timeline
+      - 2 phía so sánh → two-col
       - Slide mở đầu overview → agenda
       - Giá trị, nguyên tắc → principles
-      - KHÔNG dùng pillars cho giải pháp/tính năng — dùng bullets với :: thay vào
+      - KHÔNG dùng two-col cho mô hình kinh doanh — dùng pillars thay vào
 
       ═══════════════════════════════════════════
       TÙY CHỌN STYLE (dòng STYLE: tùy chọn, dùng dấu phẩy ngăn cách):
@@ -395,11 +403,23 @@ class ContentOutlineGenerator
 
       case layout
       when "stats"
-        slide["items"] = lines.map do |l|
+        chart_label_line = body[/CHART_LABEL:\s*(.+)/, 1]&.strip
+        chart_section = body[/CHART_ITEMS:\n(.*?)(?:\nSTYLE:|\nFOOTER:|\nCHART_LABEL:|\z)/m, 1]
+        stat_body = body.sub(/CHART_LABEL:.*$/m, "").sub(/CHART_ITEMS:\n.*\z/m, "").strip
+        stat_lines = stat_body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
+        slide["items"] = stat_lines.map do |l|
           parts = l.split("::", 2).map(&:strip)
           { "value" => parts[0], "label" => parts[1] || "" }
         end
-        slide["bullets"] = lines
+        if chart_section.present?
+          chart_lines = chart_section.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
+          slide["chart_items"] = chart_lines.map do |l|
+            parts = l.split("::", 2).map(&:strip)
+            { "value" => parts[0].to_i, "label" => parts[1] || "" }
+          end
+          slide["chart_label"] = chart_label_line || ""
+        end
+        slide["bullets"] = stat_lines
       when "chart"
         slide["items"] = lines.map do |l|
           parts = l.split("::", 2).map(&:strip)
