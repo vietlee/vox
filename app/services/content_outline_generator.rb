@@ -103,14 +103,14 @@ class ContentOutlineGenerator
       LAYOUT: ...
       BODY:
       - ...
-      STYLE: key=value, key=value (tùy chọn: decorations, separator, header, bg, card_style, subtitle)
+      STYLE: key=value, key=value (tùy chọn: category, decorations, separator, bg, card_style)
       FOOTER: ... (tùy chọn)
       NOTE: ...
       ---END---
 
       QUAN TRỌNG:
       - Nếu người dùng yêu cầu thay đổi THIẾT KẾ, dùng dòng STYLE.
-      - Mỗi content slide NÊN có SUBTITLE mô tả ngắn.
+      - Mỗi content slide NÊN có SUBTITLE và STYLE: category=... (nhãn ngắn).
     PROMPT
 
     result = svc.call(system_prompt: slide_system, user_prompt: prompt, max_tokens: 8000)
@@ -275,17 +275,16 @@ class ContentOutlineGenerator
       Format: STYLE: key1=value1, key2=value2
 
       Các thuộc tính:
+      - category=TÊN_NHÓM       → Nhãn nhỏ phía trên title (VD: "Vấn đề", "Giải pháp", "Tăng trưởng"). BẮT BUỘC cho mọi content slide.
       - decorations=true|false  → Hiện/ẩn hình trang trí (vòng tròn, đường kẻ). Mặc định: true
       - separator=true|false    → Hiện/ẩn đường kẻ phân cách. Mặc định: false
-      - header=true|false       → Hiện/ẩn thanh header trên content slide. Mặc định: true
       - bg=dark|light           → Nền tối (cover_bg) hoặc sáng (content_bg). Mặc định: tùy layout
-      - subtitle=join|lines     → Cover: gộp bullets thành 1 dòng (join) hoặc nhiều dòng (lines). Mặc định: join
       - card_style=icon|plain   → Bullets: có icon tròn (icon) hoặc không (plain). Mặc định: icon
 
       Ví dụ:
-      STYLE: decorations=false, separator=false
-      STYLE: bg=dark, card_style=plain
-      STYLE: decorations=true, subtitle=lines
+      STYLE: category=Vấn đề thị trường
+      STYLE: category=Giải pháp, decorations=false
+      STYLE: category=Đội ngũ, bg=light
 
       TIÊU CHUẨN CHẤT LƯỢNG (QUAN TRỌNG):
       - Nội dung PHẢI CỤ THỂ: có con số, %, tỉ lệ, ví dụ thực tế (không chung chung)
@@ -294,7 +293,8 @@ class ContentOutlineGenerator
       - NOTE phải là câu hỏi tương tác hay insight bổ sung thực sự có giá trị
       - Slide đầu tiên nên là cover/giới thiệu chủ đề, slide cuối nên là tóm tắt hoặc CTA
       - SUBTITLE rất quan trọng — mỗi content slide NÊN có SUBTITLE mô tả ngắn (1 câu italic giải thích bối cảnh/mục đích của slide)
-      - TITLE nên IN HOA, dùng — để phân cách (ví dụ: "TỔNG QUAN — TÌNH HÌNH HIỆN TẠI")
+      - STYLE: category=... BẮT BUỘC cho mỗi content slide — nhãn ngắn 2-4 từ phía trên title (VD: "Vấn đề thị trường", "Giải pháp", "Tăng trưởng", "Đội ngũ", "Kế hoạch")
+      - TITLE nên viết thường tự nhiên, đủ dài để truyền tải ý chính (VD: "Người ăn chay đang bị bỏ quên trên thị trường")
       - Nội dung mỗi bullet nên đủ dài, CỤ THỂ, không quá ngắn (tránh bullet chỉ 2-3 từ)
       - Dùng FOOTER cho disclaimer, ghi chú nguồn, hoặc footnote khi cần
     PROMPT
