@@ -226,11 +226,12 @@ def _bg(slide, color):
 # ── Shared components ──────────────────────────────────────────────────
 
 def _header_bar(slide, title, subtitle=""):
-    _rect(slide, 0, 0, SW, I(0.85), T["primary_dk"])
-    _tb(slide, title, I(0.45), I(0.12), I(8), I(0.42),
-        sz=20, bold=True, color=WHITE, font="Segoe UI Black")
+    bar_h = I(1.05) if subtitle else I(0.78)
+    _rect(slide, 0, 0, SW, bar_h, T["primary_dk"])
+    _tb(slide, title, I(0.4), I(0.1), I(8.5), I(0.38),
+        sz=16, bold=True, color=WHITE, font="Segoe UI Semibold")
     if subtitle:
-        _tb(slide, subtitle, I(0.45), I(0.52), I(8), I(0.28),
+        _tb(slide, subtitle, I(0.4), I(0.52), I(8.5), I(0.45),
             sz=10, color=T["primary_lt"])
 
 def _slide_subtitle(slide, text, y):
@@ -288,23 +289,28 @@ def make_cover(prs, s, idx, total):
         _oval(slide, I(-0.6), SH - I(1.0), I(1.0), T["primary_lt"])
 
     title_color = WHITE if is_dark else DARK
-    _tb(slide, s["title"], I(0.7), I(0.8), I(7.5), I(1.5),
-        sz=36, bold=True, color=title_color, font="Segoe UI Black")
+    _tb(slide, s["title"], I(0.65), I(0.7), I(7.5), I(1.2),
+        sz=30, bold=True, color=title_color, font="Segoe UI Black")
 
     if _style(s, "decorations", True):
-        _rect(slide, I(0.7), I(2.5), I(2.5), Pt(3), T["primary_lt"])
+        _rect(slide, I(0.65), I(2.1), I(2.2), Pt(3), T["primary_lt"])
 
     if _style(s, "separator", False):
         _rect(slide, 0, SH - I(0.5), SW, Pt(1), T["primary_lt"])
 
+    sub_color = T["primary_lt"] if is_dark else MID
+    if s.get("subtitle"):
+        _tb(slide, s["subtitle"], I(0.65), I(2.25), I(7.5), I(0.35),
+            sz=12, color=sub_color)
+
     if s.get("bullets"):
-        sub_color = T["primary_lt"] if is_dark else MID
+        sub_top = I(2.7) if s.get("subtitle") else I(2.25)
         if _style(s, "subtitle", "join") == "lines":
-            for i, b in enumerate(s["bullets"][:5]):
-                _tb(slide, b, I(0.7), I(2.8) + i * I(0.28), I(7.5), I(0.28), sz=12, color=sub_color)
+            for i, b in enumerate(s["bullets"][:4]):
+                _tb(slide, b, I(0.65), sub_top + i * I(0.26), I(7.5), I(0.26), sz=10, color=sub_color)
         else:
             sub = " · ".join(s["bullets"][:3])
-            _tb(slide, sub, I(0.7), I(2.8), I(7.5), I(0.6), sz=12, color=sub_color)
+            _tb(slide, sub, I(0.65), sub_top, I(7.5), I(0.5), sz=10, color=sub_color)
 
 
 
@@ -382,12 +388,12 @@ def _setup_content_slide(prs, s):
     subtitle = s.get("subtitle", "")
     if _style(s, "header", True):
         _header_bar(slide, s["title"], subtitle)
-        top = I(1.0)
+        top = I(1.15) if subtitle else I(0.88)
     else:
         tc = WHITE if is_dark else DARK
-        _tb(slide, s["title"], I(0.45), I(0.18), SW - I(0.9), I(0.45),
-            sz=22, bold=True, color=tc, font="Segoe UI Black")
-        top = I(0.7)
+        _tb(slide, s["title"], I(0.4), I(0.15), SW - I(0.8), I(0.4),
+            sz=17, bold=True, color=tc, font="Segoe UI Semibold")
+        top = I(0.6)
         if subtitle:
             _slide_subtitle(slide, subtitle, top)
             top += I(0.35)
@@ -402,11 +408,11 @@ def make_stats(prs, s, idx, total):
     if not items: return
 
     n = min(len(items), 4)
-    gap = I(0.18)
+    gap = I(0.15)
     card_w = (SW - I(0.9) - gap * (n - 1)) // n
     sx = I(0.45)
     cy = top_y + I(0.05)
-    card_h = SH - cy - I(0.7)
+    card_h = SH - cy - I(0.65)
     accents = _accents()
 
     for i, item in enumerate(items[:n]):
@@ -416,13 +422,14 @@ def make_stats(prs, s, idx, total):
         _rrect(slide, x, cy, card_w, card_h, T["primary_dk"], radius=0.05)
         _rect(slide, x, cy, card_w, I(0.04), ac)
 
+        val_h = I(0.5)
         _tb(slide, item.get("value", ""),
-            x + I(0.15), cy + I(0.3), card_w - I(0.3), I(0.7),
-            sz=36, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Segoe UI Black")
+            x + I(0.12), cy + I(0.2), card_w - I(0.24), val_h,
+            sz=28, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Segoe UI Black")
 
         _tb(slide, item.get("label", ""),
-            x + I(0.15), cy + I(1.05), card_w - I(0.3), card_h - I(1.2),
-            sz=10, color=T["primary_lt"], align=PP_ALIGN.CENTER)
+            x + I(0.12), cy + I(0.75), card_w - I(0.24), card_h - I(0.9),
+            sz=9, color=T["primary_lt"], align=PP_ALIGN.CENTER)
 
     _page_num(slide, idx, total)
 
