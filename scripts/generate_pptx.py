@@ -267,49 +267,81 @@ def _content_card(slide, x, y, w, h, idx, title, desc=""):
 # SLIDE BUILDERS
 # ═══════════════════════════════════════════════════════════════════════
 
+def _style(s, key, default=None):
+    return s.get("style", {}).get(key, default)
+
 def make_cover(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["cover_bg"])
+    bg = T["cover_bg"] if _style(s, "bg", "dark") == "dark" else T["content_bg"]
+    _bg(slide, bg)
 
-    # Decorative circles
-    _oval(slide, SW - I(1.5), I(0.3), I(2.2), T["primary"])
-    _oval(slide, SW + I(0.3), I(1.5), I(1.5), T["primary_lt"])
-    _oval(slide, I(-0.5), SH - I(0.8), I(0.8), T["primary_lt"])
+    if _style(s, "decorations", True):
+        _oval(slide, SW - I(1.5), I(0.3), I(2.2), T["primary"])
+        _oval(slide, SW + I(0.3), I(1.5), I(1.5), T["primary_lt"])
+        _oval(slide, I(-0.5), SH - I(0.8), I(0.8), T["primary_lt"])
 
-    # Title
+    title_color = WHITE if _style(s, "bg", "dark") == "dark" else DARK
     _tb(slide, s["title"], I(0.7), I(1.0), I(7), I(1.3),
-        sz=30, bold=True, color=WHITE, font="Segoe UI Black")
+        sz=30, bold=True, color=title_color, font="Segoe UI Black")
 
-    # Decorative line
-    _rect(slide, I(0.7), I(2.45), I(2.2), Pt(3), T["primary_lt"])
+    if _style(s, "decorations", True):
+        _rect(slide, I(0.7), I(2.45), I(2.2), Pt(3), T["primary_lt"])
 
-    # Subtitle
+    if _style(s, "separator", False):
+        _rect(slide, 0, SH - I(0.5), SW, Pt(1), T["primary_lt"])
+
     if s.get("bullets"):
-        sub = " · ".join(s["bullets"][:3])
-        _tb(slide, sub, I(0.7), I(2.7), I(7), I(0.5), sz=11, color=T["primary_lt"])
+        sub_color = T["primary_lt"] if _style(s, "bg", "dark") == "dark" else MID
+        if _style(s, "subtitle", "join") == "lines":
+            for i, b in enumerate(s["bullets"][:5]):
+                _tb(slide, b, I(0.7), I(2.7) + i * I(0.25), I(7), I(0.25), sz=11, color=sub_color)
+        else:
+            sub = " · ".join(s["bullets"][:3])
+            _tb(slide, sub, I(0.7), I(2.7), I(7), I(0.5), sz=11, color=sub_color)
 
 
 
 def make_section(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["cover_bg"])
-    _oval(slide, SW // 2, I(1.0), I(2.5), T["primary"])
+    if _style(s, "decorations", True):
+        _oval(slide, SW // 2, I(1.0), I(2.5), T["primary"])
     _tb(slide, s["title"], I(0.5), I(1.5), SW - I(1.0), I(1.0),
         sz=26, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Segoe UI Black")
-    _rect(slide, SW // 2 - I(1), I(2.7), I(2), Pt(3), T["primary_lt"])
+    if _style(s, "decorations", True):
+        _rect(slide, SW // 2 - I(1), I(2.7), I(2), Pt(3), T["primary_lt"])
     _page_num(slide, idx, total)
 
 
+def _plain_card(slide, x, y, w, h, idx, title, desc=""):
+    accents = _accents()
+    ac = accents[idx % len(accents)]
+    _rrect(slide, x, y, w, h, T["card_bg"], CARD_BORDER)
+    _rect(slide, x, y + I(0.04), Pt(3), h - I(0.08), ac)
+    if desc:
+        _tb(slide, title, x + I(0.15), y + I(0.06), w - I(0.25), I(0.22), sz=11, bold=True, color=DARK)
+        _tb(slide, desc, x + I(0.15), y + I(0.28), w - I(0.25), h - I(0.34), sz=9, color=MID)
+    else:
+        _tb(slide, title, x + I(0.15), y + (h - I(0.25)) // 2, w - I(0.25), I(0.25), sz=11, bold=True, color=DARK)
+
 def make_bullets(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"])
+    bg = T["cover_bg"] if _style(s, "bg") == "dark" else T["content_bg"]
+    _bg(slide, bg)
+    if _style(s, "header", True):
+        _header_bar(slide, s["title"])
+        top = I(0.9)
+    else:
+        _tb(slide, s["title"], I(0.35), I(0.15), SW - I(0.7), I(0.4),
+            sz=18, bold=True, color=WHITE if _style(s, "bg") == "dark" else DARK, font="Segoe UI Semibold")
+        top = I(0.6)
 
     bullets = s.get("bullets", [])
     if not bullets: return
 
+    use_plain = _style(s, "card_style") == "plain"
+    card_fn = _plain_card if use_plain else _content_card
     n = len(bullets)
-    top = I(0.9)
     bot = SH - I(0.4)
     avail = bot - top
 
@@ -322,20 +354,31 @@ def make_bullets(prs, s, idx, total):
             x = I(0.35) + c * (col_w + I(0.15))
             y = top + r * (card_h + I(0.06))
             if y + card_h > bot: break
-            _content_card(slide, x, y, col_w, card_h, i, b)
+            card_fn(slide, x, y, col_w, card_h, i, b)
     else:
         card_h = min(avail // n - I(0.06), I(0.8))
         for i, b in enumerate(bullets):
             y = top + i * (card_h + I(0.06))
             if y + card_h > bot: break
-            _content_card(slide, I(0.35), y, SW - I(0.7), card_h, i, b)
+            card_fn(slide, I(0.35), y, SW - I(0.7), card_h, i, b)
     _page_num(slide, idx, total)
 
 
-def make_stats(prs, s, idx, total):
+def _setup_content_slide(prs, s):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"])
+    bg = T["cover_bg"] if _style(s, "bg") == "dark" else T["content_bg"]
+    _bg(slide, bg)
+    if _style(s, "header", True):
+        _header_bar(slide, s["title"])
+        return slide, I(0.9)
+    else:
+        tc = WHITE if _style(s, "bg") == "dark" else DARK
+        _tb(slide, s["title"], I(0.35), I(0.15), SW - I(0.7), I(0.4),
+            sz=18, bold=True, color=tc, font="Segoe UI Semibold")
+        return slide, I(0.6)
+
+def make_stats(prs, s, idx, total):
+    slide, top_y = _setup_content_slide(prs, s)
 
     items = s.get("items", [])
     if not items: return
@@ -344,7 +387,7 @@ def make_stats(prs, s, idx, total):
     gap = I(0.15)
     card_w = (SW - I(0.7) - gap * (n - 1)) // n
     sx = I(0.35)
-    cy = I(0.9)
+    cy = top_y
     card_h = SH - cy - I(0.65)
     accents = _accents()
 
@@ -371,9 +414,7 @@ def make_stats(prs, s, idx, total):
 
 
 def make_chart(prs, s, idx, total):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"])
+    slide, top_y = _setup_content_slide(prs, s)
 
     items = s.get("items", [])
     if not items: return
@@ -383,10 +424,10 @@ def make_chart(prs, s, idx, total):
     accents = _accents()
 
     # Chart card
-    _rrect(slide, I(0.35), I(0.9), SW - I(0.7), SH - I(1.4), T["card_bg"], CARD_BORDER)
+    _rrect(slide, I(0.35), top_y, SW - I(0.7), SH - top_y - I(0.5), T["card_bg"], CARD_BORDER)
 
     chart_h = I(2.4)
-    chart_top = I(1.2)
+    chart_top = top_y + I(0.3)
     bar_w = I(0.85)
     gap = I(0.3)
     total_w = n * bar_w + (n - 1) * gap
@@ -410,9 +451,7 @@ def make_chart(prs, s, idx, total):
 
 
 def make_two_col(prs, s, idx, total):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"])
+    slide, top_y = _setup_content_slide(prs, s)
 
     headers = s.get("headers", ["", ""])
     col1, col2 = s.get("col1", []), s.get("col2", [])
@@ -426,12 +465,12 @@ def make_two_col(prs, s, idx, total):
         hdr_text = headers[ci] if ci < len(headers) else ""
 
         # Column header
-        _rrect(slide, sx, I(0.9), col_w, I(0.32), ac, radius=0.08)
-        _tb(slide, hdr_text, sx + I(0.1), I(0.92), col_w - I(0.2), I(0.25),
+        _rrect(slide, sx, top_y, col_w, I(0.32), ac, radius=0.08)
+        _tb(slide, hdr_text, sx + I(0.1), top_y + I(0.02), col_w - I(0.2), I(0.25),
             sz=11, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
 
         for i, item in enumerate(items[:6]):
-            y = I(1.32) + i * I(0.48)
+            y = top_y + I(0.42) + i * I(0.48)
             if y + I(0.42) > SH - I(0.4): break
             _rrect(slide, sx, y, col_w, I(0.42), T["card_bg"], CARD_BORDER)
             _add_icon(slide, sx + I(0.08), y + I(0.05), I(0.3), ac)
@@ -441,9 +480,7 @@ def make_two_col(prs, s, idx, total):
 
 
 def make_timeline(prs, s, idx, total):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"])
+    slide, top_y = _setup_content_slide(prs, s)
 
     items = s.get("items", [])
     if not items: return
@@ -452,7 +489,7 @@ def make_timeline(prs, s, idx, total):
     gap = I(0.12)
     step_w = (SW - I(0.7) - gap * (n - 1)) // n
     sx = I(0.35)
-    y = I(0.95)
+    y = top_y + I(0.05)
     card_h = SH - y - I(0.6)
     accents = _accents()
 
@@ -480,9 +517,7 @@ def make_timeline(prs, s, idx, total):
 
 
 def make_pillars(prs, s, idx, total):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"])
+    slide, top_y = _setup_content_slide(prs, s)
 
     items = s.get("items", [])
     if not items: return
@@ -491,7 +526,7 @@ def make_pillars(prs, s, idx, total):
     gap = I(0.12)
     col_w = (SW - I(0.7) - gap * (n - 1)) // n
     sx = I(0.35)
-    y = I(0.9)
+    y = top_y
     card_h = SH - y - I(0.45)
     accents = _accents()
 
@@ -500,13 +535,10 @@ def make_pillars(prs, s, idx, total):
         x = sx + i * (col_w + gap)
         _rrect(slide, x, y, col_w, card_h, T["card_bg"], CARD_BORDER)
         _rect(slide, x, y, col_w, I(0.03), ac)
-        # Icon
         _add_icon(slide, x + (col_w - I(0.38)) // 2, y + I(0.1), I(0.38), ac)
-        # Title
         _tb(slide, item.get("title", ""),
             x + I(0.06), y + I(0.55), col_w - I(0.12), I(0.28),
             sz=11, bold=True, color=ac, align=PP_ALIGN.CENTER)
-        # Bullets
         for bi, b in enumerate(item.get("bullets", [])[:6]):
             by = y + I(0.9) + bi * I(0.4)
             if by + I(0.32) > y + card_h - I(0.05): break
@@ -516,9 +548,7 @@ def make_pillars(prs, s, idx, total):
 
 
 def make_agenda(prs, s, idx, total):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"])
+    slide, top_y = _setup_content_slide(prs, s)
 
     items = s.get("items", [])
     if not items: return
@@ -529,7 +559,7 @@ def make_agenda(prs, s, idx, total):
 
     for i, item in enumerate(items[:8]):
         ac = accents[i % len(accents)]
-        y = I(0.9) + i * (row_h + gap)
+        y = top_y + i * (row_h + gap)
         if y + row_h > SH - I(0.35): break
 
         _rrect(slide, I(0.35), y, SW - I(0.7), row_h, T["card_bg"], CARD_BORDER)
@@ -546,9 +576,7 @@ def make_agenda(prs, s, idx, total):
 
 
 def make_roles(prs, s, idx, total):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"])
+    slide, top_y = _setup_content_slide(prs, s)
 
     items = s.get("items", [])
     if not items: return
@@ -557,7 +585,7 @@ def make_roles(prs, s, idx, total):
     gap = I(0.15)
     col_w = (SW - I(0.7) - gap * (n - 1)) // n
     sx = I(0.35)
-    y = I(0.9)
+    y = top_y
     card_h = SH - y - I(0.45)
     accents = _accents()
 
@@ -592,9 +620,7 @@ def make_roles(prs, s, idx, total):
 
 
 def make_okr(prs, s, idx, total):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"])
+    slide, top_y = _setup_content_slide(prs, s)
 
     items = s.get("items", [])
     if not items: return
@@ -603,7 +629,7 @@ def make_okr(prs, s, idx, total):
     row_h = I(0.62)
     for i, item in enumerate(items[:5]):
         ac = accents[i % len(accents)]
-        y = I(0.9) + i * (row_h + I(0.06))
+        y = top_y + i * (row_h + I(0.06))
         if y + row_h > SH - I(0.35): break
         _rrect(slide, I(0.35), y, SW - I(0.7), row_h, T["card_bg"], CARD_BORDER)
         _rect(slide, I(0.35), y + I(0.06), Pt(4), row_h - I(0.12), ac)
@@ -616,9 +642,7 @@ def make_okr(prs, s, idx, total):
 
 
 def make_principles(prs, s, idx, total):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"])
+    slide, top_y = _setup_content_slide(prs, s)
 
     items = s.get("items", [])
     if not items: return
@@ -631,7 +655,7 @@ def make_principles(prs, s, idx, total):
     for i, item in enumerate(items[:6]):
         c = i % cols; r = i // cols
         x = I(0.35) + c * (col_w + gap_x)
-        y = I(0.9) + r * (card_h + gap_y)
+        y = top_y + r * (card_h + gap_y)
         if y + card_h > SH - I(0.35): break
         _content_card(slide, x, y, col_w, card_h, i,
                       item.get("title", ""), item.get("desc", ""))
@@ -642,9 +666,9 @@ def make_summary(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["cover_bg"])
 
-    # Decorative
-    _oval(slide, SW // 2, I(0.6), I(2.2), T["primary"])
-    _oval(slide, I(0.3), SH - I(1.0), I(1.2), T["primary"])
+    if _style(s, "decorations", True):
+        _oval(slide, SW // 2, I(0.6), I(2.2), T["primary"])
+        _oval(slide, I(0.3), SH - I(1.0), I(1.2), T["primary"])
 
     # Title
     _tb(slide, s["title"], I(0.5), I(0.6), SW - I(1.0), I(0.9),

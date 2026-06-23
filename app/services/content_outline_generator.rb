@@ -80,7 +80,9 @@ class ContentOutlineGenerator
         (s["bullets"] || []).map { |b| "- #{b.is_a?(Hash) ? b.values.join(' :: ') : b}" }
       end
       body = lines.join("\n")
-      "---SLIDE---\nTITLE: #{s['title']}\nLAYOUT: #{layout}\nBODY:\n#{body}\nNOTE: #{s['note']}\n---END---"
+      style_str = (s["style"] || {}).map { |k, v| "#{k}=#{v}" }.join(", ")
+      style_line = style_str.present? ? "\nSTYLE: #{style_str}" : ""
+      "---SLIDE---\nTITLE: #{s['title']}\nLAYOUT: #{layout}\nBODY:\n#{body}#{style_line}\nNOTE: #{s['note']}\n---END---"
     }.join("\n\n")
 
     prompt = <<~PROMPT
@@ -98,8 +100,11 @@ class ContentOutlineGenerator
       LAYOUT: ...
       BODY:
       - ...
+      STYLE: key=value, key=value (tùy chọn — dùng để thay đổi thiết kế: decorations=true|false, separator=true|false, header=true|false, bg=dark|light, card_style=icon|plain, subtitle=join|lines)
       NOTE: ...
       ---END---
+
+      QUAN TRỌNG: Nếu người dùng yêu cầu thay đổi THIẾT KẾ (bỏ border, thêm/bỏ trang trí, đổi nền, v.v.), hãy dùng dòng STYLE để điều chỉnh.
     PROMPT
 
     result = svc.call(system_prompt: slide_system, user_prompt: prompt, max_tokens: 8000)
@@ -146,6 +151,7 @@ class ContentOutlineGenerator
       LAYOUT: [tên layout]
       BODY:
       [nội dung theo format của layout đã chọn]
+      STYLE: [tùy chọn style, xem bên dưới]
       NOTE: Ghi chú 1-2 câu cho người trình bày (câu hỏi tương tác hoặc insight bổ sung)
       ---END---
 
@@ -253,6 +259,26 @@ class ContentOutlineGenerator
       - Giá trị, nguyên tắc → principles
       - Nội dung tổng quát → bullets
 
+      ═══════════════════════════════════════════
+      TÙY CHỌN STYLE (dòng STYLE: tùy chọn, dùng dấu phẩy ngăn cách):
+      ═══════════════════════════════════════════
+
+      STYLE cho phép kiểm soát thiết kế TỪNG slide. Nếu không có dòng STYLE, dùng mặc định.
+      Format: STYLE: key1=value1, key2=value2
+
+      Các thuộc tính:
+      - decorations=true|false  → Hiện/ẩn hình trang trí (vòng tròn, đường kẻ). Mặc định: true
+      - separator=true|false    → Hiện/ẩn đường kẻ phân cách. Mặc định: false
+      - header=true|false       → Hiện/ẩn thanh header trên content slide. Mặc định: true
+      - bg=dark|light           → Nền tối (cover_bg) hoặc sáng (content_bg). Mặc định: tùy layout
+      - subtitle=join|lines     → Cover: gộp bullets thành 1 dòng (join) hoặc nhiều dòng (lines). Mặc định: join
+      - card_style=icon|plain   → Bullets: có icon tròn (icon) hoặc không (plain). Mặc định: icon
+
+      Ví dụ:
+      STYLE: decorations=false, separator=false
+      STYLE: bg=dark, card_style=plain
+      STYLE: decorations=true, subtitle=lines
+
       TIÊU CHUẨN CHẤT LƯỢNG:
       - Nội dung PHẢI CỤ THỂ: có con số, %, tỉ lệ, ví dụ thực tế (không chung chung)
       - KHÔNG dùng bullets cho 3 slide liên tiếp — phải xen kẽ layout đa dạng
@@ -282,11 +308,24 @@ class ContentOutlineGenerator
     raw.map do |s|
       title  = s[/TITLE:\s*(.+)/, 1]&.strip || "Slide"
       layout = s[/LAYOUT:\s*(\S+)/, 1]&.strip&.downcase || "bullets"
-      body   = s[/BODY:\n(.*?)(?:\nNOTE:|\z)/m, 1]&.strip || ""
+      body   = s[/BODY:\n(.*?)(?:\nSTYLE:|\nNOTE:|\z)/m, 1]&.strip || ""
+      style_raw = s[/STYLE:\s*(.+)/, 1]&.strip || ""
       note   = s[/NOTE:\s*(.+)/, 1]&.strip || ""
       lines  = body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
 
+      style = {}
+      style_raw.split(",").each do |pair|
+        k, v = pair.split("=", 2).map(&:strip)
+        next unless k.present? && v.present?
+        style[k] = case v
+                    when "true" then true
+                    when "false" then false
+                    else v
+                    end
+      end
+
       slide = { "title" => title, "layout" => layout, "note" => note }
+      slide["style"] = style if style.any?
 
       case layout
       when "stats"
