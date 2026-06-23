@@ -606,6 +606,7 @@ def make_chart(prs, s, idx, total):
 def make_donut(prs, s, idx, total):
     """Cowork slide 7: donut chart left + legend items right."""
     slide, top_y = _setup_content_slide(prs, s)
+    bot = SH - I(0.55)
     items = s.get("items", [])
     if not items: _page_num(slide, idx, total); return
 
