@@ -291,11 +291,6 @@ def make_cover(prs, s, idx, total):
     # Separator
     _rect(slide, 0, SH - I(0.5), SW, Pt(1), T["primary_lt"])
 
-    # Bottom info
-    if s.get("note"):
-        _tb(slide, s["note"], I(0.7), SH - I(0.42), I(8), I(0.3),
-            sz=9, color=T["primary_lt"])
-
 
 def make_section(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
@@ -304,16 +299,13 @@ def make_section(prs, s, idx, total):
     _tb(slide, s["title"], I(0.5), I(1.5), SW - I(1.0), I(1.0),
         sz=26, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Segoe UI Black")
     _rect(slide, SW // 2 - I(1), I(2.7), I(2), Pt(3), T["primary_lt"])
-    if s.get("note"):
-        _tb(slide, s["note"], I(1), I(3.0), SW - I(2), I(0.4),
-            sz=10, color=T["primary_lt"], align=PP_ALIGN.CENTER)
     _page_num(slide, idx, total)
 
 
 def make_bullets(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"], s.get("note", ""))
+    _header_bar(slide, s["title"])
 
     bullets = s.get("bullets", [])
     if not bullets: return
@@ -345,7 +337,7 @@ def make_bullets(prs, s, idx, total):
 def make_stats(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"], s.get("note", ""))
+    _header_bar(slide, s["title"])
 
     items = s.get("items", [])
     if not items: return
@@ -377,15 +369,13 @@ def make_stats(prs, s, idx, total):
             x + I(0.1), cy + I(0.85), card_w - I(0.2), card_h - I(1.0),
             sz=9, color=T["primary_lt"], align=PP_ALIGN.CENTER)
 
-    if s.get("note"):
-        _source_bar(slide, s["note"])
     _page_num(slide, idx, total)
 
 
 def make_chart(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"], s.get("note", ""))
+    _header_bar(slide, s["title"])
 
     items = s.get("items", [])
     if not items: return
@@ -424,7 +414,7 @@ def make_chart(prs, s, idx, total):
 def make_two_col(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"], s.get("note", ""))
+    _header_bar(slide, s["title"])
 
     headers = s.get("headers", ["", ""])
     col1, col2 = s.get("col1", []), s.get("col2", [])
@@ -455,7 +445,7 @@ def make_two_col(prs, s, idx, total):
 def make_timeline(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"], s.get("note", ""))
+    _header_bar(slide, s["title"])
 
     items = s.get("items", [])
     if not items: return
@@ -488,15 +478,13 @@ def make_timeline(prs, s, idx, total):
             x + I(0.06), y + I(0.9), step_w - I(0.12), card_h - I(1.0),
             sz=8, color=MID, align=PP_ALIGN.CENTER)
 
-    if s.get("note"):
-        _source_bar(slide, s["note"])
     _page_num(slide, idx, total)
 
 
 def make_pillars(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"], s.get("note", ""))
+    _header_bar(slide, s["title"])
 
     items = s.get("items", [])
     if not items: return
@@ -532,7 +520,7 @@ def make_pillars(prs, s, idx, total):
 def make_agenda(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"], s.get("note", ""))
+    _header_bar(slide, s["title"])
 
     items = s.get("items", [])
     if not items: return
@@ -562,7 +550,7 @@ def make_agenda(prs, s, idx, total):
 def make_roles(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"], s.get("note", ""))
+    _header_bar(slide, s["title"])
 
     items = s.get("items", [])
     if not items: return
@@ -602,15 +590,13 @@ def make_roles(prs, s, idx, total):
             _oval(slide, x + I(0.15), by + I(0.08), Pt(3), ac)
             _tb(slide, b, x + I(0.28), by, col_w - I(0.35), I(0.3), sz=8, color=MID)
 
-    if s.get("note"):
-        _source_bar(slide, s["note"])
     _page_num(slide, idx, total)
 
 
 def make_okr(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"], s.get("note", ""))
+    _header_bar(slide, s["title"])
 
     items = s.get("items", [])
     if not items: return
@@ -634,7 +620,7 @@ def make_okr(prs, s, idx, total):
 def make_principles(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["content_bg"])
-    _header_bar(slide, s["title"], s.get("note", ""))
+    _header_bar(slide, s["title"])
 
     items = s.get("items", [])
     if not items: return
@@ -676,9 +662,6 @@ def make_summary(prs, s, idx, total):
         _tb(slide, b, I(1.15), y + I(0.04), SW - I(2.1), I(0.26),
             sz=10, color=WHITE)
 
-    if s.get("note"):
-        _tb(slide, s["note"], I(1), SH - I(0.5), SW - I(2), I(0.3),
-            sz=9, color=T["primary_lt"], align=PP_ALIGN.CENTER)
     _page_num(slide, idx, total)
 
 
