@@ -130,7 +130,7 @@ class ContentOutlineGenerator
   # ── AI prompts ──────────────────────────────────────────────────────────────
 
   def slide_system
-    "Bạn là chuyên gia thiết kế slide thuyết trình doanh nghiệp cấp cao. Slide phải CỤ THỂ, CHUYÊN NGHIỆP như slide consultant (McKinsey, BCG). Mỗi slide có SUBTITLE mô tả ngắn. Nội dung có số liệu cụ thể, insight sâu sắc. Trả lời bằng tiếng Việt. Chỉ xuất đúng format được yêu cầu, không thêm văn bản khác."
+    "Bạn là chuyên gia thiết kế slide thuyết trình doanh nghiệp cấp cao (như McKinsey, BCG). Trả lời bằng tiếng Việt. Chỉ xuất đúng format, không thêm gì khác.\n\nQUY TẮC VÀNG:\n1. COVER: TITLE chỉ chứa TÊN THƯƠNG HIỆU/DỰ ÁN (1-3 từ). Mô tả chi tiết đặt vào SUBTITLE.\n2. MỖI BULLET TỐI ĐA 60 KÝ TỰ — ngắn gọn, súc tích, có số liệu.\n3. TITLE content slide: 1 câu ngắn truyền tải insight chính (tối đa 50 ký tự).\n4. Mỗi slide PHẢI có STYLE: category=... (nhãn 2-4 từ phía trên title).\n5. KHÔNG lặp layout — xen kẽ: stats, pillars, two-col, timeline, roles."
   end
 
   def slide_user
@@ -153,7 +153,7 @@ class ContentOutlineGenerator
       Tạo 8–10 slide, mỗi slide theo đúng format này:
 
       ---SLIDE---
-      TITLE: Tiêu đề slide (IN HOA, súc tích, có thể dùng — để phân cách)
+      TITLE: Tiêu đề slide (viết thường tự nhiên, tối đa 50 ký tự, slide cover chỉ ghi TÊN dự án)
       SUBTITLE: Dòng mô tả ngắn bổ sung cho title (italic, 1 câu giải thích ngữ cảnh)
       LAYOUT: [tên layout]
       BODY:
@@ -286,17 +286,34 @@ class ContentOutlineGenerator
       STYLE: category=Giải pháp, decorations=false
       STYLE: category=Đội ngũ, bg=light
 
-      TIÊU CHUẨN CHẤT LƯỢNG (QUAN TRỌNG):
-      - Nội dung PHẢI CỤ THỂ: có con số, %, tỉ lệ, ví dụ thực tế (không chung chung)
-      - KHÔNG dùng bullets cho 3 slide liên tiếp — phải xen kẽ layout đa dạng
-      - Mỗi item trong pillars/roles phải có ít nhất 3 bullets sau "::"
-      - NOTE phải là câu hỏi tương tác hay insight bổ sung thực sự có giá trị
-      - Slide đầu tiên nên là cover/giới thiệu chủ đề, slide cuối nên là tóm tắt hoặc CTA
-      - SUBTITLE rất quan trọng — mỗi content slide NÊN có SUBTITLE mô tả ngắn (1 câu italic giải thích bối cảnh/mục đích của slide)
-      - STYLE: category=... BẮT BUỘC cho mỗi content slide — nhãn ngắn 2-4 từ phía trên title (VD: "Vấn đề thị trường", "Giải pháp", "Tăng trưởng", "Đội ngũ", "Kế hoạch")
-      - TITLE nên viết thường tự nhiên, đủ dài để truyền tải ý chính (VD: "Người ăn chay đang bị bỏ quên trên thị trường")
-      - Nội dung mỗi bullet nên đủ dài, CỤ THỂ, không quá ngắn (tránh bullet chỉ 2-3 từ)
-      - Dùng FOOTER cho disclaimer, ghi chú nguồn, hoặc footnote khi cần
+      TIÊU CHUẨN CHẤT LƯỢNG (RẤT QUAN TRỌNG — PHẢI TUÂN THỦ):
+
+      ═══ QUY TẮC COVER (slide đầu tiên) ═══
+      - TITLE = TÊN THƯƠNG HIỆU/DỰ ÁN (1–3 từ, ví dụ: "GreenBite", "EduTech Pro")
+      - SUBTITLE = Mô tả 1 câu dài hơn (ví dụ: "Ứng dụng đặt đồ ăn thuần chay đầu tiên tại Việt Nam")
+      - Bullets = thông tin bổ sung ngắn (loại vốn, thời gian, v.v.)
+      - FOOTER = thông tin liên hệ
+
+      ═══ QUY TẮC NỘI DUNG ═══
+      - MỖI BULLET TỐI ĐA 60 KÝ TỰ — ngắn, đọc 1 giây hiểu ngay
+      - KHÔNG viết đoạn văn dài trong bullet — chỉ cần ý chính + 1 con số
+      - VD tốt: "Giảm 40% thời gian xử lý đơn hàng"
+      - VD xấu: "Giúp giảm thời gian xử lý đơn hàng xuống còn 40% so với trước đây nhờ tự động hóa quy trình"
+      - TITLE content slide: tối đa 50 ký tự, truyền tải insight chính
+      - VD tốt: "Bốn nguồn doanh thu, lợi nhuận đa tầng"
+      - VD xấu: "Mô hình doanh thu đa tầng — không phụ thuộc vào một nguồn thu duy nhất"
+
+      ═══ QUY TẮC LAYOUT ═══
+      - KHÔNG dùng bullets cho 3 slide liên tiếp — xen kẽ đa dạng
+      - Mỗi item trong pillars/roles: ít nhất 3 bullets sau "::"
+      - STYLE: category=... BẮT BUỘC cho mọi content slide
+      - Dùng FOOTER cho nguồn dữ liệu, disclaimer
+      - Slide cuối nên là summary/CTA ngắn gọn
+
+      ═══ QUY TẮC SUMMARY (slide cuối) ═══
+      - TITLE = câu call-to-action mạnh (ví dụ: "Cùng GreenBite dẫn đầu làn sóng thuần chay")
+      - Bullet đầu tiên = lời kêu gọi chính (sẽ hiển thị dạng nút bấm)
+      - Các bullet sau = thông tin liên hệ
     PROMPT
   end
 

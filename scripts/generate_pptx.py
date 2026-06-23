@@ -251,6 +251,11 @@ def _source_bar(slide, text):
     _tb(slide, text, LM + I(0.15), SH - I(0.50), CW - I(0.30), I(0.35),
         sz=10, color=T["primary_xl"])
 
+def _insight_bar(slide, text):
+    _rrect(slide, LM, SH - I(0.68), CW, I(0.50), T["primary_dk"], radius=0.04)
+    _tb(slide, text, LM + I(0.20), SH - I(0.63), CW - I(0.40), I(0.40),
+        sz=12, color=WHITE)
+
 
 # ── Style helper ──────────────────────────────────────────────────────
 
@@ -296,17 +301,13 @@ def _setup_content_slide(prs, s):
             _tb(slide, cat, LM, I(0.42), CW, I(0.35),
                 sz=13, bold=True, color=T["primary_lt"])
         _tb(slide, s["title"], LM, I(0.78), CW, I(0.85),
-            sz=26, bold=True, color=WHITE, font="Calibri")
+            sz=28, bold=True, color=WHITE, font="Calibri")
     else:
         if cat:
             _category_label(slide, cat)
         _slide_title(slide, s["title"])
 
     top = I(1.70)
-    if subtitle:
-        _tb(slide, subtitle, LM, I(1.45), I(5.6), I(0.30),
-            sz=11, color=MID)
-        top = I(1.80)
 
     if s.get("footer"):
         _footer_note(slide, s["footer"])
@@ -320,8 +321,9 @@ def make_cover(prs, s, idx, total):
     _bg(slide, bg)
 
     if _style(s, "decorations", True):
-        _oval(slide, SW - I(0.6), I(-0.8), I(2.6), T["primary"])
-        _oval(slide, SW + I(0.3), I(1.5), I(1.5), T["primary_lt"])
+        _oval(slide, SW + I(1.2), I(-0.8), I(2.6), T["primary"])
+        _oval(slide, SW + I(1.8), I(1.5), I(1.5), T["primary_lt"])
+        _oval(slide, I(-0.3), SH - I(0.5), I(0.5), T["primary_lt"])
 
     logo_sz = I(0.90)
     _rrect(slide, I(0.70), I(0.65), logo_sz, logo_sz, T["primary_lt"], radius=0.15)
@@ -333,20 +335,19 @@ def make_cover(prs, s, idx, total):
             sz=12, bold=True, color=T["accent2"])
 
     title_color = WHITE if is_dark else T["primary_dk"]
-    _tb(slide, s["title"], I(0.65), I(2.05), I(8.50), I(1.30),
-        sz=48, bold=True, color=title_color, font="Calibri")
+    title_y = I(2.05) if cat else I(1.75)
+    _tb(slide, s["title"], I(0.65), title_y, I(8.50), I(1.30),
+        sz=52, bold=True, color=title_color, font="Calibri")
 
     sub_color = T["primary_xl"] if is_dark else MID
-    sub_y = I(3.25)
     if s.get("subtitle"):
-        _tb(slide, s["subtitle"], I(0.68), sub_y, I(7.20), I(0.60),
-            sz=16, color=sub_color)
-        sub_y += I(0.65)
+        _tb(slide, s["subtitle"], I(0.68), I(3.25), I(7.20), I(0.60),
+            sz=18, color=sub_color)
 
     if s.get("bullets"):
-        txt = " · ".join(s["bullets"][:3])
-        _tb(slide, txt, I(0.90), I(4.55), I(6.0), I(0.40),
-            sz=12, bold=True, color=WHITE if is_dark else T["primary_dk"])
+        btext = "   ".join(s["bullets"][:3])
+        _tb(slide, btext, I(0.90), I(4.55), I(6.0), I(0.40),
+            sz=13, bold=True, color=WHITE if is_dark else T["primary_dk"])
 
     if s.get("footer"):
         _tb(slide, s["footer"], I(0.65), SH - I(0.42), I(7.0), I(0.30),
@@ -375,21 +376,35 @@ def make_bullets(prs, s, idx, total):
     n = len(bullets)
     bot = SH - I(0.45)
     avail = bot - top
-    card_gap = I(0.10)
+    card_gap = I(0.12)
+    accents = _accents()
 
     if n >= 5:
         cols = 2
-        col_w = (CW - I(0.15)) // 2
+        col_w = (CW - I(0.20)) // 2
         rows = (n + 1) // 2
-        card_h = min(I(0.82), (avail - card_gap * (rows - 1)) // rows)
+        card_h = min(I(0.80), (avail - card_gap * (rows - 1)) // rows)
         for i, b in enumerate(bullets[:10]):
             c = i % 2; r = i // 2
-            x = LM + c * (col_w + I(0.15))
+            x = LM + c * (col_w + I(0.20))
             y = top + r * (card_h + card_gap)
             if y + card_h > bot: break
             _content_card(slide, x, y, col_w, card_h, i, b)
+    elif n <= 3:
+        col_w = (CW - I(0.20) * (n - 1)) // n
+        card_h = min(I(2.35), avail)
+        for i, b in enumerate(bullets):
+            ac = accents[i % len(accents)]
+            x = LM + i * (col_w + I(0.20))
+            _rrect(slide, x, top, col_w, card_h, T["card_bg"], CARD_BORDER)
+            icon_circle = I(0.65)
+            _rrect(slide, x + I(0.15), top + I(0.18), icon_circle, icon_circle, ac, radius=0.15)
+            _add_icon(slide, x + I(0.15) + (icon_circle - I(0.33)) // 2,
+                      top + I(0.18) + (icon_circle - I(0.33)) // 2, I(0.33), WHITE)
+            _tb(slide, b, x + I(0.15), top + I(0.95), col_w - I(0.30), I(0.45),
+                sz=13, bold=True, color=T["primary_dk"])
     else:
-        card_h = min(I(0.85), (avail - card_gap * (n - 1)) // n)
+        card_h = min(I(0.80), (avail - card_gap * (n - 1)) // n)
         for i, b in enumerate(bullets):
             y = top + i * (card_h + card_gap)
             if y + card_h > bot: break
@@ -404,31 +419,42 @@ def make_stats(prs, s, idx, total):
     if not items: _page_num(slide, idx, total); return
 
     n = min(len(items), 4)
-    gap = I(0.15)
-    card_w = (CW - gap * (n - 1)) // n
-    sx = LM
-    cy = top_y
-    card_h = I(1.50)
     accents = _accents()
 
-    for i, item in enumerate(items[:n]):
-        ac = accents[i % len(accents)]
-        x = sx + i * (card_w + gap)
-
-        _rrect(slide, x, cy, card_w, card_h, T["primary_dk"], radius=0.05)
-        _rect(slide, x, cy, I(0.09), card_h, ac)
-
-        _tb(slide, item.get("value", ""),
-            x + I(0.25), cy + I(0.18), card_w - I(0.40), I(0.65),
-            sz=34, bold=True, color=WHITE, font="Calibri")
-
-        _tb(slide, item.get("label", ""),
-            x + I(0.25), cy + I(0.85), card_w - I(0.40), I(0.55),
-            sz=11, color=T["primary_xl"])
-
-    # Source bar if present
-    if s.get("footer"):
-        pass  # already handled by _setup_content_slide
+    if n <= 2:
+        gap = I(0.20)
+        card_w = I(2.90)
+        card_h = I(1.50)
+        sx = LM
+        for i, item in enumerate(items[:n]):
+            ac = accents[i % len(accents)]
+            x = sx
+            cy = top_y + i * (card_h + I(0.15))
+            _rrect(slide, x, cy, card_w, card_h, T["primary_dk"], radius=0.05)
+            _rect(slide, x, cy, I(0.09), card_h, ac)
+            _tb(slide, item.get("value", ""),
+                x + I(0.30), cy + I(0.18), card_w - I(0.50), I(0.65),
+                sz=34, bold=True, color=WHITE, font="Calibri")
+            _tb(slide, item.get("label", ""),
+                x + I(0.30), cy + I(0.85), card_w - I(0.50), I(0.55),
+                sz=11, color=T["primary_xl"])
+    else:
+        gap = I(0.15)
+        card_w = (CW - gap * (n - 1)) // n
+        card_h = I(1.50)
+        sx = LM
+        cy = top_y
+        for i, item in enumerate(items[:n]):
+            ac = accents[i % len(accents)]
+            x = sx + i * (card_w + gap)
+            _rrect(slide, x, cy, card_w, card_h, T["primary_dk"], radius=0.05)
+            _rect(slide, x, cy, I(0.09), card_h, ac)
+            _tb(slide, item.get("value", ""),
+                x + I(0.30), cy + I(0.18), card_w - I(0.50), I(0.65),
+                sz=34, bold=True, color=WHITE, font="Calibri")
+            _tb(slide, item.get("label", ""),
+                x + I(0.30), cy + I(0.85), card_w - I(0.50), I(0.55),
+                sz=11, color=T["primary_xl"])
 
     _page_num(slide, idx, total)
 
@@ -474,26 +500,35 @@ def make_two_col(prs, s, idx, total):
 
     headers = s.get("headers", ["", ""])
     col1, col2 = s.get("col1", []), s.get("col2", [])
-    gap = I(0.15)
-    col_w = (CW - gap) // 2
+    gap_x = I(0.20)
+    gap_y = I(0.15)
+    col_w = (CW - gap_x) // 2
     accents = _accents()
-    col_colors = [accents[0], accents[2]]
 
-    for ci, (items, ac) in enumerate(zip([col1, col2], col_colors)):
-        sx = LM + ci * (col_w + gap)
-        hdr_text = headers[ci] if ci < len(headers) else ""
+    all_items = []
+    for i, item in enumerate(col1):
+        all_items.append((0, i, item))
+    for i, item in enumerate(col2):
+        all_items.append((1, i, item))
 
-        _rrect(slide, sx, top_y, col_w, I(0.35), ac, radius=0.08)
-        _tb(slide, hdr_text, sx + I(0.10), top_y + I(0.04), col_w - I(0.20), I(0.28),
-            sz=12, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+    n1, n2 = len(col1), len(col2)
+    card_h = I(1.55)
 
-        for i, item in enumerate(items[:6]):
-            y = top_y + I(0.45) + i * I(0.50)
-            if y + I(0.45) > SH - I(0.45): break
-            _rrect(slide, sx, y, col_w, I(0.45), T["card_bg"], CARD_BORDER)
-            _add_icon(slide, sx + I(0.10), y + I(0.06), I(0.32), ac)
-            _tb(slide, item, sx + I(0.50), y + I(0.08), col_w - I(0.60), I(0.30),
-                sz=10, color=DARK)
+    for ci, (items, hdr) in enumerate(zip([col1, col2], headers)):
+        for i, item in enumerate(items[:3]):
+            ac = accents[(ci * 3 + i) % len(accents)]
+            x = LM + ci * (col_w + gap_x)
+            y = top_y + i * (card_h + gap_y)
+            if y + card_h > SH - I(0.45): break
+
+            _rrect(slide, x, y, col_w, card_h, T["card_bg"], CARD_BORDER)
+            icon_circle = I(0.60)
+            _rrect(slide, x + I(0.15), y + I(0.15), icon_circle, icon_circle, ac, radius=0.15)
+            _add_icon(slide, x + I(0.15) + (icon_circle - I(0.30)) // 2,
+                      y + I(0.15) + (icon_circle - I(0.30)) // 2, I(0.30), WHITE)
+            _tb(slide, item, x + I(0.90), y + I(0.12), col_w - I(1.05), I(0.40),
+                sz=13, bold=True, color=T["primary_dk"])
+
     _page_num(slide, idx, total)
 
 
@@ -704,16 +739,19 @@ def make_summary(prs, s, idx, total):
         cta_text = s["bullets"][0] if s["bullets"] else ""
         if cta_text:
             btn_w = I(5.10)
-            _rrect(slide, SW // 2 - btn_w // 2, I(3.15), btn_w, I(0.65), T["accent2"], radius=0.08)
-            _tb(slide, cta_text, SW // 2 - btn_w // 2, I(3.15), btn_w, I(0.65),
-                sz=15, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-        for i, b in enumerate(s["bullets"][1:4]):
-            _tb(slide, b, I(0.80), I(4.00) + i * I(0.35), SW - I(1.60), I(0.30),
-                sz=12, color=T["primary_xl"], align=PP_ALIGN.CENTER)
+            _rrect(slide, SW // 2 - btn_w // 2, I(3.15), btn_w, I(0.70), T["accent2"], radius=0.08)
+            _tb(slide, cta_text, SW // 2 - btn_w // 2, I(3.15), btn_w, I(0.70),
+                sz=16, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+
+        contact_parts = s["bullets"][1:4]
+        if contact_parts:
+            contact_line = "   |   ".join(contact_parts)
+            _tb(slide, contact_line, I(0.80), I(4.35), SW - I(1.60), I(0.40),
+                sz=13, color=T["primary_xl"], align=PP_ALIGN.CENTER)
 
     if s.get("footer"):
-        _tb(slide, s["footer"], I(0.80), SH - I(0.45), SW - I(1.60), I(0.35),
-            sz=11, color=T["primary_lt"], align=PP_ALIGN.CENTER)
+        _tb(slide, s["footer"], I(0.80), I(4.85), SW - I(1.60), I(0.40),
+            sz=12, color=T["primary_lt"], align=PP_ALIGN.CENTER)
 
     _page_num(slide, idx, total)
 
