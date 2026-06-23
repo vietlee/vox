@@ -332,9 +332,10 @@ def make_cover(prs, s, idx, total):
         _oval(slide, I(9.50), I(1.00), I(2.60), T["primary"])
         _oval(slide, I(9.10), I(4.50), I(1.50), T["primary_dk"])
 
-    # Logo circle bg + icon
-    _rrect(slide, I(0.70), I(0.65), I(0.90), I(0.90), T["primary"] if is_dark else T["primary_xl"], radius=0.15)
-    _add_icon(slide, I(0.92), I(0.87), I(0.46), T["primary_lt"] if is_dark else T["primary_dk"])
+    # Logo: large circle bg + icon (cowork style)
+    logo_bg = T["primary_lt"] if is_dark else T["primary_xl"]
+    _oval(slide, I(1.15), I(1.10), I(0.65), logo_bg)
+    _add_icon(slide, I(0.92), I(0.87), I(0.46), T["primary_dk"])
 
     cat = _style(s, "category", "")
     if cat:
@@ -352,9 +353,25 @@ def make_cover(prs, s, idx, total):
             sz=18, color=sub_color)
 
     if s.get("bullets"):
-        btext = "   ·   ".join(s["bullets"][:3])
-        _tb(slide, btext, I(0.90), I(4.55), I(6.0), I(0.40),
-            sz=13, bold=True, color=WHITE if is_dark else T["primary_dk"])
+        # Vertical bar + bullet text (cowork style)
+        bar_color = WHITE if is_dark else T["primary_dk"]
+        _rect(slide, I(0.70), I(4.55), Pt(3), I(0.55), bar_color)
+        # First bullet bold, rest normal
+        s_tf = _shape(slide, MSO_SHAPE.RECTANGLE, I(0.90), I(4.55), I(6.0), I(0.55))
+        s_tf.fill.background(); s_tf.line.fill.background()
+        tf = s_tf.text_frame; tf.word_wrap = True
+        tf.margin_left = Pt(2); tf.margin_right = Pt(2)
+        tf.margin_top = Pt(1); tf.margin_bottom = Pt(1)
+        p = tf.paragraphs[0]; p.alignment = PP_ALIGN.LEFT
+        p.space_before = Pt(0); p.space_after = Pt(0)
+        for bi, bt in enumerate(s["bullets"][:3]):
+            if bi > 0:
+                r = p.add_run(); r.text = "   ·   "
+                r.font.size = Pt(13); r.font.color.rgb = T["primary_xl"] if is_dark else MID; r.font.name = "Calibri"
+            r = p.add_run(); r.text = bt
+            r.font.size = Pt(13); r.font.name = "Calibri"
+            r.font.bold = (bi == 0)
+            r.font.color.rgb = WHITE if is_dark else T["primary_dk"]
 
     if s.get("footer"):
         _tb(slide, s["footer"], I(0.65), SH - I(0.47), I(7.0), I(0.30),
@@ -389,21 +406,22 @@ def make_bullets(prs, s, idx, total):
         # 3-column layout with WHITE cards (cowork slide 2)
         gap = I(0.20)
         col_w = (CW - gap * (n - 1)) // n
-        card_h = I(2.35)
-        icon_circle = I(0.65)
-        icon_sz = I(0.33)
+        card_h = I(2.80)
+        icon_circle = I(0.55)
+        icon_sz = I(0.28)
         for i, it in enumerate(b_items[:n]):
             ac = accents[i % len(accents)]
             x = LM + i * (col_w + gap)
             _rrect(slide, x, top, col_w, card_h, WHITE, radius=0.04)
-            cx = x + I(0.25)
-            _oval(slide, cx + icon_circle//2, top + I(0.40) + icon_circle//2, icon_circle//2, ac)
-            _add_icon(slide, cx + (icon_circle - icon_sz)//2, top + I(0.40) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
-            _tb(slide, it.get("title", ""), cx, top + I(1.15), col_w - I(0.50), I(0.55),
-                sz=14.5, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+            cx = x + I(0.20)
+            tw = col_w - I(0.40)
+            _oval(slide, cx + icon_circle//2, top + I(0.25) + icon_circle//2, icon_circle//2, ac)
+            _add_icon(slide, cx + (icon_circle - icon_sz)//2, top + I(0.25) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
+            _tb(slide, it.get("title", ""), cx, top + I(0.90), tw, I(0.55),
+                sz=13, bold=True, color=T["primary_dk"], font="Trebuchet MS")
             if it.get("desc"):
-                _tb(slide, it["desc"], cx, top + I(1.65), col_w - I(0.50), I(0.80),
-                    sz=11, color=DARK)
+                _tb(slide, it["desc"], cx, top + I(1.45), tw, I(1.25),
+                    sz=10.5, color=DARK)
 
     elif b_items and n == 4:
         # 2x2 grid with WHITE cards (cowork slide 4)
@@ -535,21 +553,44 @@ def make_stats(prs, s, idx, total):
                 _tb(slide, item.get("label", ""),
                     LM + I(0.30), cy + I(0.85), card_w - I(0.50), I(0.45),
                     sz=11, color=T["primary_xl"])
-        else:
+        elif n == 3:
+            # 3 stats in a row — wider cards
             gap = I(0.15)
-            card_w = (CW - gap * (n - 1)) // n
-            card_h = I(1.35)
-            for i, item in enumerate(items[:n]):
+            card_w = (CW - gap * 2) // 3
+            card_h = I(1.50)
+            for i, item in enumerate(items[:3]):
                 ac = accents[i % len(accents)]
                 x = LM + i * (card_w + gap)
                 _rrect(slide, x, top_y, card_w, card_h, T["primary_dk"], radius=0.05)
                 _rect(slide, x, top_y, I(0.09), card_h, ac)
-                _tb(slide, item.get("value", ""),
-                    x + I(0.30), top_y + I(0.10), card_w - I(0.50), I(0.75),
-                    sz=34, bold=True, color=WHITE, font="Trebuchet MS")
+                val = item.get("value", "")
+                vsz = 28 if len(val) > 6 else 34
+                _tb(slide, val,
+                    x + I(0.20), top_y + I(0.10), card_w - I(0.40), I(0.65),
+                    sz=vsz, bold=True, color=WHITE, font="Trebuchet MS")
                 _tb(slide, item.get("label", ""),
-                    x + I(0.30), top_y + I(0.85), card_w - I(0.50), I(0.45),
-                    sz=11, color=T["primary_xl"])
+                    x + I(0.20), top_y + I(0.80), card_w - I(0.40), I(0.60),
+                    sz=10, color=T["primary_xl"])
+        else:
+            # 4+ stats → 2x2 grid
+            gap_x, gap_y = I(0.15), I(0.15)
+            card_w = (CW - gap_x) // 2
+            card_h = I(1.35)
+            for i, item in enumerate(items[:4]):
+                ac = accents[i % len(accents)]
+                c, r = i % 2, i // 2
+                x = LM + c * (card_w + gap_x)
+                cy = top_y + r * (card_h + gap_y)
+                _rrect(slide, x, cy, card_w, card_h, T["primary_dk"], radius=0.05)
+                _rect(slide, x, cy, I(0.09), card_h, ac)
+                val = item.get("value", "")
+                vsz = 28 if len(val) > 6 else 34
+                _tb(slide, val,
+                    x + I(0.25), cy + I(0.10), card_w - I(0.45), I(0.65),
+                    sz=vsz, bold=True, color=WHITE, font="Trebuchet MS")
+                _tb(slide, item.get("label", ""),
+                    x + I(0.25), cy + I(0.80), card_w - I(0.45), I(0.50),
+                    sz=10, color=T["primary_xl"])
 
     # Insight bar at bottom if available
     if s.get("insight"):

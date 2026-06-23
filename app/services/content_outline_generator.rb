@@ -137,12 +137,14 @@ class ContentOutlineGenerator
       QUY TẮC VÀNG:
       1. COVER: TITLE = TÊN DỰ ÁN (1-3 từ). Mô tả đặt vào SUBTITLE. KHÔNG nhồi nhét số liệu vào cover.
       2. NỘI DUNG PHẢI SÂU VÀ CỤ THỂ — mỗi bullet/item phải có thông tin thực sự hữu ích, có ngữ cảnh, có số liệu kèm nguồn khi có thể.
-      3. TITLE content slide: 1 câu insight (tối đa 55 ký tự), viết thường tự nhiên.
+      3. TITLE content slide: 1 câu insight (tối đa 45 ký tự), viết thường tự nhiên. KHÔNG dài hơn 1 dòng.
       4. Mỗi slide PHẢI có STYLE: category=... (nhãn 2-4 từ phía trên title).
       5. KHÔNG lặp layout — xen kẽ đa dạng: stats, pillars, two-col, timeline, roles, chart.
       6. TUYỆT ĐỐI KHÔNG dùng emoji (🌱💰📈❌). Slide chuyên nghiệp không có emoji.
       7. FOOTER dùng cho nguồn dữ liệu (VD: "Nguồn: Nielsen Vietnam 2023") hoặc disclaimer.
       8. Nội dung phải tự nhiên, có chiều sâu — KHÔNG viết kiểu liệt kê khô khan.
+      9. CHỈ TẠO ĐÚNG 8 SLIDE (cover + 6 content + summary). Ít slide nhưng mỗi slide phải chất lượng cao, đậm đặc thông tin.
+      10. TIÊU ĐỀ bullet/item: tối đa 25 ký tự (5-6 từ). Viết ngắn gọn, súc tích. Phần giải thích đặt vào desc sau "::".
     SYS
   end
 
@@ -163,7 +165,7 @@ class ContentOutlineGenerator
       - amber: vàng nâu (phù hợp: xây dựng, bất động sản, F&B, truyền thống)
       - slate: xám đậm (phù hợp: luật, tư vấn, corporate, cao cấp)
 
-      Tạo 8–10 slide, mỗi slide theo đúng format này:
+      Tạo ĐÚNG 8 slide (1 cover + 6 content + 1 summary), mỗi slide theo đúng format này:
 
       ---SLIDE---
       TITLE: Tiêu đề slide (viết thường tự nhiên, tối đa 50 ký tự, slide cover chỉ ghi TÊN dự án)
@@ -181,22 +183,24 @@ class ContentOutlineGenerator
       ═══════════════════════════════════════════
 
       LAYOUT: bullets
-        Khi nào dùng: 3–5 điểm chính, mỗi điểm độc lập
-        Format: mỗi dòng "- Tiêu đề ngắn gọn :: Mô tả chi tiết 1-2 câu giải thích cụ thể"
-        Nếu không có "::" → chỉ hiển thị title ngắn (dùng khi mỗi bullet đã rõ ràng)
+        Khi nào dùng: 3–4 điểm chính, mỗi điểm độc lập. TỐT NHẤT là 3 items.
+        Format: mỗi dòng "- Tiêu đề ngắn (tối đa 5-6 từ) :: Mô tả chi tiết 1-2 câu"
+        TIÊU ĐỀ phải NGẮN: tối đa 25 ký tự / 5-6 từ. Đây là headline, không phải câu.
+        Nếu không có "::" → chỉ hiển thị title ngắn
         Ví dụ:
-        - Khó tìm quán ăn uy tín :: Người dùng phải lọc thủ công giữa hàng nghìn quán không liên quan trên các app hiện có.
-        - Thiếu bộ lọc chuyên biệt :: Không có công cụ phân loại theo phong cách ăn hay nguy cơ lẫn nguyên liệu.
-        - Quán nhỏ thiếu kênh số :: Nhiều quán ăn gia đình chưa có kênh tiếp cận khách hàng trực tuyến.
+        - Khó tìm quán uy tín :: Người dùng phải lọc thủ công giữa hàng nghìn quán không liên quan trên các app giao đồ ăn hiện có.
+        - Thiếu bộ lọc chuyên biệt :: Không có công cụ phân loại theo phong cách ăn hay nguy cơ lẫn nguyên liệu động vật.
+        - Quán nhỏ thiếu kênh số :: Nhiều quán ăn chay gia đình chưa có kênh tiếp cận khách hàng trực tuyến hiệu quả.
 
       LAYOUT: stats
-        Khi nào dùng: 3–4 con số/chỉ số quan trọng (KPI, kết quả đo lường được)
-        Format: mỗi dòng "- GIÁ_TRỊ :: MÔ_TẢ_NGẮN"
+        Khi nào dùng: 2–3 con số/chỉ số quan trọng nhất (KPI, kết quả đo lường được). TỐI ĐA 3 items.
+        Format: mỗi dòng "- GIÁ_TRỊ :: MÔ_TẢ_NGẮN (tối đa 8 từ)"
+        GIÁ TRỊ phải NGẮN (tối đa 6 ký tự): "87%", "3.2x", "50K+", "200K". KHÔNG viết dài như "14.000.000".
+        MÔ TẢ phải ngắn gọn: tối đa 8 từ, KHÔNG viết cả câu dài.
         Ví dụ:
-        - 87% :: Tỷ lệ học sinh đạt mục tiêu
-        - 3.2x :: Cải thiện điểm số trung bình
-        - 12 tuần :: Thời gian hoàn thành khóa học
-        - 92% :: Mức độ hài lòng phụ huynh
+        - 87% :: Tỷ lệ đạt mục tiêu
+        - 3.2x :: Cải thiện điểm trung bình
+        - 12 tuần :: Thời gian hoàn thành
 
       LAYOUT: chart
         Khi nào dùng: so sánh theo thời gian, tiến độ tăng trưởng
@@ -315,9 +319,11 @@ class ContentOutlineGenerator
 
       ═══ QUY TẮC COVER (slide đầu tiên) ═══
       - TITLE = TÊN DỰ ÁN (1–3 từ, ví dụ: "GreenBite")
-      - SUBTITLE = Mô tả 1 câu (ví dụ: "Ứng dụng đặt đồ ăn thuần chay đầu tiên dành riêng cho người Việt")
-      - Bullets = 2-3 thông tin ngắn gọn (loại vốn, thời gian). KHÔNG nhồi nhét số liệu.
-      - FOOTER = thông tin liên hệ
+      - SUBTITLE = Mô tả 1 câu italic (ví dụ: "Ứng dụng đặt đồ ăn thuần chay đầu tiên dành riêng cho người Việt")
+      - STYLE: category=NHÃN_NGẮN, bg=dark  (ví dụ: category=SERIES A). BẮT BUỘC có category.
+      - Bullets = 2 thông tin CỤ THỂ (ví dụ: "Gọi vốn Series A", "Tháng 6/2026"). Bullet đầu tiên sẽ in BOLD.
+        KHÔNG viết generic như "Vòng gọi vốn", "Giai đoạn" — phải có giá trị thực.
+      - FOOTER = thông tin liên hệ cụ thể (tên công ty | email | website)
       - TUYỆT ĐỐI KHÔNG dùng emoji trên cover
 
       ═══ QUY TẮC NỘI DUNG ═══
