@@ -221,7 +221,8 @@ class ContentOutlineGenerator
 
       LAYOUT: donut
         Khi nào dùng: phân bổ ngân sách, tỷ lệ phần trăm, cơ cấu
-        Format: mỗi dòng "- SỐ :: NHÃN :: Chi tiết bổ sung"
+        Format: mỗi dòng "- SỐ :: NHÃN NGẮN :: Giá trị (VD: 150.000 USD)"
+        NHÃN phải NGẮN (tối đa 5 từ). Chi tiết chỉ là con số tiền, KHÔNG viết mô tả dài.
         Thêm CENTER: dòng trung tâm (VD: "CENTER: 500.000 :: USD")
         Ví dụ:
         - 30 :: Công nghệ & Sản phẩm :: 150.000 USD
@@ -267,12 +268,14 @@ class ContentOutlineGenerator
         - 03 :: Kết quả đo lường :: KPI và cách đánh giá
 
       LAYOUT: roles
-        Khi nào dùng: mô tả 2–3 vai trò/chức năng/bộ phận trong tổ chức
-        Format: mỗi dòng "- TÊN VAI TRÒ :: Phạm vi/Loại :: trách nhiệm 1 | trách nhiệm 2 | trách nhiệm 3"
+        Khi nào dùng: đội ngũ sáng lập, 2–3 thành viên chủ chốt
+        Format: mỗi dòng "- Tên Người (Title Case) :: Co-Founder & Chức vụ :: Bio 1-2 câu ngắn"
+        TÊN phải viết Title Case (Nguyễn Minh Anh), KHÔNG viết ALL CAPS.
+        Bio chỉ 1-2 câu ngắn gọn (tối đa 25 từ).
         Ví dụ:
-        - GIÁO VIÊN :: Người truyền đạt tri thức :: Soạn bài theo chuẩn | Tương tác với học sinh | Đánh giá kết quả
-        - MENTOR :: Người đồng hành :: Hỗ trợ cá nhân hóa | Theo dõi tiến độ | Giải đáp thắc mắc
-        - ADMIN :: Vận hành hệ thống :: Quản lý nền tảng | Báo cáo dữ liệu | Hỗ trợ kỹ thuật
+        - Nguyễn Minh Anh :: Co-Founder & CEO :: 10 năm vận hành chuỗi F&B, từng phát triển mạng lưới hơn 200 điểm bán tại Việt Nam.
+        - Trần Quốc Bảo :: Co-Founder & CTO :: 8 năm xây dựng nền tảng di động quy mô triệu người dùng cho các startup công nghệ.
+        - Lê Thảo My :: Co-Founder & COO :: Chuyên gia tăng trưởng, từng dẫn dắt chiến lược marketing cho startup thương mại điện tử.
 
       LAYOUT: okr
         Khi nào dùng: mục tiêu và kết quả then chốt, OKR, KPI (3–5 objectives)

@@ -633,22 +633,25 @@ def make_donut(prs, s, idx, total):
             (center_sub, 18, True, T["primary_dk"]),
         ], I(1.85), I(2.85), I(1.80), I(1.10), align=PP_ALIGN.CENTER)
 
-    # Legend items on right
-    legend_x = I(5.47)
-    legend_y_start = top_y - I(0.05)
-    item_h = I(0.82)
+    # Legend items on right (cowork: icon circle + title + pct · detail)
+    legend_x = I(5.30)
+    legend_y_start = top_y + I(0.15)
+    avail = bot - legend_y_start - I(0.30)
+    item_h = min(avail // n, I(0.95))
+    icon_circle = I(0.55)
+    icon_sz = I(0.28)
 
     for i, it in enumerate(items[:n]):
         ac = accents[i % len(accents)]
         y = legend_y_start + i * item_h
-        icon_sz = I(0.26)
-        _add_icon(slide, legend_x, y + I(0.17), icon_sz, ac)
+        _oval(slide, legend_x + icon_circle//2, y + I(0.10) + icon_circle//2, icon_circle//2, ac)
+        _add_icon(slide, legend_x + (icon_circle - icon_sz)//2, y + I(0.10) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
         pct = round(values[i] / total_val * 100) if total_val else 0
         detail = it.get("detail", "")
         _tb2(slide, [
             (it.get("label", ""), 11.5, True, T["primary_dk"]),
             (f"{pct}%  ·  {detail}" if detail else f"{pct}%", 11.5, False, MID),
-        ], legend_x + I(0.53), y, I(3.40), I(0.60))
+        ], legend_x + I(0.75), y + I(0.08), I(3.35), I(0.65))
 
     _page_num(slide, idx, total)
 
