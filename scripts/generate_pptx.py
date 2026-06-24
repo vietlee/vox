@@ -117,41 +117,71 @@ def _resolve_theme(name):
 def _accents():
     return [T["primary_dk"], T["primary"], T["accent"], T["accent3"], T["primary_lt"], T["accent4"]]
 
-# ── Icon generation ───────────────────────────────────────────────────
+# ── Icon system ──────────────────────────────────────────────────────
 _icon_cache = {}
+_ICONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons")
+_ICON_NAMES = [
+    "search", "filter", "store", "check", "clock", "person", "people",
+    "rocket", "code", "chart", "money", "percent", "megaphone", "crown",
+    "lightbulb", "shield", "star", "heart", "globe", "target",
+    "handshake", "leaf", "phone", "truck", "default"
+]
 
-def _make_icon_png(rgb_tuple, size=120):
-    key = ("icon", *rgb_tuple, size)
-    if key in _icon_cache: return _icon_cache[key]
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.ellipse([0, 0, size-1, size-1], fill=(*rgb_tuple, 255))
-    m = size // 4
-    d.ellipse([m, m, size-m-1, size-m-1], fill=(255, 255, 255, 255))
-    m2 = size * 3 // 8
-    d.ellipse([m2, m2, size-m2-1, size-m2-1], fill=(*rgb_tuple, 255))
-    buf = io.BytesIO(); img.save(buf, format="PNG"); buf.seek(0)
+_ICON_KEYWORDS = {
+    "search": ["tìm", "tìm kiếm", "search", "khó tìm", "lọc", "phát hiện"],
+    "filter": ["bộ lọc", "filter", "phân loại", "sàng lọc"],
+    "store": ["cửa hàng", "store", "shop", "restaurant"],
+    "check": ["kiểm", "xác minh", "verify", "đạt chuẩn", "chất lượng", "đảm bảo"],
+    "clock": ["thời gian", "phút", "giờ", "time"],
+    "person": ["người", "khách", "user", "cá nhân", "founder", "CEO"],
+    "people": ["cộng đồng", "nhóm", "team", "đội", "community", "người dùng"],
+    "rocket": ["tăng trưởng", "phát triển", "growth", "launch", "mở rộng", "scale"],
+    "code": ["công nghệ", "tech", "AI", "app", "ứng dụng", "phần mềm", "platform"],
+    "chart": ["doanh thu", "revenue", "số liệu", "KPI", "metric", "thống kê"],
+    "money": ["vốn", "đầu tư", "tiền", "USD", "fund", "tài chính", "chi phí", "hoa hồng", "doanh thu", "revenue", "phí"],
+    "percent": ["tỷ lệ", "%", "phần trăm", "rate", "margin", "lợi nhuận"],
+    "megaphone": ["marketing", "quảng cáo", "truyền thông", "ads", "kênh"],
+    "crown": ["premium", "VIP", "cao cấp", "hàng đầu", "leader", "dẫn đầu"],
+    "lightbulb": ["giải pháp", "ý tưởng", "idea", "solution", "sáng tạo", "đổi mới"],
+    "shield": ["bảo vệ", "an toàn", "security", "trust", "uy tín", "tin cậy"],
+    "star": ["đánh giá", "review", "rating", "chất lượng", "nổi bật"],
+    "heart": ["yêu thích", "sức khỏe", "health", "thuần chay", "vegan"],
+    "globe": ["thị trường", "quốc tế", "global", "thế giới", "khu vực"],
+    "target": ["mục tiêu", "target", "chiến lược", "strategy", "định hướng"],
+    "handshake": ["đối tác", "partner", "hợp tác", "B2B", "liên kết", "đồng hành"],
+    "leaf": ["xanh", "green", "eco", "bền vững", "organic", "thuần chay", "chay"],
+    "phone": ["mobile", "điện thoại", "app", "đặt hàng", "order"],
+    "truck": ["giao hàng", "delivery", "vận chuyển", "logistics", "ship", "nhanh", "30 phút"],
+}
+
+def _pick_icon(text, icon_hint=None):
+    if icon_hint and icon_hint in _ICON_NAMES:
+        return icon_hint
+    text_lower = text.lower()
+    best, best_score = "default", 0
+    for icon_name, keywords in _ICON_KEYWORDS.items():
+        score = sum(len(kw) for kw in keywords if kw.lower() in text_lower)
+        if score > best_score:
+            best, best_score = icon_name, score
+    return best
+
+def _load_icon_png(icon_name, size=120):
+    key = ("icon_file", icon_name, size)
+    if key in _icon_cache:
+        return _icon_cache[key]
+    path = os.path.join(_ICONS_DIR, f"{icon_name}.png")
+    if not os.path.exists(path):
+        path = os.path.join(_ICONS_DIR, "default.png")
+    img = Image.open(path).resize((size, size), Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
     _icon_cache[key] = buf.getvalue()
     return _icon_cache[key]
 
-def _make_avatar_png(rgb_tuple, size=120):
-    key = ("avatar", *rgb_tuple, size)
-    if key in _icon_cache: return _icon_cache[key]
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.ellipse([0, 0, size-1, size-1], fill=(*rgb_tuple, 255))
-    hx, hy, hr = size//2, size*5//14, size//7
-    d.ellipse([hx-hr, hy-hr, hx+hr, hy+hr], fill=(255,255,255,255))
-    sw, sh2, sy = size//3, size//5, size*9//14
-    d.ellipse([hx-sw, sy, hx+sw, sy+sh2*2], fill=(255,255,255,255))
-    buf = io.BytesIO(); img.save(buf, format="PNG"); buf.seek(0)
-    _icon_cache[key] = buf.getvalue()
-    return _icon_cache[key]
-
-def _add_icon(slide, left, top, size, rgb_color, avatar=False):
-    s = str(rgb_color)
-    rgb_tuple = (int(s[0:2],16), int(s[2:4],16), int(s[4:6],16))
-    png = _make_avatar_png(rgb_tuple) if avatar else _make_icon_png(rgb_tuple)
+def _add_icon(slide, left, top, size, rgb_color, icon_name="default", avatar=False):
+    if avatar:
+        icon_name = "person"
+    png = _load_icon_png(icon_name, size=256)
     tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
     tmp.write(png); tmp.close()
     pic = slide.shapes.add_picture(tmp.name, left, top, size, size)
@@ -423,8 +453,9 @@ def make_bullets(prs, s, idx, total):
             _rrect(slide, x, card_top, col_w, card_h, WHITE, radius=0.04)
             cx = x + I(0.25)
             _oval(slide, cx + icon_circle//2, card_top + I(0.25) + icon_circle//2, icon_circle//2, ac)
-            _add_icon(slide, cx + (icon_circle - icon_sz)//2, card_top + I(0.25) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
             title_text = it.get("title", "")
+            ic = _pick_icon(title_text + " " + it.get("desc", ""), it.get("icon"))
+            _add_icon(slide, cx + (icon_circle - icon_sz)//2, card_top + I(0.25) + (icon_circle - icon_sz)//2, icon_sz, WHITE, icon_name=ic)
             chars_per_line = tw_pt / 8  # ~8pt per Vietnamese char at 14pt
             est_lines = max(1, len(title_text) / chars_per_line)
             if est_lines > 1.5:
@@ -451,7 +482,8 @@ def make_bullets(prs, s, idx, total):
             y = list_top + i * row_h
             if y + I(0.60) > bot: break
             _oval(slide, LM + icon_circle//2, y + icon_circle//2, icon_circle//2, ac)
-            _add_icon(slide, LM + (icon_circle - icon_sz)//2, y + (icon_circle - icon_sz)//2, icon_sz, WHITE)
+            ic = _pick_icon(it.get("title","") + " " + it.get("desc",""), it.get("icon"))
+            _add_icon(slide, LM + (icon_circle - icon_sz)//2, y + (icon_circle - icon_sz)//2, icon_sz, WHITE, icon_name=ic)
             _tb(slide, it.get("title", ""), tx, y - I(0.04), I(4.50), I(0.35),
                 sz=14, bold=True, color=T["primary_dk"], font="Trebuchet MS")
             if it.get("desc"):
@@ -466,7 +498,7 @@ def make_bullets(prs, s, idx, total):
             for i, b in enumerate(bullets[:n]):
                 ac = accents[i % len(accents)]
                 x = LM + I(0.25) + i * (col_w + gap)
-                _add_icon(slide, x + I(0.16), top + I(0.56), icon_sz, ac)
+                _add_icon(slide, x + I(0.16), top + I(0.56), icon_sz, ac, icon_name=_pick_icon(b))
                 _tb(slide, b, x, top + I(1.15), col_w - I(0.50), I(0.55),
                     sz=14.5, bold=True, color=T["primary_dk"], font="Trebuchet MS")
         else:
@@ -476,7 +508,7 @@ def make_bullets(prs, s, idx, total):
                 y = top + i * row_h
                 if y + I(0.50) > bot: break
                 icon_sz = I(0.26)
-                _add_icon(slide, LM + I(0.16), y + I(0.10), icon_sz, ac)
+                _add_icon(slide, LM + I(0.16), y + I(0.10), icon_sz, ac, icon_name=_pick_icon(b))
                 _tb(slide, b, LM + I(0.65), y + I(0.05), CW - I(0.80), I(0.50),
                     sz=13, bold=True, color=T["primary_dk"], font="Trebuchet MS")
 
@@ -670,7 +702,7 @@ def make_donut(prs, s, idx, total):
         if y + I(0.50) > bot:
             break
         _oval(slide, legend_x + icon_circle//2, y + I(0.10) + icon_circle//2, icon_circle//2, ac)
-        _add_icon(slide, legend_x + (icon_circle - icon_sz)//2, y + I(0.10) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
+        _add_icon(slide, legend_x + (icon_circle - icon_sz)//2, y + I(0.10) + (icon_circle - icon_sz)//2, icon_sz, WHITE, icon_name=_pick_icon(it.get("label","")))
         pct = round(values[i] / total_val * 100) if total_val else 0
         detail = it.get("detail", "")
         _tb2(slide, [
@@ -697,7 +729,7 @@ def make_two_col(prs, s, idx, total):
             y = top_y + i * row_h
             if y + I(0.70) > SH - I(0.45): break
             icon_sz = I(0.26)
-            _add_icon(slide, x, y + I(0.12), icon_sz, ac)
+            _add_icon(slide, x, y + I(0.12), icon_sz, ac, icon_name=_pick_icon(item))
             _tb(slide, item, x + I(0.50), y + I(0.06), col_w - I(0.80), I(0.65),
                 sz=12, bold=True, color=T["primary_dk"], font="Trebuchet MS")
 
@@ -761,7 +793,8 @@ def make_pillars(prs, s, idx, total):
         y = top_y + r * (card_h + gap_y)
         _rrect(slide, x, y, col_w, card_h, WHITE, radius=0.04)
         _oval(slide, x + I(0.22) + icon_circle//2, y + I(0.22) + icon_circle//2, icon_circle//2, ac)
-        _add_icon(slide, x + I(0.22) + (icon_circle - icon_sz)//2, y + I(0.22) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
+        ic = _pick_icon(item.get("title","") + " " + " ".join(item.get("bullets",[])), item.get("icon"))
+        _add_icon(slide, x + I(0.22) + (icon_circle - icon_sz)//2, y + I(0.22) + (icon_circle - icon_sz)//2, icon_sz, WHITE, icon_name=ic)
         tx = x + I(0.95)
         tw = I(3.20)
         _tb(slide, item.get("title", ""), tx, y + I(0.18), tw, I(0.45),
@@ -891,7 +924,7 @@ def make_principles(prs, s, idx, total):
         if y + card_h > SH - I(0.40): break
         # Icon-left card without border
         icon_sz = I(0.30)
-        _add_icon(slide, x + I(0.12), y + I(0.12), icon_sz, ac)
+        _add_icon(slide, x + I(0.12), y + I(0.12), icon_sz, ac, icon_name=_pick_icon(item.get("title","") if isinstance(item, dict) else str(item)))
         tx = x + I(0.55)
         tw = col_w - I(0.70)
         _tb(slide, item.get("title", ""), tx, y + I(0.05), tw, I(0.28),
