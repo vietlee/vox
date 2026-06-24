@@ -61,6 +61,10 @@ class ContentOutlineGenerator
     @outline = outline
   end
 
+  def recompile(raw_slides, theme_name)
+    build_deck_schema(raw_slides, theme_name)
+  end
+
   def call
     svc = ClaudeService.for_feature("quiz_generate", timeout: 180)
 

@@ -64,6 +64,23 @@ class Admin::ContentOutlinesController < Admin::BaseController
     redirect_to content_outlines_path, notice: "Đã xóa."
   end
 
+  def change_theme
+    theme_name = params[:theme].to_s.strip.downcase
+    return render json: { error: "Invalid theme" }, status: 422 unless theme_name.present?
+
+    current_deck = JSON.parse(@outline.slide_json || "{}")
+    raw_slides = current_deck["slides"]&.map { |s| s["raw"] || s } || []
+    return render json: { error: "No slides to recompile" }, status: 422 if raw_slides.empty?
+
+    gen = ContentOutlineGenerator.new(@outline)
+    deck = gen.recompile(raw_slides, theme_name)
+    html = "<div id='slide-deck-root' data-deck='#{ERB::Util.html_escape(deck.to_json)}'></div>"
+    @outline.update!(slide_json: deck.to_json, content: html)
+    render json: { deck: deck }
+  rescue => e
+    render json: { error: e.message }, status: 422
+  end
+
   def update_slides
     deck_json = params[:deck_json] || params[:slide_json]
     return render json: { error: "Missing deck_json" }, status: 422 if deck_json.blank?

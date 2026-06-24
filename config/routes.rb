@@ -271,6 +271,7 @@ Rails.application.routes.draw do
         post :ai_edit
         get  :status
         patch :update_slides
+        patch :change_theme
       end
     end
 

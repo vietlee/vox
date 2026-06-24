@@ -167,7 +167,7 @@
 
   <style>
     #slide-viewer { font-family:'Nunito','Inter',sans-serif; }
-    #slide-stage { position:relative; width:1280px; height:720px; overflow:hidden; transform-origin:top left; }
+    #slide-stage { position:absolute; width:1280px; height:720px; overflow:hidden; transform-origin:top left; }
     #slide-stage * { box-sizing:border-box; }
     .sel-el { outline:2px solid #6366f1; outline-offset:1px; cursor:move; }
     .sel-handle { position:absolute; width:8px; height:8px; background:#6366f1; border:2px solid #fff;
@@ -290,21 +290,35 @@
       var data = (el.chart && el.chart.data) || [];
       if (!data.length) return '';
       var t = deck.theme || {};
-      var colors = t.card_icons || ['#6366f1','#8b5cf6','#a78bfa'];
-      var maxVal = Math.max.apply(null, data.map(function(d){return d.value||0;})) || 1;
-      var barArea_h = h * 0.78;
-      var label_h = h * 0.18;
-      var barW = Math.max(8, Math.floor(w / data.length) - 6);
-      var gap = Math.floor((w - barW * data.length) / (data.length + 1));
+      var accent = t.accent || '#6366f1';
+      var colors = t.card_icons || [accent, t.primary_dk || '#4338CA', t.primary || '#6366f1'];
+      var maxVal = Math.max.apply(null, data.map(function(d){return parseFloat(d.value)||0;})) || 1;
+      var padTop = 22; /* room for value labels */
+      var padBot = 22; /* room for x-axis labels */
+      var barArea_h = h - padTop - padBot;
+      var n = data.length;
+      var barW = Math.max(10, Math.floor((w * 0.8) / n));
+      var totalBarW = barW * n;
+      var gap = Math.floor((w - totalBarW) / (n + 1));
+      gap = Math.max(4, gap);
       var svgContent = '';
+      /* grid line at top */
+      svgContent += '<line x1="0" y1="'+padTop+'" x2="'+w+'" y2="'+padTop+'" stroke="#F1F5F9" stroke-width="1"/>';
       data.forEach(function(d, i) {
-        var barH = Math.round((d.value / maxVal) * barArea_h);
+        var val = parseFloat(d.value) || 0;
+        var barH = Math.round((val / maxVal) * barArea_h);
         var bx = gap + i * (barW + gap);
-        var by = barArea_h - barH;
+        var by = padTop + barArea_h - barH;
         var c = colors[i % colors.length];
-        svgContent += '<rect x="'+bx+'" y="'+by+'" width="'+barW+'" height="'+barH+'" rx="3" fill="'+c+'"/>';
+        /* bar with rounded top */
+        var rx = Math.min(4, barW / 3);
+        svgContent += '<rect x="'+bx+'" y="'+by+'" width="'+barW+'" height="'+barH+'" rx="'+rx+'" fill="'+c+'"/>';
+        /* value label on top */
+        var valStr = String(d.value||'');
+        svgContent += '<text x="'+(bx+barW/2)+'" y="'+(by-5)+'" text-anchor="middle" font-size="11" font-weight="700" fill="'+c+'" font-family="Inter,sans-serif">'+escHtml(valStr)+'</text>';
+        /* x-axis label */
         var lbl = String(d.label||'').substring(0,8);
-        svgContent += '<text x="'+(bx+barW/2)+'" y="'+(barArea_h+label_h*0.65)+'" text-anchor="middle" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif">'+lbl+'</text>';
+        svgContent += '<text x="'+(bx+barW/2)+'" y="'+(padTop+barArea_h+padBot*0.72)+'" text-anchor="middle" font-size="10" fill="#94A3B8" font-family="Inter,sans-serif">'+escHtml(lbl)+'</text>';
       });
       return '<div class="slide-el" '+attrs+' style="position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;z-index:'+z+';"><svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">'+svgContent+'</svg></div>';
     }
@@ -362,10 +376,20 @@
       var stage  = document.getElementById('slide-stage');
       if (!viewer || !stage) return;
       var vw = viewer.clientWidth, vh = viewer.clientHeight;
-      var scale = Math.min(vw / 1280, vh / 720);
+      if (!vw || !vh) return;
+      var scaleW = vw / 1280;
+      var scaleH = vh / 720;
+      var scale = Math.min(scaleW, scaleH);
+      var scaledW = Math.round(1280 * scale);
+      var scaledH = Math.round(720 * scale);
+      var ml = Math.round((vw - scaledW) / 2);
+      var mt = Math.round((vh - scaledH) / 2);
+      stage.style.transformOrigin = 'top left';
       stage.style.transform = 'scale(' + scale + ')';
-      stage.style.marginLeft = Math.round((vw - 1280 * scale) / 2) + 'px';
-      stage.style.marginTop  = Math.round(Math.max(0, (vh - 720 * scale) / 2)) + 'px';
+      stage.style.position = 'absolute';
+      stage.style.left = ml + 'px';
+      stage.style.top  = Math.max(0, mt) + 'px';
+      stage.style.margin = '0';
     }
 
     /* ─── Navigation ─── */
@@ -637,11 +661,9 @@
       stageDiv.id = 'slide-stage';
       viewer.appendChild(stageDiv);
     }
-    /* Initialize stage inline-style on container */
-    viewer.style.display = 'flex';
-    viewer.style.alignItems = 'flex-start';
-    viewer.style.justifyContent = 'flex-start';
+    /* DO NOT set display:flex on viewer — it would cause flex-shrink on stage */
     viewer.style.background = '#0f172a';
+    viewer.style.overflow = 'hidden';
 
     /* ─── Theme switcher ─── */
     var THEMES = {
@@ -671,23 +693,35 @@
     }
 
     function applyTheme(name) {
-      var t = THEMES[name]; if (!t) return;
-      t = Object.assign({}, t, {name: name, fonts: {heading:'Nunito', body:'Inter'}});
-      deck.theme = t;
-      /* Rebuild slide backgrounds based on theme */
-      (deck.slides || []).forEach(function(s, idx) {
-        var isContent = idx > 0 && idx < deck.slides.length - 1;
-        var raw_style = (s.raw && s.raw.style) || {};
-        if (raw_style.bg_color) return; /* custom, skip */
-        if (!isContent || raw_style.bg === 'dark') {
-          s.background = {type:'solid', color: t.cover_bg};
-        } else {
-          s.background = {type:'solid', color: '#FFFFFF'};
-        }
-      });
+      if (!THEMES[name]) return;
       document.getElementById('theme-menu').style.display = 'none';
-      goToSlide(current);
-      scheduleSave();
+
+      /* Show spinner on current slide */
+      var stage = document.getElementById('slide-stage');
+      if (stage) stage.style.opacity = '0.4';
+
+      var body = new URLSearchParams();
+      body.append('theme', name);
+      body.append('authenticity_token', CSRF_TOKEN);
+
+      fetch('<%= change_theme_content_outline_path(@outline) %>', {
+        method: 'PATCH', body: body
+      }).then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.deck) {
+            deck = data.deck;
+            slides = deck.slides || [];
+            theme = deck.theme || {};
+            total = slides.length;
+            saveHistorySnapshot();
+          }
+          if (stage) stage.style.opacity = '1';
+          goToSlide(Math.min(current, slides.length - 1));
+        })
+        .catch(function(err) {
+          console.error('[VOX] change_theme error:', err);
+          if (stage) stage.style.opacity = '1';
+        });
     }
 
     window.applyTheme = applyTheme;
