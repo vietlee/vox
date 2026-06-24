@@ -664,6 +664,7 @@ def make_donut(prs, s, idx, total):
     if not items: _page_num(slide, idx, total); return
 
     n = min(len(items), 6)
+    has_note = bool(s.get("note"))
     accents = _accents()
     labels = [it.get("label", "") for it in items[:n]]
     values = []
@@ -675,22 +676,26 @@ def make_donut(prs, s, idx, total):
 
     total_val = sum(values) or 1
 
-    # Donut on left
-    _add_donut_chart(slide, labels, values, I(0.50), top_y - I(0.10), I(4.50), I(3.60), accents)
+    # Donut on left — shrink when insight bar present
+    chart_h = I(2.50) if has_note else I(3.60)
+    _add_donut_chart(slide, labels, values, I(0.50), top_y - I(0.10), I(4.50), chart_h, accents)
 
     # Center text in donut
     center_text = s.get("center_text", "")
     center_sub = s.get("center_sub", "")
     if center_text:
+        ct_y = I(2.40) if has_note else I(2.85)
         _tb2(slide, [
             (center_text, 18, True, T["primary_dk"]),
             (center_sub, 18, True, T["primary_dk"]),
-        ], I(1.85), I(2.85), I(1.80), I(1.10), align=PP_ALIGN.CENTER)
+        ], I(1.85), ct_y, I(1.80), I(1.10), align=PP_ALIGN.CENTER)
 
-    # Legend items on right — dynamic spacing based on item count
+    # Legend items on right — dynamic spacing, respect insight bar
     legend_x = I(5.35)
     legend_y_start = top_y - I(0.05)
-    avail_h = bot - legend_y_start
+    has_note = bool(s.get("note"))
+    legend_bot = I(4.35) if has_note else bot
+    avail_h = legend_bot - legend_y_start
     item_h = min(I(0.82), avail_h // n) if n else I(0.82)
     icon_circle = I(0.50)
     icon_sz = I(0.26)
@@ -699,7 +704,7 @@ def make_donut(prs, s, idx, total):
     for i, it in enumerate(items[:n]):
         ac = accents[i % len(accents)]
         y = legend_y_start + i * item_h
-        if y + I(0.50) > bot:
+        if y + I(0.50) > legend_bot:
             break
         _oval(slide, legend_x + icon_circle//2, y + I(0.10) + icon_circle//2, icon_circle//2, ac)
         _add_icon(slide, legend_x + (icon_circle - icon_sz)//2, y + I(0.10) + (icon_circle - icon_sz)//2, icon_sz, WHITE, icon_name=_pick_icon(it.get("label","")))
