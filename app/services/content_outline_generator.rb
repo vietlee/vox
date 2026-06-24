@@ -156,7 +156,7 @@ class ContentOutlineGenerator
       6. TUYỆT ĐỐI KHÔNG dùng emoji (🌱💰📈❌). Slide chuyên nghiệp không có emoji.
       7. FOOTER dùng cho nguồn dữ liệu (VD: "Nguồn: Nielsen Vietnam 2023") hoặc disclaimer.
       8. Nội dung phải tự nhiên, có chiều sâu — KHÔNG viết kiểu liệt kê khô khan.
-      9. CHỈ TẠO ĐÚNG 8 SLIDE (cover + 6 content + summary). Ít slide nhưng mỗi slide phải chất lượng cao, đậm đặc thông tin.
+      9. Số slide: 6–12 slide tuỳ độ phức tạp của chủ đề (1 cover + N content + 1 summary). Chất lượng quan trọng hơn số lượng.
       10. TIÊU ĐỀ bullet/item: tối đa 25 ký tự (5-6 từ). Viết ngắn gọn, súc tích. Phần giải thích đặt vào desc sau "::".
     SYS
   end
@@ -183,7 +183,7 @@ class ContentOutlineGenerator
       - berry: tím hồng (mỹ phẩm, wedding, luxury, thời trang cao cấp)
       - midnight: xanh đêm (fintech, blockchain, AI/ML, nghiên cứu khoa học)
 
-      Tạo ĐÚNG 8 slide (1 cover + 6 content + 1 summary), mỗi slide theo đúng format này:
+      Tạo số slide PHÙ HỢP (6–12 slide, tuỳ nội dung — 1 cover + N content + 1 summary), mỗi slide theo đúng format này:
 
       ---SLIDE---
       TITLE: Tiêu đề slide (viết thường tự nhiên, tối đa 50 ký tự, slide cover chỉ ghi TÊN dự án)
@@ -337,7 +337,8 @@ class ContentOutlineGenerator
 
       Các thuộc tính:
       - category=TÊN_NHÓM       → Nhãn nhỏ phía trên title. BẮT BUỘC cho mọi content slide.
-      - bg=dark|light           → Nền tối hoặc sáng. Mặc định: light
+      - bg=dark|light|custom    → Nền tối hoặc sáng. Mặc định: light
+      - bg_color=#RRGGBB        → Màu background tùy chỉnh (hex). Dùng khi muốn màu đặc biệt, VD: bg_color=#F0F4FF. Ưu tiên hơn bg=
       - chart_type=line|bar     → Loại biểu đồ (chỉ cho LAYOUT: chart). Mặc định: bar
       - icon=TÊN_ICON           → Icon cho cover/summary. Chọn 1 trong: search, store, check, clock, person, people, rocket, code, chart, money, percent, megaphone, crown, lightbulb, shield, star, heart, globe, target, handshake, leaf, phone, truck
       - cover_style=left|centered|minimal → Kiểu bố cục cover (chỉ cho slide cover):
@@ -569,8 +570,16 @@ class ContentOutlineGenerator
     total = raw_slides.length
     compiled_slides = raw_slides.each_with_index.map do |s, idx|
       stype = idx == 0 ? :cover : (idx == total - 1 ? :summary : :content)
-      bg = stype == :content ? { "type" => "solid", "color" => "#FFFFFF" } :
-                               { "type" => "solid", "color" => t["cover_bg"] }
+      sl_style = s["style"] || {}
+      bg_color_override = sl_style["bg_color"]
+      bg_mode = sl_style["bg"]  # "dark", "light", "custom"
+      bg = if bg_color_override&.start_with?("#")
+             { "type" => "solid", "color" => bg_color_override }
+           elsif bg_mode == "dark" || stype != :content
+             { "type" => "solid", "color" => t["cover_bg"] }
+           else
+             { "type" => "solid", "color" => "#FFFFFF" }
+           end
       els = case stype
             when :cover   then compile_cover(s, t)
             when :summary then compile_summary(s, t, idx, total)

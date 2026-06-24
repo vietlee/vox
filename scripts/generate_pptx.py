@@ -101,13 +101,31 @@ def add_ellipse(slide, x, y, w, h, fill_hex, opacity=1.0):
             pass
     return shape
 
-def add_icon_box(slide, x, y, size, fill_hex, icon_name='star'):
+ICON_CHARS = {
+    'star': '★', 'check': '✓', 'rocket': '🚀', 'chart': '📊', 'money': '💰',
+    'person': '👤', 'people': '👥', 'leaf': '🌿', 'lightbulb': '💡',
+    'shield': '🛡', 'target': '🎯', 'crown': '♛', 'handshake': '🤝',
+    'globe': '🌐', 'megaphone': '📣', 'search': '🔍', 'code': '⌨',
+    'clock': '⏱', 'store': '🏪', 'percent': '%', 'heart': '❤',
+    'truck': '🚚', 'phone': '📞',
+}
+
+def add_icon_box(slide, x, y, size, fill_hex, icon_name='star', icon_color='#FFFFFF'):
     shape = slide.shapes.add_shape(9, I(x), I(y), I(size), I(size))
     add_shape_fill(shape, fill_hex)
     shape.line.fill.background()
-    # No real icon — just colored circle with placeholder text
     tf = shape.text_frame
-    tf.paragraphs[0].alignment = PP_ALIGN.CENTER
+    tf.word_wrap = False
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.CENTER
+    run = p.add_run()
+    ch = ICON_CHARS.get(icon_name, '●')
+    run.text = ch
+    run.font.size = Pt(size * 72 * 0.45)  # 45% of shape size in pts
+    try:
+        run.font.color.rgb = safe_color(icon_color)
+    except Exception:
+        pass
     return shape
 
 def render_element(slide, el, slide_idx):
@@ -143,13 +161,52 @@ def render_element(slide, el, slide_idx):
 
     elif el_type == 'icon':
         bg = s.get('bgColor', s.get('fill','#6366f1'))
-        add_icon_box(slide, x, y, w, bg, el.get('icon','star'))
+        ic = s.get('color', '#FFFFFF')
+        add_icon_box(slide, x, y, w, bg, el.get('icon','star'), ic)
 
     elif el_type == 'chart_bar':
         render_bar_chart(slide, el)
 
     elif el_type == 'chart_donut':
         render_donut_chart(slide, el)
+
+def enable_data_labels(series, show_value=True, show_cat=False, position=None):
+    """Enable data labels on a chart series via XML."""
+    try:
+        from pptx.oxml.ns import qn
+        import lxml.etree as etree
+        spPr = series._element
+        # Find or create dLbls at series level
+        dLbls = spPr.find(qn('c:dLbls'))
+        if dLbls is None:
+            dLbls = etree.SubElement(spPr, qn('c:dLbls'))
+        dLbls.clear()
+        numFmt = etree.SubElement(dLbls, qn('c:numFmt'))
+        numFmt.set('formatCode', 'General')
+        numFmt.set('sourceLinked', '0')
+        spPrEl = etree.SubElement(dLbls, qn('c:spPr'))
+        txPr = etree.SubElement(dLbls, qn('c:txPr'))
+        bodyPr = etree.SubElement(txPr, qn('a:bodyPr'))
+        lstStyle = etree.SubElement(txPr, qn('a:lstStyle'))
+        p = etree.SubElement(txPr, qn('a:p'))
+        pPr = etree.SubElement(p, qn('a:pPr'))
+        defRPr = etree.SubElement(pPr, qn('a:defRPr'))
+        defRPr.set('sz', '900')  # 9pt
+        if show_cat:
+            catV = etree.SubElement(dLbls, qn('c:showCatName'))
+            catV.set('val', '1')
+        showVal = etree.SubElement(dLbls, qn('c:showVal'))
+        showVal.set('val', '1' if show_value else '0')
+        showSerName = etree.SubElement(dLbls, qn('c:showSerName'))
+        showSerName.set('val', '0')
+        showLegendKey = etree.SubElement(dLbls, qn('c:showLegendKey'))
+        showLegendKey.set('val', '0')
+        showPercent = etree.SubElement(dLbls, qn('c:showPercent'))
+        showPercent.set('val', '0')
+        showBubbleSize = etree.SubElement(dLbls, qn('c:showBubbleSize'))
+        showBubbleSize.set('val', '0')
+    except Exception as e:
+        print(f'[PPTX] data labels error: {e}', file=sys.stderr)
 
 def render_bar_chart(slide, el):
     from pptx.chart.data import ChartData
@@ -161,14 +218,17 @@ def render_bar_chart(slide, el):
     chart_data = ChartData()
     chart_data.categories = [str(d.get('label','')) for d in data_arr]
     chart_data.add_series('', [d.get('value',0) for d in data_arr])
-    graphic_frame = slide.shapes.add_chart(XL_CHART_TYPE.BAR_CLUSTERED, I(x), I(y), I(w), I(h), chart_data)
+    graphic_frame = slide.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, I(x), I(y), I(w), I(h), chart_data)
     chart = graphic_frame.chart
     chart.has_legend = False
     chart.has_title = False
+    plot = chart.plots[0]
+    plot.has_data_labels = True
     series = chart.series[0]
     fill = series.format.fill
     fill.solid()
     fill.fore_color.rgb = RGBColor(0x63, 0x66, 0xF1)
+    enable_data_labels(series)
 
 def render_donut_chart(slide, el):
     from pptx.chart.data import ChartData
@@ -184,6 +244,10 @@ def render_donut_chart(slide, el):
     chart = graphic_frame.chart
     chart.has_legend = True
     chart.has_title = False
+    plot = chart.plots[0]
+    plot.has_data_labels = True
+    series = chart.series[0]
+    enable_data_labels(series, show_value=True, show_cat=True)
 
 def set_slide_background(slide, background):
     bg_type  = background.get('type','solid')

@@ -59,6 +59,28 @@
                     class="text-[12px] text-indigo-600 hover:text-indigo-700 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border-0 cursor-pointer font-semibold">
               ✨ Sửa bằng AI
             </button>
+            <div style="position:relative;display:inline-block;">
+              <button onclick="toggleThemeMenu(this)"
+                      class="text-[12px] text-slate-500 hover:text-indigo-600 px-3 py-1 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors border-0 cursor-pointer">
+                🎨 Đổi màu
+              </button>
+              <div id="theme-menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:999;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:8px;min-width:200px;">
+                <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px 6px;">Chọn theme màu</div>
+                <% [["green","#064E3B","#10B981"],["blue","#1E3A5F","#3B82F6"],["purple","#3B0764","#A855F7"],
+                    ["red","#7F1D1D","#EF4444"],["teal","#134E4A","#0D9488"],["amber","#78350F","#F59E0B"],
+                    ["slate","#0F172A","#64748B"],["earth","#3B1F0A","#92400E"],["coral","#7F1D1D","#F43F5E"],
+                    ["ocean","#0C4A6E","#0369A1"],["berry","#500724","#DB2777"],["midnight","#0F0B2A","#4F46E5"]
+                ].each do |name, dark, accent| %>
+                  <button onclick="applyTheme('<%= name %>')"
+                          style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:8px;text-align:left;"
+                          onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">
+                    <span style="width:14px;height:14px;border-radius:50%;background:<%= dark %>;flex-shrink:0;"></span>
+                    <span style="width:14px;height:14px;border-radius:50%;background:<%= accent %>;flex-shrink:0;margin-left:-8px;border:2px solid #fff;"></span>
+                    <span style="font-size:12px;font-weight:500;color:#374151;text-transform:capitalize;margin-left:2px;"><%= name %></span>
+                  </button>
+                <% end %>
+              </div>
+            </div>
             <button onclick="enterFullscreen()"
                     class="text-[12px] text-slate-500 hover:text-indigo-600 px-3 py-1 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors border-0 cursor-pointer">
               ⛶ Toàn màn hình
@@ -621,6 +643,55 @@
     viewer.style.justifyContent = 'flex-start';
     viewer.style.background = '#0f172a';
 
+    /* ─── Theme switcher ─── */
+    var THEMES = {
+      green:{cover_bg:"#064E3B",primary:"#10B981",primary_dk:"#065F46",primary_lt:"#D1FAE5",primary_xl:"#ECFDF5",accent:"#10B981",card_bgs:["#E8F5F0","#D1F5E0","#C8F5D4"],card_icons:["#10B981","#047857","#065F46"],text_light:"#A7F3D0"},
+      blue:{cover_bg:"#1E3A5F",primary:"#3B82F6",primary_dk:"#2563EB",primary_lt:"#BFDBFE",primary_xl:"#EFF6FF",accent:"#3B82F6",card_bgs:["#EFF6FF","#DBEAFE","#E0EDFF"],card_icons:["#3B82F6","#2563EB","#1D4ED8"],text_light:"#BFDBFE"},
+      purple:{cover_bg:"#3B0764",primary:"#A855F7",primary_dk:"#7E22CE",primary_lt:"#E9D5FF",primary_xl:"#F5F3FF",accent:"#A855F7",card_bgs:["#F5F3FF","#EDE9FE","#E9D5FF"],card_icons:["#9333EA","#7E22CE","#6B21A8"],text_light:"#DDD6FE"},
+      red:{cover_bg:"#7F1D1D",primary:"#EF4444",primary_dk:"#DC2626",primary_lt:"#FCA5A5",primary_xl:"#FEF2F2",accent:"#F97316",card_bgs:["#FFF7ED","#FFEDD5","#FDE8D8"],card_icons:["#EF4444","#DC2626","#B91C1C"],text_light:"#FCA5A5"},
+      teal:{cover_bg:"#134E4A",primary:"#0D9488",primary_dk:"#0F766E",primary_lt:"#99F6E4",primary_xl:"#F0FDFA",accent:"#14B8A6",card_bgs:["#F0FDFA","#CCFBF1","#C7F5EE"],card_icons:["#0D9488","#0F766E","#115E59"],text_light:"#99F6E4"},
+      amber:{cover_bg:"#78350F",primary:"#F59E0B",primary_dk:"#D97706",primary_lt:"#FDE68A",primary_xl:"#FFFBEB",accent:"#F59E0B",card_bgs:["#FFFBEB","#FEF3C7","#FDE68A"],card_icons:["#F59E0B","#D97706","#B45309"],text_light:"#FDE68A"},
+      slate:{cover_bg:"#0F172A",primary:"#64748B",primary_dk:"#475569",primary_lt:"#CBD5E1",primary_xl:"#F8FAFC",accent:"#6366F1",card_bgs:["#F8FAFC","#F1F5F9","#E9EEF4"],card_icons:["#6366F1","#4F46E5","#4338CA"],text_light:"#E2E8F0"},
+      earth:{cover_bg:"#3B1F0A",primary:"#92400E",primary_dk:"#78350F",primary_lt:"#FDE68A",primary_xl:"#FFFBEB",accent:"#D97706",card_bgs:["#FFFBEB","#FEF3C7","#FDE68A"],card_icons:["#92400E","#78350F","#6B3B1F"],text_light:"#FDE68A"},
+      coral:{cover_bg:"#7F1D1D",primary:"#F43F5E",primary_dk:"#E11D48",primary_lt:"#FECDD3",primary_xl:"#FFF1F2",accent:"#FB7185",card_bgs:["#FFF1F2","#FFE4E6","#FECDD3"],card_icons:["#F43F5E","#E11D48","#BE123C"],text_light:"#FCA5AF"},
+      ocean:{cover_bg:"#0C4A6E",primary:"#0369A1",primary_dk:"#075985",primary_lt:"#BAE6FD",primary_xl:"#F0F9FF",accent:"#0EA5E9",card_bgs:["#F0F9FF","#E0F2FE","#BAE6FD"],card_icons:["#0369A1","#075985","#0C4A6E"],text_light:"#BAE6FD"},
+      berry:{cover_bg:"#500724",primary:"#DB2777",primary_dk:"#BE185D",primary_lt:"#F9A8D4",primary_xl:"#FDF2F8",accent:"#EC4899",card_bgs:["#FDF2F8","#FCE7F3","#FBCFE8"],card_icons:["#DB2777","#BE185D","#9D174D"],text_light:"#F9A8D4"},
+      midnight:{cover_bg:"#0F0B2A",primary:"#4F46E5",primary_dk:"#3730A3",primary_lt:"#C7D2FE",primary_xl:"#EEF2FF",accent:"#818CF8",card_bgs:["#EEF2FF","#E0E7FF","#D4DBFF"],card_icons:["#4F46E5","#3730A3","#312E81"],text_light:"#C7D2FE"}
+    };
+
+    function toggleThemeMenu(btn) {
+      var menu = document.getElementById('theme-menu');
+      menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+      document.addEventListener('click', function closeMenu(e) {
+        if (!btn.parentElement.contains(e.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('click', closeMenu);
+        }
+      });
+    }
+
+    function applyTheme(name) {
+      var t = THEMES[name]; if (!t) return;
+      t = Object.assign({}, t, {name: name, fonts: {heading:'Nunito', body:'Inter'}});
+      deck.theme = t;
+      /* Rebuild slide backgrounds based on theme */
+      (deck.slides || []).forEach(function(s, idx) {
+        var isContent = idx > 0 && idx < deck.slides.length - 1;
+        var raw_style = (s.raw && s.raw.style) || {};
+        if (raw_style.bg_color) return; /* custom, skip */
+        if (!isContent || raw_style.bg === 'dark') {
+          s.background = {type:'solid', color: t.cover_bg};
+        } else {
+          s.background = {type:'solid', color: '#FFFFFF'};
+        }
+      });
+      document.getElementById('theme-menu').style.display = 'none';
+      goToSlide(current);
+      scheduleSave();
+    }
+
+    window.applyTheme = applyTheme;
+    window.toggleThemeMenu = toggleThemeMenu;
     window.prevSlide = prevSlide;
     window.nextSlide = nextSlide;
     window.goToSlide = goToSlide;
