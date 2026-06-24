@@ -410,8 +410,8 @@ def make_cover(prs, s, idx, total):
 
     title_color = WHITE if is_dark else T["primary_dk"]
     title_y = I(2.05) if cat else I(1.75)
-    _tb(slide, s["title"], I(0.65), title_y, I(8.50), I(1.30),
-        sz=56, bold=True, color=title_color, font="Calibri")
+    _tb(slide, s["title"], I(0.65), title_y, I(7.50), I(1.30),
+        sz=44, bold=True, color=title_color, font="Calibri")
 
     sub_color = T["primary_xl"] if is_dark else MID
     if s.get("subtitle"):
@@ -425,6 +425,7 @@ def make_cover(prs, s, idx, total):
         s_tf = _shape(slide, MSO_SHAPE.RECTANGLE, I(0.90), I(4.55), I(6.0), I(0.40))
         s_tf.fill.background(); s_tf.line.fill.background()
         tf = s_tf.text_frame; tf.word_wrap = True
+        tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
         tf.margin_left = Pt(2); tf.margin_right = Pt(2)
         tf.margin_top = Pt(1); tf.margin_bottom = Pt(1)
         p = tf.paragraphs[0]; p.alignment = PP_ALIGN.LEFT
