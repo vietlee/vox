@@ -7,7 +7,7 @@ import sys, json, math, io, tempfile, os
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR, MSO_AUTO_SIZE
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.chart import XL_CHART_TYPE
 from pptx.chart.data import CategoryChartData
@@ -239,6 +239,7 @@ def _tb(slide, text, l, t, w, h, sz=12, bold=False, color=None, align=PP_ALIGN.L
     s = _shape(slide, MSO_SHAPE.RECTANGLE, l, t, w, h)
     s.fill.background()
     tf = s.text_frame; tf.word_wrap = True
+    tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
     tf.margin_left = Pt(2); tf.margin_right = Pt(2)
     tf.margin_top = Pt(1); tf.margin_bottom = Pt(1)
     p = tf.paragraphs[0]; p.alignment = align
@@ -252,6 +253,7 @@ def _tb2(slide, lines_data, l, t, w, h, align=PP_ALIGN.LEFT, font="Calibri"):
     s = _shape(slide, MSO_SHAPE.RECTANGLE, l, t, w, h)
     s.fill.background()
     tf = s.text_frame; tf.word_wrap = True
+    tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
     tf.margin_left = Pt(2); tf.margin_right = Pt(2)
     tf.margin_top = Pt(1); tf.margin_bottom = Pt(1)
     for i, (text, sz, bold, color) in enumerate(lines_data):

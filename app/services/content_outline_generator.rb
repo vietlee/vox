@@ -330,22 +330,38 @@ class ContentOutlineGenerator
 
       TIÊU CHUẨN CHẤT LƯỢNG (RẤT QUAN TRỌNG — PHẢI TUÂN THỦ):
 
+      ═══ QUY TẮC NỘI DUNG SỐ 1 ═══
+      TOÀN BỘ nội dung slide PHẢI bám sát prompt/chủ đề người dùng yêu cầu.
+      KHÔNG ĐƯỢC bịa thông tin, sao chép ví dụ từ system prompt, hoặc thêm chi tiết không liên quan.
+      Nếu prompt nói về "Engineering Q2 Report" thì KHÔNG được có "Gọi vốn Series A".
+      Nếu prompt nói về "Onboarding nhân viên" thì KHÔNG được có số liệu tài chính bịa.
+      Mỗi bullet, số liệu, tên riêng đều phải suy ra được từ prompt người dùng.
+
+      ═══ QUY TẮC ĐỘ DÀI TEXT (CHỐNG TRÀN) ═══
+      - TITLE content slide: tối đa 55 ký tự
+      - Mỗi bullet (trước ::): tối đa 35 ký tự
+      - Mỗi mô tả (sau ::): tối đa 80 ký tự (1-2 câu ngắn)
+      - FOOTER: tối đa 80 ký tự
+      - NOTE: tối đa 90 ký tự
+      - Timeline step: tối đa 25 ký tự, desc tối đa 60 ký tự
+      - Stats label: tối đa 30 ký tự
+      Nếu nội dung dài hơn, PHẢI tóm tắt ngắn gọn hơn. KHÔNG BAO GIỜ viết quá giới hạn.
+
       ═══ QUY TẮC COVER (slide đầu tiên) ═══
-      - TITLE = TÊN DỰ ÁN (1–3 từ, ví dụ: "GreenBite")
-      - SUBTITLE = Mô tả 1 câu italic (ví dụ: "Ứng dụng đặt đồ ăn thuần chay đầu tiên dành riêng cho người Việt")
-      - STYLE: category=NHÃN_NGẮN, bg=dark  (ví dụ: category=SERIES A). BẮT BUỘC có category.
-      - Bullets = 2 thông tin CỤ THỂ (ví dụ: "Gọi vốn Series A", "Tháng 6/2026"). Bullet đầu tiên sẽ in BOLD.
-        KHÔNG viết generic như "Vòng gọi vốn", "Giai đoạn" — phải có giá trị thực.
-      - FOOTER = thông tin liên hệ cụ thể (tên công ty | email | website)
+      - TITLE = TÊN DỰ ÁN hoặc CHỦ ĐỀ CHÍNH (1–5 từ, lấy trực tiếp từ prompt người dùng)
+      - SUBTITLE = Mô tả 1 câu italic giải thích nội dung bài thuyết trình
+      - STYLE: category=NHÃN_NGẮN, bg=dark. BẮT BUỘC có category phù hợp chủ đề.
+      - Bullets = 2 thông tin CỤ THỂ rút từ prompt người dùng (VD: tên sự kiện, ngày tháng, mục tiêu).
+        Bullet đầu tiên sẽ in BOLD. KHÔNG bịa thông tin không có trong prompt.
+        KHÔNG sao chép ví dụ từ system prompt.
+      - FOOTER = thông tin liên hệ nếu người dùng cung cấp, hoặc bỏ trống
       - TUYỆT ĐỐI KHÔNG dùng emoji trên cover
 
       ═══ QUY TẮC NỘI DUNG ═══
-      - Bullets dùng format "Tiêu đề :: Mô tả chi tiết" — phần mô tả 1-2 câu giải thích cụ thể, có ngữ cảnh
-      - VD tốt: "Quán ăn được kiểm định 100% :: Mọi đối tác đều được xác minh thuần chay trước khi lên ứng dụng."
-      - VD xấu: "Kiểm định 100% quán ăn" (quá ngắn, thiếu chi tiết)
-      - Số liệu phải CỤ THỂ và có nguồn — ví dụ: "$58.85M → $175.41M (CAGR 11.54%, IMARC Group)"
+      - Bullets dùng format "Tiêu đề :: Mô tả chi tiết" — phần mô tả 1-2 câu ngắn gọn, có ngữ cảnh
+      - Số liệu phải CỤ THỂ và có nguồn nếu có trong prompt
       - KHÔNG dùng emoji bất kỳ đâu trong nội dung
-      - TITLE content slide: tối đa 55 ký tự, truyền tải insight chính, viết thường tự nhiên
+      - TITLE content slide: viết thường tự nhiên, truyền tải insight chính
 
       ═══ QUY TẮC LAYOUT ═══
       - KHÔNG dùng bullets cho 3 slide liên tiếp — xen kẽ đa dạng
@@ -356,9 +372,9 @@ class ContentOutlineGenerator
       - Slide cuối nên là summary/CTA ngắn gọn
 
       ═══ QUY TẮC SUMMARY (slide cuối) ═══
-      - TITLE = câu call-to-action mạnh, KHÔNG dùng emoji (ví dụ: "Cùng GreenBite dẫn đầu làn sóng thuần chay tại Việt Nam")
-      - Bullet đầu tiên = CTA CỤ THỂ có số tiền/mục tiêu (sẽ hiển thị dạng nút bấm). VD: "Gọi vốn Series A: 500.000 USD". KHÔNG viết generic.
-      - Các bullet sau = thông tin liên hệ (email, website). KHÔNG emoji.
+      - TITLE = câu call-to-action mạnh liên quan đến chủ đề, KHÔNG dùng emoji
+      - Bullet đầu tiên = CTA CỤ THỂ rút từ nội dung bài (sẽ hiển thị dạng nút bấm). KHÔNG bịa thông tin.
+      - Các bullet sau = thông tin liên hệ nếu có, hoặc next steps. KHÔNG emoji.
       - STYLE: bg=dark (BẮT BUỘC)
     PROMPT
   end
