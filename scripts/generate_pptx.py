@@ -494,18 +494,24 @@ def make_stats(prs, s, idx, total):
     if has_chart:
         stat_w = I(2.90)
         gap_y = I(0.15)
-        card_h = I(1.15) if s.get("note") else I(1.50)
+        has_note = bool(s.get("note"))
+        card_h = I(1.20) if has_note else I(1.50)
+        val_sz = 28 if has_note else 34
+        val_top = I(0.10) if has_note else I(0.18)
+        val_h = I(0.55) if has_note else I(0.75)
+        lbl_top = I(0.65) if has_note else I(0.95)
+        lbl_h = I(0.50) if has_note else I(0.50)
         for i, item in enumerate(items[:2]):
             ac = accents[i % len(accents)]
             cy = top_y + i * (card_h + gap_y)
             _rrect(slide, LM, cy, stat_w, card_h, T["primary_dk"], radius=0.05)
             _rect(slide, LM, cy, I(0.09), card_h, ac)
             _tb(slide, item.get("value", ""),
-                LM + I(0.30), cy + I(0.18), stat_w - I(0.50), I(0.75),
-                sz=34, bold=True, color=WHITE, font="Trebuchet MS")
+                LM + I(0.30), cy + val_top, stat_w - I(0.50), val_h,
+                sz=val_sz, bold=True, color=WHITE, font="Trebuchet MS")
             _tb(slide, item.get("label", ""),
-                LM + I(0.30), cy + I(0.95), stat_w - I(0.50), I(0.50),
-                sz=11, color=T["primary_xl"])
+                LM + I(0.30), cy + lbl_top, stat_w - I(0.50), lbl_h,
+                sz=10 if has_note else 11, color=T["primary_xl"])
 
         # Chart on right
         chart_items_parsed = []
