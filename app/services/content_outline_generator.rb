@@ -298,10 +298,10 @@ class ContentOutlineGenerator
 
       Chọn layout PHÙ HỢP NHẤT với nội dung của từng slide — không có thứ tự cố định.
       Hãy để nội dung quyết định layout:
-      - Vấn đề thị trường, giải pháp, tính năng → bullets (3-4 items với ::)
+      - Vấn đề thị trường, giải pháp, tính năng → bullets (PHẢI CÓ ĐÚNG 3 items với ::, KHÔNG ĐƯỢC ÍT HƠN 3)
       - Tăng trưởng, KPI → stats (2 stats + chart_items combo)
       - Phân bổ ngân sách, tỷ lệ % → donut
-      - Mô hình kinh doanh, nguồn thu → pillars (3-4 trụ cột, mỗi trụ 2-3 bullets)
+      - Mô hình kinh doanh, nguồn thu → pillars (PHẢI CÓ ĐÚNG 4 trụ cột, KHÔNG ĐƯỢC ÍT HƠN 4, mỗi trụ 2-3 bullets)
       - Nhiều vai trò, bộ phận → roles
       - Mục tiêu, key results → okr
       - Quy trình tuần tự → timeline

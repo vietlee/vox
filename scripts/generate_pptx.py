@@ -407,7 +407,7 @@ def make_bullets(prs, s, idx, total):
     accents = _accents()
     bot = SH - I(0.50)
 
-    if b_items and n <= 3:
+    if b_items and n == 3:
         # 3-column layout with WHITE cards (cowork slide 2 exact: 2.80" cards, 0.30" gap)
         gap = I(0.30)
         col_w = I(2.80)
@@ -415,7 +415,7 @@ def make_bullets(prs, s, idx, total):
         card_h = I(2.35)
         icon_circle = I(0.65)
         icon_sz = I(0.33)
-        for i, it in enumerate(b_items[:n]):
+        for i, it in enumerate(b_items[:3]):
             ac = accents[i % len(accents)]
             x = LM + i * (col_w + gap)
             _rrect(slide, x, card_top, col_w, card_h, WHITE, radius=0.04)
@@ -423,13 +423,13 @@ def make_bullets(prs, s, idx, total):
             tw = col_w - I(0.50)
             _oval(slide, cx + icon_circle//2, card_top + I(0.25) + icon_circle//2, icon_circle//2, ac)
             _add_icon(slide, cx + (icon_circle - icon_sz)//2, card_top + I(0.25) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
-            _tb(slide, it.get("title", ""), cx, card_top + I(1.00), tw, I(0.55),
-                sz=14, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+            _tb(slide, it.get("title", ""), cx, card_top + I(1.05), tw, I(0.50),
+                sz=13, bold=True, color=T["primary_dk"], font="Trebuchet MS")
             if it.get("desc"):
-                _tb(slide, it["desc"], cx, card_top + I(1.50), tw, I(0.80),
-                    sz=11, color=DARK)
+                _tb(slide, it["desc"], cx, card_top + I(1.55), tw, I(0.75),
+                    sz=10, color=DARK)
 
-    elif b_items and n >= 4:
+    elif b_items and n >= 2:
         # 4+ items: vertical stacked icon-left (cowork slide 3 exact)
         icon_circle = I(0.62)
         icon_sz = I(0.30)
@@ -492,10 +492,9 @@ def make_stats(prs, s, idx, total):
     has_chart = len(chart_data) >= 3
 
     if has_chart:
-        # Split layout: stats left, chart right (cowork slide 5 exact)
         stat_w = I(2.90)
         gap_y = I(0.15)
-        card_h = I(1.50)
+        card_h = I(1.15) if s.get("note") else I(1.50)
         for i, item in enumerate(items[:2]):
             ac = accents[i % len(accents)]
             cy = top_y + i * (card_h + gap_y)
@@ -521,8 +520,9 @@ def make_stats(prs, s, idx, total):
             _tb(slide, chart_label, I(3.85), top_y - I(0.15), I(5.60), I(0.30),
                 sz=11, bold=True, color=T["primary_dk"])
 
+        chart_h = I(2.05) if s.get("note") else I(2.95)
         _add_line_chart(slide, chart_items_parsed,
-                        I(3.75), top_y + I(0.20), I(5.65), I(2.95))
+                        I(3.75), top_y + I(0.20), I(5.65), chart_h)
     else:
         # Standard stats layout
         if n <= 2:
@@ -728,10 +728,10 @@ def make_pillars(prs, s, idx, total):
     top_y = top_y - I(0.05)
     gap_x = I(0.30)
     gap_y = I(0.20)
-    cols = 2 if n >= 4 else n
+    cols = 2 if n >= 2 else 1
     rows = (n + cols - 1) // cols
     col_w = I(4.35)
-    card_h = I(1.55)
+    card_h = I(2.80) if rows == 1 else I(1.55)
     icon_circle = I(0.60)
     icon_sz = I(0.30)
 
