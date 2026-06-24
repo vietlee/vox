@@ -29,7 +29,9 @@ THEMES = {
         "accent":     (0xE8, 0x60, 0x2C),
         "accent3":    (0x40, 0x91, 0x6C),
         "accent4":    (0x52, 0xB7, 0x88),
-        "content_bg": (0xF8, 0xF6, 0xEF),
+        "content_bg": (0xF4, 0xF6, 0xFB),
+        "card_bgs":   [(0xE8,0xF8,0xF1),(0xEA,0xF2,0xFF),(0xF1,0xEC,0xFE),(0xFF,0xF6,0xE5)],
+        "card_icons": [(0x10,0xB9,0x81),(0x2E,0x5B,0xFF),(0x8B,0x5C,0xF6),(0xF5,0x9E,0x0B)],
     },
     "blue": {
         "cover_bg":   (0x1E, 0x3A, 0x5F),
@@ -40,7 +42,9 @@ THEMES = {
         "accent":     (0xF5, 0x9E, 0x0B),
         "accent3":    (0x06, 0xB6, 0xD4),
         "accent4":    (0x60, 0xA5, 0xFA),
-        "content_bg": (0xF8, 0xF6, 0xEF),
+        "content_bg": (0xF4, 0xF6, 0xFB),
+        "card_bgs":   [(0xEA,0xF2,0xFF),(0xE8,0xF8,0xF1),(0xF1,0xEC,0xFE),(0xFF,0xF6,0xE5)],
+        "card_icons": [(0x2E,0x5B,0xFF),(0x10,0xB9,0x81),(0x8B,0x5C,0xF6),(0xF5,0x9E,0x0B)],
     },
     "purple": {
         "cover_bg":   (0x31, 0x30, 0x8C),
@@ -51,7 +55,9 @@ THEMES = {
         "accent":     (0xEC, 0x48, 0x99),
         "accent3":    (0x8B, 0x5C, 0xF6),
         "accent4":    (0xA7, 0x8B, 0xFA),
-        "content_bg": (0xF8, 0xF6, 0xEF),
+        "content_bg": (0xF4, 0xF6, 0xFB),
+        "card_bgs":   [(0xF1,0xEC,0xFE),(0xEA,0xF2,0xFF),(0xFD,0xEC,0xEC),(0xFF,0xF6,0xE5)],
+        "card_icons": [(0x8B,0x5C,0xF6),(0x2E,0x5B,0xFF),(0xEF,0x44,0x44),(0xF5,0x9E,0x0B)],
     },
     "red": {
         "cover_bg":   (0x7F, 0x1D, 0x1D),
@@ -62,7 +68,9 @@ THEMES = {
         "accent":     (0xF5, 0x9E, 0x0B),
         "accent3":    (0xEF, 0x44, 0x44),
         "accent4":    (0xF8, 0x71, 0x71),
-        "content_bg": (0xF8, 0xF6, 0xEF),
+        "content_bg": (0xF4, 0xF6, 0xFB),
+        "card_bgs":   [(0xFD,0xEC,0xEC),(0xEA,0xF2,0xFF),(0xFF,0xF6,0xE5),(0xE8,0xF8,0xF1)],
+        "card_icons": [(0xEF,0x44,0x44),(0x2E,0x5B,0xFF),(0xF5,0x9E,0x0B),(0x10,0xB9,0x81)],
     },
     "teal": {
         "cover_bg":   (0x13, 0x47, 0x4E),
@@ -73,7 +81,9 @@ THEMES = {
         "accent":     (0xF5, 0x9E, 0x0B),
         "accent3":    (0x14, 0xB8, 0xA6),
         "accent4":    (0x2D, 0xD4, 0xBF),
-        "content_bg": (0xF8, 0xF6, 0xEF),
+        "content_bg": (0xF4, 0xF6, 0xFB),
+        "card_bgs":   [(0xE8,0xF8,0xF1),(0xEA,0xF2,0xFF),(0xF1,0xEC,0xFE),(0xFF,0xF6,0xE5)],
+        "card_icons": [(0x10,0xB9,0x81),(0x2E,0x5B,0xFF),(0x8B,0x5C,0xF6),(0xF5,0x9E,0x0B)],
     },
     "amber": {
         "cover_bg":   (0x78, 0x35, 0x0F),
@@ -84,7 +94,9 @@ THEMES = {
         "accent":     (0xEF, 0x44, 0x44),
         "accent3":    (0xF5, 0x9E, 0x0B),
         "accent4":    (0xFB, 0xBF, 0x24),
-        "content_bg": (0xF8, 0xF6, 0xEF),
+        "content_bg": (0xF4, 0xF6, 0xFB),
+        "card_bgs":   [(0xFF,0xF6,0xE5),(0xEA,0xF2,0xFF),(0xE8,0xF8,0xF1),(0xF1,0xEC,0xFE)],
+        "card_icons": [(0xF5,0x9E,0x0B),(0x2E,0x5B,0xFF),(0x10,0xB9,0x81),(0x8B,0x5C,0xF6)],
     },
     "slate": {
         "cover_bg":   (0x1E, 0x29, 0x3B),
@@ -95,14 +107,16 @@ THEMES = {
         "accent":     (0x3B, 0x82, 0xF6),
         "accent3":    (0x64, 0x74, 0x8B),
         "accent4":    (0x94, 0xA3, 0xB8),
-        "content_bg": (0xF8, 0xF6, 0xEF),
+        "content_bg": (0xF4, 0xF6, 0xFB),
+        "card_bgs":   [(0xEA,0xF2,0xFF),(0xE8,0xF8,0xF1),(0xF1,0xEC,0xFE),(0xFF,0xF6,0xE5)],
+        "card_icons": [(0x2E,0x5B,0xFF),(0x10,0xB9,0x81),(0x8B,0x5C,0xF6),(0xF5,0x9E,0x0B)],
     },
 }
 
 T = None
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
-DARK  = RGBColor(0x1B, 0x2B, 0x22)
-MID   = RGBColor(0x5B, 0x6B, 0x61)
+DARK  = RGBColor(0x1F, 0x2A, 0x44)
+MID   = RGBColor(0x5B, 0x64, 0x78)
 
 LM = I(0.60)
 CW = SW - LM * 2   # 8.80"
@@ -112,10 +126,21 @@ def _rgb(tup):
 
 def _resolve_theme(name):
     raw = THEMES.get(name, THEMES["blue"])
-    return {k: _rgb(v) if isinstance(v, tuple) else v for k, v in raw.items()}
+    resolved = {}
+    for k, v in raw.items():
+        if isinstance(v, tuple):
+            resolved[k] = _rgb(v)
+        elif isinstance(v, list) and v and isinstance(v[0], tuple):
+            resolved[k] = [_rgb(c) for c in v]
+        else:
+            resolved[k] = v
+    return resolved
 
 def _accents():
-    return [T["primary_dk"], T["primary"], T["accent"], T["accent3"], T["primary_lt"], T["accent4"]]
+    return T.get("card_icons", [T["primary_dk"], T["primary"], T["accent"], T["accent3"]])
+
+def _card_bgs():
+    return T.get("card_bgs", [T["primary_xl"], T["primary_xl"], T["primary_xl"], T["primary_xl"]])
 
 # ── Icon system ──────────────────────────────────────────────────────
 _icon_cache = {}
@@ -253,12 +278,12 @@ def _setup_content_slide(prs, s):
     cat = _style(s, "category", "")
     if is_dark:
         if cat:
-            _tb(slide, cat, LM, I(0.42), CW, I(0.35), sz=13, bold=True, color=T["primary_lt"])
-        _tb(slide, s["title"], LM, I(0.78), CW, I(0.70), sz=28, bold=True, color=WHITE, font="Trebuchet MS")
+            _tb(slide, cat, LM, I(0.42), CW, I(0.35), sz=12, bold=True, color=T["primary_lt"], font="Calibri")
+        _tb(slide, s["title"], LM, I(0.78), CW, I(0.70), sz=26, bold=True, color=WHITE, font="Calibri")
     else:
         if cat:
-            _tb(slide, cat, LM, I(0.42), CW, I(0.35), sz=13, bold=True, color=T["accent"])
-        _tb(slide, s["title"], LM, I(0.78), CW, I(0.85), sz=28, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+            _tb(slide, cat.upper(), I(0.00), I(0.35), SW, I(0.30), sz=12, bold=True, color=_accents()[0], font="Calibri", align=PP_ALIGN.CENTER)
+        _tb(slide, s["title"], I(0.00), I(0.68), SW, I(0.55), sz=22, bold=True, color=DARK, font="Calibri", align=PP_ALIGN.CENTER)
 
     note = s.get("note", "")
     footer = s.get("footer", "")
@@ -276,11 +301,11 @@ def _page_num(slide, num, total):
         sz=9, color=MID, align=PP_ALIGN.RIGHT)
 
 def _insight_bar(slide, text):
-    """Dark bar at bottom with insight/source text (cowork slide 2 exact)"""
-    _rrect(slide, LM, I(4.45), CW, I(0.68),
-           T["primary_dk"], radius=0.04)
+    """RAPID-style: pastel bar at bottom with insight text"""
+    bar_bg = _card_bgs()[0] if _card_bgs() else T["primary_xl"]
+    _rrect(slide, LM, I(4.45), CW, I(0.68), bar_bg, radius=0.06)
     _tb(slide, text, LM + I(0.25), I(4.45), CW - I(0.50), I(0.68),
-        sz=12, bold=True, color=T["primary_xl"])
+        sz=11, bold=True, color=DARK, font="Calibri")
 
 # ── Chart helpers ─────────────────────────────────────────────────────
 
@@ -381,7 +406,7 @@ def make_cover(prs, s, idx, total):
     title_color = WHITE if is_dark else T["primary_dk"]
     title_y = I(2.05) if cat else I(1.75)
     _tb(slide, s["title"], I(0.65), title_y, I(8.50), I(1.30),
-        sz=60, bold=True, color=title_color, font="Trebuchet MS")
+        sz=56, bold=True, color=title_color, font="Calibri")
 
     sub_color = T["primary_xl"] if is_dark else MID
     if s.get("subtitle"):
@@ -417,7 +442,7 @@ def make_section(prs, s, idx, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(slide, T["cover_bg"])
     _tb(slide, s["title"], I(0.5), I(1.3), SW - I(1.0), I(1.2),
-        sz=30, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Trebuchet MS")
+        sz=30, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Calibri")
     if s.get("subtitle"):
         _tb(slide, s["subtitle"], I(0.8), I(2.9), SW - I(1.6), I(0.4),
             sz=12, color=T["primary_lt"], align=PP_ALIGN.CENTER)
@@ -438,57 +463,62 @@ def make_bullets(prs, s, idx, total):
     bot = SH - I(0.50)
 
     if b_items and n == 3:
-        # 3-column layout with WHITE cards (cowork slide 2 exact: 2.80" cards, 0.30" gap)
+        # RAPID-style: pastel card bg + centered icon circle + title + desc
         gap = I(0.30)
         col_w = I(2.80)
-        card_top = top + I(0.15)
-        card_h = I(2.35)
-        icon_circle = I(0.65)
-        icon_sz = I(0.33)
-        tw = col_w - I(0.50)
-        tw_pt = tw / 12700  # text width in points
+        card_top = top + I(0.10)
+        has_note = bool(s.get("note"))
+        card_h = I(2.10) if has_note else I(2.55)
+        icon_circle = I(0.60)
+        icon_sz = I(0.30)
+        cbgs = _card_bgs()
         for i, it in enumerate(b_items[:3]):
             ac = accents[i % len(accents)]
+            bg = cbgs[i % len(cbgs)]
             x = LM + i * (col_w + gap)
-            _rrect(slide, x, card_top, col_w, card_h, WHITE, radius=0.04)
-            cx = x + I(0.25)
-            _oval(slide, cx + icon_circle//2, card_top + I(0.25) + icon_circle//2, icon_circle//2, ac)
+            _rrect(slide, x, card_top, col_w, card_h, bg, radius=0.06)
+            # Centered icon circle
+            cx_icon = x + col_w // 2
+            _oval(slide, cx_icon, card_top + I(0.20) + icon_circle//2, icon_circle//2, ac)
             title_text = it.get("title", "")
             ic = _pick_icon(title_text + " " + it.get("desc", ""), it.get("icon"))
-            _add_icon(slide, cx + (icon_circle - icon_sz)//2, card_top + I(0.25) + (icon_circle - icon_sz)//2, icon_sz, WHITE, icon_name=ic)
-            chars_per_line = tw_pt / 8  # ~8pt per Vietnamese char at 14pt
-            est_lines = max(1, len(title_text) / chars_per_line)
-            if est_lines > 1.5:
-                t_sz, t_h, t_top, d_top = 12, I(0.50), I(0.95), I(1.50)
-            else:
-                t_sz, t_h, t_top, d_top = 14, I(0.35), I(1.00), I(1.40)
-            _tb(slide, title_text, cx, card_top + t_top, tw, t_h,
-                sz=t_sz, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+            _add_icon(slide, cx_icon - icon_sz//2, card_top + I(0.20) + (icon_circle - icon_sz)//2, icon_sz, WHITE, icon_name=ic)
+            # Title centered under icon
+            tx = x + I(0.20)
+            tw = col_w - I(0.40)
+            t_top = I(0.95)
+            _tb(slide, title_text, tx, card_top + t_top, tw, I(0.40),
+                sz=13, bold=True, color=DARK, font="Calibri", align=PP_ALIGN.CENTER)
             if it.get("desc"):
+                d_top = t_top + I(0.40)
                 d_h = card_h - d_top - I(0.10)
-                _tb(slide, it["desc"], cx, card_top + d_top, tw, d_h,
-                    sz=10, color=DARK)
+                if d_h > I(0.15):
+                    _tb(slide, it["desc"], tx, card_top + d_top, tw, d_h,
+                        sz=10, color=MID, font="Calibri", align=PP_ALIGN.CENTER)
 
     elif b_items and n >= 2:
-        # 4+ items: vertical stacked icon-left (cowork slide 3 exact)
-        icon_circle = I(0.62)
-        icon_sz = I(0.30)
-        list_top = top + I(0.25)
-        row_h = I(0.92)
-        tx = LM + I(0.80)
-        content_w = I(4.60)
+        # Stacked list with icon circle left
+        icon_circle = I(0.50)
+        icon_sz = I(0.26)
+        has_note = bool(s.get("note"))
+        list_bot = I(4.35) if has_note else bot
+        avail = list_bot - top - I(0.15)
+        row_h = min(I(0.85), avail // min(n, 6))
+        list_top = top + I(0.15)
+        tx = LM + I(0.75)
+        content_w = I(7.80)
         for i, it in enumerate(b_items[:6]):
             ac = accents[i % len(accents)]
             y = list_top + i * row_h
-            if y + I(0.60) > bot: break
-            _oval(slide, LM + icon_circle//2, y + icon_circle//2, icon_circle//2, ac)
+            if y + I(0.50) > list_bot: break
+            _oval(slide, LM + icon_circle//2, y + I(0.05) + icon_circle//2, icon_circle//2, ac)
             ic = _pick_icon(it.get("title","") + " " + it.get("desc",""), it.get("icon"))
-            _add_icon(slide, LM + (icon_circle - icon_sz)//2, y + (icon_circle - icon_sz)//2, icon_sz, WHITE, icon_name=ic)
-            _tb(slide, it.get("title", ""), tx, y - I(0.04), I(4.50), I(0.35),
-                sz=14, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+            _add_icon(slide, LM + (icon_circle - icon_sz)//2, y + I(0.05) + (icon_circle - icon_sz)//2, icon_sz, WHITE, icon_name=ic)
+            _tb(slide, it.get("title", ""), tx, y, I(7.50), I(0.30),
+                sz=13, bold=True, color=DARK, font="Calibri")
             if it.get("desc"):
-                _tb(slide, it["desc"], tx, y + I(0.30), content_w, I(0.55),
-                    sz=10, color=DARK)
+                _tb(slide, it["desc"], tx, y + I(0.30), content_w, I(0.45),
+                    sz=10, color=MID, font="Calibri")
     else:
         # Simple bullets without desc — 3-column or stacked
         if n <= 3:
@@ -500,7 +530,7 @@ def make_bullets(prs, s, idx, total):
                 x = LM + I(0.25) + i * (col_w + gap)
                 _add_icon(slide, x + I(0.16), top + I(0.56), icon_sz, ac, icon_name=_pick_icon(b))
                 _tb(slide, b, x, top + I(1.15), col_w - I(0.50), I(0.55),
-                    sz=14.5, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+                    sz=14.5, bold=True, color=T["primary_dk"], font="Calibri")
         else:
             row_h = I(0.65)
             for i, b in enumerate(bullets[:8]):
@@ -510,7 +540,7 @@ def make_bullets(prs, s, idx, total):
                 icon_sz = I(0.26)
                 _add_icon(slide, LM + I(0.16), y + I(0.10), icon_sz, ac, icon_name=_pick_icon(b))
                 _tb(slide, b, LM + I(0.65), y + I(0.05), CW - I(0.80), I(0.50),
-                    sz=13, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+                    sz=13, bold=True, color=T["primary_dk"], font="Calibri")
 
     # Source bar if subtitle contains data
     if s.get("subtitle") and any(c.isdigit() for c in s.get("subtitle", "")):
@@ -549,7 +579,7 @@ def make_stats(prs, s, idx, total):
             _rect(slide, LM, cy, I(0.09), card_h, ac)
             _tb(slide, item.get("value", ""),
                 LM + I(0.30), cy + val_top, stat_w - I(0.50), val_h,
-                sz=val_sz, bold=True, color=WHITE, font="Trebuchet MS")
+                sz=val_sz, bold=True, color=WHITE, font="Calibri")
             _tb(slide, item.get("label", ""),
                 LM + I(0.30), cy + lbl_top, stat_w - I(0.50), lbl_h,
                 sz=10 if has_note else 11, color=T["primary_xl"])
@@ -582,7 +612,7 @@ def make_stats(prs, s, idx, total):
                 _rect(slide, LM, cy, I(0.09), card_h, ac)
                 _tb(slide, item.get("value", ""),
                     LM + I(0.30), cy + I(0.18), card_w - I(0.50), I(0.75),
-                    sz=34, bold=True, color=WHITE, font="Trebuchet MS")
+                    sz=34, bold=True, color=WHITE, font="Calibri")
                 _tb(slide, item.get("label", ""),
                     LM + I(0.30), cy + I(0.95), card_w - I(0.50), I(0.50),
                     sz=11, color=T["primary_xl"])
@@ -600,7 +630,7 @@ def make_stats(prs, s, idx, total):
                 vsz = 28 if len(val) > 6 else 34
                 _tb(slide, val,
                     x + I(0.20), top_y + I(0.10), card_w - I(0.40), I(0.65),
-                    sz=vsz, bold=True, color=WHITE, font="Trebuchet MS")
+                    sz=vsz, bold=True, color=WHITE, font="Calibri")
                 _tb(slide, item.get("label", ""),
                     x + I(0.20), top_y + I(0.80), card_w - I(0.40), I(0.60),
                     sz=10, color=T["primary_xl"])
@@ -620,7 +650,7 @@ def make_stats(prs, s, idx, total):
                 vsz = 28 if len(val) > 6 else 34
                 _tb(slide, val,
                     x + I(0.25), cy + I(0.10), card_w - I(0.45), I(0.65),
-                    sz=vsz, bold=True, color=WHITE, font="Trebuchet MS")
+                    sz=vsz, bold=True, color=WHITE, font="Calibri")
                 _tb(slide, item.get("label", ""),
                     x + I(0.25), cy + I(0.80), card_w - I(0.45), I(0.50),
                     sz=10, color=T["primary_xl"])
@@ -736,7 +766,7 @@ def make_two_col(prs, s, idx, total):
             icon_sz = I(0.26)
             _add_icon(slide, x, y + I(0.12), icon_sz, ac, icon_name=_pick_icon(item))
             _tb(slide, item, x + I(0.50), y + I(0.06), col_w - I(0.80), I(0.65),
-                sz=12, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+                sz=12, bold=True, color=T["primary_dk"], font="Calibri")
 
     _page_num(slide, idx, total)
 
@@ -791,23 +821,26 @@ def make_pillars(prs, s, idx, total):
     icon_circle = I(0.60)
     icon_sz = I(0.30)
 
+    cbgs = _card_bgs()
     for i, item in enumerate(items[:n]):
         ac = accents[i % len(accents)]
+        bg = cbgs[i % len(cbgs)]
         c, r = i % cols, i // cols
         x = LM + c * (col_w + gap_x)
         y = top_y + r * (card_h + gap_y)
-        _rrect(slide, x, y, col_w, card_h, WHITE, radius=0.04)
+        _rrect(slide, x, y, col_w, card_h, bg, radius=0.06)
         _oval(slide, x + I(0.22) + icon_circle//2, y + I(0.22) + icon_circle//2, icon_circle//2, ac)
         ic = _pick_icon(item.get("title","") + " " + " ".join(item.get("bullets",[])), item.get("icon"))
         _add_icon(slide, x + I(0.22) + (icon_circle - icon_sz)//2, y + I(0.22) + (icon_circle - icon_sz)//2, icon_sz, WHITE, icon_name=ic)
         tx = x + I(0.95)
         tw = I(3.20)
-        _tb(slide, item.get("title", ""), tx, y + I(0.18), tw, I(0.45),
-            sz=13, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+        _tb(slide, item.get("title", ""), tx, y + I(0.18), tw, I(0.40),
+            sz=13, bold=True, color=DARK, font="Calibri")
         desc = " ".join(item.get("bullets", [])[:3])
         if desc:
-            _tb(slide, desc, tx, y + I(0.60), tw, I(0.85),
-                sz=10, color=DARK)
+            d_h = card_h - I(0.68)
+            _tb(slide, desc, tx, y + I(0.58), tw, d_h,
+                sz=10, color=MID, font="Calibri")
     _page_num(slide, idx, total)
 
 
@@ -831,7 +864,7 @@ def make_agenda(prs, s, idx, total):
             LM + I(0.20), y + (row_h - I(0.22))//2, nsz, I(0.22),
             sz=11, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
         _tb(slide, item.get("title", ""), LM + I(0.60), y + I(0.06), I(3.5), I(0.24),
-            sz=12, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+            sz=12, bold=True, color=T["primary_dk"], font="Calibri")
         _tb(slide, item.get("desc", ""), LM + I(0.60), y + I(0.30), CW - I(0.80), I(0.22),
             sz=9, color=MID)
     _page_num(slide, idx, total)
@@ -866,7 +899,7 @@ def make_roles(prs, s, idx, total):
         name_y = top_y + I(1.55)
         _tb(slide, item.get("role", ""),
             x + I(0.15), name_y, col_w - I(0.30), I(0.40),
-            sz=14.5, bold=True, color=T["primary_dk"], align=PP_ALIGN.CENTER, font="Trebuchet MS")
+            sz=14.5, bold=True, color=T["primary_dk"], align=PP_ALIGN.CENTER, font="Calibri")
 
         # Role badge
         if item.get("type"):
@@ -933,7 +966,7 @@ def make_principles(prs, s, idx, total):
         tx = x + I(0.55)
         tw = col_w - I(0.70)
         _tb(slide, item.get("title", ""), tx, y + I(0.05), tw, I(0.28),
-            sz=13, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+            sz=13, bold=True, color=T["primary_dk"], font="Calibri")
         if item.get("desc"):
             _tb(slide, item["desc"], tx, y + I(0.35), tw, card_h - I(0.40),
                 sz=10, color=DARK)
@@ -953,7 +986,7 @@ def make_summary(prs, s, idx, total):
     _add_icon(slide, SW//2 - I(0.23), I(0.77), I(0.46), T["primary_lt"])
 
     _tb(slide, s["title"], I(0.80), I(1.70), SW - I(1.60), I(1.30),
-        sz=28, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Trebuchet MS")
+        sz=28, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Calibri")
 
     if s.get("bullets"):
         cta = s["bullets"][0] if s["bullets"] else ""
@@ -961,7 +994,7 @@ def make_summary(prs, s, idx, total):
             btn_w = I(5.10)
             _rrect(slide, SW//2 - btn_w//2, I(3.15), btn_w, I(0.70), T["accent"], radius=0.08)
             _tb(slide, cta, SW//2 - btn_w//2, I(3.15), btn_w, I(0.70),
-                sz=16, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Trebuchet MS")
+                sz=16, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Calibri")
 
         contact_parts = s["bullets"][1:4]
         if contact_parts:
