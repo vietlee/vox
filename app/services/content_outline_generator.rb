@@ -539,15 +539,15 @@ class ContentOutlineGenerator
       pdf = Dir.glob(File.join(dir, "*.pdf")).first
       return unless pdf
 
-      system("pdftoppm", "-png", "-r", "400", pdf, File.join(dir, "slide"))
-      pngs = Dir.glob(File.join(dir, "slide-*.png")).sort
+      system("pdftoppm", "-jpeg", "-jpegopt", "quality=85", "-r", "150", pdf, File.join(dir, "slide"))
+      jpgs = Dir.glob(File.join(dir, "slide-*.jpg")).sort
 
       @outline.slide_images.purge if @outline.slide_images.attached?
-      pngs.each_with_index do |png, i|
+      jpgs.each_with_index do |jpg, i|
         @outline.slide_images.attach(
-          io: File.open(png),
-          filename: "slide-#{i + 1}.png",
-          content_type: "image/png"
+          io: File.open(jpg),
+          filename: "slide-#{i + 1}.jpg",
+          content_type: "image/jpeg"
         )
       end
     end

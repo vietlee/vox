@@ -1607,7 +1607,8 @@
       if (useImageMode && slideImageUrls[current]) {
         document.getElementById('slide-viewer').innerHTML =
           '<div class="s-in" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#0f172a;">' +
-            '<img src="' + slideImageUrls[current] + '" style="max-width:100%;max-height:100%;object-fit:contain;image-rendering:auto;" onload="this.style.opacity=1" onerror="this.alt=\'Slide ' + (current+1) + '\'">' +
+            '<div style="position:absolute;color:#475569;font-size:13px;">Đang tải...</div>' +
+            '<img src="' + slideImageUrls[current] + '" style="max-width:100%;max-height:100%;object-fit:contain;image-rendering:auto;opacity:0;transition:opacity .2s;" onload="this.style.opacity=1;this.previousSibling.style.display=\'none\'" onerror="this.alt=\'Slide ' + (current+1) + '\'">' +
           '</div>';
         // Preload adjacent slides
         [current-1, current+1, current+2].forEach(function(idx) {
@@ -1934,7 +1935,7 @@
 
     // Preload first 3 slides on page load
     if (useImageMode) {
-      slideImageUrls.slice(0, 3).forEach(function(url) { var p = new Image(); p.src = url; });
+      slideImageUrls.forEach(function(url) { var p = new Image(); p.src = url; });
     }
 
     var _editFiles = [];
