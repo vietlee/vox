@@ -316,6 +316,7 @@ def _add_line_chart(slide, items, left, top, width, height):
     cf = slide.shapes.add_chart(XL_CHART_TYPE.LINE_MARKERS, left, top, width, height, chart_data)
     chart = cf.chart
     chart.has_legend = False
+    chart.has_title = False
     series = chart.plots[0].series[0]
     series.format.line.color.rgb = T["primary"]
     series.format.line.width = Pt(2.5)
@@ -348,6 +349,7 @@ def _add_bar_chart(slide, items, left, top, width, height, accents):
     cf = slide.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, left, top, width, height, chart_data)
     chart = cf.chart
     chart.has_legend = False
+    chart.has_title = False
     plot = chart.plots[0]
     plot.gap_width = 80
     for i, pt in enumerate(plot.series[0].points):
@@ -374,6 +376,7 @@ def _add_donut_chart(slide, labels, values, left, top, width, height, accents):
     cf = slide.shapes.add_chart(XL_CHART_TYPE.DOUGHNUT, left, top, width, height, chart_data)
     chart = cf.chart
     chart.has_legend = False
+    chart.has_title = False
     for i, pt in enumerate(chart.plots[0].series[0].points):
         pt.format.fill.solid()
         pt.format.fill.fore_color.rgb = accents[i % len(accents)]
