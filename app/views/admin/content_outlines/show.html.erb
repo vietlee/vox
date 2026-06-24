@@ -217,770 +217,350 @@
     /* ─────────────────────────────────────────────────────────────────
        6 MODERN THEMES
     ───────────────────────────────────────────────────────────────── */
+    /* ─────────────────────────────────────────────────────────────────
+       13 THEMES matching PPTX exactly
+    ───────────────────────────────────────────────────────────────── */
+
+    /* Icon SVG paths for HTML rendering */
+    var ICON_SVGS = {
+      search:    '<circle cx="10" cy="10" r="6" stroke="white" stroke-width="2" fill="none"/><line x1="14.5" y1="14.5" x2="20" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>',
+      filter:    '<path d="M3 5h18M7 10h10M11 15h2" stroke="white" stroke-width="2" stroke-linecap="round"/>',
+      store:     '<path d="M3 9l2-5h14l2 5M3 9h18v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9z" stroke="white" stroke-width="2" fill="none"/><rect x="9" y="13" width="6" height="7" rx="1" stroke="white" stroke-width="1.5" fill="none"/>',
+      check:     '<path d="M4 12l6 6L20 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+      clock:     '<circle cx="12" cy="12" r="9" stroke="white" stroke-width="2" fill="none"/><path d="M12 7v5l3 3" stroke="white" stroke-width="2" stroke-linecap="round"/>',
+      person:    '<circle cx="12" cy="7" r="4" stroke="white" stroke-width="2" fill="none"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="white" stroke-width="2" fill="none"/>',
+      people:    '<circle cx="8" cy="8" r="3" stroke="white" stroke-width="1.8" fill="none"/><circle cx="16" cy="8" r="3" stroke="white" stroke-width="1.8" fill="none"/><path d="M2 20c0-3 2.7-5 6-5s6 2 6 5M10 20c0-3 2.7-5 6-5s6 2 6 5" stroke="white" stroke-width="1.8" fill="none"/>',
+      rocket:    '<path d="M12 2c0 0 4 3 4 9v1l2 3H6l2-3v-1c0-6 4-9 4-9z" stroke="white" stroke-width="1.8" fill="none"/><path d="M9 20h6M10 15h4" stroke="white" stroke-width="1.8" stroke-linecap="round"/>',
+      code:      '<path d="M8 6L3 12l5 6M16 6l5 6-5 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+      chart:     '<path d="M3 20V10l4-4 4 4 4-6 4 4v12H3z" stroke="white" stroke-width="2" stroke-linejoin="round" fill="none"/>',
+      money:     '<circle cx="12" cy="12" r="9" stroke="white" stroke-width="2" fill="none"/><path d="M12 7v10M9 9.5h4.5a1.5 1.5 0 010 3H10a1.5 1.5 0 000 3H15" stroke="white" stroke-width="1.8" stroke-linecap="round"/>',
+      percent:   '<path d="M19 5L5 19M7 7a2 2 0 100-4 2 2 0 000 4zM17 21a2 2 0 100-4 2 2 0 000 4z" stroke="white" stroke-width="2" fill="none"/>',
+      megaphone: '<path d="M19 10l2-2v8l-2-2M3 8h12l4-4v16l-4-4H3a1 1 0 01-1-1V9a1 1 0 011-1zM7 16v3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+      crown:     '<path d="M3 16L5 8l4 4 3-7 3 7 4-4 2 8H3z" stroke="white" stroke-width="2" stroke-linejoin="round" fill="none"/><path d="M3 19h18" stroke="white" stroke-width="2"/>',
+      lightbulb: '<path d="M9 21h6M12 3a6 6 0 014.5 10c.4.5.5.9.5 1.5V18a1 1 0 01-1 1H9a1 1 0 01-1-1v-3.5c0-.6.1-1 .5-1.5A6 6 0 0112 3z" stroke="white" stroke-width="2" fill="none"/>',
+      shield:    '<path d="M12 2l8 3v6c0 4.5-3 8.5-8 11C7 19.5 4 15.5 4 11V5l8-3z" stroke="white" stroke-width="2" fill="none"/><path d="M8 12l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>',
+      star:      '<path d="M12 2l3 6.3H22l-5.7 4.1 2.2 6.5L12 15l-6.5 3.9 2.2-6.5L2 8.3h7z" stroke="white" stroke-width="2" fill="none" stroke-linejoin="round"/>',
+      heart:     '<path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z" stroke="white" stroke-width="2" fill="none"/>',
+      globe:     '<circle cx="12" cy="12" r="9" stroke="white" stroke-width="2" fill="none"/><path d="M12 3c-3 4-3 14 0 18M12 3c3 4 3 14 0 18M3 12h18M4.2 7.5h15.6M4.2 16.5h15.6" stroke="white" stroke-width="1.5"/>',
+      target:    '<circle cx="12" cy="12" r="9" stroke="white" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="5" stroke="white" stroke-width="1.8" fill="none"/><circle cx="12" cy="12" r="1.5" fill="white"/>',
+      handshake: '<path d="M9 12l3 3 3-3M9 7l3 3 3-3M3 12c0 5 4 9 9 9s9-4 9-9V7L12 3 3 7v5z" stroke="white" stroke-width="1.8" fill="none" stroke-linejoin="round"/>',
+      leaf:      '<path d="M21 3s-9 0-12 9c-1.5 4.5 1 9 3 12M9 21c3-7 9-9 12-9" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M9 21L3 15" stroke="white" stroke-width="2" stroke-linecap="round"/>',
+      phone:     '<path d="M6 2h12a1 1 0 011 1v18a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="white" stroke-width="2" fill="none"/><circle cx="12" cy="17" r="1" fill="white"/>',
+      truck:     '<path d="M1 3h15v12H1zM16 8h4l3 4v4h-7V8zM5.5 19a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM18.5 19a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" stroke="white" stroke-width="1.8" fill="none"/>',
+      'default': '<circle cx="12" cy="12" r="9" stroke="white" stroke-width="2" fill="none"/><path d="M12 8v4l3 3" stroke="white" stroke-width="2" stroke-linecap="round"/>',
+    };
+
+    function iconSvg(name) {
+      var d = ICON_SVGS[name] || ICON_SVGS['default'];
+      return '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">' + d + '</svg>';
+    }
+
+    var ICON_KEYWORDS = {
+      search:    ['tìm','search','lọc','phát hiện'],
+      filter:    ['bộ lọc','filter','phân loại','sàng lọc'],
+      store:     ['cửa hàng','store','shop','restaurant'],
+      check:     ['kiểm','xác minh','verify','đạt chuẩn','chất lượng','đảm bảo'],
+      clock:     ['thời gian','phút','giờ','time'],
+      person:    ['người','khách','user','cá nhân','founder','CEO'],
+      people:    ['cộng đồng','nhóm','team','đội','community','người dùng'],
+      rocket:    ['tăng trưởng','phát triển','growth','launch','mở rộng','scale'],
+      code:      ['công nghệ','tech','AI','app','ứng dụng','phần mềm','platform'],
+      chart:     ['doanh thu','revenue','số liệu','KPI','metric','thống kê'],
+      money:     ['vốn','đầu tư','tiền','USD','fund','tài chính','chi phí','hoa hồng','phí'],
+      percent:   ['tỷ lệ','%','phần trăm','rate','margin','lợi nhuận'],
+      megaphone: ['marketing','quảng cáo','truyền thông','ads','kênh'],
+      crown:     ['premium','VIP','cao cấp','hàng đầu','leader','dẫn đầu'],
+      lightbulb: ['giải pháp','ý tưởng','idea','solution','sáng tạo','đổi mới'],
+      shield:    ['bảo vệ','an toàn','security','trust','uy tín','tin cậy'],
+      star:      ['đánh giá','review','rating','nổi bật'],
+      heart:     ['yêu thích','sức khỏe','health','thuần chay','vegan'],
+      globe:     ['thị trường','quốc tế','global','thế giới','khu vực'],
+      target:    ['mục tiêu','target','chiến lược','strategy','định hướng'],
+      handshake: ['đối tác','partner','hợp tác','B2B','liên kết','đồng hành'],
+      leaf:      ['xanh','green','eco','bền vững','organic','chay'],
+      phone:     ['mobile','điện thoại','đặt hàng','order'],
+      truck:     ['giao hàng','delivery','vận chuyển','logistics','ship','nhanh'],
+    };
+
+    function pickIcon(text, hint) {
+      if (hint && ICON_SVGS[hint]) return hint;
+      var lower = (text||'').toLowerCase();
+      var best = 'default', bestScore = 0;
+      for (var k in ICON_KEYWORDS) {
+        var kws = ICON_KEYWORDS[k];
+        var score = 0;
+        for (var j = 0; j < kws.length; j++) { if (lower.indexOf(kws[j]) >= 0) score += kws[j].length; }
+        if (score > bestScore) { best = k; bestScore = score; }
+      }
+      return best;
+    }
+
+    function iconCircle(iconName, bgColor, size) {
+      /* Returns an HTML string: colored circle with white icon inside */
+      var s = size || 40;
+      return '<div style="width:' + s + 'px;height:' + s + 'px;border-radius:50%;background:' + bgColor + ';flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+        '<div style="width:' + Math.round(s*0.5) + 'px;height:' + Math.round(s*0.5) + 'px;">' + iconSvg(iconName) + '</div>' +
+      '</div>';
+    }
+
+    /* hex to rgb helper */
+    function h2r(hex) {
+      var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+      return [r,g,b];
+    }
+
     var THEMES = [
 
-      /* ── 0  ORIGINAL ── clean neutral, works with any topic ── */
+      /* ── 0  green ── */
       {
-        label: '⚪ Original',
-        accent: '#6366f1', accentAlt: '#8b5cf6', num: '#6366f1',
-        text: '#fff', sub: 'rgba(255,255,255,.7)',
-        glass: 'rgba(255,255,255,0.08)', glassBorder: 'rgba(255,255,255,0.18)',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#1e1b4b"/>' +
-            '<ellipse cx="200" cy="200" rx="350" ry="280" fill="#312e81" filter="url(#blur80)" opacity=".8"/>' +
-            '<ellipse cx="1100" cy="520" rx="320" ry="260" fill="#1e3a5f" filter="url(#blur80)" opacity=".7"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#0f172a"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="rgba(255,255,255,0.04)"/>' +
-            '<rect x="0" y="76" width="1280" height="1" fill="rgba(255,255,255,0.08)"/>';
-        },
-        coverLayout: 'center',
-      },
-
-      /* ── 1  AURORA MESH ── soft glow blobs on deep navy ── */
-      {
-        label: '🌌 Aurora',
-        accent: '#e879f9', accentAlt: '#67e8f9', num: '#e879f9',
-        text: '#fff', sub: 'rgba(255,255,255,.65)',
-        glass: 'rgba(255,255,255,0.07)', glassBorder: 'rgba(255,255,255,0.15)',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#06071a"/>' +
-            /* mesh blobs */
-            '<ellipse cx="200"  cy="160"  rx="340" ry="280" fill="#7c3aed" filter="url(#blur80)" opacity=".7"/>' +
-            '<ellipse cx="1100" cy="560"  rx="380" ry="300" fill="#0891b2" filter="url(#blur80)" opacity=".65"/>' +
-            '<ellipse cx="780"  cy="80"   rx="260" ry="200" fill="#db2777" filter="url(#blur60)" opacity=".55"/>' +
-            '<ellipse cx="400"  cy="650"  rx="200" ry="160" fill="#4f46e5" filter="url(#blur60)" opacity=".5"/>' +
-            '<rect width="1280" height="720" fill="url(#dots)"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#06071a"/>' +
-            '<ellipse cx="120"  cy="100"  rx="250" ry="200" fill="#7c3aed" filter="url(#blur60)" opacity=".6"/>' +
-            '<ellipse cx="1180" cy="620"  rx="280" ry="220" fill="#0891b2" filter="url(#blur60)" opacity=".5"/>' +
-            '<rect width="1280" height="720" fill="url(#dots)"/>' +
-            /* header glass bar */
-            '<rect x="0" y="0" width="1280" height="76" fill="rgba(255,255,255,0.04)"/>' +
-            '<rect x="0" y="76" width="1280" height="1" fill="rgba(255,255,255,0.1)"/>';
-        },
-        coverLayout: 'center',
-      },
-
-      /* ── 1  NEON GRID ── dark bg, cyan/green neon with grid ── */
-      {
-        label: '⚡ Neon',
-        accent: '#00f5c4', accentAlt: '#b9ff66', num: '#00f5c4',
-        text: '#fff', sub: 'rgba(255,255,255,.6)',
-        glass: 'rgba(0,245,196,0.07)', glassBorder: 'rgba(0,245,196,0.25)',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#050d0a"/>' +
-            '<rect width="1280" height="720" fill="url(#grid)"/>' +
-            /* neon glow orbs */
-            '<circle cx="140"  cy="360" r="200" fill="#00f5c4" filter="url(#blur80)" opacity=".25"/>' +
-            '<circle cx="1140" cy="360" r="200" fill="#b9ff66" filter="url(#blur80)" opacity=".2"/>' +
-            '<circle cx="640"  cy="700" r="180" fill="#00f5c4" filter="url(#blur60)" opacity=".15"/>' +
-            /* neon horizontal lines */
-            '<line x1="0" y1="2"   x2="1280" y2="2"   stroke="#00f5c4" stroke-width="2" opacity=".8" filter="url(#glow)"/>' +
-            '<line x1="0" y1="718" x2="1280" y2="718" stroke="#00f5c4" stroke-width="2" opacity=".8" filter="url(#glow)"/>' +
-            /* vertical accent */
-            '<line x1="100" y1="0" x2="100" y2="720" stroke="#00f5c4" stroke-width="1" opacity=".2"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#050d0a"/>' +
-            '<rect width="1280" height="720" fill="url(#grid)"/>' +
-            '<circle cx="640" cy="-100" r="300" fill="#00f5c4" filter="url(#blur80)" opacity=".18"/>' +
-            '<line x1="0" y1="76" x2="1280" y2="76" stroke="#00f5c4" stroke-width="1.5" opacity=".6" filter="url(#glow)"/>' +
-            '<line x1="0" y1="2"  x2="1280" y2="2"  stroke="#00f5c4" stroke-width="2"   opacity=".9" filter="url(#glow)"/>';
-        },
-        coverLayout: 'center',
-      },
-
-      /* ── 2  GLASS VIOLET ── vivid purple gradient + glassmorphism ── */
-      {
-        label: '💎 Glass',
-        accent: '#fff', accentAlt: '#f0abfc', num: '#f0abfc',
-        text: '#fff', sub: 'rgba(255,255,255,.7)',
-        glass: 'rgba(255,255,255,0.12)', glassBorder: 'rgba(255,255,255,0.25)',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#3b0764"/>' +
-            /* gradient fill via radial blobs */
-            '<circle cx="0"    cy="0"   r="500" fill="#7e22ce" filter="url(#blur80)" opacity=".9"/>' +
-            '<circle cx="1280" cy="720" r="500" fill="#1d4ed8" filter="url(#blur80)" opacity=".8"/>' +
-            '<circle cx="640"  cy="360" r="300" fill="#a21caf" filter="url(#blur80)" opacity=".4"/>' +
-            /* glass card outline on cover */
-            '<rect x="80" y="160" width="560" height="400" rx="24" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#3b0764"/>' +
-            '<circle cx="0"    cy="0"   r="400" fill="#7e22ce" filter="url(#blur80)" opacity=".8"/>' +
-            '<circle cx="1280" cy="720" r="400" fill="#1d4ed8" filter="url(#blur80)" opacity=".7"/>' +
-            '<rect x="0" y="0" width="1280" height="78" fill="rgba(255,255,255,0.08)"/>' +
-            '<rect x="0" y="78" width="1280" height="1" fill="rgba(255,255,255,0.18)"/>';
-        },
-        coverLayout: 'left-card',
-      },
-
-      /* ── 3  BOLD INK ── near-black, huge faded watermark text, warm accent ── */
-      {
-        label: '🖤 Bold',
-        accent: '#facc15', accentAlt: '#fb923c', num: '#facc15',
-        text: '#fff', sub: 'rgba(255,255,255,.55)',
-        glass: 'rgba(250,204,21,0.08)', glassBorder: 'rgba(250,204,21,0.3)',
-        coverBg: function(title) {
-          var safe = (title || '').replace(/[<>&"]/g,'').substring(0,18).toUpperCase();
-          return DEFS +
-            '<rect width="1280" height="720" fill="#0a0a0a"/>' +
-            /* big watermark word */
-            '<text x="640" y="480" text-anchor="middle" font-size="320" font-weight="900" fill="#1a1a1a" font-family="system-ui,sans-serif" letter-spacing="-10">' + safe + '</text>' +
-            /* diagonal accent stripe */
-            '<polygon points="900,0 1280,0 1280,200 980,0" fill="#facc15" opacity=".08"/>' +
-            '<polygon points="960,0 1280,0 1280,80"  fill="#facc15" opacity=".15"/>' +
-            '<line x1="0" y1="0" x2="0" y2="720" stroke="#facc15" stroke-width="6"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#0a0a0a"/>' +
-            '<rect x="0" y="0" width="6" height="720" fill="#facc15"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="#111"/>' +
-            '<rect x="0" y="76" width="1280" height="1" fill="#222"/>';
-        },
-        coverLayout: 'left',
-        coverWatermark: true,
-      },
-
-      /* ── 4  CORAL DUSK ── warm gradient, fluid curves, clean modern ── */
-      {
-        label: '🌇 Coral',
-        accent: '#fda4af', accentAlt: '#fed7aa', num: '#fb7185',
-        text: '#fff', sub: 'rgba(255,255,255,.65)',
-        glass: 'rgba(255,255,255,0.1)', glassBorder: 'rgba(255,200,180,0.3)',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#881337"/>' +
-            '<circle cx="0"    cy="0"   r="500" fill="#be123c" filter="url(#blur80)" opacity=".9"/>' +
-            '<circle cx="1280" cy="720" r="400" fill="#c2410c" filter="url(#blur80)" opacity=".8"/>' +
-            '<circle cx="800"  cy="200" r="300" fill="#e11d48" filter="url(#blur60)" opacity=".4"/>' +
-            /* fluid curve */
-            '<path d="M0,500 C320,420 640,580 1280,460 L1280,720 L0,720 Z" fill="rgba(0,0,0,0.2)"/>' +
-            '<path d="M0,540 C400,460 840,580 1280,500 L1280,720 L0,720 Z" fill="rgba(0,0,0,0.15)"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#881337"/>' +
-            '<circle cx="0"    cy="0"   r="350" fill="#be123c" filter="url(#blur80)" opacity=".8"/>' +
-            '<circle cx="1280" cy="720" r="300" fill="#c2410c" filter="url(#blur80)" opacity=".7"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="rgba(0,0,0,0.2)"/>' +
-            '<rect x="0" y="76" width="1280" height="1" fill="rgba(255,255,255,0.15)"/>';
-        },
-        coverLayout: 'center',
-      },
-
-      /* ── 5  PURE LIGHT ── white, editorial, modern minimal ── */
-      {
-        label: '☀️ Light',
-        accent: '#6366f1', accentAlt: '#ec4899', num: '#6366f1',
-        text: '#0f172a', sub: '#64748b',
-        glass: 'rgba(99,102,241,0.06)', glassBorder: 'rgba(99,102,241,0.2)',
-        light: true,
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#fff"/>' +
-            '<rect x="0" y="0" width="420" height="720" fill="#f8faff"/>' +
-            '<rect x="420" y="0" width="2" height="720" fill="#e0e7ff"/>' +
-            '<rect x="0" y="0" width="420" height="6" fill="#6366f1"/>' +
-            '<circle cx="210" cy="480" r="280" fill="#eef2ff" opacity=".8"/>' +
-            '<circle cx="210" cy="480" r="140" fill="#e0e7ff" opacity=".5"/>' +
-            '<circle cx="210" cy="480" r="60"  fill="#c7d2fe" opacity=".4"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#fff"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="#f8faff"/>' +
-            '<rect x="0" y="76" width="1280" height="2" fill="#e0e7ff"/>' +
-            '<rect x="0" y="0" width="4" height="76" fill="#6366f1"/>';
-        },
-        coverLayout: 'left-panel',
-      },
-
-      /* ── 6  HOLOGRAPHIC ── iridescent mesh, white glassy ── */
-      {
-        label: '🌈 Holo',
-        accent: '#a855f7', accentAlt: '#06b6d4', num: '#a855f7',
-        text: '#0f172a', sub: '#334155',
-        glass: 'rgba(255,255,255,0.55)', glassBorder: 'rgba(255,255,255,0.8)',
-        numBg: '#a855f7', numColor: '#fff',
-        cardStyle: 'background:rgba(255,255,255,0.55);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.8);border-radius:14px;',
-        light: true,
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#fff"/>' +
-            /* large iridescent blobs */
-            '<ellipse cx="200"  cy="200"  rx="420" ry="320" fill="#f0abfc" filter="url(#blur100)" opacity=".55"/>' +
-            '<ellipse cx="1100" cy="500"  rx="400" ry="300" fill="#67e8f9" filter="url(#blur100)" opacity=".5"/>' +
-            '<ellipse cx="640"  cy="100"  rx="300" ry="200" fill="#fde68a" filter="url(#blur80)"  opacity=".4"/>' +
-            '<ellipse cx="900"  cy="650"  rx="280" ry="200" fill="#86efac" filter="url(#blur80)"  opacity=".4"/>' +
-            '<ellipse cx="100"  cy="600"  rx="220" ry="180" fill="#c4b5fd" filter="url(#blur80)"  opacity=".45"/>' +
-            /* shimmer overlay */
-            '<rect width="1280" height="720" fill="url(#holo1)" opacity=".06"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#f8faff"/>' +
-            '<ellipse cx="100"  cy="100"  rx="300" ry="240" fill="#f0abfc" filter="url(#blur80)" opacity=".45"/>' +
-            '<ellipse cx="1200" cy="620"  rx="280" ry="220" fill="#67e8f9" filter="url(#blur80)" opacity=".4"/>' +
-            '<ellipse cx="700"  cy="760"  rx="300" ry="180" fill="#fde68a" filter="url(#blur80)" opacity=".3"/>' +
-            '<rect width="1280" height="720" fill="rgba(255,255,255,0.3)"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="rgba(255,255,255,0.6)"/>' +
-            '<rect x="0" y="76" width="1280" height="1.5" fill="rgba(168,85,247,0.3)"/>';
-        },
-        coverLayout: 'center',
-      },
-
-      /* ── 7  NEOBRUTALISM ── flat yellow, thick black borders, offset shadows ── */
-      {
-        label: '💥 Neo',
-        accent: '#000', accentAlt: '#ff4500', num: '#000',
-        text: '#000', sub: '#1a1a1a',
-        glass: '#fff', glassBorder: '#000',
-        numBg: '#000', numColor: '#faff00',
-        cardStyle: 'background:#fff;border:2.5px solid #000;border-radius:10px;box-shadow:4px 4px 0 #000;',
-        light: true,
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#faff00"/>' +
-            '<rect width="1280" height="720" fill="url(#memphis-dots)"/>' +
-            /* thick border frame */
-            '<rect x="0"  y="0"   width="1280" height="12" fill="#000"/>' +
-            '<rect x="0"  y="708" width="1280" height="12" fill="#000"/>' +
-            '<rect x="0"  y="0"   width="12"   height="720" fill="#000"/>' +
-            '<rect x="1268" y="0" width="12"   height="720" fill="#000"/>' +
-            /* accent block top-right */
-            '<rect x="780" y="12" width="488" height="340" fill="#ff4500"/>' +
-            '<rect x="780" y="12" width="488" height="340" fill="url(#hatch)"/>' +
-            /* diagonal stripe */
-            '<line x1="780" y1="352" x2="1268" y2="352" stroke="#000" stroke-width="4"/>' +
-            '<line x1="780" y1="12"  x2="780"  y2="708" stroke="#000" stroke-width="4"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#faff00"/>' +
-            '<rect width="1280" height="720" fill="url(#memphis-dots)"/>' +
-            '<rect x="0"  y="0"   width="1280" height="8"  fill="#000"/>' +
-            '<rect x="0"  y="712" width="1280" height="8"  fill="#000"/>' +
-            '<rect x="0"  y="0"   width="8"    height="720" fill="#000"/>' +
-            '<rect x="1272" y="0" width="8"    height="720" fill="#000"/>' +
-            '<rect x="8" y="8" width="1264" height="76" fill="#000"/>';
-        },
-        coverLayout: 'left',
-        coverBranding: true,
-      },
-
-      /* ── 8  BLUEPRINT ── technical dark navy, grid, engineering style ── */
-      {
-        label: '📐 Blueprint',
-        accent: '#60a5fa', accentAlt: '#93c5fd', num: '#60a5fa',
-        text: '#fff', sub: 'rgba(255,255,255,0.6)',
-        glass: 'rgba(96,165,250,0.08)', glassBorder: 'rgba(96,165,250,0.35)',
-        numBg: '#1e3a5f', numColor: '#60a5fa',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#0a1628"/>' +
-            '<rect width="1280" height="720" fill="url(#blueprint-grid)"/>' +
-            /* cross-hairs corner decorations */
-            '<line x1="60" y1="0"  x2="60"  y2="120" stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
-            '<line x1="0"  y1="60" x2="120" y2="60"  stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
-            '<circle cx="60" cy="60" r="4" fill="none" stroke="#60a5fa" stroke-width="1.5" opacity=".6"/>' +
-            '<line x1="1220" y1="0"  x2="1220" y2="120" stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
-            '<line x1="1160" y1="60" x2="1280" y2="60" stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
-            '<circle cx="1220" cy="60" r="4" fill="none" stroke="#60a5fa" stroke-width="1.5" opacity=".6"/>' +
-            '<line x1="60" y1="600" x2="60"  y2="720" stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
-            '<line x1="0"  y1="660" x2="120" y2="660" stroke="#60a5fa" stroke-width="1" opacity=".5"/>' +
-            '<circle cx="60" cy="660" r="4" fill="none" stroke="#60a5fa" stroke-width="1.5" opacity=".6"/>' +
-            /* center circle */
-            '<circle cx="640" cy="360" r="200" fill="none" stroke="#60a5fa" stroke-width="1" opacity=".15"/>' +
-            '<circle cx="640" cy="360" r="100" fill="none" stroke="#60a5fa" stroke-width="0.8" opacity=".1"/>' +
-            /* diagonal measurement lines */
-            '<line x1="0" y1="720" x2="640" y2="360" stroke="#60a5fa" stroke-width="0.5" opacity=".08"/>' +
-            '<line x1="1280" y1="0" x2="640" y2="360" stroke="#60a5fa" stroke-width="0.5" opacity=".08"/>' +
-            /* header bar */
-            '<rect x="0" y="0" width="1280" height="4" fill="#60a5fa" opacity=".9"/>' +
-            '<rect x="0" y="716" width="1280" height="4" fill="#60a5fa" opacity=".5"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#0a1628"/>' +
-            '<rect width="1280" height="720" fill="url(#blueprint-grid)"/>' +
-            /* corner crosshairs */
-            '<line x1="40" y1="0"  x2="40"  y2="80"  stroke="#60a5fa" stroke-width="1" opacity=".4"/>' +
-            '<line x1="0"  y1="40" x2="80"  y2="40"  stroke="#60a5fa" stroke-width="1" opacity=".4"/>' +
-            '<line x1="1240" y1="0" x2="1240" y2="80" stroke="#60a5fa" stroke-width="1" opacity=".4"/>' +
-            '<line x1="1200" y1="40" x2="1280" y2="40" stroke="#60a5fa" stroke-width="1" opacity=".4"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="rgba(10,22,40,0.7)"/>' +
-            '<rect x="0" y="0" width="1280" height="3" fill="#60a5fa"/>' +
-            '<rect x="0" y="76" width="1280" height="1" fill="rgba(96,165,250,0.3)"/>';
-        },
-        coverLayout: 'center',
-      },
-
-      /* ── 9  CYBERPUNK ── dark + hot pink/cyan neon, scanlines ── */
-      {
-        label: '🤖 Cyber',
-        accent: '#f0abfc', accentAlt: '#00f5c4', num: '#f0abfc',
-        text: '#fff', sub: 'rgba(255,255,255,0.6)',
-        glass: 'rgba(240,171,252,0.08)', glassBorder: 'rgba(240,171,252,0.4)',
-        numBg: 'transparent', numColor: '#f0abfc',
-        numBorderColor: '#f0abfc',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#050009"/>' +
-            /* scanlines */
-            '<rect width="1280" height="720" fill="url(#scanlines)" opacity=".6"/>' +
-            /* big glow orbs */
-            '<ellipse cx="220"  cy="360" rx="300" ry="240" fill="#c026d3" filter="url(#blur80)" opacity=".4"/>' +
-            '<ellipse cx="1100" cy="280" rx="260" ry="200" fill="#00f5c4" filter="url(#blur80)" opacity=".3"/>' +
-            '<ellipse cx="800"  cy="600" rx="200" ry="160" fill="#a855f7" filter="url(#blur60)" opacity=".35"/>' +
-            /* diagonal glitch cut */
-            '<polygon points="0,0 520,0 420,720 0,720" fill="rgba(192,0,255,0.04)"/>' +
-            /* neon lines */
-            '<line x1="0"   y1="0"   x2="1280" y2="0"   stroke="#f0abfc" stroke-width="2" filter="url(#glow-strong)"/>' +
-            '<line x1="0"   y1="720" x2="1280" y2="720" stroke="#00f5c4" stroke-width="2" filter="url(#glow-strong)"/>' +
-            '<line x1="0"   y1="0"   x2="0"    y2="720" stroke="#f0abfc" stroke-width="1.5" filter="url(#glow)"/>' +
-            /* corner brackets */
-            '<polyline points="40,20 20,20 20,60"   fill="none" stroke="#f0abfc" stroke-width="2" filter="url(#glow)"/>' +
-            '<polyline points="1240,20 1260,20 1260,60" fill="none" stroke="#00f5c4" stroke-width="2" filter="url(#glow)"/>' +
-            '<polyline points="40,700 20,700 20,660"    fill="none" stroke="#00f5c4" stroke-width="2" filter="url(#glow)"/>' +
-            '<polyline points="1240,700 1260,700 1260,660" fill="none" stroke="#f0abfc" stroke-width="2" filter="url(#glow)"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#050009"/>' +
-            '<rect width="1280" height="720" fill="url(#scanlines)" opacity=".5"/>' +
-            '<ellipse cx="100"  cy="100"  rx="200" ry="160" fill="#c026d3" filter="url(#blur60)" opacity=".3"/>' +
-            '<ellipse cx="1200" cy="620"  rx="200" ry="160" fill="#00f5c4" filter="url(#blur60)" opacity=".25"/>' +
-            '<rect x="0" y="0"   width="1280" height="2" fill="#f0abfc" filter="url(#glow)"/>' +
-            '<rect x="0" y="76"  width="1280" height="1" fill="rgba(240,171,252,0.3)"/>' +
-            '<rect x="0" y="0"   width="1280" height="76" fill="rgba(5,0,9,0.6)"/>';
-        },
-        coverLayout: 'left',
-      },
-
-      /* ── 10  SUNSET IG ── orange→pink→purple, Instagram-era gradient ── */
-      {
-        label: '🌅 Sunset',
-        accent: '#fde68a', accentAlt: '#fda4af', num: '#fde68a',
-        text: '#fff', sub: 'rgba(255,255,255,0.7)',
-        glass: 'rgba(255,255,255,0.12)', glassBorder: 'rgba(255,255,255,0.3)',
-        numBg: 'rgba(255,255,255,0.2)', numColor: '#fff',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="url(#sunset-grad)"/>' +
-            /* soft glow blobs for depth */
-            '<ellipse cx="200"  cy="200" rx="300" ry="240" fill="#f97316" filter="url(#blur80)" opacity=".4"/>' +
-            '<ellipse cx="1100" cy="500" rx="280" ry="220" fill="#7c3aed" filter="url(#blur80)" opacity=".4"/>' +
-            '<ellipse cx="640"  cy="680" rx="400" ry="200" fill="#ec4899" filter="url(#blur60)" opacity=".3"/>' +
-            /* light ray sweep */
-            '<polygon points="640,360 0,0 0,200"     fill="rgba(255,255,255,0.03)"/>' +
-            '<polygon points="640,360 1280,0 1280,200" fill="rgba(255,255,255,0.03)"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="url(#sunset-grad)"/>' +
-            '<ellipse cx="0"    cy="0"   rx="250" ry="200" fill="#f97316" filter="url(#blur80)" opacity=".3"/>' +
-            '<ellipse cx="1280" cy="720" rx="250" ry="200" fill="#7c3aed" filter="url(#blur80)" opacity=".3"/>' +
-            '<rect x="0" y="0"  width="1280" height="76" fill="rgba(0,0,0,0.18)"/>' +
-            '<rect x="0" y="76" width="1280" height="1"  fill="rgba(255,255,255,0.2)"/>';
-        },
-        coverLayout: 'center',
-      },
-
-      /* ── 11  DARK ACADEMIA ── warm dark tones, serif elegance, book aesthetic ── */
-      {
-        label: '📚 Academia',
-        accent: '#d4a757', accentAlt: '#c8956c', num: '#d4a757',
-        text: '#fff', sub: 'rgba(255,240,200,0.6)',
-        glass: 'rgba(212,167,87,0.1)', glassBorder: 'rgba(212,167,87,0.3)',
-        numBg: '#2d1a00', numColor: '#d4a757',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#1a0e00"/>' +
-            /* warm vignette blobs */
-            '<ellipse cx="640" cy="360" rx="700" ry="500" fill="#3d2200" filter="url(#blur80)" opacity=".8"/>' +
-            '<ellipse cx="200" cy="100" rx="300" ry="200" fill="#5c3400" filter="url(#blur60)" opacity=".5"/>' +
-            '<ellipse cx="1100" cy="620" rx="280" ry="200" fill="#4a2800" filter="url(#blur60)" opacity=".5"/>' +
-            /* decorative frame corners */
-            '<rect x="40"   y="40"  width="180" height="2"  fill="#d4a757" opacity=".5"/>' +
-            '<rect x="40"   y="40"  width="2"   height="120" fill="#d4a757" opacity=".5"/>' +
-            '<rect x="1060" y="40"  width="180" height="2"   fill="#d4a757" opacity=".5"/>' +
-            '<rect x="1238" y="40"  width="2"   height="120" fill="#d4a757" opacity=".5"/>' +
-            '<rect x="40"   y="678" width="180" height="2"   fill="#d4a757" opacity=".5"/>' +
-            '<rect x="40"   y="558" width="2"   height="122" fill="#d4a757" opacity=".5"/>' +
-            '<rect x="1060" y="678" width="180" height="2"   fill="#d4a757" opacity=".5"/>' +
-            '<rect x="1238" y="558" width="2"   height="122" fill="#d4a757" opacity=".5"/>' +
-            /* center divider line */
-            '<line x1="560" y1="220" x2="720" y2="220" stroke="#d4a757" stroke-width="1" opacity=".4"/>' +
-            '<line x1="560" y1="500" x2="720" y2="500" stroke="#d4a757" stroke-width="1" opacity=".4"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#140b00"/>' +
-            '<ellipse cx="640" cy="360" rx="700" ry="500" fill="#2d1a00" filter="url(#blur80)" opacity=".9"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="rgba(20,11,0,0.7)"/>' +
-            '<rect x="0" y="0" width="1280" height="3"  fill="#d4a757" opacity=".6"/>' +
-            '<rect x="0" y="76" width="1280" height="1" fill="rgba(212,167,87,0.2)"/>' +
-            '<rect x="40" y="90" width="1200" height="1" fill="rgba(212,167,87,0.1)"/>';
-        },
-        coverLayout: 'center',
-      },
-
-      /* ── 12  OBSIDIAN GOLD ── ultra dark, luxury gold accent, premium feel ── */
-      {
-        label: '✨ Obsidian',
-        accent: '#f5c842', accentAlt: '#fff8dc', num: '#f5c842',
-        text: '#fff', sub: 'rgba(255,255,255,0.55)',
-        glass: 'rgba(245,200,66,0.07)', glassBorder: 'rgba(245,200,66,0.25)',
-        numBg: '#1a1100', numColor: '#f5c842',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#080808"/>' +
-            /* very subtle texture */
-            '<rect width="1280" height="720" fill="url(#dots)" opacity=".3"/>' +
-            /* gold glow center */
-            '<ellipse cx="640" cy="360" rx="500" ry="360" fill="#f5c842" filter="url(#blur100)" opacity=".06"/>' +
-            /* top/bottom gold rules */
-            '<rect x="0"   y="0"   width="1280" height="2" fill="url(#gold-grad)"/>' +
-            '<rect x="0"   y="718" width="1280" height="2" fill="url(#gold-grad)"/>' +
-            /* left gold stripe */
-            '<rect x="0" y="0" width="5" height="720" fill="url(#gold-grad)"/>' +
-            /* decorative thin lines */
-            '<line x1="60"  y1="0"  x2="60"  y2="720" stroke="#f5c842" stroke-width="0.5" opacity=".12"/>' +
-            '<line x1="1220" y1="0" x2="1220" y2="720" stroke="#f5c842" stroke-width="0.5" opacity=".12"/>' +
-            '<line x1="0" y1="80"  x2="1280" y2="80"  stroke="#f5c842" stroke-width="0.5" opacity=".08"/>' +
-            '<line x1="0" y1="640" x2="1280" y2="640" stroke="#f5c842" stroke-width="0.5" opacity=".08"/>' +
-            /* corner diamonds */
-            '<polygon points="60,40 80,60 60,80 40,60" fill="#f5c842" opacity=".3"/>' +
-            '<polygon points="1220,40 1240,60 1220,80 1200,60" fill="#f5c842" opacity=".3"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#080808"/>' +
-            '<rect width="1280" height="720" fill="url(#dots)" opacity=".25"/>' +
-            '<rect x="0" y="0"   width="1280" height="2"  fill="url(#gold-grad)"/>' +
-            '<rect x="0" y="0"   width="5"    height="720" fill="url(#gold-grad)"/>' +
-            '<rect x="0" y="0"   width="1280" height="76" fill="rgba(8,8,8,0.85)"/>' +
-            '<rect x="0" y="76"  width="1280" height="1"  fill="rgba(245,200,66,0.2)"/>';
-        },
-        coverLayout: 'left',
-      },
-
-      /* ── 13  MEMPHIS 90s ── geometric shapes, bold retro colors ── */
-      {
-        label: '🎨 Memphis',
-        accent: '#ff006e', accentAlt: '#3a86ff', num: '#ff006e',
-        text: '#fff', sub: 'rgba(255,255,255,.7)',
-        glass: 'rgba(255,0,110,0.1)', glassBorder: 'rgba(255,0,110,0.4)',
-        numBg: '#ff006e', numColor: '#fff',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#1a0a2e"/>' +
-            /* colorful geometric shapes scattered */
-            '<circle cx="120"  cy="80"  r="70"  fill="#ff006e" opacity=".9"/>' +
-            '<circle cx="1160" cy="640" r="90"  fill="#3a86ff" opacity=".9"/>' +
-            '<circle cx="1050" cy="100" r="55"  fill="#ffbe0b" opacity=".9"/>' +
-            '<circle cx="200"  cy="620" r="65"  fill="#8338ec" opacity=".9"/>' +
-            '<rect x="900"  y="480" width="120" height="120" rx="0" fill="#06d6a0" opacity=".8" transform="rotate(15 960 540)"/>' +
-            '<rect x="80"   y="300" width="80"  height="80"  rx="0" fill="#ffbe0b" opacity=".8" transform="rotate(-10 120 340)"/>' +
-            '<rect x="560"  y="580" width="60"  height="60"  rx="0" fill="#fb5607" opacity=".9" transform="rotate(20 590 610)"/>' +
-            /* triangles */
-            '<polygon points="350,50 420,180 280,180" fill="#3a86ff" opacity=".85"/>' +
-            '<polygon points="1000,600 1080,720 920,720" fill="#ff006e" opacity=".8"/>' +
-            '<polygon points="700,60 760,160 640,160" fill="#06d6a0" opacity=".75"/>' +
-            /* squiggly lines */
-            '<path d="M0,360 Q80,300 160,360 Q240,420 320,360 Q400,300 480,360 Q560,420 640,360 Q720,300 800,360 Q880,420 960,360 Q1040,300 1120,360 Q1200,420 1280,360" fill="none" stroke="#ffbe0b" stroke-width="3" opacity=".5"/>' +
-            '<path d="M0,400 Q80,340 160,400 Q240,460 320,400 Q400,340 480,400 Q560,460 640,400 Q720,340 800,400 Q880,460 960,400 Q1040,340 1120,400 Q1200,460 1280,400" fill="none" stroke="#f0abfc" stroke-width="2" opacity=".4"/>' +
-            /* dots pattern large */
-            '<circle cx="500" cy="200" r="8"  fill="#ffbe0b" opacity=".6"/>' +
-            '<circle cx="540" cy="200" r="8"  fill="#ffbe0b" opacity=".6"/>' +
-            '<circle cx="580" cy="200" r="8"  fill="#ffbe0b" opacity=".6"/>' +
-            '<circle cx="500" cy="240" r="8"  fill="#ffbe0b" opacity=".4"/>' +
-            '<circle cx="540" cy="240" r="8"  fill="#ffbe0b" opacity=".4"/>' +
-            '<circle cx="580" cy="240" r="8"  fill="#ffbe0b" opacity=".4"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#1a0a2e"/>' +
-            /* corner accents */
-            '<circle cx="0"    cy="0"   r="120" fill="#ff006e" opacity=".7"/>' +
-            '<circle cx="1280" cy="720" r="100" fill="#3a86ff" opacity=".7"/>' +
-            '<circle cx="1280" cy="0"   r="80"  fill="#ffbe0b" opacity=".6"/>' +
-            '<circle cx="0"    cy="720" r="80"  fill="#8338ec" opacity=".6"/>' +
-            '<rect x="0" y="0"   width="1280" height="76" fill="rgba(26,10,46,0.85)"/>' +
-            '<rect x="0" y="76"  width="1280" height="3"  fill="#ff006e" opacity=".6"/>' +
-            '<rect x="0" y="0"   width="1280" height="4"  fill="#ff006e"/>';
-        },
-        coverLayout: 'center',
-      },
-
-      /* ── 14  COTTON CANDY ── ultra soft pastel, dreamy clouds ── */
-      {
-        label: '🍬 Pastel',
-        accent: '#a855f7', accentAlt: '#ec4899', num: '#a855f7',
-        text: '#1e1b4b', sub: '#4c1d95',
-        glass: 'rgba(255,255,255,0.5)', glassBorder: 'rgba(255,255,255,0.8)',
-        numBg: '#a855f7', numColor: '#fff',
-        cardStyle: 'background:rgba(255,255,255,0.55);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.9);border-radius:14px;',
-        light: true,
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#fdf4ff"/>' +
-            /* soft pastel blobs */
-            '<ellipse cx="200"  cy="200" rx="400" ry="300" fill="#f5d0fe" filter="url(#blur80)"  opacity=".7"/>' +
-            '<ellipse cx="1100" cy="520" rx="380" ry="280" fill="#fbcfe8" filter="url(#blur80)"  opacity=".7"/>' +
-            '<ellipse cx="640"  cy="100" rx="300" ry="200" fill="#ddd6fe" filter="url(#blur60)"  opacity=".6"/>' +
-            '<ellipse cx="900"  cy="680" rx="260" ry="180" fill="#bfdbfe" filter="url(#blur60)"  opacity=".5"/>' +
-            '<ellipse cx="100"  cy="600" rx="220" ry="160" fill="#a5f3fc" filter="url(#blur60)"  opacity=".45"/>' +
-            /* sparkle dots */
-            '<circle cx="400" cy="120" r="4" fill="#a855f7" opacity=".4"/>' +
-            '<circle cx="450" cy="100" r="3" fill="#ec4899" opacity=".4"/>' +
-            '<circle cx="380" cy="150" r="2" fill="#7c3aed" opacity=".5"/>' +
-            '<circle cx="850" cy="80"  r="4" fill="#ec4899" opacity=".4"/>' +
-            '<circle cx="900" cy="110" r="3" fill="#a855f7" opacity=".4"/>' +
-            '<circle cx="820" cy="50"  r="2" fill="#f472b6" opacity=".5"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#fdf4ff"/>' +
-            '<ellipse cx="0"    cy="0"   rx="300" ry="240" fill="#f5d0fe" filter="url(#blur80)" opacity=".6"/>' +
-            '<ellipse cx="1280" cy="720" rx="280" ry="220" fill="#fbcfe8" filter="url(#blur80)" opacity=".6"/>' +
-            '<ellipse cx="640"  cy="800" rx="400" ry="200" fill="#ddd6fe" filter="url(#blur60)" opacity=".5"/>' +
-            '<rect x="0" y="0"  width="1280" height="76" fill="rgba(253,244,255,0.7)"/>' +
-            '<rect x="0" y="76" width="1280" height="2"  fill="rgba(168,85,247,0.2)"/>' +
-            '<rect x="0" y="0"  width="1280" height="4"  fill="#a855f7"/>';
-        },
-        coverLayout: 'center',
-      },
-
-      /* ── 15  FOREST NIGHT ── deep dark green, moonlight, organic ── */
-      {
-        label: '🌲 Forest',
-        accent: '#4ade80', accentAlt: '#86efac', num: '#4ade80',
-        text: '#fff', sub: 'rgba(200,255,220,0.6)',
-        glass: 'rgba(74,222,128,0.08)', glassBorder: 'rgba(74,222,128,0.25)',
-        numBg: '#052e16', numColor: '#4ade80',
-        coverBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#010d06"/>' +
-            /* moonlight glow top center */
-            '<ellipse cx="640" cy="-80" rx="400" ry="300" fill="#4ade80" filter="url(#blur100)" opacity=".2"/>' +
-            '<ellipse cx="640" cy="-60" rx="200" ry="200" fill="#bbf7d0" filter="url(#blur80)"  opacity=".12"/>' +
-            /* deep forest ground */
-            '<ellipse cx="640" cy="820" rx="800" ry="300" fill="#052e16" filter="url(#blur60)" opacity=".9"/>' +
-            '<ellipse cx="100" cy="600" rx="200" ry="300" fill="#064e3b" filter="url(#blur60)" opacity=".7"/>' +
-            '<ellipse cx="1180" cy="580" rx="200" ry="300" fill="#064e3b" filter="url(#blur60)" opacity=".7"/>' +
-            /* tree silhouette paths */
-            '<path d="M100,720 L160,400 L200,500 L240,350 L280,450 L320,720 Z" fill="#052e16" opacity=".8"/>' +
-            '<path d="M960,720 L1020,380 L1060,480 L1100,330 L1140,440 L1180,720 Z" fill="#052e16" opacity=".8"/>' +
-            /* stars */
-            '<circle cx="300"  cy="80"  r="1.5" fill="#fff" opacity=".6"/>' +
-            '<circle cx="450"  cy="50"  r="1"   fill="#fff" opacity=".5"/>' +
-            '<circle cx="600"  cy="90"  r="1.5" fill="#fff" opacity=".7"/>' +
-            '<circle cx="750"  cy="40"  r="1"   fill="#fff" opacity=".5"/>' +
-            '<circle cx="900"  cy="70"  r="1.5" fill="#fff" opacity=".6"/>' +
-            '<circle cx="1050" cy="55"  r="1"   fill="#fff" opacity=".4"/>' +
-            '<circle cx="200"  cy="160" r="1"   fill="#fff" opacity=".4"/>' +
-            '<circle cx="1100" cy="140" r="1.5" fill="#fff" opacity=".5"/>' +
-            /* accent line */
-            '<rect x="0" y="0" width="1280" height="2" fill="#4ade80" opacity=".6"/>';
-        },
-        contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#010d06"/>' +
-            '<ellipse cx="640" cy="-120" rx="350" ry="280" fill="#4ade80" filter="url(#blur100)" opacity=".15"/>' +
-            '<ellipse cx="0"   cy="720"  rx="200" ry="200" fill="#064e3b" filter="url(#blur60)"  opacity=".7"/>' +
-            '<ellipse cx="1280" cy="720" rx="200" ry="200" fill="#064e3b" filter="url(#blur60)"  opacity=".7"/>' +
-            /* star dots */
-            '<circle cx="900" cy="40"  r="1.2" fill="#fff" opacity=".5"/>' +
-            '<circle cx="1100" cy="30" r="1"   fill="#fff" opacity=".4"/>' +
-            '<rect x="0" y="0"   width="1280" height="76" fill="rgba(1,13,6,0.8)"/>' +
-            '<rect x="0" y="0"   width="1280" height="2"  fill="#4ade80" opacity=".7"/>' +
-            '<rect x="0" y="76"  width="1280" height="1"  fill="rgba(74,222,128,0.2)"/>';
-        },
-        coverLayout: 'center',
-      },
-
-      /* ── 17  PPTX GREEN ── matches PPTX green theme exactly ── */
-      {
-        label: '🌿 P-Green',
-        accent: '#2D6A4F', accentAlt: '#74C69D', num: '#2D6A4F',
-        text: '#1B4332', sub: '#475569',
-        glass: 'rgba(45,106,79,0.08)', glassBorder: 'rgba(45,106,79,0.2)',
-        numBg: '#2D6A4F', numColor: '#fff',
-        cardStyle: 'background:#fff;border:1px solid rgba(45,106,79,0.15);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);',
-        light: true,
+        label: 'Green', name: 'green', light: true,
+        cover_bg: '#1B4332', primary_dk: '#1B4332', primary: '#2D6A4F',
+        primary_lt: '#74C69D', primary_xl: '#D8F3DC', accent: '#E8602C',
+        accent3: '#40916C', accent4: '#52B788', content_bg: '#FFFFFF',
+        card_bgs: ['#E8F8F1','#EAF2FF','#F1ECFE','#FFF6E5'],
+        card_icons: ['#10B981','#2E5BFF','#8B5CF6','#F59E0B'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#E8602C',
         coverBg: function() {
           return DEFS +
             '<rect width="1280" height="720" fill="#1B4332"/>' +
-            '<circle cx="900" cy="-100" r="400" fill="#2D6A4F" filter="url(#blur80)" opacity=".7"/>' +
-            '<circle cx="200" cy="600" r="300" fill="#2D6A4F" filter="url(#blur60)" opacity=".5"/>' +
-            '<circle cx="1100" cy="500" r="200" fill="#74C69D" filter="url(#blur80)" opacity=".15"/>';
+            '<circle cx="1280" cy="143" r="366" fill="#2D6A4F" opacity=".55"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#1B4332" opacity=".8"/>';
         },
         contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#F8F6EF"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="#1B4332"/>' +
-            '<rect x="0" y="76" width="1280" height="3" fill="#74C69D" opacity=".4"/>';
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
         },
-        coverLayout: 'center',
       },
 
-      /* ── 18  PPTX BLUE ── matches PPTX blue theme ── */
+      /* ── 1  blue ── */
       {
-        label: '📘 P-Blue',
-        accent: '#3B82F6', accentAlt: '#93C5FD', num: '#3B82F6',
-        text: '#1E3A5F', sub: '#475569',
-        glass: 'rgba(59,130,246,0.08)', glassBorder: 'rgba(59,130,246,0.2)',
-        numBg: '#3B82F6', numColor: '#fff',
-        cardStyle: 'background:#fff;border:1px solid rgba(59,130,246,0.15);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);',
-        light: true,
+        label: 'Blue', name: 'blue', light: true,
+        cover_bg: '#1E3A5F', primary_dk: '#1E3A5F', primary: '#3B82F6',
+        primary_lt: '#93C5FD', primary_xl: '#DBEAFE', accent: '#F59E0B',
+        accent3: '#06B6D4', accent4: '#60A5FA', content_bg: '#FFFFFF',
+        card_bgs: ['#EAF2FF','#E8F8F1','#F1ECFE','#FFF6E5'],
+        card_icons: ['#2E5BFF','#10B981','#8B5CF6','#F59E0B'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#F59E0B',
         coverBg: function() {
           return DEFS +
             '<rect width="1280" height="720" fill="#1E3A5F"/>' +
-            '<circle cx="900" cy="-100" r="400" fill="#3B82F6" filter="url(#blur80)" opacity=".3"/>' +
-            '<circle cx="200" cy="600" r="300" fill="#1E3A5F" filter="url(#blur60)" opacity=".5"/>';
+            '<circle cx="1280" cy="143" r="366" fill="#3B82F6" opacity=".35"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#1E3A5F" opacity=".8"/>';
         },
         contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#F0F4F8"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="#1E3A5F"/>' +
-            '<rect x="0" y="76" width="1280" height="3" fill="#93C5FD" opacity=".4"/>';
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
         },
-        coverLayout: 'center',
       },
 
-      /* ── 19  PPTX PURPLE ── matches PPTX purple theme ── */
+      /* ── 2  purple ── */
       {
-        label: '💜 P-Purple',
-        accent: '#7C3AED', accentAlt: '#C4B5FD', num: '#7C3AED',
-        text: '#31308C', sub: '#475569',
-        glass: 'rgba(124,58,237,0.08)', glassBorder: 'rgba(124,58,237,0.2)',
-        numBg: '#7C3AED', numColor: '#fff',
-        cardStyle: 'background:#fff;border:1px solid rgba(124,58,237,0.15);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);',
-        light: true,
+        label: 'Purple', name: 'purple', light: true,
+        cover_bg: '#31308C', primary_dk: '#31308C', primary: '#7C3AED',
+        primary_lt: '#C4B5FD', primary_xl: '#EDE9FE', accent: '#EC4899',
+        accent3: '#8B5CF6', accent4: '#A78BFA', content_bg: '#FFFFFF',
+        card_bgs: ['#F1ECFE','#EAF2FF','#FDECEC','#FFF6E5'],
+        card_icons: ['#8B5CF6','#2E5BFF','#EF4444','#F59E0B'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#EC4899',
         coverBg: function() {
           return DEFS +
             '<rect width="1280" height="720" fill="#31308C"/>' +
-            '<circle cx="800" cy="100" r="400" fill="#7C3AED" filter="url(#blur80)" opacity=".4"/>' +
-            '<circle cx="200" cy="500" r="300" fill="#31308C" filter="url(#blur60)" opacity=".5"/>';
+            '<circle cx="1280" cy="143" r="366" fill="#7C3AED" opacity=".45"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#31308C" opacity=".8"/>';
         },
         contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#F5F3FF"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="#31308C"/>' +
-            '<rect x="0" y="76" width="1280" height="3" fill="#C4B5FD" opacity=".4"/>';
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
         },
-        coverLayout: 'center',
       },
 
-      /* ── 20  PPTX RED ── matches PPTX red theme ── */
+      /* ── 3  red ── */
       {
-        label: '❤️ P-Red',
-        accent: '#DC2626', accentAlt: '#FCA5A5', num: '#DC2626',
-        text: '#7F1D1D', sub: '#475569',
-        glass: 'rgba(220,38,38,0.08)', glassBorder: 'rgba(220,38,38,0.2)',
-        numBg: '#DC2626', numColor: '#fff',
-        cardStyle: 'background:#fff;border:1px solid rgba(220,38,38,0.15);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);',
-        light: true,
+        label: 'Red', name: 'red', light: true,
+        cover_bg: '#7F1D1D', primary_dk: '#7F1D1D', primary: '#DC2626',
+        primary_lt: '#FCA5A5', primary_xl: '#FEE2E2', accent: '#F59E0B',
+        accent3: '#EF4444', accent4: '#F87171', content_bg: '#FFFFFF',
+        card_bgs: ['#FDECEC','#EAF2FF','#FFF6E5','#E8F8F1'],
+        card_icons: ['#EF4444','#2E5BFF','#F59E0B','#10B981'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#F59E0B',
         coverBg: function() {
           return DEFS +
             '<rect width="1280" height="720" fill="#7F1D1D"/>' +
-            '<circle cx="800" cy="100" r="400" fill="#DC2626" filter="url(#blur80)" opacity=".3"/>' +
-            '<circle cx="200" cy="600" r="300" fill="#7F1D1D" filter="url(#blur60)" opacity=".5"/>';
+            '<circle cx="1280" cy="143" r="366" fill="#DC2626" opacity=".35"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#7F1D1D" opacity=".8"/>';
         },
         contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#FEF2F2"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="#7F1D1D"/>' +
-            '<rect x="0" y="76" width="1280" height="3" fill="#FCA5A5" opacity=".4"/>';
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
         },
-        coverLayout: 'center',
       },
 
-      /* ── 21  PPTX TEAL ── matches PPTX teal theme ── */
+      /* ── 4  teal ── */
       {
-        label: '🩵 P-Teal',
-        accent: '#0D9488', accentAlt: '#5EEAD4', num: '#0D9488',
-        text: '#13474E', sub: '#475569',
-        glass: 'rgba(13,148,136,0.08)', glassBorder: 'rgba(13,148,136,0.2)',
-        numBg: '#0D9488', numColor: '#fff',
-        cardStyle: 'background:#fff;border:1px solid rgba(13,148,136,0.15);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);',
-        light: true,
+        label: 'Teal', name: 'teal', light: true,
+        cover_bg: '#13474E', primary_dk: '#13474E', primary: '#0D9488',
+        primary_lt: '#5EEAD4', primary_xl: '#CCFBF1', accent: '#F59E0B',
+        accent3: '#14B8A6', accent4: '#2DD4BF', content_bg: '#FFFFFF',
+        card_bgs: ['#E8F8F1','#EAF2FF','#F1ECFE','#FFF6E5'],
+        card_icons: ['#10B981','#2E5BFF','#8B5CF6','#F59E0B'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#F59E0B',
         coverBg: function() {
           return DEFS +
             '<rect width="1280" height="720" fill="#13474E"/>' +
-            '<circle cx="800" cy="100" r="400" fill="#0D9488" filter="url(#blur80)" opacity=".3"/>' +
-            '<circle cx="200" cy="600" r="300" fill="#13474E" filter="url(#blur60)" opacity=".5"/>';
+            '<circle cx="1280" cy="143" r="366" fill="#0D9488" opacity=".35"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#13474E" opacity=".8"/>';
         },
         contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#F0FDFA"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="#13474E"/>' +
-            '<rect x="0" y="76" width="1280" height="3" fill="#5EEAD4" opacity=".4"/>';
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
         },
-        coverLayout: 'center',
       },
 
-      /* ── 22  PPTX AMBER ── matches PPTX amber theme ── */
+      /* ── 5  amber ── */
       {
-        label: '🟠 P-Amber',
-        accent: '#D97706', accentAlt: '#FCD34D', num: '#D97706',
-        text: '#78350F', sub: '#475569',
-        glass: 'rgba(217,119,6,0.08)', glassBorder: 'rgba(217,119,6,0.2)',
-        numBg: '#D97706', numColor: '#fff',
-        cardStyle: 'background:#fff;border:1px solid rgba(217,119,6,0.15);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);',
-        light: true,
+        label: 'Amber', name: 'amber', light: true,
+        cover_bg: '#78350F', primary_dk: '#78350F', primary: '#D97706',
+        primary_lt: '#FCD34D', primary_xl: '#FEF3C7', accent: '#EF4444',
+        accent3: '#F59E0B', accent4: '#FBBF24', content_bg: '#FFFFFF',
+        card_bgs: ['#FFF6E5','#EAF2FF','#E8F8F1','#F1ECFE'],
+        card_icons: ['#F59E0B','#2E5BFF','#10B981','#8B5CF6'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#EF4444',
         coverBg: function() {
           return DEFS +
             '<rect width="1280" height="720" fill="#78350F"/>' +
-            '<circle cx="800" cy="100" r="400" fill="#D97706" filter="url(#blur80)" opacity=".3"/>' +
-            '<circle cx="200" cy="600" r="300" fill="#78350F" filter="url(#blur60)" opacity=".5"/>';
+            '<circle cx="1280" cy="143" r="366" fill="#D97706" opacity=".35"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#78350F" opacity=".8"/>';
         },
         contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#FFFBEB"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="#78350F"/>' +
-            '<rect x="0" y="76" width="1280" height="3" fill="#FCD34D" opacity=".4"/>';
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
         },
-        coverLayout: 'center',
       },
 
-      /* ── 23  PPTX SLATE ── matches PPTX slate theme ── */
+      /* ── 6  slate ── */
       {
-        label: '🩶 P-Slate',
-        accent: '#475569', accentAlt: '#94A3B8', num: '#475569',
-        text: '#1E293B', sub: '#64748B',
-        glass: 'rgba(71,85,105,0.08)', glassBorder: 'rgba(71,85,105,0.2)',
-        numBg: '#475569', numColor: '#fff',
-        cardStyle: 'background:#fff;border:1px solid rgba(71,85,105,0.15);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);',
-        light: true,
+        label: 'Slate', name: 'slate', light: true,
+        cover_bg: '#1E293B', primary_dk: '#1E293B', primary: '#475569',
+        primary_lt: '#94A3B8', primary_xl: '#E2E8F0', accent: '#3B82F6',
+        accent3: '#64748B', accent4: '#94A3B8', content_bg: '#FFFFFF',
+        card_bgs: ['#EAF2FF','#E8F8F1','#F1ECFE','#FFF6E5'],
+        card_icons: ['#2E5BFF','#10B981','#8B5CF6','#F59E0B'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#3B82F6',
         coverBg: function() {
           return DEFS +
             '<rect width="1280" height="720" fill="#1E293B"/>' +
-            '<circle cx="800" cy="100" r="400" fill="#475569" filter="url(#blur80)" opacity=".3"/>' +
-            '<circle cx="200" cy="600" r="300" fill="#1E293B" filter="url(#blur60)" opacity=".5"/>';
+            '<circle cx="1280" cy="143" r="366" fill="#475569" opacity=".45"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#1E293B" opacity=".8"/>';
         },
         contentBg: function() {
-          return DEFS +
-            '<rect width="1280" height="720" fill="#F1F5F9"/>' +
-            '<rect x="0" y="0" width="1280" height="76" fill="#1E293B"/>' +
-            '<rect x="0" y="76" width="1280" height="3" fill="#94A3B8" opacity=".4"/>';
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
         },
-        coverLayout: 'center',
+      },
+
+      /* ── 7  earth ── */
+      {
+        label: 'Earth', name: 'earth', light: true,
+        cover_bg: '#5C3D2E', primary_dk: '#5C3D2E', primary: '#B85042',
+        primary_lt: '#D4A593', primary_xl: '#F5EBE0', accent: '#A7BEAE',
+        accent3: '#C97B63', accent4: '#8D6E63', content_bg: '#FFFFFF',
+        card_bgs: ['#F5EBE0','#E8F0EB','#FDECEC','#FEF3C7'],
+        card_icons: ['#B85042','#5B8C6F','#C97B63','#D49106'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#A7BEAE',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#5C3D2E"/>' +
+            '<circle cx="1280" cy="143" r="366" fill="#B85042" opacity=".4"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#5C3D2E" opacity=".8"/>';
+        },
+        contentBg: function() {
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
+        },
+      },
+
+      /* ── 8  coral ── */
+      {
+        label: 'Coral', name: 'coral', light: true,
+        cover_bg: '#7C2D36', primary_dk: '#7C2D36', primary: '#F96167',
+        primary_lt: '#FCAEB2', primary_xl: '#FDECEC', accent: '#F9E795',
+        accent3: '#FB7E83', accent4: '#FC9A9E', content_bg: '#FFFFFF',
+        card_bgs: ['#FDECEC','#FEF3C7','#EAF2FF','#E8F8F1'],
+        card_icons: ['#F96167','#D49106','#2E5BFF','#10B981'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#F9E795',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#7C2D36"/>' +
+            '<circle cx="1280" cy="143" r="366" fill="#F96167" opacity=".35"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#7C2D36" opacity=".8"/>';
+        },
+        contentBg: function() {
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
+        },
+      },
+
+      /* ── 9  ocean ── */
+      {
+        label: 'Ocean', name: 'ocean', light: true,
+        cover_bg: '#065A82', primary_dk: '#065A82', primary: '#1C7293',
+        primary_lt: '#6EC6E0', primary_xl: '#DBF4FA', accent: '#02C39A',
+        accent3: '#2187AA', accent4: '#4EA8C8', content_bg: '#FFFFFF',
+        card_bgs: ['#DBF4FA','#E8F8F1','#EAF2FF','#FFF6E5'],
+        card_icons: ['#1C7293','#02C39A','#065A82','#F59E0B'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#02C39A',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#065A82"/>' +
+            '<circle cx="1280" cy="143" r="366" fill="#1C7293" opacity=".5"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#065A82" opacity=".8"/>';
+        },
+        contentBg: function() {
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
+        },
+      },
+
+      /* ── 10  berry ── */
+      {
+        label: 'Berry', name: 'berry', light: true,
+        cover_bg: '#6D2E46', primary_dk: '#6D2E46', primary: '#A26769',
+        primary_lt: '#D4A0A2', primary_xl: '#F5E6E8', accent: '#ECE2D0',
+        accent3: '#B07D7F', accent4: '#C28E90', content_bg: '#FFFFFF',
+        card_bgs: ['#F5E6E8','#F1ECFE','#EAF2FF','#FEF3C7'],
+        card_icons: ['#A26769','#8B5CF6','#2E5BFF','#D49106'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#ECE2D0',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#6D2E46"/>' +
+            '<circle cx="1280" cy="143" r="366" fill="#A26769" opacity=".45"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#6D2E46" opacity=".8"/>';
+        },
+        contentBg: function() {
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
+        },
+      },
+
+      /* ── 11  midnight ── */
+      {
+        label: 'Midnight', name: 'midnight', light: true,
+        cover_bg: '#1E2761', primary_dk: '#1E2761', primary: '#3D52A0',
+        primary_lt: '#CADCFC', primary_xl: '#E8EDFD', accent: '#F59E0B',
+        accent3: '#5B6EB5', accent4: '#7C8EC8', content_bg: '#FFFFFF',
+        card_bgs: ['#E8EDFD','#EAF2FF','#F1ECFE','#FFF6E5'],
+        card_icons: ['#3D52A0','#2E5BFF','#8B5CF6','#F59E0B'],
+        text: '#1F2A44', sub: '#5B6478',
+        accent_css: '#F59E0B',
+        coverBg: function() {
+          return DEFS +
+            '<rect width="1280" height="720" fill="#1E2761"/>' +
+            '<circle cx="1280" cy="143" r="366" fill="#3D52A0" opacity=".5"/>' +
+            '<circle cx="1280" cy="648" r="216" fill="#1E2761" opacity=".8"/>';
+        },
+        contentBg: function() {
+          return DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
+        },
       },
 
     ]; /* end THEMES */
@@ -993,98 +573,94 @@
     }
 
     /* ─────────────────────────────────────────────────────────────────
-       COVER
+       COVER  — 3 styles matching PPTX exactly
     ───────────────────────────────────────────────────────────────── */
     function renderCover(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var sColor = t.light ? t.sub  : 'rgba(255,255,255,.65)';
-      var layout = t.coverLayout || 'center';
+      var style = (s.style || {});
+      var coverStyle = style.cover_style || 'left';
+      var cat     = style.category || '';
+      var iconHint = style.icon || '';
+      var ic = pickIcon((s.title||'') + ' ' + (s.subtitle||''), iconHint);
 
-      var bgSvg  = typeof t.coverBg === 'function'
-        ? t.coverBg(s.title)
-        : t.coverBg;
+      var bgSvg = typeof t.coverBg === 'function' ? t.coverBg(s.title) : t.coverBg;
+
+      /* decorative circles on cover */
+      var decor = '<circle cx="1280" cy="143" r="366" fill="' + t.primary + '" opacity=".55"/>' +
+                  '<circle cx="1280" cy="648" r="216" fill="' + t.primary_dk + '" opacity=".7"/>';
+      var fullBg = DEFS + '<rect width="1280" height="720" fill="' + t.cover_bg + '"/>' + decor;
+
+      var iconBgColor = t.primary_lt;
+      var iconCircleHtml = '<div style="width:96px;height:96px;border-radius:18px;background:' + iconBgColor + ';display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+        '<div style="width:50px;height:50px;">' + iconSvg(ic) + '</div>' +
+      '</div>';
 
       var contentHtml;
-      if (layout === 'left-panel') {
-        /* Light theme: text on right side of left panel */
+
+      if (coverStyle === 'centered') {
+        /* centered: icon top-center, category, title, subtitle, bullets centered */
         contentHtml =
-          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:8% 7% 8% 37%;">' +
-            '<div style="font-size:10px;font-weight:800;letter-spacing:4px;color:' + t.accent + ';text-transform:uppercase;margin-bottom:20px;">01 / ' + String(total).padStart(2,'0') + '</div>' +
-            '<div style="font-size:clamp(22px,3.8vw,48px);font-weight:900;color:' + tColor + ';line-height:1.1;margin-bottom:24px;">' + s.title + '</div>' +
-            '<div style="width:48px;height:5px;border-radius:3px;background:' + t.accent + ';margin-bottom:22px;"></div>' +
-            (s.bullets.length ? '<div style="font-size:clamp(13px,1.5vw,17px);color:' + sColor + ';line-height:1.85;">' + s.bullets.map(function(b){ return b; }).join('<br>') + '</div>' : '') +
+          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6% 8%;text-align:center;">' +
+            '<div class="f-up" style="margin-bottom:14px;">' + iconCircleHtml + '</div>' +
+            (cat ? '<div class="f-up" style="font-size:12px;font-weight:800;letter-spacing:2px;color:' + t.accent + ';text-transform:uppercase;margin-bottom:10px;animation-delay:.05s;">' + cat + '</div>' : '') +
+            '<h1 class="f-up" style="color:#fff;font-size:clamp(26px,4vw,56px);font-weight:900;line-height:1.1;margin:0 0 14px;max-width:800px;animation-delay:.1s;">' + s.title + '</h1>' +
+            (s.subtitle ? '<p class="f-up" style="color:' + t.primary_xl + ';font-size:clamp(13px,1.5vw,18px);margin:0 0 16px;max-width:640px;animation-delay:.15s;">' + s.subtitle + '</p>' : '') +
+            (s.bullets && s.bullets.length ?
+              '<p class="f-up" style="color:#fff;font-size:13px;font-weight:500;margin:0;animation-delay:.2s;">' +
+                s.bullets.slice(0,3).join(' &nbsp;·&nbsp; ') + '</p>' : '') +
           '</div>';
 
-        /* Left panel decorative text */
-        var shortTitle = s.title.substring(0,2).toUpperCase();
-        contentHtml +=
-          '<div style="position:absolute;left:0;top:0;width:420px;height:100%;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
-            '<div style="font-size:72px;font-weight:900;color:' + t.accent + ';opacity:.15;letter-spacing:-4px;">' + shortTitle + '</div>' +
-          '</div>';
-
-      } else if (layout === 'left-card') {
-        /* Glass theme: content inside left glass card */
+      } else if (coverStyle === 'minimal') {
+        /* minimal: title left-large, subtitle, category, bullets */
         contentHtml =
-          '<div style="position:relative;z-index:2;height:100%;display:flex;align-items:center;padding:0 7%;">' +
-            '<div style="max-width:52%;background:rgba(255,255,255,0.1);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.2);border-radius:24px;padding:40px 44px;">' +
-              '<div style="font-size:10px;font-weight:800;letter-spacing:4px;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:20px;">01 / ' + String(total).padStart(2,'0') + '</div>' +
-              '<div style="font-size:clamp(20px,3.2vw,40px);font-weight:900;color:#fff;line-height:1.15;margin-bottom:20px;">' + s.title + '</div>' +
-              '<div style="width:44px;height:4px;border-radius:2px;background:' + t.accentAlt + ';margin-bottom:18px;"></div>' +
-              (s.bullets.length ? '<div style="font-size:clamp(12px,1.4vw,16px);color:rgba(255,255,255,.72);line-height:1.8;">' + s.bullets.map(function(b){ return '· ' + b; }).join('<br>') + '</div>' : '') +
-            '</div>' +
-          '</div>';
-
-      } else if (layout === 'left') {
-        var coverTxt = (t.name === 'neo' || t.coverBranding) ? t.text : '#fff';
-        var coverSub2 = (t.name === 'neo' || t.coverBranding) ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,.58)';
-        contentHtml =
-          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:8% 5% 8% 8%;">' +
-            '<div style="font-size:10px;font-weight:800;letter-spacing:4px;color:' + t.accent + ';text-transform:uppercase;margin-bottom:24px;opacity:.9;">01 / ' + String(total).padStart(2,'0') + '</div>' +
-            '<div style="font-size:clamp(28px,5vw,64px);font-weight:900;color:' + coverTxt + ';line-height:1.05;margin-bottom:24px;max-width:700px;">' + s.title + '</div>' +
-            '<div style="display:flex;align-items:center;gap:16px;margin-bottom:28px;">' +
-              '<div style="width:48px;height:5px;border-radius:3px;background:' + t.accent + ';"></div>' +
-              '<div style="width:20px;height:5px;border-radius:3px;background:' + t.accentAlt + ';opacity:.7;"></div>' +
-            '</div>' +
-            (s.bullets.length ? '<div style="font-size:clamp(13px,1.5vw,17px);color:' + coverSub2 + ';line-height:1.85;max-width:600px;">' + s.bullets.map(function(b){ return '· ' + b; }).join('<br>') + '</div>' : '') +
+          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:8% 7%;">' +
+            '<h1 class="f-up" style="color:#fff;font-size:clamp(30px,5vw,64px);font-weight:900;line-height:1.05;margin:0 0 20px;max-width:760px;">' + s.title + '</h1>' +
+            (s.subtitle ? '<p class="f-up" style="color:' + t.primary_xl + ';font-size:clamp(13px,1.5vw,18px);margin:0 0 14px;animation-delay:.05s;">' + s.subtitle + '</p>' : '') +
+            (cat ? '<div class="f-up" style="font-size:12px;font-weight:800;color:' + t.accent + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;animation-delay:.1s;">' + cat + '</div>' : '') +
+            (s.bullets && s.bullets.length ?
+              '<p class="f-up" style="color:' + t.primary_xl + ';font-size:13px;margin:0;animation-delay:.12s;">' +
+                s.bullets.slice(0,3).join(' &nbsp;·&nbsp; ') + '</p>' : '') +
           '</div>';
 
       } else {
-        /* center — Aurora, Neon, Coral */
+        /* left (default): icon top-left in rounded rect, category, large title, subtitle, bullets */
         contentHtml =
-          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:8% 10%;text-align:center;">' +
-            '<div style="font-size:10px;font-weight:800;letter-spacing:4px;color:' + t.accent + ';text-transform:uppercase;margin-bottom:22px;opacity:.9;">01 / ' + String(total).padStart(2,'0') + '</div>' +
-            '<div style="font-size:clamp(24px,4.2vw,52px);font-weight:900;color:#fff;line-height:1.1;margin-bottom:22px;max-width:860px;">' + s.title + '</div>' +
-            '<div style="width:52px;height:4px;border-radius:3px;background:' + t.accent + ';margin-bottom:22px;"></div>' +
-            (s.bullets.length
-              ? '<div style="font-size:clamp(13px,1.5vw,17px);color:rgba(255,255,255,.65);line-height:1.85;max-width:700px;">' +
-                  s.bullets.map(function(b){ return b; }).join('&ensp;·&ensp;') + '</div>'
-              : '') +
+          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:6% 6% 6% 7%;">' +
+            '<div class="f-up" style="margin-bottom:14px;">' + iconCircleHtml + '</div>' +
+            (cat ? '<div class="f-up" style="font-size:12px;font-weight:800;color:' + t.accent + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;animation-delay:.05s;">' + cat + '</div>' : '') +
+            '<h1 class="f-up" style="color:#fff;font-size:clamp(24px,4.2vw,56px);font-weight:900;line-height:1.05;margin:0 0 16px;max-width:780px;animation-delay:.1s;">' + s.title + '</h1>' +
+            (s.subtitle ? '<p class="f-up" style="color:' + t.primary_xl + ';font-size:clamp(13px,1.5vw,18px);margin:0 0 14px;animation-delay:.15s;">' + s.subtitle + '</p>' : '') +
+            (s.bullets && s.bullets.length ?
+              '<div class="f-up" style="display:flex;align-items:center;gap:0;animation-delay:.2s;">' +
+                '<div style="width:3px;height:36px;border-radius:2px;background:#fff;margin-right:12px;flex-shrink:0;"></div>' +
+                '<span style="color:#fff;font-size:13px;font-weight:500;">' + s.bullets.slice(0,3).join(' &nbsp;·&nbsp; ') + '</span>' +
+              '</div>' : '') +
           '</div>';
       }
 
+      if (s.footer) {
+        contentHtml += '<div style="position:absolute;bottom:20px;left:7%;right:7%;z-index:3;">' +
+          '<span style="color:' + t.primary_lt + ';font-size:10px;">' + s.footer + '</span></div>';
+      }
+
       return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
-        svgBg(bgSvg) + contentHtml + '</div>';
+        svgBg(fullBg) + contentHtml + '</div>';
     }
 
     /* ─────────────────────────────────────────────────────────────────
-       CONTENT — shared header helper
+       CONTENT — shared header helper (PPTX style: centered cat + title)
     ───────────────────────────────────────────────────────────────── */
     function slideHeader(s, idx, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var badgeColor = t.numColor || (t.light ? '#fff' : '#0a0a0a');
-      return '<div style="height:72px;display:flex;align-items:center;gap:14px;flex-shrink:0;">' +
-        '<span style="background:' + t.accent + ';color:' + badgeColor + ';' +
-          'font-size:10px;font-weight:900;padding:5px 13px;border-radius:20px;letter-spacing:1px;flex-shrink:0;">' +
-          String(idx+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') +
-        '</span>' +
-        '<h2 style="color:' + tColor + ';font-size:clamp(15px,2vw,25px);font-weight:800;margin:0;line-height:1.2;">' + s.title + '</h2>' +
+      var cat = (s.style||{}).category || '';
+      return '<div style="height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;padding-top:4px;">' +
+        (cat ? '<div style="font-size:10px;font-weight:800;color:' + t.card_icons[0] + ';letter-spacing:3px;text-transform:uppercase;margin-bottom:3px;">' + cat + '</div>' : '') +
+        '<h2 style="color:#1F2A44;font-size:clamp(14px,1.8vw,22px);font-weight:800;margin:0;line-height:1.2;text-align:center;">' + s.title + '</h2>' +
       '</div>';
     }
 
     function slideWrap(bgSvg, inner) {
       return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
         svgBg(bgSvg) +
-        '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;padding:0 5% 3%;">' +
+        '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;padding:0 5% 2%;">' +
           inner +
         '</div>' +
       '</div>';
@@ -1092,358 +668,341 @@
 
     /* ── LAYOUT: bullets ── */
     function layoutBullets(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var numBg    = t.numBg    || t.accent;
-      var numColor = t.numColor || (t.light ? '#fff' : '#0a0a0a');
-      var defaultCard = 'background:' + t.glass + ';border:1px solid ' + t.glassBorder + ';border-radius:14px;' + (t.light ? '' : 'backdrop-filter:blur(8px);');
-      var cardCss  = t.cardStyle || defaultCard;
-      var bullets = (s.bullets || []).slice(0, 5);
-      var html = bullets.map(function(b, bi) {
-        return '<div class="f-up" style="display:flex;align-items:flex-start;gap:14px;padding:11px 18px 11px 14px;' + cardCss + 'animation-delay:' + (bi*0.08) + 's;margin-bottom:8px;">' +
-          '<div style="min-width:28px;height:28px;border-radius:8px;background:' + numBg + ';color:' + numColor + ';' +
-            (t.numBorderColor ? 'border:1.5px solid ' + t.numBorderColor + ';background:transparent;' : '') +
-            'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:1px;">' +
-            String(bi+1).padStart(2,'0') +
-          '</div>' +
-          '<span style="color:' + tColor + ';font-size:clamp(12px,1.3vw,15px);line-height:1.65;">' + b + '</span>' +
-        '</div>';
-      }).join('');
-      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + html + '</div>';
-    }
-
-    /* ── LAYOUT: stats — 4 KPI cards in 2×2 grid ── */
-    function layoutStats(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var items  = s.items || [];
-      // Fallback: parse bullets as "value :: label" if items missing
-      if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b) {
-          var p = b.split('::'); return { value: (p[0]||'').trim(), label: (p[1]||b).trim() };
-        });
-      }
-      items = items.slice(0, 4);
-      var cols = items.length <= 3 ? items.length : 2;
-      var cards = items.map(function(it, i) {
-        var delay = (i * 0.1).toFixed(1);
-        return '<div class="f-up" style="' +
-          'background:' + t.glass + ';border:1px solid ' + t.glassBorder + ';border-radius:18px;' +
-          (t.light ? '' : 'backdrop-filter:blur(10px);') +
-          'padding:22px 18px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-          'animation-delay:' + delay + 's;">' +
-          '<div style="font-size:clamp(28px,3.8vw,52px);font-weight:900;color:' + t.accent + ';line-height:1;letter-spacing:-1px;margin-bottom:8px;">' + (it.value||'—') + '</div>' +
-          '<div style="font-size:clamp(11px,1.2vw,13px);color:' + tColor + ';opacity:.85;font-weight:600;line-height:1.4;max-width:140px;">' + (it.label||'') + '</div>' +
-        '</div>';
-      }).join('');
-      return '<div style="flex:1;display:flex;align-items:center;">' +
-        '<div style="display:grid;grid-template-columns:repeat(' + cols + ',1fr);gap:16px;width:100%;">' + cards + '</div>' +
-      '</div>';
-    }
-
-    /* multi-accent palette */
-    var ACCENTS = ['#0099CC','#FF8C42','#7C3AED','#00B074','#F59E0B','#EF4444'];
-    function ac(i) { return ACCENTS[i % ACCENTS.length]; }
-    /* lighter tint for bg */
-    function acTint(hex, a) { return hex + Math.round(a*255).toString(16).padStart(2,'0'); }
-
-    /* ── LAYOUT: bullets — premium list with left accent bars ── */
-    function layoutBullets(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var subClr = t.light ? '#475569' : 'rgba(255,255,255,.7)';
+      var b_items = s.bullet_items || [];
       var bullets = s.bullets || [];
-      if (!bullets.length) return '';
-      var rows = bullets.map(function(b, i) {
-        var color = ac(i);
-        var num   = String(i+1).padStart(2,'0');
-        return '<div class="f-up" style="display:flex;align-items:flex-start;gap:14px;padding:11px 16px;margin-bottom:8px;' +
-          'border-radius:12px;border-left:3px solid ' + color + ';' +
-          'background:' + (t.light ? 'rgba(0,0,0,.03)' : 'rgba(255,255,255,.06)') + ';' +
-          'animation-delay:' + (i*0.08) + 's;">' +
-          '<span style="font-size:10px;font-weight:900;color:' + color + ';letter-spacing:1px;min-width:22px;margin-top:1px;flex-shrink:0;">' + num + '</span>' +
-          '<span style="color:' + tColor + ';font-size:clamp(12px,1.3vw,15px);line-height:1.65;font-weight:500;">' + b + '</span>' +
-        '</div>';
-      }).join('');
-      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + rows + '</div>';
+      var n = b_items.length || bullets.length;
+      var accents = t.card_icons;
+      var cbgs = t.card_bgs;
+
+      if (b_items.length === 3) {
+        /* 3-column pastel cards with icon circle */
+        var cards = b_items.map(function(it, i) {
+          var ac = accents[i % accents.length];
+          var bg = cbgs[i % cbgs.length];
+          var ic = pickIcon((it.title||'') + ' ' + (it.desc||''), it.icon);
+          return '<div class="f-up" style="flex:1;border-radius:12px;background:' + bg + ';padding:18px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;animation-delay:' + (i*0.08) + 's;">' +
+            iconCircle(ic, ac, 44) +
+            '<div style="font-size:13px;font-weight:700;color:#1F2A44;margin-top:12px;margin-bottom:6px;">' + (it.title||'') + '</div>' +
+            (it.desc ? '<div style="font-size:10px;color:#5B6478;line-height:1.5;">' + it.desc + '</div>' : '') +
+          '</div>';
+        }).join('');
+        return '<div style="flex:1;display:flex;align-items:center;">' +
+          '<div style="display:flex;gap:12px;width:100%;">' + cards + '</div></div>';
+
+      } else if (b_items.length >= 2) {
+        /* stacked list with icon circle left */
+        var rows = b_items.slice(0,6).map(function(it, i) {
+          var ac = accents[i % accents.length];
+          var ic = pickIcon((it.title||'') + ' ' + (it.desc||''), it.icon);
+          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:14px;margin-bottom:10px;animation-delay:' + (i*0.07) + 's;">' +
+            iconCircle(ic, ac, 40) +
+            '<div style="flex:1;padding-top:2px;">' +
+              '<div style="font-size:13px;font-weight:700;color:#1F2A44;margin-bottom:2px;">' + (it.title||'') + '</div>' +
+              (it.desc ? '<div style="font-size:10px;color:#5B6478;line-height:1.5;">' + it.desc + '</div>' : '') +
+            '</div>' +
+          '</div>';
+        }).join('');
+        return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + rows + '</div>';
+
+      } else if (bullets.length && bullets.length <= 3) {
+        /* 3-col simple bullet text */
+        var cols = bullets.slice(0,3).map(function(b, i) {
+          var ac = accents[i % accents.length];
+          var ic = pickIcon(b);
+          return '<div class="f-up" style="flex:1;text-align:center;padding:0 8px;animation-delay:' + (i*0.08) + 's;">' +
+            '<div style="display:flex;justify-content:center;margin-bottom:10px;">' + iconCircle(ic, ac, 40) + '</div>' +
+            '<div style="font-size:14px;font-weight:700;color:#1F2A44;line-height:1.4;">' + b + '</div>' +
+          '</div>';
+        }).join('');
+        return '<div style="flex:1;display:flex;align-items:center;">' +
+          '<div style="display:flex;gap:16px;width:100%;">' + cols + '</div></div>';
+
+      } else {
+        /* stacked bullets */
+        var rows2 = (bullets.length ? bullets : []).slice(0,8).map(function(b, i) {
+          var ac = accents[i % accents.length];
+          var ic = pickIcon(b);
+          return '<div class="f-up" style="display:flex;align-items:center;gap:12px;margin-bottom:9px;animation-delay:' + (i*0.07) + 's;">' +
+            iconCircle(ic, ac, 34) +
+            '<span style="font-size:13px;font-weight:600;color:#1F2A44;line-height:1.5;">' + b + '</span>' +
+          '</div>';
+        }).join('');
+        return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + rows2 + '</div>';
+      }
     }
 
-    /* ── LAYOUT: stats — big KPI cards in a row ── */
+    /* ── LAYOUT: stats ── */
     function layoutStats(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var subClr = t.light ? '#64748b' : 'rgba(255,255,255,.6)';
-      var items  = s.items || [];
+      var items = s.items || [];
       if (!items.length && s.bullets) {
         items = s.bullets.map(function(b) {
           var p = b.split('::'); return { value: (p[0]||'').trim(), label: (p[1]||b).trim() };
         });
       }
       items = items.slice(0, 4);
+      var n = items.length;
+      var accents = t.card_icons;
+
+      var gridCols = n <= 3 ? n : 2;
       var cards = items.map(function(it, i) {
-        var color = ac(i);
-        var bgs   = t.light ? '#fff' : 'rgba(255,255,255,.07)';
-        var bdr   = t.light ? '#e2e8f0' : 'rgba(255,255,255,.12)';
-        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;' +
-          'padding:20px 12px;border-radius:18px;border:1px solid ' + bdr + ';background:' + bgs + ';' +
-          'position:relative;overflow:hidden;animation-delay:' + (i*0.1) + 's;">' +
-          /* subtle top accent */
-          '<div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,' + color + ',' + ac(i+1) + ');"></div>' +
-          /* glow circle behind number */
-          '<div style="position:absolute;width:100px;height:100px;border-radius:50%;background:' + color + ';opacity:.08;top:50%;left:50%;transform:translate(-50%,-50%);"></div>' +
-          '<div style="font-size:clamp(28px,4vw,52px);font-weight:900;color:' + color + ';line-height:1;margin-bottom:10px;letter-spacing:-1px;">' + it.value + '</div>' +
-          '<div style="width:32px;height:2px;background:' + color + ';border-radius:2px;margin-bottom:8px;opacity:.6;"></div>' +
-          '<div style="font-size:clamp(10px,1.1vw,13px);color:' + subClr + ';line-height:1.4;font-weight:600;max-width:110px;">' + it.label + '</div>' +
+        var ac = accents[i % accents.length];
+        var val = it.value || '—';
+        var vsz = val.length > 6 ? 'clamp(22px,3vw,34px)' : 'clamp(26px,3.5vw,44px)';
+        return '<div class="f-up" style="border-radius:10px;background:' + t.primary_dk + ';padding:16px 18px;overflow:hidden;position:relative;animation-delay:' + (i*0.08) + 's;">' +
+          '<div style="position:absolute;left:0;top:0;bottom:0;width:6px;background:' + ac + ';border-radius:10px 0 0 10px;"></div>' +
+          '<div style="padding-left:14px;">' +
+            '<div style="font-size:' + vsz + ';font-weight:900;color:#fff;line-height:1;margin-bottom:8px;">' + val + '</div>' +
+            '<div style="font-size:10px;color:' + t.primary_xl + ';line-height:1.4;">' + (it.label||'') + '</div>' +
+          '</div>' +
         '</div>';
       }).join('');
+
       return '<div style="flex:1;display:flex;align-items:center;">' +
-        '<div style="display:flex;gap:12px;width:100%;">' + cards + '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(' + gridCols + ',1fr);gap:12px;width:100%;">' + cards + '</div>' +
       '</div>';
     }
 
-    /* ── LAYOUT: chart — layered bar chart with value labels ── */
+    /* ── LAYOUT: chart ── */
     function layoutChart(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var subClr = t.light ? '#64748b' : 'rgba(255,255,255,.55)';
-      var items  = s.items || [];
+      var items = s.items || [];
       if (!items.length && s.bullets) {
         items = s.bullets.map(function(b) {
           var p = b.split('::'); return { value: parseInt(p[0])||0, label: (p[1]||b).trim() };
         });
       }
-      items = items.slice(0, 6);
+      items = items.slice(0, 8);
       var maxVal = Math.max.apply(null, items.map(function(i){ return i.value||0; })) || 1;
+      var accents = t.card_icons;
       var bars = items.map(function(it, i) {
-        var pct   = Math.round(((it.value||0) / maxVal) * 100);
-        var color = ac(i);
-        var delay = (i * 0.1).toFixed(2);
-        return '<div class="f-up" style="display:flex;align-items:center;gap:14px;margin-bottom:12px;animation-delay:' + delay + 's;">' +
-          '<div style="width:96px;text-align:right;color:' + tColor + ';font-size:clamp(10px,1.1vw,12.5px);font-weight:600;flex-shrink:0;line-height:1.3;">' + it.label + '</div>' +
-          '<div style="flex:1;height:28px;background:' + (t.light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.08)') + ';border-radius:20px;overflow:hidden;position:relative;">' +
-            '<div style="position:absolute;left:0;top:0;bottom:0;width:' + pct + '%;' +
-              'background:linear-gradient(90deg,' + color + 'cc,' + color + ');' +
-              'border-radius:20px;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;">' +
-              '<span style="font-size:10px;font-weight:800;color:#fff;white-space:nowrap;">' + (it.value||0) + (it.value <= 100 ? '%' : '') + '</span>' +
+        var pct = Math.round(((it.value||0) / maxVal) * 100);
+        var ac = accents[i % accents.length];
+        return '<div class="f-up" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;animation-delay:' + (i*0.07) + 's;">' +
+          '<div style="width:100px;text-align:right;font-size:11px;font-weight:600;color:#1F2A44;flex-shrink:0;">' + it.label + '</div>' +
+          '<div style="flex:1;height:26px;background:#F1F5F9;border-radius:6px;overflow:hidden;">' +
+            '<div style="width:' + pct + '%;height:100%;background:' + ac + ';border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;">' +
+              '<span style="font-size:10px;font-weight:800;color:#fff;">' + (it.value||0) + '</span>' +
             '</div>' +
           '</div>' +
-          '<div style="width:36px;text-align:left;color:' + color + ';font-size:clamp(11px,1.2vw,13px);font-weight:900;flex-shrink:0;">' + pct + '%</div>' +
         '</div>';
       }).join('');
-      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 4px;">' + bars + '</div>';
+      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + bars + '</div>';
     }
 
-    /* ── LAYOUT: two-col — split comparison with header badges ── */
+    /* ── LAYOUT: donut ── */
+    function layoutDonut(s, t) {
+      var items = s.items || [];
+      items = items.slice(0, 6);
+      var accents = t.card_icons;
+      var total_val = items.reduce(function(sum, it) {
+        var v = typeof it.value === 'string' ? parseInt(it.value)||0 : (it.value||0);
+        return sum + v;
+      }, 0) || 1;
+
+      /* Simple SVG donut */
+      var r = 80, cx = 100, cy = 100, circumference = 2 * Math.PI * r;
+      var offset = 0;
+      var slices = items.map(function(it, i) {
+        var v = typeof it.value === 'string' ? parseInt(it.value)||0 : (it.value||0);
+        var pct = v / total_val;
+        var dash = pct * circumference;
+        var ac = accents[i % accents.length];
+        var rot = -90 + offset * 360;
+        offset += pct;
+        return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + ac + '" stroke-width="36"' +
+          ' stroke-dasharray="' + dash.toFixed(1) + ' ' + circumference.toFixed(1) + '"' +
+          ' stroke-dashoffset="0"' +
+          ' transform="rotate(' + rot.toFixed(1) + ' ' + cx + ' ' + cy + ')"/>';
+      }).join('');
+      var donutSvg = '<svg viewBox="0 0 200 200" style="width:180px;height:180px;flex-shrink:0;">' +
+        '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#F1F5F9" stroke-width="36"/>' +
+        slices +
+        (s.center_text ? '<text x="100" y="96" text-anchor="middle" font-size="22" font-weight="900" fill="#1F2A44">' + s.center_text + '</text>' : '') +
+        (s.center_sub ? '<text x="100" y="114" text-anchor="middle" font-size="11" fill="#5B6478">' + s.center_sub + '</text>' : '') +
+      '</svg>';
+
+      var legend = items.map(function(it, i) {
+        var ac = accents[i % accents.length];
+        var v = typeof it.value === 'string' ? parseInt(it.value)||0 : (it.value||0);
+        var pct = Math.round(v / total_val * 100);
+        var ic = pickIcon(it.label||'');
+        return '<div class="f-up" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;animation-delay:' + (i*0.07) + 's;">' +
+          iconCircle(ic, ac, 36) +
+          '<div>' +
+            '<div style="font-size:12px;font-weight:700;color:#1F2A44;">' + (it.label||'') + '</div>' +
+            '<div style="font-size:10px;color:#5B6478;">' + pct + '%' + (it.detail ? '  ·  ' + it.detail : '') + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      return '<div style="flex:1;display:flex;align-items:center;gap:20px;">' +
+        donutSvg +
+        '<div style="flex:1;">' + legend + '</div>' +
+      '</div>';
+    }
+
+    /* ── LAYOUT: two-col ── */
     function layoutTwoCol(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var subClr = t.light ? '#475569' : 'rgba(255,255,255,.8)';
-      var headers = s.headers || ['', ''];
-      var col1 = (s.col1 || []).slice();
-      var col2 = (s.col2 || []).slice();
+      var col1 = (s.col1 || []);
+      var col2 = (s.col2 || []);
       if (!col1.length && s.bullets) {
-        var bArr = s.bullets.filter(function(b){ return !b.startsWith('HEADERS:'); });
-        bArr.forEach(function(b, i) {
+        s.bullets.forEach(function(b, i) {
           var text = b.replace(/^COL[12]:\s*/,'');
           if (i % 2 === 0) col1.push(text); else col2.push(text);
         });
       }
-      var c1 = t.accent, c2 = t.accentAlt || ac(1);
-      if (t.light) { c2 = '#6366f1'; }
-      function colHtml(items, color, label) {
-        var hdr = label ? '<div style="display:inline-flex;align-items:center;gap:6px;background:' + color + ';color:#fff;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border-radius:20px;margin-bottom:10px;">' + label + '</div>' : '';
-        var rows = items.map(function(item, i) {
-          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:10px;padding:9px 14px;margin-bottom:6px;' +
-            'background:' + (t.light ? '#f8fafc' : 'rgba(255,255,255,.05)') + ';border-left:2px solid ' + color + ';border-radius:0 10px 10px 0;' +
-            'animation-delay:' + (i*0.07) + 's;">' +
-            '<span style="color:' + subClr + ';font-size:clamp(11px,1.2vw,13px);line-height:1.6;">' + item + '</span>' +
+      var accents = t.card_icons;
+
+      function colHtml(items, offset) {
+        return items.slice(0,5).map(function(item, i) {
+          var ac = accents[(offset + i) % accents.length];
+          var ic = pickIcon(item);
+          return '<div class="f-up" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;animation-delay:' + ((offset+i)*0.07) + 's;">' +
+            iconCircle(ic, ac, 34) +
+            '<span style="font-size:11px;color:#1F2A44;line-height:1.5;">' + item + '</span>' +
           '</div>';
         }).join('');
-        return '<div>' + hdr + rows + '</div>';
       }
-      return '<div style="flex:1;display:flex;gap:20px;align-items:stretch;">' +
-        '<div style="flex:1;">' + colHtml(col1, c1, headers[0]) + '</div>' +
-        '<div style="width:1px;background:' + (t.light ? '#e2e8f0' : 'rgba(255,255,255,.12)') + ';"></div>' +
-        '<div style="flex:1;">' + colHtml(col2, c2, headers[1]) + '</div>' +
+
+      return '<div style="flex:1;display:flex;gap:20px;align-items:flex-start;">' +
+        '<div style="flex:1;">' + colHtml(col1, 0) + '</div>' +
+        '<div style="width:1px;background:#E2E8F0;margin-top:4px;margin-bottom:4px;"></div>' +
+        '<div style="flex:1;">' + colHtml(col2, 5) + '</div>' +
       '</div>';
     }
 
-    /* ── LAYOUT: timeline — horizontal steps with progress connector ── */
+    /* ── LAYOUT: timeline ── */
     function layoutTimeline(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var subClr = t.light ? '#64748b' : 'rgba(255,255,255,.65)';
-      var items  = s.items || [];
+      var items = s.items || [];
       if (!items.length && s.bullets) {
         items = s.bullets.map(function(b) {
           var p = b.split('::'); return { step: (p[0]||'').trim(), desc: (p[1]||'').trim() };
         });
       }
       items = items.slice(0, 5);
+      var accents = t.card_icons;
       var cards = items.map(function(it, i) {
-        var color = ac(i);
-        var isLast = i === items.length - 1;
-        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;animation-delay:' + (i*0.12) + 's;padding:0 6px;">' +
-          /* connector */
-          (!isLast ? '<div style="position:absolute;top:24px;left:calc(50% + 24px);right:calc(-50% + 24px);height:2px;background:linear-gradient(90deg,' + color + '55,' + ac(i+1) + '55);z-index:0;"></div>' : '') +
-          /* icon circle with gradient */
-          '<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,' + color + ',' + ac(i+1) + ');' +
-            'display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;' +
-            'position:relative;z-index:1;flex-shrink:0;margin-bottom:12px;' +
-            'box-shadow:0 4px 16px ' + color + '55;">' + String(i+1) +
+        var ac = accents[i % accents.length];
+        return '<div class="f-up" style="flex:1;border-radius:10px;background:#fff;border:1px solid #E2E8F0;overflow:hidden;position:relative;animation-delay:' + (i*0.09) + 's;">' +
+          '<div style="height:4px;background:' + ac + ';"></div>' +
+          '<div style="padding:12px 10px;text-align:center;">' +
+            '<div style="width:32px;height:32px;border-radius:50%;background:' + ac + ';display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">' +
+              '<span style="font-size:13px;font-weight:900;color:#fff;">' + (i+1) + '</span>' +
+            '</div>' +
+            '<div style="font-size:11px;font-weight:700;color:' + ac + ';margin-bottom:5px;">' + (it.step||'') + '</div>' +
+            '<div style="font-size:9.5px;color:#5B6478;line-height:1.5;">' + (it.desc||'') + '</div>' +
           '</div>' +
-          /* step badge */
-          '<div style="font-size:clamp(10px,1.1vw,12px);font-weight:800;color:' + color + ';letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;">' + it.step + '</div>' +
-          /* desc */
-          '<div style="font-size:clamp(9.5px,1vw,12px);color:' + subClr + ';line-height:1.55;padding:0 4px;">' + it.desc + '</div>' +
         '</div>';
       }).join('');
-      return '<div style="flex:1;display:flex;align-items:flex-start;padding-top:20px;">' +
-        '<div style="display:flex;gap:4px;width:100%;align-items:flex-start;">' + cards + '</div>' +
+      return '<div style="flex:1;display:flex;align-items:flex-start;padding-top:14px;">' +
+        '<div style="display:flex;gap:8px;width:100%;">' + cards + '</div>' +
       '</div>';
     }
 
-    /* ── LAYOUT: pillars — 3-4 cards with gradient header + bullets ── */
+    /* ── LAYOUT: pillars ── */
     function layoutPillars(s, t) {
-      var subClr  = t.light ? '#374151' : 'rgba(255,255,255,.75)';
-      var items   = s.items || [];
+      var items = s.items || [];
       if (!items.length && s.bullets) {
         items = s.bullets.map(function(b) {
           var p = b.split('::'); return { title: (p[0]||'').trim(), bullets: (p[1]||'').split('|').map(function(x){return x.trim();}).filter(Boolean) };
         });
       }
       items = items.slice(0, 4);
-      var cols = items.map(function(it, i) {
-        var c1 = ac(i), c2 = ac(i+1);
-        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;' +
-          'box-shadow:0 4px 20px rgba(0,0,0,.18);animation-delay:' + (i*0.1) + 's;">' +
-          /* gradient header */
-          '<div style="background:linear-gradient(135deg,' + c1 + ',' + c2 + ');padding:16px 16px 14px;">' +
-            '<div style="font-size:clamp(11px,1.3vw,15px);font-weight:900;color:#fff;line-height:1.2;letter-spacing:.2px;">' + it.title + '</div>' +
-          '</div>' +
-          /* body */
-          '<div style="flex:1;padding:12px 16px 16px;background:' + (t.light ? '#fff' : 'rgba(255,255,255,.07)') + ';">' +
-            it.bullets.map(function(b, bi) {
-              return '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;">' +
-                '<div style="width:4px;height:4px;border-radius:50%;background:' + c1 + ';margin-top:6px;flex-shrink:0;"></div>' +
-                '<span style="color:' + subClr + ';font-size:clamp(9.5px,1.05vw,12px);line-height:1.55;">' + b + '</span>' +
-              '</div>';
-            }).join('') +
-          '</div>' +
-        '</div>';
-      }).join('');
-      return '<div style="flex:1;display:flex;align-items:stretch;gap:12px;">' + cols + '</div>';
-    }
-
-    /* ── LAYOUT: agenda — 2-col grid with big numbered badges ── */
-    function layoutAgenda(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var subClr = t.light ? '#64748b' : 'rgba(255,255,255,.6)';
-      var items  = s.items || [];
-      if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b, i) {
-          var p = b.split('::');
-          return { num: p[0]||String(i+1).padStart(2,'0'), title: (p[1]||b).trim(), desc: (p[2]||'').trim() };
-        });
-      }
-      items = items.slice(0, 8);
+      var accents = t.card_icons;
+      var cbgs = t.card_bgs;
       var cards = items.map(function(it, i) {
-        var color = ac(i);
-        var bgs   = t.light ? '#fff' : 'rgba(255,255,255,.07)';
-        var bdr   = t.light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.1)';
-        return '<div class="f-up" style="display:flex;align-items:center;gap:14px;padding:12px 16px;' +
-          'background:' + bgs + ';border:1px solid ' + bdr + ';border-radius:14px;' +
-          'box-shadow:0 2px 8px rgba(0,0,0,.06);animation-delay:' + (i*0.07) + 's;">' +
-          /* big badge */
-          '<div style="width:40px;height:40px;border-radius:12px;flex-shrink:0;' +
-            'background:linear-gradient(135deg,' + color + 'dd,' + color + ');' +
-            'display:flex;align-items:center;justify-content:center;' +
-            'box-shadow:0 4px 12px ' + color + '55;">' +
-            '<span style="font-size:13px;font-weight:900;color:#fff;">' + it.num.toString().replace(/^\d+\s*/,'').substring(0,2) || it.num + '</span>' +
-          '</div>' +
-          '<div style="min-width:0;flex:1;">' +
-            '<div style="font-size:clamp(11px,1.25vw,14px);font-weight:700;color:' + tColor + ';line-height:1.3;margin-bottom:3px;">' + it.title + '</div>' +
-            (it.desc ? '<div style="font-size:clamp(9px,.95vw,11px);color:' + subClr + ';line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;">' + it.desc + '</div>' : '') +
-          '</div>' +
-          /* arrow indicator */
-          '<div style="width:20px;height:20px;border-radius:50%;background:' + color + '22;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
-            '<svg width="8" height="8" viewBox="0 0 8 8"><path d="M2 1l4 3-4 3" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        var ac = accents[i % accents.length];
+        var bg = cbgs[i % cbgs.length];
+        var ic = pickIcon((it.title||'') + ' ' + (it.bullets||[]).join(' '), it.icon);
+        var desc = (it.bullets||[]).slice(0,3).join(' ');
+        return '<div class="f-up" style="border-radius:12px;background:' + bg + ';padding:16px;display:flex;flex-direction:row;align-items:flex-start;gap:12px;animation-delay:' + (i*0.08) + 's;">' +
+          iconCircle(ic, ac, 44) +
+          '<div style="flex:1;">' +
+            '<div style="font-size:13px;font-weight:700;color:#1F2A44;margin-bottom:5px;">' + (it.title||'') + '</div>' +
+            (desc ? '<div style="font-size:10px;color:#5B6478;line-height:1.5;">' + desc + '</div>' : '') +
           '</div>' +
         '</div>';
       }).join('');
       return '<div style="flex:1;display:flex;align-items:center;">' +
-        '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;">' + cards + '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;">' + cards + '</div>' +
       '</div>';
     }
 
-    /* ── LAYOUT: roles — full-height cards with gradient header + responsibility list ── */
-    function layoutRoles(s, t) {
-      var subClr = t.light ? '#374151' : 'rgba(255,255,255,.78)';
-      var items  = s.items || [];
+    /* ── LAYOUT: agenda ── */
+    function layoutAgenda(s, t) {
+      var items = s.items || [];
       if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b) {
+        items = s.bullets.map(function(b, i) {
           var p = b.split('::');
-          var krs = (p[2]||'').split('|').map(function(x){return x.trim();}).filter(Boolean);
-          return { role: (p[0]||'').trim(), type: (p[1]||'').trim(), bullets: krs };
+          return { num: String(i+1), title: (p[0]||b).trim(), desc: (p[1]||'').trim() };
         });
       }
-      items = items.slice(0, 3);
-      var cols = items.map(function(it, i) {
-        var c1 = ac(i), c2 = ac(i+2);
-        return '<div class="f-up" style="flex:1;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;' +
-          'box-shadow:0 6px 24px rgba(0,0,0,.2);animation-delay:' + (i*0.1) + 's;">' +
-          /* gradient header */
-          '<div style="background:linear-gradient(145deg,' + c1 + ',' + c2 + ');padding:18px 18px 14px;">' +
-            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.2);' +
-              'border-radius:20px;padding:3px 10px 3px 6px;margin-bottom:8px;">' +
-              '<div style="width:6px;height:6px;border-radius:50%;background:#fff;"></div>' +
-              '<span style="font-size:9px;font-weight:800;color:rgba(255,255,255,.9);text-transform:uppercase;letter-spacing:1px;">' + it.type + '</span>' +
-            '</div>' +
-            '<div style="font-size:clamp(13px,1.5vw,17px);font-weight:900;color:#fff;line-height:1.2;">' + it.role + '</div>' +
+      items = items.slice(0, 8);
+      var accents = t.card_icons;
+      var rows = items.map(function(it, i) {
+        var ac = accents[i % accents.length];
+        return '<div class="f-up" style="display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:10px;background:#fff;border:1px solid #E2E8F0;margin-bottom:6px;animation-delay:' + (i*0.07) + 's;">' +
+          '<div style="width:32px;height:32px;border-radius:50%;background:' + ac + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+            '<span style="font-size:12px;font-weight:900;color:#fff;">' + (it.num||i+1) + '</span>' +
           '</div>' +
-          /* body */
-          '<div style="flex:1;padding:14px 18px;background:' + (t.light ? '#fff' : 'rgba(255,255,255,.06)') + ';">' +
-            '<div style="font-size:9px;font-weight:800;color:' + c1 + ';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;opacity:.9;">TRÁCH NHIỆM</div>' +
-            it.bullets.map(function(b) {
-              return '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;">' +
-                '<div style="width:16px;height:16px;border-radius:50%;background:' + c1 + '18;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">' +
-                  '<svg width="7" height="7" viewBox="0 0 7 7"><path d="M1 3.5l2 2 3-3" fill="none" stroke="' + c1 + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-                '</div>' +
-                '<span style="color:' + subClr + ';font-size:clamp(9.5px,1.05vw,12px);line-height:1.55;">' + b + '</span>' +
-              '</div>';
-            }).join('') +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:12px;font-weight:700;color:' + t.primary_dk + ';">' + it.title + '</div>' +
+            (it.desc ? '<div style="font-size:9px;color:#5B6478;margin-top:1px;">' + it.desc + '</div>' : '') +
           '</div>' +
         '</div>';
       }).join('');
-      return '<div style="flex:1;display:flex;align-items:stretch;gap:14px;">' + cols + '</div>';
+      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + rows + '</div>';
     }
 
-    /* ── LAYOUT: okr — objective rows with gradient badge + KR chips ── */
-    function layoutOkr(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var subClr = t.light ? '#475569' : 'rgba(255,255,255,.7)';
-      var items  = s.items || [];
+    /* ── LAYOUT: roles ── */
+    function layoutRoles(s, t) {
+      var items = s.items || [];
       if (!items.length && s.bullets) {
         items = s.bullets.map(function(b) {
           var p = b.split('::');
-          var krs = (p[1]||'').split('|').map(function(x){return x.trim();}).filter(Boolean);
-          return { objective: (p[0]||'').trim(), krs: krs };
+          return { role: (p[0]||'').trim(), type: (p[1]||'').trim(), bullets: (p[2]||'').split('|').map(function(x){return x.trim();}).filter(Boolean) };
         });
       }
-      items = items.slice(0, 4);
-      var rows = items.map(function(it, i) {
-        var c1 = ac(i), c2 = ac(i+1);
-        var bgs = t.light ? '#fff' : 'rgba(255,255,255,.06)';
-        var bdr = t.light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.1)';
-        var label = it.objective.match(/^[Oo]\d+/) ? it.objective.match(/^[Oo]\d+/)[0].toUpperCase() : 'O' + (i+1);
-        var title = it.objective.replace(/^[Oo]\d+\s*[-–—]?\s*/,'');
-        return '<div class="f-up" style="display:flex;align-items:stretch;gap:0;border-radius:14px;overflow:hidden;' +
-          'border:1px solid ' + bdr + ';margin-bottom:9px;box-shadow:0 2px 12px rgba(0,0,0,.07);animation-delay:' + (i*0.09) + 's;">' +
-          /* gradient left badge */
-          '<div style="width:56px;background:linear-gradient(180deg,' + c1 + ',' + c2 + ');display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;padding:8px 4px;">' +
-            '<div style="font-size:10px;font-weight:900;color:rgba(255,255,255,.6);letter-spacing:1px;">' + label.replace(/\d+/,'') + '</div>' +
-            '<div style="font-size:20px;font-weight:900;color:#fff;line-height:1;">' + (label.match(/\d+/)||[''])[0] + '</div>' +
+      items = items.slice(0, 3);
+      var accents = t.card_icons;
+      var cols = items.map(function(it, i) {
+        var ac = accents[i % accents.length];
+        var bio = (it.bullets||[]).slice(0,3).join(' ');
+        return '<div class="f-up" style="flex:1;border-radius:12px;background:#fff;border:1px solid #E2E8F0;overflow:hidden;animation-delay:' + (i*0.09) + 's;">' +
+          '<div style="height:6px;background:' + ac + ';"></div>' +
+          '<div style="padding:16px;text-align:center;">' +
+            '<div style="width:64px;height:64px;border-radius:50%;background:' + t.primary_xl + ';margin:0 auto 10px;display:flex;align-items:center;justify-content:center;">' +
+              '<div style="width:34px;height:34px;">' + iconSvg('person') + '</div>' +
+            '</div>' +
+            '<div style="font-size:14px;font-weight:800;color:#1F2A44;margin-bottom:4px;">' + (it.role||'') + '</div>' +
+            (it.type ? '<div style="font-size:10px;font-weight:700;color:' + ac + ';margin-bottom:8px;">' + it.type + '</div>' : '') +
+            '<div style="width:40px;height:1px;background:#E2E8F0;margin:0 auto 8px;"></div>' +
+            (bio ? '<div style="font-size:10px;color:#5B6478;line-height:1.5;">' + bio + '</div>' : '') +
           '</div>' +
-          /* content */
-          '<div style="background:' + bgs + ';padding:10px 16px;flex:1;">' +
-            '<div style="font-size:clamp(11px,1.25vw,14px);font-weight:700;color:' + tColor + ';margin-bottom:7px;">' + title + '</div>' +
+        '</div>';
+      }).join('');
+      return '<div style="flex:1;display:flex;gap:12px;">' + cols + '</div>';
+    }
+
+    /* ── LAYOUT: okr ── */
+    function layoutOkr(s, t) {
+      var items = s.items || [];
+      if (!items.length && s.bullets) {
+        items = s.bullets.map(function(b) {
+          var p = b.split('::');
+          return { objective: (p[0]||'').trim(), krs: (p[1]||'').split('|').map(function(x){return x.trim();}).filter(Boolean) };
+        });
+      }
+      items = items.slice(0, 5);
+      var accents = t.card_icons;
+      var rows = items.map(function(it, i) {
+        var ac = accents[i % accents.length];
+        return '<div class="f-up" style="display:flex;align-items:stretch;border-radius:10px;background:#fff;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:8px;animation-delay:' + (i*0.08) + 's;">' +
+          '<div style="width:5px;background:' + ac + ';flex-shrink:0;"></div>' +
+          '<div style="padding:10px 14px;flex:1;">' +
+            '<div style="font-size:11px;font-weight:700;color:' + ac + ';margin-bottom:6px;">' + it.objective + '</div>' +
             '<div style="display:flex;flex-wrap:wrap;gap:5px;">' +
-              it.krs.map(function(kr, ki) {
-                return '<span style="display:inline-flex;align-items:center;gap:4px;background:' + c1 + '12;border:1px solid ' + c1 + '30;' +
-                  'border-radius:20px;padding:3px 9px;font-size:clamp(8px,.9vw,10.5px);color:' + (t.light ? '#1e293b' : tColor) + ';line-height:1.3;">· ' + kr + '</span>';
+              (it.krs||[]).slice(0,3).map(function(kr) {
+                return '<span style="background:' + ac + '15;border:1px solid ' + ac + '30;border-radius:20px;padding:2px 8px;font-size:9px;color:#1F2A44;">✓ ' + kr + '</span>';
               }).join('') +
             '</div>' +
           '</div>' +
@@ -1452,45 +1011,35 @@
       return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + rows + '</div>';
     }
 
-    /* ── LAYOUT: principles — icon/color title + description list ── */
+    /* ── LAYOUT: principles ── */
     function layoutPrinciples(s, t) {
-      var subClr = t.light ? '#374151' : 'rgba(255,255,255,.75)';
-      var items  = s.items || [];
+      var items = s.items || [];
       if (!items.length && s.bullets) {
         items = s.bullets.map(function(b) {
           var p = b.split('::'); return { title: (p[0]||'').trim(), desc: (p[1]||'').trim() };
         });
       }
       items = items.slice(0, 6);
+      var accents = t.card_icons;
       var half = Math.ceil(items.length / 2);
-      var col1 = items.slice(0, half);
-      var col2 = items.slice(half);
-      /* icon shapes cycle: circle, square, diamond, triangle stub */
-      var ICONS = ['◆','▲','●','■','★','◉'];
+
       function colHtml(arr, offset) {
         return arr.map(function(it, i) {
-          var color = ac(i + offset);
-          var bgs   = t.light ? '#fff' : 'rgba(255,255,255,.05)';
-          var bdr   = t.light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.1)';
-          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;' +
-            'background:' + bgs + ';border:1px solid ' + bdr + ';border-radius:14px;margin-bottom:9px;' +
-            'box-shadow:0 2px 10px rgba(0,0,0,.05);animation-delay:' + ((i+offset)*0.08) + 's;">' +
-            /* icon badge */
-            '<div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,' + color + 'cc,' + color + ');' +
-              'display:flex;align-items:center;justify-content:center;flex-shrink:0;' +
-              'box-shadow:0 3px 8px ' + color + '44;">' +
-              '<span style="font-size:12px;color:#fff;">' + ICONS[(i+offset) % ICONS.length] + '</span>' +
-            '</div>' +
-            '<div style="flex:1;min-width:0;">' +
-              '<div style="font-size:clamp(11px,1.2vw,13.5px);font-weight:800;color:' + color + ';margin-bottom:4px;line-height:1.2;">' + it.title + '</div>' +
-              '<div style="font-size:clamp(9.5px,1vw,11.5px);color:' + subClr + ';line-height:1.6;">' + it.desc + '</div>' +
+          var ac = accents[(i+offset) % accents.length];
+          var ic = pickIcon(typeof it === 'string' ? it : (it.title||''));
+          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;animation-delay:' + ((i+offset)*0.07) + 's;">' +
+            iconCircle(ic, ac, 34) +
+            '<div style="flex:1;">' +
+              '<div style="font-size:13px;font-weight:700;color:#1F2A44;margin-bottom:3px;">' + (it.title||it) + '</div>' +
+              (it.desc ? '<div style="font-size:10px;color:#5B6478;line-height:1.5;">' + it.desc + '</div>' : '') +
             '</div>' +
           '</div>';
         }).join('');
       }
-      return '<div style="flex:1;display:flex;gap:14px;">' +
-        '<div style="flex:1;">' + colHtml(col1, 0) + '</div>' +
-        '<div style="flex:1;">' + colHtml(col2, half) + '</div>' +
+
+      return '<div style="flex:1;display:flex;gap:16px;">' +
+        '<div style="flex:1;">' + colHtml(items.slice(0,half), 0) + '</div>' +
+        '<div style="flex:1;">' + colHtml(items.slice(half), half) + '</div>' +
       '</div>';
     }
 
@@ -1503,7 +1052,9 @@
       switch (layout) {
         case 'stats':      bodyHtml = layoutStats(s, t);      break;
         case 'chart':      bodyHtml = layoutChart(s, t);      break;
-        case 'two-col':    bodyHtml = layoutTwoCol(s, t);     break;
+        case 'donut':      bodyHtml = layoutDonut(s, t);      break;
+        case 'two-col':
+        case 'two_col':    bodyHtml = layoutTwoCol(s, t);     break;
         case 'timeline':   bodyHtml = layoutTimeline(s, t);   break;
         case 'pillars':    bodyHtml = layoutPillars(s, t);    break;
         case 'agenda':     bodyHtml = layoutAgenda(s, t);     break;
@@ -1512,47 +1063,100 @@
         case 'principles': bodyHtml = layoutPrinciples(s, t); break;
         default:           bodyHtml = layoutBullets(s, t);    break;
       }
-      return slideWrap(t.contentBg(), slideHeader(s, idx, t) + bodyHtml);
-    }
 
-    /* ─────────────────────────────────────────────────────────────────
-       SUMMARY
-    ───────────────────────────────────────────────────────────────── */
-    function renderSummary(s, t) {
-      var tColor = t.light ? t.text : '#fff';
-      var icons  = ['✅','💡','🎯','📌','⭐','🔑','🚀','🏆'];
+      /* insight bar */
+      var note = s.note || '';
+      var noteHtml = '';
+      if (note) {
+        var noteBg = t.card_bgs[0] || '#E8F8F1';
+        noteHtml = '<div style="margin-top:6px;border-radius:8px;background:' + noteBg + ';padding:8px 14px;flex-shrink:0;">' +
+          '<span style="font-size:11px;font-weight:700;color:#1F2A44;">' + note + '</span></div>';
+      }
 
-      var bulletsHtml = s.bullets.map(function(b, bi) {
-        return '<div class="f-up" style="display:flex;align-items:center;gap:13px;padding:11px 18px;' +
-          'background:' + t.glass + ';border:1px solid ' + t.glassBorder + ';border-radius:12px;' +
-          (t.light ? '' : 'backdrop-filter:blur(8px);') +
-          'animation-delay:' + (bi*0.09) + 's;margin-bottom:8px;">' +
-          '<span style="font-size:20px;flex-shrink:0;">' + (icons[bi]||'▸') + '</span>' +
-          '<span style="color:' + tColor + ';font-size:clamp(12px,1.3vw,14px);line-height:1.6;">' + b + '</span>' +
-        '</div>';
-      }).join('');
-
-      var bgSvg = typeof t.coverBg === 'function' ? t.coverBg(s.title) : t.coverBg;
+      var pageNum = '<div style="position:absolute;right:5%;bottom:10px;font-size:9px;color:#94A3B8;">' +
+        String(idx+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') + '</div>';
 
       return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
-        svgBg(bgSvg) +
-        '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5% 9%;text-align:center;">' +
-          '<div style="font-size:10px;font-weight:800;letter-spacing:4px;color:' + t.accent + ';text-transform:uppercase;margin-bottom:14px;opacity:.85;">Tóm tắt</div>' +
-          '<h2 style="color:' + (t.light?t.text:'#fff') + ';font-size:clamp(18px,2.8vw,36px);font-weight:900;margin:0 0 14px;line-height:1.15;">' + s.title + '</h2>' +
-          '<div style="width:44px;height:4px;background:' + t.accent + ';border-radius:2px;margin-bottom:22px;"></div>' +
-          '<div style="width:100%;max-width:700px;text-align:left;">' + bulletsHtml + '</div>' +
+        svgBg(typeof t.contentBg === 'function' ? t.contentBg() : t.contentBg) +
+        '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;padding:0 5% 2%;">' +
+          slideHeader(s, idx, t) + bodyHtml + noteHtml +
         '</div>' +
+        pageNum +
       '</div>';
     }
 
     /* ─────────────────────────────────────────────────────────────────
-       THEME PICKER — color swatches
+       SUMMARY — 3 styles matching PPTX
     ───────────────────────────────────────────────────────────────── */
-    var swatchColors = ['#1e1b4b','#7c3aed','#00f5c4','#a21caf','#facc15','#be123c','#6366f1','#c026d3','#faff00','#1e3a5f','#f0abfc','#f97316','#d4a757','#1a1100','#ff006e','#f5d0fe','#4ade80','#1B4332','#1E3A5F','#31308C','#7F1D1D','#13474E','#78350F','#1E293B'];
-    var pickerHtml = THEMES.map(function(t, i) {
-      return '<button onclick="setTheme(' + i + ')" id="theme-btn-' + i + '" title="' + t.label + '" ' +
+    function renderSummary(s, t) {
+      var style = s.style || {};
+      var sumStyle = style.summary_style || 'cta';
+      var iconHint = style.icon || '';
+      var ic = pickIcon((s.title||'') + ' ' + (s.subtitle||''), iconHint);
+
+      var bgSvg = DEFS + '<rect width="1280" height="720" fill="' + t.cover_bg + '"/>' +
+        '<circle cx="100" cy="720" r="360" fill="' + t.primary + '" opacity=".35"/>' +
+        '<circle cx="1280" cy="43" r="244" fill="' + t.primary_dk + '" opacity=".5"/>';
+
+      var contentHtml;
+
+      if (sumStyle === 'quote') {
+        var bulletsQ = (s.bullets||[]).slice(0,4);
+        contentHtml =
+          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:6% 10%;text-align:center;">' +
+            '<div style="font-size:80px;font-weight:900;color:' + t.primary_lt + ';line-height:0.8;margin-bottom:8px;">"</div>' +
+            '<h2 class="f-up" style="color:#fff;font-size:clamp(20px,2.8vw,34px);font-weight:900;margin:0 0 16px;line-height:1.2;">' + s.title + '</h2>' +
+            '<div style="width:80px;height:3px;background:' + t.accent + ';border-radius:2px;margin:0 auto 18px;"></div>' +
+            (bulletsQ.length ? '<p class="f-up" style="color:' + t.primary_xl + ';font-size:14px;animation-delay:.1s;">' + bulletsQ.join('   |   ') + '</p>' : '') +
+          '</div>';
+
+      } else if (sumStyle === 'minimal') {
+        var bulletsM = (s.bullets||[]).slice(0,3);
+        var iconBgM = t.primary;
+        contentHtml =
+          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:8% 7%;">' +
+            '<div style="width:64px;height:64px;border-radius:14px;background:' + iconBgM + ';display:flex;align-items:center;justify-content:center;margin-bottom:16px;">' +
+              '<div style="width:36px;height:36px;">' + iconSvg(ic) + '</div>' +
+            '</div>' +
+            '<h2 class="f-up" style="color:#fff;font-size:clamp(24px,3.6vw,42px);font-weight:900;margin:0 0 16px;line-height:1.1;">' + s.title + '</h2>' +
+            bulletsM.map(function(b, bi) {
+              return '<p class="f-up" style="color:' + t.primary_xl + ';font-size:13px;margin:0 0 8px;animation-delay:' + ((bi+1)*0.07) + 's;">' + b + '</p>';
+            }).join('') +
+          '</div>';
+
+      } else {
+        /* cta (default) */
+        var bullets = s.bullets || [];
+        var cta = bullets[0] || '';
+        var contacts = bullets.slice(1,4);
+        var iconBg = t.primary;
+        contentHtml =
+          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5% 8%;text-align:center;">' +
+            '<div class="f-up" style="width:72px;height:72px;border-radius:16px;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;margin-bottom:16px;">' +
+              '<div style="width:40px;height:40px;">' + iconSvg(ic) + '</div>' +
+            '</div>' +
+            '<h2 class="f-up" style="color:#fff;font-size:clamp(22px,3vw,36px);font-weight:900;margin:0 0 18px;max-width:760px;line-height:1.2;animation-delay:.07s;">' + s.title + '</h2>' +
+            (cta ? '<div class="f-up" style="background:' + t.accent + ';border-radius:12px;padding:13px 40px;font-size:16px;font-weight:800;color:#fff;margin-bottom:18px;animation-delay:.12s;">' + cta + '</div>' : '') +
+            (contacts.length ? '<p class="f-up" style="color:' + t.primary_xl + ';font-size:13px;animation-delay:.17s;">' + contacts.join('   |   ') + '</p>' : '') +
+          '</div>';
+      }
+
+      if (s.footer) {
+        contentHtml += '<div style="position:absolute;bottom:18px;left:8%;right:8%;z-index:3;text-align:center;">' +
+          '<span style="color:' + t.primary_lt + ';font-size:12px;">' + s.footer + '</span></div>';
+      }
+
+      return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
+        svgBg(bgSvg) + contentHtml + '</div>';
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       THEME PICKER — 13 color swatches
+    ───────────────────────────────────────────────────────────────── */
+    var pickerHtml = THEMES.map(function(th, i) {
+      return '<button onclick="setTheme(' + i + ')" id="theme-btn-' + i + '" title="' + th.label + '" ' +
         'style="width:28px;height:28px;border-radius:50%;border:3px solid transparent;cursor:pointer;' +
-        'background:' + swatchColors[i] + ';transition:all .15s;flex-shrink:0;" />';
+        'background:' + th.cover_bg + ';transition:all .15s;flex-shrink:0;" />';
     }).join('');
     document.getElementById('slide-dots').insertAdjacentHTML('beforebegin',
       '<div id="theme-picker" style="display:flex;align-items:center;gap:6px;">' +
@@ -1561,17 +1165,11 @@
       '</div>'
     );
 
-    var AI_THEME_MAP = {
-      green:  17, // P-Green
-      blue:   18, // P-Blue
-      purple: 19, // P-Purple
-      red:    20, // P-Red
-      teal:   21, // P-Teal
-      amber:  22, // P-Amber
-      slate:  23, // P-Slate
-    };
+    /* Map theme name from data-theme attribute to index */
+    var AI_THEME_MAP = {};
+    THEMES.forEach(function(th, i) { AI_THEME_MAP[th.name] = i; });
     var aiTheme = el.dataset.theme || '';
-    var activeThemeIdx = (aiTheme && AI_THEME_MAP[aiTheme] != null) ? AI_THEME_MAP[aiTheme] : 0;
+    var activeThemeIdx = (aiTheme && AI_THEME_MAP[aiTheme] != null) ? AI_THEME_MAP[aiTheme] : 1; /* default blue */
     window.setTheme = function(i) {
       activeThemeIdx = i;
       document.querySelectorAll('[id^="theme-btn-"]').forEach(function(b, j) {
