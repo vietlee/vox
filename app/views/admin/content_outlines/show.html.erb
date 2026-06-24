@@ -217,11 +217,19 @@
     /* ─────────────────────────────────────────────────────────────────
        6 MODERN THEMES
     ───────────────────────────────────────────────────────────────── */
-    /* ─────────────────────────────────────────────────────────────────
-       13 THEMES matching PPTX exactly
-    ───────────────────────────────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════════════════
+       PPTX-ACCURATE HTML RENDERER
+       All coordinates match generate_pptx.py exactly.
+       PPTX canvas: 10" × 5.625" → percentages: x%=in/10*100, y%=in/5.625*100
+    ═══════════════════════════════════════════════════════════════════ */
 
-    /* Icon SVG paths for HTML rendering */
+    /* Coordinate helpers: inches → percentage of slide */
+    function X(inches) { return (inches / 10 * 100).toFixed(2) + '%'; }
+    function Y(inches) { return (inches / 5.625 * 100).toFixed(2) + '%'; }
+    function W(inches) { return (inches / 10 * 100).toFixed(2) + '%'; }
+    function H(inches) { return (inches / 5.625 * 100).toFixed(2) + '%'; }
+
+    /* Icon SVG paths */
     var ICON_SVGS = {
       search:    '<circle cx="10" cy="10" r="6" stroke="white" stroke-width="2" fill="none"/><line x1="14.5" y1="14.5" x2="20" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>',
       filter:    '<path d="M3 5h18M7 10h10M11 15h2" stroke="white" stroke-width="2" stroke-linecap="round"/>',
@@ -572,233 +580,241 @@
       return '<svg style="position:absolute;inset:0;width:100%;height:100%;" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">' + inner + '</svg>';
     }
 
-    /* ─────────────────────────────────────────────────────────────────
-       COVER  — 3 styles matching PPTX exactly
-    ───────────────────────────────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════════════════
+       COVER — absolute positioning matching generate_pptx.py exactly
+       PPTX: LM=0.60", CW=8.80", SW=10.00", SH=5.625"
+    ═══════════════════════════════════════════════════════════════════ */
     function renderCover(s, t) {
-      var style = (s.style || {});
-      var coverStyle = style.cover_style || 'left';
-      var cat     = style.category || '';
-      var iconHint = style.icon || '';
-      var ic = pickIcon((s.title||'') + ' ' + (s.subtitle||''), iconHint);
+      var sty = s.style || {};
+      var coverStyle = sty.cover_style || 'left';
+      var isDark = (sty.bg || 'dark') === 'dark';
+      var cat = sty.category || '';
+      var ic = pickIcon((s.title||'') + ' ' + (s.subtitle||''), sty.icon);
 
-      var bgSvg = typeof t.coverBg === 'function' ? t.coverBg(s.title) : t.coverBg;
+      var bg = isDark ? t.cover_bg : t.content_bg;
+      var titleColor = isDark ? '#fff' : t.primary_dk;
+      var subColor = isDark ? t.primary_xl : '#5B6478';
+      var iconBg = isDark ? t.primary_lt : t.primary_xl;
+      var bulletColor = isDark ? '#fff' : t.primary_dk;
+      var bulletSep = isDark ? t.primary_xl : '#5B6478';
 
-      /* decorative circles on cover */
-      var decor = '<circle cx="1280" cy="143" r="366" fill="' + t.primary + '" opacity=".55"/>' +
-                  '<circle cx="1280" cy="648" r="216" fill="' + t.primary_dk + '" opacity=".7"/>';
-      var fullBg = DEFS + '<rect width="1280" height="720" fill="' + t.cover_bg + '"/>' + decor;
+      /* SVG background with decorative circles */
+      var bgSvg = DEFS + '<rect width="1280" height="720" fill="' + bg + '"/>';
+      if (isDark && coverStyle !== 'minimal') {
+        bgSvg += '<circle cx="1280" cy="128" r="374" fill="' + t.primary + '" opacity=".45"/>';
+        bgSvg += '<circle cx="1296" cy="576" r="216" fill="' + t.primary_dk + '" opacity=".7"/>';
+      }
 
-      var iconBgColor = t.primary_lt;
-      var iconCircleHtml = '<div style="width:96px;height:96px;border-radius:18px;background:' + iconBgColor + ';display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
-        '<div style="width:50px;height:50px;">' + iconSvg(ic) + '</div>' +
-      '</div>';
+      var els = '';
 
-      var contentHtml;
+      function bulletBar() {
+        if (!s.bullets || !s.bullets.length) return '';
+        var align = coverStyle === 'centered' ? 'center' : 'left';
+        var bx = coverStyle === 'centered' ? X(1.5) : X(0.90);
+        var bw = coverStyle === 'centered' ? W(7.0) : W(6.0);
+        var barHtml = coverStyle !== 'centered'
+          ? '<div style="position:absolute;left:' + X(0.70) + ';top:' + Y(4.55) + ';width:3px;height:' + H(0.40) + ';background:' + (isDark?'#fff':t.primary_dk) + ';border-radius:2px;"></div>' : '';
+        var parts = s.bullets.slice(0,3).map(function(bt, bi) {
+          var sep = bi > 0 ? '<span style="color:' + bulletSep + ';margin:0 8px;">·</span>' : '';
+          return sep + '<span style="font-weight:' + (bi===0?'700':'400') + ';color:' + bulletColor + ';">' + bt + '</span>';
+        }).join('');
+        return barHtml + '<div style="position:absolute;left:' + bx + ';top:' + Y(4.55) + ';width:' + bw + ';height:' + H(0.40) + ';display:flex;align-items:center;justify-content:' + (align==='center'?'center':'flex-start') + ';font-size:clamp(10px,1.2vw,13px);font-family:Calibri,sans-serif;z-index:2;">' + parts + '</div>';
+      }
 
       if (coverStyle === 'centered') {
-        /* centered: icon top-center, category, title, subtitle, bullets centered */
-        contentHtml =
-          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6% 8%;text-align:center;">' +
-            '<div class="f-up" style="margin-bottom:14px;">' + iconCircleHtml + '</div>' +
-            (cat ? '<div class="f-up" style="font-size:12px;font-weight:800;letter-spacing:2px;color:' + t.accent + ';text-transform:uppercase;margin-bottom:10px;animation-delay:.05s;">' + cat + '</div>' : '') +
-            '<h1 class="f-up" style="color:#fff;font-size:clamp(26px,4vw,56px);font-weight:900;line-height:1.1;margin:0 0 14px;max-width:800px;animation-delay:.1s;">' + s.title + '</h1>' +
-            (s.subtitle ? '<p class="f-up" style="color:' + t.primary_xl + ';font-size:clamp(13px,1.5vw,18px);margin:0 0 16px;max-width:640px;animation-delay:.15s;">' + s.subtitle + '</p>' : '') +
-            (s.bullets && s.bullets.length ?
-              '<p class="f-up" style="color:#fff;font-size:13px;font-weight:500;margin:0;animation-delay:.2s;">' +
-                s.bullets.slice(0,3).join(' &nbsp;·&nbsp; ') + '</p>' : '') +
-          '</div>';
+        /* Icon centered */
+        var iconSz = 9.78; /* 1.10" as % of 10" width ≈ 11% but let's use height-relative */
+        els += '<div style="position:absolute;left:50%;top:' + Y(0.50) + ';transform:translateX(-50%);width:' + W(1.10) + ';height:0;padding-bottom:' + H(1.10) + ';border-radius:18%;background:' + iconBg + ';z-index:2;">' +
+          '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50%;height:50%;">' + iconSvg(ic) + '</div></div>';
+        if (cat) els += '<div style="position:absolute;left:' + X(0.50) + ';top:' + Y(1.80) + ';width:' + W(9.0) + ';font-size:clamp(9px,1.1vw,12px);font-weight:700;color:' + t.accent + ';text-align:center;letter-spacing:2px;z-index:2;">' + cat + '</div>';
+        var tY = cat ? Y(2.10) : Y(1.80);
+        els += '<div style="position:absolute;left:' + X(0.50) + ';top:' + tY + ';width:' + W(9.0) + ';height:' + H(1.30) + ';display:flex;align-items:flex-start;justify-content:center;z-index:2;">' +
+          '<span style="font-size:clamp(24px,4vw,44px);font-weight:900;color:' + titleColor + ';text-align:center;line-height:1.1;font-family:Calibri,sans-serif;">' + s.title + '</span></div>';
+        if (s.subtitle) els += '<div style="position:absolute;left:' + X(1.0) + ';top:' + Y(3.30) + ';width:' + W(8.0) + ';font-size:clamp(12px,1.5vw,18px);color:' + subColor + ';text-align:center;z-index:2;">' + s.subtitle + '</div>';
+        els += bulletBar();
 
       } else if (coverStyle === 'minimal') {
-        /* minimal: title left-large, subtitle, category, bullets */
-        contentHtml =
-          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:8% 7%;">' +
-            '<h1 class="f-up" style="color:#fff;font-size:clamp(30px,5vw,64px);font-weight:900;line-height:1.05;margin:0 0 20px;max-width:760px;">' + s.title + '</h1>' +
-            (s.subtitle ? '<p class="f-up" style="color:' + t.primary_xl + ';font-size:clamp(13px,1.5vw,18px);margin:0 0 14px;animation-delay:.05s;">' + s.subtitle + '</p>' : '') +
-            (cat ? '<div class="f-up" style="font-size:12px;font-weight:800;color:' + t.accent + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;animation-delay:.1s;">' + cat + '</div>' : '') +
-            (s.bullets && s.bullets.length ?
-              '<p class="f-up" style="color:' + t.primary_xl + ';font-size:13px;margin:0;animation-delay:.12s;">' +
-                s.bullets.slice(0,3).join(' &nbsp;·&nbsp; ') + '</p>' : '') +
-          '</div>';
+        els += '<div style="position:absolute;left:' + X(0.80) + ';top:' + Y(1.20) + ';width:' + W(8.0) + ';height:' + H(1.80) + ';display:flex;align-items:flex-start;z-index:2;">' +
+          '<span style="font-size:clamp(24px,4vw,44px);font-weight:900;color:' + titleColor + ';line-height:1.1;font-family:Calibri,sans-serif;">' + s.title + '</span></div>';
+        if (s.subtitle) els += '<div style="position:absolute;left:' + X(0.80) + ';top:' + Y(3.10) + ';width:' + W(7.0) + ';font-size:clamp(12px,1.5vw,18px);color:' + subColor + ';z-index:2;">' + s.subtitle + '</div>';
+        if (cat) els += '<div style="position:absolute;left:' + X(0.80) + ';top:' + Y(4.20) + ';font-size:clamp(9px,1.1vw,12px);font-weight:700;color:' + t.accent + ';letter-spacing:2px;z-index:2;">' + cat + '</div>';
+        els += bulletBar();
 
       } else {
-        /* left (default): icon top-left in rounded rect, category, large title, subtitle, bullets */
-        contentHtml =
-          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:6% 6% 6% 7%;">' +
-            '<div class="f-up" style="margin-bottom:14px;">' + iconCircleHtml + '</div>' +
-            (cat ? '<div class="f-up" style="font-size:12px;font-weight:800;color:' + t.accent + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;animation-delay:.05s;">' + cat + '</div>' : '') +
-            '<h1 class="f-up" style="color:#fff;font-size:clamp(24px,4.2vw,56px);font-weight:900;line-height:1.05;margin:0 0 16px;max-width:780px;animation-delay:.1s;">' + s.title + '</h1>' +
-            (s.subtitle ? '<p class="f-up" style="color:' + t.primary_xl + ';font-size:clamp(13px,1.5vw,18px);margin:0 0 14px;animation-delay:.15s;">' + s.subtitle + '</p>' : '') +
-            (s.bullets && s.bullets.length ?
-              '<div class="f-up" style="display:flex;align-items:center;gap:0;animation-delay:.2s;">' +
-                '<div style="width:3px;height:36px;border-radius:2px;background:#fff;margin-right:12px;flex-shrink:0;"></div>' +
-                '<span style="color:#fff;font-size:13px;font-weight:500;">' + s.bullets.slice(0,3).join(' &nbsp;·&nbsp; ') + '</span>' +
-              '</div>' : '') +
-          '</div>';
+        /* LEFT (default) */
+        els += '<div style="position:absolute;left:' + X(0.70) + ';top:' + Y(0.65) + ';width:' + W(0.90) + ';height:0;padding-bottom:' + H(0.90) + ';border-radius:15%;background:' + iconBg + ';z-index:2;">' +
+          '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50%;height:50%;">' + iconSvg(ic) + '</div></div>';
+        if (cat) els += '<div style="position:absolute;left:' + X(0.70) + ';top:' + Y(1.75) + ';width:' + W(3.0) + ';font-size:clamp(9px,1.1vw,12px);font-weight:700;color:' + t.accent + ';letter-spacing:1px;z-index:2;">' + cat + '</div>';
+        var tY2 = cat ? Y(2.05) : Y(1.75);
+        els += '<div style="position:absolute;left:' + X(0.65) + ';top:' + tY2 + ';width:' + W(7.50) + ';height:' + H(1.30) + ';display:flex;align-items:flex-start;z-index:2;">' +
+          '<span style="font-size:clamp(24px,4vw,44px);font-weight:900;color:' + titleColor + ';line-height:1.1;font-family:Calibri,sans-serif;">' + s.title + '</span></div>';
+        if (s.subtitle) els += '<div style="position:absolute;left:' + X(0.68) + ';top:' + Y(3.25) + ';width:' + W(7.20) + ';font-size:clamp(12px,1.5vw,18px);color:' + subColor + ';z-index:2;">' + s.subtitle + '</div>';
+        els += bulletBar();
       }
 
-      if (s.footer) {
-        contentHtml += '<div style="position:absolute;bottom:20px;left:7%;right:7%;z-index:3;">' +
-          '<span style="color:' + t.primary_lt + ';font-size:10px;">' + s.footer + '</span></div>';
-      }
+      /* footer */
+      if (s.footer) els += '<div style="position:absolute;left:' + X(0.65) + ';top:' + Y(5.625 - 0.48) + ';width:' + W(7.0) + ';font-size:clamp(8px,1vw,10px);color:' + (isDark ? t.primary_lt : '#5B6478') + ';z-index:2;">' + s.footer + '</div>';
 
       return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
-        svgBg(fullBg) + contentHtml + '</div>';
+        svgBg(bgSvg) + els + '</div>';
     }
 
-    /* ─────────────────────────────────────────────────────────────────
-       CONTENT — shared header helper (PPTX style: centered cat + title)
-    ───────────────────────────────────────────────────────────────── */
-    function slideHeader(s, idx, t) {
-      var cat = (s.style||{}).category || '';
-      return '<div style="height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;padding-top:4px;">' +
-        (cat ? '<div style="font-size:10px;font-weight:800;color:' + t.card_icons[0] + ';letter-spacing:3px;text-transform:uppercase;margin-bottom:3px;">' + cat + '</div>' : '') +
-        '<h2 style="color:#1F2A44;font-size:clamp(14px,1.8vw,22px);font-weight:800;margin:0;line-height:1.2;text-align:center;">' + s.title + '</h2>' +
-      '</div>';
+    /* ═══════════════════════════════════════════════════════════════════
+       CONTENT SLIDE HEADER — matching _setup_content_slide in PPTX
+       White bg, centered category at y=0.35", title at y=0.68"
+    ═══════════════════════════════════════════════════════════════════ */
+    function contentHeader(s, t) {
+      var sty = s.style || {};
+      var cat = sty.category || '';
+      var accents = t.card_icons;
+      var html = '';
+      if (cat) html += '<div style="position:absolute;left:0;top:' + Y(0.35) + ';width:100%;height:' + H(0.30) + ';display:flex;align-items:center;justify-content:center;font-size:clamp(9px,1.1vw,12px);font-weight:700;color:' + accents[0] + ';letter-spacing:3px;text-transform:uppercase;z-index:2;">' + cat.toUpperCase() + '</div>';
+      html += '<div style="position:absolute;left:0;top:' + Y(0.68) + ';width:100%;height:' + H(0.55) + ';display:flex;align-items:center;justify-content:center;z-index:2;">' +
+        '<span style="font-size:clamp(14px,1.8vw,22px);font-weight:800;color:#1F2A44;text-align:center;font-family:Calibri,sans-serif;">' + s.title + '</span></div>';
+      return html;
     }
 
-    function slideWrap(bgSvg, inner) {
-      return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
-        svgBg(bgSvg) +
-        '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;padding:0 5% 2%;">' +
-          inner +
-        '</div>' +
-      '</div>';
-    }
+    /* ═══════════════════════════════════════════════════════════════════
+       LAYOUT FUNCTIONS — use absolute positioning matching PPTX inches
+       Content area starts at y=1.70" (30.22%), left margin 0.60" (6%)
+       Content width (CW) = 8.80" (88%), bottom at ~5.12" (91%)
+    ═══════════════════════════════════════════════════════════════════ */
+    var LM = 6;       /* left margin % */
+    var CW = 88;      /* content width % */
+    var CT = 30.22;   /* content top % (y=1.70") */
+    var CB = 91.11;   /* content bottom % (y=5.12") */
 
-    /* ── LAYOUT: bullets ── */
     function layoutBullets(s, t) {
       var b_items = s.bullet_items || [];
       var bullets = s.bullets || [];
-      var n = b_items.length || bullets.length;
       var accents = t.card_icons;
       var cbgs = t.card_bgs;
+      var html = '';
 
       if (b_items.length === 3) {
-        /* 3-column pastel cards with icon circle */
-        var cards = b_items.map(function(it, i) {
+        var gap = 3;
+        var colW = 28;
+        b_items.forEach(function(it, i) {
           var ac = accents[i % accents.length];
           var bg = cbgs[i % cbgs.length];
           var ic = pickIcon((it.title||'') + ' ' + (it.desc||''), it.icon);
-          return '<div class="f-up" style="flex:1;border-radius:12px;background:' + bg + ';padding:18px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;animation-delay:' + (i*0.08) + 's;">' +
-            iconCircle(ic, ac, 44) +
-            '<div style="font-size:13px;font-weight:700;color:#1F2A44;margin-top:12px;margin-bottom:6px;">' + (it.title||'') + '</div>' +
-            (it.desc ? '<div style="font-size:10px;color:#5B6478;line-height:1.5;">' + it.desc + '</div>' : '') +
-          '</div>';
-        }).join('');
-        return '<div style="flex:1;display:flex;align-items:center;">' +
-          '<div style="display:flex;gap:12px;width:100%;">' + cards + '</div></div>';
-
-      } else if (b_items.length >= 2) {
-        /* stacked list with icon circle left */
-        var rows = b_items.slice(0,6).map(function(it, i) {
-          var ac = accents[i % accents.length];
-          var ic = pickIcon((it.title||'') + ' ' + (it.desc||''), it.icon);
-          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:14px;margin-bottom:10px;animation-delay:' + (i*0.07) + 's;">' +
-            iconCircle(ic, ac, 40) +
-            '<div style="flex:1;padding-top:2px;">' +
-              '<div style="font-size:13px;font-weight:700;color:#1F2A44;margin-bottom:2px;">' + (it.title||'') + '</div>' +
-              (it.desc ? '<div style="font-size:10px;color:#5B6478;line-height:1.5;">' + it.desc + '</div>' : '') +
+          var x = LM + i * (colW + gap);
+          var cardH = s.note ? 37.33 : 45.33;
+          html += '<div class="f-up" style="position:absolute;left:' + x + '%;top:' + (CT+1.78) + '%;width:' + colW + '%;height:' + cardH + '%;border-radius:8px;background:' + bg + ';animation-delay:' + (i*0.08) + 's;z-index:2;">' +
+            '<div style="display:flex;flex-direction:column;align-items:center;padding-top:10%;text-align:center;height:100%;box-sizing:border-box;">' +
+              iconCircle(ic, ac, 44) +
+              '<div style="font-size:clamp(10px,1.2vw,13px);font-weight:700;color:#1F2A44;margin-top:8%;line-height:1.2;">' + (it.title||'') + '</div>' +
+              (it.desc ? '<div style="font-size:clamp(8px,1vw,10px);color:#5B6478;line-height:1.5;margin-top:4%;padding:0 8%;">' + it.desc + '</div>' : '') +
             '</div>' +
           '</div>';
-        }).join('');
-        return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + rows + '</div>';
-
+        });
+      } else if (b_items.length >= 2) {
+        var n = Math.min(b_items.length, 6);
+        var availH = (s.note ? 77.33 : CB) - CT - 2.67;
+        var rowH = Math.min(15.11, availH / n);
+        b_items.slice(0,6).forEach(function(it, i) {
+          var ac = accents[i % accents.length];
+          var ic = pickIcon((it.title||'') + ' ' + (it.desc||''), it.icon);
+          var y = CT + 2.67 + i * rowH;
+          html += '<div class="f-up" style="position:absolute;left:' + LM + '%;top:' + y + '%;width:' + CW + '%;display:flex;align-items:flex-start;gap:12px;animation-delay:' + (i*0.07) + 's;z-index:2;">' +
+            iconCircle(ic, ac, 38) +
+            '<div style="flex:1;">' +
+              '<div style="font-size:clamp(10px,1.2vw,13px);font-weight:700;color:#1F2A44;line-height:1.2;">' + (it.title||'') + '</div>' +
+              (it.desc ? '<div style="font-size:clamp(8px,1vw,10px);color:#5B6478;line-height:1.5;margin-top:2px;">' + it.desc + '</div>' : '') +
+            '</div>' +
+          '</div>';
+        });
       } else if (bullets.length && bullets.length <= 3) {
-        /* 3-col simple bullet text */
-        var cols = bullets.slice(0,3).map(function(b, i) {
+        var n2 = bullets.length;
+        var gap2 = 2;
+        var cw2 = (CW - gap2 * (n2-1)) / n2;
+        bullets.slice(0,n2).forEach(function(b, i) {
           var ac = accents[i % accents.length];
           var ic = pickIcon(b);
-          return '<div class="f-up" style="flex:1;text-align:center;padding:0 8px;animation-delay:' + (i*0.08) + 's;">' +
-            '<div style="display:flex;justify-content:center;margin-bottom:10px;">' + iconCircle(ic, ac, 40) + '</div>' +
-            '<div style="font-size:14px;font-weight:700;color:#1F2A44;line-height:1.4;">' + b + '</div>' +
+          var x2 = LM + 2.5 + i * (cw2 + gap2);
+          html += '<div class="f-up" style="position:absolute;left:' + x2 + '%;top:' + (CT+10) + '%;width:' + (cw2-5) + '%;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;animation-delay:' + (i*0.08) + 's;">' +
+            '<div style="margin-bottom:8px;">' + iconCircle(ic, ac, 40) + '</div>' +
+            '<div style="font-size:clamp(11px,1.3vw,14.5px);font-weight:700;color:' + t.primary_dk + ';line-height:1.3;">' + b + '</div>' +
           '</div>';
-        }).join('');
-        return '<div style="flex:1;display:flex;align-items:center;">' +
-          '<div style="display:flex;gap:16px;width:100%;">' + cols + '</div></div>';
-
+        });
       } else {
-        /* stacked bullets */
-        var rows2 = (bullets.length ? bullets : []).slice(0,8).map(function(b, i) {
+        var rowH2 = 11.56;
+        bullets.slice(0,8).forEach(function(b, i) {
           var ac = accents[i % accents.length];
           var ic = pickIcon(b);
-          return '<div class="f-up" style="display:flex;align-items:center;gap:12px;margin-bottom:9px;animation-delay:' + (i*0.07) + 's;">' +
-            iconCircle(ic, ac, 34) +
-            '<span style="font-size:13px;font-weight:600;color:#1F2A44;line-height:1.5;">' + b + '</span>' +
+          var y2 = CT + i * rowH2;
+          if (y2 + 8.89 > CB) return;
+          html += '<div class="f-up" style="position:absolute;left:' + (LM+1.6) + '%;top:' + (y2+1.78) + '%;display:flex;align-items:center;gap:10px;z-index:2;animation-delay:' + (i*0.07) + 's;">' +
+            iconCircle(ic, ac, 32) +
+            '<span style="font-size:clamp(10px,1.2vw,13px);font-weight:700;color:' + t.primary_dk + ';">' + b + '</span>' +
           '</div>';
-        }).join('');
-        return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + rows2 + '</div>';
+        });
       }
+      return html;
     }
 
-    /* ── LAYOUT: stats ── */
     function layoutStats(s, t) {
       var items = s.items || [];
       if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b) {
-          var p = b.split('::'); return { value: (p[0]||'').trim(), label: (p[1]||b).trim() };
-        });
+        items = s.bullets.map(function(b) { var p = b.split('::'); return { value: (p[0]||'').trim(), label: (p[1]||b).trim() }; });
       }
-      items = items.slice(0, 4);
-      var n = items.length;
+      var n = Math.min(items.length, 4);
       var accents = t.card_icons;
-
-      var gridCols = n <= 3 ? n : 2;
-      var cards = items.map(function(it, i) {
+      var html = '';
+      /* 2x2 grid */
+      var gapX = 1.5, gapY = 2.67;
+      var cols = n <= 2 ? n : 2;
+      var cardW2 = (CW - gapX * (cols-1)) / cols;
+      var rows = Math.ceil(n / cols);
+      var cardH2 = rows === 1 ? 35.56 : 24;
+      items.slice(0,4).forEach(function(it, i) {
         var ac = accents[i % accents.length];
-        var val = it.value || '—';
-        var vsz = val.length > 6 ? 'clamp(22px,3vw,34px)' : 'clamp(26px,3.5vw,44px)';
-        return '<div class="f-up" style="border-radius:10px;background:' + t.primary_dk + ';padding:16px 18px;overflow:hidden;position:relative;animation-delay:' + (i*0.08) + 's;">' +
-          '<div style="position:absolute;left:0;top:0;bottom:0;width:6px;background:' + ac + ';border-radius:10px 0 0 10px;"></div>' +
-          '<div style="padding-left:14px;">' +
-            '<div style="font-size:' + vsz + ';font-weight:900;color:#fff;line-height:1;margin-bottom:8px;">' + val + '</div>' +
-            '<div style="font-size:10px;color:' + t.primary_xl + ';line-height:1.4;">' + (it.label||'') + '</div>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-
-      return '<div style="flex:1;display:flex;align-items:center;">' +
-        '<div style="display:grid;grid-template-columns:repeat(' + gridCols + ',1fr);gap:12px;width:100%;">' + cards + '</div>' +
-      '</div>';
+        var col = i % cols, row = Math.floor(i / cols);
+        var x = LM + col * (cardW2 + gapX);
+        var y = CT + row * (cardH2 + gapY);
+        html += '<div class="f-up" style="position:absolute;left:' + x + '%;top:' + y + '%;width:' + cardW2 + '%;height:' + cardH2 + '%;border-radius:8px;background:' + t.primary_dk + ';overflow:hidden;z-index:2;animation-delay:' + (i*0.08) + 's;">' +
+          '<div style="position:absolute;left:0;top:0;bottom:0;width:6px;background:' + ac + ';"></div>' +
+          '<div style="padding:6% 8% 6% 10%;">' +
+            '<div style="font-size:clamp(18px,2.5vw,' + (String(it.value||'').length > 6 ? '28' : '34') + 'px);font-weight:900;color:#fff;line-height:1;">' + (it.value||'—') + '</div>' +
+            '<div style="font-size:clamp(8px,0.9vw,10px);color:' + t.primary_xl + ';margin-top:6%;line-height:1.4;">' + (it.label||'') + '</div>' +
+          '</div></div>';
+      });
+      return html;
     }
 
-    /* ── LAYOUT: chart ── */
     function layoutChart(s, t) {
       var items = s.items || [];
       if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b) {
-          var p = b.split('::'); return { value: parseInt(p[0])||0, label: (p[1]||b).trim() };
-        });
+        items = s.bullets.map(function(b) { var p = b.split('::'); return { value: parseInt(p[0])||0, label: (p[1]||b).trim() }; });
       }
       items = items.slice(0, 8);
       var maxVal = Math.max.apply(null, items.map(function(i){ return i.value||0; })) || 1;
       var accents = t.card_icons;
-      var bars = items.map(function(it, i) {
+      var n = items.length;
+      var availH = CB - CT;
+      var barH = Math.min(availH / n - 1, 6);
+      var html = '';
+      items.forEach(function(it, i) {
         var pct = Math.round(((it.value||0) / maxVal) * 100);
         var ac = accents[i % accents.length];
-        return '<div class="f-up" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;animation-delay:' + (i*0.07) + 's;">' +
-          '<div style="width:100px;text-align:right;font-size:11px;font-weight:600;color:#1F2A44;flex-shrink:0;">' + it.label + '</div>' +
-          '<div style="flex:1;height:26px;background:#F1F5F9;border-radius:6px;overflow:hidden;">' +
-            '<div style="width:' + pct + '%;height:100%;background:' + ac + ';border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;">' +
-              '<span style="font-size:10px;font-weight:800;color:#fff;">' + (it.value||0) + '</span>' +
-            '</div>' +
-          '</div>' +
+        var y = CT + i * (barH + 2);
+        html += '<div class="f-up" style="position:absolute;left:' + LM + '%;top:' + y + '%;width:' + CW + '%;height:' + barH + '%;display:flex;align-items:center;gap:1.5%;z-index:2;animation-delay:' + (i*0.06) + 's;">' +
+          '<div style="width:12%;text-align:right;font-size:clamp(8px,1vw,12px);font-weight:600;color:#1F2A44;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + it.label + '</div>' +
+          '<div style="flex:1;height:70%;background:#F1F5F9;border-radius:14px;overflow:hidden;">' +
+            '<div style="width:' + pct + '%;height:100%;background:' + ac + ';border-radius:14px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;">' +
+              '<span style="font-size:clamp(8px,0.9vw,10px);font-weight:800;color:#fff;">' + (it.value||0) + '</span></div></div>' +
         '</div>';
-      }).join('');
-      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + bars + '</div>';
+      });
+      return html;
     }
 
-    /* ── LAYOUT: donut ── */
     function layoutDonut(s, t) {
       var items = s.items || [];
       items = items.slice(0, 6);
       var accents = t.card_icons;
       var total_val = items.reduce(function(sum, it) {
-        var v = typeof it.value === 'string' ? parseInt(it.value)||0 : (it.value||0);
-        return sum + v;
+        return sum + (typeof it.value === 'string' ? parseInt(it.value)||0 : (it.value||0));
       }, 0) || 1;
-
-      /* Simple SVG donut */
       var r = 80, cx = 100, cy = 100, circumference = 2 * Math.PI * r;
       var offset = 0;
       var slices = items.map(function(it, i) {
@@ -808,42 +824,35 @@
         var ac = accents[i % accents.length];
         var rot = -90 + offset * 360;
         offset += pct;
-        return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + ac + '" stroke-width="36"' +
-          ' stroke-dasharray="' + dash.toFixed(1) + ' ' + circumference.toFixed(1) + '"' +
-          ' stroke-dashoffset="0"' +
-          ' transform="rotate(' + rot.toFixed(1) + ' ' + cx + ' ' + cy + ')"/>';
+        return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + ac + '" stroke-width="36" stroke-dasharray="' + dash.toFixed(1) + ' ' + circumference.toFixed(1) + '" stroke-dashoffset="0" transform="rotate(' + rot.toFixed(1) + ' ' + cx + ' ' + cy + ')"/>';
       }).join('');
-      var donutSvg = '<svg viewBox="0 0 200 200" style="width:180px;height:180px;flex-shrink:0;">' +
-        '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#F1F5F9" stroke-width="36"/>' +
-        slices +
-        (s.center_text ? '<text x="100" y="96" text-anchor="middle" font-size="22" font-weight="900" fill="#1F2A44">' + s.center_text + '</text>' : '') +
-        (s.center_sub ? '<text x="100" y="114" text-anchor="middle" font-size="11" fill="#5B6478">' + s.center_sub + '</text>' : '') +
-      '</svg>';
-
-      var legend = items.map(function(it, i) {
+      var html = '<div style="position:absolute;left:5%;top:' + (CT-1.78) + '%;width:45%;height:' + (CB-CT+10) + '%;z-index:2;display:flex;align-items:center;justify-content:center;">' +
+        '<svg viewBox="0 0 200 200" style="width:80%;max-height:90%;">' +
+          '<circle cx="100" cy="100" r="80" fill="none" stroke="#F1F5F9" stroke-width="36"/>' + slices +
+          (s.center_text ? '<text x="100" y="96" text-anchor="middle" font-size="22" font-weight="900" fill="#1F2A44">' + s.center_text + '</text>' : '') +
+          (s.center_sub ? '<text x="100" y="114" text-anchor="middle" font-size="11" fill="#5B6478">' + s.center_sub + '</text>' : '') +
+        '</svg></div>';
+      var legendTop = CT - 0.89;
+      var itemH = Math.min(14.58, (CB - legendTop) / items.length);
+      items.forEach(function(it, i) {
         var ac = accents[i % accents.length];
         var v = typeof it.value === 'string' ? parseInt(it.value)||0 : (it.value||0);
-        var pct = Math.round(v / total_val * 100);
+        var pctVal = Math.round(v / total_val * 100);
         var ic = pickIcon(it.label||'');
-        return '<div class="f-up" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;animation-delay:' + (i*0.07) + 's;">' +
+        var y = legendTop + i * itemH;
+        html += '<div class="f-up" style="position:absolute;left:53.5%;top:' + y + '%;display:flex;align-items:center;gap:8px;z-index:2;animation-delay:' + (i*0.07) + 's;">' +
           iconCircle(ic, ac, 36) +
           '<div>' +
-            '<div style="font-size:12px;font-weight:700;color:#1F2A44;">' + (it.label||'') + '</div>' +
-            '<div style="font-size:10px;color:#5B6478;">' + pct + '%' + (it.detail ? '  ·  ' + it.detail : '') + '</div>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-
-      return '<div style="flex:1;display:flex;align-items:center;gap:20px;">' +
-        donutSvg +
-        '<div style="flex:1;">' + legend + '</div>' +
-      '</div>';
+            '<div style="font-size:clamp(9px,1.1vw,11.5px);font-weight:700;color:#1F2A44;">' + (it.label||'') + '</div>' +
+            '<div style="font-size:clamp(8px,0.9vw,10px);color:#5B6478;">' + pctVal + '%' + (it.detail ? '  ·  ' + it.detail : '') + '</div>' +
+          '</div></div>';
+      });
+      return html;
     }
 
-    /* ── LAYOUT: two-col ── */
     function layoutTwoCol(s, t) {
-      var col1 = (s.col1 || []);
-      var col2 = (s.col2 || []);
+      var col1 = (s.col1 || []).slice();
+      var col2 = (s.col2 || []).slice();
       if (!col1.length && s.bullets) {
         s.bullets.forEach(function(b, i) {
           var text = b.replace(/^COL[12]:\s*/,'');
@@ -851,307 +860,302 @@
         });
       }
       var accents = t.card_icons;
-
-      function colHtml(items, offset) {
-        return items.slice(0,5).map(function(item, i) {
-          var ac = accents[(offset + i) % accents.length];
+      var colW = (CW - 3) / 2;
+      var rowH = 15.11;
+      var html = '';
+      [col1, col2].forEach(function(items, ci) {
+        items.slice(0,5).forEach(function(item, i) {
+          var ac = accents[(ci * 5 + i) % accents.length];
           var ic = pickIcon(item);
-          return '<div class="f-up" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;animation-delay:' + ((offset+i)*0.07) + 's;">' +
-            iconCircle(ic, ac, 34) +
-            '<span style="font-size:11px;color:#1F2A44;line-height:1.5;">' + item + '</span>' +
+          var x = LM + 1.5 + ci * (colW + 3);
+          var y = CT + i * rowH;
+          html += '<div class="f-up" style="position:absolute;left:' + x + '%;top:' + (y+2.13) + '%;display:flex;align-items:center;gap:8px;z-index:2;animation-delay:' + ((ci*5+i)*0.06) + 's;">' +
+            iconCircle(ic, ac, 32) +
+            '<span style="font-size:clamp(9px,1vw,11px);color:#1F2A44;line-height:1.5;max-width:' + (colW-8) + '%;">' + item + '</span>' +
           '</div>';
-        }).join('');
-      }
-
-      return '<div style="flex:1;display:flex;gap:20px;align-items:flex-start;">' +
-        '<div style="flex:1;">' + colHtml(col1, 0) + '</div>' +
-        '<div style="width:1px;background:#E2E8F0;margin-top:4px;margin-bottom:4px;"></div>' +
-        '<div style="flex:1;">' + colHtml(col2, 5) + '</div>' +
-      '</div>';
+        });
+      });
+      return html;
     }
 
-    /* ── LAYOUT: timeline ── */
     function layoutTimeline(s, t) {
       var items = s.items || [];
       if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b) {
-          var p = b.split('::'); return { step: (p[0]||'').trim(), desc: (p[1]||'').trim() };
-        });
+        items = s.bullets.map(function(b) { var p = b.split('::'); return { step: (p[0]||'').trim(), desc: (p[1]||'').trim() }; });
       }
       items = items.slice(0, 5);
+      var n = items.length;
       var accents = t.card_icons;
-      var cards = items.map(function(it, i) {
+      var gap = 1.2;
+      var stepW = (CW - gap * (n-1)) / n;
+      var cardH = 44.44;
+      var html = '';
+      items.forEach(function(it, i) {
         var ac = accents[i % accents.length];
-        return '<div class="f-up" style="flex:1;border-radius:10px;background:#fff;border:1px solid #E2E8F0;overflow:hidden;position:relative;animation-delay:' + (i*0.09) + 's;">' +
-          '<div style="height:4px;background:' + ac + ';"></div>' +
-          '<div style="padding:12px 10px;text-align:center;">' +
-            '<div style="width:32px;height:32px;border-radius:50%;background:' + ac + ';display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">' +
-              '<span style="font-size:13px;font-weight:900;color:#fff;">' + (i+1) + '</span>' +
-            '</div>' +
-            '<div style="font-size:11px;font-weight:700;color:' + ac + ';margin-bottom:5px;">' + (it.step||'') + '</div>' +
-            '<div style="font-size:9.5px;color:#5B6478;line-height:1.5;">' + (it.desc||'') + '</div>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-      return '<div style="flex:1;display:flex;align-items:flex-start;padding-top:14px;">' +
-        '<div style="display:flex;gap:8px;width:100%;">' + cards + '</div>' +
-      '</div>';
+        var x = LM + i * (stepW + gap);
+        html += '<div class="f-up" style="position:absolute;left:' + x + '%;top:' + CT + '%;width:' + stepW + '%;height:' + cardH + '%;border-radius:6px;background:#fff;border:1px solid #E2E8F0;overflow:hidden;z-index:2;animation-delay:' + (i*0.09) + 's;">' +
+          '<div style="height:3px;background:' + ac + ';"></div>' +
+          '<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:6% 5%;">' +
+            '<div style="width:28px;height:28px;border-radius:50%;background:' + ac + ';display:flex;align-items:center;justify-content:center;margin-bottom:6%;">' +
+              '<span style="font-size:12px;font-weight:900;color:#fff;">' + (i+1) + '</span></div>' +
+            '<div style="font-size:clamp(9px,1vw,11px);font-weight:700;color:' + ac + ';margin-bottom:5%;">' + (it.step||'') + '</div>' +
+            '<div style="font-size:clamp(7px,0.8vw,9px);color:#1F2A44;line-height:1.5;">' + (it.desc||'') + '</div>' +
+          '</div></div>';
+      });
+      return html;
     }
 
-    /* ── LAYOUT: pillars ── */
     function layoutPillars(s, t) {
       var items = s.items || [];
       if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b) {
-          var p = b.split('::'); return { title: (p[0]||'').trim(), bullets: (p[1]||'').split('|').map(function(x){return x.trim();}).filter(Boolean) };
-        });
+        items = s.bullets.map(function(b) { var p = b.split('::'); return { title: (p[0]||'').trim(), bullets: (p[1]||'').split('|').map(function(x){return x.trim();}).filter(Boolean) }; });
       }
       items = items.slice(0, 4);
+      var n = items.length;
       var accents = t.card_icons;
       var cbgs = t.card_bgs;
-      var cards = items.map(function(it, i) {
+      var cols = 2;
+      var rows = Math.ceil(n / cols);
+      var gapX = 3, gapY = 3.56;
+      var colW = 43.5;
+      var cardH = rows === 1 ? 49.78 : 27.56;
+      var html = '';
+      items.forEach(function(it, i) {
         var ac = accents[i % accents.length];
         var bg = cbgs[i % cbgs.length];
         var ic = pickIcon((it.title||'') + ' ' + (it.bullets||[]).join(' '), it.icon);
-        var desc = (it.bullets||[]).slice(0,3).join(' ');
-        return '<div class="f-up" style="border-radius:12px;background:' + bg + ';padding:16px;display:flex;flex-direction:row;align-items:flex-start;gap:12px;animation-delay:' + (i*0.08) + 's;">' +
-          iconCircle(ic, ac, 44) +
-          '<div style="flex:1;">' +
-            '<div style="font-size:13px;font-weight:700;color:#1F2A44;margin-bottom:5px;">' + (it.title||'') + '</div>' +
-            (desc ? '<div style="font-size:10px;color:#5B6478;line-height:1.5;">' + desc + '</div>' : '') +
+        var col = i % cols, row = Math.floor(i / cols);
+        var x = LM + col * (colW + gapX);
+        var y = CT - 0.89 + row * (cardH + gapY);
+        html += '<div class="f-up" style="position:absolute;left:' + x + '%;top:' + y + '%;width:' + colW + '%;height:' + cardH + '%;border-radius:8px;background:' + bg + ';overflow:hidden;z-index:2;animation-delay:' + (i*0.08) + 's;">' +
+          '<div style="display:flex;align-items:center;gap:8px;padding:5% 6% 3%;">' +
+            iconCircle(ic, ac, 44) +
+            '<div style="font-size:clamp(10px,1.2vw,13px);font-weight:700;color:#1F2A44;line-height:1.2;">' + (it.title||'') + '</div>' +
           '</div>' +
+          '<div style="padding:0 6% 5% 10%;font-size:clamp(8px,0.9vw,10px);color:#5B6478;line-height:1.6;">' + (it.bullets||[]).slice(0,3).join('. ') + '</div>' +
         '</div>';
-      }).join('');
-      return '<div style="flex:1;display:flex;align-items:center;">' +
-        '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;">' + cards + '</div>' +
-      '</div>';
+      });
+      return html;
     }
 
-    /* ── LAYOUT: agenda ── */
     function layoutAgenda(s, t) {
       var items = s.items || [];
       if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b, i) {
-          var p = b.split('::');
-          return { num: String(i+1), title: (p[0]||b).trim(), desc: (p[1]||'').trim() };
-        });
+        items = s.bullets.map(function(b, i) { var p = b.split('::'); return { num: p[0]||String(i+1).padStart(2,'0'), title: (p[1]||b).trim(), desc: (p[2]||'').trim() }; });
       }
       items = items.slice(0, 8);
       var accents = t.card_icons;
-      var rows = items.map(function(it, i) {
+      var rowH = 9.78;
+      var gap = 1.42;
+      var html = '';
+      items.forEach(function(it, i) {
         var ac = accents[i % accents.length];
-        return '<div class="f-up" style="display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:10px;background:#fff;border:1px solid #E2E8F0;margin-bottom:6px;animation-delay:' + (i*0.07) + 's;">' +
-          '<div style="width:32px;height:32px;border-radius:50%;background:' + ac + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
-            '<span style="font-size:12px;font-weight:900;color:#fff;">' + (it.num||i+1) + '</span>' +
-          '</div>' +
+        var y = CT + i * (rowH + gap);
+        if (y + rowH > CB) return;
+        html += '<div class="f-up" style="position:absolute;left:' + LM + '%;top:' + y + '%;width:' + CW + '%;height:' + rowH + '%;border-radius:6px;background:#fff;border:1px solid #E2E8F0;display:flex;align-items:center;gap:1.5%;padding:0 2%;z-index:2;animation-delay:' + (i*0.06) + 's;">' +
+          '<div style="width:26px;height:26px;border-radius:50%;background:' + ac + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+            '<span style="font-size:10px;font-weight:900;color:#fff;">' + (it.num||String(i+1)) + '</span></div>' +
           '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:12px;font-weight:700;color:' + t.primary_dk + ';">' + it.title + '</div>' +
-            (it.desc ? '<div style="font-size:9px;color:#5B6478;margin-top:1px;">' + it.desc + '</div>' : '') +
+            '<div style="font-size:clamp(9px,1.1vw,12px);font-weight:700;color:' + t.primary_dk + ';">' + (it.title||'') + '</div>' +
+            (it.desc ? '<div style="font-size:clamp(7px,0.8vw,9px);color:#5B6478;margin-top:1px;">' + it.desc + '</div>' : '') +
           '</div>' +
         '</div>';
-      }).join('');
-      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + rows + '</div>';
+      });
+      return html;
     }
 
-    /* ── LAYOUT: roles ── */
     function layoutRoles(s, t) {
       var items = s.items || [];
       if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b) {
-          var p = b.split('::');
-          return { role: (p[0]||'').trim(), type: (p[1]||'').trim(), bullets: (p[2]||'').split('|').map(function(x){return x.trim();}).filter(Boolean) };
-        });
+        items = s.bullets.map(function(b) { var p = b.split('::'); var krs = (p[2]||'').split('|').map(function(x){return x.trim();}).filter(Boolean); return { role: (p[0]||'').trim(), type: (p[1]||'').trim(), bullets: krs }; });
       }
       items = items.slice(0, 3);
       var accents = t.card_icons;
-      var cols = items.map(function(it, i) {
+      var colW = 28;
+      var gap = 1.5;
+      var cardH = 59.56;
+      var html = '';
+      items.forEach(function(it, i) {
         var ac = accents[i % accents.length];
-        var bio = (it.bullets||[]).slice(0,3).join(' ');
-        return '<div class="f-up" style="flex:1;border-radius:12px;background:#fff;border:1px solid #E2E8F0;overflow:hidden;animation-delay:' + (i*0.09) + 's;">' +
-          '<div style="height:6px;background:' + ac + ';"></div>' +
-          '<div style="padding:16px;text-align:center;">' +
-            '<div style="width:64px;height:64px;border-radius:50%;background:' + t.primary_xl + ';margin:0 auto 10px;display:flex;align-items:center;justify-content:center;">' +
-              '<div style="width:34px;height:34px;">' + iconSvg('person') + '</div>' +
-            '</div>' +
-            '<div style="font-size:14px;font-weight:800;color:#1F2A44;margin-bottom:4px;">' + (it.role||'') + '</div>' +
-            (it.type ? '<div style="font-size:10px;font-weight:700;color:' + ac + ';margin-bottom:8px;">' + it.type + '</div>' : '') +
-            '<div style="width:40px;height:1px;background:#E2E8F0;margin:0 auto 8px;"></div>' +
-            (bio ? '<div style="font-size:10px;color:#5B6478;line-height:1.5;">' + bio + '</div>' : '') +
-          '</div>' +
-        '</div>';
-      }).join('');
-      return '<div style="flex:1;display:flex;gap:12px;">' + cols + '</div>';
+        var x = LM + i * (colW + gap);
+        html += '<div class="f-up" style="position:absolute;left:' + x + '%;top:' + (CT+0.89) + '%;width:' + colW + '%;height:' + cardH + '%;border-radius:6px;background:#fff;border:1px solid #E2E8F0;overflow:hidden;z-index:2;animation-delay:' + (i*0.1) + 's;">' +
+          '<div style="height:4px;background:' + ac + ';"></div>' +
+          '<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:6% 5%;">' +
+            '<div style="width:52px;height:52px;border-radius:50%;background:' + t.primary_xl + ';display:flex;align-items:center;justify-content:center;margin-bottom:5%;">' +
+              '<div style="width:30px;height:30px;">' + iconSvg('person') + '</div></div>' +
+            '<div style="font-size:clamp(11px,1.3vw,14.5px);font-weight:700;color:' + t.primary_dk + ';margin-bottom:3%;">' + (it.role||'') + '</div>' +
+            (it.type ? '<div style="font-size:clamp(9px,1vw,11px);font-weight:600;color:' + t.accent + ';margin-bottom:5%;">' + it.type + '</div>' : '') +
+            '<div style="width:36px;height:1px;background:' + t.primary_xl + ';margin-bottom:5%;"></div>' +
+            '<div style="font-size:clamp(8px,0.9vw,10px);color:#1F2A44;line-height:1.5;">' + (it.bullets||[]).slice(0,3).join('. ') + '</div>' +
+          '</div></div>';
+      });
+      return html;
     }
 
-    /* ── LAYOUT: okr ── */
     function layoutOkr(s, t) {
       var items = s.items || [];
       if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b) {
-          var p = b.split('::');
-          return { objective: (p[0]||'').trim(), krs: (p[1]||'').split('|').map(function(x){return x.trim();}).filter(Boolean) };
-        });
+        items = s.bullets.map(function(b) { var p = b.split('::'); var krs = (p[1]||'').split('|').map(function(x){return x.trim();}).filter(Boolean); return { objective: (p[0]||'').trim(), krs: krs }; });
       }
       items = items.slice(0, 5);
       var accents = t.card_icons;
-      var rows = items.map(function(it, i) {
+      var rowH = 11.56;
+      var gap = 1.42;
+      var html = '';
+      items.forEach(function(it, i) {
         var ac = accents[i % accents.length];
-        return '<div class="f-up" style="display:flex;align-items:stretch;border-radius:10px;background:#fff;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:8px;animation-delay:' + (i*0.08) + 's;">' +
-          '<div style="width:5px;background:' + ac + ';flex-shrink:0;"></div>' +
-          '<div style="padding:10px 14px;flex:1;">' +
-            '<div style="font-size:11px;font-weight:700;color:' + ac + ';margin-bottom:6px;">' + it.objective + '</div>' +
-            '<div style="display:flex;flex-wrap:wrap;gap:5px;">' +
+        var y = CT + i * (rowH + gap);
+        if (y + rowH > CB) return;
+        html += '<div class="f-up" style="position:absolute;left:' + LM + '%;top:' + y + '%;width:' + CW + '%;height:' + rowH + '%;border-radius:6px;background:#fff;border:1px solid #E2E8F0;display:flex;align-items:stretch;overflow:hidden;z-index:2;animation-delay:' + (i*0.07) + 's;">' +
+          '<div style="width:4px;background:' + ac + ';flex-shrink:0;"></div>' +
+          '<div style="flex:1;padding:1.5% 2.5%;display:flex;align-items:center;gap:3%;">' +
+            '<div style="font-size:clamp(9px,1vw,11px);font-weight:700;color:' + ac + ';min-width:100px;">' + (it.objective||'') + '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:4px;">' +
               (it.krs||[]).slice(0,3).map(function(kr) {
-                return '<span style="background:' + ac + '15;border:1px solid ' + ac + '30;border-radius:20px;padding:2px 8px;font-size:9px;color:#1F2A44;">✓ ' + kr + '</span>';
+                return '<span style="font-size:clamp(7px,0.8vw,9px);color:#5B6478;padding:2px 8px;border-radius:10px;background:#F1F5F9;">✓ ' + kr + '</span>';
               }).join('') +
-            '</div>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-      return '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' + rows + '</div>';
+            '</div></div></div>';
+      });
+      return html;
     }
 
-    /* ── LAYOUT: principles ── */
     function layoutPrinciples(s, t) {
       var items = s.items || [];
       if (!items.length && s.bullets) {
-        items = s.bullets.map(function(b) {
-          var p = b.split('::'); return { title: (p[0]||'').trim(), desc: (p[1]||'').trim() };
-        });
+        items = s.bullets.map(function(b) { var p = b.split('::'); return { title: (p[0]||'').trim(), desc: (p[1]||'').trim() }; });
       }
       items = items.slice(0, 6);
       var accents = t.card_icons;
+      var colW = (CW - 1.5) / 2;
+      var cardH = 15.11;
+      var gap = 2.13;
       var half = Math.ceil(items.length / 2);
-
-      function colHtml(arr, offset) {
-        return arr.map(function(it, i) {
-          var ac = accents[(i+offset) % accents.length];
-          var ic = pickIcon(typeof it === 'string' ? it : (it.title||''));
-          return '<div class="f-up" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;animation-delay:' + ((i+offset)*0.07) + 's;">' +
-            iconCircle(ic, ac, 34) +
-            '<div style="flex:1;">' +
-              '<div style="font-size:13px;font-weight:700;color:#1F2A44;margin-bottom:3px;">' + (it.title||it) + '</div>' +
-              (it.desc ? '<div style="font-size:10px;color:#5B6478;line-height:1.5;">' + it.desc + '</div>' : '') +
-            '</div>' +
-          '</div>';
-        }).join('');
-      }
-
-      return '<div style="flex:1;display:flex;gap:16px;">' +
-        '<div style="flex:1;">' + colHtml(items.slice(0,half), 0) + '</div>' +
-        '<div style="flex:1;">' + colHtml(items.slice(half), half) + '</div>' +
-      '</div>';
+      var html = '';
+      items.forEach(function(it, i) {
+        var ac = accents[i % accents.length];
+        var ic = pickIcon(typeof it === 'string' ? it : (it.title||''));
+        var col = i < half ? 0 : 1;
+        var row = i < half ? i : i - half;
+        var x = LM + col * (colW + 1.5);
+        var y = CT + row * (cardH + gap);
+        html += '<div class="f-up" style="position:absolute;left:' + x + '%;top:' + y + '%;width:' + colW + '%;display:flex;align-items:flex-start;gap:8px;z-index:2;animation-delay:' + (i*0.07) + 's;">' +
+          iconCircle(ic, ac, 34) +
+          '<div style="flex:1;">' +
+            '<div style="font-size:clamp(10px,1.2vw,13px);font-weight:700;color:' + t.primary_dk + ';margin-bottom:2px;">' + (it.title||'') + '</div>' +
+            (it.desc ? '<div style="font-size:clamp(8px,0.9vw,10px);color:#1F2A44;line-height:1.5;">' + it.desc + '</div>' : '') +
+          '</div></div>';
+      });
+      return html;
     }
 
-    /* ─────────────────────────────────────────────────────────────────
-       CONTENT — dispatch to layout
-    ───────────────────────────────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════════════════
+       CONTENT SLIDE — absolute positioned, white bg
+    ═══════════════════════════════════════════════════════════════════ */
     function renderContent(s, idx, t) {
-      var bodyHtml;
       var layout = s.layout || 'bullets';
+      var layoutHtml;
       switch (layout) {
-        case 'stats':      bodyHtml = layoutStats(s, t);      break;
-        case 'chart':      bodyHtml = layoutChart(s, t);      break;
-        case 'donut':      bodyHtml = layoutDonut(s, t);      break;
+        case 'stats':      layoutHtml = layoutStats(s, t);      break;
+        case 'chart':      layoutHtml = layoutChart(s, t);      break;
+        case 'donut':      layoutHtml = layoutDonut(s, t);      break;
         case 'two-col':
-        case 'two_col':    bodyHtml = layoutTwoCol(s, t);     break;
-        case 'timeline':   bodyHtml = layoutTimeline(s, t);   break;
-        case 'pillars':    bodyHtml = layoutPillars(s, t);    break;
-        case 'agenda':     bodyHtml = layoutAgenda(s, t);     break;
-        case 'roles':      bodyHtml = layoutRoles(s, t);      break;
-        case 'okr':        bodyHtml = layoutOkr(s, t);        break;
-        case 'principles': bodyHtml = layoutPrinciples(s, t); break;
-        default:           bodyHtml = layoutBullets(s, t);    break;
+        case 'two_col':    layoutHtml = layoutTwoCol(s, t);     break;
+        case 'timeline':   layoutHtml = layoutTimeline(s, t);   break;
+        case 'pillars':    layoutHtml = layoutPillars(s, t);    break;
+        case 'agenda':     layoutHtml = layoutAgenda(s, t);     break;
+        case 'roles':      layoutHtml = layoutRoles(s, t);      break;
+        case 'okr':        layoutHtml = layoutOkr(s, t);        break;
+        case 'principles': layoutHtml = layoutPrinciples(s, t); break;
+        default:           layoutHtml = layoutBullets(s, t);    break;
       }
 
-      /* insight bar */
-      var note = s.note || '';
+      var bgSvg = DEFS + '<rect width="1280" height="720" fill="#FFFFFF"/>';
+
       var noteHtml = '';
-      if (note) {
+      if (s.note) {
         var noteBg = t.card_bgs[0] || '#E8F8F1';
-        noteHtml = '<div style="margin-top:6px;border-radius:8px;background:' + noteBg + ';padding:8px 14px;flex-shrink:0;">' +
-          '<span style="font-size:11px;font-weight:700;color:#1F2A44;">' + note + '</span></div>';
+        noteHtml = '<div style="position:absolute;left:' + LM + '%;top:' + Y(4.45) + ';width:' + CW + '%;height:' + H(0.68) + ';border-radius:8px;background:' + noteBg + ';display:flex;align-items:center;padding:0 3%;z-index:2;">' +
+          '<span style="font-size:clamp(9px,1vw,11px);font-weight:700;color:#1F2A44;">' + s.note + '</span></div>';
       }
 
-      var pageNum = '<div style="position:absolute;right:5%;bottom:10px;font-size:9px;color:#94A3B8;">' +
+      var footerHtml = '';
+      if (s.footer) {
+        footerHtml = '<div style="position:absolute;left:' + LM + '%;top:' + Y(5.625 - 0.35) + ';width:' + W(8.0) + ';font-size:clamp(6px,0.8vw,8px);color:#5B6478;z-index:2;">' + s.footer + '</div>';
+      }
+
+      var pageNum = '<div style="position:absolute;right:' + (100 - LM - CW) + '%;top:' + Y(5.625 - 0.30) + ';font-size:clamp(7px,0.8vw,9px);color:#94A3B8;text-align:right;z-index:2;">' +
         String(idx+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') + '</div>';
 
       return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
-        svgBg(typeof t.contentBg === 'function' ? t.contentBg() : t.contentBg) +
-        '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;padding:0 5% 2%;">' +
-          slideHeader(s, idx, t) + bodyHtml + noteHtml +
-        '</div>' +
-        pageNum +
+        svgBg(bgSvg) +
+        contentHeader(s, t) +
+        layoutHtml +
+        noteHtml + footerHtml + pageNum +
       '</div>';
     }
 
-    /* ─────────────────────────────────────────────────────────────────
-       SUMMARY — 3 styles matching PPTX
-    ───────────────────────────────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════════════════
+       SUMMARY — 3 styles with absolute positioning matching PPTX
+    ═══════════════════════════════════════════════════════════════════ */
     function renderSummary(s, t) {
-      var style = s.style || {};
-      var sumStyle = style.summary_style || 'cta';
-      var iconHint = style.icon || '';
-      var ic = pickIcon((s.title||'') + ' ' + (s.subtitle||''), iconHint);
-
-      var bgSvg = DEFS + '<rect width="1280" height="720" fill="' + t.cover_bg + '"/>' +
-        '<circle cx="100" cy="720" r="360" fill="' + t.primary + '" opacity=".35"/>' +
-        '<circle cx="1280" cy="43" r="244" fill="' + t.primary_dk + '" opacity=".5"/>';
-
-      var contentHtml;
+      var sty = s.style || {};
+      var sumStyle = sty.summary_style || 'cta';
+      var ic = pickIcon((s.title||'') + ' ' + (s.subtitle||''), sty.icon);
+      var bgSvg = DEFS + '<rect width="1280" height="720" fill="' + t.cover_bg + '"/>';
+      var els = '';
 
       if (sumStyle === 'quote') {
-        var bulletsQ = (s.bullets||[]).slice(0,4);
-        contentHtml =
-          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:6% 10%;text-align:center;">' +
-            '<div style="font-size:80px;font-weight:900;color:' + t.primary_lt + ';line-height:0.8;margin-bottom:8px;">"</div>' +
-            '<h2 class="f-up" style="color:#fff;font-size:clamp(20px,2.8vw,34px);font-weight:900;margin:0 0 16px;line-height:1.2;">' + s.title + '</h2>' +
-            '<div style="width:80px;height:3px;background:' + t.accent + ';border-radius:2px;margin:0 auto 18px;"></div>' +
-            (bulletsQ.length ? '<p class="f-up" style="color:' + t.primary_xl + ';font-size:14px;animation-delay:.1s;">' + bulletsQ.join('   |   ') + '</p>' : '') +
-          '</div>';
-
+        els += '<div style="position:absolute;left:' + X(0.80) + ';top:' + Y(0.60) + ';font-size:clamp(48px,7vw,72px);font-weight:900;color:' + t.primary_lt + ';line-height:0.8;z-index:2;">“</div>';
+        els += '<div style="position:absolute;left:' + X(1.20) + ';top:' + Y(1.40) + ';width:' + W(7.60) + ';height:' + H(1.80) + ';display:flex;align-items:flex-start;justify-content:center;z-index:2;">' +
+          '<span class="f-up" style="font-size:clamp(18px,2.6vw,28px);font-weight:900;color:#fff;text-align:center;line-height:1.2;">' + s.title + '</span></div>';
+        els += '<div style="position:absolute;left:50%;top:' + Y(3.40) + ';transform:translateX(-50%);width:' + W(2.0) + ';height:3px;background:' + t.accent + ';z-index:2;"></div>';
+        if (s.bullets && s.bullets.length) {
+          els += '<div style="position:absolute;left:' + X(1.0) + ';top:' + Y(3.70) + ';width:' + W(8.0) + ';text-align:center;z-index:2;">' +
+            '<span class="f-up" style="font-size:clamp(10px,1.2vw,14px);color:' + t.primary_xl + ';">' + s.bullets.slice(0,4).join('   |   ') + '</span></div>';
+        }
       } else if (sumStyle === 'minimal') {
-        var bulletsM = (s.bullets||[]).slice(0,3);
-        var iconBgM = t.primary;
-        contentHtml =
-          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;padding:8% 7%;">' +
-            '<div style="width:64px;height:64px;border-radius:14px;background:' + iconBgM + ';display:flex;align-items:center;justify-content:center;margin-bottom:16px;">' +
-              '<div style="width:36px;height:36px;">' + iconSvg(ic) + '</div>' +
-            '</div>' +
-            '<h2 class="f-up" style="color:#fff;font-size:clamp(24px,3.6vw,42px);font-weight:900;margin:0 0 16px;line-height:1.1;">' + s.title + '</h2>' +
-            bulletsM.map(function(b, bi) {
-              return '<p class="f-up" style="color:' + t.primary_xl + ';font-size:13px;margin:0 0 8px;animation-delay:' + ((bi+1)*0.07) + 's;">' + b + '</p>';
-            }).join('') +
-          '</div>';
-
+        els += '<div style="position:absolute;left:' + X(0.80) + ';top:' + Y(0.80) + ';width:' + W(0.80) + ';height:0;padding-bottom:' + H(0.80) + ';border-radius:15%;background:' + t.primary + ';z-index:2;">' +
+          '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60%;height:60%;">' + iconSvg(ic) + '</div></div>';
+        els += '<div style="position:absolute;left:' + X(0.80) + ';top:' + Y(2.00) + ';width:' + W(8.0) + ';height:' + H(1.50) + ';display:flex;align-items:flex-start;z-index:2;">' +
+          '<span class="f-up" style="font-size:clamp(22px,3vw,32px);font-weight:900;color:#fff;line-height:1.1;">' + s.title + '</span></div>';
+        if (s.bullets) {
+          s.bullets.slice(0,3).forEach(function(bt, bi) {
+            els += '<div style="position:absolute;left:' + X(0.80) + ';top:' + Y(3.70 + bi * 0.35) + ';z-index:2;">' +
+              '<span class="f-up" style="font-size:clamp(10px,1.2vw,13px);color:' + t.primary_xl + ';animation-delay:' + (bi*0.07) + 's;">' + bt + '</span></div>';
+          });
+        }
       } else {
-        /* cta (default) */
-        var bullets = s.bullets || [];
-        var cta = bullets[0] || '';
-        var contacts = bullets.slice(1,4);
-        var iconBg = t.primary;
-        contentHtml =
-          '<div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5% 8%;text-align:center;">' +
-            '<div class="f-up" style="width:72px;height:72px;border-radius:16px;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;margin-bottom:16px;">' +
-              '<div style="width:40px;height:40px;">' + iconSvg(ic) + '</div>' +
-            '</div>' +
-            '<h2 class="f-up" style="color:#fff;font-size:clamp(22px,3vw,36px);font-weight:900;margin:0 0 18px;max-width:760px;line-height:1.2;animation-delay:.07s;">' + s.title + '</h2>' +
-            (cta ? '<div class="f-up" style="background:' + t.accent + ';border-radius:12px;padding:13px 40px;font-size:16px;font-weight:800;color:#fff;margin-bottom:18px;animation-delay:.12s;">' + cta + '</div>' : '') +
-            (contacts.length ? '<p class="f-up" style="color:' + t.primary_xl + ';font-size:13px;animation-delay:.17s;">' + contacts.join('   |   ') + '</p>' : '') +
-          '</div>';
+        bgSvg += '<circle cx="90" cy="652" r="360" fill="' + t.primary + '" opacity=".35"/>';
+        bgSvg += '<circle cx="1244" cy="38" r="244" fill="' + t.primary_dk + '" opacity=".5"/>';
+        els += '<div style="position:absolute;left:50%;top:' + Y(0.55) + ';transform:translateX(-50%);width:' + W(0.90) + ';height:0;padding-bottom:' + H(0.90) + ';border-radius:15%;background:' + t.primary + ';z-index:2;">' +
+          '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50%;height:50%;">' + iconSvg(ic) + '</div></div>';
+        els += '<div style="position:absolute;left:' + X(0.80) + ';top:' + Y(1.70) + ';width:' + W(8.40) + ';height:' + H(1.30) + ';display:flex;align-items:flex-start;justify-content:center;z-index:2;">' +
+          '<span class="f-up" style="font-size:clamp(18px,2.6vw,28px);font-weight:900;color:#fff;text-align:center;line-height:1.2;">' + s.title + '</span></div>';
+        if (s.bullets && s.bullets[0]) {
+          els += '<div style="position:absolute;left:50%;top:' + Y(3.15) + ';transform:translateX(-50%);width:' + W(5.10) + ';height:' + H(0.70) + ';background:' + t.accent + ';border-radius:10px;display:flex;align-items:center;justify-content:center;z-index:2;">' +
+            '<span class="f-up" style="font-size:clamp(12px,1.4vw,16px);font-weight:800;color:#fff;">' + s.bullets[0] + '</span></div>';
+        }
+        if (s.bullets && s.bullets.length > 1) {
+          var contacts = s.bullets.slice(1,4);
+          els += '<div style="position:absolute;left:' + X(0.80) + ';top:' + Y(4.35) + ';width:' + W(8.40) + ';text-align:center;z-index:2;">' +
+            '<span class="f-up" style="font-size:clamp(10px,1.2vw,13px);color:' + t.primary_xl + ';">' + contacts.join('   |   ') + '</span></div>';
+        }
       }
 
       if (s.footer) {
-        contentHtml += '<div style="position:absolute;bottom:18px;left:8%;right:8%;z-index:3;text-align:center;">' +
-          '<span style="color:' + t.primary_lt + ';font-size:12px;">' + s.footer + '</span></div>';
+        els += '<div style="position:absolute;left:' + X(0.80) + ';top:' + Y(4.85) + ';width:' + W(8.40) + ';text-align:center;z-index:2;">' +
+          '<span style="font-size:clamp(9px,1.1vw,12px);color:' + t.primary_lt + ';">' + s.footer + '</span></div>';
       }
 
+      els += '<div style="position:absolute;right:' + X(0.40) + ';top:' + Y(5.625 - 0.30) + ';font-size:clamp(7px,0.8vw,9px);color:' + t.primary_lt + ';z-index:2;">' +
+        String(total).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') + '</div>';
+
       return '<div class="s-in" style="position:absolute;inset:0;overflow:hidden;">' +
-        svgBg(bgSvg) + contentHtml + '</div>';
+        svgBg(bgSvg) + els + '</div>';
     }
 
     /* ─────────────────────────────────────────────────────────────────
-       THEME PICKER — 13 color swatches
+       THEME PICKER — 12 color swatches
     ───────────────────────────────────────────────────────────────── */
     var pickerHtml = THEMES.map(function(th, i) {
       return '<button onclick="setTheme(' + i + ')" id="theme-btn-' + i + '" title="' + th.label + '" ' +
@@ -1165,11 +1169,10 @@
       '</div>'
     );
 
-    /* Map theme name from data-theme attribute to index */
     var AI_THEME_MAP = {};
     THEMES.forEach(function(th, i) { AI_THEME_MAP[th.name] = i; });
     var aiTheme = el.dataset.theme || '';
-    var activeThemeIdx = (aiTheme && AI_THEME_MAP[aiTheme] != null) ? AI_THEME_MAP[aiTheme] : 1; /* default blue */
+    var activeThemeIdx = (aiTheme && AI_THEME_MAP[aiTheme] != null) ? AI_THEME_MAP[aiTheme] : 1;
     window.setTheme = function(i) {
       activeThemeIdx = i;
       document.querySelectorAll('[id^="theme-btn-"]').forEach(function(b, j) {
