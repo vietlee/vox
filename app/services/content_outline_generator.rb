@@ -31,7 +31,8 @@ class ContentOutlineGenerator
       @outline.update!(content: markdown_to_html(result), status: :done)
     end
 
-    @outline.workspace.active_subscription&.deduct_credits!(2)
+    cost = @outline.output_type == "slide" ? 5 : 2
+    @outline.workspace.active_subscription&.deduct_credits!(cost)
   end
 
   def ai_edit(edit_prompt)
