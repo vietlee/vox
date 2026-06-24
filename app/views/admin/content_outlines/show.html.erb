@@ -2031,14 +2031,15 @@ function handleRegenerate() {
 
   // Fire AJAX
   var token = document.querySelector('meta[name="csrf-token"]').content;
+  var pollUrl = '<%= status_content_outline_path(@outline, format: :json) %>';
   fetch('<%= regenerate_content_outline_path(@outline) %>', {
     method: 'POST',
     headers: { 'Accept': 'application/json', 'X-CSRF-Token': token, 'X-Requested-With': 'XMLHttpRequest' }
   }).then(function(r) { return r.json(); })
     .then(function(data) {
-      if (data.poll_url) startGenPolling(data.poll_url);
+      startGenPolling(data.poll_url || pollUrl);
     })
-    .catch(function() { location.reload(); });
+    .catch(function() { startGenPolling(pollUrl); });
 }
 
 function buildGenRing(phases) {
