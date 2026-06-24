@@ -1,13 +1,61 @@
 class ContentOutlineGenerator
   PPTX_SCRIPT = Rails.root.join("scripts", "generate_pptx.py").to_s
 
-  def self.call(outline)
-    new(outline).call
-  end
+  SW = 10.0; SH = 5.625; LM = 0.60; CW = 8.80
 
-  def self.ai_edit(outline, edit_prompt)
-    new(outline).ai_edit(edit_prompt)
-  end
+  DECK_THEMES = {
+    "green"    => { "cover_bg" => "#064E3B", "primary" => "#10B981", "primary_dk" => "#065F46",
+                    "primary_lt" => "#6EE7B7", "primary_xl" => "#D1FAE5",
+                    "accent" => "#10B981", "card_bgs" => %w[#E8F5F0 #D1F5E0 #C8F5D4],
+                    "card_icons" => %w[#10B981 #047857 #065F46], "text_light" => "#A7F3D0" },
+    "blue"     => { "cover_bg" => "#1E3A5F", "primary" => "#2563EB", "primary_dk" => "#1E40AF",
+                    "primary_lt" => "#93C5FD", "primary_xl" => "#DBEAFE",
+                    "accent" => "#3B82F6", "card_bgs" => %w[#EFF6FF #DBEAFE #E0EDFF],
+                    "card_icons" => %w[#3B82F6 #2563EB #1D4ED8], "text_light" => "#BFDBFE" },
+    "purple"   => { "cover_bg" => "#3B0764", "primary" => "#9333EA", "primary_dk" => "#7E22CE",
+                    "primary_lt" => "#C4B5FD", "primary_xl" => "#EDE9FE",
+                    "accent" => "#A855F7", "card_bgs" => %w[#F5F3FF #EDE9FE #E9D5FF],
+                    "card_icons" => %w[#9333EA #7E22CE #6B21A8], "text_light" => "#DDD6FE" },
+    "red"      => { "cover_bg" => "#7F1D1D", "primary" => "#EF4444", "primary_dk" => "#DC2626",
+                    "primary_lt" => "#FCA5A5", "primary_xl" => "#FEE2E2",
+                    "accent" => "#F97316", "card_bgs" => %w[#FFF7ED #FEE2E2 #FFE4D6],
+                    "card_icons" => %w[#EF4444 #DC2626 #B91C1C], "text_light" => "#FECACA" },
+    "teal"     => { "cover_bg" => "#134E4A", "primary" => "#0D9488", "primary_dk" => "#0F766E",
+                    "primary_lt" => "#5EEAD4", "primary_xl" => "#CCFBF1",
+                    "accent" => "#14B8A6", "card_bgs" => %w[#F0FDFA #CCFBF1 #C7F5EE],
+                    "card_icons" => %w[#0D9488 #0F766E #115E59], "text_light" => "#99F6E4" },
+    "amber"    => { "cover_bg" => "#78350F", "primary" => "#F59E0B", "primary_dk" => "#D97706",
+                    "primary_lt" => "#FCD34D", "primary_xl" => "#FEF3C7",
+                    "accent" => "#F59E0B", "card_bgs" => %w[#FFFBEB #FEF3C7 #FDE68A],
+                    "card_icons" => %w[#F59E0B #D97706 #B45309], "text_light" => "#FDE68A" },
+    "slate"    => { "cover_bg" => "#0F172A", "primary" => "#64748B", "primary_dk" => "#475569",
+                    "primary_lt" => "#CBD5E1", "primary_xl" => "#F1F5F9",
+                    "accent" => "#6366F1", "card_bgs" => %w[#F8FAFC #F1F5F9 #E9EEF4],
+                    "card_icons" => %w[#6366F1 #4F46E5 #4338CA], "text_light" => "#E2E8F0" },
+    "earth"    => { "cover_bg" => "#3B1F0A", "primary" => "#92400E", "primary_dk" => "#78350F",
+                    "primary_lt" => "#D97706", "primary_xl" => "#FEF3C7",
+                    "accent" => "#B45309", "card_bgs" => %w[#FDF6EE #FEF3C7 #FEE0B6],
+                    "card_icons" => %w[#92400E #78350F #6B3B1F], "text_light" => "#FDE68A" },
+    "coral"    => { "cover_bg" => "#7F1D1D", "primary" => "#F43F5E", "primary_dk" => "#E11D48",
+                    "primary_lt" => "#FDA4AF", "primary_xl" => "#FFE4E6",
+                    "accent" => "#FB7185", "card_bgs" => %w[#FFF1F2 #FFE4E6 #FECDD3],
+                    "card_icons" => %w[#F43F5E #E11D48 #BE123C], "text_light" => "#FCA5AF" },
+    "ocean"    => { "cover_bg" => "#0C4A6E", "primary" => "#0369A1", "primary_dk" => "#075985",
+                    "primary_lt" => "#7DD3FC", "primary_xl" => "#E0F2FE",
+                    "accent" => "#0EA5E9", "card_bgs" => %w[#F0F9FF #E0F2FE #BAE6FD],
+                    "card_icons" => %w[#0369A1 #075985 #0C4A6E], "text_light" => "#BAE6FD" },
+    "berry"    => { "cover_bg" => "#500724", "primary" => "#DB2777", "primary_dk" => "#BE185D",
+                    "primary_lt" => "#F9A8D4", "primary_xl" => "#FCE7F3",
+                    "accent" => "#EC4899", "card_bgs" => %w[#FDF2F8 #FCE7F3 #FBCFE8],
+                    "card_icons" => %w[#DB2777 #BE185D #9D174D], "text_light" => "#F9A8D4" },
+    "midnight" => { "cover_bg" => "#020617", "primary" => "#4F46E5", "primary_dk" => "#3730A3",
+                    "primary_lt" => "#A5B4FC", "primary_xl" => "#E0E7FF",
+                    "accent" => "#818CF8", "card_bgs" => %w[#EEF2FF #E0E7FF #D4DBFF],
+                    "card_icons" => %w[#4F46E5 #3730A3 #312E81], "text_light" => "#C7D2FE" },
+  }.freeze
+
+  def self.call(outline)   = new(outline).call
+  def self.ai_edit(outline, edit_prompt) = new(outline).ai_edit(edit_prompt)
 
   def initialize(outline)
     @outline = outline
@@ -18,10 +66,11 @@ class ContentOutlineGenerator
 
     if @outline.output_type == "slide"
       result = svc.call(system_prompt: slide_system, user_prompt: slide_user, max_tokens: 4000)
-      slides = parse_slides(result)
-      html   = slides_to_html(slides)
-      pptx_path = generate_pptx(slides)
-      @outline.update!(content: html, slide_json: slides.to_json, status: :done)
+      raw_slides = parse_slides(result)
+      deck = build_deck_schema(raw_slides, @slide_theme || "blue")
+      html = slides_to_html(deck)
+      pptx_path = generate_pptx(deck)
+      @outline.update!(content: html, slide_json: deck.to_json, status: :done)
       attach_pptx(pptx_path) if pptx_path
     else
       result = svc.call(system_prompt: generic_system, user_prompt: generic_user, max_tokens: 3000)
@@ -33,7 +82,8 @@ class ContentOutlineGenerator
   end
 
   def ai_edit(edit_prompt)
-    current_slides = JSON.parse(@outline.slide_json || "[]")
+    current_deck = JSON.parse(@outline.slide_json || "{}")
+    raw_slides = current_deck["slides"]&.map { |s| s["raw"] || s } || []
     svc = ClaudeService.for_feature("quiz_generate", timeout: 180)
 
     image_info = ""
@@ -44,85 +94,53 @@ class ContentOutlineGenerator
           path = File.join(dir, img.filename.to_s)
           File.open(path, "wb") { |f| img.download { |chunk| f.write(chunk) } }
           image_paths << path
-          image_info += "  - image_#{i + 1}: #{img.filename} (dùng IMAGE:image_#{i + 1} trong bullet để chèn)\n"
+          image_info += "  - image_#{i + 1}: #{img.filename}\n"
         end
-
-        _do_ai_edit(svc, current_slides, edit_prompt, image_info, image_paths)
+        _do_ai_edit(svc, raw_slides, edit_prompt, image_info, image_paths)
         return
       end
     end
 
-    _do_ai_edit(svc, current_slides, edit_prompt, image_info, image_paths)
+    _do_ai_edit(svc, raw_slides, edit_prompt, image_info, image_paths)
   end
 
-  def _do_ai_edit(svc, current_slides, edit_prompt, image_info, image_paths)
-    image_note = image_info.present? ? "\n\nẢnh đính kèm:\n#{image_info}\nĐể chèn ảnh vào slide, thêm bullet có nội dung: IMAGE:image_1 (hoặc image_2, ...)\n" : ""
+  def _do_ai_edit(svc, raw_slides, edit_prompt, image_info, image_paths)
+    image_note = image_info.present? ? "\n\nẢnh đính kèm:\n#{image_info}" : ""
+    existing_theme = @outline.slide_json.then { |j|
+      JSON.parse(j)["theme"]&.dig("name") rescue "green"
+    } || "green"
 
-    existing_theme = @outline.content&.[](/data-theme='([^']+)'/, 1) || "green"
-    slides_text = current_slides.each_with_index.map { |s, _|
+    slides_text = raw_slides.each_with_index.map { |s, _|
       layout = s["layout"] || "bullets"
       lines = case layout
-      when "stats"
-        (s["items"] || []).map { |it| "- #{it['value']} :: #{it['label']}" }
-      when "chart"
-        (s["items"] || []).map { |it| "- #{it['value']} :: #{it['label']}" }
+      when "stats"   then (s["items"] || []).map { |it| "- #{it['value']} :: #{it['label']}" }
       when "two-col"
-        arr = []
-        arr << "- HEADERS: #{(s['headers'] || []).join(' | ')}"
+        arr = ["- HEADERS: #{(s['headers'] || []).join(' | ')}"]
         (s["col1"] || []).each { |c| arr << "- COL1: #{c}" }
         (s["col2"] || []).each { |c| arr << "- COL2: #{c}" }
         arr
       when "timeline", "pillars", "roles", "agenda"
         (s["items"] || []).map { |it| "- #{it.is_a?(Hash) ? it.values.join(' :: ') : it}" }
-      else
-        (s["bullets"] || []).map { |b| "- #{b.is_a?(Hash) ? b.values.join(' :: ') : b}" }
+      else (s["bullets"] || []).map { |b| "- #{b.is_a?(Hash) ? b.values.join(' :: ') : b}" }
       end
       body = lines.join("\n")
-      style_str = (s["style"] || {}).map { |k, v| "#{k}=#{v}" }.join(", ")
-      style_line = style_str.present? ? "\nSTYLE: #{style_str}" : ""
-      subtitle_line = s["subtitle"].present? ? "\nSUBTITLE: #{s['subtitle']}" : ""
-      footer_line = s["footer"].present? ? "\nFOOTER: #{s['footer']}" : ""
-      "---SLIDE---\nTITLE: #{s['title']}#{subtitle_line}\nLAYOUT: #{layout}\nBODY:\n#{body}#{style_line}#{footer_line}\nNOTE: #{s['note']}\n---END---"
+      cat = s.dig("style", "category") || ""
+      "---SLIDE---\nTITLE: #{s['title']}\nLAYOUT: #{layout}\n#{cat.present? ? "STYLE: category=#{cat}\n" : ''}BODY:\n#{body}\n---END---"
     }.join("\n\n")
 
-    prompt = <<~PROMPT
-      Đây là nội dung slide hiện tại:
-
-      THEME: #{existing_theme}
-      #{slides_text}
-
-      Yêu cầu chỉnh sửa từ người dùng: #{edit_prompt}#{image_note}
-
-      Hãy chỉnh sửa slide theo yêu cầu và trả về ĐÚNG FORMAT sau (bắt buộc dùng ---SLIDE--- và ---END---):
-      THEME: #{existing_theme}
-      ---SLIDE---
-      TITLE: ...
-      SUBTITLE: ... (mô tả ngắn 1 câu)
-      LAYOUT: ...
-      BODY:
-      - ...
-      STYLE: key=value, key=value (tùy chọn: category, decorations, separator, bg, card_style)
-      FOOTER: ... (tùy chọn)
-      NOTE: ...
-      ---END---
-
-      QUAN TRỌNG:
-      - Nếu người dùng yêu cầu thay đổi THIẾT KẾ, dùng dòng STYLE.
-      - Mỗi content slide NÊN có SUBTITLE và STYLE: category=... (nhãn ngắn).
-    PROMPT
+    prompt = "Bộ slide hiện tại (theme: #{existing_theme}):\n\n#{slides_text}\n#{image_note}\n\nYêu cầu chỉnh sửa: #{edit_prompt}\n\nHãy trả về TOÀN BỘ bộ slide đã được chỉnh sửa theo đúng format. Giữ nguyên những slide không cần sửa. Giữ nguyên theme: #{existing_theme} (THEME: #{existing_theme})."
 
     result = svc.call(system_prompt: slide_system, user_prompt: prompt, max_tokens: 8000)
-    slides = parse_slides(result)
-    html   = slides_to_html(slides)
-    pptx_path = generate_pptx(slides, image_paths: image_paths)
-    @outline.update!(content: html, slide_json: slides.to_json, status: :done)
+    raw_slides = parse_slides(result)
+    deck = build_deck_schema(raw_slides, @slide_theme || existing_theme)
+    html = slides_to_html(deck)
+    pptx_path = generate_pptx(deck, image_paths: image_paths)
+    @outline.update!(content: html, slide_json: deck.to_json, status: :done)
     attach_pptx(pptx_path) if pptx_path
-    @outline.workspace.active_subscription&.deduct_credits!(1)
+  rescue => e
+    Rails.logger.error "[AiEdit] #{e.message}"
+    @outline.update!(status: :failed)
   end
-
-  private
-
-  # ── AI prompts ──────────────────────────────────────────────────────────────
 
   def slide_system
     <<~SYS.squish
@@ -541,14 +559,510 @@ class ContentOutlineGenerator
 
   # ── PPTX generation ─────────────────────────────────────────────────────────
 
-  def generate_pptx(slides, image_paths: [])
-    return nil if slides.empty?
-    return nil unless File.exist?(PPTX_SCRIPT)
 
+  # ── Deck schema compiler ─────────────────────────────────────────────────────
+  # Produces element-level JSON (inch coords). HTML ×128=px. PPTX reads inches.
+
+  def build_deck_schema(raw_slides, theme_name)
+    t = DECK_THEMES[theme_name] || DECK_THEMES["blue"]
+    t = t.merge("name" => theme_name, "fonts" => { "heading" => "Nunito", "body" => "Inter" })
+    total = raw_slides.length
+    compiled_slides = raw_slides.each_with_index.map do |s, idx|
+      stype = idx == 0 ? :cover : (idx == total - 1 ? :summary : :content)
+      bg = stype == :content ? { "type" => "solid", "color" => "#FFFFFF" } :
+                               { "type" => "solid", "color" => t["cover_bg"] }
+      els = case stype
+            when :cover   then compile_cover(s, t)
+            when :summary then compile_summary(s, t, idx, total)
+            else               compile_content(s, t, idx, total)
+            end
+      { "id" => "s#{idx}", "background" => bg, "elements" => els, "raw" => s }
+    end
+    { "theme" => t, "slides" => compiled_slides }
+  end
+
+  def slides_to_html(deck)
+    "<div id='slide-deck-root' data-deck='#{ERB::Util.html_escape(deck.to_json)}'></div>"
+  end
+
+  private
+
+  # ─── Helpers ────────────────────────────────────────────────────────────────
+
+  def el_text(id, x, y, w, h, content, style = {}, z: 2)
+    { "id" => id, "type" => "text", "x" => x, "y" => y, "w" => w, "h" => h, "z" => z,
+      "content" => content.to_s, "style" => style }
+  end
+
+  def el_rect(id, x, y, w, h, fill, z: 0, radius: 0, opacity: 1, stroke: nil, sw: 0)
+    s = { "fill" => fill, "borderRadius" => radius, "opacity" => opacity }
+    s["stroke"] = stroke if stroke
+    s["strokeWidth"] = sw if sw > 0
+    { "id" => id, "type" => "rect", "x" => x, "y" => y, "w" => w, "h" => h, "z" => z, "style" => s }
+  end
+
+  def el_ellipse(id, x, y, w, h, fill, z: 0, opacity: 1)
+    { "id" => id, "type" => "ellipse", "x" => x, "y" => y, "w" => w, "h" => h, "z" => z,
+      "style" => { "fill" => fill, "opacity" => opacity } }
+  end
+
+  def el_icon(id, x, y, size, icon, color, bg, z: 2, radius: "50%")
+    { "id" => id, "type" => "icon", "x" => x, "y" => y, "w" => size, "h" => size, "z" => z,
+      "icon" => icon, "style" => { "color" => color, "bgColor" => bg, "borderRadius" => radius } }
+  end
+
+  def el_line(id, x1, y1, x2, y2, color, width: 0.03, z: 1)
+    { "id" => id, "type" => "line", "x" => x1, "y" => y1, "w" => x2 - x1, "h" => y2 - y1, "z" => z,
+      "style" => { "stroke" => color, "strokeWidth" => width } }
+  end
+
+  def el_chart(id, x, y, w, h, chart_type, data, label: nil)
+    { "id" => id, "type" => "chart_#{chart_type}", "x" => x, "y" => y, "w" => w, "h" => h, "z" => 2,
+      "chart" => { "type" => chart_type, "data" => data, "label" => label } }
+  end
+
+  def heading_style(size, color: "#1F2A44", align: "left", weight: 700, line_height: 1.2)
+    { "fontFamily" => "Nunito", "fontSize" => size, "fontWeight" => weight,
+      "color" => color, "align" => align, "lineHeight" => line_height }
+  end
+
+  def body_style(size, color: "#1F2A44", align: "left", weight: 400, line_height: 1.5)
+    { "fontFamily" => "Inter", "fontSize" => size, "fontWeight" => weight,
+      "color" => color, "align" => align, "lineHeight" => line_height }
+  end
+
+  def common_header(s, t, idx, total)
+    els = []
+    cat = s.dig("style", "category") || ""
+    els << el_text("cat", 0, 0.35, SW, 0.30, cat,
+      heading_style(11, color: t["accent"], align: "center").merge(
+        "textTransform" => "uppercase", "letterSpacing" => 2)) if cat.present?
+    els << el_text("title", 0, 0.68, SW, 0.90, s["title"] || "",
+      heading_style(22, align: "center"), z: 2)
+    if s["note"].present?
+      els << el_rect("note_bg", LM, 4.45, CW, 0.68, t["card_bgs"][0], radius: 8)
+      els << el_text("note_txt", LM + 0.15, 4.55, CW - 0.30, 0.50, s["note"],
+        body_style(11, weight: 700))
+    end
+    if s["footer"].present?
+      els << el_text("footer", LM, SH - 0.28, 8.0, 0.25, s["footer"],
+        body_style(7, color: "#94A3B8"), z: 1)
+    end
+    els << el_text("pg", SW - 1.0, SH - 0.30, 0.90, 0.25,
+      "#{(idx+1).to_s.rjust(2,'0')} / #{total.to_s.rjust(2,'0')}",
+      body_style(9, color: "#94A3B8", align: "right"), z: 1)
+    els
+  end
+
+  # ─── Cover ──────────────────────────────────────────────────────────────────
+
+  def compile_cover(s, t)
+    style = s.dig("style", "cover_style") || "left"
+    icon  = s.dig("style", "icon") || "rocket"
+    cat   = s.dig("style", "category") || ""
+    els   = []
+    # Decorative circles
+    els << el_ellipse("deco1", -1.5, 3.2, 8.0, 8.0, t["accent"], opacity: 0.35)
+    els << el_ellipse("deco2", 8.0, -2.0, 5.0, 5.0, t["primary_dk"], opacity: 0.5)
+
+    case style
+    when "centered"
+      els << el_icon("ico", (SW - 0.90) / 2, 0.55, 0.90, icon, "#fff", t["accent"], radius: "16px")
+      els << el_text("cat", 0, 1.60, SW, 0.30, cat,
+        heading_style(11, color: t["primary_lt"], align: "center").merge("textTransform" => "uppercase", "letterSpacing" => 2))
+      els << el_text("title", 0.80, 2.00, SW - 1.60, 1.40, s["title"] || "",
+        heading_style(44, color: "#fff", align: "center", line_height: 1.1))
+      els << el_text("sub", 0.80, 3.50, SW - 1.60, 0.70, s["subtitle"] || "",
+        body_style(15, color: t["text_light"], align: "center"))
+    when "minimal"
+      els << el_text("title", 0.80, 1.20, SW - 1.60, 1.80, s["title"] || "",
+        heading_style(44, color: "#fff", align: "left", line_height: 1.1))
+      els << el_line("div", LM, 3.20, LM + 2.5, 3.20, t["accent"])
+      els << el_text("sub", 0.80, 3.40, SW - 1.60, 0.70, s["subtitle"] || "",
+        body_style(15, color: t["text_light"]))
+    else # left
+      els << el_icon("ico", 0.70, 0.65, 0.85, icon, "#fff", t["accent"], radius: "14px")
+      els << el_text("cat", 0.70, 1.72, 8.0, 0.30, cat,
+        heading_style(11, color: t["primary_lt"]).merge("textTransform" => "uppercase", "letterSpacing" => 2))
+      els << el_text("title", 0.65, 2.05, 7.50, 1.30, s["title"] || "",
+        heading_style(44, color: "#fff", line_height: 1.1))
+      els << el_text("sub", 0.68, 3.40, 7.50, 0.65, s["subtitle"] || "",
+        body_style(15, color: t["text_light"]))
+    end
+
+    # Bullets (2 key points)
+    (s["bullets"] || []).first(2).each_with_index do |b, i|
+      els << el_text("bul#{i}", LM + i * 4.0, 4.55, 3.90, 0.50, "• #{b}",
+        body_style(12, color: t["text_light"]))
+    end
+    els
+  end
+
+  # ─── Summary ────────────────────────────────────────────────────────────────
+
+  def compile_summary(s, t, idx, total)
+    style = s.dig("style", "summary_style") || "cta"
+    icon  = s.dig("style", "icon") || "rocket"
+    els   = []
+    els << el_ellipse("deco1", -1.5, 3.5, 8.0, 8.0, t["accent"], opacity: 0.35)
+    els << el_ellipse("deco2", 8.5, -1.5, 4.5, 4.5, t["primary_dk"], opacity: 0.5)
+
+    case style
+    when "quote"
+      els << el_text("q", 0.70, 0.45, 1.0, 1.0, "“",
+        heading_style(72, color: t["primary_lt"], align: "left", line_height: 0.8))
+      els << el_text("title", 1.10, 1.30, SW - 2.20, 1.80, s["title"] || "",
+        heading_style(28, color: "#fff", align: "center", line_height: 1.2))
+      els << el_line("div", (SW - 2.0) / 2, 3.30, (SW + 2.0) / 2, 3.30, t["accent"])
+      (s["bullets"] || []).first(2).each_with_index do |b, i|
+        els << el_text("bul#{i}", LM, 3.55 + i * 0.35, CW, 0.30, b,
+          body_style(13, color: t["text_light"], align: "center"))
+      end
+    when "minimal"
+      els << el_rect("ibox", LM, 0.75, 0.85, 0.85, t["primary"], z: 2, radius: 12)
+      els << el_text("ico_inner", LM + 0.05, 0.80, 0.75, 0.75, "", {}, z: 3)
+      els["ico_inner_icon"] = icon  # placeholder for icon within rect
+      els << el_text("title", LM, 1.80, CW, 1.60, s["title"] || "",
+        heading_style(32, color: "#fff", line_height: 1.15))
+      (s["bullets"] || []).first(3).each_with_index do |b, i|
+        els << el_text("bul#{i}", LM, 3.55 + i * 0.35, CW, 0.32, b,
+          body_style(13, color: t["text_light"]))
+      end
+    else # cta
+      els << el_icon("ico", (SW - 0.95) / 2, 0.50, 0.95, icon, "#fff", t["accent"], radius: "16px")
+      els << el_text("title", LM, 1.70, CW, 1.80, s["title"] || "",
+        heading_style(28, color: "#fff", align: "center", line_height: 1.2))
+      if (s["bullets"] || []).any?
+        els << el_rect("cta_bg", (SW - 5.10) / 2, 3.10, 5.10, 0.72, t["accent"], z: 2, radius: 10)
+        els << el_text("cta_txt", (SW - 5.10) / 2 + 0.15, 3.22, 4.80, 0.48, s["bullets"][0] || "",
+          heading_style(16, color: "#fff", align: "center"), z: 3)
+        extra = s["bullets"][1..]&.join("   |   ") || ""
+        els << el_text("contacts", LM, 4.35, CW, 0.35, extra,
+          body_style(12, color: t["text_light"], align: "center")) if extra.present?
+      end
+    end
+
+    els << el_text("pg", SW - 0.90, SH - 0.30, 0.80, 0.25,
+      "#{total.to_s.rjust(2,'0')} / #{total.to_s.rjust(2,'0')}",
+      body_style(9, color: t["primary_lt"], align: "right"), z: 1)
+    els
+  end
+
+  # ─── Content ────────────────────────────────────────────────────────────────
+
+  def compile_content(s, t, idx, total)
+    has_note = s["note"].present?
+    bot = has_note ? 4.35 : 5.10
+    layout_els = case (s["layout"] || "bullets")
+      when "stats"      then compile_stats(s, t, has_note, bot)
+      when "chart"      then compile_chart(s, t, has_note, bot)
+      when "donut"      then compile_donut(s, t, has_note, bot)
+      when "two-col"    then compile_two_col(s, t, has_note, bot)
+      when "timeline"   then compile_timeline(s, t, has_note, bot)
+      when "pillars"    then compile_pillars(s, t, has_note, bot)
+      when "agenda"     then compile_agenda(s, t, has_note, bot)
+      when "roles"      then compile_roles(s, t, has_note, bot)
+      when "okr"        then compile_okr(s, t, has_note, bot)
+      when "principles" then compile_principles(s, t, has_note, bot)
+      else                   compile_bullets(s, t, has_note, bot)
+      end
+    common_header(s, t, idx, total) + layout_els
+  end
+
+  # ─── Bullets ────────────────────────────────────────────────────────────────
+
+  def compile_bullets(s, t, has_note, bot)
+    b_items = s["bullet_items"] || []
+    bullets  = s["bullets"] || []
+    els = []
+    n = b_items.length
+
+    if n >= 2 && n <= 3
+      gap = 0.25; col_w = (CW - gap * (n - 1)) / n
+      card_h = has_note ? 2.10 : 2.55
+      n.times do |i|
+        it = b_items[i]; ac = t["card_icons"][i % 3]; bg = t["card_bgs"][i % 3]
+        ico = it["icon"] || "star"
+        cx = LM + i * (col_w + gap)
+        els << el_rect("card#{i}", cx, 1.80, col_w, card_h, bg, radius: 8)
+        els << el_icon("ico#{i}", cx + (col_w - 0.55) / 2, 1.95, 0.55, ico, "#fff", ac)
+        els << el_text("ctit#{i}", cx, 2.60, col_w, 0.45, it["title"] || "",
+          heading_style(12, color: "#1F2A44", align: "center"))
+        els << el_text("cdsc#{i}", cx + 0.10, 3.10, col_w - 0.20, 0.85, it["desc"] || "",
+          body_style(9, color: "#5B6478", align: "center")) if (it["desc"] || "").present?
+      end
+    elsif n >= 4
+      avail = bot - 1.80; rh = [[0.85, avail / [n, 8].min].min, 0.45].max
+      n.times do |i|
+        break if i >= 8
+        it = b_items[i]; ac = t["card_icons"][i % 3]
+        ico = it["icon"] || "star"; cy = 1.80 + i * rh
+        break if cy + 0.44 > bot
+        els << el_icon("ico#{i}", LM, cy + 0.02, 0.42, ico, "#fff", ac)
+        els << el_text("ctit#{i}", LM + 0.55, cy + 0.04, CW - 0.55, 0.30, it["title"] || "",
+          heading_style(12))
+        els << el_text("cdsc#{i}", LM + 0.55, cy + 0.32, CW - 0.55, 0.44, it["desc"] || "",
+          body_style(9, color: "#5B6478")) if (it["desc"] || "").present?
+      end
+    elsif bullets.any?
+      bn = bullets.length
+      if bn <= 3
+        gap = 0.20; bw = (CW - gap * (bn - 1)) / bn
+        bn.times do |i|
+          ac = t["card_icons"][i % 3]
+          bx = LM + i * (bw + gap)
+          els << el_icon("ico#{i}", bx + (bw - 0.50) / 2, 2.20, 0.50, "star", "#fff", ac)
+          els << el_text("btxt#{i}", bx, 2.82, bw, 0.60, bullets[i] || "",
+            heading_style(13, color: "#1F2A44", align: "center"))
+        end
+      else
+        avail = bot - 1.80; rh = [[0.65, avail / [bn, 10].min].min, 0.38].max
+        bn.times do |i|
+          break if i >= 10
+          cy = 1.80 + i * rh; break if cy + 0.36 > bot
+          ac = t["card_icons"][i % 3]
+          els << el_icon("ico#{i}", LM, cy + 0.01, 0.32, "star", "#fff", ac)
+          els << el_text("btxt#{i}", LM + 0.42, cy + 0.02, CW - 0.42, 0.30, bullets[i] || "",
+            heading_style(12))
+        end
+      end
+    end
+    els
+  end
+
+  # ─── Stats ──────────────────────────────────────────────────────────────────
+
+  def compile_stats(s, t, has_note, bot)
+    items = s["items"] || s["bullets"]&.map { |b| p = b.split("::"); { "value" => p[0]&.strip, "label" => p[1]&.strip || b } } || []
+    chart_items = s["chart_items"] || []
+    n = items.length; els = []
+
+    if chart_items.length >= 2
+      2.times do |i|
+        it = items[i] || {}; ac = t["card_icons"][i]
+        ch = has_note ? 1.20 : 1.50; cy = 1.70 + i * (ch + 0.15)
+        els.concat(stat_card("sc#{i}", LM, cy, 2.90, ch, it["value"], it["label"], ac, t))
+      end
+      chart_h = bot - 1.70
+      els << el_chart("chart", LM + 3.05, 1.70, CW - 3.05, chart_h, "bar", chart_items, label: s["chart_label"])
+    elsif n <= 2
+      n.times do |i|
+        it = items[i]; ac = t["card_icons"][i]
+        els.concat(stat_card("sc#{i}", LM + i * (2.90 + 0.15), 1.70, 2.90, 1.50, it["value"], it["label"], ac, t))
+      end
+    elsif n == 3
+      gap = 0.15; cw = (CW - gap * 2) / 3
+      n.times do |i|
+        it = items[i]; ac = t["card_icons"][i]
+        els.concat(stat_card("sc#{i}", LM + i * (cw + gap), 1.70, cw, 1.50, it["value"], it["label"], ac, t))
+      end
+    else
+      gap = 0.15; cw = (CW - gap) / 2; rows = (n / 2.0).ceil
+      ch = [[1.35, (3.30 - gap * (rows - 1)) / rows].min, 0.90].max
+      [n, 6].min.times do |i|
+        it = items[i]; ac = t["card_icons"][i % 3]
+        col = i % 2; row = i / 2
+        cx = LM + col * (cw + gap); cy = 1.70 + row * (ch + gap)
+        els.concat(stat_card("sc#{i}", cx, cy, cw, ch, it["value"], it["label"], ac, t))
+      end
+    end
+    els
+  end
+
+  def stat_card(id, x, y, w, h, value, label, accent, t)
+    [el_rect("#{id}_bg", x, y, w, h, t["primary_dk"], radius: 8),
+     el_rect("#{id}_bar", x, y, 0.06, h, accent, z: 2, radius: 2),
+     el_text("#{id}_val", x + 0.15, y + 0.15, w - 0.25, h * 0.55,
+       value.to_s, heading_style(30, color: "#fff"), z: 3),
+     el_text("#{id}_lbl", x + 0.15, y + h * 0.58, w - 0.25, h * 0.38,
+       label.to_s, body_style(9, color: t["primary_xl"]), z: 3)]
+  end
+
+  # ─── Chart ──────────────────────────────────────────────────────────────────
+
+  def compile_chart(s, t, has_note, bot)
+    items = s["items"] || s["bullets"]&.map { |b| p = b.split("::"); { "value" => p[0].to_i, "label" => p[1]&.strip || b } } || []
+    [el_chart("chart", LM, 1.70, CW, bot - 1.70, s.dig("style", "chart_type") || "bar", items)]
+  end
+
+  # ─── Donut ──────────────────────────────────────────────────────────────────
+
+  def compile_donut(s, t, has_note, bot)
+    items = s["items"] || []
+    els = [el_chart("donut", LM, 1.65, 4.50, bot - 1.65, "donut", items,
+      label: "#{s['center_text']}|#{s['center_sub']}")]
+    legend_start = 1.65; item_h = [[0.80, (bot - legend_start) / [items.length, 1].max].min, 0.40].max
+    items.first(6).each_with_index do |it, i|
+      ac = t["card_icons"][i % 3]; cy = legend_start + i * item_h
+      break if cy + 0.40 > bot
+      ico = it["icon"] || "star"
+      els << el_icon("dico#{i}", LM + 4.65, cy, 0.38, ico, "#fff", ac)
+      els << el_text("dlbl#{i}", LM + 5.10, cy + 0.04, CW - 5.10, 0.28, it["label"] || "",
+        heading_style(10))
+      els << el_text("ddtl#{i}", LM + 5.10, cy + 0.30, CW - 5.10, 0.28,
+        "#{it['value']}%#{it['detail'].present? ? ' · ' + it['detail'] : ''}",
+        body_style(9, color: "#5B6478"))
+    end
+    els
+  end
+
+  # ─── Two-col ────────────────────────────────────────────────────────────────
+
+  def compile_two_col(s, t, has_note, bot)
+    col1 = s["col1"] || []; col2 = s["col2"] || []
+    headers = s["headers"] || ["", ""]
+    gap = 0.30; cw = (CW - gap) / 2; els = []
+    [col1, col2].each_with_index do |items, ci|
+      cx = LM + ci * (cw + gap)
+      header = headers[ci] || ""
+      if header.present?
+        els << el_rect("hbg#{ci}", cx, 1.70, cw, 0.42, t["card_bgs"][ci], radius: 6)
+        els << el_text("htxt#{ci}", cx + 0.10, 1.75, cw - 0.20, 0.32, header,
+          heading_style(12, color: t["card_icons"][ci]))
+      end
+      start_y = header.present? ? 2.20 : 1.75; rh = 0.80
+      items.each_with_index do |item, i|
+        cy = start_y + i * rh; break if cy + 0.65 > bot
+        ac = t["card_icons"][(ci * 4 + i) % 3]
+        els << el_icon("ico#{ci}_#{i}", cx, cy + 0.02, 0.32, "check", "#fff", ac)
+        els << el_text("txt#{ci}_#{i}", cx + 0.42, cy + 0.04, cw - 0.42, 0.65, item,
+          body_style(10))
+      end
+    end
+    els
+  end
+
+  # ─── Timeline ───────────────────────────────────────────────────────────────
+
+  def compile_timeline(s, t, has_note, bot)
+    items = s["items"] || []; n = [items.length, 5].min; els = []
+    gap = 0.12; step_w = (CW - gap * (n - 1)) / [n, 1].max; card_h = 2.50
+    n.times do |i|
+      it = items[i]; ac = t["card_icons"][i % 3]; cx = LM + i * (step_w + gap)
+      els << el_rect("tbg#{i}", cx, 1.70, step_w, card_h, "#fff", radius: 6, stroke: "#E2E8F0", sw: 0.02)
+      els << el_rect("tbar#{i}", cx, 1.70, step_w, 0.05, ac, radius: 2, z: 2)
+      els << el_rect("tnum_bg#{i}", cx + (step_w - 0.32) / 2, 1.82, 0.32, 0.32, ac, z: 3, radius: 100)
+      els << el_text("tnum#{i}", cx + (step_w - 0.32) / 2, 1.82, 0.32, 0.32, (i + 1).to_s,
+        heading_style(12, color: "#fff", align: "center"), z: 4)
+      els << el_text("tstep#{i}", cx + 0.05, 2.22, step_w - 0.10, 0.38, it["step"] || "",
+        heading_style(10, color: ac, align: "center", line_height: 1.2))
+      els << el_text("tdsc#{i}", cx + 0.08, 2.62, step_w - 0.16, 1.45, it["desc"] || "",
+        body_style(8, color: "#1F2A44", align: "center"))
+    end
+    els
+  end
+
+  # ─── Pillars ────────────────────────────────────────────────────────────────
+
+  def compile_pillars(s, t, has_note, bot)
+    items = s["items"] || []; n = items.length; els = []
+    cols = n >= 2 ? 2 : 1; rows = (n / 2.0).ceil
+    gap_x = 0.30; gap_y = 0.20; col_w = (CW - gap_x * (cols - 1)) / cols
+    avail_h = bot - 1.65; card_h = [[2.80, (avail_h - gap_y * (rows - 1)) / [rows, 1].max].min, 1.20].max
+    n.times do |i|
+      it = items[i]; ac = t["card_icons"][i % 3]; bg = t["card_bgs"][i % 3]
+      ico = it["icon"] || "star"
+      col = i % cols; row = i / cols
+      cx = LM + col * (col_w + gap_x); cy = 1.65 + row * (card_h + gap_y)
+      els << el_rect("pbg#{i}", cx, cy, col_w, card_h, bg, radius: 8)
+      els << el_icon("pico#{i}", cx + 0.15, cy + 0.15, 0.45, ico, "#fff", ac)
+      els << el_text("ptit#{i}", cx + 0.70, cy + 0.17, col_w - 0.85, 0.40, it["title"] || "",
+        heading_style(12))
+      buls = (it["bullets"] || []).join(" · ")
+      els << el_text("pdsc#{i}", cx + 0.15, cy + 0.68, col_w - 0.30, card_h - 0.80, buls,
+        body_style(9, color: "#5B6478"))
+    end
+    els
+  end
+
+  # ─── Agenda ─────────────────────────────────────────────────────────────────
+
+  def compile_agenda(s, t, has_note, bot)
+    items = s["items"] || []; rh = 0.55; gap = 0.08; els = []
+    items.each_with_index do |it, i|
+      cy = 1.70 + i * (rh + gap); break if cy + rh > bot
+      ac = t["card_icons"][i % 3]
+      els << el_rect("abg#{i}", LM, cy, CW, rh, "#fff", radius: 6, stroke: "#E2E8F0", sw: 0.02)
+      els << el_rect("anum_bg#{i}", LM + 0.08, cy + 0.11, 0.33, 0.33, ac, z: 2, radius: 100)
+      els << el_text("anum#{i}", LM + 0.08, cy + 0.11, 0.33, 0.33, (it["num"] || (i + 1)).to_s,
+        heading_style(11, color: "#fff", align: "center"), z: 3)
+      els << el_text("atit#{i}", LM + 0.52, cy + 0.10, CW - 0.70, 0.28, it["title"] || "",
+        heading_style(12))
+      els << el_text("adsc#{i}", LM + 0.52, cy + 0.32, CW - 0.70, 0.18, it["desc"] || "",
+        body_style(8, color: "#5B6478")) if (it["desc"] || "").present?
+    end
+    els
+  end
+
+  # ─── Roles ──────────────────────────────────────────────────────────────────
+
+  def compile_roles(s, t, has_note, bot)
+    items = s["items"] || []; n = [items.length, 4].min; els = []
+    gap = 0.15; col_w = (CW - gap * (n - 1)) / [n, 1].max; card_h = bot - 1.75
+    n.times do |i|
+      it = items[i]; ac = t["card_icons"][i % 3]
+      cx = LM + i * (col_w + gap)
+      els << el_rect("rbg#{i}", cx, 1.75, col_w, card_h, "#fff", radius: 6, stroke: "#E2E8F0", sw: 0.02)
+      els << el_rect("rtop#{i}", cx, 1.75, col_w, 0.05, ac, radius: 2, z: 2)
+      els << el_ellipse("rav#{i}", cx + (col_w - 0.60) / 2, 1.85, 0.60, 0.60, t["card_bgs"][i % 3])
+      els << el_icon("ravi#{i}", cx + (col_w - 0.42) / 2, 1.94, 0.42, "person", ac, t["card_bgs"][i % 3])
+      els << el_text("rnm#{i}", cx, 2.54, col_w, 0.35, it["role"] || "",
+        heading_style(11, color: "#1F2A44", align: "center"))
+      els << el_text("rtyp#{i}", cx, 2.88, col_w, 0.28, it["type"] || "",
+        body_style(9, color: ac, align: "center", weight: 600))
+      buls = (it["bullets"] || []).first(3).join("\n")
+      els << el_text("rbio#{i}", cx + 0.10, 3.20, col_w - 0.20, card_h - 1.50, buls,
+        body_style(8, color: "#1F2A44", align: "center", line_height: 1.4))
+    end
+    els
+  end
+
+  # ─── OKR ────────────────────────────────────────────────────────────────────
+
+  def compile_okr(s, t, has_note, bot)
+    items = s["items"] || []; rh = 0.65; gap = 0.08; els = []
+    items.each_with_index do |it, i|
+      cy = 1.70 + i * (rh + gap); break if cy + rh > bot
+      ac = t["card_icons"][i % 3]
+      els << el_rect("okbg#{i}", LM, cy, CW, rh, "#fff", radius: 6, stroke: "#E2E8F0", sw: 0.02)
+      els << el_rect("okbar#{i}", LM, cy, 0.05, rh, ac, z: 2, radius: 2)
+      els << el_text("okobj#{i}", LM + 0.15, cy + 0.15, 1.60, 0.38, it["objective"] || "",
+        heading_style(10, color: ac))
+      krs_text = (it["krs"] || []).map { |kr| "✓ #{kr}" }.join("   ")
+      els << el_text("kkrs#{i}", LM + 1.80, cy + 0.15, CW - 1.85, 0.38, krs_text,
+        body_style(9, color: "#5B6478"))
+    end
+    els
+  end
+
+  # ─── Principles ─────────────────────────────────────────────────────────────
+
+  def compile_principles(s, t, has_note, bot)
+    items = s["items"] || []; els = []
+    cols = 2; col_w = (CW - 0.15) / 2; card_h = 0.85; gap_y = 0.12
+    items.each_with_index do |it, i|
+      col = i % cols; row = i / cols
+      cx = LM + col * (col_w + 0.15); cy = 1.70 + row * (card_h + gap_y)
+      break if cy + card_h > bot
+      ac = t["card_icons"][i % 3]; ico = it["icon"] || "star"
+      title = it.is_a?(String) ? it : (it["title"] || "")
+      desc  = it.is_a?(String) ? "" : (it["desc"] || "")
+      els << el_icon("pico#{i}", cx, cy + 0.15, 0.32, ico, "#fff", ac)
+      els << el_text("ptit#{i}", cx + 0.42, cy + 0.10, col_w - 0.42, 0.32, title,
+        heading_style(12))
+      els << el_text("pdsc#{i}", cx + 0.42, cy + 0.42, col_w - 0.42, 0.40, desc,
+        body_style(8, color: "#5B6478", line_height: 1.4)) if desc.present?
+    end
+    els
+  end
+
+
+    def generate_pptx(deck, image_paths: [])
+    return nil unless File.exist?(PPTX_SCRIPT)
+    deck_data = deck.is_a?(String) ? deck : deck.to_json
     out_path = Rails.root.join("tmp", "slide_#{@outline.id}_#{Time.now.to_i}.pptx").to_s
-    theme = @slide_theme || "blue"
     require "open3"
-    args = ["python3", PPTX_SCRIPT, slides.to_json, out_path, theme]
+    args = ["python3", PPTX_SCRIPT, deck_data, out_path]
     args += ["--images", image_paths.compact.join(",")] if image_paths.compact.any?
     stdout, stderr, status = Open3.capture3(*args)
     Rails.logger.error "[PPTX] #{stderr}" if stderr.present?

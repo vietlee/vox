@@ -65,14 +65,12 @@ class Admin::ContentOutlinesController < Admin::BaseController
   end
 
   def update_slides
-    slide_json = params[:slide_json]
-    return render json: { error: "Missing slide_json" }, status: 422 if slide_json.blank?
+    deck_json = params[:deck_json] || params[:slide_json]
+    return render json: { error: "Missing deck_json" }, status: 422 if deck_json.blank?
 
-    slides = JSON.parse(slide_json)
-    theme  = @outline.content&.[](/data-theme='([^']+)'/, 1) || ""
-    theme_attr = theme.present? ? " data-theme='#{ERB::Util.html_escape(theme)}'" : ""
-    html   = "<div id='slide-deck-root' data-slides='#{ERB::Util.html_escape(slides.to_json)}'#{theme_attr}></div>"
-    @outline.update!(slide_json: slides.to_json, content: html)
+    deck = JSON.parse(deck_json)
+    html = "<div id='slide-deck-root' data-deck='#{ERB::Util.html_escape(deck.to_json)}'></div>"
+    @outline.update!(slide_json: deck.to_json, content: html)
     render json: { ok: true }
   rescue JSON::ParserError
     render json: { error: "Invalid JSON" }, status: 422
