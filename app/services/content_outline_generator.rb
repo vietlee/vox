@@ -22,10 +22,7 @@ class ContentOutlineGenerator
       html   = slides_to_html(slides)
       pptx_path = generate_pptx(slides)
       @outline.update!(content: html, slide_json: slides.to_json, status: :done)
-      if pptx_path
-        generate_slide_images(pptx_path)
-        attach_pptx(pptx_path)
-      end
+      attach_pptx(pptx_path) if pptx_path
     else
       result = svc.call(system_prompt: generic_system, user_prompt: generic_user, max_tokens: 3000)
       @outline.update!(content: markdown_to_html(result), status: :done)
@@ -119,10 +116,7 @@ class ContentOutlineGenerator
     html   = slides_to_html(slides)
     pptx_path = generate_pptx(slides, image_paths: image_paths)
     @outline.update!(content: html, slide_json: slides.to_json, status: :done)
-    if pptx_path
-      generate_slide_images(pptx_path)
-      attach_pptx(pptx_path)
-    end
+    attach_pptx(pptx_path) if pptx_path
     @outline.workspace.active_subscription&.deduct_credits!(1)
   end
 

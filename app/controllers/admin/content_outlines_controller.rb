@@ -28,10 +28,7 @@ class Admin::ContentOutlinesController < Admin::BaseController
   def show; end
 
   def status
-    is_slide = @outline.output_type == "slide"
-    images_ready = is_slide ? @outline.slide_images.attached? : true
-    still_pending = @outline.pending? || (is_slide && @outline.done? && !images_ready)
-    render json: { pending: still_pending, failed: @outline.failed?, show_url: content_outline_path(@outline) }
+    render json: { pending: @outline.pending?, failed: @outline.failed?, show_url: content_outline_path(@outline) }
   end
 
   def regenerate

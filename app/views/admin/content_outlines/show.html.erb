@@ -27,8 +27,7 @@
   </div>
 </div>
 
-<% slide_images_pending = @outline.output_type == "slide" && @outline.done? && !@outline.slide_images.attached? %>
-<% if @outline.pending? || slide_images_pending %>
+<% if @outline.pending? %>
   <%= render "admin/shared/ai_generating_overlay",
         poll_url: status_content_outline_path(@outline, format: :json),
         message: "AI đang tạo #{@outline.output_type == 'slide' ? 'slide' : 'nội dung'}...",
@@ -140,9 +139,6 @@
   </div><!-- end slide-editor-layout -->
 
   <div id="slide-data" class="hidden"><%= raw @outline.content %></div>
-  <% if @outline.slide_images.attached? %>
-    <script id="slide-image-urls-data" type="application/json"><%= raw @outline.slide_images.order(:id).map { |img| rails_blob_path(img, only_path: true) }.to_json %></script>
-  <% end %>
 
   <style>
     #slide-viewer * { box-sizing:border-box; }
@@ -159,10 +155,7 @@
     var slides = JSON.parse(el.dataset.slides || '[]');
     var current = 0, total = slides.length;
 
-    /* ── Image mode: use PPTX-rendered images if available ── */
-    var imgUrlsEl = document.getElementById('slide-image-urls-data');
-    var slideImageUrls = imgUrlsEl ? JSON.parse(imgUrlsEl.textContent || '[]') : [];
-    var useImageMode = slideImageUrls.length > 0;
+    var useImageMode = false;
 
     /* ─────────────────────────────────────────────────────────────────
        SVG DEFS shared across themes  (blur filter for glow blobs)
@@ -1590,10 +1583,6 @@
     };
     setTheme(activeThemeIdx);
 
-    if (useImageMode) {
-      var tp = document.getElementById('theme-picker');
-      if (tp) tp.style.display = 'none';
-    }
 
     /* ─────────────────────────────────────────────────────────────────
        RENDER
