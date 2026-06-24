@@ -415,19 +415,28 @@ def make_bullets(prs, s, idx, total):
         card_h = I(2.35)
         icon_circle = I(0.65)
         icon_sz = I(0.33)
+        tw = col_w - I(0.50)
+        tw_pt = tw / 12700  # text width in points
         for i, it in enumerate(b_items[:3]):
             ac = accents[i % len(accents)]
             x = LM + i * (col_w + gap)
             _rrect(slide, x, card_top, col_w, card_h, WHITE, radius=0.04)
             cx = x + I(0.25)
-            tw = col_w - I(0.50)
             _oval(slide, cx + icon_circle//2, card_top + I(0.25) + icon_circle//2, icon_circle//2, ac)
             _add_icon(slide, cx + (icon_circle - icon_sz)//2, card_top + I(0.25) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
-            _tb(slide, it.get("title", ""), cx, card_top + I(1.00), tw, I(0.45),
-                sz=14, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+            title_text = it.get("title", "")
+            chars_per_line = tw_pt / 8  # ~8pt per Vietnamese char at 14pt
+            est_lines = max(1, len(title_text) / chars_per_line)
+            if est_lines > 1.5:
+                t_sz, t_h, t_top, d_top = 12, I(0.50), I(0.95), I(1.50)
+            else:
+                t_sz, t_h, t_top, d_top = 14, I(0.35), I(1.00), I(1.40)
+            _tb(slide, title_text, cx, card_top + t_top, tw, t_h,
+                sz=t_sz, bold=True, color=T["primary_dk"], font="Trebuchet MS")
             if it.get("desc"):
-                _tb(slide, it["desc"], cx, card_top + I(1.45), tw, I(0.85),
-                    sz=11, color=DARK)
+                d_h = card_h - d_top - I(0.10)
+                _tb(slide, it["desc"], cx, card_top + d_top, tw, d_h,
+                    sz=10, color=DARK)
 
     elif b_items and n >= 2:
         # 4+ items: vertical stacked icon-left (cowork slide 3 exact)
@@ -646,23 +655,27 @@ def make_donut(prs, s, idx, total):
             (center_sub, 18, True, T["primary_dk"]),
         ], I(1.85), I(2.85), I(1.80), I(1.10), align=PP_ALIGN.CENTER)
 
-    # Legend items on right (cowork slide 7 exact: small icon + 2-line text)
+    # Legend items on right — dynamic spacing based on item count
     legend_x = I(5.35)
     legend_y_start = top_y - I(0.05)
-    item_h = I(0.82)
+    avail_h = bot - legend_y_start
+    item_h = min(I(0.82), avail_h // n) if n else I(0.82)
     icon_circle = I(0.50)
     icon_sz = I(0.26)
+    legend_sz = 11.5 if n <= 4 else 10
 
     for i, it in enumerate(items[:n]):
         ac = accents[i % len(accents)]
         y = legend_y_start + i * item_h
+        if y + I(0.50) > bot:
+            break
         _oval(slide, legend_x + icon_circle//2, y + I(0.10) + icon_circle//2, icon_circle//2, ac)
         _add_icon(slide, legend_x + (icon_circle - icon_sz)//2, y + I(0.10) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
         pct = round(values[i] / total_val * 100) if total_val else 0
         detail = it.get("detail", "")
         _tb2(slide, [
-            (it.get("label", ""), 11.5, True, T["primary_dk"]),
-            (f"{pct}%  ·  {detail}" if detail else f"{pct}%", 11.5, False, MID),
+            (it.get("label", ""), legend_sz, True, T["primary_dk"]),
+            (f"{pct}%  ·  {detail}" if detail else f"{pct}%", legend_sz, False, MID),
         ], legend_x + I(0.65), y, I(3.40), I(0.60))
 
     _page_num(slide, idx, total)
