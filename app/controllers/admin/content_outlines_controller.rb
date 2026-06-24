@@ -1,5 +1,5 @@
 class Admin::ContentOutlinesController < Admin::BaseController
-  before_action :set_outline, only: [:show, :destroy, :regenerate, :status, :update_slides, :ai_edit]
+  before_action :set_outline, only: [:show, :destroy, :regenerate, :status, :update_slides, :ai_edit, :change_theme]
 
   def index
     @outlines = current_workspace.content_outlines.includes(:created_by).order(created_at: :desc)
