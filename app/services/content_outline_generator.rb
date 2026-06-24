@@ -158,13 +158,18 @@ class ContentOutlineGenerator
       THEME: [tên theme]
 
       Các theme có sẵn:
-      - green: xanh lá (phù hợp: môi trường, nông nghiệp, sức khỏe, thực phẩm, bền vững)
-      - blue: xanh dương (phù hợp: công nghệ, doanh nghiệp, tài chính, giáo dục)
-      - purple: tím (phù hợp: sáng tạo, nghệ thuật, thời trang, marketing)
-      - red: đỏ cam (phù hợp: startup, năng lượng, thể thao, y tế khẩn cấp)
-      - teal: xanh ngọc (phù hợp: du lịch, hospitality, spa, wellness)
-      - amber: vàng nâu (phù hợp: xây dựng, bất động sản, F&B, truyền thống)
-      - slate: xám đậm (phù hợp: luật, tư vấn, corporate, cao cấp)
+      - green: xanh lá (môi trường, nông nghiệp, sức khỏe, thực phẩm, bền vững)
+      - blue: xanh dương (công nghệ, doanh nghiệp, tài chính, giáo dục)
+      - purple: tím (sáng tạo, nghệ thuật, thời trang, marketing)
+      - red: đỏ cam (startup, năng lượng, thể thao, y tế khẩn cấp)
+      - teal: xanh ngọc (du lịch, hospitality, spa, wellness)
+      - amber: vàng nâu (xây dựng, bất động sản, F&B, truyền thống)
+      - slate: xám đậm (luật, tư vấn, corporate, cao cấp)
+      - earth: nâu đất (kiến trúc, nội thất, handmade, truyền thống Việt)
+      - coral: san hô (thời trang nữ, beauty, lifestyle, sự kiện)
+      - ocean: xanh đại dương (hàng hải, logistics, thuỷ sản, du lịch biển)
+      - berry: tím hồng (mỹ phẩm, wedding, luxury, thời trang cao cấp)
+      - midnight: xanh đêm (fintech, blockchain, AI/ML, nghiên cứu khoa học)
 
       Tạo ĐÚNG 8 slide (1 cover + 6 content + 1 summary), mỗi slide theo đúng format này:
 
@@ -322,11 +327,21 @@ class ContentOutlineGenerator
       - category=TÊN_NHÓM       → Nhãn nhỏ phía trên title. BẮT BUỘC cho mọi content slide.
       - bg=dark|light           → Nền tối hoặc sáng. Mặc định: light
       - chart_type=line|bar     → Loại biểu đồ (chỉ cho LAYOUT: chart). Mặc định: bar
+      - icon=TÊN_ICON           → Icon cho cover/summary. Chọn 1 trong: search, store, check, clock, person, people, rocket, code, chart, money, percent, megaphone, crown, lightbulb, shield, star, heart, globe, target, handshake, leaf, phone, truck
+      - cover_style=left|centered|minimal → Kiểu bố cục cover (chỉ cho slide cover):
+          left: icon+title bên trái, decorative circles bên phải (classic)
+          centered: icon+title ở giữa, trang trọng (phù hợp corporate, giáo dục)
+          minimal: chỉ title lớn, không icon, sạch sẽ (phù hợp báo cáo, engineering)
+      - summary_style=cta|quote|minimal → Kiểu bố cục summary (chỉ cho slide cuối):
+          cta: icon + nút CTA + contact (phù hợp pitch deck, đề xuất)
+          quote: câu trích dẫn lớn + divider (phù hợp bài giảng, truyền cảm hứng)
+          minimal: icon nhỏ + title + danh sách text (phù hợp báo cáo, nội bộ)
 
       Ví dụ:
       STYLE: category=Vấn đề thị trường
-      STYLE: category=Giải pháp, decorations=false
       STYLE: category=Đội ngũ, bg=light
+      STYLE: category=PITCH DECK, bg=dark, cover_style=left, icon=rocket
+      STYLE: bg=dark, summary_style=cta, icon=handshake
 
       TIÊU CHUẨN CHẤT LƯỢNG (RẤT QUAN TRỌNG — PHẢI TUÂN THỦ):
 
@@ -350,11 +365,11 @@ class ContentOutlineGenerator
       ═══ QUY TẮC COVER (slide đầu tiên) ═══
       - TITLE = TÊN DỰ ÁN hoặc CHỦ ĐỀ CHÍNH (1–5 từ, lấy trực tiếp từ prompt người dùng)
       - SUBTITLE = Mô tả 1 câu italic giải thích nội dung bài thuyết trình
-      - STYLE: category=NHÃN_NGẮN, bg=dark. BẮT BUỘC có category phù hợp chủ đề.
-      - Bullets = 2 thông tin CỤ THỂ rút từ prompt người dùng (VD: tên sự kiện, ngày tháng, mục tiêu).
-        Bullet đầu tiên sẽ in BOLD. KHÔNG bịa thông tin không có trong prompt.
-        KHÔNG sao chép ví dụ từ system prompt.
-      - FOOTER = thông tin liên hệ nếu người dùng cung cấp, hoặc bỏ trống
+      - STYLE BẮT BUỘC gồm: category, bg=dark, cover_style, icon
+        + cover_style: chọn phù hợp chủ đề (left cho pitch/startup, centered cho corporate/giáo dục, minimal cho báo cáo/engineering)
+        + icon: chọn icon phù hợp nội dung (leaf cho môi trường, rocket cho startup, code cho tech, lightbulb cho giáo dục, chart cho tài chính...)
+      - Bullets = 2 thông tin CỤ THỂ rút từ prompt. KHÔNG bịa thông tin.
+      - FOOTER = thông tin liên hệ nếu có
       - TUYỆT ĐỐI KHÔNG dùng emoji trên cover
 
       ═══ QUY TẮC NỘI DUNG ═══
@@ -372,10 +387,11 @@ class ContentOutlineGenerator
       - Slide cuối nên là summary/CTA ngắn gọn
 
       ═══ QUY TẮC SUMMARY (slide cuối) ═══
-      - TITLE = câu call-to-action mạnh liên quan đến chủ đề, KHÔNG dùng emoji
-      - Bullet đầu tiên = CTA CỤ THỂ rút từ nội dung bài (sẽ hiển thị dạng nút bấm). KHÔNG bịa thông tin.
-      - Các bullet sau = thông tin liên hệ nếu có, hoặc next steps. KHÔNG emoji.
-      - STYLE: bg=dark (BẮT BUỘC)
+      - TITLE = câu call-to-action hoặc kết luận mạnh, KHÔNG dùng emoji
+      - Bullets: CTA, thông tin liên hệ, hoặc next steps. KHÔNG emoji.
+      - STYLE BẮT BUỘC: bg=dark, summary_style, icon
+        + summary_style: chọn phù hợp (cta cho pitch/đề xuất, quote cho bài giảng/truyền cảm hứng, minimal cho báo cáo/nội bộ)
+        + icon: chọn giống hoặc liên quan icon cover
     PROMPT
   end
 

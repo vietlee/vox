@@ -111,6 +111,71 @@ THEMES = {
         "card_bgs":   [(0xEA,0xF2,0xFF),(0xE8,0xF8,0xF1),(0xF1,0xEC,0xFE),(0xFF,0xF6,0xE5)],
         "card_icons": [(0x2E,0x5B,0xFF),(0x10,0xB9,0x81),(0x8B,0x5C,0xF6),(0xF5,0x9E,0x0B)],
     },
+    "earth": {
+        "cover_bg":   (0x5C, 0x3D, 0x2E),
+        "primary_dk": (0x5C, 0x3D, 0x2E),
+        "primary":    (0xB8, 0x50, 0x42),
+        "primary_lt": (0xD4, 0xA5, 0x93),
+        "primary_xl": (0xF5, 0xEB, 0xE0),
+        "accent":     (0xA7, 0xBE, 0xAE),
+        "accent3":    (0xC9, 0x7B, 0x63),
+        "accent4":    (0x8D, 0x6E, 0x63),
+        "content_bg": (0xFF, 0xFF, 0xFF),
+        "card_bgs":   [(0xF5,0xEB,0xE0),(0xE8,0xF0,0xEB),(0xFD,0xEC,0xEC),(0xFE,0xF3,0xC7)],
+        "card_icons": [(0xB8,0x50,0x42),(0x5B,0x8C,0x6F),(0xC9,0x7B,0x63),(0xD4,0x91,0x06)],
+    },
+    "coral": {
+        "cover_bg":   (0x7C, 0x2D, 0x36),
+        "primary_dk": (0x7C, 0x2D, 0x36),
+        "primary":    (0xF9, 0x61, 0x67),
+        "primary_lt": (0xFC, 0xAE, 0xB2),
+        "primary_xl": (0xFD, 0xEC, 0xEC),
+        "accent":     (0xF9, 0xE7, 0x95),
+        "accent3":    (0xFB, 0x7E, 0x83),
+        "accent4":    (0xFC, 0x9A, 0x9E),
+        "content_bg": (0xFF, 0xFF, 0xFF),
+        "card_bgs":   [(0xFD,0xEC,0xEC),(0xFE,0xF3,0xC7),(0xEA,0xF2,0xFF),(0xE8,0xF8,0xF1)],
+        "card_icons": [(0xF9,0x61,0x67),(0xD4,0x91,0x06),(0x2E,0x5B,0xFF),(0x10,0xB9,0x81)],
+    },
+    "ocean": {
+        "cover_bg":   (0x06, 0x5A, 0x82),
+        "primary_dk": (0x06, 0x5A, 0x82),
+        "primary":    (0x1C, 0x72, 0x93),
+        "primary_lt": (0x6E, 0xC6, 0xE0),
+        "primary_xl": (0xDB, 0xF4, 0xFA),
+        "accent":     (0x02, 0xC3, 0x9A),
+        "accent3":    (0x21, 0x87, 0xAA),
+        "accent4":    (0x4E, 0xA8, 0xC8),
+        "content_bg": (0xFF, 0xFF, 0xFF),
+        "card_bgs":   [(0xDB,0xF4,0xFA),(0xE8,0xF8,0xF1),(0xEA,0xF2,0xFF),(0xFF,0xF6,0xE5)],
+        "card_icons": [(0x1C,0x72,0x93),(0x02,0xC3,0x9A),(0x06,0x5A,0x82),(0xF5,0x9E,0x0B)],
+    },
+    "berry": {
+        "cover_bg":   (0x6D, 0x2E, 0x46),
+        "primary_dk": (0x6D, 0x2E, 0x46),
+        "primary":    (0xA2, 0x67, 0x69),
+        "primary_lt": (0xD4, 0xA0, 0xA2),
+        "primary_xl": (0xF5, 0xE6, 0xE8),
+        "accent":     (0xEC, 0xE2, 0xD0),
+        "accent3":    (0xB0, 0x7D, 0x7F),
+        "accent4":    (0xC2, 0x8E, 0x90),
+        "content_bg": (0xFF, 0xFF, 0xFF),
+        "card_bgs":   [(0xF5,0xE6,0xE8),(0xF1,0xEC,0xFE),(0xEA,0xF2,0xFF),(0xFE,0xF3,0xC7)],
+        "card_icons": [(0xA2,0x67,0x69),(0x8B,0x5C,0xF6),(0x2E,0x5B,0xFF),(0xD4,0x91,0x06)],
+    },
+    "midnight": {
+        "cover_bg":   (0x1E, 0x27, 0x61),
+        "primary_dk": (0x1E, 0x27, 0x61),
+        "primary":    (0x3D, 0x52, 0xA0),
+        "primary_lt": (0xCA, 0xDC, 0xFC),
+        "primary_xl": (0xE8, 0xED, 0xFD),
+        "accent":     (0xF5, 0x9E, 0x0B),
+        "accent3":    (0x5B, 0x6E, 0xB5),
+        "accent4":    (0x7C, 0x8E, 0xC8),
+        "content_bg": (0xFF, 0xFF, 0xFF),
+        "card_bgs":   [(0xE8,0xED,0xFD),(0xEA,0xF2,0xFF),(0xF1,0xEC,0xFE),(0xFF,0xF6,0xE5)],
+        "card_icons": [(0x3D,0x52,0xA0),(0x2E,0x5B,0xFF),(0x8B,0x5C,0xF6),(0xF5,0x9E,0x0B)],
+    },
 }
 
 T = None
@@ -388,38 +453,30 @@ def _add_donut_chart(slide, labels, values, left, top, width, height, accents):
 # SLIDE BUILDERS — matching cowork layout patterns
 # ═══════════════════════════════════════════════════════════════════════
 
-def make_cover(prs, s, idx, total):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    is_dark = _style(s, "bg", "dark") == "dark"
-    _bg(slide, T["cover_bg"] if is_dark else T["content_bg"])
+def _cover_icon_name(s):
+    icon = _style(s, "icon", "")
+    if icon and icon in _ICON_NAMES:
+        return icon
+    return _pick_icon(s.get("title", "") + " " + s.get("subtitle", ""))
 
-    # Decorative circles (cowork cover exact: 7.40,-1.60 r2.60 and 8.60,3.00 r1.50)
-    if is_dark:
-        _oval(slide, I(10.00), I(1.00), I(2.60), T["primary"])
-        _oval(slide, I(10.10), I(4.50), I(1.50), T["primary_dk"])
-
-    # Logo: rounded-rect (cowork: 0.70,0.65 0.90x0.90)
+def _cover_left(slide, s, is_dark):
     logo_bg = T["primary_lt"] if is_dark else T["primary_xl"]
     _rrect(slide, I(0.70), I(0.65), I(0.90), I(0.90), logo_bg, radius=0.15)
-    _add_icon(slide, I(0.92), I(0.87), I(0.46), T["primary_dk"])
-
+    ic = _cover_icon_name(s)
+    _add_icon(slide, I(0.92), I(0.87), I(0.46), T["primary_dk"], icon_name=ic)
     cat = _style(s, "category", "")
     if cat:
-        _tb(slide, cat, I(0.70), I(1.75), I(2.0), I(0.35),
+        _tb(slide, cat, I(0.70), I(1.75), I(3.0), I(0.35),
             sz=12, bold=True, color=T["accent"])
-
     title_color = WHITE if is_dark else T["primary_dk"]
     title_y = I(2.05) if cat else I(1.75)
     _tb(slide, s["title"], I(0.65), title_y, I(7.50), I(1.30),
         sz=44, bold=True, color=title_color, font="Calibri")
-
     sub_color = T["primary_xl"] if is_dark else MID
     if s.get("subtitle"):
         _tb(slide, s["subtitle"], I(0.68), I(3.25), I(7.20), I(0.60),
             sz=18, color=sub_color)
-
     if s.get("bullets"):
-        # Vertical bar + bullet text (cowork style)
         bar_color = WHITE if is_dark else T["primary_dk"]
         _rect(slide, I(0.70), I(4.55), Pt(3), I(0.40), bar_color)
         s_tf = _shape(slide, MSO_SHAPE.RECTANGLE, I(0.90), I(4.55), I(6.0), I(0.40))
@@ -438,6 +495,91 @@ def make_cover(prs, s, idx, total):
             r.font.size = Pt(13); r.font.name = "Calibri"
             r.font.bold = (bi == 0)
             r.font.color.rgb = WHITE if is_dark else T["primary_dk"]
+
+def _cover_centered(slide, s, is_dark):
+    ic = _cover_icon_name(s)
+    icon_bg = T["primary_lt"] if is_dark else T["primary_xl"]
+    icon_sz_box = I(1.10)
+    _rrect(slide, SW//2 - icon_sz_box//2, I(0.50), icon_sz_box, icon_sz_box, icon_bg, radius=0.18)
+    _add_icon(slide, SW//2 - I(0.28), I(0.78), I(0.56), T["primary_dk"], icon_name=ic)
+    cat = _style(s, "category", "")
+    if cat:
+        _tb(slide, cat, I(0.50), I(1.80), SW - I(1.0), I(0.35),
+            sz=12, bold=True, color=T["accent"], align=PP_ALIGN.CENTER)
+    title_color = WHITE if is_dark else T["primary_dk"]
+    title_y = I(2.10) if cat else I(1.80)
+    _tb(slide, s["title"], I(0.50), title_y, SW - I(1.0), I(1.30),
+        sz=44, bold=True, color=title_color, font="Calibri", align=PP_ALIGN.CENTER)
+    sub_color = T["primary_xl"] if is_dark else MID
+    if s.get("subtitle"):
+        _tb(slide, s["subtitle"], I(1.0), I(3.30), SW - I(2.0), I(0.60),
+            sz=18, color=sub_color, align=PP_ALIGN.CENTER)
+    if s.get("bullets"):
+        bar_y = I(4.55)
+        s_tf = _shape(slide, MSO_SHAPE.RECTANGLE, I(1.5), bar_y, SW - I(3.0), I(0.40))
+        s_tf.fill.background(); s_tf.line.fill.background()
+        tf = s_tf.text_frame; tf.word_wrap = True
+        tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
+        tf.margin_left = Pt(2); tf.margin_right = Pt(2)
+        tf.margin_top = Pt(1); tf.margin_bottom = Pt(1)
+        p = tf.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
+        p.space_before = Pt(0); p.space_after = Pt(0)
+        for bi, bt in enumerate(s["bullets"][:3]):
+            if bi > 0:
+                r = p.add_run(); r.text = "   ·   "
+                r.font.size = Pt(13); r.font.color.rgb = T["primary_xl"] if is_dark else MID; r.font.name = "Calibri"
+            r = p.add_run(); r.text = bt
+            r.font.size = Pt(13); r.font.name = "Calibri"
+            r.font.bold = (bi == 0)
+            r.font.color.rgb = WHITE if is_dark else T["primary_dk"]
+
+def _cover_minimal(slide, s, is_dark):
+    title_color = WHITE if is_dark else T["primary_dk"]
+    _tb(slide, s["title"], I(0.80), I(1.20), I(8.0), I(1.80),
+        sz=44, bold=True, color=title_color, font="Calibri")
+    sub_color = T["primary_xl"] if is_dark else MID
+    if s.get("subtitle"):
+        _tb(slide, s["subtitle"], I(0.80), I(3.10), I(7.0), I(0.60),
+            sz=18, color=sub_color)
+    cat = _style(s, "category", "")
+    if cat:
+        _tb(slide, cat, I(0.80), I(4.20), I(3.0), I(0.35),
+            sz=12, bold=True, color=T["accent"])
+    if s.get("bullets"):
+        s_tf = _shape(slide, MSO_SHAPE.RECTANGLE, I(0.80), I(4.55), I(7.0), I(0.40))
+        s_tf.fill.background(); s_tf.line.fill.background()
+        tf = s_tf.text_frame; tf.word_wrap = True
+        tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
+        tf.margin_left = Pt(2); tf.margin_right = Pt(2)
+        tf.margin_top = Pt(1); tf.margin_bottom = Pt(1)
+        p = tf.paragraphs[0]; p.alignment = PP_ALIGN.LEFT
+        p.space_before = Pt(0); p.space_after = Pt(0)
+        for bi, bt in enumerate(s["bullets"][:3]):
+            if bi > 0:
+                r = p.add_run(); r.text = "   ·   "
+                r.font.size = Pt(13); r.font.color.rgb = T["primary_xl"] if is_dark else MID; r.font.name = "Calibri"
+            r = p.add_run(); r.text = bt
+            r.font.size = Pt(13); r.font.name = "Calibri"
+            r.font.bold = (bi == 0)
+            r.font.color.rgb = WHITE if is_dark else T["primary_dk"]
+
+def make_cover(prs, s, idx, total):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    is_dark = _style(s, "bg", "dark") == "dark"
+    _bg(slide, T["cover_bg"] if is_dark else T["content_bg"])
+
+    cover_style = _style(s, "cover_style", "left")
+
+    if is_dark and cover_style != "minimal":
+        _oval(slide, I(10.00), I(1.00), I(2.60), T["primary"])
+        _oval(slide, I(10.10), I(4.50), I(1.50), T["primary_dk"])
+
+    if cover_style == "centered":
+        _cover_centered(slide, s, is_dark)
+    elif cover_style == "minimal":
+        _cover_minimal(slide, s, is_dark)
+    else:
+        _cover_left(slide, s, is_dark)
 
     if s.get("footer"):
         _tb(slide, s["footer"], I(0.65), SH - I(0.48), I(7.0), I(0.30),
@@ -982,34 +1124,62 @@ def make_principles(prs, s, idx, total):
     _page_num(slide, idx, total)
 
 
-def make_summary(prs, s, idx, total):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    _bg(slide, T["cover_bg"])
-
-    # Decorative circles (cowork style)
+def _summary_cta(slide, s):
     _oval(slide, I(0.70), I(5.10), I(2.50), T["primary"])
     _oval(slide, I(9.70), I(0.30), I(1.70), T["primary_dk"])
-
-    # Logo centered (rounded-rect like cowork slide 8)
+    ic = _cover_icon_name(s)
     _rrect(slide, SW//2 - I(0.45), I(0.55), I(0.90), I(0.90), T["primary"], radius=0.15)
-    _add_icon(slide, SW//2 - I(0.23), I(0.77), I(0.46), T["primary_lt"])
-
+    _add_icon(slide, SW//2 - I(0.23), I(0.77), I(0.46), T["primary_lt"], icon_name=ic)
     _tb(slide, s["title"], I(0.80), I(1.70), SW - I(1.60), I(1.30),
         sz=28, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Calibri")
-
     if s.get("bullets"):
-        cta = s["bullets"][0] if s["bullets"] else ""
+        cta = s["bullets"][0]
         if cta:
             btn_w = I(5.10)
             _rrect(slide, SW//2 - btn_w//2, I(3.15), btn_w, I(0.70), T["accent"], radius=0.08)
             _tb(slide, cta, SW//2 - btn_w//2, I(3.15), btn_w, I(0.70),
                 sz=16, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Calibri")
-
         contact_parts = s["bullets"][1:4]
         if contact_parts:
             _tb(slide, "   |   ".join(contact_parts),
                 I(0.80), I(4.35), SW - I(1.60), I(0.40),
                 sz=13, color=T["primary_xl"], align=PP_ALIGN.CENTER)
+
+def _summary_quote(slide, s):
+    _tb(slide, "\"", I(0.80), I(0.60), I(1.0), I(1.0),
+        sz=72, bold=True, color=T["primary_lt"], font="Calibri")
+    _tb(slide, s["title"], I(1.20), I(1.40), SW - I(2.40), I(1.80),
+        sz=28, bold=True, color=WHITE, align=PP_ALIGN.CENTER, font="Calibri")
+    _rect(slide, SW//2 - I(1.0), I(3.40), I(2.0), Pt(3), T["accent"])
+    if s.get("bullets"):
+        all_text = "   |   ".join(s["bullets"][:4])
+        _tb(slide, all_text, I(1.0), I(3.70), SW - I(2.0), I(0.60),
+            sz=14, color=T["primary_xl"], align=PP_ALIGN.CENTER)
+
+def _summary_minimal(slide, s):
+    ic = _cover_icon_name(s)
+    icon_bg = T["primary"]
+    icon_sz_box = I(0.80)
+    _rrect(slide, I(0.80), I(0.80), icon_sz_box, icon_sz_box, icon_bg, radius=0.15)
+    _add_icon(slide, I(0.94), I(0.94), I(0.52), T["primary_lt"], icon_name=ic)
+    _tb(slide, s["title"], I(0.80), I(2.00), I(8.0), I(1.50),
+        sz=32, bold=True, color=WHITE, font="Calibri")
+    if s.get("bullets"):
+        for i, bt in enumerate(s["bullets"][:3]):
+            _tb(slide, bt, I(0.80), I(3.70) + i * I(0.35), I(8.0), I(0.30),
+                sz=13, color=T["primary_xl"])
+
+def make_summary(prs, s, idx, total):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    _bg(slide, T["cover_bg"])
+
+    summary_style = _style(s, "summary_style", "cta")
+    if summary_style == "quote":
+        _summary_quote(slide, s)
+    elif summary_style == "minimal":
+        _summary_minimal(slide, s)
+    else:
+        _summary_cta(slide, s)
 
     if s.get("footer"):
         _tb(slide, s["footer"], I(0.80), I(4.85), SW - I(1.60), I(0.40),
