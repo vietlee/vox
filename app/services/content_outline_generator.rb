@@ -185,7 +185,7 @@ class ContentOutlineGenerator
       LAYOUT: bullets
         Khi nào dùng: 3–4 điểm chính, mỗi điểm độc lập. TỐT NHẤT là 3 items.
         Format: mỗi dòng "- Tiêu đề ngắn (tối đa 5-6 từ) :: Mô tả chi tiết 1-2 câu"
-        TIÊU ĐỀ phải NGẮN: tối đa 25 ký tự / 5-6 từ. Đây là headline, không phải câu.
+        TIÊU ĐỀ phải NGẮN: tối đa 20 ký tự / 4-5 từ. Đây là headline, không phải câu. NGHIÊM CẤM viết dài hơn 20 ký tự.
         Nếu không có "::" → chỉ hiển thị title ngắn
         Ví dụ:
         - Khó tìm quán uy tín :: Người dùng phải lọc thủ công giữa hàng nghìn quán không liên quan trên các app giao đồ ăn hiện có.

@@ -423,11 +423,11 @@ def make_bullets(prs, s, idx, total):
             tw = col_w - I(0.50)
             _oval(slide, cx + icon_circle//2, card_top + I(0.25) + icon_circle//2, icon_circle//2, ac)
             _add_icon(slide, cx + (icon_circle - icon_sz)//2, card_top + I(0.25) + (icon_circle - icon_sz)//2, icon_sz, WHITE)
-            _tb(slide, it.get("title", ""), cx, card_top + I(1.05), tw, I(0.50),
-                sz=13, bold=True, color=T["primary_dk"], font="Trebuchet MS")
+            _tb(slide, it.get("title", ""), cx, card_top + I(1.00), tw, I(0.45),
+                sz=14, bold=True, color=T["primary_dk"], font="Trebuchet MS")
             if it.get("desc"):
-                _tb(slide, it["desc"], cx, card_top + I(1.55), tw, I(0.75),
-                    sz=10, color=DARK)
+                _tb(slide, it["desc"], cx, card_top + I(1.45), tw, I(0.85),
+                    sz=11, color=DARK)
 
     elif b_items and n >= 2:
         # 4+ items: vertical stacked icon-left (cowork slide 3 exact)
