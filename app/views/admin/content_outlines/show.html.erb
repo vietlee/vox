@@ -54,13 +54,22 @@
             <div id="slide-dots" class="flex gap-1"></div>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="toggleEditor()"
-                    id="editor-toggle-btn"
+            <!-- WYSIWYG drag-edit toggle -->
+            <button onclick="toggleWysiwyg()"
+                    id="wysiwyg-btn"
+                    title="Kéo thả chỉnh sửa trực tiếp trên slide"
+                    class="text-[12px] text-slate-600 hover:text-violet-700 px-3 py-1 bg-slate-50 hover:bg-violet-50 rounded-lg transition-colors border-0 cursor-pointer font-medium">
+              ✏️ Sửa trực tiếp
+            </button>
+            <!-- AI edit panel toggle -->
+            <button onclick="toggleAiPanel()"
+                    id="ai-panel-btn"
                     class="text-[12px] text-indigo-600 hover:text-indigo-700 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border-0 cursor-pointer font-semibold">
               ✨ Sửa bằng AI
             </button>
             <div style="position:relative;display:inline-block;">
               <button onclick="toggleThemeMenu(this)"
+                      id="theme-btn"
                       class="text-[12px] text-slate-500 hover:text-indigo-600 px-3 py-1 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors border-0 cursor-pointer">
                 🎨 Đổi màu
               </button>
@@ -88,6 +97,11 @@
           </div>
         </div>
 
+        <!-- WYSIWYG mode bar -->
+        <div id="wysiwyg-bar" style="display:none;background:#4f46e5;color:#fff;padding:5px 16px;font-size:11px;font-weight:600;display:none;align-items:center;justify-content:space-between;">
+          <span>✏️ Chế độ sửa trực tiếp — Kéo để di chuyển · Kéo góc để resize · Double-click để sửa text</span>
+          <button onclick="toggleWysiwyg()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Thoát</button>
+        </div>
         <div style="position:relative; padding-bottom:56.25%; background:#0f172a; overflow:hidden;">
           <div id="slide-viewer" style="position:absolute; inset:0; overflow:hidden;"></div>
           <!-- image overlay (absolute over slide content) -->
@@ -113,7 +127,7 @@
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <div class="text-[13px] font-bold text-slate-700">✨ Chỉnh sửa bằng AI</div>
-          <button onclick="toggleEditor()"
+          <button onclick="toggleAiPanel()"
                   class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 text-[12px] rounded-lg border-0 cursor-pointer">✕</button>
         </div>
 
@@ -423,15 +437,17 @@
     }
 
     /* ─── WYSIWYG Editor ─── */
-    function toggleEditor() {
+    function toggleWysiwyg() {
       editorMode = !editorMode;
-      var btn = document.getElementById('editor-toggle-btn');
-      if (btn) {
-        btn.textContent = editorMode ? '✅ Đang sửa trực tiếp' : '✨ Sửa bằng AI';
-        btn.style.background = editorMode ? '#eef2ff' : '';
-        btn.style.color = editorMode ? '#4338ca' : '';
-      }
+      var btn = document.getElementById('wysiwyg-btn');
+      var bar = document.getElementById('wysiwyg-bar');
       var stage = document.getElementById('slide-stage');
+      if (btn) {
+        btn.style.background = editorMode ? '#ede9fe' : '';
+        btn.style.color = editorMode ? '#6d28d9' : '';
+        btn.style.fontWeight = editorMode ? '700' : '';
+      }
+      if (bar) bar.style.display = editorMode ? 'flex' : 'none';
       if (stage) {
         stage.style.cursor = editorMode ? 'default' : 'default';
         if (editorMode) attachEditorHandlers();
@@ -439,11 +455,39 @@
       }
     }
 
+    function toggleAiPanel() {
+      var panel = document.getElementById('slide-editor-panel');
+      if (!panel) return;
+      var isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      var btn = document.getElementById('ai-panel-btn');
+      if (btn) {
+        btn.style.background = isOpen ? '' : '#eef2ff';
+        btn.style.color = isOpen ? '' : '#4338ca';
+      }
+    }
+
+    /* keep toggleEditor as alias for AI panel (used by old inline onclick) */
+    function toggleEditor() { toggleAiPanel(); }
+
     function attachEditorHandlers() {
       var stage = document.getElementById('slide-stage');
       if (!stage) return;
       stage.querySelectorAll('.slide-el').forEach(function(domEl) {
         domEl.style.cursor = 'move';
+        domEl.style.outline = '1px dashed transparent';
+        domEl.style.transition = 'outline-color .1s';
+        domEl.onmouseenter = function() {
+          if (editorMode && domEl !== document.querySelector('.sel-el'))
+            domEl.style.outlineColor = 'rgba(99,102,241,.4)';
+        };
+        domEl.onmouseleave = function() {
+          if (!domEl.classList.contains('sel-el'))
+            domEl.style.outlineColor = 'transparent';
+        };
+        /* remove old listeners before re-adding */
+        domEl.removeEventListener('mousedown', startMove);
+        domEl.removeEventListener('dblclick', startTextEdit);
         domEl.addEventListener('mousedown', startMove);
         domEl.addEventListener('dblclick', startTextEdit);
       });
@@ -704,9 +748,15 @@
       body.append('theme', name);
       body.append('authenticity_token', CSRF_TOKEN);
 
+      var themeBtn = document.getElementById('theme-btn');
+      if (themeBtn) { themeBtn.textContent = '⏳'; themeBtn.disabled = true; }
+
       fetch('<%= change_theme_content_outline_path(@outline) %>', {
         method: 'PATCH', body: body
-      }).then(function(r) { return r.json(); })
+      }).then(function(r) {
+          if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+t); });
+          return r.json();
+        })
         .then(function(data) {
           if (data.deck) {
             deck = data.deck;
@@ -714,24 +764,31 @@
             theme = deck.theme || {};
             total = slides.length;
             saveHistorySnapshot();
+          } else if (data.error) {
+            alert('Lỗi đổi màu: ' + data.error);
           }
           if (stage) stage.style.opacity = '1';
+          if (themeBtn) { themeBtn.textContent = '🎨 Đổi màu'; themeBtn.disabled = false; }
           goToSlide(Math.min(current, slides.length - 1));
         })
         .catch(function(err) {
           console.error('[VOX] change_theme error:', err);
+          alert('Lỗi đổi màu: ' + err.message);
           if (stage) stage.style.opacity = '1';
+          if (themeBtn) { themeBtn.textContent = '🎨 Đổi màu'; themeBtn.disabled = false; }
         });
     }
 
     window.applyTheme = applyTheme;
     window.toggleThemeMenu = toggleThemeMenu;
+    window.toggleWysiwyg = toggleWysiwyg;
+    window.toggleAiPanel = toggleAiPanel;
+    window.toggleEditor = toggleEditor;
     window.prevSlide = prevSlide;
     window.nextSlide = nextSlide;
     window.goToSlide = goToSlide;
     window.enterFullscreen = enterFullscreen;
     window.handleRegenerate = handleRegenerate;
-    window.toggleEditor = toggleEditor;
 
     saveHistorySnapshot();
     goToSlide(0);
