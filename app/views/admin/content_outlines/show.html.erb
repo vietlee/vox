@@ -730,7 +730,10 @@
         domEl.removeEventListener('dblclick', startTextEdit);
         domEl.removeEventListener('dblclick', startChartEdit);
         domEl.addEventListener('mousedown', startMove);
-        var isChart = (elData.type === 'chart_donut' || elData.type === 'chart_bar');
+        var domElId = domEl.getAttribute('data-ei');
+        var sl = slides[current];
+        var domElData = sl ? (sl.elements||[]).find(function(e){return e.id===domElId;}) : null;
+        var isChart = domElData && (domElData.type === 'chart_donut' || domElData.type === 'chart_bar');
         if (isChart) {
           domEl.addEventListener('dblclick', startChartEdit);
         } else {
