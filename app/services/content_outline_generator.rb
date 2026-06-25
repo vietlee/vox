@@ -961,8 +961,8 @@ class ContentOutlineGenerator
       els << el_rect("tbg#{i}", cx, 1.70, step_w, card_h, "#fff", radius: 6, stroke: "#E2E8F0", sw: 0.02)
       els << el_rect("tbar#{i}", cx, 1.70, step_w, 0.05, ac, radius: 2, z: 2)
       els << el_rect("tnum_bg#{i}", cx + (step_w - 0.32) / 2, 1.82, 0.32, 0.32, ac, z: 3, radius: 100)
-      els << el_text("tnum#{i}", cx + (step_w - 0.32) / 2, 1.82, 0.32, 0.32, (i + 1).to_s,
-        heading_style(12, color: "#fff", align: "center"), z: 4)
+      els << el_text("tnum#{i}", cx + (step_w - 0.32) / 2, 1.82, 0.32, 0.32, format("%02d", i + 1),
+        heading_style(12, color: "#fff", align: "center").merge("valign" => "center"), z: 4)
       els << el_text("tstep#{i}", cx + 0.05, 2.22, step_w - 0.10, 0.38, it["step"] || "",
         heading_style(10, color: ac, align: "center", line_height: 1.2))
       els << el_text("tdsc#{i}", cx + 0.08, 2.62, step_w - 0.16, 1.45, it["desc"] || "",
@@ -1003,8 +1003,8 @@ class ContentOutlineGenerator
       ac = t["card_icons"][i % 3]
       els << el_rect("abg#{i}", LM, cy, CW, rh, "#fff", radius: 6, stroke: "#E2E8F0", sw: 0.02)
       els << el_rect("anum_bg#{i}", LM + 0.08, cy + 0.11, 0.33, 0.33, ac, z: 2, radius: 100)
-      els << el_text("anum#{i}", LM + 0.08, cy + 0.11, 0.33, 0.33, (it["num"] || (i + 1)).to_s,
-        heading_style(11, color: "#fff", align: "center"), z: 3)
+      els << el_text("anum#{i}", LM + 0.08, cy + 0.11, 0.33, 0.33, (it["num"] || format("%02d", i + 1)).to_s,
+        heading_style(11, color: "#fff", align: "center").merge("valign" => "center"), z: 3)
       els << el_text("atit#{i}", LM + 0.52, cy + 0.10, CW - 0.70, 0.28, it["title"] || "",
         heading_style(12))
       els << el_text("adsc#{i}", LM + 0.52, cy + 0.32, CW - 0.70, 0.18, it["desc"] || "",

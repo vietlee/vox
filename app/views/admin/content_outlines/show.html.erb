@@ -258,11 +258,15 @@
             (s.textTransform?'text-transform:'+s.textTransform+';':'')+
             (s.letterSpacing?'letter-spacing:'+s.letterSpacing+'px;':'')+
             (s.fontStyle?'font-style:'+s.fontStyle+';':'')+
-            'padding:0;margin:0;display:flex;align-items:flex-start;';
+            'padding:0;margin:0;display:flex;';
+          /* vertical align: center when element is roughly square (icon numbers) or explicit */
+          var isSquare = Math.abs(w - h) < 8;
+          var valign = s.valign === 'center' || isSquare ? 'center' : 'flex-start';
+          css += 'align-items:'+valign+';';
           var halign = s.align==='center'?'center':s.align==='right'?'flex-end':'flex-start';
           css += 'justify-content:'+halign+';';
           return '<div class="slide-el" '+attrs+' style="'+css+'">' +
-                 '<span style="display:block;width:100%;">'+escHtml(el.content||'')+'</span></div>';
+                 '<span style="display:block;width:100%;line-height:1;">'+escHtml(el.content||'')+'</span></div>';
         }
         case 'rect': {
           var fill = s.fill||'#E8F0FF';
