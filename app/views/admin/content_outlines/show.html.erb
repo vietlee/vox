@@ -310,6 +310,7 @@
     var current = 0, total = slides.length;
     var editorMode = false;  /* wysiwyg mode flag */
     var selectedElId = null;
+    var selectedElIds = []; /* multi-select ids */
     var history = [], historyIdx = -1;
     var saveTimer = null;
     var SAVE_URL = '<%= update_slides_content_outline_path(@outline) %>';
@@ -668,6 +669,7 @@
 
     function clearSelection() {
       selectedElId = null;
+      selectedElIds = [];
       document.querySelectorAll('.sel-el').forEach(function(e){ e.classList.remove('sel-el'); });
       document.querySelectorAll('.sel-handle').forEach(function(e){ e.remove(); });
       hideTextToolbar();
@@ -678,22 +680,57 @@
       if (!editorMode) return;
       e.preventDefault();
       var domEl = e.currentTarget;
+      var ei = domEl.dataset.ei;
+
+      /* Ctrl/Cmd+click → toggle this element in multi-selection */
+      if (e.ctrlKey || e.metaKey) {
+        if (selectedElIds.indexOf(ei) >= 0) {
+          selectedElIds = selectedElIds.filter(function(id){ return id !== ei; });
+          domEl.classList.remove('sel-el');
+        } else {
+          selectedElIds.push(ei);
+          if (selectedElId && selectedElIds.indexOf(selectedElId) < 0) selectedElIds.push(selectedElId);
+          domEl.classList.add('sel-el');
+        }
+        /* remove resize handles when multi-select */
+        document.querySelectorAll('.sel-handle').forEach(function(h){ h.remove(); });
+        hideTextToolbar();
+        selectedElId = selectedElIds[selectedElIds.length - 1] || null;
+        /* start drag for multi */
+        if (selectedElIds.length > 0) _startMultiDrag(e);
+        return;
+      }
+
+      /* Regular click → single select */
       clearSelection();
       domEl.classList.add('sel-el');
-      selectedElId = domEl.dataset.ei;
+      selectedElId = ei;
+      selectedElIds = [ei];
       addResizeHandles(domEl);
-      /* show text toolbar if this is a text element */
       var si2 = parseInt(domEl.dataset.si);
-      var elData2 = slides[si2] && slides[si2].elements.find(function(e){ return e.id === domEl.dataset.ei; });
+      var elData2 = slides[si2] && slides[si2].elements.find(function(el2){ return el2.id === ei; });
       if (elData2 && elData2.type === 'text') showTextToolbar(domEl);
       else hideTextToolbar();
+
       var stage = document.getElementById('slide-stage');
       var rect = stage.getBoundingClientRect();
       var scale = rect.width / 1280;
-      var startX = e.clientX, startY = e.clientY;
-      var startL = parseInt(domEl.style.left) || 0;
-      var startT = parseInt(domEl.style.top)  || 0;
-      _dragState = { domEl:domEl, startX:startX, startY:startY, startL:startL, startT:startT, scale:scale, mode:'move' };
+      _dragState = { domEl:domEl, startX:e.clientX, startY:e.clientY, startL:parseInt(domEl.style.left)||0, startT:parseInt(domEl.style.top)||0, scale:scale, mode:'move' };
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('mouseup', onDragEnd);
+    }
+
+    function _startMultiDrag(e) {
+      var stage = document.getElementById('slide-stage');
+      var rect = stage.getBoundingClientRect();
+      var scale = rect.width / 1280;
+      /* capture initial positions for all selected elements */
+      var els = [];
+      selectedElIds.forEach(function(id) {
+        var dom = stage.querySelector('[data-ei="'+id+'"]');
+        if (dom) els.push({ dom:dom, startL:parseInt(dom.style.left)||0, startT:parseInt(dom.style.top)||0 });
+      });
+      _dragState = { multi:true, els:els, startX:e.clientX, startY:e.clientY, scale:scale, mode:'move' };
       document.addEventListener('mousemove', onDragMove);
       document.addEventListener('mouseup', onDragEnd);
     }
@@ -745,7 +782,16 @@
       if (!_dragState) return;
       var dx = (e.clientX - _dragState.startX) / _dragState.scale;
       var dy = (e.clientY - _dragState.startY) / _dragState.scale;
-      var d = _dragState, el2 = d.domEl, mode = d.mode;
+      var d = _dragState, mode = d.mode;
+      /* Multi-element drag */
+      if (d.multi && mode === 'move') {
+        d.els.forEach(function(item) {
+          item.dom.style.left = Math.round(item.startL + dx) + 'px';
+          item.dom.style.top  = Math.round(item.startT + dy) + 'px';
+        });
+        return;
+      }
+      var el2 = d.domEl;
       if (mode === 'move') {
         el2.style.left = Math.round(d.startL + dx) + 'px';
         el2.style.top  = Math.round(d.startT + dy) + 'px';
