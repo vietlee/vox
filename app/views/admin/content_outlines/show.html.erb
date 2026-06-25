@@ -369,10 +369,14 @@
           return renderDonutChart(el, x, y, w, h, z, si, attrs);
         }
         case 'image': {
-          var src = el.src || '';
+          /* Use data-img-id so we can set src after innerHTML (avoids base64-in-innerHTML truncation) */
+          var imgId = 'vox-img-' + el.id;
           var r = s.borderRadius || 0;
+          /* store src on a global map so post-render step can apply it */
+          if (!window._imgSrcMap) window._imgSrcMap = {};
+          window._imgSrcMap[imgId] = el.src || el.blobUrl || '';
           return '<div class="slide-el" '+attrs+' style="position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;z-index:'+z+';overflow:hidden;border-radius:'+r+'px;">' +
-                 '<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;" draggable="false"/></div>';
+                 '<img id="'+imgId+'" data-pending-src="1" style="width:100%;height:100%;object-fit:cover;" draggable="false"/></div>';
         }
         default: return '';
       }
@@ -507,7 +511,7 @@
     function goToSlide(idx) {
       current = Math.max(0, Math.min(idx, total - 1));
       var stage = document.getElementById('slide-stage');
-      if (stage) stage.innerHTML = renderSlide(current);
+      if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
       updateDots();
       updateCounter();
       rescaleCanvas();
@@ -795,25 +799,38 @@
     }
 
     /* ─── Image upload + insert ─── */
+    /* Apply img src after innerHTML set (avoids data-URL parsing issues in innerHTML) */
+    function applyPendingImages() {
+      document.querySelectorAll('img[data-pending-src]').forEach(function(img) {
+        var src = window._imgSrcMap && window._imgSrcMap[img.id];
+        if (src) { img.src = src; img.removeAttribute('data-pending-src'); }
+      });
+    }
+
     function insertImageFromFile(input) {
       var file = input && input.files && input.files[0];
       if (!file) return;
+      /* Use createObjectURL for immediate display; also read dataURL for persistence */
+      var blobUrl = URL.createObjectURL(file);
+      var newEl = {
+        id: 'img_' + Date.now(),
+        type: 'image',
+        x: 2.0, y: 1.5, w: 5.0, h: 3.0, z: 5,
+        blobUrl: blobUrl,
+        src: blobUrl,
+        style: {}
+      };
+      if (!slides[current]) return;
+      slides[current].elements.push(newEl);
+      var stage = document.getElementById('slide-stage');
+      if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+      if (editorMode) attachEditorHandlers();
+      /* Also read dataURL for saving (blob URLs don't persist across sessions) */
       var reader = new FileReader();
       reader.onload = function(ev) {
-        var dataUrl = ev.target.result;
-        /* Insert as an image element at center of slide */
-        var newEl = {
-          id: 'img_' + Date.now(),
-          type: 'image',
-          x: 2.0, y: 1.5, w: 5.0, h: 3.0, z: 5,
-          src: dataUrl,
-          style: {}
-        };
-        if (!slides[current]) return;
-        slides[current].elements.push(newEl);
-        var stage = document.getElementById('slide-stage');
-        if (stage) stage.innerHTML = renderSlide(current);
-        if (editorMode) attachEditorHandlers();
+        newEl.src = ev.target.result;
+        newEl.blobUrl = undefined;
+        if (window._imgSrcMap) window._imgSrcMap['vox-img-' + newEl.id] = ev.target.result;
         scheduleSave();
       };
       reader.readAsDataURL(file);
