@@ -1253,14 +1253,20 @@
     }
 
     /* ─── Keyboard ─── */
-    /* Click outside slide stage → deselect element + hide toolbar */
+    /* Click outside selected element → deselect */
     document.addEventListener('click', function(e) {
-      if (!editorMode || !selectedElId) return;
-      var stage = document.getElementById('slide-stage');
-      var tb = document.getElementById('txt-toolbar');
-      /* ignore clicks inside stage, toolbar, or text color panel */
-      if (stage && stage.contains(e.target)) return;
-      if (tb && tb.contains(e.target)) return;
+      if (!editorMode) return;
+      var hasSelection = selectedElId || selectedElIds.length > 0;
+      if (!hasSelection) return;
+      var tb  = document.getElementById('txt-toolbar');
+      var bgp = document.getElementById('bg-panel');
+      var tcp = document.getElementById('tt-color-panel');
+      /* ignore clicks inside toolbars/panels */
+      if (tb  && tb.contains(e.target))  return;
+      if (bgp && bgp.contains(e.target)) return;
+      if (tcp && tcp.contains(e.target)) return;
+      /* ignore clicks directly on a .slide-el (startMove handles those) */
+      if (e.target.closest('.slide-el') || e.target.closest('.sel-handle')) return;
       clearSelection();
     });
 
