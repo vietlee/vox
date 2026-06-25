@@ -167,6 +167,26 @@
           </button>
         </div>
 
+        <!-- Chart editor panel (shown on double-click of chart element in edit mode) -->
+        <div id="chart-editor" style="display:none;position:fixed;z-index:10100;background:#1e293b;border-radius:14px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.55);min-width:280px;max-width:340px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:12px;font-weight:700;color:#e2e8f0;">📊 Sửa biểu đồ</span>
+            <button onclick="closeChartEditor()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;padding:0;line-height:1;">×</button>
+          </div>
+          <div id="chart-editor-center" style="display:none;margin-bottom:10px;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">Văn bản trung tâm</div>
+            <input id="ce-center-main" type="text" placeholder="Số liệu chính (vd: 37,4 Gt)" style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:7px;color:#fff;font-size:12px;padding:6px 8px;outline:none;margin-bottom:5px;">
+            <input id="ce-center-sub" type="text" placeholder="Nhãn phụ (vd: CO2 tương đương)" style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:7px;color:#fff;font-size:12px;padding:6px 8px;outline:none;">
+          </div>
+          <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Dữ liệu</div>
+          <div id="ce-rows" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;"></div>
+          <button onclick="ceAddRow()" style="margin-top:8px;width:100%;background:#334155;border:none;color:#94a3b8;border-radius:7px;padding:5px;font-size:11px;cursor:pointer;">+ Thêm dòng</button>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button onclick="applyChartEdit()" style="flex:1;background:#6366f1;border:none;color:#fff;border-radius:8px;padding:7px;font-size:12px;font-weight:700;cursor:pointer;">✓ Áp dụng</button>
+            <button onclick="closeChartEditor()" style="flex:1;background:#334155;border:none;color:#94a3b8;border-radius:8px;padding:7px;font-size:12px;cursor:pointer;">Huỷ</button>
+          </div>
+        </div>
+
         <!-- Floating text format toolbar (shown when text element selected) -->
         <div id="txt-toolbar" style="display:none;position:fixed;z-index:10000;background:#1e293b;border-radius:12px;padding:5px 8px;box-shadow:0 8px 28px rgba(0,0,0,.40);align-items:center;gap:3px;flex-wrap:nowrap;">
           <!-- Font family — custom searchable dropdown -->
@@ -708,8 +728,14 @@
         /* remove old listeners before re-adding */
         domEl.removeEventListener('mousedown', startMove);
         domEl.removeEventListener('dblclick', startTextEdit);
+        domEl.removeEventListener('dblclick', startChartEdit);
         domEl.addEventListener('mousedown', startMove);
-        domEl.addEventListener('dblclick', startTextEdit);
+        var isChart = (elData.type === 'chart_donut' || elData.type === 'chart_bar');
+        if (isChart) {
+          domEl.addEventListener('dblclick', startChartEdit);
+        } else {
+          domEl.addEventListener('dblclick', startTextEdit);
+        }
       });
     }
 
@@ -720,6 +746,8 @@
       document.querySelectorAll('.sel-handle').forEach(function(e){ e.remove(); });
       hideTextToolbar();
       hideElBgBar();
+      var ce = document.getElementById('chart-editor');
+      if (ce) ce.style.display = 'none';
     }
 
     var _dragState = null;
@@ -884,6 +912,14 @@
       });
     }
 
+    function startChartEdit(e) {
+      if (!editorMode) return;
+      e.stopPropagation();
+      var domEl = e.currentTarget;
+      var elId = domEl.getAttribute('data-ei');
+      if (elId) openChartEditor(elId);
+    }
+
     function startTextEdit(e) {
       if (!editorMode) return;
       var domEl = e.currentTarget;
@@ -1027,6 +1063,109 @@
       if (ci && color !== 'transparent') ci.value = color;
     }
     window.applyElBg = applyElBg;
+
+    /* ─── Chart editor ─── */
+    var _chartEditorElId = null;
+
+    function openChartEditor(elId) {
+      var stage = document.getElementById('slide-stage');
+      if (!stage) return;
+      var elData = null;
+      var sl = slides[current];
+      if (sl) { elData = (sl.elements||[]).find(function(e){return e.id===elId;}); }
+      if (!elData || !elData.chart) return;
+
+      _chartEditorElId = elId;
+      var chart = elData.chart;
+      var isDonut = elData.type === 'chart_donut';
+
+      // Center text fields (donut only)
+      var centerDiv = document.getElementById('chart-editor-center');
+      if (centerDiv) centerDiv.style.display = isDonut ? 'block' : 'none';
+      if (isDonut) {
+        var parts = (chart.label || '').split('|');
+        document.getElementById('ce-center-main').value = parts[0] || '';
+        document.getElementById('ce-center-sub').value = parts[1] || '';
+      }
+
+      // Data rows
+      var rowsEl = document.getElementById('ce-rows');
+      rowsEl.innerHTML = '';
+      (chart.data || []).forEach(function(d, i) {
+        rowsEl.appendChild(ceRowHtml(d.value, d.label, i));
+      });
+
+      // Position near the element
+      var domEl = stage.querySelector('[data-ei="'+elId+'"]');
+      var rect = domEl ? domEl.getBoundingClientRect() : stage.getBoundingClientRect();
+      var panel = document.getElementById('chart-editor');
+      panel.style.display = 'block';
+      var pw = 340, ph = 400;
+      var left = rect.right + 12;
+      var top = rect.top;
+      if (left + pw > window.innerWidth - 8) left = rect.left - pw - 12;
+      if (top + ph > window.innerHeight - 8) top = window.innerHeight - ph - 8;
+      panel.style.left = Math.max(4, left) + 'px';
+      panel.style.top = Math.max(4, top) + 'px';
+    }
+
+    function ceRowHtml(val, lbl, idx) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:5px;align-items:center;';
+      row.innerHTML = '<input type="text" placeholder="Giá trị" value="'+escHtml(String(val||''))+'" style="flex:1;min-width:0;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#fff;font-size:12px;padding:5px 7px;outline:none;">' +
+        '<input type="text" placeholder="Nhãn" value="'+escHtml(String(lbl||''))+'" style="flex:1.5;min-width:0;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#fff;font-size:12px;padding:5px 7px;outline:none;">' +
+        '<button onclick="this.parentNode.remove()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:15px;padding:0 2px;flex-shrink:0;">×</button>';
+      return row;
+    }
+
+    function ceAddRow() {
+      var rowsEl = document.getElementById('ce-rows');
+      rowsEl.appendChild(ceRowHtml('', '', rowsEl.children.length));
+    }
+
+    function applyChartEdit() {
+      if (!_chartEditorElId) return;
+      var sl = slides[current];
+      if (!sl) return;
+      var elData = (sl.elements||[]).find(function(e){return e.id===_chartEditorElId;});
+      if (!elData || !elData.chart) return;
+
+      saveHistorySnapshot();
+
+      // Collect rows
+      var rowsEl = document.getElementById('ce-rows');
+      var newData = [];
+      Array.from(rowsEl.children).forEach(function(row) {
+        var inputs = row.querySelectorAll('input');
+        var val = inputs[0] ? inputs[0].value.trim() : '';
+        var lbl = inputs[1] ? inputs[1].value.trim() : '';
+        if (val !== '' || lbl !== '') newData.push({ value: isNaN(parseFloat(val)) ? val : parseFloat(val), label: lbl });
+      });
+      elData.chart.data = newData;
+
+      // Center label (donut)
+      if (elData.type === 'chart_donut') {
+        var main = document.getElementById('ce-center-main').value.trim();
+        var sub = document.getElementById('ce-center-sub').value.trim();
+        elData.chart.label = sub ? main + '|' + sub : main;
+      }
+
+      var stage = document.getElementById('slide-stage');
+      if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+      autoSave();
+      closeChartEditor();
+    }
+
+    function closeChartEditor() {
+      var panel = document.getElementById('chart-editor');
+      if (panel) panel.style.display = 'none';
+      _chartEditorElId = null;
+    }
+
+    window.openChartEditor = openChartEditor;
+    window.ceAddRow = ceAddRow;
+    window.applyChartEdit = applyChartEdit;
+    window.closeChartEditor = closeChartEditor;
 
     /* Toggle a text prop (bold, italic, underline) and update button state */
     /* ─── Font dropdown with search ─── */
@@ -1487,6 +1626,8 @@
       if (bgp && bgp.contains(e.target)) return;
       if (tcp && tcp.contains(e.target)) return;
       if (elb && elb.contains(e.target)) return;
+      var ced = document.getElementById('chart-editor');
+      if (ced && ced.contains(e.target)) return;
       /* ignore clicks directly on a .slide-el (startMove handles those) */
       if (e.target.closest('.slide-el') || e.target.closest('.sel-handle')) return;
       clearSelection();
