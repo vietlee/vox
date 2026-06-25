@@ -375,9 +375,15 @@
           </div><!-- /tt-bg-wrap -->
           <!-- Chart edit button (shown only for chart elements) -->
           <div id="tt-sep-chart" style="display:none;width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
-          <button id="tt-chart-edit" onclick="openChartEditor(selectedElId)" title="Sửa dữ liệu biểu đồ"
+          <button id="tt-chart-edit" onclick="openChartEditor(this.dataset.elid)" title="Sửa dữ liệu biểu đồ"
             style="display:none;background:#4f46e5;border:none;color:#fff;border-radius:5px;height:28px;padding:0 10px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;">
             📊 Sửa dữ liệu
+          </button>
+          <!-- Icon replace button (shown only for icon elements) -->
+          <div id="tt-sep-icon" style="display:none;width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
+          <button id="tt-icon-edit" onclick="openIconPicker('change', this.dataset.elid)" title="Thay thế icon"
+            style="display:none;background:#0891b2;border:none;color:#fff;border-radius:5px;height:28px;padding:0 10px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;">
+            ★ Thay icon
           </button>
           <!-- Size + Z-order section (shown for all element types) -->
           <div id="tt-sep-dims" style="width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
@@ -1474,7 +1480,7 @@
       var tbR = document.getElementById('txt-toolbar');
       if (tbR) Array.from(tbR.children).forEach(function(c){
         if (c.id === 'tt-dims' || c.id === 'tt-zorder') c.style.display = 'flex';
-        else if (c.id === 'tt-chart-edit' || c.id === 'tt-sep-chart') c.style.display = 'none';
+        else if (['tt-chart-edit','tt-sep-chart','tt-icon-edit','tt-sep-icon'].indexOf(c.id) >= 0) c.style.display = 'none';
         else c.style.display = '';
       });
       var si = parseInt(domEl.dataset.si);
@@ -1536,11 +1542,20 @@
       var si2 = parseInt(domEl.dataset.si);
       var ei2 = domEl.dataset.ei;
       var elData2 = slides[si2] && (slides[si2].elements||[]).find(function(e){ return e.id === ei2; });
-      var isChart = elData2 && elData2.type && elData2.type.indexOf('chart') === 0;
+      var elType = elData2 ? elData2.type : '';
+      var isChart = elType.indexOf('chart') === 0;
+      var isIcon  = elType === 'icon';
       var SHOW = {'tt-bg-wrap':1,'tt-sep-bg':1,'tt-sep-dims':1,'tt-dims':1,'tt-sep-z':1,'tt-zorder':1};
       if (isChart) { SHOW['tt-sep-chart'] = 1; SHOW['tt-chart-edit'] = 1; }
+      if (isIcon)  { SHOW['tt-sep-icon']  = 1; SHOW['tt-icon-edit']  = 1; }
+      /* Store element id on action buttons so onclick doesn't rely on global */
+      var chartBtn = document.getElementById('tt-chart-edit');
+      var iconBtn  = document.getElementById('tt-icon-edit');
+      if (chartBtn) chartBtn.dataset.elid = ei2;
+      if (iconBtn)  iconBtn.dataset.elid  = ei2;
       Array.from(tb.children).forEach(function(c){
-        if (c.id === 'tt-dims' || c.id === 'tt-zorder' || c.id === 'tt-chart-edit') c.style.display = SHOW[c.id] ? 'flex' : 'none';
+        var flex = ['tt-dims','tt-zorder','tt-chart-edit','tt-icon-edit'];
+        if (flex.indexOf(c.id) >= 0) c.style.display = SHOW[c.id] ? 'flex' : 'none';
         else c.style.display = SHOW[c.id] ? '' : 'none';
       });
       tb.style.display = 'flex';
