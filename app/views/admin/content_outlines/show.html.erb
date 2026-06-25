@@ -169,7 +169,7 @@
               <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;padding:0 4px 8px;">Chèn vào slide</div>
               <button onclick="insertComponent('text')"    style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'"><span style="font-size:16px;">T</span> Hộp văn bản</button>
               <button onclick="insertComponent('rect')"    style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'"><span style="font-size:16px;">▭</span> Hình chữ nhật</button>
-              <button onclick="insertComponent('icon')"    style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'"><span style="font-size:16px;">★</span> Icon</button>
+              <button onclick="document.getElementById('insert-panel').style.display='none';openIconPicker('insert')" style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'"><span style="font-size:16px;">★</span> Icon</button>
               <button onclick="insertComponent('chart_bar')"   style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'"><span style="font-size:16px;">📊</span> Biểu đồ cột</button>
               <button onclick="insertComponent('chart_donut')" style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'"><span style="font-size:16px;">🍩</span> Biểu đồ tròn</button>
               <div style="border-top:1px solid #f1f5f9;margin:5px 0;"></div>
@@ -204,6 +204,18 @@
               <button onclick="confirmDeleteSlide()" style="flex:1;background:#ef4444;border:none;color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Xoá</button>
             </div>
           </div>
+        </div>
+
+        <!-- Icon picker panel -->
+        <div id="icon-picker" style="display:none;position:fixed;z-index:10200;background:#1e293b;border-radius:16px;padding:14px;box-shadow:0 16px 48px rgba(0,0,0,.55);width:320px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:12px;font-weight:700;color:#e2e8f0;">🎨 Chọn icon</span>
+            <button onclick="closeIconPicker()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;padding:0;line-height:1;">×</button>
+          </div>
+          <input id="icon-search" type="text" placeholder="Tìm icon..." oninput="filterIcons(this.value)"
+            style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#fff;font-size:12px;padding:7px 10px;outline:none;margin-bottom:10px;">
+          <div id="icon-grid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;max-height:280px;overflow-y:auto;"></div>
+          <div style="margin-top:10px;font-size:10px;color:#475569;text-align:center;" id="icon-picker-hint">Click icon để chèn · Double-click icon trên slide để đổi</div>
         </div>
 
         <!-- Chart editor panel (shown on double-click of chart element in edit mode) -->
@@ -430,7 +442,77 @@
       map:"M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4zM8 2v16M16 6v16",
       tools:"M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z",
       diamond:"M12 2l9 9-9 9-9-9 9-9z",
-      music:"M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zM21 16a3 3 0 11-6 0 3 3 0 016 0z"
+      music:"M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zM21 16a3 3 0 11-6 0 3 3 0 016 0z",
+      sun:"M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M12 17a5 5 0 100-10 5 5 0 000 10z",
+      moon:"M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z",
+      cloud:"M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z",
+      rain:"M16 13v8M8 13v8M12 15v8M20 16.58A5 5 0 0018 7h-1.26A8 8 0 104 15.25",
+      snow:"M20 17.58A5 5 0 0018 8h-1.26A8 8 0 104 16.25M8 16h.01M8 20h.01M12 18h.01M12 22h.01M16 16h.01M16 20h.01",
+      wind:"M9.59 4.59A2 2 0 1111 8H2m10.59 11.41A2 2 0 1014 16H2m15.73-8.27A2.5 2.5 0 1119.5 12H2",
+      umbrella:"M23 12a11.05 11.05 0 00-22 0zm-5 7a3 3 0 01-6 0v-7",
+      thermometer:"M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z",
+      activity:"M22 12h-4l-3 9L9 3l-3 9H2",
+      battery:"M23 7h-1a1 1 0 00-1 1v8a1 1 0 001 1h1M1 7h16v10H1zM5 7v10",
+      wifi:"M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01",
+      bluetooth:"M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11",
+      cpu:"M18 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2zM9 9h6v6H9zM9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3",
+      monitor:"M2 3h20a1 1 0 011 1v13a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1zM8 21h8M12 17v4",
+      smartphone:"M5 2h14a2 2 0 012 2v16a2 2 0 01-2 2H5a2 2 0 01-2-2V4a2 2 0 012-2zM12 18h.01",
+      printer:"M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z",
+      mail:"M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6",
+      inbox:"M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z",
+      send:"M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
+      paperclip:"M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48",
+      link:"M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71",
+      download:"M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3",
+      upload:"M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
+      trash:"M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2",
+      edit:"M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
+      copy:"M20 9h-9a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-9a2 2 0 00-2-2zM5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1",
+      clipboard:"M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M9 2h6a1 1 0 011 1v2a1 1 0 01-1 1H9a1 1 0 01-1-1V3a1 1 0 011-1z",
+      folder:"M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z",
+      file:"M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9zM13 2v7h7",
+      image:"M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21",
+      video:"M23 7l-7 5 7 5V7zM1 5h15a2 2 0 012 2v10a2 2 0 01-2 2H1a2 2 0 01-2-2V7a2 2 0 012-2z",
+      mic:"M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8",
+      headphones:"M3 18v-6a9 9 0 0118 0v6M3 18a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3zM19 18a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3z",
+      home:"M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2zM9 22V12h6v10",
+      building:"M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9v.01M9 12v.01M9 15v.01M9 18v.01",
+      hospital:"M3 21h18M9 21V3h6v18M3 7h6M15 7h6M3 14h6M15 14h6",
+      school:"M22 10v6M2 10l10-5 10 5-10 5-10-5zM6 12v5c3 3 9 3 12 0v-5",
+      car:"M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v9a2 2 0 01-2 2h-2M5 17a2 2 0 100 4 2 2 0 000-4zM17 17a2 2 0 100 4 2 2 0 000-4z",
+      bike:"M12 12c0-3 1.5-6 6-6M12 12c0-3-1.5-6-6-6M12 12l2.5 5M6 6L2 12h7.5M18 6l4 6h-7.5M9.5 17h5M12 17v2",
+      plane:"M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z",
+      anchor:"M12 22V8M5.45 5.11A7 7 0 1019 12H5M12 8a2 2 0 100-4 2 2 0 000 4z",
+      compass:"M12 22a10 10 0 100-20 10 10 0 000 20zM16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z",
+      navigation:"M3 11l19-9-9 19-2-8-8-2z",
+      trending_up:"M23 6l-9.5 9.5-5-5L1 18",
+      trending_down:"M23 18l-9.5-9.5-5 5L1 6",
+      bar_chart:"M12 20V10M18 20V4M6 20v-4",
+      pie_chart:"M21.21 15.89A10 10 0 118 2.83M22 12A10 10 0 0012 2v10z",
+      package:"M12 2l10 6.5v7L12 22 2 15.5v-7zM12 22V12M2 8.5l10 3.5 10-3.5",
+      gift:"M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z",
+      shopping_cart:"M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0",
+      credit_card:"M1 4h22v16H1zM1 10h22",
+      tag:"M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
+      box:"M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16zM3.27 6.96L12 12.01l8.73-5.05M12 22.08V12",
+      archive:"M21 8v13H3V8M23 3H1v5h22V3zM10 12h4",
+      database:"M12 8a9 3 0 100-6 9 3 0 000 6zM21 12c0 1.66-4.03 3-9 3S3 13.66 3 12M3 6v6c0 1.66 4.03 3 9 3s9-1.34 9-3V6M3 12v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6",
+      server:"M2 3h20v4H2zM2 10h20v4H2zM2 17h20v4H2zM6 5h.01M6 12h.01M6 19h.01",
+      power:"M18.36 6.64a9 9 0 11-12.73 0M12 2v10",
+      refresh:"M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15",
+      info:"M12 22a10 10 0 100-20 10 10 0 000 20zM12 16v-4M12 8h.01",
+      help:"M12 22a10 10 0 100-20 10 10 0 000 20zM9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01",
+      alert:"M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01",
+      bell:"M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0",
+      bookmark:"M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z",
+      thumbs_up:"M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3",
+      thumbs_down:"M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17",
+      smile:"M12 22a10 10 0 100-20 10 10 0 000 20zM8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01",
+      user_check:"M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM16 11l2 2 4-4",
+      zap:"M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+      scissors:"M6 9a3 3 0 100-6 3 3 0 000 6zM6 15a3 3 0 100 6 3 3 0 000-6zM20 4L8.12 15.88M14.47 14.48L20 20M3.35 5.65L8 10",
+      key:"M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"
     };
 
     function iconSvg(name, size, color) {
@@ -768,13 +850,16 @@
         domEl.removeEventListener('mousedown', startMove);
         domEl.removeEventListener('dblclick', startTextEdit);
         domEl.removeEventListener('dblclick', startChartEdit);
+        domEl.removeEventListener('dblclick', startIconEdit);
         domEl.addEventListener('mousedown', startMove);
         var domElId = domEl.getAttribute('data-ei');
         var sl = slides[current];
         var domElData = sl ? (sl.elements||[]).find(function(e){return e.id===domElId;}) : null;
-        var isChart = domElData && (domElData.type === 'chart_donut' || domElData.type === 'chart_bar');
-        if (isChart) {
+        var elType = domElData ? domElData.type : '';
+        if (elType === 'chart_donut' || elType === 'chart_bar') {
           domEl.addEventListener('dblclick', startChartEdit);
+        } else if (elType === 'icon') {
+          domEl.addEventListener('dblclick', startIconEdit);
         } else {
           domEl.addEventListener('dblclick', startTextEdit);
         }
@@ -952,6 +1037,14 @@
         elData.w = domEl.offsetWidth / 128;
         elData.h = domEl.offsetHeight / 128;
       });
+    }
+
+    function startIconEdit(e) {
+      if (!editorMode) return;
+      e.stopPropagation();
+      var domEl = e.currentTarget;
+      var elId = domEl.getAttribute('data-ei');
+      if (elId) openIconPicker('change', elId);
     }
 
     function startChartEdit(e) {
@@ -2000,6 +2093,110 @@
     }
     window.toggleInsertPanel = toggleInsertPanel;
     window.insertComponent = insertComponent;
+
+    /* ═══════════════════════════════════════════════════
+       ICON PICKER
+    ═══════════════════════════════════════════════════ */
+    var _iconPickerMode = 'insert'; // 'insert' | 'change'
+    var _iconPickerElId = null;
+
+    function buildIconGrid(filter) {
+      var grid = document.getElementById('icon-grid');
+      if (!grid) return;
+      var names = Object.keys(ICONS);
+      if (filter) {
+        filter = filter.toLowerCase();
+        names = names.filter(function(n){ return n.indexOf(filter) !== -1; });
+      }
+      var html = '';
+      var t = deck.theme || {};
+      var accent = t.accent || '#6366f1';
+      names.forEach(function(name) {
+        var d = ICONS[name];
+        html += '<button onclick="pickIcon(\''+name+'\')" title="'+name+'" '+
+          'style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;aspect-ratio:1;transition:background .1s;" '+
+          'onmouseover="this.style.background=\'#334155\';this.style.borderColor=\''+accent+'\'" onmouseout="this.style.background=\'#0f172a\';this.style.borderColor=\'#1e293b\'">' +
+          '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="'+d+'"/></svg>' +
+          '</button>';
+      });
+      grid.innerHTML = html || '<div style="color:#475569;font-size:11px;padding:10px;text-align:center;">Không tìm thấy</div>';
+    }
+
+    function filterIcons(val) { buildIconGrid(val); }
+
+    function openIconPicker(mode, elId) {
+      _iconPickerMode = mode || 'insert';
+      _iconPickerElId = elId || null;
+      var hint = document.getElementById('icon-picker-hint');
+      if (hint) hint.textContent = mode === 'change' ? 'Click icon để thay đổi' : 'Click icon để chèn vào slide';
+      document.getElementById('icon-search').value = '';
+      buildIconGrid('');
+      var panel = document.getElementById('icon-picker');
+      panel.style.display = 'block';
+      /* position center-right */
+      panel.style.right = '20px';
+      panel.style.top = '50%';
+      panel.style.transform = 'translateY(-50%)';
+    }
+
+    function closeIconPicker() {
+      var panel = document.getElementById('icon-picker');
+      if (panel) panel.style.display = 'none';
+      _iconPickerElId = null;
+    }
+
+    function pickIcon(name) {
+      if (_iconPickerMode === 'change' && _iconPickerElId) {
+        /* Change existing icon element */
+        var sl = slides[current];
+        if (!sl) { closeIconPicker(); return; }
+        var elData = (sl.elements||[]).find(function(e){ return e.id === _iconPickerElId; });
+        if (elData) {
+          saveHistorySnapshot();
+          elData.content = name;
+          var stage = document.getElementById('slide-stage');
+          if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+          if (editorMode) attachEditorHandlers();
+          renderThumbnails();
+          autoSave();
+        }
+      } else {
+        /* Insert new icon element */
+        saveHistorySnapshot();
+        var sl = slides[current];
+        if (!sl) { closeIconPicker(); return; }
+        var uid = 'el_' + Date.now();
+        var t = deck.theme || {};
+        var accent = t.accent || '#6366f1';
+        var el = { id: uid, type: 'icon', x: 300, y: 220, w: 120, h: 120, z: 10,
+                   content: name,
+                   style: { fill: '#fff', bg: accent, radius: '50%' } };
+        if (!sl.elements) sl.elements = [];
+        sl.elements.push(el);
+        var stage = document.getElementById('slide-stage');
+        if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+        if (editorMode) attachEditorHandlers();
+        renderThumbnails();
+        autoSave();
+      }
+      closeIconPicker();
+    }
+
+    window.openIconPicker = openIconPicker;
+    window.closeIconPicker = closeIconPicker;
+    window.filterIcons = filterIcons;
+    window.pickIcon = pickIcon;
+
+    /* Close icon picker on outside click */
+    document.addEventListener('click', function(e) {
+      var p = document.getElementById('icon-picker');
+      if (p && p.style.display !== 'none' && !p.contains(e.target)) {
+        /* allow clicks on the insert panel to pass through */
+        var ip = document.getElementById('insert-panel');
+        if (ip && ip.contains(e.target)) return;
+        closeIconPicker();
+      }
+    });
 
     /* Close insert panel on outside click */
     document.addEventListener('click', function(e) {
