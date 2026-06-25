@@ -100,7 +100,7 @@ class Admin::ContentOutlinesController < Admin::BaseController
         new_el = new_els.find { |e| e["id"] == old_el["id"] }
         next unless new_el
         new_el["content"] = old_el["content"] if old_el["content"].present?
-        new_el["style"] = new_el["style"].merge(old_el["style"] || {}) if old_el["style"].present?
+        new_el["style"] = (new_el["style"] || {}).merge(old_el["style"] || {}) if old_el["style"].present?
         new_el["x"] = old_el["x"]; new_el["y"] = old_el["y"]
         new_el["w"] = old_el["w"]; new_el["h"] = old_el["h"]
       end
