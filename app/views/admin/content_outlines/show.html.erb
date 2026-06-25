@@ -947,7 +947,7 @@
       elData.style[prop] = value;
       /* re-render this slide to reflect change */
       var stage = document.getElementById('slide-stage');
-      if (stage) stage.innerHTML = renderSlide(si);
+      if (stage) { stage.innerHTML = renderSlide(si); applyPendingImages(); }
       if (editorMode) {
         attachEditorHandlers();
         /* re-select the element */
@@ -1098,8 +1098,17 @@
 
     /* Apply img src after innerHTML set (avoids data-URL parsing issues in innerHTML) */
     function applyPendingImages() {
+      if (!window._imgSrcMap) window._imgSrcMap = {};
+      /* Rebuild map from current slides data so it's always up-to-date */
+      slides.forEach(function(sl) {
+        (sl.elements || []).forEach(function(el) {
+          if (el.type === 'image' && el.src) {
+            window._imgSrcMap['vox-img-' + el.id] = el.src;
+          }
+        });
+      });
       document.querySelectorAll('img[data-pending-src]').forEach(function(img) {
-        var src = window._imgSrcMap && window._imgSrcMap[img.id];
+        var src = window._imgSrcMap[img.id];
         if (src) { img.src = src; img.removeAttribute('data-pending-src'); }
       });
     }
