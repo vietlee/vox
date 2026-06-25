@@ -680,8 +680,8 @@ class ContentOutlineGenerator
       heading_style(22, align: "center"), z: 2)
     if s["note"].present?
       els << el_rect("note_bg", LM, 4.45, CW, 0.68, t["card_bgs"][0], radius: 8)
-      els << el_text("note_txt", LM + 0.15, 4.55, CW - 0.30, 0.50, s["note"],
-        body_style(11, weight: 700))
+      els << el_text("note_txt", LM + 0.15, 4.45, CW - 0.30, 0.68, s["note"],
+        body_style(11, weight: 700).merge("valign" => "center"))
     end
     if s["footer"].present?
       els << el_text("footer", LM, SH - 0.28, 8.0, 0.25, s["footer"],

@@ -70,22 +70,27 @@
             <div style="position:relative;display:inline-block;">
               <button onclick="toggleThemeMenu(this)"
                       id="theme-btn"
-                      class="text-[12px] text-slate-500 hover:text-indigo-600 px-3 py-1 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors border-0 cursor-pointer">
-                🎨 Đổi màu
+                      class="text-[12px] font-semibold text-violet-700 hover:text-white px-3 py-1 bg-violet-100 hover:bg-violet-600 rounded-lg transition-colors border-0 cursor-pointer">
+                🎨 Đổi theme
               </button>
-              <div id="theme-menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:999;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:8px;min-width:200px;">
-                <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px 6px;">Chọn theme màu</div>
-                <% [["green","#064E3B","#10B981"],["blue","#1E3A5F","#3B82F6"],["purple","#3B0764","#A855F7"],
-                    ["red","#7F1D1D","#EF4444"],["teal","#134E4A","#0D9488"],["amber","#78350F","#F59E0B"],
-                    ["slate","#0F172A","#64748B"],["earth","#3B1F0A","#92400E"],["coral","#7F1D1D","#F43F5E"],
-                    ["ocean","#0C4A6E","#0369A1"],["berry","#500724","#DB2777"],["midnight","#0F0B2A","#4F46E5"]
-                ].each do |name, dark, accent| %>
+              <div id="theme-menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:10px;min-width:220px;">
+                <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px 8px;">Chọn theme</div>
+                <% [["green","#064E3B","#10B981","Nature"],["blue","#1E3A5F","#3B82F6","Corporate"],
+                    ["purple","#3B0764","#A855F7","Creative"],["red","#7F1D1D","#EF4444","Bold"],
+                    ["teal","#134E4A","#0D9488","Minimal"],["amber","#78350F","#F59E0B","Warm"],
+                    ["slate","#0F172A","#64748B","Executive"],["earth","#3B1F0A","#92400E","Earth"],
+                    ["coral","#7F1D1D","#F43F5E","Vibrant"],["ocean","#0C4A6E","#0369A1","Ocean"],
+                    ["berry","#500724","#DB2777","Berry"],["midnight","#020617","#4F46E5","Midnight"]
+                ].each do |name, dark, accent, label| %>
                   <button onclick="applyTheme('<%= name %>')"
-                          style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:8px;text-align:left;"
-                          onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">
-                    <span style="width:14px;height:14px;border-radius:50%;background:<%= dark %>;flex-shrink:0;"></span>
-                    <span style="width:14px;height:14px;border-radius:50%;background:<%= accent %>;flex-shrink:0;margin-left:-8px;border:2px solid #fff;"></span>
-                    <span style="font-size:12px;font-weight:500;color:#374151;text-transform:capitalize;margin-left:2px;"><%= name %></span>
+                          style="display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;text-align:left;"
+                          onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+                    <span style="display:flex;flex-shrink:0;">
+                      <span style="width:16px;height:16px;border-radius:50%;background:<%= dark %>;display:block;"></span>
+                      <span style="width:16px;height:16px;border-radius:50%;background:<%= accent %>;display:block;margin-left:-6px;border:2px solid #fff;"></span>
+                    </span>
+                    <span style="font-size:12px;font-weight:600;color:#1e293b;"><%= label %></span>
+                    <span style="font-size:10px;color:#94a3b8;text-transform:capitalize;margin-left:auto;"><%= name %></span>
                   </button>
                 <% end %>
               </div>
