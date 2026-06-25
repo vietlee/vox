@@ -76,6 +76,11 @@ class Admin::ContentOutlinesController < Admin::BaseController
     deck = gen.recompile(raw_slides, theme_name)
     html = "<div id='slide-deck-root' data-deck='#{ERB::Util.html_escape(deck.to_json)}'></div>"
     @outline.update!(slide_json: deck.to_json, content: html)
+
+    # Regenerate PPTX so downloads match the new theme
+    @outline.pptx_file.purge if @outline.pptx_file.attached?
+    gen.recompile_and_export(raw_slides, theme_name)
+
     render json: { deck: deck }
   rescue => e
     render json: { error: e.message }, status: 422

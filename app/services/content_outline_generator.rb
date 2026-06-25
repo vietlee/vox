@@ -3,55 +3,68 @@ class ContentOutlineGenerator
 
   SW = 10.0; SH = 5.625; LM = 0.60; CW = 8.80
 
+  # cover_style: visual layout for cover+summary slide (left/centered/minimal)
   DECK_THEMES = {
     "green"    => { "cover_bg" => "#064E3B", "primary" => "#10B981", "primary_dk" => "#065F46",
                     "primary_lt" => "#6EE7B7", "primary_xl" => "#D1FAE5",
                     "accent" => "#10B981", "card_bgs" => %w[#E8F5F0 #D1F5E0 #C8F5D4],
-                    "card_icons" => %w[#10B981 #047857 #065F46], "text_light" => "#A7F3D0" },
+                    "card_icons" => %w[#10B981 #047857 #065F46], "text_light" => "#A7F3D0",
+                    "cover_style" => "left" },
     "blue"     => { "cover_bg" => "#1E3A5F", "primary" => "#2563EB", "primary_dk" => "#1E40AF",
                     "primary_lt" => "#93C5FD", "primary_xl" => "#DBEAFE",
                     "accent" => "#3B82F6", "card_bgs" => %w[#EFF6FF #DBEAFE #E0EDFF],
-                    "card_icons" => %w[#3B82F6 #2563EB #1D4ED8], "text_light" => "#BFDBFE" },
+                    "card_icons" => %w[#3B82F6 #2563EB #1D4ED8], "text_light" => "#BFDBFE",
+                    "cover_style" => "left" },
     "purple"   => { "cover_bg" => "#3B0764", "primary" => "#9333EA", "primary_dk" => "#7E22CE",
                     "primary_lt" => "#C4B5FD", "primary_xl" => "#EDE9FE",
                     "accent" => "#A855F7", "card_bgs" => %w[#F5F3FF #EDE9FE #E9D5FF],
-                    "card_icons" => %w[#9333EA #7E22CE #6B21A8], "text_light" => "#DDD6FE" },
+                    "card_icons" => %w[#9333EA #7E22CE #6B21A8], "text_light" => "#DDD6FE",
+                    "cover_style" => "centered" },
     "red"      => { "cover_bg" => "#7F1D1D", "primary" => "#EF4444", "primary_dk" => "#DC2626",
                     "primary_lt" => "#FCA5A5", "primary_xl" => "#FEE2E2",
                     "accent" => "#F97316", "card_bgs" => %w[#FFF7ED #FEE2E2 #FFE4D6],
-                    "card_icons" => %w[#EF4444 #DC2626 #B91C1C], "text_light" => "#FECACA" },
+                    "card_icons" => %w[#EF4444 #DC2626 #B91C1C], "text_light" => "#FECACA",
+                    "cover_style" => "left" },
     "teal"     => { "cover_bg" => "#134E4A", "primary" => "#0D9488", "primary_dk" => "#0F766E",
                     "primary_lt" => "#5EEAD4", "primary_xl" => "#CCFBF1",
                     "accent" => "#14B8A6", "card_bgs" => %w[#F0FDFA #CCFBF1 #C7F5EE],
-                    "card_icons" => %w[#0D9488 #0F766E #115E59], "text_light" => "#99F6E4" },
+                    "card_icons" => %w[#0D9488 #0F766E #115E59], "text_light" => "#99F6E4",
+                    "cover_style" => "minimal" },
     "amber"    => { "cover_bg" => "#78350F", "primary" => "#F59E0B", "primary_dk" => "#D97706",
                     "primary_lt" => "#FCD34D", "primary_xl" => "#FEF3C7",
                     "accent" => "#F59E0B", "card_bgs" => %w[#FFFBEB #FEF3C7 #FDE68A],
-                    "card_icons" => %w[#F59E0B #D97706 #B45309], "text_light" => "#FDE68A" },
+                    "card_icons" => %w[#F59E0B #D97706 #B45309], "text_light" => "#FDE68A",
+                    "cover_style" => "centered" },
     "slate"    => { "cover_bg" => "#0F172A", "primary" => "#64748B", "primary_dk" => "#475569",
                     "primary_lt" => "#CBD5E1", "primary_xl" => "#F1F5F9",
                     "accent" => "#6366F1", "card_bgs" => %w[#F8FAFC #F1F5F9 #E9EEF4],
-                    "card_icons" => %w[#6366F1 #4F46E5 #4338CA], "text_light" => "#E2E8F0" },
+                    "card_icons" => %w[#6366F1 #4F46E5 #4338CA], "text_light" => "#E2E8F0",
+                    "cover_style" => "minimal" },
     "earth"    => { "cover_bg" => "#3B1F0A", "primary" => "#92400E", "primary_dk" => "#78350F",
                     "primary_lt" => "#D97706", "primary_xl" => "#FEF3C7",
                     "accent" => "#B45309", "card_bgs" => %w[#FDF6EE #FEF3C7 #FEE0B6],
-                    "card_icons" => %w[#92400E #78350F #6B3B1F], "text_light" => "#FDE68A" },
+                    "card_icons" => %w[#92400E #78350F #6B3B1F], "text_light" => "#FDE68A",
+                    "cover_style" => "left" },
     "coral"    => { "cover_bg" => "#7F1D1D", "primary" => "#F43F5E", "primary_dk" => "#E11D48",
                     "primary_lt" => "#FDA4AF", "primary_xl" => "#FFE4E6",
                     "accent" => "#FB7185", "card_bgs" => %w[#FFF1F2 #FFE4E6 #FECDD3],
-                    "card_icons" => %w[#F43F5E #E11D48 #BE123C], "text_light" => "#FCA5AF" },
+                    "card_icons" => %w[#F43F5E #E11D48 #BE123C], "text_light" => "#FCA5AF",
+                    "cover_style" => "centered" },
     "ocean"    => { "cover_bg" => "#0C4A6E", "primary" => "#0369A1", "primary_dk" => "#075985",
                     "primary_lt" => "#7DD3FC", "primary_xl" => "#E0F2FE",
                     "accent" => "#0EA5E9", "card_bgs" => %w[#F0F9FF #E0F2FE #BAE6FD],
-                    "card_icons" => %w[#0369A1 #075985 #0C4A6E], "text_light" => "#BAE6FD" },
+                    "card_icons" => %w[#0369A1 #075985 #0C4A6E], "text_light" => "#BAE6FD",
+                    "cover_style" => "left" },
     "berry"    => { "cover_bg" => "#500724", "primary" => "#DB2777", "primary_dk" => "#BE185D",
                     "primary_lt" => "#F9A8D4", "primary_xl" => "#FCE7F3",
                     "accent" => "#EC4899", "card_bgs" => %w[#FDF2F8 #FCE7F3 #FBCFE8],
-                    "card_icons" => %w[#DB2777 #BE185D #9D174D], "text_light" => "#F9A8D4" },
+                    "card_icons" => %w[#DB2777 #BE185D #9D174D], "text_light" => "#F9A8D4",
+                    "cover_style" => "centered" },
     "midnight" => { "cover_bg" => "#020617", "primary" => "#4F46E5", "primary_dk" => "#3730A3",
                     "primary_lt" => "#A5B4FC", "primary_xl" => "#E0E7FF",
                     "accent" => "#818CF8", "card_bgs" => %w[#EEF2FF #E0E7FF #D4DBFF],
-                    "card_icons" => %w[#4F46E5 #3730A3 #312E81], "text_light" => "#C7D2FE" },
+                    "card_icons" => %w[#4F46E5 #3730A3 #312E81], "text_light" => "#C7D2FE",
+                    "cover_style" => "minimal" },
   }.freeze
 
   def self.call(outline)   = new(outline).call
@@ -63,6 +76,13 @@ class ContentOutlineGenerator
 
   def recompile(raw_slides, theme_name)
     build_deck_schema(raw_slides, theme_name)
+  end
+
+  def recompile_and_export(raw_slides, theme_name)
+    deck = build_deck_schema(raw_slides, theme_name)
+    pptx_path = generate_pptx(deck)
+    attach_pptx(pptx_path) if pptx_path
+    deck
   end
 
   def call
@@ -676,7 +696,7 @@ class ContentOutlineGenerator
   # ─── Cover ──────────────────────────────────────────────────────────────────
 
   def compile_cover(s, t)
-    style = s.dig("style", "cover_style") || "left"
+    style = t["cover_style"] || s.dig("style", "cover_style") || "left"
     icon  = s.dig("style", "icon") || "rocket"
     cat   = s.dig("style", "category") || ""
     els   = []
@@ -720,8 +740,16 @@ class ContentOutlineGenerator
   # ─── Summary ────────────────────────────────────────────────────────────────
 
   def compile_summary(s, t, idx, total)
-    style = s.dig("style", "summary_style") || "cta"
+    style = t["cover_style"] == "minimal" ? "minimal" : (s.dig("style", "summary_style") || "cta")
     icon  = s.dig("style", "icon") || "rocket"
+    # Extract key bullets from any layout format the AI may have used
+    if (s["bullets"] || []).empty? || s["bullets"].any? { |b| b.to_s.start_with?("COL1:", "COL2:") }
+      extracted = []
+      extracted += (s["col1"] || []).first(2)
+      extracted += (s["col2"] || []).first(2)
+      extracted += (s["items"] || []).map { |it| it.is_a?(Hash) ? (it["title"] || it["label"] || it.values.first).to_s : it.to_s }.first(3)
+      s = s.merge("bullets" => extracted.reject(&:blank?).first(4)) if extracted.any?
+    end
     els   = []
     els << el_ellipse("deco1", -1.5, 3.5, 8.0, 8.0, t["accent"], opacity: 0.35)
     els << el_ellipse("deco2", 8.5, -1.5, 4.5, 4.5, t["primary_dk"], opacity: 0.5)
