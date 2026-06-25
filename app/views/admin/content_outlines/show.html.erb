@@ -73,20 +73,28 @@
                       class="text-[12px] font-semibold text-violet-700 hover:text-white px-3 py-1 bg-violet-100 hover:bg-violet-600 rounded-lg transition-colors border-0 cursor-pointer">
                 🎨 Đổi theme
               </button>
-              <div id="theme-menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:10px;min-width:220px;">
+              <div id="theme-menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:10px;min-width:240px;max-height:420px;overflow-y:auto;">
                 <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px 8px;">Chọn theme</div>
-                <% [["green","#064E3B","#10B981","Nature","Flat cards"],
-                    ["blue","#1E3A5F","#3B82F6","Corporate","Shadow cards"],
-                    ["purple","#3B0764","#A855F7","Creative","Glass effect"],
-                    ["red","#7F1D1D","#EF4444","Bold","Bold accent"],
-                    ["teal","#134E4A","#0D9488","Minimal","Outlined cards"],
-                    ["amber","#78350F","#F59E0B","Warm","Wave deco"],
-                    ["slate","#0F172A","#64748B","Executive","Shadow + Dots"],
-                    ["earth","#3B1F0A","#92400E","Earth","Bold + Wave"],
-                    ["coral","#7F1D1D","#F43F5E","Vibrant","Glass + Diagonal"],
-                    ["ocean","#0C4A6E","#0369A1","Ocean","Shadow + Wave"],
-                    ["berry","#500724","#DB2777","Berry","Glass + Circles"],
-                    ["midnight","#020617","#4F46E5","Midnight","Outlined + Dots"]
+                <% [["green","#064E3B","#10B981","Nature","Flat · Circles"],
+                    ["blue","#1E3A5F","#60A5FA","Corporate","Shadow · Circles"],
+                    ["purple","#3B0764","#C084FC","Creative","Glass · Circles"],
+                    ["red","#7F1D1D","#FB923C","Bold","Bold · Diagonal"],
+                    ["teal","#134E4A","#2DD4BF","Minimal","Outlined · Clean"],
+                    ["amber","#78350F","#FBBF24","Warm","Flat · Wave"],
+                    ["slate","#0F172A","#818CF8","Executive","Shadow · Dots"],
+                    ["earth","#3B1F0A","#D97706","Earth","Bold · Wave"],
+                    ["coral","#881337","#FB7185","Vibrant","Glass · Diagonal"],
+                    ["ocean","#0C4A6E","#38BDF8","Ocean","Shadow · Wave"],
+                    ["berry","#500724","#F472B6","Berry","Glass · Circles"],
+                    ["midnight","#0F0B2D","#818CF8","Midnight","Outlined · Dots"],
+                    ["rose","#9F1239","#FB923C","Rose","Bold · Diagonal"],
+                    ["forest","#14532D","#4ADE80","Forest","Shadow · Wave"],
+                    ["gold","#451A03","#FCD34D","Gold","Bold · Diagonal"],
+                    ["ice","#0369A1","#7DD3FC","Ice","Glass · Wave"],
+                    ["charcoal","#1F2937","#F59E0B","Charcoal","Bold · Dots"],
+                    ["lavender","#4C1D95","#A78BFA","Lavender","Glass · Circles"],
+                    ["sunset","#C2410C","#FB923C","Sunset","Bold · Diagonal"],
+                    ["jade","#064E3B","#34D399","Jade","Outlined · Clean"]
                 ].each do |name, dark, accent, label, subtitle| %>
                   <button onclick="applyTheme('<%= name %>')"
                           style="display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;text-align:left;"
@@ -113,6 +121,11 @@
         <!-- WYSIWYG mode bar -->
         <div id="wysiwyg-bar" style="display:none;background:#4f46e5;color:#fff;padding:5px 12px;font-size:11px;font-weight:600;align-items:center;gap:8px;flex-wrap:wrap;">
           <span style="flex:1;min-width:160px;">✏️ Kéo di chuyển · Kéo góc resize · Double-click sửa text</span>
+          <!-- Slide background color -->
+          <label style="background:rgba(255,255,255,.18);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;" title="Đổi màu nền slide hiện tại">
+            🎨 Màu nền
+            <input type="color" id="bg-color-input" style="width:20px;height:20px;border:none;border-radius:3px;cursor:pointer;padding:0;background:none;" onchange="applySlideBackground(this.value)" title="Chọn màu nền">
+          </label>
           <!-- Image insert -->
           <label style="background:rgba(255,255,255,.18);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;">
             🖼️ Chèn ảnh
@@ -515,7 +528,7 @@
       updateDots();
       updateCounter();
       rescaleCanvas();
-      if (editorMode) attachEditorHandlers();
+      if (editorMode) { attachEditorHandlers(); syncBgPicker(); }
     }
 
     function prevSlide() { goToSlide(current - 1); }
@@ -549,6 +562,7 @@
         btn.style.fontWeight = editorMode ? '700' : '';
       }
       if (bar) bar.style.display = editorMode ? 'flex' : 'none';
+      if (editorMode) syncBgPicker();
       if (stage) {
         stage.style.cursor = editorMode ? 'default' : 'default';
         if (editorMode) attachEditorHandlers();
@@ -799,6 +813,24 @@
     }
 
     /* ─── Image upload + insert ─── */
+    /* Change background color of current slide */
+    function applySlideBackground(color) {
+      if (!slides[current]) return;
+      slides[current].background = { type: 'solid', color: color };
+      var stage = document.getElementById('slide-stage');
+      if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+      if (editorMode) attachEditorHandlers();
+      scheduleSave();
+    }
+
+    /* Sync color picker to current slide's background when switching slides */
+    function syncBgPicker() {
+      var inp = document.getElementById('bg-color-input');
+      if (!inp || !slides[current]) return;
+      var bg = slides[current].background;
+      if (bg && bg.type === 'solid' && bg.color) inp.value = bg.color;
+    }
+
     /* Apply img src after innerHTML set (avoids data-URL parsing issues in innerHTML) */
     function applyPendingImages() {
       document.querySelectorAll('img[data-pending-src]').forEach(function(img) {
