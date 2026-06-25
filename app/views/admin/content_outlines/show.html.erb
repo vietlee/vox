@@ -635,6 +635,13 @@
     function attachEditorHandlers() {
       var stage = document.getElementById('slide-stage');
       if (!stage) return;
+      /* Click on empty slide area → deselect */
+      stage.onclick = function(e) {
+        if (!editorMode) return;
+        if (!e.target.closest('.slide-el') && !e.target.closest('.sel-handle')) {
+          clearSelection();
+        }
+      };
       stage.querySelectorAll('.slide-el').forEach(function(domEl) {
         domEl.style.cursor = 'move';
         domEl.style.outline = '1px dashed transparent';
@@ -1152,6 +1159,17 @@
     function redo() { if (historyIdx < history.length - 1) { historyIdx++; deck = JSON.parse(history[historyIdx]); slides = deck.slides || []; goToSlide(current); } }
 
     /* ─── Keyboard ─── */
+    /* Click outside slide stage → deselect element + hide toolbar */
+    document.addEventListener('click', function(e) {
+      if (!editorMode || !selectedElId) return;
+      var stage = document.getElementById('slide-stage');
+      var tb = document.getElementById('txt-toolbar');
+      /* ignore clicks inside stage, toolbar, or text color panel */
+      if (stage && stage.contains(e.target)) return;
+      if (tb && tb.contains(e.target)) return;
+      clearSelection();
+    });
+
     document.addEventListener('keydown', function(e) {
       if (e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable)) return;
       if ((e.key === 'Delete' || e.key === 'Backspace') && editorMode && selectedElId) {
