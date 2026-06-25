@@ -170,43 +170,79 @@ def render_element(slide, el, slide_idx):
     elif el_type == 'chart_donut':
         render_donut_chart(slide, el)
 
-def enable_data_labels(series, show_value=True, show_cat=False, position=None):
-    """Enable data labels on a chart series via XML."""
+def set_chart_datalabels(chart_elem, show_val=True, show_cat=False, show_pct=False, font_size_pt=9):
+    """Set data labels at chart level via XML — overrides series-level defaults."""
     try:
         from pptx.oxml.ns import qn
         import lxml.etree as etree
-        spPr = series._element
-        # Find or create dLbls at series level
-        dLbls = spPr.find(qn('c:dLbls'))
-        if dLbls is None:
-            dLbls = etree.SubElement(spPr, qn('c:dLbls'))
-        dLbls.clear()
+        # Work on the chart XML element (c:chart)
+        plotArea = chart_elem.find('.//' + qn('c:plotArea'))
+        if plotArea is None:
+            return
+        # Remove existing chart-level dLbls
+        for old in plotArea.findall(qn('c:dLbls')):
+            plotArea.remove(old)
+        # Add fresh dLbls
+        dLbls = etree.SubElement(plotArea, qn('c:dLbls'))
         numFmt = etree.SubElement(dLbls, qn('c:numFmt'))
-        numFmt.set('formatCode', 'General')
-        numFmt.set('sourceLinked', '0')
-        spPrEl = etree.SubElement(dLbls, qn('c:spPr'))
+        numFmt.set('formatCode', 'General'); numFmt.set('sourceLinked', '0')
+        # Text style: font size
         txPr = etree.SubElement(dLbls, qn('c:txPr'))
         bodyPr = etree.SubElement(txPr, qn('a:bodyPr'))
-        lstStyle = etree.SubElement(txPr, qn('a:lstStyle'))
+        etree.SubElement(txPr, qn('a:lstStyle'))
         p = etree.SubElement(txPr, qn('a:p'))
         pPr = etree.SubElement(p, qn('a:pPr'))
         defRPr = etree.SubElement(pPr, qn('a:defRPr'))
-        defRPr.set('sz', '900')  # 9pt
-        if show_cat:
-            catV = etree.SubElement(dLbls, qn('c:showCatName'))
-            catV.set('val', '1')
-        showVal = etree.SubElement(dLbls, qn('c:showVal'))
-        showVal.set('val', '1' if show_value else '0')
-        showSerName = etree.SubElement(dLbls, qn('c:showSerName'))
-        showSerName.set('val', '0')
-        showLegendKey = etree.SubElement(dLbls, qn('c:showLegendKey'))
-        showLegendKey.set('val', '0')
-        showPercent = etree.SubElement(dLbls, qn('c:showPercent'))
-        showPercent.set('val', '0')
-        showBubbleSize = etree.SubElement(dLbls, qn('c:showBubbleSize'))
-        showBubbleSize.set('val', '0')
-    except Exception as e:
-        print(f'[PPTX] data labels error: {e}', file=sys.stderr)
+        defRPr.set('sz', str(int(font_size_pt * 100)))  # hundredths of a point
+        # Show flags — ALL must be explicit to avoid Office defaults
+        for tag, val in [
+            ('c:showLegendKey', '0'), ('c:showVal', '1' if show_val else '0'),
+            ('c:showCatName', '1' if show_cat else '0'), ('c:showSerName', '0'),
+            ('c:showPercent', '1' if show_pct else '0'), ('c:showBubbleSize', '0'),
+        ]:
+            e = etree.SubElement(dLbls, qn(tag)); e.set('val', val)
+    except Exception as ex:
+        print(f'[PPTX] datalabels error: {ex}', file=sys.stderr)
+
+def set_series_color(series, hex_color):
+    """Set solid fill on all data points and the series itself."""
+    try:
+        rgb = safe_color(hex_color)
+        fill = series.format.fill
+        fill.solid()
+        fill.fore_color.rgb = rgb
+    except Exception as ex:
+        print(f'[PPTX] series color error: {ex}', file=sys.stderr)
+
+def set_point_colors(series, colors):
+    """Color individual data points (bars) with per-point fills via XML."""
+    try:
+        from pptx.oxml.ns import qn
+        import lxml.etree as etree
+        ser_el = series._element
+        for idx, hex_c in enumerate(colors):
+            # Find or create dPt for this index
+            dPt = None
+            for existing in ser_el.findall(qn('c:dPt')):
+                idx_el = existing.find(qn('c:idx'))
+                if idx_el is not None and idx_el.get('val') == str(idx):
+                    dPt = existing; break
+            if dPt is None:
+                dPt = etree.SubElement(ser_el, qn('c:dPt'))
+                idx_el = etree.SubElement(dPt, qn('c:idx'))
+                idx_el.set('val', str(idx))
+            # Set fill
+            spPr = dPt.find(qn('c:spPr'))
+            if spPr is None:
+                spPr = etree.SubElement(dPt, qn('c:spPr'))
+            solidFill = spPr.find(qn('a:solidFill'))
+            if solidFill is not None:
+                spPr.remove(solidFill)
+            solidFill = etree.SubElement(spPr, qn('a:solidFill'))
+            srgb = etree.SubElement(solidFill, qn('a:srgbClr'))
+            srgb.set('val', hex_c.lstrip('#'))
+    except Exception as ex:
+        print(f'[PPTX] point colors error: {ex}', file=sys.stderr)
 
 def render_bar_chart(slide, el):
     from pptx.chart.data import ChartData
@@ -215,20 +251,34 @@ def render_bar_chart(slide, el):
     chart_info = el.get('chart', {})
     data_arr = chart_info.get('data', [])
     if not data_arr: return
+    # Get theme colors from the deck global (passed via el's theme_colors field or fallback)
+    theme_colors = el.get('_theme_colors') or ['#6366F1','#8B5CF6','#A78BFA','#4F46E5','#7C3AED','#6D28D9']
+
     chart_data = ChartData()
     chart_data.categories = [str(d.get('label','')) for d in data_arr]
-    chart_data.add_series('', [d.get('value',0) for d in data_arr])
-    graphic_frame = slide.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, I(x), I(y), I(w), I(h), chart_data)
+    chart_data.add_series('', [float(d.get('value', 0)) for d in data_arr])
+
+    graphic_frame = slide.shapes.add_chart(
+        XL_CHART_TYPE.COLUMN_CLUSTERED, I(x), I(y), I(w), I(h), chart_data)
     chart = graphic_frame.chart
     chart.has_legend = False
     chart.has_title = False
-    plot = chart.plots[0]
-    plot.has_data_labels = True
+
+    # Remove chart border
+    try:
+        graphic_frame.line.width = 0
+    except Exception:
+        pass
+
     series = chart.series[0]
-    fill = series.format.fill
-    fill.solid()
-    fill.fore_color.rgb = RGBColor(0x63, 0x66, 0xF1)
-    enable_data_labels(series)
+    # Base series color = first theme color
+    set_series_color(series, theme_colors[0])
+    # Per-point colors (cycling through theme palette)
+    point_colors = [theme_colors[i % len(theme_colors)] for i in range(len(data_arr))]
+    set_point_colors(series, point_colors)
+
+    # Data labels — value only, no category
+    set_chart_datalabels(chart._element, show_val=True, show_cat=False)
 
 def render_donut_chart(slide, el):
     from pptx.chart.data import ChartData
@@ -237,17 +287,25 @@ def render_donut_chart(slide, el):
     chart_info = el.get('chart', {})
     data_arr = chart_info.get('data', [])
     if not data_arr: return
+    theme_colors = el.get('_theme_colors') or ['#6366F1','#8B5CF6','#A78BFA','#4F46E5','#7C3AED','#6D28D9']
+
     chart_data = ChartData()
     chart_data.categories = [str(d.get('label','')) for d in data_arr]
-    chart_data.add_series('', [d.get('value',0) for d in data_arr])
-    graphic_frame = slide.shapes.add_chart(XL_CHART_TYPE.DOUGHNUT, I(x), I(y), I(w), I(h), chart_data)
+    chart_data.add_series('', [float(d.get('value', 0)) for d in data_arr])
+
+    graphic_frame = slide.shapes.add_chart(
+        XL_CHART_TYPE.DOUGHNUT, I(x), I(y), I(w), I(h), chart_data)
     chart = graphic_frame.chart
     chart.has_legend = True
     chart.has_title = False
-    plot = chart.plots[0]
-    plot.has_data_labels = True
+
     series = chart.series[0]
-    enable_data_labels(series, show_value=True, show_cat=True)
+    set_series_color(series, theme_colors[0])
+    point_colors = [theme_colors[i % len(theme_colors)] for i in range(len(data_arr))]
+    set_point_colors(series, point_colors)
+
+    # Data labels — value + category for donut
+    set_chart_datalabels(chart._element, show_val=True, show_cat=True, show_pct=False)
 
 def set_slide_background(slide, background):
     bg_type  = background.get('type','solid')

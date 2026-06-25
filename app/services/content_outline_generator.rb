@@ -219,6 +219,7 @@ class ContentOutlineGenerator
         TỐI ĐA 2 items stats. GIÁ TRỊ phải NGẮN (tối đa 6 ký tự): "50K+", "200K", "87%".
         MÔ TẢ phải ngắn: tối đa 8 từ.
         KẾT HỢP CHART: Thêm CHART_ITEMS dạng "- SỐ :: NHÃN" (tối đa 6 điểm) và CHART_LABEL.
+        QUY TẮC: Tất cả CHART_ITEMS phải > 0, thể hiện xu hướng tăng/thay đổi rõ ràng — KHÔNG để giá trị 0.
         Stats hiển thị bên TRÁI (dark cards), chart bên PHẢI.
         Ví dụ:
         - 50K+ :: Người dùng hoạt động hàng tháng (MAU)
@@ -235,7 +236,9 @@ class ContentOutlineGenerator
       LAYOUT: chart
         Khi nào dùng: so sánh theo thời gian, tiến độ tăng trưởng
         Format: mỗi dòng "- SỐ :: NHÃN" (tối đa 6 cột, dùng STYLE: chart_type=line hoặc chart_type=bar)
-        Ví dụ:
+        QUY TẮC QUAN TRỌNG: TẤT CẢ các giá trị phải > 0 và có sự chênh lệch rõ ràng. KHÔNG dùng 0 làm giá trị.
+        Nếu dữ liệu thực tế không có → dùng giá trị ƯỚC TÍNH hợp lý với xu hướng rõ ràng.
+        Ví dụ (xu hướng tăng):
         - 45 :: Quý 1
         - 62 :: Quý 2
         - 78 :: Quý 3
@@ -629,9 +632,12 @@ class ContentOutlineGenerator
       "style" => { "stroke" => color, "strokeWidth" => width } }
   end
 
-  def el_chart(id, x, y, w, h, chart_type, data, label: nil)
-    { "id" => id, "type" => "chart_#{chart_type}", "x" => x, "y" => y, "w" => w, "h" => h, "z" => 2,
-      "chart" => { "type" => chart_type, "data" => data, "label" => label } }
+  def el_chart(id, x, y, w, h, chart_type, data, label: nil, theme: nil)
+    el = { "id" => id, "type" => "chart_#{chart_type}", "x" => x, "y" => y, "w" => w, "h" => h, "z" => 2,
+           "chart" => { "type" => chart_type, "data" => data, "label" => label } }
+    # Embed theme colors so PPTX generator can use them without a separate lookup
+    el["_theme_colors"] = theme["card_icons"] if theme
+    el
   end
 
   def heading_style(size, color: "#1F2A44", align: "left", weight: 700, line_height: 1.2)
@@ -857,7 +863,7 @@ class ContentOutlineGenerator
         els.concat(stat_card("sc#{i}", LM, cy, 2.90, ch, it["value"], it["label"], ac, t))
       end
       chart_h = bot - 1.70
-      els << el_chart("chart", LM + 3.05, 1.70, CW - 3.05, chart_h, "bar", chart_items, label: s["chart_label"])
+      els << el_chart("chart", LM + 3.05, 1.70, CW - 3.05, chart_h, "bar", chart_items, label: s["chart_label"], theme: t)
     elsif n <= 2
       n.times do |i|
         it = items[i]; ac = t["card_icons"][i]
@@ -895,7 +901,7 @@ class ContentOutlineGenerator
 
   def compile_chart(s, t, has_note, bot)
     items = s["items"] || s["bullets"]&.map { |b| p = b.split("::"); { "value" => p[0].to_i, "label" => p[1]&.strip || b } } || []
-    [el_chart("chart", LM, 1.70, CW, bot - 1.70, s.dig("style", "chart_type") || "bar", items)]
+    [el_chart("chart", LM, 1.70, CW, bot - 1.70, s.dig("style", "chart_type") || "bar", items, theme: t)]
   end
 
   # ─── Donut ──────────────────────────────────────────────────────────────────
@@ -903,7 +909,7 @@ class ContentOutlineGenerator
   def compile_donut(s, t, has_note, bot)
     items = s["items"] || []
     els = [el_chart("donut", LM, 1.65, 4.50, bot - 1.65, "donut", items,
-      label: "#{s['center_text']}|#{s['center_sub']}")]
+      label: "#{s['center_text']}|#{s['center_sub']}", theme: t)]
     legend_start = 1.65; item_h = [[0.80, (bot - legend_start) / [items.length, 1].max].min, 0.40].max
     items.first(6).each_with_index do |it, i|
       ac = t["card_icons"][i % 3]; cy = legend_start + i * item_h
