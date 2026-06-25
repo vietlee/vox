@@ -767,8 +767,7 @@ class ContentOutlineGenerator
       end
     when "minimal"
       els << el_rect("ibox", LM, 0.75, 0.85, 0.85, t["primary"], z: 2, radius: 12)
-      els << el_text("ico_inner", LM + 0.05, 0.80, 0.75, 0.75, "", {}, z: 3)
-      els["ico_inner_icon"] = icon  # placeholder for icon within rect
+      els << el_icon("ico_inner", LM + 0.18, 0.85, 0.50, icon, "#fff", t["primary"], z: 3)
       els << el_text("title", LM, 1.80, CW, 1.60, s["title"] || "",
         heading_style(32, color: "#fff", line_height: 1.15))
       (s["bullets"] || []).first(3).each_with_index do |b, i|
