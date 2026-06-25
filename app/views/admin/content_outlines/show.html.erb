@@ -3005,6 +3005,13 @@
 
     saveHistorySnapshot();
     goToSlide(0);
+
+    /* ResizeObserver on the column: fires whenever its width changes
+       (sidebar toggle, window resize) — no timing guesswork */
+    var _viewerCol = document.getElementById('slide-viewer-col');
+    if (_viewerCol && window.ResizeObserver) {
+      new ResizeObserver(function(){ rescaleCanvas(); }).observe(_viewerCol);
+    }
     window.addEventListener('resize', rescaleCanvas);
 
   })();
