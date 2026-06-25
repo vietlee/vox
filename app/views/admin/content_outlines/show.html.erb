@@ -352,7 +352,7 @@
             </div>
           </div>
           <!-- Element background color button (integrated into toolbar) -->
-          <div style="width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
+          <div id="tt-sep-bg" style="width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
           <div style="position:relative;" id="tt-bg-wrap">
             <button id="tt-bg-btn" onclick="toggleElBgDropdown()" title="Màu nền block"
               style="background:#334155;border:none;color:#fff;border-radius:5px;height:28px;padding:0 7px;cursor:pointer;display:flex;align-items:center;gap:4px;flex-shrink:0;">
@@ -372,6 +372,26 @@
                 </button>
               </div>
             </div>
+          <!-- Size + Z-order section (shown for all element types) -->
+          <div id="tt-sep-dims" style="width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
+          <div id="tt-dims" style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+              <span style="font-size:7px;color:#64748b;line-height:1;">W</span>
+              <input id="tt-w" type="number" oninput="setPosVal('w',this.value)" title="Chiều rộng" style="width:44px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#fff;font-size:10px;padding:2px 4px;outline:none;text-align:center;">
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+              <span style="font-size:7px;color:#64748b;line-height:1;">H</span>
+              <input id="tt-h" type="number" oninput="setPosVal('h',this.value)" title="Chiều cao" style="width:44px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#fff;font-size:10px;padding:2px 4px;outline:none;text-align:center;">
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+              <span style="font-size:7px;color:#64748b;line-height:1;">Op%</span>
+              <input id="tt-op" type="number" min="0" max="100" oninput="setPosVal('opacity',this.value/100)" title="Opacity" style="width:38px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#fff;font-size:10px;padding:2px 4px;outline:none;text-align:center;">
+            </div>
+          </div>
+          <div id="tt-sep-z" style="width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
+          <div id="tt-zorder" style="display:flex;gap:1px;flex-shrink:0;">
+            <button onclick="zOrder('forward')" title="Lên lớp (Ctrl+↑)" style="background:#334155;border:none;color:#fff;border-radius:5px;width:24px;height:28px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;">↑</button>
+            <button onclick="zOrder('backward')" title="Xuống lớp (Ctrl+↓)" style="background:#334155;border:none;color:#fff;border-radius:5px;width:24px;height:28px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;">↓</button>
           </div>
         </div>
         <div style="position:relative; padding-bottom:56.25%; background:#0f172a; overflow:hidden;">
@@ -1374,7 +1394,10 @@
       _selectedTextEl = domEl;
       /* Restore all toolbar children (might have been hidden by showBgOnlyToolbar) */
       var tbR = document.getElementById('txt-toolbar');
-      if (tbR) Array.from(tbR.children).forEach(function(c){ c.style.display = ''; });
+      if (tbR) Array.from(tbR.children).forEach(function(c){
+        if (c.id === 'tt-dims' || c.id === 'tt-zorder') c.style.display = 'flex';
+        else c.style.display = '';
+      });
       var si = parseInt(domEl.dataset.si);
       var ei = domEl.dataset.ei;
       var elData = slides[si] && slides[si].elements.find(function(e){ return e.id === ei; });
@@ -1428,13 +1451,12 @@
 
     function showBgOnlyToolbar(domEl) {
       showElBgBar(domEl);
-      /* Show toolbar positioned near element, only with the Nền button visible */
       var tb = document.getElementById('txt-toolbar');
       if (!tb) return;
       var rect = domEl.getBoundingClientRect();
-      /* Hide all children except the bg wrap */
+      var SHOW = {'tt-bg-wrap':1,'tt-sep-bg':1,'tt-sep-dims':1,'tt-dims':1,'tt-sep-z':1,'tt-zorder':1};
       Array.from(tb.children).forEach(function(c){
-        c.style.display = c.id === 'tt-bg-wrap' ? 'flex' : 'none';
+        c.style.display = SHOW[c.id] ? (c.id==='tt-dims'||c.id==='tt-zorder' ? 'flex' : '') : 'none';
       });
       tb.style.display = 'flex';
       tb.style.left = Math.max(8, rect.left) + 'px';
@@ -2727,27 +2749,20 @@
        POSITION / SIZE PANEL
     ═══════════════════════════════════════════════════ */
     function updatePosPanel() {
+      /* Keep legacy pos-panel hidden — values now live in the unified toolbar */
       var panel = document.getElementById('pos-panel');
-      if (!panel) return;
-      if (!editorMode || !selectedElId) { panel.style.display = 'none'; return; }
+      if (panel) panel.style.display = 'none';
+      if (!editorMode || !selectedElId) return;
       var sl = slides[current];
       var el = sl ? (sl.elements||[]).find(function(e){ return e.id === selectedElId; }) : null;
-      if (!el) { panel.style.display = 'none'; return; }
-      document.getElementById('pp-x').value = Math.round(el.x || 0);
-      document.getElementById('pp-y').value = Math.round(el.y || 0);
-      document.getElementById('pp-w').value = Math.round(el.w || 0);
-      document.getElementById('pp-h').value = Math.round(el.h || 0);
+      if (!el) return;
+      var tw = document.getElementById('tt-w');
+      var th = document.getElementById('tt-h');
+      var top = document.getElementById('tt-op');
+      if (tw) tw.value = Math.round(el.w || 0);
+      if (th) th.value = Math.round(el.h || 0);
       var op = Math.round(((el.style && el.style.opacity !== undefined) ? el.style.opacity : 1) * 100);
-      document.getElementById('pp-opacity').value = op;
-      document.getElementById('pp-opacity-val').textContent = op + '%';
-      /* Position panel at bottom-right of wysiwyg bar */
-      var bar = document.getElementById('wysiwyg-bar');
-      if (bar) {
-        var rect = bar.getBoundingClientRect();
-        panel.style.left = (rect.right - 212) + 'px';
-        panel.style.top = (rect.bottom + 6) + 'px';
-      }
-      panel.style.display = 'block';
+      if (top) top.value = op;
     }
     function setPosVal(prop, val) {
       if (!selectedElId) return;
