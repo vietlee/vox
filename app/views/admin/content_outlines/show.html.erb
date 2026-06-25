@@ -1042,21 +1042,20 @@
       var viewer = document.getElementById('slide-viewer');
       var stage  = document.getElementById('slide-stage');
       if (!viewer || !stage) return;
-      var vw = viewer.clientWidth, vh = viewer.clientHeight;
-      if (!vw || !vh) return;
-      var scaleW = vw / 1280;
-      var scaleH = vh / 720;
-      var scale = Math.min(scaleW, scaleH);
-      var scaledW = Math.round(1280 * scale);
-      var scaledH = Math.round(720 * scale);
-      var ml = Math.round((vw - scaledW) / 2);
-      var mt = Math.round((vh - scaledH) / 2);
+      var vw = viewer.clientWidth;
+      if (!vw) return;
+      /* Always fill full width — slide is 1280×720 (16:9) */
+      var scale = vw / 1280;
       stage.style.transformOrigin = 'top left';
       stage.style.transform = 'scale(' + scale + ')';
       stage.style.position = 'absolute';
-      stage.style.left = ml + 'px';
-      stage.style.top  = Math.max(0, mt) + 'px';
+      stage.style.left = '0';
+      stage.style.top  = '0';
       stage.style.margin = '0';
+      /* Adjust parent height to match scaled slide height */
+      var parent = viewer.parentElement;
+      if (parent) parent.style.paddingBottom = '';
+      viewer.style.height = Math.round(720 * scale) + 'px';
     }
 
     /* ─── Navigation ─── */
