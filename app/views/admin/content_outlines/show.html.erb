@@ -1030,6 +1030,21 @@
     /* ─── Keyboard ─── */
     document.addEventListener('keydown', function(e) {
       if (e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable)) return;
+      if ((e.key === 'Delete' || e.key === 'Backspace') && editorMode && selectedElId) {
+        e.preventDefault();
+        var sl = slides[current];
+        if (sl) {
+          sl.elements = sl.elements.filter(function(el) { return el.id !== selectedElId; });
+          selectedElId = null;
+          hideTextToolbar();
+          var stage = document.getElementById('slide-stage');
+          if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+          attachEditorHandlers();
+          scheduleSave();
+        }
+        return;
+      }
+      if (editorMode && selectedElId) return; /* don't navigate when element selected */
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); nextSlide(); }
       if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); prevSlide(); }
       if ((e.ctrlKey||e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
