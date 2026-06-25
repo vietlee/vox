@@ -702,6 +702,18 @@ class ContentOutlineGenerator
 
   private
 
+  # Strip [icon=name] tag from title and extract icon — handles both raw AI output
+  # and already-parsed bullet_items that may still contain the tag in title.
+  def normalize_bullet_items(items)
+    items.map do |it|
+      title = it["title"].to_s
+      icon_in_title = title.match(/\[icon=([a-z_]+)\]/i)
+      icon = it["icon"] || (icon_in_title && icon_in_title[1].downcase)
+      clean = title.gsub(/\s*\[icon=[a-z_]+\]/i, "").strip
+      it.merge("title" => clean, "icon" => icon).compact
+    end
+  end
+
   # ─── Helpers ────────────────────────────────────────────────────────────────
 
   def el_text(id, x, y, w, h, content, style = {}, z: 2)
@@ -940,7 +952,7 @@ class ContentOutlineGenerator
   # ─── Bullets ────────────────────────────────────────────────────────────────
 
   def compile_bullets(s, t, has_note, bot)
-    b_items = s["bullet_items"] || []
+    b_items = normalize_bullet_items(s["bullet_items"] || [])
     bullets  = s["bullets"] || []
     els = []
     n = b_items.length
@@ -1056,7 +1068,7 @@ class ContentOutlineGenerator
   # ─── Donut ──────────────────────────────────────────────────────────────────
 
   def compile_donut(s, t, has_note, bot)
-    items = s["items"] || []
+    items = normalize_bullet_items(s["items"] || [])
     els = [el_chart("donut", LM, 1.65, 4.50, bot - 1.65, "donut", items,
       label: "#{s['center_text']}|#{s['center_sub']}", theme: t)]
     donut_icons = %w[chart leaf rocket globe lightbulb shield]
@@ -1112,7 +1124,7 @@ class ContentOutlineGenerator
   # ─── Timeline ───────────────────────────────────────────────────────────────
 
   def compile_timeline(s, t, has_note, bot)
-    items = s["items"] || []; n = [items.length, 5].min; els = []
+    items = normalize_bullet_items(s["items"] || []); n = [items.length, 5].min; els = []
     gap = 0.12; step_w = (CW - gap * (n - 1)) / [n, 1].max; card_h = 2.50
     n.times do |i|
       it = items[i]; ac = t["card_icons"][i % 3]; cx = LM + i * (step_w + gap)
@@ -1132,7 +1144,7 @@ class ContentOutlineGenerator
   # ─── Pillars ────────────────────────────────────────────────────────────────
 
   def compile_pillars(s, t, has_note, bot)
-    items = s["items"] || []; n = items.length; els = []
+    items = normalize_bullet_items(s["items"] || []); n = items.length; els = []
     cols = n >= 2 ? 2 : 1; rows = (n / 2.0).ceil
     gap_x = 0.30; gap_y = 0.20; col_w = (CW - gap_x * (cols - 1)) / cols
     avail_h = bot - 1.65; card_h = [[2.80, (avail_h - gap_y * (rows - 1)) / [rows, 1].max].min, 1.20].max
@@ -1155,7 +1167,7 @@ class ContentOutlineGenerator
   # ─── Agenda ─────────────────────────────────────────────────────────────────
 
   def compile_agenda(s, t, has_note, bot)
-    items = s["items"] || []; rh = 0.55; gap = 0.08; els = []
+    items = normalize_bullet_items(s["items"] || []); rh = 0.55; gap = 0.08; els = []
     items.each_with_index do |it, i|
       cy = 1.70 + i * (rh + gap); break if cy + rh > bot
       ac = t["card_icons"][i % 3]
@@ -1174,7 +1186,7 @@ class ContentOutlineGenerator
   # ─── Roles ──────────────────────────────────────────────────────────────────
 
   def compile_roles(s, t, has_note, bot)
-    items = s["items"] || []; n = [items.length, 4].min; els = []
+    items = normalize_bullet_items(s["items"] || []); n = [items.length, 4].min; els = []
     gap = 0.15; col_w = (CW - gap * (n - 1)) / [n, 1].max; card_h = bot - 1.75
     n.times do |i|
       it = items[i]; ac = t["card_icons"][i % 3]
@@ -1197,7 +1209,7 @@ class ContentOutlineGenerator
   # ─── OKR ────────────────────────────────────────────────────────────────────
 
   def compile_okr(s, t, has_note, bot)
-    items = s["items"] || []; rh = 0.65; gap = 0.08; els = []
+    items = normalize_bullet_items(s["items"] || []); rh = 0.65; gap = 0.08; els = []
     items.each_with_index do |it, i|
       cy = 1.70 + i * (rh + gap); break if cy + rh > bot
       ac = t["card_icons"][i % 3]
@@ -1215,7 +1227,7 @@ class ContentOutlineGenerator
   # ─── Principles ─────────────────────────────────────────────────────────────
 
   def compile_principles(s, t, has_note, bot)
-    items = s["items"] || []; els = []
+    items = normalize_bullet_items(s["items"] || []); els = []
     cols = 2; col_w = (CW - 0.15) / 2; card_h = 0.85; gap_y = 0.12
     items.each_with_index do |it, i|
       col = i % cols; row = i / cols
