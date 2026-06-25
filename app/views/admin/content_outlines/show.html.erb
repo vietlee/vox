@@ -75,13 +75,19 @@
               </button>
               <div id="theme-menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:10px;min-width:220px;">
                 <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px 8px;">Chọn theme</div>
-                <% [["green","#064E3B","#10B981","Nature"],["blue","#1E3A5F","#3B82F6","Corporate"],
-                    ["purple","#3B0764","#A855F7","Creative"],["red","#7F1D1D","#EF4444","Bold"],
-                    ["teal","#134E4A","#0D9488","Minimal"],["amber","#78350F","#F59E0B","Warm"],
-                    ["slate","#0F172A","#64748B","Executive"],["earth","#3B1F0A","#92400E","Earth"],
-                    ["coral","#7F1D1D","#F43F5E","Vibrant"],["ocean","#0C4A6E","#0369A1","Ocean"],
-                    ["berry","#500724","#DB2777","Berry"],["midnight","#020617","#4F46E5","Midnight"]
-                ].each do |name, dark, accent, label| %>
+                <% [["green","#064E3B","#10B981","Nature","Flat cards"],
+                    ["blue","#1E3A5F","#3B82F6","Corporate","Shadow cards"],
+                    ["purple","#3B0764","#A855F7","Creative","Glass effect"],
+                    ["red","#7F1D1D","#EF4444","Bold","Bold accent"],
+                    ["teal","#134E4A","#0D9488","Minimal","Outlined cards"],
+                    ["amber","#78350F","#F59E0B","Warm","Wave deco"],
+                    ["slate","#0F172A","#64748B","Executive","Shadow + Dots"],
+                    ["earth","#3B1F0A","#92400E","Earth","Bold + Wave"],
+                    ["coral","#7F1D1D","#F43F5E","Vibrant","Glass + Diagonal"],
+                    ["ocean","#0C4A6E","#0369A1","Ocean","Shadow + Wave"],
+                    ["berry","#500724","#DB2777","Berry","Glass + Circles"],
+                    ["midnight","#020617","#4F46E5","Midnight","Outlined + Dots"]
+                ].each do |name, dark, accent, label, subtitle| %>
                   <button onclick="applyTheme('<%= name %>')"
                           style="display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;text-align:left;"
                           onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
@@ -89,8 +95,10 @@
                       <span style="width:16px;height:16px;border-radius:50%;background:<%= dark %>;display:block;"></span>
                       <span style="width:16px;height:16px;border-radius:50%;background:<%= accent %>;display:block;margin-left:-6px;border:2px solid #fff;"></span>
                     </span>
-                    <span style="font-size:12px;font-weight:600;color:#1e293b;"><%= label %></span>
-                    <span style="font-size:10px;color:#94a3b8;text-transform:capitalize;margin-left:auto;"><%= name %></span>
+                    <span style="flex:1;">
+                      <span style="display:block;font-size:12px;font-weight:600;color:#1e293b;"><%= label %></span>
+                      <span style="display:block;font-size:10px;color:#94a3b8;margin-top:1px;"><%= subtitle %></span>
+                    </span>
                   </button>
                 <% end %>
               </div>
@@ -315,7 +323,25 @@
           var r = s.borderRadius||0;
           var op = s.opacity!==undefined?s.opacity:1;
           var border = s.stroke ? 'border:'+PX(s.strokeWidth||0.02)+'px solid '+s.stroke+';' : '';
-          return '<div class="slide-el" '+attrs+' style="'+base+'background:'+fill+';border-radius:'+(typeof r==='string'?r:r+'px')+';opacity:'+op+';'+border+'"></div>';
+          /* card_style visual treatment — only applies to "card" rects (z≥2, no stroke override, reasonable size) */
+          var cardStyle = (deck.theme && deck.theme.card_style) || 'flat';
+          var cardCss = '';
+          var isCard = !s.stroke && op >= 0.9 && el.z >= 2 && w > 80 && h > 30;
+          if (isCard) {
+            if (cardStyle === 'shadow') {
+              cardCss = 'box-shadow:0 4px 18px rgba(0,0,0,.10),0 1px 4px rgba(0,0,0,.06);';
+            } else if (cardStyle === 'glass') {
+              cardCss = 'backdrop-filter:blur(6px);box-shadow:0 2px 12px rgba(0,0,0,.08);border:1px solid rgba(255,255,255,.5);';
+            } else if (cardStyle === 'outlined') {
+              border = 'border:1.5px solid '+fill+';';
+              fill = fill.length === 7 ? fill + '30' : fill; /* transparent bg */
+              cardCss = '';
+            } else if (cardStyle === 'bold') {
+              var ac = (deck.theme && deck.theme.accent) || fill;
+              cardCss = 'border-left:4px solid '+ac+';';
+            }
+          }
+          return '<div class="slide-el" '+attrs+' style="'+base+'background:'+fill+';border-radius:'+(typeof r==='string'?r:r+'px')+';opacity:'+op+';'+border+cardCss+'"></div>';
         }
         case 'ellipse': {
           var fill = s.fill||'#6366f1';
