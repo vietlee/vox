@@ -69,11 +69,43 @@ class Admin::ContentOutlinesController < Admin::BaseController
     return render json: { error: "Invalid theme" }, status: 422 unless theme_name.present?
 
     current_deck = JSON.parse(@outline.slide_json || "{}")
-    raw_slides = current_deck["slides"]&.map { |s| s["raw"] || s } || []
+    current_slides = current_deck["slides"] || []
+    raw_slides = current_slides.map { |s| s["raw"] || s }
     return render json: { error: "No slides to recompile" }, status: 422 if raw_slides.empty?
 
     gen = ContentOutlineGenerator.new(@outline)
     deck = gen.recompile(raw_slides, theme_name)
+
+    # Preserve manually-added elements (images, extra text boxes, etc.) from each slide
+    deck["slides"].each_with_index do |new_slide, i|
+      old_slide = current_slides[i]
+      next unless old_slide
+
+      # Keep background if user explicitly set a solid color
+      if old_slide["background"].is_a?(Hash) && old_slide["background"]["type"] == "solid"
+        new_slide["background"] = old_slide["background"]
+      end
+
+      # Merge elements: keep AI-generated ones from new theme, append user-added ones
+      old_els = old_slide["elements"] || []
+      new_els = new_slide["elements"] || []
+      new_ids = new_els.map { |e| e["id"] }.to_set
+
+      # User-added elements are those not present in the newly compiled slide
+      user_added = old_els.reject { |e| new_ids.include?(e["id"]) }
+      new_slide["elements"] = new_els + user_added unless user_added.empty?
+
+      # Preserve text edits on existing elements
+      old_els.each do |old_el|
+        new_el = new_els.find { |e| e["id"] == old_el["id"] }
+        next unless new_el
+        new_el["content"] = old_el["content"] if old_el["content"].present?
+        new_el["style"] = new_el["style"].merge(old_el["style"] || {}) if old_el["style"].present?
+        new_el["x"] = old_el["x"]; new_el["y"] = old_el["y"]
+        new_el["w"] = old_el["w"]; new_el["h"] = old_el["h"]
+      end
+    end
+
     html = "<div id='slide-deck-root' data-deck='#{ERB::Util.html_escape(deck.to_json)}'></div>"
     @outline.update!(slide_json: deck.to_json, content: html)
 
