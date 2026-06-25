@@ -477,7 +477,12 @@ class ContentOutlineGenerator
       - TUYỆT ĐỐI KHÔNG dùng emoji trên cover
 
       ═══ QUY TẮC NỘI DUNG ═══
-      - Bullets dùng format "Tiêu đề :: Mô tả chi tiết" — phần mô tả 1-2 câu ngắn gọn, có ngữ cảnh
+      - Bullets dùng format "Tiêu đề [icon=TÊN] :: Mô tả chi tiết" — phần mô tả 1-2 câu ngắn gọn, có ngữ cảnh
+        + [icon=TÊN] BẮT BUỘC cho mọi bullet. Chọn icon phù hợp ngữ nghĩa với nội dung bullet đó.
+        + Danh sách icon: search, store, check, clock, person, people, rocket, code, chart, money, percent, megaphone, crown, lightbulb, shield, star, heart, globe, target, handshake, leaf, phone, truck, fire, bolt, lock, eye, flag, award, cube, layers, settings, share, book, camera, music, map, tools, diamond
+        + Ví dụ: "Chi phí giảm 90% [icon=chart] :: Từ 0.37 USD/kWh năm 2010 xuống 0.04 USD/kWh năm 2023"
+        + Ví dụ: "Năng lượng tái tạo [icon=leaf] :: Chiếm 30% sản lượng điện toàn cầu năm 2023"
+        + Ví dụ: "Bảo mật dữ liệu [icon=shield] :: Mã hóa AES-256 end-to-end cho mọi giao dịch"
       - Số liệu phải CỤ THỂ và có nguồn nếu có trong prompt
       - KHÔNG dùng emoji bất kỳ đâu trong nội dung
       - TITLE content slide: viết thường tự nhiên, truyền tải insight chính
@@ -633,10 +638,14 @@ class ContentOutlineGenerator
         if has_desc
           slide["bullet_items"] = lines.map do |l|
             parts = l.split("::", 2).map(&:strip)
-            { "title" => parts[0], "desc" => parts[1] || "" }
+            raw_title = parts[0]
+            icon_match = raw_title.match(/\[icon=([a-z_]+)\]/i)
+            icon = icon_match ? icon_match[1].downcase : nil
+            clean_title = raw_title.gsub(/\s*\[icon=[a-z_]+\]/i, "").strip
+            { "title" => clean_title, "desc" => parts[1] || "", "icon" => icon }.compact
           end
         end
-        slide["bullets"] = lines.map { |l| l.split("::", 2).first.strip }
+        slide["bullets"] = lines.map { |l| l.split("::", 2).first.gsub(/\s*\[icon=[a-z_]+\]/i, "").strip }
       end
 
       slide
