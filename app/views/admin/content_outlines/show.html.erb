@@ -449,7 +449,8 @@
   <div id="slide-data" class="hidden"><%= raw @outline.content %></div>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Montserrat:wght@400;700&family=Poppins:wght@400;700&family=Raleway:wght@400;700&family=Oswald:wght@400;700&family=Barlow:wght@400;700&family=DM+Sans:wght@400;700&family=Outfit:wght@400;700&family=Plus+Jakarta+Sans:wght@400;700&family=Quicksand:wght@400;700&family=Sora:wght@400;700&family=Rubik:wght@400;700&family=Lexend:wght@400;700&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;700&family=Lora:wght@400;700&family=EB+Garamond:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Crimson+Text:wght@400;700&family=PT+Serif:wght@400;700&family=Bitter:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
     #slide-viewer { font-family:'Nunito','Inter',sans-serif; }
@@ -1637,19 +1638,23 @@
       var list = document.getElementById('tt-font-list');
       if (!list) return;
       list.innerHTML = '';
-      var cur = document.getElementById('tt-family-label') && document.getElementById('tt-family-label').textContent.trim();
+      var cur = (document.getElementById('tt-family-label') || {}).textContent;
+      if (cur) cur = cur.trim();
       var filtered = filter ? ALL_FONTS.filter(function(f){ return f.toLowerCase().indexOf(filter.toLowerCase()) >= 0; }) : ALL_FONTS;
+      if (!filtered.length) {
+        list.innerHTML = '<div style="padding:6px 8px;font-size:11px;color:#64748b;">Không tìm thấy</div>';
+        return;
+      }
       filtered.forEach(function(font) {
+        var isActive = font === cur;
         var item = document.createElement('div');
-        item.textContent = font;
-        item.style.cssText = 'padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+(font===cur?'background:#4f46e5;color:#fff;':'');
-        item.style.fontFamily = font + ',sans-serif';
-        item.onmouseenter = function(){ if(font!==cur) item.style.background='#334155'; };
-        item.onmouseleave = function(){ if(font!==cur) item.style.background=''; };
-        item.onclick = function(e) {
-          e.stopPropagation();
-          selectFont(font);
-        };
+        item.innerHTML = '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + font + '</span>' +
+          (isActive ? '<span style="color:#a5b4fc;font-size:10px;">✓</span>' : '');
+        item.style.cssText = 'display:flex;align-items:center;gap:4px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12px;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;' +
+          (isActive ? 'background:#3730a3;' : '');
+        item.onmouseenter = function(){ if(!isActive) item.style.background='#334155'; };
+        item.onmouseleave = function(){ if(!isActive) item.style.background= isActive?'#3730a3':''; };
+        item.onclick = function(e) { e.stopPropagation(); selectFont(font); };
         list.appendChild(item);
       });
     }
