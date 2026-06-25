@@ -472,7 +472,7 @@ class ContentOutlineGenerator
           chart_lines = chart_section.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
           slide["chart_items"] = chart_lines.map do |l|
             parts = l.split("::", 2).map(&:strip)
-            { "value" => parts[0].to_i, "label" => parts[1] || "" }
+            { "value" => parts[0].to_f, "label" => parts[1] || "" }
           end
           slide["chart_label"] = chart_label_line || ""
         end
@@ -480,7 +480,7 @@ class ContentOutlineGenerator
       when "chart"
         slide["items"] = lines.map do |l|
           parts = l.split("::", 2).map(&:strip)
-          { "value" => parts[0].to_i, "label" => parts[1] || "" }
+          { "value" => parts[0].to_f, "label" => parts[1] || "" }
         end
         slide["bullets"] = lines
       when "donut"
@@ -488,7 +488,7 @@ class ContentOutlineGenerator
         data_lines = lines.reject { |l| l.start_with?("CENTER:") }
         slide["items"] = data_lines.map do |l|
           parts = l.split("::", 3).map(&:strip)
-          { "value" => parts[0].to_i, "label" => parts[1] || "", "detail" => parts[2] || "" }
+          { "value" => parts[0].to_f, "label" => parts[1] || "", "detail" => parts[2] || "" }
         end
         if center_line
           cp = center_line.sub("CENTER:", "").split("::", 2).map(&:strip)
@@ -900,7 +900,7 @@ class ContentOutlineGenerator
   # ─── Chart ──────────────────────────────────────────────────────────────────
 
   def compile_chart(s, t, has_note, bot)
-    items = s["items"] || s["bullets"]&.map { |b| p = b.split("::"); { "value" => p[0].to_i, "label" => p[1]&.strip || b } } || []
+    items = s["items"] || s["bullets"]&.map { |b| p = b.split("::"); { "value" => p[0].to_f, "label" => p[1]&.strip || b } } || []
     [el_chart("chart", LM, 1.70, CW, bot - 1.70, s.dig("style", "chart_type") || "bar", items, theme: t)]
   end
 

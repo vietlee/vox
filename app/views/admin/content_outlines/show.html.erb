@@ -332,7 +332,8 @@
         var rx = Math.min(4, barW / 3);
         svgContent += '<rect x="'+bx+'" y="'+by+'" width="'+barW+'" height="'+barH+'" rx="'+rx+'" fill="'+c+'"/>';
         /* value label on top */
-        var valStr = String(d.value||'');
+        var rawVal = parseFloat(d.value) || 0;
+        var valStr = rawVal % 1 === 0 ? String(Math.round(rawVal)) : rawVal.toFixed(1);
         svgContent += '<text x="'+(bx+barW/2)+'" y="'+(by-5)+'" text-anchor="middle" font-size="11" font-weight="700" fill="'+c+'" font-family="Inter,sans-serif">'+escHtml(valStr)+'</text>';
         /* x-axis label */
         var lbl = String(d.label||'').substring(0,8);
