@@ -47,7 +47,7 @@
 
     <!-- LEFT: slide viewer -->
     <div id="slide-viewer-col" style="flex:1;min-width:0;">
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div class="border-b border-slate-100 px-4 py-2 flex items-center justify-between">
           <div class="flex items-center gap-3 flex-wrap">
             <span class="text-[11px] text-slate-400 font-bold uppercase tracking-widest">🖥️ Slide</span>
@@ -111,6 +111,10 @@
                 <% end %>
               </div>
             </div>
+            <button onclick="recompileCurrentTheme()" title="Biên soạn lại slide với theme hiện tại (fix slide thiếu nội dung)"
+                    class="text-[12px] text-slate-500 hover:text-amber-700 px-3 py-1 bg-slate-50 hover:bg-amber-50 rounded-lg transition-colors border-0 cursor-pointer">
+              🔄 Biên soạn lại
+            </button>
             <button onclick="enterFullscreen()"
                     class="text-[12px] text-slate-500 hover:text-indigo-600 px-3 py-1 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors border-0 cursor-pointer">
               ⛶ Toàn màn hình
@@ -241,7 +245,7 @@
 
     <!-- RIGHT: AI edit panel (hidden by default) -->
     <div id="slide-editor-panel" style="display:none; width:360px; flex-shrink:0; position:sticky; top:80px; align-self:flex-start;">
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <div class="text-[13px] font-bold text-slate-700">✨ Chỉnh sửa bằng AI</div>
           <button onclick="toggleAiPanel()"
@@ -1630,6 +1634,12 @@
           if (themeBtn) { themeBtn.textContent = '🖌️ Đổi theme'; themeBtn.disabled = false; }
         });
     }
+
+    function recompileCurrentTheme() {
+      var currentTheme = (deck.theme && deck.theme.name) || 'blue';
+      applyTheme(currentTheme);
+    }
+    window.recompileCurrentTheme = recompileCurrentTheme;
 
     window.applyTheme = applyTheme;
     window.toggleThemeMenu = toggleThemeMenu;
