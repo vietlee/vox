@@ -145,6 +145,10 @@
             📷 Chèn ảnh
             <input type="file" id="img-upload-input" accept="image/*" style="display:none;" onchange="insertImageFromFile(this)">
           </label>
+          <div style="display:flex;gap:2px;background:rgba(255,255,255,.12);border-radius:6px;padding:2px;">
+            <button id="undo-btn" onclick="undo()" title="Hoàn tác (Ctrl+Z)" style="background:none;border:none;color:#fff;width:26px;height:26px;border-radius:4px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;opacity:.5;" disabled>↩</button>
+            <button id="redo-btn" onclick="redo()" title="Làm lại (Ctrl+Y)" style="background:none;border:none;color:#fff;width:26px;height:26px;border-radius:4px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;opacity:.5;" disabled>↪</button>
+          </div>
           <button onclick="toggleWysiwyg()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Thoát</button>
         </div>
 
@@ -765,6 +769,7 @@
       /* Sync back to deck schema */
       syncDomToSchema();
       _dragState = null;
+      saveHistorySnapshot();
       scheduleSave();
     }
 
@@ -805,7 +810,7 @@
         var ei = domEl.dataset.ei;
         if (!isNaN(si) && ei && slides[si]) {
           var elData = slides[si].elements.find(function(e2){ return e2.id === ei; });
-          if (elData) { elData.content = span.textContent; scheduleSave(); }
+          if (elData) { elData.content = span.textContent; saveHistorySnapshot(); scheduleSave(); }
         }
       }, { once: true });
     }
@@ -939,6 +944,7 @@
 
     function applyTextProp(prop, value) {
       if (!_selectedTextEl) return;
+      saveHistorySnapshot();
       var si = parseInt(_selectedTextEl.dataset.si);
       var ei = _selectedTextEl.dataset.ei;
       var elData = slides[si] && slides[si].elements.find(function(e){ return e.id === ei; });
@@ -1045,6 +1051,7 @@
       var hi = document.getElementById('bg-hex-input');
       var color = (hi && /^#[0-9A-Fa-f]{6}$/.test(hi.value)) ? hi.value : (ci ? ci.value : null);
       if (!color || !slides[current]) return;
+      saveHistorySnapshot();
       slides[current].background = { type: 'solid', color: color };
       var stage = document.getElementById('slide-stage');
       if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
@@ -1077,6 +1084,7 @@
     /* Change background color of current slide */
     function applySlideBackground(color) {
       if (!slides[current]) return;
+      saveHistorySnapshot();
       slides[current].background = { type: 'solid', color: color };
       var stage = document.getElementById('slide-stage');
       if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
@@ -1127,6 +1135,7 @@
         style: {}
       };
       if (!slides[current]) return;
+      saveHistorySnapshot();
       slides[current].elements.push(newEl);
       var stage = document.getElementById('slide-stage');
       if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
@@ -1162,10 +1171,30 @@
     function saveHistorySnapshot() {
       history = history.slice(0, historyIdx + 1);
       history.push(JSON.stringify(deck));
-      historyIdx = history.length - 1;
+      if (history.length > 50) { history.shift(); } else { historyIdx = history.length - 1; }
+      updateUndoRedoBtns();
     }
-    function undo() { if (historyIdx > 0) { historyIdx--; deck = JSON.parse(history[historyIdx]); slides = deck.slides || []; goToSlide(current); } }
-    function redo() { if (historyIdx < history.length - 1) { historyIdx++; deck = JSON.parse(history[historyIdx]); slides = deck.slides || []; goToSlide(current); } }
+    function updateUndoRedoBtns() {
+      var u = document.getElementById('undo-btn'), r = document.getElementById('redo-btn');
+      if (u) { var can = historyIdx > 0; u.disabled = !can; u.style.opacity = can ? '1' : '.35'; u.style.cursor = can ? 'pointer' : 'default'; }
+      if (r) { var can2 = historyIdx < history.length - 1; r.disabled = !can2; r.style.opacity = can2 ? '1' : '.35'; r.style.cursor = can2 ? 'pointer' : 'default'; }
+    }
+    function undo() {
+      if (historyIdx <= 0) return;
+      historyIdx--;
+      deck = JSON.parse(history[historyIdx]);
+      slides = deck.slides || [];
+      goToSlide(current);
+      updateUndoRedoBtns();
+    }
+    function redo() {
+      if (historyIdx >= history.length - 1) return;
+      historyIdx++;
+      deck = JSON.parse(history[historyIdx]);
+      slides = deck.slides || [];
+      goToSlide(current);
+      updateUndoRedoBtns();
+    }
 
     /* ─── Keyboard ─── */
     /* Click outside slide stage → deselect element + hide toolbar */
@@ -1185,6 +1214,7 @@
         e.preventDefault();
         var sl = slides[current];
         if (sl) {
+          saveHistorySnapshot();
           sl.elements = sl.elements.filter(function(el) { return el.id !== selectedElId; });
           selectedElId = null;
           hideTextToolbar();
