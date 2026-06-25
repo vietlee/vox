@@ -185,6 +185,7 @@
               <button onclick="insertComponent('chart_donut')"  class="ins-btn"><span>🍩</span> Biểu đồ tròn</button>
               <button onclick="insertComponent('table')"         class="ins-btn"><span>⊞</span> Bảng</button>
               <div style="border-top:1px solid #f1f5f9;margin:6px 0 4px;"></div>
+              <button onclick="insertComponent('video')" class="ins-btn"><span>▶</span> Video (URL)</button>
               <label class="ins-btn" style="cursor:pointer;">
                 <span>🖼️</span> Chèn ảnh
                 <input type="file" accept="image/*" style="display:none;" onchange="insertImageFromFile(this);document.getElementById('insert-panel').style.display='none';">
@@ -204,6 +205,21 @@
           <button onclick="applyElBg('transparent')" title="Trong suốt" style="background:#334155;border:none;color:#fff;border-radius:5px;width:28px;height:24px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="2" y1="12" x2="12" y2="2" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="#94a3b8" stroke-width="1"/></svg>
           </button>
+        </div>
+
+        <!-- Video URL input modal -->
+        <div id="video-url-modal" style="display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+          <div style="background:#fff;border-radius:18px;padding:28px 32px;max-width:480px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+            <div style="font-size:18px;font-weight:700;color:#1e293b;margin-bottom:6px;">▶ Chèn video</div>
+            <div style="font-size:13px;color:#64748b;margin-bottom:18px;">Hỗ trợ: YouTube, Vimeo, Google Drive, hoặc link .mp4 trực tiếp</div>
+            <input id="video-url-input" type="url" placeholder="https://youtube.com/watch?v=... hoặc https://vimeo.com/..."
+              style="width:100%;box-sizing:border-box;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;outline:none;color:#1e293b;margin-bottom:18px;"
+              onkeydown="if(event.key==='Enter')confirmVideoUrl()">
+            <div style="display:flex;gap:10px;">
+              <button onclick="document.getElementById('video-url-modal').style.display='none'" style="flex:1;background:#f1f5f9;border:none;color:#64748b;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">Huỷ</button>
+              <button onclick="confirmVideoUrl()" style="flex:1;background:#6366f1;border:none;color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Chèn</button>
+            </div>
+          </div>
         </div>
 
         <!-- Delete slide confirm modal -->
@@ -644,6 +660,9 @@
         case 'arrow': {
           return renderArrow(el, x, y, w, h, z, si, attrs);
         }
+        case 'video': {
+          return renderVideo(el, x, y, w, h, z, si, attrs);
+        }
         case 'image': {
           /* Use data-img-id so we can set src after innerHTML (avoids base64-in-innerHTML truncation) */
           var imgId = 'vox-img-' + el.id;
@@ -796,6 +815,38 @@
           '<polygon points="'+mx+','+(my-ah/2)+' '+(w)+','+my+' '+mx+','+(my+ah/2)+'" fill="'+color+'"/>' +
         '</svg>' +
         '</div>';
+    }
+
+    function toEmbedUrl(url) {
+      url = (url || '').trim();
+      /* YouTube */
+      var yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+      if (yt) return 'https://www.youtube.com/embed/' + yt[1] + '?rel=0&modestbranding=1';
+      /* Vimeo */
+      var vm = url.match(/vimeo\.com\/(\d+)/);
+      if (vm) return 'https://player.vimeo.com/video/' + vm[1] + '?byline=0&portrait=0';
+      /* Google Drive preview */
+      var gd = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+      if (gd) return 'https://drive.google.com/file/d/' + gd[1] + '/preview';
+      /* Direct video (mp4 etc.) — wrap in a data: iframe */
+      if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) return '__direct__' + url;
+      return url; /* assume already embeddable */
+    }
+
+    function renderVideo(el, x, y, w, h, z, si, attrs) {
+      var src = el.src || el.content || '';
+      var embed = toEmbedUrl(src);
+      var r = (el.style && el.style.borderRadius) || 10;
+      var inner;
+      if (embed.startsWith('__direct__')) {
+        var directSrc = embed.slice(10);
+        inner = '<video src="'+escHtml(directSrc)+'" controls style="width:100%;height:100%;object-fit:contain;border-radius:'+r+'px;display:block;"></video>';
+      } else if (embed) {
+        inner = '<iframe src="'+escHtml(embed)+'" frameborder="0" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture" style="width:100%;height:100%;border-radius:'+r+'px;display:block;border:none;"></iframe>';
+      } else {
+        inner = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#94a3b8;gap:8px;"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#cbd5e1" stroke-width="1.5"><path d="M15 10l4.55-2.27A1 1 0 0121 8.7v6.6a1 1 0 01-1.45.89L15 14M5 8h7a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2z"/></svg><span style="font-size:13px;font-family:Inter,sans-serif;">Nhập URL video</span></div>';
+      }
+      return '<div class="slide-el" '+attrs+' style="position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;z-index:'+z+';border-radius:'+r+'px;overflow:hidden;background:#000;">'+inner+'</div>';
     }
 
     function renderBarChart(el, x, y, w, h, z, si, attrs) {
@@ -1025,6 +1076,7 @@
         domEl.removeEventListener('dblclick', startTextEdit);
         domEl.removeEventListener('dblclick', startChartEdit);
         domEl.removeEventListener('dblclick', startIconEdit);
+        domEl.removeEventListener('dblclick', startVideoEdit);
         domEl.addEventListener('mousedown', startMove);
         var domElId = domEl.getAttribute('data-ei');
         var sl = slides[current];
@@ -1034,6 +1086,8 @@
           domEl.addEventListener('dblclick', startChartEdit);
         } else if (elType === 'icon') {
           domEl.addEventListener('dblclick', startIconEdit);
+        } else if (elType === 'video') {
+          domEl.addEventListener('dblclick', startVideoEdit);
         } else {
           domEl.addEventListener('dblclick', startTextEdit);
         }
@@ -2331,6 +2385,12 @@
                  ['Lợi nhuận','0.4 tỷ', '0.6 tỷ', '0.8 tỷ']
                ],
                style: { accentColor: accent } };
+      } else if (type === 'video') {
+        /* Open URL modal instead of inserting immediately */
+        var modal = document.getElementById('video-url-modal');
+        var inp = document.getElementById('video-url-input');
+        if (modal) { inp.value = ''; modal.style.display = 'flex'; setTimeout(function(){ inp.focus(); }, 50); }
+        return;
       }
       if (!el) return;
       if (!sl.elements) sl.elements = [];
@@ -2341,6 +2401,71 @@
       renderThumbnails();
       autoSave();
     }
+    function confirmVideoUrl() {
+      var url = (document.getElementById('video-url-input').value || '').trim();
+      document.getElementById('video-url-modal').style.display = 'none';
+      if (!url) return;
+      saveHistorySnapshot();
+      var sl = slides[current];
+      if (!sl) return;
+      var uid = 'el_' + Date.now();
+      var el = { id: uid, type: 'video', x: 160, y: 100, w: 960, h: 540, z: 10,
+                 src: url, content: url, style: { borderRadius: 10 } };
+      if (!sl.elements) sl.elements = [];
+      sl.elements.push(el);
+      var stage = document.getElementById('slide-stage');
+      if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+      if (editorMode) attachEditorHandlers();
+      renderThumbnails();
+      autoSave();
+    }
+    window.confirmVideoUrl = confirmVideoUrl;
+
+    /* Double-click video element to change URL */
+    function startVideoEdit(e) {
+      if (!editorMode) return;
+      e.stopPropagation();
+      var domEl = e.currentTarget;
+      var elId = domEl.getAttribute('data-ei');
+      var sl = slides[current];
+      var elData = sl ? (sl.elements||[]).find(function(e){ return e.id===elId; }) : null;
+      if (!elData) return;
+      var modal = document.getElementById('video-url-modal');
+      var inp = document.getElementById('video-url-input');
+      inp.value = elData.src || elData.content || '';
+      /* Reuse modal — on confirm, update existing element */
+      inp.dataset.editId = elId;
+      modal.style.display = 'flex';
+      setTimeout(function(){ inp.focus(); inp.select(); }, 50);
+      /* Override confirm to update instead of insert */
+      window._videoEditId = elId;
+    }
+
+    /* Patch confirmVideoUrl to handle edit mode */
+    var _origConfirmVideoUrl = confirmVideoUrl;
+    confirmVideoUrl = function() {
+      var url = (document.getElementById('video-url-input').value || '').trim();
+      document.getElementById('video-url-modal').style.display = 'none';
+      if (!url) return;
+      var editId = window._videoEditId;
+      window._videoEditId = null;
+      if (editId) {
+        var sl = slides[current];
+        var elData = sl ? (sl.elements||[]).find(function(e){ return e.id===editId; }) : null;
+        if (elData) {
+          saveHistorySnapshot();
+          elData.src = url; elData.content = url;
+          var stage = document.getElementById('slide-stage');
+          if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+          if (editorMode) attachEditorHandlers();
+          renderThumbnails(); autoSave();
+        }
+        return;
+      }
+      _origConfirmVideoUrl();
+    };
+    window.confirmVideoUrl = confirmVideoUrl;
+
     window.toggleInsertPanel = toggleInsertPanel;
     window.insertComponent = insertComponent;
 
