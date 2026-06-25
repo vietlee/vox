@@ -621,9 +621,12 @@ window.voxConfirm = function(message, onOk) {
   };
   function init() {
     apply(localStorage.getItem(KEY) === '1');
-    /* Re-trigger resize so rescaleCanvas (and any other width-aware code)
-       re-measures after sidebar state is applied */
-    setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, 50);
+    /* Wait two animation frames so flex layout recalculates after sidebar state applied */
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        window.dispatchEvent(new Event('resize'));
+      });
+    });
   }
   document.addEventListener('DOMContentLoaded', init);
   document.addEventListener('turbo:render', init);
