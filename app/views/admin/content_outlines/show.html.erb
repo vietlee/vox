@@ -1536,7 +1536,7 @@
       var si2 = parseInt(domEl.dataset.si);
       var ei2 = domEl.dataset.ei;
       var elData2 = slides[si2] && (slides[si2].elements||[]).find(function(e){ return e.id === ei2; });
-      var isChart = elData2 && elData2.type === 'chart';
+      var isChart = elData2 && elData2.type && elData2.type.indexOf('chart') === 0;
       var SHOW = {'tt-bg-wrap':1,'tt-sep-bg':1,'tt-sep-dims':1,'tt-dims':1,'tt-sep-z':1,'tt-zorder':1};
       if (isChart) { SHOW['tt-sep-chart'] = 1; SHOW['tt-chart-edit'] = 1; }
       Array.from(tb.children).forEach(function(c){
@@ -2183,17 +2183,8 @@
       if (!editorMode) return;
       var hasSelection = selectedElId || selectedElIds.length > 0;
       if (!hasSelection) return;
-      var tb  = document.getElementById('txt-toolbar');
-      var bgp = document.getElementById('bg-panel');
-      var tcp = document.getElementById('tt-color-panel');
-      /* ignore clicks inside toolbars/panels */
-      if (tb  && tb.contains(e.target))  return;
-      if (bgp && bgp.contains(e.target)) return;
-      if (tcp && tcp.contains(e.target)) return;
-      var ced = document.getElementById('chart-editor');
-      if (ced && ced.contains(e.target)) return;
-      var psp = document.getElementById('pos-panel');
-      if (psp && psp.contains(e.target)) return;
+      /* ignore clicks inside any toolbar or floating panel */
+      if (e.target.closest('#txt-toolbar, #chart-editor, #bg-panel, #align-panel, #wysiwyg-bar, #pos-panel, #tt-color-panel, #tt-bg-panel')) return;
       var alp = document.getElementById('align-panel');
       if (alp) alp.style.display = 'none';
       /* ignore clicks directly on a .slide-el (startMove handles those) */
