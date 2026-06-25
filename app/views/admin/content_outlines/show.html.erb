@@ -103,9 +103,40 @@
         </div>
 
         <!-- WYSIWYG mode bar -->
-        <div id="wysiwyg-bar" style="display:none;background:#4f46e5;color:#fff;padding:5px 16px;font-size:11px;font-weight:600;display:none;align-items:center;justify-content:space-between;">
-          <span>✏️ Chế độ sửa trực tiếp — Kéo để di chuyển · Kéo góc để resize · Double-click để sửa text</span>
-          <button onclick="toggleWysiwyg()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Thoát</button>
+        <div id="wysiwyg-bar" style="display:none;background:#4f46e5;color:#fff;padding:5px 12px;font-size:11px;font-weight:600;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="flex:1;min-width:160px;">✏️ Kéo di chuyển · Kéo góc resize · Double-click sửa text</span>
+          <!-- Image insert -->
+          <label style="background:rgba(255,255,255,.18);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;">
+            🖼️ Chèn ảnh
+            <input type="file" id="img-upload-input" accept="image/*" style="display:none;" onchange="insertImageFromFile(this)">
+          </label>
+          <button onclick="toggleWysiwyg()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Thoát</button>
+        </div>
+
+        <!-- Floating text format toolbar (shown when text element selected) -->
+        <div id="txt-toolbar" style="display:none;position:fixed;z-index:10000;background:#1e293b;border-radius:10px;padding:6px 8px;box-shadow:0 8px 24px rgba(0,0,0,.35);display:none;align-items:center;gap:4px;flex-wrap:wrap;">
+          <select id="tt-family" onchange="applyTextProp('fontFamily',this.value)" title="Font" style="font-size:11px;padding:2px 4px;border-radius:4px;border:none;background:#334155;color:#fff;cursor:pointer;">
+            <option value="Nunito">Nunito</option>
+            <option value="Inter">Inter</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Arial">Arial</option>
+            <option value="Trebuchet MS">Trebuchet</option>
+          </select>
+          <select id="tt-size" onchange="applyTextProp('fontSize',parseFloat(this.value))" title="Size" style="font-size:11px;padding:2px 4px;border-radius:4px;border:none;background:#334155;color:#fff;cursor:pointer;width:52px;">
+            <% [7,8,9,10,11,12,13,14,16,18,20,22,24,28,32,36,40,44,48].each do |sz| %>
+            <option value="<%= sz %>"><%= sz %>pt</option>
+            <% end %>
+          </select>
+          <button onclick="applyTextProp('fontWeight',document.getElementById('tt-bold').classList.toggle('tt-on')?700:400)" id="tt-bold" title="Bold" style="background:#334155;color:#fff;border:none;border-radius:4px;width:26px;height:26px;font-weight:900;cursor:pointer;font-size:13px;">B</button>
+          <button onclick="applyTextProp('fontStyle',document.getElementById('tt-italic').classList.toggle('tt-on')?'italic':'normal')" id="tt-italic" title="Italic" style="background:#334155;color:#fff;border:none;border-radius:4px;width:26px;height:26px;font-style:italic;cursor:pointer;font-size:13px;">I</button>
+          <div style="width:1px;height:20px;background:#475569;margin:0 2px;"></div>
+          <button onclick="applyTextProp('align','left')"   title="Align left"   style="background:#334155;color:#fff;border:none;border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:12px;">⬅</button>
+          <button onclick="applyTextProp('align','center')" title="Align center" style="background:#334155;color:#fff;border:none;border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:12px;">☰</button>
+          <button onclick="applyTextProp('align','right')"  title="Align right"  style="background:#334155;color:#fff;border:none;border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:12px;">➡</button>
+          <div style="width:1px;height:20px;background:#475569;margin:0 2px;"></div>
+          <label title="Màu chữ" style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:10px;color:#94a3b8;">
+            A <input type="color" id="tt-color" onchange="applyTextProp('color',this.value)" style="width:24px;height:24px;border:none;background:none;cursor:pointer;padding:0;">
+          </label>
         </div>
         <div style="position:relative; padding-bottom:56.25%; background:#0f172a; overflow:hidden;">
           <div id="slide-viewer" style="position:absolute; inset:0; overflow:hidden;"></div>
@@ -189,6 +220,8 @@
     #slide-stage { position:absolute; width:1280px; height:720px; overflow:hidden; transform-origin:top left; }
     #slide-stage * { box-sizing:border-box; }
     .sel-el { outline:2px solid #6366f1; outline-offset:1px; cursor:move; }
+    #txt-toolbar button.tt-on { background:#6366f1 !important; }
+    #txt-toolbar { user-select:none; }
     .sel-handle { position:absolute; width:8px; height:8px; background:#6366f1; border:2px solid #fff;
                   border-radius:2px; z-index:9999; pointer-events:all; }
     @keyframes aispin { to { transform:rotate(360deg); } }
@@ -308,6 +341,12 @@
         }
         case 'chart_donut': {
           return renderDonutChart(el, x, y, w, h, z, si, attrs);
+        }
+        case 'image': {
+          var src = el.src || '';
+          var r = s.borderRadius || 0;
+          return '<div class="slide-el" '+attrs+' style="position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;z-index:'+z+';overflow:hidden;border-radius:'+r+'px;">' +
+                 '<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;" draggable="false"/></div>';
         }
         default: return '';
       }
@@ -529,6 +568,7 @@
       selectedElId = null;
       document.querySelectorAll('.sel-el').forEach(function(e){ e.classList.remove('sel-el'); });
       document.querySelectorAll('.sel-handle').forEach(function(e){ e.remove(); });
+      hideTextToolbar();
     }
 
     var _dragState = null;
@@ -540,6 +580,11 @@
       domEl.classList.add('sel-el');
       selectedElId = domEl.dataset.ei;
       addResizeHandles(domEl);
+      /* show text toolbar if this is a text element */
+      var si2 = parseInt(domEl.dataset.si);
+      var elData2 = slides[si2] && slides[si2].elements.find(function(e){ return e.id === domEl.dataset.ei; });
+      if (elData2 && elData2.type === 'text') showTextToolbar(domEl);
+      else hideTextToolbar();
       var stage = document.getElementById('slide-stage');
       var rect = stage.getBoundingClientRect();
       var scale = rect.width / 1280;
@@ -665,6 +710,88 @@
           if (elData) { elData.content = span.textContent; scheduleSave(); }
         }
       }, { once: true });
+    }
+
+    /* ─── Text format toolbar ─── */
+    var _selectedTextEl = null;
+
+    function showTextToolbar(domEl) {
+      _selectedTextEl = domEl;
+      var si = parseInt(domEl.dataset.si);
+      var ei = domEl.dataset.ei;
+      var elData = slides[si] && slides[si].elements.find(function(e){ return e.id === ei; });
+      var s = (elData && elData.style) || {};
+      /* populate controls */
+      var tb = document.getElementById('txt-toolbar');
+      var fam = document.getElementById('tt-family');
+      var sz  = document.getElementById('tt-size');
+      var col = document.getElementById('tt-color');
+      var bold = document.getElementById('tt-bold');
+      var ital = document.getElementById('tt-italic');
+      if (fam) fam.value = (s.fontFamily || 'Inter').replace(',sans-serif','');
+      if (sz)  { var ptVal = s.fontSize || 12; sz.value = ptVal; }
+      if (col) col.value = s.color || '#1F2A44';
+      if (bold) bold.classList.toggle('tt-on', (s.fontWeight||400) >= 700);
+      if (ital) ital.classList.toggle('tt-on', s.fontStyle === 'italic');
+      /* position near element */
+      var stageEl = document.getElementById('slide-stage');
+      var rect = domEl.getBoundingClientRect();
+      tb.style.display = 'flex';
+      tb.style.left = Math.max(8, rect.left) + 'px';
+      tb.style.top  = (rect.top - 50) + 'px';
+      if (parseFloat(tb.style.top) < 8) tb.style.top = (rect.bottom + 6) + 'px';
+    }
+
+    function hideTextToolbar() {
+      var tb = document.getElementById('txt-toolbar');
+      if (tb) tb.style.display = 'none';
+      _selectedTextEl = null;
+    }
+
+    function applyTextProp(prop, value) {
+      if (!_selectedTextEl) return;
+      var si = parseInt(_selectedTextEl.dataset.si);
+      var ei = _selectedTextEl.dataset.ei;
+      var elData = slides[si] && slides[si].elements.find(function(e){ return e.id === ei; });
+      if (!elData) return;
+      if (!elData.style) elData.style = {};
+      elData.style[prop] = value;
+      /* re-render this slide to reflect change */
+      var stage = document.getElementById('slide-stage');
+      if (stage) stage.innerHTML = renderSlide(si);
+      if (editorMode) {
+        attachEditorHandlers();
+        /* re-select the element */
+        var newDom = stage && stage.querySelector('[data-ei="'+ei+'"]');
+        if (newDom) { newDom.classList.add('sel-el'); addResizeHandles(newDom); showTextToolbar(newDom); _selectedTextEl = newDom; }
+      }
+      scheduleSave();
+    }
+
+    /* ─── Image upload + insert ─── */
+    function insertImageFromFile(input) {
+      var file = input && input.files && input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        var dataUrl = ev.target.result;
+        /* Insert as an image element at center of slide */
+        var newEl = {
+          id: 'img_' + Date.now(),
+          type: 'image',
+          x: 2.0, y: 1.5, w: 5.0, h: 3.0, z: 5,
+          src: dataUrl,
+          style: {}
+        };
+        if (!slides[current]) return;
+        slides[current].elements.push(newEl);
+        var stage = document.getElementById('slide-stage');
+        if (stage) stage.innerHTML = renderSlide(current);
+        if (editorMode) attachEditorHandlers();
+        scheduleSave();
+      };
+      reader.readAsDataURL(file);
+      input.value = '';
     }
 
     /* ─── Auto-save ─── */
