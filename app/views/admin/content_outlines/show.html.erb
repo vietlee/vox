@@ -373,6 +373,12 @@
               </div>
             </div>
           </div><!-- /tt-bg-wrap -->
+          <!-- Chart edit button (shown only for chart elements) -->
+          <div id="tt-sep-chart" style="display:none;width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
+          <button id="tt-chart-edit" onclick="openChartEditor(selectedElId)" title="Sửa dữ liệu biểu đồ"
+            style="display:none;background:#4f46e5;border:none;color:#fff;border-radius:5px;height:28px;padding:0 10px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;">
+            📊 Sửa dữ liệu
+          </button>
           <!-- Size + Z-order section (shown for all element types) -->
           <div id="tt-sep-dims" style="width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
           <div id="tt-dims" style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
@@ -1397,6 +1403,7 @@
       var tbR = document.getElementById('txt-toolbar');
       if (tbR) Array.from(tbR.children).forEach(function(c){
         if (c.id === 'tt-dims' || c.id === 'tt-zorder') c.style.display = 'flex';
+        else if (c.id === 'tt-chart-edit' || c.id === 'tt-sep-chart') c.style.display = 'none';
         else c.style.display = '';
       });
       var si = parseInt(domEl.dataset.si);
@@ -1455,9 +1462,15 @@
       var tb = document.getElementById('txt-toolbar');
       if (!tb) return;
       var rect = domEl.getBoundingClientRect();
+      var si2 = parseInt(domEl.dataset.si);
+      var ei2 = domEl.dataset.ei;
+      var elData2 = slides[si2] && (slides[si2].elements||[]).find(function(e){ return e.id === ei2; });
+      var isChart = elData2 && elData2.type === 'chart';
       var SHOW = {'tt-bg-wrap':1,'tt-sep-bg':1,'tt-sep-dims':1,'tt-dims':1,'tt-sep-z':1,'tt-zorder':1};
+      if (isChart) { SHOW['tt-sep-chart'] = 1; SHOW['tt-chart-edit'] = 1; }
       Array.from(tb.children).forEach(function(c){
-        c.style.display = SHOW[c.id] ? (c.id==='tt-dims'||c.id==='tt-zorder' ? 'flex' : '') : 'none';
+        if (c.id === 'tt-dims' || c.id === 'tt-zorder' || c.id === 'tt-chart-edit') c.style.display = SHOW[c.id] ? 'flex' : 'none';
+        else c.style.display = SHOW[c.id] ? '' : 'none';
       });
       tb.style.display = 'flex';
       tb.style.left = Math.max(8, rect.left) + 'px';
