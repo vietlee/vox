@@ -19,7 +19,19 @@
     body{background:#f1f5f9;font-family:Inter,system-ui,sans-serif}
     .flex{display:flex}.flex-col{flex-direction:column}
     .h-full{height:100%}.overflow-hidden{overflow:hidden}
-    aside{background:#0F172A;width:232px;min-width:232px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+    aside{background:#0F172A;width:232px;min-width:232px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;transition:width .2s ease,min-width .2s ease}
+    aside.collapsed{width:56px;min-width:56px}
+    aside.collapsed .sidebar-label{display:none}
+    aside.collapsed .sidebar-section-label{display:none}
+    aside.collapsed .sidebar-footer-text{display:none}
+    aside.collapsed .ws-switcher-wrap{display:none}
+    aside.collapsed .sidebar-logo-text{display:none}
+    aside.collapsed nav a,aside.collapsed nav form{justify-content:center;padding-left:0;padding-right:0}
+    aside.collapsed nav a span:first-child,aside.collapsed nav form span:first-child{margin:0}
+    aside.collapsed .sidebar-footer-wrap{padding-left:0;padding-right:0;display:flex;justify-content:center}
+    aside.collapsed .sidebar-footer-wrap>*{display:none}
+    aside.collapsed #sidebar-toggle{display:flex!important;margin:0}
+    aside:not(.collapsed) #sidebar-expand-btn{display:none}
     .flex-1{flex:1 1 0%}.overflow-auto{overflow:auto}
     .overflow-y-auto{overflow-y:auto}
     /* Hide scrollbars globally while keeping scroll functionality */
@@ -87,8 +99,8 @@
 
 <div class="flex h-full">
   <!-- Sidebar -->
-  <aside class="w-[232px] bg-[#0F172A] flex flex-col flex-shrink-0 overflow-hidden">
-    <div class="px-5 pt-[18px] pb-1.5 flex-shrink-0">
+  <aside id="main-sidebar" class="w-[232px] bg-[#0F172A] flex flex-col flex-shrink-0 overflow-hidden">
+    <div class="px-4 pt-[18px] pb-1.5 flex-shrink-0 flex items-center justify-between">
       <%= link_to dashboard_path, class: "block" do %>
         <div class="flex items-center gap-2">
           <svg width="28" height="28" viewBox="295 27 90 90" xmlns="http://www.w3.org/2000/svg">
@@ -99,13 +111,20 @@
             <rect x="338" y="53" width="7" height="26" rx="2" fill="#1A6BFF"/>
             <rect x="350" y="57" width="7" height="18" rx="2" fill="#1A6BFF"/>
           </svg>
-          <span style="font-size:17px;font-weight:800;color:#1A6BFF;letter-spacing:2.5px;line-height:1;">VOX</span>
+          <span class="sidebar-logo-text" style="font-size:17px;font-weight:800;color:#1A6BFF;letter-spacing:2.5px;line-height:1;">VOX</span>
         </div>
       <% end %>
+      <button id="sidebar-toggle" onclick="toggleSidebar()" title="Thu gọn / Mở rộng"
+        class="ml-auto flex items-center justify-center w-6 h-6 rounded-md text-slate-500 hover:text-slate-300 hover:bg-white/10 transition-all border-0 bg-transparent cursor-pointer flex-shrink-0">
+        <svg id="sidebar-toggle-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
 
       <%# Workspace switcher %>
       <% all_workspaces = accessible_workspaces rescue [] %>
-      <div class="relative mt-2" id="ws-switcher">
+      <div class="relative mt-2 ws-switcher-wrap" id="ws-switcher">
         <button type="button" onclick="document.getElementById('ws-dropdown').classList.toggle('hidden')"
           class="w-full flex items-center gap-2 text-left group cursor-pointer bg-white/[0.06] hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg px-2.5 py-1.5 transition-all">
           <span class="text-[12px] text-slate-200 font-semibold truncate flex-1 group-hover:text-white transition-colors">
@@ -156,21 +175,21 @@
     </div>
 
     <nav class="flex-1 pt-3 overflow-y-auto">
-      <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_overview") %></div>
+      <div class="sidebar-section-label px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_overview") %></div>
       <%= render "shared/nav_item", icon: "📊", label: t("nav.dashboard"), path: dashboard_path %>
 
-      <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Tạo nội dung</div>
+      <div class="sidebar-section-label px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Tạo nội dung</div>
       <%= render "shared/nav_item", icon: "🎓", label: t("quiz.nav"), path: quiz_sets_path %>
       <%= render "shared/nav_item", icon: "✍️", label: "Tạo nội dung AI", path: content_outlines_path %>
       <%= render "shared/nav_item", icon: "🗺️", label: "Lộ trình học tập", path: learning_paths_path %>
 
-      <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Học & luyện tập</div>
+      <div class="sidebar-section-label px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Học & luyện tập</div>
       <%= render "shared/nav_item", icon: "🃏", label: "Flashcards", path: flashcard_decks_path %>
       <%= render "shared/nav_item", icon: "📄", label: "Tóm tắt tài liệu", path: document_summaries_path %>
       <%= render "shared/nav_item", icon: "🤖", label: "AI Tutor", path: ai_tutor_page_path %>
       <%= render "shared/nav_item", icon: "✨", label: t("nav.ai_chat"), path: ai_chat_page_path %>
 
-      <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_tools") %></div>
+      <div class="sidebar-section-label px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_tools") %></div>
       <%= render "shared/nav_item", icon: "🎙️", label: t("nav.tts"), path: tts_path %>
       <%= render "shared/nav_item", icon: "🎤", label: t("nav.stt"), path: stt_path %>
       <%= render "shared/nav_item", icon: "📝", label: "Dynamic Forms", path: dynamic_forms_path %>
@@ -179,7 +198,7 @@
       <%= render "shared/nav_item", icon: "💬", label: t("nav.feedback"), path: feedback_boards_path %>
 
       <% if current_workspace_admin? %>
-        <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_manage") %></div>
+        <div class="sidebar-section-label px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_manage") %></div>
         <%= render "shared/nav_item", icon: "👥", label: t("nav.members"), path: members_path %>
         <%= render "shared/nav_item", icon: "⚙️", label: t("nav.settings"), path: workspace_settings_path %>
         <%= render "shared/nav_item", icon: "💳", label: t("nav.subscription"), path: subscription_path %>
@@ -188,7 +207,7 @@
     </nav>
 
     <!-- Sidebar footer: AI credits + user -->
-    <div class="mt-auto border-t border-white/[0.06] px-4 py-3.5">
+    <div class="mt-auto border-t border-white/[0.06] px-4 py-3.5 sidebar-footer-wrap">
       <% if (sub = current_workspace&.active_subscription) && sub.max_ai_credits.to_i > 0 %>
         <div class="flex justify-between text-[11px] text-slate-500 mb-1.5 mt-2">
           <span>AI Credits</span>
@@ -580,6 +599,40 @@ window.voxConfirm = function(message, onOk) {
   overlay.onclick = (e) => { if (e.target === overlay) close(); };
   document.getElementById('vox-confirm-ok').onclick = () => { close(); onOk(); };
 };
+</script>
+<script>
+/* Sidebar collapse/expand */
+(function() {
+  var STORAGE_KEY = 'vox_sidebar_collapsed';
+  function applyState(collapsed) {
+    var sb = document.getElementById('main-sidebar');
+    var icon = document.getElementById('sidebar-toggle-icon');
+    if (!sb) return;
+    if (collapsed) {
+      sb.classList.add('collapsed');
+      if (icon) icon.setAttribute('d-collapsed','1');
+      /* Rotate arrow to point right */
+      if (icon) icon.querySelector('path').setAttribute('d','M5 2l5 5-5 5');
+    } else {
+      sb.classList.remove('collapsed');
+      if (icon) icon.querySelector('path').setAttribute('d','M9 2L4 7l5 5');
+    }
+  }
+  window.toggleSidebar = function() {
+    var sb = document.getElementById('main-sidebar');
+    if (!sb) return;
+    var collapsed = !sb.classList.contains('collapsed');
+    localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
+    applyState(collapsed);
+  };
+  /* Restore state on load */
+  document.addEventListener('DOMContentLoaded', function() {
+    applyState(localStorage.getItem(STORAGE_KEY) === '1');
+  });
+  document.addEventListener('turbo:render', function() {
+    applyState(localStorage.getItem(STORAGE_KEY) === '1');
+  });
+})();
 </script>
 </body>
 </html>
