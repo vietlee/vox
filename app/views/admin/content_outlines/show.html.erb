@@ -265,8 +265,12 @@
           css += 'align-items:'+valign+';';
           var halign = s.align==='center'?'center':s.align==='right'?'flex-end':'flex-start';
           css += 'justify-content:'+halign+';';
+          /* When centering vertically, span must NOT be display:block (block fills full height) */
+          var spanStyle = valign === 'center'
+            ? 'display:inline;line-height:1.2;white-space:pre-wrap;word-break:break-word;'
+            : 'display:block;width:100%;line-height:'+(s.lineHeight||1.4)+';white-space:pre-wrap;word-break:break-word;';
           return '<div class="slide-el" '+attrs+' style="'+css+'">' +
-                 '<span style="display:block;width:100%;line-height:1;">'+escHtml(el.content||'')+'</span></div>';
+                 '<span style="'+spanStyle+'">'+escHtml(el.content||'')+'</span></div>';
         }
         case 'rect': {
           var fill = s.fill||'#E8F0FF';

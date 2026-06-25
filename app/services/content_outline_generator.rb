@@ -910,11 +910,12 @@ class ContentOutlineGenerator
     items = s["items"] || []
     els = [el_chart("donut", LM, 1.65, 4.50, bot - 1.65, "donut", items,
       label: "#{s['center_text']}|#{s['center_sub']}", theme: t)]
+    donut_icons = %w[chart leaf rocket globe lightbulb shield]
     legend_start = 1.65; item_h = [[0.80, (bot - legend_start) / [items.length, 1].max].min, 0.40].max
     items.first(6).each_with_index do |it, i|
       ac = t["card_icons"][i % 3]; cy = legend_start + i * item_h
       break if cy + 0.40 > bot
-      ico = it["icon"] || "star"
+      ico = it["icon"].presence || donut_icons[i % donut_icons.length]
       els << el_icon("dico#{i}", LM + 4.65, cy, 0.38, ico, "#fff", ac)
       els << el_text("dlbl#{i}", LM + 5.10, cy + 0.04, CW - 5.10, 0.28, it["label"] || "",
         heading_style(10))
@@ -927,6 +928,9 @@ class ContentOutlineGenerator
 
   # ─── Two-col ────────────────────────────────────────────────────────────────
 
+  # Cycle of varied icons used when AI doesn't specify
+  COL_ICONS = %w[check leaf rocket chart globe lightbulb shield target heart megaphone].freeze
+
   def compile_two_col(s, t, has_note, bot)
     col1 = s["col1"] || []; col2 = s["col2"] || []
     headers = s["headers"] || ["", ""]
@@ -934,18 +938,23 @@ class ContentOutlineGenerator
     [col1, col2].each_with_index do |items, ci|
       cx = LM + ci * (cw + gap)
       header = headers[ci] || ""
+      # Outer container for the whole column (header + items)
+      col_h = bot - 1.70
+      els << el_rect("cbg#{ci}", cx, 1.70, cw, col_h, t["card_bgs"][ci], radius: 8, opacity: 0.55)
       if header.present?
-        els << el_rect("hbg#{ci}", cx, 1.70, cw, 0.42, t["card_bgs"][ci], radius: 6)
-        els << el_text("htxt#{ci}", cx + 0.10, 1.75, cw - 0.20, 0.32, header,
-          heading_style(12, color: t["card_icons"][ci]))
+        # Header band with stronger bg
+        els << el_rect("hbg#{ci}", cx, 1.70, cw, 0.45, t["card_bgs"][ci], radius: 8, z: 2)
+        els << el_text("htxt#{ci}", cx + 0.10, 1.72, cw - 0.20, 0.42, header,
+          heading_style(11, color: t["card_icons"][ci]).merge("valign" => "center"), z: 3)
       end
-      start_y = header.present? ? 2.20 : 1.75; rh = 0.80
+      start_y = header.present? ? 2.22 : 1.85; rh = 0.80
       items.each_with_index do |item, i|
-        cy = start_y + i * rh; break if cy + 0.65 > bot
-        ac = t["card_icons"][(ci * 4 + i) % 3]
-        els << el_icon("ico#{ci}_#{i}", cx, cy + 0.02, 0.32, "check", "#fff", ac)
-        els << el_text("txt#{ci}_#{i}", cx + 0.42, cy + 0.04, cw - 0.42, 0.65, item,
-          body_style(10))
+        cy = start_y + i * rh; break if cy + 0.60 > bot
+        ac = t["card_icons"][(ci + i) % 3]
+        ico = COL_ICONS[(ci * 5 + i) % COL_ICONS.length]
+        els << el_icon("ico#{ci}_#{i}", cx + 0.10, cy + 0.02, 0.30, ico, "#fff", ac, z: 3)
+        els << el_text("txt#{ci}_#{i}", cx + 0.48, cy, cw - 0.55, 0.70, item,
+          body_style(9, line_height: 1.35), z: 3)
       end
     end
     els
@@ -1063,7 +1072,9 @@ class ContentOutlineGenerator
       col = i % cols; row = i / cols
       cx = LM + col * (col_w + 0.15); cy = 1.70 + row * (card_h + gap_y)
       break if cy + card_h > bot
-      ac = t["card_icons"][i % 3]; ico = it["icon"] || "star"
+      ac = t["card_icons"][i % 3]
+      principles_icons = %w[target shield rocket lightbulb leaf globe heart megaphone]
+      ico = it["icon"].presence || principles_icons[i % principles_icons.length]
       title = it.is_a?(String) ? it : (it["title"] || "")
       desc  = it.is_a?(String) ? "" : (it["desc"] || "")
       els << el_icon("pico#{i}", cx, cy + 0.15, 0.32, ico, "#fff", ac)
