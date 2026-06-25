@@ -152,6 +152,17 @@
           <button onclick="toggleWysiwyg()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Thoát</button>
         </div>
 
+        <!-- Element background color panel (shown when any element selected) -->
+        <div id="el-bg-bar" style="display:none;position:fixed;z-index:10001;background:#1e293b;border-radius:10px;padding:4px 8px;box-shadow:0 6px 20px rgba(0,0,0,.35);align-items:center;gap:5px;">
+          <span style="font-size:10px;color:#94a3b8;font-weight:600;white-space:nowrap;">Nền block</span>
+          <div id="el-bg-swatches" style="display:flex;gap:4px;align-items:center;"></div>
+          <div style="width:1px;height:18px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
+          <input type="color" id="el-bg-color" title="Tuỳ chỉnh màu" style="width:24px;height:24px;border:none;border-radius:4px;cursor:pointer;padding:1px;background:none;" oninput="applyElBg(this.value)">
+          <button onclick="applyElBg('transparent')" title="Trong suốt" style="background:#334155;border:none;color:#fff;border-radius:5px;width:28px;height:24px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="2" y1="12" x2="12" y2="2" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="#94a3b8" stroke-width="1"/></svg>
+          </button>
+        </div>
+
         <!-- Floating text format toolbar (shown when text element selected) -->
         <!-- Text formatting toolbar -->
         <div id="txt-toolbar" style="display:none;position:fixed;z-index:10000;background:#1e293b;border-radius:12px;padding:5px 8px;box-shadow:0 8px 28px rgba(0,0,0,.40);align-items:center;gap:3px;flex-wrap:nowrap;">
@@ -362,6 +373,7 @@
         case 'text': {
           var fs = PT(s.fontSize||12);
           var css = base +
+            (s.backgroundColor&&s.backgroundColor!=='transparent'?'background:'+s.backgroundColor+';':'')+
             'font-family:'+(s.fontFamily==='Nunito'?'Nunito,sans-serif':'Inter,sans-serif')+';'+
             'font-size:'+fs+'px;font-weight:'+(s.fontWeight||400)+';'+
             'color:'+(s.color||'#1F2A44')+';text-align:'+(s.align||'left')+';'+
@@ -406,7 +418,10 @@
               cardCss = 'border-left:4px solid '+ac+';';
             }
           }
-          return '<div class="slide-el" '+attrs+' style="'+base+'background:'+fill+';border-radius:'+(typeof r==='string'?r:r+'px')+';opacity:'+op+';'+border+cardCss+'"></div>';
+          var userBg = s.backgroundColor;
+          var finalFill = (userBg && userBg !== 'transparent') ? userBg : fill;
+          var finalBgCss = (userBg === 'transparent') ? 'background:transparent;' : 'background:'+finalFill+';';
+          return '<div class="slide-el" '+attrs+' style="'+base+finalBgCss+'border-radius:'+(typeof r==='string'?r:r+'px')+';opacity:'+op+';'+border+cardCss+'"></div>';
         }
         case 'ellipse': {
           var fill = s.fill||'#6366f1';
@@ -424,7 +439,9 @@
           var r = s.borderRadius||'50%';
           var icon = el.icon||'star';
           var iconW = Math.round(w*0.55);
-          return '<div class="slide-el" '+attrs+' style="'+base+'background:'+bg+';border-radius:'+r+';display:flex;align-items:center;justify-content:center;">'+
+          var iconUserBg = s.backgroundColor;
+          var iconFinalBg = (iconUserBg && iconUserBg !== 'transparent') ? iconUserBg : (iconUserBg === 'transparent' ? 'transparent' : bg);
+          return '<div class="slide-el" '+attrs+' style="'+base+'background:'+iconFinalBg+';border-radius:'+r+';display:flex;align-items:center;justify-content:center;">'+
                  iconSvg(icon, iconW, ic)+'</div>';
         }
         case 'chart_bar': {
@@ -683,6 +700,7 @@
       document.querySelectorAll('.sel-el').forEach(function(e){ e.classList.remove('sel-el'); });
       document.querySelectorAll('.sel-handle').forEach(function(e){ e.remove(); });
       hideTextToolbar();
+      hideElBgBar();
     }
 
     var _dragState = null;
@@ -721,6 +739,7 @@
       var elData2 = slides[si2] && slides[si2].elements.find(function(el2){ return el2.id === ei; });
       if (elData2 && elData2.type === 'text') showTextToolbar(domEl);
       else hideTextToolbar();
+      showElBgBar(domEl);
 
       var stage = document.getElementById('slide-stage');
       var rect = stage.getBoundingClientRect();
@@ -912,13 +931,79 @@
       tb.style.left = Math.max(8, rect.left) + 'px';
       tb.style.top  = (rect.top - 50) + 'px';
       if (parseFloat(tb.style.top) < 8) tb.style.top = (rect.bottom + 6) + 'px';
+      showElBgBar(domEl);
     }
 
     function hideTextToolbar() {
       var tb = document.getElementById('txt-toolbar');
       if (tb) tb.style.display = 'none';
       _selectedTextEl = null;
+      hideElBgBar();
     }
+
+    /* ─── Element background bar ─── */
+    var EL_BG_PRESETS = [
+      '#ffffff','#f1f5f9','#e2e8f0','#1e293b','#0f172a',
+      '#dbeafe','#1d4ed8','#dcfce7','#16a34a','#fef9c3',
+      '#f59e0b','#fee2e2','#dc2626','#fae8ff','#7c3aed'
+    ];
+
+    function showElBgBar(domEl) {
+      var bar = document.getElementById('el-bg-bar');
+      if (!bar) return;
+      /* build swatches once */
+      var sw = document.getElementById('el-bg-swatches');
+      if (sw && sw.childElementCount === 0) {
+        EL_BG_PRESETS.forEach(function(hex) {
+          var s = document.createElement('div');
+          s.title = hex;
+          s.style.cssText = 'width:18px;height:18px;border-radius:4px;background:'+hex+';border:1.5px solid rgba(255,255,255,.25);cursor:pointer;flex-shrink:0;';
+          s.onclick = function(){ applyElBg(hex); };
+          sw.appendChild(s);
+        });
+      }
+      /* sync color input to current element bg */
+      var si = parseInt(domEl.dataset.si);
+      var ei = domEl.dataset.ei;
+      var elData = slides[si] && slides[si].elements.find(function(e){ return e.id === ei; });
+      var curBg = (elData && elData.style && elData.style.backgroundColor) || '';
+      var ci = document.getElementById('el-bg-color');
+      if (ci && curBg && curBg !== 'transparent') ci.value = curBg;
+      /* position below element */
+      var rect = domEl.getBoundingClientRect();
+      bar.style.display = 'flex';
+      bar.style.left = Math.max(8, rect.left) + 'px';
+      bar.style.top  = (rect.bottom + 6) + 'px';
+      if (parseFloat(bar.style.top) + 50 > window.innerHeight) bar.style.top = (rect.top - 46) + 'px';
+    }
+
+    function hideElBgBar() {
+      var bar = document.getElementById('el-bg-bar');
+      if (bar) bar.style.display = 'none';
+    }
+
+    function applyElBg(color) {
+      if (!selectedElId) return;
+      saveHistorySnapshot();
+      var stage = document.getElementById('slide-stage');
+      var domEl = stage && stage.querySelector('[data-ei="'+selectedElId+'"]');
+      if (!domEl) return;
+      var si = parseInt(domEl.dataset.si);
+      var elData = slides[si] && slides[si].elements.find(function(e){ return e.id === selectedElId; });
+      if (!elData) return;
+      if (!elData.style) elData.style = {};
+      elData.style.backgroundColor = color;
+      /* apply directly to DOM without full re-render */
+      domEl.style.backgroundColor = color === 'transparent' ? '' : color;
+      /* also update the wrapper div background if card element */
+      var inner = domEl.querySelector('.card-el, .card-inner, div');
+      if (inner) inner.style.backgroundColor = color === 'transparent' ? '' : color;
+      scheduleSave();
+      /* update color input preview */
+      var ci = document.getElementById('el-bg-color');
+      if (ci && color !== 'transparent') ci.value = color;
+    }
+    window.applyElBg = applyElBg;
 
     /* Toggle a text prop (bold, italic, underline) and update button state */
     function ttToggle(btnId, prop, onVal, offVal) {
@@ -1261,10 +1346,12 @@
       var tb  = document.getElementById('txt-toolbar');
       var bgp = document.getElementById('bg-panel');
       var tcp = document.getElementById('tt-color-panel');
+      var elb = document.getElementById('el-bg-bar');
       /* ignore clicks inside toolbars/panels */
       if (tb  && tb.contains(e.target))  return;
       if (bgp && bgp.contains(e.target)) return;
       if (tcp && tcp.contains(e.target)) return;
+      if (elb && elb.contains(e.target)) return;
       /* ignore clicks directly on a .slide-el (startMove handles those) */
       if (e.target.closest('.slide-el') || e.target.closest('.sel-handle')) return;
       clearSelection();
