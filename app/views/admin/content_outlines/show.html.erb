@@ -315,33 +315,51 @@
       var accent = t.accent || '#6366f1';
       var colors = t.card_icons || [accent, t.primary_dk || '#4338CA', t.primary || '#6366f1'];
       var maxVal = Math.max.apply(null, data.map(function(d){return parseFloat(d.value)||0;})) || 1;
-      var padTop = 22; /* room for value labels */
-      var padBot = 22; /* room for x-axis labels */
-      var barArea_h = h - padTop - padBot;
+      var padTop = 24;  /* value labels */
+      var padBot = 28;  /* x-axis labels */
+      var padLeft = 38; /* y-axis labels */
+      var padRight = 8;
+      var chartW = w - padLeft - padRight;
+      var chartH = h - padTop - padBot;
       var n = data.length;
-      var barW = Math.max(10, Math.floor((w * 0.8) / n));
-      var totalBarW = barW * n;
-      var gap = Math.floor((w - totalBarW) / (n + 1));
-      gap = Math.max(4, gap);
       var svgContent = '';
-      /* grid line at top */
-      svgContent += '<line x1="0" y1="'+padTop+'" x2="'+w+'" y2="'+padTop+'" stroke="#F1F5F9" stroke-width="1"/>';
+
+      /* ── Y-axis grid lines + labels (4 ticks) ── */
+      var ticks = 4;
+      for (var ti = 0; ti <= ticks; ti++) {
+        var tickVal = maxVal * ti / ticks;
+        var tickY = padTop + chartH - Math.round((tickVal / maxVal) * chartH);
+        var tickLabel = tickVal % 1 === 0 ? String(Math.round(tickVal)) : tickVal.toFixed(1);
+        /* horizontal grid line */
+        svgContent += '<line x1="'+padLeft+'" y1="'+tickY+'" x2="'+(padLeft+chartW)+'" y2="'+tickY+'" stroke="#E2E8F0" stroke-width="'+(ti===0?1.5:0.8)+'"/>';
+        /* y-axis label */
+        svgContent += '<text x="'+(padLeft-5)+'" y="'+(tickY+4)+'" text-anchor="end" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif">'+escHtml(tickLabel)+'</text>';
+      }
+
+      /* ── Vertical axis line ── */
+      svgContent += '<line x1="'+padLeft+'" y1="'+padTop+'" x2="'+padLeft+'" y2="'+(padTop+chartH)+'" stroke="#CBD5E1" stroke-width="1.5"/>';
+
+      /* ── Bars ── */
+      var barW = Math.max(8, Math.floor((chartW * 0.75) / n));
+      var gap = Math.floor((chartW - barW * n) / (n + 1));
+      gap = Math.max(3, gap);
       data.forEach(function(d, i) {
         var val = parseFloat(d.value) || 0;
-        var barH = Math.round((val / maxVal) * barArea_h);
-        var bx = gap + i * (barW + gap);
-        var by = padTop + barArea_h - barH;
+        var barH = Math.max(2, Math.round((val / maxVal) * chartH));
+        var bx = padLeft + gap + i * (barW + gap);
+        var by = padTop + chartH - barH;
         var c = colors[i % colors.length];
-        /* bar with rounded top */
         var rx = Math.min(4, barW / 3);
         svgContent += '<rect x="'+bx+'" y="'+by+'" width="'+barW+'" height="'+barH+'" rx="'+rx+'" fill="'+c+'"/>';
         /* value label on top */
         var rawVal = parseFloat(d.value) || 0;
         var valStr = rawVal % 1 === 0 ? String(Math.round(rawVal)) : rawVal.toFixed(1);
-        svgContent += '<text x="'+(bx+barW/2)+'" y="'+(by-5)+'" text-anchor="middle" font-size="11" font-weight="700" fill="'+c+'" font-family="Inter,sans-serif">'+escHtml(valStr)+'</text>';
+        svgContent += '<text x="'+(bx+barW/2)+'" y="'+(by-5)+'" text-anchor="middle" font-size="10" font-weight="700" fill="'+c+'" font-family="Inter,sans-serif">'+escHtml(valStr)+'</text>';
+        /* x-axis tick */
+        svgContent += '<line x1="'+(bx+barW/2)+'" y1="'+(padTop+chartH)+'" x2="'+(bx+barW/2)+'" y2="'+(padTop+chartH+4)+'" stroke="#CBD5E1" stroke-width="1"/>';
         /* x-axis label */
         var lbl = String(d.label||'').substring(0,8);
-        svgContent += '<text x="'+(bx+barW/2)+'" y="'+(padTop+barArea_h+padBot*0.72)+'" text-anchor="middle" font-size="10" fill="#94A3B8" font-family="Inter,sans-serif">'+escHtml(lbl)+'</text>';
+        svgContent += '<text x="'+(bx+barW/2)+'" y="'+(padTop+chartH+padBot*0.70)+'" text-anchor="middle" font-size="10" fill="#64748B" font-family="Inter,sans-serif">'+escHtml(lbl)+'</text>';
       });
       return '<div class="slide-el" '+attrs+' style="position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;z-index:'+z+';"><svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">'+svgContent+'</svg></div>';
     }
