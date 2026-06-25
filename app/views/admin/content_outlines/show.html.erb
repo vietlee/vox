@@ -1128,9 +1128,73 @@
     /* keep toggleEditor as alias for AI panel (used by old inline onclick) */
     function toggleEditor() { toggleAiPanel(); }
 
+    /* ─── Marquee (rubber-band) selection ─── */
+    var _marquee = null;
+    function _startMarquee(e) {
+      if (!editorMode) return;
+      if (e.button !== 0) return;
+      if (e.target.closest('.slide-el') || e.target.closest('.sel-handle')) return;
+      var stage = document.getElementById('slide-stage');
+      if (!stage) return;
+      clearSelection();
+      var sr = stage.getBoundingClientRect();
+      var scale = sr.width / 1280;
+      var x0 = (e.clientX - sr.left) / scale;
+      var y0 = (e.clientY - sr.top)  / scale;
+      var box = document.createElement('div');
+      box.id = 'marquee-box';
+      box.style.cssText = 'position:absolute;border:1.5px dashed #6366f1;background:rgba(99,102,241,.08);pointer-events:none;z-index:9999;left:'+x0+'px;top:'+y0+'px;width:0;height:0;';
+      stage.appendChild(box);
+      _marquee = { x0:x0, y0:y0, box:box, sr:sr, scale:scale };
+      document.addEventListener('mousemove', _onMarqueeMove);
+      document.addEventListener('mouseup',   _onMarqueeEnd);
+      e.preventDefault();
+    }
+    function _onMarqueeMove(e) {
+      if (!_marquee) return;
+      var sr = _marquee.sr; var sc = _marquee.scale;
+      var x1 = (e.clientX - sr.left) / sc;
+      var y1 = (e.clientY - sr.top)  / sc;
+      var left = Math.min(_marquee.x0, x1), top  = Math.min(_marquee.y0, y1);
+      var w    = Math.abs(x1 - _marquee.x0),   h  = Math.abs(y1 - _marquee.y0);
+      _marquee.box.style.left = left + 'px'; _marquee.box.style.top  = top  + 'px';
+      _marquee.box.style.width = w + 'px';   _marquee.box.style.height = h  + 'px';
+    }
+    function _onMarqueeEnd(e) {
+      document.removeEventListener('mousemove', _onMarqueeMove);
+      document.removeEventListener('mouseup',   _onMarqueeEnd);
+      if (!_marquee) return;
+      var box = _marquee.box;
+      var ml = parseFloat(box.style.left), mt = parseFloat(box.style.top);
+      var mw = parseFloat(box.style.width), mh = parseFloat(box.style.height);
+      box.remove(); _marquee = null;
+      if (mw < 4 && mh < 4) return; /* too small — treat as click */
+      var stage = document.getElementById('slide-stage');
+      var mr = {left:ml, top:mt, right:ml+mw, bottom:mt+mh};
+      var hit = [];
+      stage.querySelectorAll('.slide-el').forEach(function(el) {
+        var l = parseInt(el.style.left)||0, t = parseInt(el.style.top)||0;
+        var w = parseInt(el.style.width)||0, h = parseInt(el.style.height)||0;
+        if (l+w > mr.left && l < mr.right && t+h > mr.top && t < mr.bottom) {
+          hit.push(el.dataset.ei);
+          el.classList.add('sel-el');
+        }
+      });
+      if (hit.length === 1) {
+        selectedElId = hit[0]; selectedElIds = hit;
+        var dom = stage.querySelector('[data-ei="'+hit[0]+'"]');
+        if (dom) { addResizeHandles(dom); showBgOnlyToolbar(dom); }
+      } else if (hit.length > 1) {
+        selectedElIds = hit; selectedElId = hit[hit.length-1];
+        _startMultiDrag(e);
+      }
+    }
+
     function attachEditorHandlers() {
       var stage = document.getElementById('slide-stage');
       if (!stage) return;
+      stage.removeEventListener('mousedown', _startMarquee);
+      stage.addEventListener('mousedown', _startMarquee);
       /* Click on empty slide area → deselect */
       stage.onclick = function(e) {
         if (!editorMode) return;
