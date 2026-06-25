@@ -164,27 +164,18 @@
         </div>
 
         <!-- Floating text format toolbar (shown when text element selected) -->
-        <!-- Text formatting toolbar -->
         <div id="txt-toolbar" style="display:none;position:fixed;z-index:10000;background:#1e293b;border-radius:12px;padding:5px 8px;box-shadow:0 8px 28px rgba(0,0,0,.40);align-items:center;gap:3px;flex-wrap:nowrap;">
-          <!-- Font family -->
-          <select id="tt-family" onchange="applyTextProp('fontFamily',this.value)" title="Font" style="font-size:11px;padding:2px 6px;border-radius:5px;border:none;background:#334155;color:#fff;cursor:pointer;max-width:100px;">
-            <option value="Nunito">Nunito</option>
-            <option value="Inter">Inter</option>
-            <option value="Roboto">Roboto</option>
-            <option value="Open Sans">Open Sans</option>
-            <option value="Lato">Lato</option>
-            <option value="Montserrat">Montserrat</option>
-            <option value="Poppins">Poppins</option>
-            <option value="Raleway">Raleway</option>
-            <option value="Oswald">Oswald</option>
-            <option value="Merriweather">Merriweather</option>
-            <option value="Playfair Display">Playfair</option>
-            <option value="Georgia">Georgia</option>
-            <option value="Arial">Arial</option>
-            <option value="Helvetica Neue">Helvetica</option>
-            <option value="Times New Roman">Times New Roman</option>
-            <option value="Courier New">Courier</option>
-          </select>
+          <!-- Font family — custom searchable dropdown -->
+          <div style="position:relative;" id="tt-family-wrap">
+            <button id="tt-family-btn" onclick="toggleFontDropdown()" style="font-size:11px;padding:2px 6px;border-radius:5px;border:none;background:#334155;color:#fff;cursor:pointer;min-width:90px;max-width:110px;display:flex;align-items:center;justify-content:space-between;gap:4px;height:26px;">
+              <span id="tt-family-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Inter</span>
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 2.5L4 5.5L7 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            </button>
+            <div id="tt-font-dropdown" style="display:none;position:absolute;left:0;top:calc(100%+4px);z-index:10200;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:6px;width:180px;box-shadow:0 8px 24px rgba(0,0,0,.5);">
+              <input id="tt-font-search" type="text" placeholder="Tìm font..." oninput="filterFonts(this.value)" style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#fff;font-size:11px;padding:4px 8px;outline:none;margin-bottom:5px;">
+              <div id="tt-font-list" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:1px;"></div>
+            </div>
+          </div>
           <!-- Font size -->
           <select id="tt-size" onchange="applyTextProp('fontSize',parseFloat(this.value))" title="Cỡ chữ" style="font-size:11px;padding:2px 4px;border-radius:5px;border:none;background:#334155;color:#fff;cursor:pointer;width:54px;">
             <% [7,8,9,10,11,12,14,16,18,20,24,28,32,36,40,44,48,56,64,72].each do |sz| %>
@@ -202,6 +193,14 @@
           <button id="tt-al" onclick="ttAlign('left')"    title="Canh trái"   style="background:#334155;color:#fff;border:none;border-radius:5px;width:28px;height:28px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="1.5" rx=".5" fill="currentColor"/><rect x="1" y="5.5" width="8" height="1.5" rx=".5" fill="currentColor"/><rect x="1" y="9" width="10" height="1.5" rx=".5" fill="currentColor"/></svg></button>
           <button id="tt-ac" onclick="ttAlign('center')"  title="Canh giữa"   style="background:#334155;color:#fff;border:none;border-radius:5px;width:28px;height:28px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="1.5" rx=".5" fill="currentColor"/><rect x="3" y="5.5" width="8" height="1.5" rx=".5" fill="currentColor"/><rect x="2" y="9" width="10" height="1.5" rx=".5" fill="currentColor"/></svg></button>
           <button id="tt-ar" onclick="ttAlign('right')"   title="Canh phải"   style="background:#334155;color:#fff;border:none;border-radius:5px;width:28px;height:28px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="1.5" rx=".5" fill="currentColor"/><rect x="5" y="5.5" width="8" height="1.5" rx=".5" fill="currentColor"/><rect x="3" y="9" width="10" height="1.5" rx=".5" fill="currentColor"/></svg></button>
+          <div style="width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
+          <!-- List: UL / OL -->
+          <button id="tt-ul" onclick="ttList('ul')" title="Danh sách dấu chấm" style="background:#334155;color:#fff;border:none;border-radius:5px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="2" cy="3.5" r="1.2" fill="currentColor"/><rect x="5" y="2.75" width="8" height="1.5" rx=".5" fill="currentColor"/><circle cx="2" cy="7" r="1.2" fill="currentColor"/><rect x="5" y="6.25" width="8" height="1.5" rx=".5" fill="currentColor"/><circle cx="2" cy="10.5" r="1.2" fill="currentColor"/><rect x="5" y="9.75" width="8" height="1.5" rx=".5" fill="currentColor"/></svg>
+          </button>
+          <button id="tt-ol" onclick="ttList('ol')" title="Danh sách số thứ tự" style="background:#334155;color:#fff;border:none;border-radius:5px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><text x="1" y="5" font-size="4.5" fill="currentColor" font-family="monospace">1.</text><rect x="5" y="2.75" width="8" height="1.5" rx=".5" fill="currentColor"/><text x="1" y="8.5" font-size="4.5" fill="currentColor" font-family="monospace">2.</text><rect x="5" y="6.25" width="8" height="1.5" rx=".5" fill="currentColor"/><text x="1" y="12" font-size="4.5" fill="currentColor" font-family="monospace">3.</text><rect x="5" y="9.75" width="8" height="1.5" rx=".5" fill="currentColor"/></svg>
+          </button>
           <div style="width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
           <!-- Text color with swatch panel -->
           <div style="position:relative;">
@@ -901,7 +900,6 @@
       var s = (elData && elData.style) || {};
       /* populate controls */
       var tb = document.getElementById('txt-toolbar');
-      var fam = document.getElementById('tt-family');
       var sz  = document.getElementById('tt-size');
       var col = document.getElementById('tt-color');
       var bold = document.getElementById('tt-bold');
@@ -910,7 +908,9 @@
       var strk = document.getElementById('tt-strike');
       var colorBar = document.getElementById('tt-color-bar');
       var hexInp = document.getElementById('tt-hex');
-      if (fam) fam.value = (s.fontFamily || 'Inter').replace(',sans-serif','');
+      /* font label */
+      var fontLbl = document.getElementById('tt-family-label');
+      if (fontLbl) fontLbl.textContent = (s.fontFamily||'Inter').replace(',sans-serif','');
       if (sz)  { var ptVal = s.fontSize || 12; sz.value = ptVal; }
       if (col) { col.value = s.color || '#1F2A44'; }
       if (colorBar) colorBar.style.background = s.color || '#1F2A44';
@@ -924,6 +924,9 @@
       var alignMap = {left:'tt-al',center:'tt-ac',right:'tt-ar'};
       var ab = document.getElementById(alignMap[s.align||'left']);
       if (ab) ab.classList.add('tt-on');
+      /* sync list buttons */
+      ['tt-ul','tt-ol'].forEach(function(id){ var b=document.getElementById(id); if(b)b.classList.remove('tt-on'); });
+      if (s.listType) { var lb=document.getElementById('tt-'+s.listType); if(lb)lb.classList.add('tt-on'); }
       /* position near element */
       var stageEl = document.getElementById('slide-stage');
       var rect = domEl.getBoundingClientRect();
@@ -1006,6 +1009,118 @@
     window.applyElBg = applyElBg;
 
     /* Toggle a text prop (bold, italic, underline) and update button state */
+    /* ─── Font dropdown with search ─── */
+    var ALL_FONTS = [
+      'Inter','Nunito','Roboto','Open Sans','Lato','Montserrat','Poppins','Raleway',
+      'Oswald','Barlow','DM Sans','Figtree','Outfit','Plus Jakarta Sans','Quicksand',
+      'Sora','Exo 2','Kanit','Rubik','Lexend',
+      'Merriweather','Playfair Display','Lora','EB Garamond','Cormorant','Libre Baskerville',
+      'Crimson Text','PT Serif','Vollkorn','Bitter',
+      'Georgia','Arial','Helvetica Neue','Times New Roman','Courier New','Trebuchet MS',
+      'Tahoma','Verdana','Impact','Comic Sans MS'
+    ];
+    var _fontDropOpen = false;
+
+    function buildFontList(filter) {
+      var list = document.getElementById('tt-font-list');
+      if (!list) return;
+      list.innerHTML = '';
+      var cur = document.getElementById('tt-family-label') && document.getElementById('tt-family-label').textContent.trim();
+      var filtered = filter ? ALL_FONTS.filter(function(f){ return f.toLowerCase().indexOf(filter.toLowerCase()) >= 0; }) : ALL_FONTS;
+      filtered.forEach(function(font) {
+        var item = document.createElement('div');
+        item.textContent = font;
+        item.style.cssText = 'padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+(font===cur?'background:#4f46e5;color:#fff;':'');
+        item.style.fontFamily = font + ',sans-serif';
+        item.onmouseenter = function(){ if(font!==cur) item.style.background='#334155'; };
+        item.onmouseleave = function(){ if(font!==cur) item.style.background=''; };
+        item.onclick = function(e) {
+          e.stopPropagation();
+          selectFont(font);
+        };
+        list.appendChild(item);
+      });
+    }
+
+    function selectFont(font) {
+      var lbl = document.getElementById('tt-family-label');
+      if (lbl) lbl.textContent = font;
+      closeFontDropdown();
+      applyTextProp('fontFamily', font);
+    }
+
+    function toggleFontDropdown() {
+      var dd = document.getElementById('tt-font-dropdown');
+      if (!dd) return;
+      _fontDropOpen = dd.style.display === 'none' || !dd.style.display;
+      dd.style.display = _fontDropOpen ? 'block' : 'none';
+      if (_fontDropOpen) {
+        buildFontList('');
+        var inp = document.getElementById('tt-font-search');
+        if (inp) { inp.value = ''; inp.focus(); }
+      }
+    }
+
+    function closeFontDropdown() {
+      var dd = document.getElementById('tt-font-dropdown');
+      if (dd) dd.style.display = 'none';
+      _fontDropOpen = false;
+    }
+
+    function filterFonts(val) { buildFontList(val); }
+    window.toggleFontDropdown = toggleFontDropdown;
+    window.filterFonts = filterFonts;
+
+    /* Load Google Fonts for searchable fonts */
+    (function() {
+      var gf = document.createElement('link');
+      gf.rel = 'stylesheet';
+      gf.href = 'https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&family=DM+Sans:wght@400;700&family=Figtree:wght@400;700&family=Outfit:wght@400;700&family=Plus+Jakarta+Sans:wght@400;700&family=Quicksand:wght@400;700&family=Sora:wght@400;700&family=Exo+2:wght@400;700&family=Kanit:wght@400;700&family=Rubik:wght@400;700&family=Lexend:wght@400;700&family=Lora:wght@400;700&family=EB+Garamond:wght@400;700&family=Cormorant:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Crimson+Text:wght@400;700&family=Vollkorn:wght@400;700&family=Bitter:wght@400;700&display=swap';
+      document.head.appendChild(gf);
+    })();
+
+    /* Close font dropdown when clicking outside */
+    document.addEventListener('click', function(e) {
+      if (_fontDropOpen && !document.getElementById('tt-family-wrap').contains(e.target)) closeFontDropdown();
+    });
+
+    /* ─── List formatting ─── */
+    function ttList(type) {
+      if (!_selectedTextEl) return;
+      saveHistorySnapshot();
+      var si = parseInt(_selectedTextEl.dataset.si);
+      var ei = _selectedTextEl.dataset.ei;
+      var elData = slides[si] && slides[si].elements.find(function(e){ return e.id === ei; });
+      if (!elData) return;
+      var current = elData.style && elData.style.listType;
+      var next = (current === type) ? null : type; /* toggle off if same */
+      if (!elData.style) elData.style = {};
+      elData.style.listType = next;
+      /* transform content: add/remove list markers */
+      var lines = (elData.content || '').split('\n');
+      if (next === 'ul') {
+        lines = lines.map(function(l){ return l.replace(/^(\d+\.\s*|•\s*|-\s*)/, '').trim(); }).map(function(l){ return '• ' + l; });
+      } else if (next === 'ol') {
+        lines = lines.map(function(l){ return l.replace(/^(\d+\.\s*|•\s*|-\s*)/, '').trim(); }).map(function(l, i){ return (i+1)+'. '+l; });
+      } else {
+        lines = lines.map(function(l){ return l.replace(/^(\d+\.\s*|•\s*|-\s*)/, '').trim(); });
+      }
+      elData.content = lines.join('\n');
+      /* update list button states */
+      ['tt-ul','tt-ol'].forEach(function(id){ var b=document.getElementById(id); if(b)b.classList.remove('tt-on'); });
+      if (next) { var ab = document.getElementById('tt-'+next); if (ab) ab.classList.add('tt-on'); }
+      /* re-render */
+      var stage = document.getElementById('slide-stage');
+      if (stage) { stage.innerHTML = renderSlide(si); applyPendingImages(); }
+      if (editorMode) {
+        attachEditorHandlers();
+        var newDom = stage && stage.querySelector('[data-ei="'+ei+'"]');
+        if (newDom) { newDom.classList.add('sel-el'); addResizeHandles(newDom); showTextToolbar(newDom); _selectedTextEl = newDom; }
+      }
+      scheduleSave();
+    }
+    window.ttList = window.ttList || ttList;
+
     function ttToggle(btnId, prop, onVal, offVal) {
       var btn = document.getElementById(btnId);
       var isOn = btn && btn.classList.contains('tt-on');
