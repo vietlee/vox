@@ -19,7 +19,7 @@ class ContentOutlineGenerator
                      "primary_lt" => "#93C5FD", "primary_xl" => "#DBEAFE",
                      "accent" => "#60A5FA", "card_bgs" => %w[#EFF6FF #DBEAFE #E0EDFF],
                      "card_icons" => %w[#3B82F6 #2563EB #1D4ED8], "text_light" => "#BFDBFE",
-                     "cover_style" => "left", "card_style" => "shadow", "deco_style" => "circles" },
+                     "cover_style" => "left", "card_style" => "shadow", "deco_style" => "split" },
     "purple"    => { "cover_bg" => "linear-gradient(135deg,#1E0B3A 0%,#3B0764 50%,#6B21A8 100%)",
                      "primary" => "#9333EA", "primary_dk" => "#7E22CE",
                      "primary_lt" => "#C4B5FD", "primary_xl" => "#EDE9FE",
@@ -37,7 +37,7 @@ class ContentOutlineGenerator
                      "primary_lt" => "#5EEAD4", "primary_xl" => "#CCFBF1",
                      "accent" => "#2DD4BF", "card_bgs" => %w[#F0FDFA #CCFBF1 #C7F5EE],
                      "card_icons" => %w[#0D9488 #0F766E #115E59], "text_light" => "#99F6E4",
-                     "cover_style" => "minimal", "card_style" => "outlined", "deco_style" => "none" },
+                     "cover_style" => "minimal", "card_style" => "outlined", "deco_style" => "corner" },
     "amber"     => { "cover_bg" => "linear-gradient(135deg,#431407 0%,#78350F 55%,#92400E 100%)",
                      "primary" => "#F59E0B", "primary_dk" => "#D97706",
                      "primary_lt" => "#FCD34D", "primary_xl" => "#FEF3C7",
@@ -55,31 +55,31 @@ class ContentOutlineGenerator
                      "primary_lt" => "#D97706", "primary_xl" => "#FEF3C7",
                      "accent" => "#D97706", "card_bgs" => %w[#FDF6EE #FEF3C7 #FEE0B6],
                      "card_icons" => %w[#92400E #78350F #6B3B1F], "text_light" => "#FDE68A",
-                     "cover_style" => "left", "card_style" => "bold", "deco_style" => "wave" },
+                     "cover_style" => "left", "card_style" => "bold", "deco_style" => "geo" },
     "coral"     => { "cover_bg" => "linear-gradient(135deg,#450614 0%,#881337 55%,#BE123C 100%)",
                      "primary" => "#F43F5E", "primary_dk" => "#E11D48",
                      "primary_lt" => "#FDA4AF", "primary_xl" => "#FFE4E6",
                      "accent" => "#FB7185", "card_bgs" => %w[#FFF1F2 #FFE4E6 #FECDD3],
                      "card_icons" => %w[#F43F5E #E11D48 #BE123C], "text_light" => "#FCA5AF",
-                     "cover_style" => "centered", "card_style" => "glass", "deco_style" => "diagonal" },
+                     "cover_style" => "centered", "card_style" => "glass", "deco_style" => "split" },
     "ocean"     => { "cover_bg" => "linear-gradient(135deg,#021C2C 0%,#0C4A6E 55%,#075985 100%)",
                      "primary" => "#0369A1", "primary_dk" => "#075985",
                      "primary_lt" => "#7DD3FC", "primary_xl" => "#E0F2FE",
                      "accent" => "#38BDF8", "card_bgs" => %w[#F0F9FF #E0F2FE #BAE6FD],
                      "card_icons" => %w[#0369A1 #075985 #0C4A6E], "text_light" => "#BAE6FD",
-                     "cover_style" => "left", "card_style" => "shadow", "deco_style" => "wave" },
+                     "cover_style" => "left", "card_style" => "shadow", "deco_style" => "corner" },
     "berry"     => { "cover_bg" => "linear-gradient(135deg,#2D0416 0%,#500724 55%,#831843 100%)",
                      "primary" => "#DB2777", "primary_dk" => "#BE185D",
                      "primary_lt" => "#F9A8D4", "primary_xl" => "#FCE7F3",
                      "accent" => "#F472B6", "card_bgs" => %w[#FDF2F8 #FCE7F3 #FBCFE8],
                      "card_icons" => %w[#DB2777 #BE185D #9D174D], "text_light" => "#F9A8D4",
-                     "cover_style" => "centered", "card_style" => "glass", "deco_style" => "circles" },
+                     "cover_style" => "centered", "card_style" => "glass", "deco_style" => "dots" },
     "midnight"  => { "cover_bg" => "linear-gradient(135deg,#020617 0%,#0F0B2D 55%,#1E0B5C 100%)",
                      "primary" => "#4F46E5", "primary_dk" => "#3730A3",
                      "primary_lt" => "#A5B4FC", "primary_xl" => "#E0E7FF",
                      "accent" => "#818CF8", "card_bgs" => %w[#EEF2FF #E0E7FF #D4DBFF],
                      "card_icons" => %w[#4F46E5 #3730A3 #312E81], "text_light" => "#C7D2FE",
-                     "cover_style" => "minimal", "card_style" => "outlined", "deco_style" => "dots" },
+                     "cover_style" => "minimal", "card_style" => "outlined", "deco_style" => "geo" },
     # ── 8 new themes ────────────────────────────────────────────────────────
     "rose"      => { "cover_bg" => "linear-gradient(135deg,#4C0519 0%,#9F1239 50%,#E11D48 100%)",
                      "primary" => "#F43F5E", "primary_dk" => "#BE123C",
@@ -92,13 +92,13 @@ class ContentOutlineGenerator
                      "primary_lt" => "#86EFAC", "primary_xl" => "#DCFCE7",
                      "accent" => "#4ADE80", "card_bgs" => %w[#F0FDF4 #DCFCE7 #D1FAE5],
                      "card_icons" => %w[#16A34A #15803D #166534], "text_light" => "#BBF7D0",
-                     "cover_style" => "left", "card_style" => "shadow", "deco_style" => "wave" },
+                     "cover_style" => "left", "card_style" => "shadow", "deco_style" => "split" },
     "gold"      => { "cover_bg" => "linear-gradient(135deg,#1A0F00 0%,#451A03 50%,#92400E 100%)",
                      "primary" => "#D97706", "primary_dk" => "#B45309",
                      "primary_lt" => "#FDE68A", "primary_xl" => "#FEF9C3",
                      "accent" => "#FCD34D", "card_bgs" => %w[#FFFBEB #FEF9C3 #FEF3C7],
                      "card_icons" => %w[#D97706 #B45309 #92400E], "text_light" => "#FDE68A",
-                     "cover_style" => "left", "card_style" => "bold", "deco_style" => "diagonal" },
+                     "cover_style" => "left", "card_style" => "bold", "deco_style" => "corner" },
     "ice"       => { "cover_bg" => "linear-gradient(160deg,#0C4A6E 0%,#0369A1 45%,#38BDF8 100%)",
                      "primary" => "#0EA5E9", "primary_dk" => "#0284C7",
                      "primary_lt" => "#BAE6FD", "primary_xl" => "#F0F9FF",
@@ -116,13 +116,13 @@ class ContentOutlineGenerator
                      "primary_lt" => "#C4B5FD", "primary_xl" => "#EDE9FE",
                      "accent" => "#A78BFA", "card_bgs" => %w[#F5F3FF #EDE9FE #DDD6FE],
                      "card_icons" => %w[#7C3AED #6D28D9 #5B21B6], "text_light" => "#DDD6FE",
-                     "cover_style" => "centered", "card_style" => "glass", "deco_style" => "circles" },
+                     "cover_style" => "centered", "card_style" => "glass", "deco_style" => "geo" },
     "sunset"    => { "cover_bg" => "linear-gradient(135deg,#7C2D12 0%,#C2410C 40%,#BE185D 100%)",
                      "primary" => "#EA580C", "primary_dk" => "#C2410C",
                      "primary_lt" => "#FED7AA", "primary_xl" => "#FFF7ED",
                      "accent" => "#FB923C", "card_bgs" => %w[#FFF7ED #FEE2E2 #FFE4D6],
                      "card_icons" => %w[#EA580C #C2410C #BE185D], "text_light" => "#FED7AA",
-                     "cover_style" => "centered", "card_style" => "bold", "deco_style" => "diagonal" },
+                     "cover_style" => "centered", "card_style" => "bold", "deco_style" => "split" },
     "jade"      => { "cover_bg" => "linear-gradient(135deg,#022C22 0%,#064E3B 55%,#065F46 100%)",
                      "primary" => "#059669", "primary_dk" => "#047857",
                      "primary_lt" => "#6EE7B7", "primary_xl" => "#ECFDF5",
@@ -773,29 +773,48 @@ class ContentOutlineGenerator
     # Decorations vary by deco_style
     case t["deco_style"] || "circles"
     when "circles"
-      els << el_ellipse("deco1", -1.5, 3.2, 8.0, 8.0, t["accent"], opacity: 0.35)
-      els << el_ellipse("deco2", 8.0, -2.0, 5.0, 5.0, t["primary_dk"], opacity: 0.5)
+      # Two large overlapping translucent circles
+      els << el_ellipse("deco1", -1.8, 2.8, 9.0, 9.0, t["accent"],      opacity: 0.30)
+      els << el_ellipse("deco2",  7.5, -2.5, 5.5, 5.5, t["primary_dk"], opacity: 0.55)
+      els << el_ellipse("deco3",  6.0,  3.5, 3.0, 3.0, t["accent"],     opacity: 0.18)
     when "wave"
-      # Diagonal wave band across bottom-left
-      els << el_ellipse("deco1", -2.0, 2.5, 9.0, 6.0, t["primary_dk"], opacity: 0.3)
-      els << el_ellipse("deco2", 5.5, 3.5, 7.0, 5.0, t["accent"], opacity: 0.2)
-      els << el_rect("deco3", -0.5, 4.8, SW + 1, 1.5, t["accent"], opacity: 0.15)
+      # Sweeping wave bands from bottom-left
+      els << el_ellipse("deco1", -3.0, 2.0, 11.0, 7.0, t["primary_dk"], opacity: 0.28)
+      els << el_ellipse("deco2",  4.0, 3.8,  8.0, 5.5, t["accent"],     opacity: 0.20)
+      els << el_rect("deco3",    -0.5, 5.0, SW + 1, 1.2, t["accent"],   opacity: 0.18)
     when "diagonal"
-      # Bold diagonal stripes
-      els << el_rect("deco1", 6.5, -0.5, 4.5, 7.5, t["primary_dk"], z: 0, opacity: 0.7)
-      els << el_rect("deco2", 7.8, -0.5, 2.5, 7.5, t["accent"], z: 0, opacity: 0.5)
+      # Bold solid right-side panel
+      els << el_rect("deco1", SW * 0.55, -0.2, SW * 0.50, SH + 0.4, t["primary_dk"], z: 0, opacity: 0.80)
+      els << el_rect("deco2", SW * 0.65, -0.2, SW * 0.38, SH + 0.4, t["accent"],     z: 0, opacity: 0.55)
     when "dots"
-      # Dot grid pattern (small circles)
-      [0, 1, 2, 3].each do |row|
-        [0, 1, 2, 3, 4].each do |col|
-          els << el_ellipse("dot#{row}_#{col}", 6.0 + col * 0.65, 0.4 + row * 0.65, 0.22, 0.22,
-            t["primary_lt"], opacity: 0.25 + (col + row) * 0.04)
+      # Dense dot grid right half
+      [0, 1, 2, 3, 4].each do |row|
+        [0, 1, 2, 3, 4, 5].each do |col|
+          op = 0.15 + (col + row) * 0.025
+          els << el_ellipse("dot#{row}_#{col}", 5.8 + col * 0.72, 0.3 + row * 0.80, 0.24, 0.24,
+            t["primary_lt"], opacity: [op, 0.50].min)
         end
       end
-      els << el_ellipse("deco_lg", 8.5, 3.8, 3.5, 3.5, t["accent"], opacity: 0.2)
+      els << el_ellipse("deco_lg", 8.2, 3.5, 4.5, 4.5, t["accent"], opacity: 0.18)
+    when "split"
+      # Full right-panel solid color (40% of width) — strongest contrast
+      els << el_rect("deco_panel", SW * 0.60, 0, SW * 0.40, SH, t["accent"],     z: 0, opacity: 0.90)
+      els << el_rect("deco_edge",  SW * 0.58, 0, 0.06,       SH, t["primary_dk"], z: 1, opacity: 0.70)
+      els << el_ellipse("deco_circ", SW * 0.62, -1.0, 3.5, 3.5, "#ffffff", opacity: 0.08)
+    when "corner"
+      # Giant circle anchored to bottom-right corner
+      els << el_ellipse("deco_circ1", 5.5, 1.8, 6.5, 6.5, t["accent"],     opacity: 0.28)
+      els << el_ellipse("deco_circ2", 7.0, 2.8, 5.0, 5.0, t["primary_dk"], opacity: 0.45)
+      els << el_ellipse("deco_circ3", 8.5, 4.0, 3.0, 3.0, "#ffffff",       opacity: 0.08)
+    when "geo"
+      # Geometric angular shapes — triangular cutouts
+      els << el_rect("geo1", SW * 0.68, -0.2, SW * 0.35, SH * 0.55, t["primary_dk"], z: 0, opacity: 0.70)
+      els << el_rect("geo2", SW * 0.78, SH * 0.45, SW * 0.25, SH * 0.60, t["accent"],     z: 0, opacity: 0.60)
+      els << el_ellipse("geo3", SW * 0.55, SH * 0.60, 2.5, 2.5, "#ffffff", opacity: 0.07)
     when "none"
-      # Clean — no decoration, just a subtle bottom bar
-      els << el_rect("deco1", 0, SH - 0.08, SW, 0.08, t["accent"], opacity: 0.6)
+      # Clean — accent top bar + bottom bar only
+      els << el_rect("deco_top", 0, 0,       SW, 0.06, t["accent"], opacity: 0.7)
+      els << el_rect("deco_bot", 0, SH - 0.06, SW, 0.06, t["accent"], opacity: 0.7)
     end
 
     case style
