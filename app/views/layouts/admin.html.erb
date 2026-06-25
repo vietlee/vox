@@ -619,7 +619,12 @@ window.voxConfirm = function(message, onOk) {
     /* Let slide editors / other resize-aware components re-measure */
     setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, 220);
   };
-  function init() { apply(localStorage.getItem(KEY) === '1'); }
+  function init() {
+    apply(localStorage.getItem(KEY) === '1');
+    /* Re-trigger resize so rescaleCanvas (and any other width-aware code)
+       re-measures after sidebar state is applied */
+    setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, 50);
+  }
   document.addEventListener('DOMContentLoaded', init);
   document.addEventListener('turbo:render', init);
 })();
