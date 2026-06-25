@@ -43,9 +43,18 @@
   </div>
 <% elsif @outline.output_type.in?(["slide", "slide_script"]) && @outline.content.include?("slide-deck-root") %>
   <!-- Slide viewer + editor layout -->
-  <div id="slide-editor-layout" style="display:flex;gap:16px;align-items:flex-start;">
+  <div id="slide-editor-layout" style="display:flex;gap:12px;align-items:flex-start;">
 
-    <!-- LEFT: slide viewer -->
+    <!-- SLIDE PANEL: thumbnail sidebar -->
+    <div id="slide-panel" style="width:160px;flex-shrink:0;position:sticky;top:80px;align-self:flex-start;background:#f8fafc;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+      <div style="padding:8px 10px 6px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em;">Slides</span>
+        <button onclick="addBlankSlide()" title="Thêm slide mới" style="background:#6366f1;border:none;color:#fff;border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;">+</button>
+      </div>
+      <div id="slide-thumb-list" style="display:flex;flex-direction:column;gap:6px;padding:8px;max-height:calc(100vh - 200px);overflow-y:auto;"></div>
+    </div>
+
+    <!-- CENTER: slide viewer -->
     <div id="slide-viewer-col" style="flex:1;min-width:0;">
       <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div class="border-b border-slate-100 px-4 py-2 flex items-center justify-between">
@@ -153,6 +162,23 @@
             <button id="undo-btn" onclick="undo()" title="Hoàn tác (Ctrl+Z)" style="background:none;border:none;color:#fff;width:26px;height:26px;border-radius:4px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;opacity:.5;" disabled>↩</button>
             <button id="redo-btn" onclick="redo()" title="Làm lại (Ctrl+Y)" style="background:none;border:none;color:#fff;width:26px;height:26px;border-radius:4px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;opacity:.5;" disabled>↪</button>
           </div>
+          <!-- Insert component -->
+          <div style="position:relative;">
+            <button onclick="toggleInsertPanel()" style="background:rgba(255,255,255,.18);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;">➕ Thêm</button>
+            <div id="insert-panel" style="display:none;position:absolute;right:0;top:calc(100%+6px);z-index:10050;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:10px;min-width:180px;">
+              <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;padding:0 4px 8px;">Chèn vào slide</div>
+              <button onclick="insertComponent('text')"    style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'"><span style="font-size:16px;">T</span> Hộp văn bản</button>
+              <button onclick="insertComponent('rect')"    style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'"><span style="font-size:16px;">▭</span> Hình chữ nhật</button>
+              <button onclick="insertComponent('icon')"    style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'"><span style="font-size:16px;">★</span> Icon</button>
+              <button onclick="insertComponent('chart_bar')"   style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'"><span style="font-size:16px;">📊</span> Biểu đồ cột</button>
+              <button onclick="insertComponent('chart_donut')" style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'"><span style="font-size:16px;">🍩</span> Biểu đồ tròn</button>
+              <div style="border-top:1px solid #f1f5f9;margin:5px 0;"></div>
+              <label style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+                <span style="font-size:16px;">🖼️</span> Chèn ảnh
+                <input type="file" accept="image/*" style="display:none;" onchange="insertImageFromFile(this);document.getElementById('insert-panel').style.display='none';">
+              </label>
+            </div>
+          </div>
           <button onclick="toggleWysiwyg()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Thoát</button>
         </div>
 
@@ -165,6 +191,19 @@
           <button onclick="applyElBg('transparent')" title="Trong suốt" style="background:#334155;border:none;color:#fff;border-radius:5px;width:28px;height:24px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="2" y1="12" x2="12" y2="2" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="#94a3b8" stroke-width="1"/></svg>
           </button>
+        </div>
+
+        <!-- Delete slide confirm modal -->
+        <div id="delete-slide-modal" style="display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+          <div style="background:#fff;border-radius:18px;padding:28px 32px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
+            <div style="font-size:36px;margin-bottom:12px;">🗑️</div>
+            <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:8px;">Xoá slide này?</div>
+            <div id="delete-slide-desc" style="font-size:13px;color:#64748b;margin-bottom:24px;">Thao tác này không thể hoàn tác.</div>
+            <div style="display:flex;gap:10px;">
+              <button onclick="cancelDeleteSlide()" style="flex:1;background:#f1f5f9;border:none;color:#64748b;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">Huỷ</button>
+              <button onclick="confirmDeleteSlide()" style="flex:1;background:#ef4444;border:none;color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Xoá</button>
+            </div>
+          </div>
         </div>
 
         <!-- Chart editor panel (shown on double-click of chart element in edit mode) -->
@@ -1571,6 +1610,7 @@
     }
 
     /* ─── Auto-save ─── */
+    function autoSave() { scheduleSave(); }
     function scheduleSave() {
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(saveDeck, 1200);
@@ -1770,6 +1810,7 @@
           if (stage) stage.style.opacity = '1';
           if (themeBtn) { themeBtn.textContent = '🖌️ Đổi theme'; themeBtn.disabled = false; }
           goToSlide(Math.min(current, slides.length - 1));
+          renderThumbnails();
         })
         .catch(function(err) {
           console.error('[VOX] change_theme error:', err);
@@ -1806,6 +1847,170 @@
     window.confirmBgColor = confirmBgColor;
     window.syncBgHex = syncBgHex;
     window.updateBgPreview = updateBgPreview;
+
+    /* ═══════════════════════════════════════════════════
+       SLIDE PANEL – thumbnails, add, delete
+    ═══════════════════════════════════════════════════ */
+
+    function renderThumbnails() {
+      var list = document.getElementById('slide-thumb-list');
+      if (!list) return;
+      var html = '';
+      for (var i = 0; i < slides.length; i++) {
+        var active = i === current;
+        html += '<div class="slide-thumb-wrap" data-idx="'+i+'" onclick="goToSlide('+i+')" '+
+          'style="position:relative;cursor:pointer;border-radius:8px;overflow:hidden;border:2px solid '+(active?'#6366f1':'transparent')+';box-shadow:'+(active?'0 0 0 1px #6366f1':'0 1px 4px rgba(0,0,0,.12)')+';background:#fff;transition:border-color .15s;"'+
+          ' onmouseover="this.querySelector(\'.thumb-del-btn\').style.opacity=\'1\'" onmouseout="this.querySelector(\'.thumb-del-btn\').style.opacity=\'0\'">' +
+          '<div style="font-size:8px;color:'+(active?'#6366f1':'#94a3b8')+';font-weight:700;padding:3px 5px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">'+(i+1)+'</div>' +
+          '<div style="width:100%;padding-bottom:56.25%;position:relative;overflow:hidden;background:#fff;">' +
+            '<div style="position:absolute;inset:0;transform-origin:top left;transform:scale('+((140-4)/1280)+');" data-thumb-idx="'+i+'">' +
+              renderSlide(i) +
+            '</div>' +
+          '</div>' +
+          '<button class="thumb-del-btn" onclick="event.stopPropagation();askDeleteSlide('+i+')" '+
+            'style="position:absolute;top:24px;right:3px;background:rgba(239,68,68,.9);border:none;color:#fff;border-radius:5px;width:20px;height:20px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;z-index:2;">×</button>' +
+        '</div>';
+      }
+      list.innerHTML = html;
+      /* apply pending images inside thumbnails */
+      list.querySelectorAll('img[data-pending-src]').forEach(function(img) {
+        var src = window._imgSrcMap && window._imgSrcMap[img.id];
+        if (src) { img.src = src; img.removeAttribute('data-pending-src'); }
+      });
+    }
+
+    /* Patch goToSlide to also refresh thumbnails */
+    var _origGoToSlide = goToSlide;
+    goToSlide = function(idx) {
+      _origGoToSlide(idx);
+      renderThumbnails();
+      /* scroll active thumb into view */
+      var list = document.getElementById('slide-thumb-list');
+      if (list) {
+        var active = list.querySelector('[data-idx="'+current+'"]');
+        if (active) active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    };
+    window.goToSlide = goToSlide;
+
+    /* ── Add blank slide ── */
+    function addBlankSlide() {
+      saveHistorySnapshot();
+      var newId = 'slide_' + Date.now();
+      var t = deck.theme || {};
+      var newSlide = {
+        id: newId,
+        background: { type: 'solid', color: '#ffffff' },
+        elements: [
+          { id: newId+'_title', type: 'text', x: 80, y: 80, w: 1120, h: 80, z: 1,
+            content: 'Tiêu đề slide mới',
+            style: { fontSize: 40, fontWeight: 700, color: t.primary_dk || '#1e293b', textAlign: 'center', fontFamily: 'Nunito' } },
+          { id: newId+'_sub', type: 'text', x: 160, y: 180, w: 960, h: 50, z: 1,
+            content: 'Nội dung',
+            style: { fontSize: 20, fontWeight: 400, color: '#64748b', textAlign: 'center', fontFamily: 'Inter' } }
+        ],
+        raw: { layout: 'blank', title: 'Slide mới' },
+        note: ''
+      };
+      slides.push(newSlide);
+      total = slides.length;
+      deck.slides = slides;
+      autoSave();
+      goToSlide(slides.length - 1);
+    }
+    window.addBlankSlide = addBlankSlide;
+
+    /* ── Delete slide ── */
+    var _pendingDeleteIdx = null;
+    function askDeleteSlide(idx) {
+      if (slides.length <= 1) { alert('Không thể xoá slide cuối cùng.'); return; }
+      _pendingDeleteIdx = idx;
+      var modal = document.getElementById('delete-slide-modal');
+      var desc = document.getElementById('delete-slide-desc');
+      if (desc) desc.textContent = 'Slide ' + (idx + 1) + ' sẽ bị xoá vĩnh viễn.';
+      if (modal) modal.style.display = 'flex';
+    }
+    function cancelDeleteSlide() {
+      _pendingDeleteIdx = null;
+      var modal = document.getElementById('delete-slide-modal');
+      if (modal) modal.style.display = 'none';
+    }
+    function confirmDeleteSlide() {
+      if (_pendingDeleteIdx === null) return;
+      saveHistorySnapshot();
+      slides.splice(_pendingDeleteIdx, 1);
+      total = slides.length;
+      deck.slides = slides;
+      var modal = document.getElementById('delete-slide-modal');
+      if (modal) modal.style.display = 'none';
+      autoSave();
+      goToSlide(Math.min(_pendingDeleteIdx, slides.length - 1));
+      _pendingDeleteIdx = null;
+    }
+    window.askDeleteSlide = askDeleteSlide;
+    window.cancelDeleteSlide = cancelDeleteSlide;
+    window.confirmDeleteSlide = confirmDeleteSlide;
+
+    /* ── Insert component ── */
+    function toggleInsertPanel() {
+      var p = document.getElementById('insert-panel');
+      if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    }
+    function insertComponent(type) {
+      document.getElementById('insert-panel').style.display = 'none';
+      saveHistorySnapshot();
+      var sl = slides[current];
+      if (!sl) return;
+      var uid = 'el_' + Date.now();
+      var t = deck.theme || {};
+      var accent = t.accent || '#6366f1';
+      var el;
+      if (type === 'text') {
+        el = { id: uid, type: 'text', x: 200, y: 200, w: 600, h: 80, z: 10,
+               content: 'Văn bản mới',
+               style: { fontSize: 20, fontWeight: 400, color: '#1e293b', textAlign: 'left', fontFamily: 'Inter' } };
+      } else if (type === 'rect') {
+        el = { id: uid, type: 'rect', x: 200, y: 200, w: 400, h: 200, z: 10,
+               style: { fill: accent, opacity: 1, radius: 12 } };
+      } else if (type === 'icon') {
+        el = { id: uid, type: 'icon', x: 300, y: 220, w: 120, h: 120, z: 10,
+               content: 'star',
+               style: { fill: '#fff', bg: accent, radius: '50%' } };
+      } else if (type === 'chart_bar') {
+        el = { id: uid, type: 'chart_bar', x: 160, y: 160, w: 800, h: 400, z: 10,
+               chart: { data: [
+                 { value: 42, label: 'A' }, { value: 67, label: 'B' },
+                 { value: 31, label: 'C' }, { value: 55, label: 'D' }
+               ] } };
+      } else if (type === 'chart_donut') {
+        el = { id: uid, type: 'chart_donut', x: 240, y: 120, w: 480, h: 480, z: 10,
+               chart: { label: '75%|Hoàn thành',
+                 data: [
+                   { value: 75, label: 'Đạt' }, { value: 25, label: 'Còn lại' }
+                 ] } };
+      }
+      if (!el) return;
+      if (!sl.elements) sl.elements = [];
+      sl.elements.push(el);
+      var stage = document.getElementById('slide-stage');
+      if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+      if (editorMode) attachEditorHandlers();
+      renderThumbnails();
+      autoSave();
+    }
+    window.toggleInsertPanel = toggleInsertPanel;
+    window.insertComponent = insertComponent;
+
+    /* Close insert panel on outside click */
+    document.addEventListener('click', function(e) {
+      var p = document.getElementById('insert-panel');
+      if (p && p.style.display !== 'none') {
+        var btn = p.previousElementSibling;
+        if (!p.contains(e.target) && btn && !btn.contains(e.target)) {
+          p.style.display = 'none';
+        }
+      }
+    });
 
     saveHistorySnapshot();
     goToSlide(0);
