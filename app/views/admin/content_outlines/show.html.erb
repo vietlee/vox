@@ -1042,20 +1042,19 @@
       var viewer = document.getElementById('slide-viewer');
       var stage  = document.getElementById('slide-stage');
       if (!viewer || !stage) return;
-      var vw = viewer.clientWidth;
+      var wrap = viewer.parentElement;
+      /* Read from wrap BEFORE mutating paddingBottom so clientWidth is valid */
+      var vw = wrap ? wrap.clientWidth : viewer.clientWidth;
       if (!vw) return;
-      /* Always fill full width — slide is 1280×720 (16:9) */
       var scale = vw / 1280;
+      var scaledH = Math.round(720 * scale);
+      if (wrap) { wrap.style.paddingBottom = '0'; wrap.style.height = scaledH + 'px'; }
       stage.style.transformOrigin = 'top left';
       stage.style.transform = 'scale(' + scale + ')';
       stage.style.position = 'absolute';
       stage.style.left = '0';
       stage.style.top  = '0';
       stage.style.margin = '0';
-      /* Adjust parent height to match scaled slide height */
-      var parent = viewer.parentElement;
-      if (parent) parent.style.paddingBottom = '';
-      viewer.style.height = Math.round(720 * scale) + 'px';
     }
 
     /* ─── Navigation ─── */
