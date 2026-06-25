@@ -193,6 +193,29 @@
             </div>
             <style>.ins-btn{display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;background:none;cursor:pointer;border-radius:8px;font-size:12px;color:#1e293b;text-align:left;}.ins-btn:hover{background:#f1f5f9;}.ins-btn span{font-size:15px;width:20px;text-align:center;flex-shrink:0;}</style>
           </div>
+          <!-- Z-order controls -->
+          <div style="display:flex;gap:2px;background:rgba(255,255,255,.12);border-radius:6px;padding:2px;" id="zorder-btns" style="display:none;">
+            <button onclick="zOrder('front')" title="Lên trên cùng (Ctrl+Shift+↑)" style="background:none;border:none;color:#fff;width:28px;height:26px;border-radius:4px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='none'">⬆</button>
+            <button onclick="zOrder('forward')" title="Lên một lớp (Ctrl+↑)" style="background:none;border:none;color:#fff;width:28px;height:26px;border-radius:4px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='none'">↑</button>
+            <button onclick="zOrder('backward')" title="Xuống một lớp (Ctrl+↓)" style="background:none;border:none;color:#fff;width:28px;height:26px;border-radius:4px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='none'">↓</button>
+            <button onclick="zOrder('back')" title="Xuống dưới cùng (Ctrl+Shift+↓)" style="background:none;border:none;color:#fff;width:28px;height:26px;border-radius:4px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='none'">⬇</button>
+          </div>
+          <!-- Align tools -->
+          <div style="position:relative;" id="align-btn-wrap">
+            <button onclick="toggleAlignPanel()" style="background:rgba(255,255,255,.18);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;">⊞ Căn chỉnh</button>
+            <div id="align-panel" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:10050;background:#1e293b;border-radius:12px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.4);min-width:160px;">
+              <div style="font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;padding:0 4px;">Căn theo cạnh slide</div>
+              <button onclick="alignEls('left')"   style="display:flex;align-items:center;gap:8px;width:100%;padding:5px 8px;border:none;background:none;color:#e2e8f0;cursor:pointer;border-radius:6px;font-size:11px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='none'">⬅ Canh trái</button>
+              <button onclick="alignEls('hcenter')" style="display:flex;align-items:center;gap:8px;width:100%;padding:5px 8px;border:none;background:none;color:#e2e8f0;cursor:pointer;border-radius:6px;font-size:11px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='none'">↔ Canh giữa (ngang)</button>
+              <button onclick="alignEls('right')"  style="display:flex;align-items:center;gap:8px;width:100%;padding:5px 8px;border:none;background:none;color:#e2e8f0;cursor:pointer;border-radius:6px;font-size:11px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='none'">➡ Canh phải</button>
+              <button onclick="alignEls('top')"    style="display:flex;align-items:center;gap:8px;width:100%;padding:5px 8px;border:none;background:none;color:#e2e8f0;cursor:pointer;border-radius:6px;font-size:11px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='none'">⬆ Canh trên</button>
+              <button onclick="alignEls('vcenter')" style="display:flex;align-items:center;gap:8px;width:100%;padding:5px 8px;border:none;background:none;color:#e2e8f0;cursor:pointer;border-radius:6px;font-size:11px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='none'">↕ Canh giữa (dọc)</button>
+              <button onclick="alignEls('bottom')" style="display:flex;align-items:center;gap:8px;width:100%;padding:5px 8px;border:none;background:none;color:#e2e8f0;cursor:pointer;border-radius:6px;font-size:11px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='none'">⬇ Canh dưới</button>
+              <div style="border-top:1px solid #334155;margin:4px 0;"></div>
+              <button onclick="alignEls('distribute-h')" style="display:flex;align-items:center;gap:8px;width:100%;padding:5px 8px;border:none;background:none;color:#e2e8f0;cursor:pointer;border-radius:6px;font-size:11px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='none'">⇹ Phân phối đều (ngang)</button>
+              <button onclick="alignEls('distribute-v')" style="display:flex;align-items:center;gap:8px;width:100%;padding:5px 8px;border:none;background:none;color:#e2e8f0;cursor:pointer;border-radius:6px;font-size:11px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='none'">⇳ Phân phối đều (dọc)</button>
+            </div>
+          </div>
           <button onclick="toggleWysiwyg()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Thoát</button>
         </div>
 
@@ -235,6 +258,22 @@
             style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#fff;font-size:12px;padding:7px 10px;outline:none;margin-bottom:10px;">
           <div id="icon-grid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;max-height:280px;overflow-y:auto;"></div>
           <div style="margin-top:10px;font-size:10px;color:#475569;text-align:center;" id="icon-picker-hint">Click icon để chèn · Double-click icon trên slide để đổi</div>
+        </div>
+
+        <!-- Position/Size panel (shown when element selected in edit mode) -->
+        <div id="pos-panel" style="display:none;position:fixed;z-index:10050;background:#1e293b;border-radius:12px;padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.40);min-width:200px;">
+          <div style="font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Vị trí & Kích thước</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div><div style="font-size:9px;color:#64748b;margin-bottom:2px;">X</div><input id="pp-x" type="number" oninput="setPosVal('x',this.value)" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:5px;color:#fff;font-size:11px;padding:4px 6px;outline:none;box-sizing:border-box;"></div>
+            <div><div style="font-size:9px;color:#64748b;margin-bottom:2px;">Y</div><input id="pp-y" type="number" oninput="setPosVal('y',this.value)" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:5px;color:#fff;font-size:11px;padding:4px 6px;outline:none;box-sizing:border-box;"></div>
+            <div><div style="font-size:9px;color:#64748b;margin-bottom:2px;">W</div><input id="pp-w" type="number" oninput="setPosVal('w',this.value)" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:5px;color:#fff;font-size:11px;padding:4px 6px;outline:none;box-sizing:border-box;"></div>
+            <div><div style="font-size:9px;color:#64748b;margin-bottom:2px;">H</div><input id="pp-h" type="number" oninput="setPosVal('h',this.value)" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:5px;color:#fff;font-size:11px;padding:4px 6px;outline:none;box-sizing:border-box;"></div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:6px;">
+            <div style="flex:1;"><div style="font-size:9px;color:#64748b;margin-bottom:2px;">Opacity</div>
+              <input id="pp-opacity" type="range" min="0" max="100" step="1" oninput="setPosVal('opacity',this.value/100);document.getElementById('pp-opacity-val').textContent=this.value+'%'" style="width:100%;cursor:pointer;accent-color:#6366f1;"></div>
+            <div style="font-size:10px;color:#e2e8f0;margin-top:12px;min-width:28px;text-align:right;" id="pp-opacity-val">100%</div>
+          </div>
         </div>
 
         <!-- Chart editor panel (shown on double-click of chart element in edit mode) -->
@@ -1115,6 +1154,8 @@
       hideElBgBar();
       var ce = document.getElementById('chart-editor');
       if (ce) ce.style.display = 'none';
+      var pp = document.getElementById('pos-panel');
+      if (pp) pp.style.display = 'none';
     }
 
     var _dragState = null;
@@ -1264,6 +1305,7 @@
       _dragState = null;
       saveHistorySnapshot();
       scheduleSave();
+      setTimeout(updatePosPanel, 0);
     }
 
     function syncDomToSchema() {
@@ -1373,6 +1415,7 @@
       tb.style.top  = (rect.top - 50) + 'px';
       if (parseFloat(tb.style.top) < 8) tb.style.top = (rect.bottom + 6) + 'px';
       showElBgBar(domEl);
+      setTimeout(updatePosPanel, 0);
     }
 
     function hideTextToolbar() {
@@ -1396,6 +1439,7 @@
       tb.style.left = Math.max(8, rect.left) + 'px';
       tb.style.top  = (rect.top - 50) + 'px';
       if (parseFloat(tb.style.top) < 8) tb.style.top = (rect.bottom + 6) + 'px';
+      setTimeout(updatePosPanel, 0);
     }
 
     /* ─── Element background bar ─── */
@@ -2036,6 +2080,10 @@
       if (tcp && tcp.contains(e.target)) return;
       var ced = document.getElementById('chart-editor');
       if (ced && ced.contains(e.target)) return;
+      var psp = document.getElementById('pos-panel');
+      if (psp && psp.contains(e.target)) return;
+      var alp = document.getElementById('align-panel');
+      if (alp) alp.style.display = 'none';
       /* ignore clicks directly on a .slide-el (startMove handles those) */
       if (e.target.closest('.slide-el') || e.target.closest('.sel-handle')) return;
       clearSelection();
@@ -2063,6 +2111,13 @@
       if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); prevSlide(); }
       if ((e.ctrlKey||e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
       if ((e.ctrlKey||e.metaKey) && (e.key === 'y' || (e.key==='z'&&e.shiftKey))) { e.preventDefault(); redo(); }
+      if ((e.ctrlKey||e.metaKey) && e.key === 'c' && editorMode && selectedElId) { e.preventDefault(); copySelectedEl(); }
+      if ((e.ctrlKey||e.metaKey) && e.key === 'v' && editorMode) { e.preventDefault(); pasteEl(); }
+      if ((e.ctrlKey||e.metaKey) && e.key === 'd' && editorMode && selectedElId) { e.preventDefault(); duplicateSelectedEl(); }
+      if ((e.ctrlKey||e.metaKey) && e.shiftKey && e.key === 'ArrowUp' && editorMode && selectedElId) { e.preventDefault(); zOrder('front'); }
+      if ((e.ctrlKey||e.metaKey) && e.shiftKey && e.key === 'ArrowDown' && editorMode && selectedElId) { e.preventDefault(); zOrder('back'); }
+      if ((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key === 'ArrowUp' && editorMode && selectedElId) { e.preventDefault(); zOrder('forward'); }
+      if ((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key === 'ArrowDown' && editorMode && selectedElId) { e.preventDefault(); zOrder('backward'); }
     });
 
     /* ─── Fullscreen ─── */
@@ -2229,7 +2284,7 @@
         var active = i === current;
         html += '<div class="slide-thumb-wrap" data-idx="'+i+'" draggable="true"' +
           ' onclick="goToSlide('+i+')"' +
-          ' onmouseover="this.querySelector(\'.thumb-del-btn\').style.opacity=\'1\'" onmouseout="this.querySelector(\'.thumb-del-btn\').style.opacity=\'0\'"' +
+          ' onmouseover="this.querySelector(\'.thumb-del-btn\').style.opacity=\'1\';this.querySelector(\'.thumb-dup-btn\').style.opacity=\'1\'" onmouseout="this.querySelector(\'.thumb-del-btn\').style.opacity=\'0\';this.querySelector(\'.thumb-dup-btn\').style.opacity=\'0\'"' +
           ' style="position:relative;cursor:grab;border-radius:8px;overflow:visible;border:2px solid '+(active?'#6366f1':'transparent')+';box-shadow:'+(active?'0 0 0 1px #6366f1':'0 1px 4px rgba(0,0,0,.12)')+';background:#fff;transition:border-color .15s;margin-bottom:2px;">' +
           '<div style="font-size:8px;color:'+(active?'#6366f1':'#94a3b8')+';font-weight:700;padding:3px 5px;background:#f8fafc;border-bottom:1px solid #e2e8f0;border-radius:6px 6px 0 0;">'+(i+1)+'</div>' +
           '<div style="width:152px;height:'+thumbH+'px;overflow:hidden;border-radius:0 0 6px 6px;position:relative;background:#fff;">' +
@@ -2239,6 +2294,8 @@
           '</div>' +
           '<button class="thumb-del-btn" onclick="event.stopPropagation();askDeleteSlide('+i+')" '+
             'style="position:absolute;top:22px;right:-6px;background:#ef4444;border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.3);">×</button>' +
+          '<button class="thumb-dup-btn" onclick="event.stopPropagation();duplicateSlide('+i+')" title="Nhân đôi slide" '+
+            'style="position:absolute;top:44px;right:-6px;background:#6366f1;border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.3);line-height:1;padding:0;">⧉</button>' +
         '</div>';
       }
       list.innerHTML = html;
@@ -2512,6 +2569,213 @@
 
     window.toggleInsertPanel = toggleInsertPanel;
     window.insertComponent = insertComponent;
+
+    /* ═══════════════════════════════════════════════════
+       DUPLICATE SLIDE
+    ═══════════════════════════════════════════════════ */
+    function duplicateSlide(idx) {
+      if (idx === undefined) idx = current;
+      saveHistorySnapshot();
+      var src = slides[idx];
+      var copy = JSON.parse(JSON.stringify(src));
+      var ts = Date.now();
+      copy.id = 'slide_dup_' + ts;
+      /* give all elements new IDs to avoid collisions */
+      (copy.elements || []).forEach(function(el, i) { el.id = 'el_dup_' + ts + '_' + i; });
+      slides.splice(idx + 1, 0, copy);
+      total = slides.length;
+      deck.slides = slides;
+      autoSave();
+      goToSlide(idx + 1);
+    }
+    window.duplicateSlide = duplicateSlide;
+
+    /* ═══════════════════════════════════════════════════
+       COPY / PASTE / DUPLICATE ELEMENT
+    ═══════════════════════════════════════════════════ */
+    var _clipboard = null;
+
+    function copySelectedEl() {
+      if (!selectedElId) return;
+      var sl = slides[current];
+      var el = sl ? (sl.elements||[]).find(function(e){ return e.id === selectedElId; }) : null;
+      if (el) {
+        _clipboard = JSON.parse(JSON.stringify(el));
+        /* show brief toast */
+        showToast('Đã copy element');
+      }
+    }
+
+    function pasteEl() {
+      if (!_clipboard || !editorMode) return;
+      saveHistorySnapshot();
+      var sl = slides[current];
+      if (!sl) return;
+      var copy = JSON.parse(JSON.stringify(_clipboard));
+      copy.id = 'el_paste_' + Date.now();
+      copy.x = (copy.x || 0) + 20;
+      copy.y = (copy.y || 0) + 20;
+      if (!sl.elements) sl.elements = [];
+      sl.elements.push(copy);
+      var stage = document.getElementById('slide-stage');
+      if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+      attachEditorHandlers();
+      renderThumbnails();
+      autoSave();
+      /* select the pasted element */
+      selectedElId = copy.id;
+      var domEl = document.querySelector('[data-ei="'+copy.id+'"]');
+      if (domEl) { domEl.classList.add('sel-el'); showTextToolbar(domEl); }
+    }
+
+    function duplicateSelectedEl() {
+      if (!selectedElId || !editorMode) return;
+      var sl = slides[current];
+      var el = sl ? (sl.elements||[]).find(function(e){ return e.id === selectedElId; }) : null;
+      if (!el) return;
+      _clipboard = JSON.parse(JSON.stringify(el));
+      pasteEl();
+    }
+
+    /* ═══════════════════════════════════════════════════
+       Z-ORDER
+    ═══════════════════════════════════════════════════ */
+    function zOrder(dir) {
+      if (!selectedElId) return;
+      var sl = slides[current];
+      if (!sl || !sl.elements) return;
+      saveHistorySnapshot();
+      var els = sl.elements;
+      var zVals = els.map(function(e){ return e.z || 1; });
+      var minZ = Math.min.apply(null, zVals);
+      var maxZ = Math.max.apply(null, zVals);
+      var el = els.find(function(e){ return e.id === selectedElId; });
+      if (!el) return;
+      var curZ = el.z || 1;
+      if (dir === 'front')   { el.z = maxZ + 1; }
+      else if (dir === 'back')    { el.z = Math.max(0, minZ - 1); }
+      else if (dir === 'forward') { el.z = curZ + 1; }
+      else if (dir === 'backward'){ el.z = Math.max(0, curZ - 1); }
+      var stage = document.getElementById('slide-stage');
+      if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+      attachEditorHandlers();
+      /* re-select */
+      selectedElId = el.id;
+      var domEl = document.querySelector('[data-ei="'+el.id+'"]');
+      if (domEl) { domEl.classList.add('sel-el'); }
+      autoSave();
+    }
+    window.zOrder = zOrder;
+
+    /* ═══════════════════════════════════════════════════
+       ALIGN TOOLS
+    ═══════════════════════════════════════════════════ */
+    function toggleAlignPanel() {
+      var p = document.getElementById('align-panel');
+      if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    }
+    function alignEls(dir) {
+      document.getElementById('align-panel').style.display = 'none';
+      var sl = slides[current];
+      if (!sl || !sl.elements) return;
+      /* collect IDs to align: multi-select or single */
+      var ids = selectedElIds.length > 1 ? selectedElIds : (selectedElId ? [selectedElId] : []);
+      if (!ids.length) return;
+      saveHistorySnapshot();
+      var targets = sl.elements.filter(function(e){ return ids.indexOf(e.id) !== -1; });
+      var SW_px = 1280, SH_px = 720;
+      if (dir === 'left') {
+        targets.forEach(function(e){ e.x = 0; });
+      } else if (dir === 'right') {
+        targets.forEach(function(e){ e.x = SW_px - (e.w || 0); });
+      } else if (dir === 'hcenter') {
+        targets.forEach(function(e){ e.x = Math.round((SW_px - (e.w || 0)) / 2); });
+      } else if (dir === 'top') {
+        targets.forEach(function(e){ e.y = 0; });
+      } else if (dir === 'bottom') {
+        targets.forEach(function(e){ e.y = SH_px - (e.h || 0); });
+      } else if (dir === 'vcenter') {
+        targets.forEach(function(e){ e.y = Math.round((SH_px - (e.h || 0)) / 2); });
+      } else if (dir === 'distribute-h' && targets.length >= 2) {
+        targets.sort(function(a,b){ return a.x - b.x; });
+        var x0 = targets[0].x, x1 = targets[targets.length-1].x;
+        var gap = (x1 - x0) / (targets.length - 1);
+        targets.forEach(function(e, i){ e.x = Math.round(x0 + gap * i); });
+      } else if (dir === 'distribute-v' && targets.length >= 2) {
+        targets.sort(function(a,b){ return a.y - b.y; });
+        var y0 = targets[0].y, y1 = targets[targets.length-1].y;
+        var gap = (y1 - y0) / (targets.length - 1);
+        targets.forEach(function(e, i){ e.y = Math.round(y0 + gap * i); });
+      }
+      var stage = document.getElementById('slide-stage');
+      if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+      attachEditorHandlers();
+      renderThumbnails();
+      autoSave();
+    }
+    window.toggleAlignPanel = toggleAlignPanel;
+    window.alignEls = alignEls;
+
+    /* ═══════════════════════════════════════════════════
+       POSITION / SIZE PANEL
+    ═══════════════════════════════════════════════════ */
+    function updatePosPanel() {
+      var panel = document.getElementById('pos-panel');
+      if (!panel) return;
+      if (!editorMode || !selectedElId) { panel.style.display = 'none'; return; }
+      var sl = slides[current];
+      var el = sl ? (sl.elements||[]).find(function(e){ return e.id === selectedElId; }) : null;
+      if (!el) { panel.style.display = 'none'; return; }
+      document.getElementById('pp-x').value = Math.round(el.x || 0);
+      document.getElementById('pp-y').value = Math.round(el.y || 0);
+      document.getElementById('pp-w').value = Math.round(el.w || 0);
+      document.getElementById('pp-h').value = Math.round(el.h || 0);
+      var op = Math.round(((el.style && el.style.opacity !== undefined) ? el.style.opacity : 1) * 100);
+      document.getElementById('pp-opacity').value = op;
+      document.getElementById('pp-opacity-val').textContent = op + '%';
+      /* Position panel at bottom-right of wysiwyg bar */
+      var bar = document.getElementById('wysiwyg-bar');
+      if (bar) {
+        var rect = bar.getBoundingClientRect();
+        panel.style.left = (rect.right - 212) + 'px';
+        panel.style.top = (rect.bottom + 6) + 'px';
+      }
+      panel.style.display = 'block';
+    }
+    function setPosVal(prop, val) {
+      if (!selectedElId) return;
+      var sl = slides[current];
+      var el = sl ? (sl.elements||[]).find(function(e){ return e.id === selectedElId; }) : null;
+      if (!el) return;
+      val = parseFloat(val);
+      if (isNaN(val)) return;
+      if (prop === 'opacity') {
+        if (!el.style) el.style = {};
+        el.style.opacity = Math.max(0, Math.min(1, val));
+      } else {
+        el[prop] = val;
+      }
+      var stage = document.getElementById('slide-stage');
+      if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+      attachEditorHandlers();
+      /* re-select */
+      selectedElId = el.id;
+      var domEl = document.querySelector('[data-ei="'+el.id+'"]');
+      if (domEl) { domEl.classList.add('sel-el'); }
+      renderThumbnails();
+      scheduleSave();
+    }
+    window.setPosVal = setPosVal;
+
+    /* ─── Toast helper ─── */
+    function showToast(msg) {
+      var t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:600;z-index:99999;opacity:0;transition:opacity .25s;pointer-events:none;';
+      document.body.appendChild(t);
+      setTimeout(function(){ t.style.opacity='1'; }, 10);
+      setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); }, 300); }, 1800);
+    }
 
     /* ═══════════════════════════════════════════════════
        ICON PICKER
