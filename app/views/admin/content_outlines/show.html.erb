@@ -196,16 +196,6 @@
           <button onclick="toggleWysiwyg()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Thoát</button>
         </div>
 
-        <!-- Element background color panel (shown when any element selected) -->
-        <div id="el-bg-bar" style="display:none;position:fixed;z-index:10001;background:#1e293b;border-radius:10px;padding:4px 8px;box-shadow:0 6px 20px rgba(0,0,0,.35);align-items:center;gap:5px;">
-          <span style="font-size:10px;color:#94a3b8;font-weight:600;white-space:nowrap;">Nền block</span>
-          <div id="el-bg-swatches" style="display:flex;gap:4px;align-items:center;"></div>
-          <div style="width:1px;height:18px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
-          <input type="color" id="el-bg-color" title="Tuỳ chỉnh màu" style="width:24px;height:24px;border:none;border-radius:4px;cursor:pointer;padding:1px;background:none;" oninput="applyElBg(this.value)">
-          <button onclick="applyElBg('transparent')" title="Trong suốt" style="background:#334155;border:none;color:#fff;border-radius:5px;width:28px;height:24px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="2" y1="12" x2="12" y2="2" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="#94a3b8" stroke-width="1"/></svg>
-          </button>
-        </div>
 
         <!-- Video URL input modal -->
         <div id="video-url-modal" style="display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
@@ -319,6 +309,28 @@
                 <input type="color" id="tt-color" style="width:32px;height:28px;border:1px solid #e2e8f0;border-radius:5px;cursor:pointer;padding:2px;" oninput="var h=document.getElementById('tt-hex');if(h)h.value=this.value;document.getElementById('tt-color-bar').style.background=this.value;">
                 <input type="text" id="tt-hex" placeholder="#ffffff" maxlength="7" style="flex:1;border:1px solid #e2e8f0;border-radius:5px;padding:4px 6px;font-size:11px;font-family:monospace;outline:none;color:#1e293b;" oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('tt-color').value=this.value;document.getElementById('tt-color-bar').style.background=this.value;}">
                 <button onclick="confirmTxtColor()" style="background:#4f46e5;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Áp dụng</button>
+              </div>
+            </div>
+          </div>
+          <!-- Element background color button (integrated into toolbar) -->
+          <div style="width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
+          <div style="position:relative;" id="tt-bg-wrap">
+            <button id="tt-bg-btn" onclick="toggleElBgDropdown()" title="Màu nền block"
+              style="background:#334155;border:none;color:#fff;border-radius:5px;height:28px;padding:0 7px;cursor:pointer;display:flex;align-items:center;gap:4px;flex-shrink:0;">
+              <span style="font-size:10px;font-weight:600;">Nền</span>
+              <span id="tt-bg-preview" style="width:12px;height:12px;border-radius:2px;background:#ffffff;border:1px solid rgba(255,255,255,.3);display:inline-block;flex-shrink:0;"></span>
+              <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1 2.5L4 5.5L7 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            </button>
+            <div id="tt-bg-panel" style="display:none;position:absolute;right:0;top:calc(100%+6px);z-index:10200;background:#1e293b;border-radius:12px;padding:10px;box-shadow:0 8px 28px rgba(0,0,0,.45);min-width:200px;">
+              <div style="font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;">Nền block</div>
+              <div id="tt-bg-swatches" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;"></div>
+              <div style="display:flex;gap:5px;align-items:center;">
+                <input type="color" id="tt-bg-color-input" style="width:28px;height:26px;border:none;border-radius:4px;cursor:pointer;padding:1px;background:none;" oninput="applyElBg(this.value);document.getElementById('tt-bg-preview').style.background=this.value;">
+                <button onclick="applyElBg('transparent');document.getElementById('tt-bg-panel').style.display='none';" title="Trong suốt"
+                  style="background:#334155;border:none;color:#fff;border-radius:5px;height:26px;padding:0 8px;cursor:pointer;font-size:10px;flex-shrink:0;display:flex;align-items:center;gap:4px;">
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><line x1="2" y1="12" x2="12" y2="2" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="#94a3b8" stroke-width="1"/></svg>
+                  Trong suốt
+                </button>
               </div>
             </div>
           </div>
@@ -1139,9 +1151,13 @@
       addResizeHandles(domEl);
       var si2 = parseInt(domEl.dataset.si);
       var elData2 = slides[si2] && slides[si2].elements.find(function(el2){ return el2.id === ei; });
-      if (elData2 && elData2.type === 'text') showTextToolbar(domEl);
-      else hideTextToolbar();
-      showElBgBar(domEl);
+      if (elData2 && elData2.type === 'text') {
+        showTextToolbar(domEl);
+      } else {
+        /* Show toolbar with only the Nền button for non-text elements */
+        hideTextToolbar();
+        showBgOnlyToolbar(domEl);
+      }
 
       var stage = document.getElementById('slide-stage');
       var rect = stage.getBoundingClientRect();
@@ -1313,6 +1329,9 @@
 
     function showTextToolbar(domEl) {
       _selectedTextEl = domEl;
+      /* Restore all toolbar children (might have been hidden by showBgOnlyToolbar) */
+      var tbR = document.getElementById('txt-toolbar');
+      if (tbR) Array.from(tbR.children).forEach(function(c){ c.style.display = ''; });
       var si = parseInt(domEl.dataset.si);
       var ei = domEl.dataset.ei;
       var elData = slides[si] && slides[si].elements.find(function(e){ return e.id === ei; });
@@ -1363,6 +1382,22 @@
       hideElBgBar();
     }
 
+    function showBgOnlyToolbar(domEl) {
+      showElBgBar(domEl);
+      /* Show toolbar positioned near element, only with the Nền button visible */
+      var tb = document.getElementById('txt-toolbar');
+      if (!tb) return;
+      var rect = domEl.getBoundingClientRect();
+      /* Hide all children except the bg wrap */
+      Array.from(tb.children).forEach(function(c){
+        c.style.display = c.id === 'tt-bg-wrap' ? 'flex' : 'none';
+      });
+      tb.style.display = 'flex';
+      tb.style.left = Math.max(8, rect.left) + 'px';
+      tb.style.top  = (rect.top - 50) + 'px';
+      if (parseFloat(tb.style.top) < 8) tb.style.top = (rect.bottom + 6) + 'px';
+    }
+
     /* ─── Element background bar ─── */
     var EL_BG_PRESETS = [
       '#ffffff','#f1f5f9','#e2e8f0','#1e293b','#0f172a',
@@ -1371,38 +1406,47 @@
     ];
 
     function showElBgBar(domEl) {
-      var bar = document.getElementById('el-bg-bar');
-      if (!bar) return;
-      /* build swatches once */
-      var sw = document.getElementById('el-bg-swatches');
+      /* Build swatches in the toolbar dropdown (once) */
+      var sw = document.getElementById('tt-bg-swatches');
       if (sw && sw.childElementCount === 0) {
         EL_BG_PRESETS.forEach(function(hex) {
           var s = document.createElement('div');
           s.title = hex;
-          s.style.cssText = 'width:18px;height:18px;border-radius:4px;background:'+hex+';border:1.5px solid rgba(255,255,255,.25);cursor:pointer;flex-shrink:0;';
-          s.onclick = function(){ applyElBg(hex); };
+          s.style.cssText = 'width:18px;height:18px;border-radius:4px;background:'+hex+';border:1.5px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0;';
+          s.onclick = function(){
+            applyElBg(hex);
+            var prev = document.getElementById('tt-bg-preview');
+            if (prev) prev.style.background = hex;
+            document.getElementById('tt-bg-panel').style.display = 'none';
+          };
           sw.appendChild(s);
         });
       }
-      /* sync color input to current element bg */
+      /* Sync color picker to current element bg */
       var si = parseInt(domEl.dataset.si);
       var ei = domEl.dataset.ei;
       var elData = slides[si] && slides[si].elements.find(function(e){ return e.id === ei; });
       var curBg = (elData && elData.style && elData.style.backgroundColor) || '';
-      var ci = document.getElementById('el-bg-color');
+      var ci = document.getElementById('tt-bg-color-input');
       if (ci && curBg && curBg !== 'transparent') ci.value = curBg;
-      /* position below element */
-      var rect = domEl.getBoundingClientRect();
-      bar.style.display = 'flex';
-      bar.style.left = Math.max(8, rect.left) + 'px';
-      bar.style.top  = (rect.bottom + 6) + 'px';
-      if (parseFloat(bar.style.top) + 50 > window.innerHeight) bar.style.top = (rect.top - 46) + 'px';
+      var prev = document.getElementById('tt-bg-preview');
+      if (prev) prev.style.background = (curBg && curBg !== 'transparent') ? curBg : '#ffffff';
+      /* Show the bg button in the toolbar */
+      var btn = document.getElementById('tt-bg-wrap');
+      if (btn) btn.style.display = 'flex';
     }
 
     function hideElBgBar() {
-      var bar = document.getElementById('el-bg-bar');
-      if (bar) bar.style.display = 'none';
+      var panel = document.getElementById('tt-bg-panel');
+      if (panel) panel.style.display = 'none';
     }
+
+    function toggleElBgDropdown() {
+      var panel = document.getElementById('tt-bg-panel');
+      if (!panel) return;
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+    window.toggleElBgDropdown = toggleElBgDropdown;
 
     function applyElBg(color) {
       if (!selectedElId) return;
@@ -1421,9 +1465,11 @@
       var inner = domEl.querySelector('.card-el, .card-inner, div');
       if (inner) inner.style.backgroundColor = color === 'transparent' ? '' : color;
       scheduleSave();
-      /* update color input preview */
-      var ci = document.getElementById('el-bg-color');
+      /* update toolbar preview dot */
+      var ci = document.getElementById('tt-bg-color-input');
       if (ci && color !== 'transparent') ci.value = color;
+      var prev = document.getElementById('tt-bg-preview');
+      if (prev) prev.style.background = color === 'transparent' ? 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAHklEQVQoU2NkYGD4z8BQDwAEgAF/QualIQAAAABJRU5ErkJggg==")' : color;
     }
     window.applyElBg = applyElBg;
 
@@ -1984,12 +2030,10 @@
       var tb  = document.getElementById('txt-toolbar');
       var bgp = document.getElementById('bg-panel');
       var tcp = document.getElementById('tt-color-panel');
-      var elb = document.getElementById('el-bg-bar');
       /* ignore clicks inside toolbars/panels */
       if (tb  && tb.contains(e.target))  return;
       if (bgp && bgp.contains(e.target)) return;
       if (tcp && tcp.contains(e.target)) return;
-      if (elb && elb.contains(e.target)) return;
       var ced = document.getElementById('chart-editor');
       if (ced && ced.contains(e.target)) return;
       /* ignore clicks directly on a .slide-el (startMove handles those) */
