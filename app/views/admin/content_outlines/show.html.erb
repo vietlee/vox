@@ -618,7 +618,17 @@
       if (stage) {
         stage.style.cursor = editorMode ? 'default' : 'default';
         if (editorMode) attachEditorHandlers();
-        else clearSelection();
+        else {
+          clearSelection();
+          /* strip all editor inline styles left on elements */
+          stage.querySelectorAll('.slide-el').forEach(function(el) {
+            el.style.outline = '';
+            el.style.outlineColor = '';
+            el.style.cursor = '';
+            el.onmouseenter = null;
+            el.onmouseleave = null;
+          });
+        }
       }
     }
 
