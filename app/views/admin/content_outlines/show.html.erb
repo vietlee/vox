@@ -43,10 +43,10 @@
   </div>
 <% elsif @outline.output_type.in?(["slide", "slide_script"]) && @outline.content.include?("slide-deck-root") %>
   <!-- Slide viewer + editor layout -->
-  <div id="slide-editor-layout" style="display:flex;gap:12px;align-items:flex-start;">
+  <div id="slide-editor-layout" style="display:flex;gap:12px;align-items:stretch;height:82vh;">
 
     <!-- SLIDE PANEL: thumbnail sidebar -->
-    <div id="slide-panel" style="width:160px;flex-shrink:0;position:sticky;top:80px;align-self:flex-start;background:#f8fafc;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;flex-direction:column;max-height:82vh;">
+    <div id="slide-panel" style="width:160px;flex-shrink:0;background:#f8fafc;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;flex-direction:column;">
       <div style="padding:8px 10px 6px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
         <span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em;">Slides</span>
         <button onclick="addBlankSlide()" title="Thêm slide mới" style="background:#6366f1;border:none;color:#fff;border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;">+</button>
@@ -1045,8 +1045,9 @@
       var wrap = viewer.parentElement;
       var vw = wrap ? wrap.clientWidth : viewer.clientWidth;
       if (!vw) return;
-      /* Cap height to 85% of viewport so slide stays on screen */
-      var maxH = Math.round(window.innerHeight * 0.82);
+      /* Constrain to the layout container height (82vh) */
+      var layout = document.getElementById('slide-editor-layout');
+      var maxH = layout ? layout.clientHeight : Math.round(window.innerHeight * 0.82);
       var scaleW = vw / 1280;
       var scaleH = maxH / 720;
       var scale = Math.min(scaleW, scaleH);
