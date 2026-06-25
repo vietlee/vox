@@ -20,6 +20,14 @@
     .flex{display:flex}.flex-col{flex-direction:column}
     .h-full{height:100%}.overflow-hidden{overflow:hidden}
     aside{background:#0F172A;width:232px;min-width:232px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+    #main-sidebar.sb-collapsed{width:56px!important;min-width:56px!important}
+    #main-sidebar.sb-collapsed .sb-label{display:none!important}
+    #main-sidebar.sb-collapsed .sb-section{display:none!important}
+    #main-sidebar.sb-collapsed #ws-switcher{display:none!important}
+    #main-sidebar.sb-collapsed .mt-auto .sb-label{display:none!important}
+    #main-sidebar.sb-collapsed nav a{justify-content:center;padding-left:8px;padding-right:8px}
+    #main-sidebar.sb-collapsed nav a .ml-auto{display:none}
+    #main-sidebar.sb-collapsed .sb-footer{display:none}
     .flex-1{flex:1 1 0%}.overflow-auto{overflow:auto}
     .overflow-y-auto{overflow-y:auto}
     /* Hide scrollbars globally while keeping scroll functionality */
@@ -87,21 +95,27 @@
 
 <div class="flex h-full">
   <!-- Sidebar -->
-  <aside class="w-[232px] bg-[#0F172A] flex flex-col flex-shrink-0 overflow-hidden">
+  <aside id="main-sidebar" class="w-[232px] bg-[#0F172A] flex flex-col flex-shrink-0 overflow-hidden" style="transition:width .2s ease,min-width .2s ease">
     <div class="px-5 pt-[18px] pb-1.5 flex-shrink-0">
-      <%= link_to dashboard_path, class: "block" do %>
-        <div class="flex items-center gap-2">
-          <svg width="28" height="28" viewBox="295 27 90 90" xmlns="http://www.w3.org/2000/svg">
-            <rect x="305" y="38" width="70" height="70" rx="18" fill="#1A6BFF"/>
-            <polygon points="325,84 318,98 338,84" fill="white"/>
-            <rect x="317" y="49" width="46" height="37" rx="9" fill="white"/>
-            <rect x="326" y="59" width="7" height="14" rx="2" fill="#1A6BFF"/>
-            <rect x="338" y="53" width="7" height="26" rx="2" fill="#1A6BFF"/>
-            <rect x="350" y="57" width="7" height="18" rx="2" fill="#1A6BFF"/>
-          </svg>
-          <span style="font-size:17px;font-weight:800;color:#1A6BFF;letter-spacing:2.5px;line-height:1;">VOX</span>
-        </div>
-      <% end %>
+      <!-- Logo row -->
+      <div class="flex items-center justify-between">
+        <%= link_to dashboard_path, class: "block sb-logo-wrap" do %>
+          <div class="flex items-center gap-2">
+            <svg width="28" height="28" viewBox="295 27 90 90" xmlns="http://www.w3.org/2000/svg">
+              <rect x="305" y="38" width="70" height="70" rx="18" fill="#1A6BFF"/>
+              <polygon points="325,84 318,98 338,84" fill="white"/>
+              <rect x="317" y="49" width="46" height="37" rx="9" fill="white"/>
+              <rect x="326" y="59" width="7" height="14" rx="2" fill="#1A6BFF"/>
+              <rect x="338" y="53" width="7" height="26" rx="2" fill="#1A6BFF"/>
+              <rect x="350" y="57" width="7" height="18" rx="2" fill="#1A6BFF"/>
+            </svg>
+            <span class="sb-label" style="font-size:17px;font-weight:800;color:#1A6BFF;letter-spacing:2.5px;line-height:1;">VOX</span>
+          </div>
+        <% end %>
+        <button onclick="toggleSidebar()" title="Thu gọn" style="background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:5px;color:#475569;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.color='#94a3b8';this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.color='#475569';this.style.background='none'">
+          <svg id="sb-toggle-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
 
       <%# Workspace switcher %>
       <% all_workspaces = accessible_workspaces rescue [] %>
@@ -156,21 +170,21 @@
     </div>
 
     <nav class="flex-1 pt-3 overflow-y-auto">
-      <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_overview") %></div>
+      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_overview") %></div>
       <%= render "shared/nav_item", icon: "📊", label: t("nav.dashboard"), path: dashboard_path %>
 
-      <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Tạo nội dung</div>
+      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Tạo nội dung</div>
       <%= render "shared/nav_item", icon: "🎓", label: t("quiz.nav"), path: quiz_sets_path %>
       <%= render "shared/nav_item", icon: "✍️", label: "Tạo nội dung AI", path: content_outlines_path %>
       <%= render "shared/nav_item", icon: "🗺️", label: "Lộ trình học tập", path: learning_paths_path %>
 
-      <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Học & luyện tập</div>
+      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Học & luyện tập</div>
       <%= render "shared/nav_item", icon: "🃏", label: "Flashcards", path: flashcard_decks_path %>
       <%= render "shared/nav_item", icon: "📄", label: "Tóm tắt tài liệu", path: document_summaries_path %>
       <%= render "shared/nav_item", icon: "🤖", label: "AI Tutor", path: ai_tutor_page_path %>
       <%= render "shared/nav_item", icon: "✨", label: t("nav.ai_chat"), path: ai_chat_page_path %>
 
-      <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_tools") %></div>
+      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_tools") %></div>
       <%= render "shared/nav_item", icon: "🎙️", label: t("nav.tts"), path: tts_path %>
       <%= render "shared/nav_item", icon: "🎤", label: t("nav.stt"), path: stt_path %>
       <%= render "shared/nav_item", icon: "📝", label: "Dynamic Forms", path: dynamic_forms_path %>
@@ -179,7 +193,7 @@
       <%= render "shared/nav_item", icon: "💬", label: t("nav.feedback"), path: feedback_boards_path %>
 
       <% if current_workspace_admin? %>
-        <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_manage") %></div>
+        <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_manage") %></div>
         <%= render "shared/nav_item", icon: "👥", label: t("nav.members"), path: members_path %>
         <%= render "shared/nav_item", icon: "⚙️", label: t("nav.settings"), path: workspace_settings_path %>
         <%= render "shared/nav_item", icon: "💳", label: t("nav.subscription"), path: subscription_path %>
@@ -188,7 +202,7 @@
     </nav>
 
     <!-- Sidebar footer: AI credits + user -->
-    <div class="mt-auto border-t border-white/[0.06] px-4 py-3.5">
+    <div class="mt-auto border-t border-white/[0.06] px-4 py-3.5 sb-footer">
       <% if (sub = current_workspace&.active_subscription) && sub.max_ai_credits.to_i > 0 %>
         <div class="flex justify-between text-[11px] text-slate-500 mb-1.5 mt-2">
           <span>AI Credits</span>
@@ -580,6 +594,31 @@ window.voxConfirm = function(message, onOk) {
   overlay.onclick = (e) => { if (e.target === overlay) close(); };
   document.getElementById('vox-confirm-ok').onclick = () => { close(); onOk(); };
 };
+</script>
+<script>
+(function(){
+  var KEY = 'vox_sb_collapsed';
+  function apply(collapsed) {
+    var sb = document.getElementById('main-sidebar');
+    if (!sb) return;
+    sb.classList.toggle('sb-collapsed', collapsed);
+    var icon = document.getElementById('sb-toggle-icon');
+    if (icon) {
+      var p = icon.querySelector('path');
+      if (p) p.setAttribute('d', collapsed ? 'M5 2l5 5-5 5' : 'M9 2L4 7l5 5');
+    }
+  }
+  window.toggleSidebar = function() {
+    var sb = document.getElementById('main-sidebar');
+    if (!sb) return;
+    var next = !sb.classList.contains('sb-collapsed');
+    localStorage.setItem(KEY, next ? '1' : '0');
+    apply(next);
+  };
+  function init() { apply(localStorage.getItem(KEY) === '1'); }
+  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('turbo:render', init);
+})();
 </script>
 </body>
 </html>
