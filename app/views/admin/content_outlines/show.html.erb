@@ -2244,10 +2244,35 @@
 
     /* ─── Fullscreen ─── */
     function enterFullscreen() {
-      var viewer = document.querySelector('.relative.bg-\\[\\#0f172a\\]') || document.getElementById('slide-viewer').parentElement;
-      if (viewer && viewer.requestFullscreen) viewer.requestFullscreen();
-      else if (document.getElementById('slide-viewer').requestFullscreen) document.getElementById('slide-viewer').requestFullscreen();
+      var wrap = document.getElementById('slide-viewer').parentElement;
+      var el = wrap || document.getElementById('slide-viewer');
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     }
+
+    /* Rescale when entering/exiting fullscreen */
+    document.addEventListener('fullscreenchange', function() {
+      var fs = document.fullscreenElement;
+      var wrap = document.getElementById('slide-viewer') && document.getElementById('slide-viewer').parentElement;
+      if (!wrap) return;
+      if (fs) {
+        /* fullscreen: scale to fill the screen */
+        var sw = screen.width, sh = screen.height;
+        var scale = Math.min(sw / 1280, sh / 720);
+        var scaledW = Math.round(1280 * scale);
+        var scaledH = Math.round(720 * scale);
+        var stage = document.getElementById('slide-stage');
+        if (stage) {
+          stage.style.transformOrigin = 'top left';
+          stage.style.transform = 'scale(' + scale + ')';
+          stage.style.left = Math.round((sw - scaledW) / 2) + 'px';
+          stage.style.top  = Math.round((sh - scaledH) / 2) + 'px';
+        }
+        wrap.style.height = sh + 'px';
+      } else {
+        rescaleCanvas();
+      }
+    });
 
     /* ─── Regenerate polling ─── */
     function handleRegenerate() {
@@ -2336,7 +2361,7 @@
       fetch('<%= change_theme_content_outline_path(@outline) %>', {
         method: 'PATCH', body: body
       }).then(function(r) {
-          if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+t); });
+          if (!r.ok) throw new Error('Lỗi server (HTTP ' + r.status + ')');
           return r.json();
         })
         .then(function(data) {

@@ -91,8 +91,13 @@ class Admin::ContentOutlinesController < Admin::BaseController
       new_els = new_slide["elements"] || []
       new_ids = new_els.map { |e| e["id"] }.to_set
 
-      # User-added elements are those not present in the newly compiled slide
-      user_added = old_els.reject { |e| new_ids.include?(e["id"]) }
+      # Only keep user-added elements that are NOT theme decorations.
+      # rect/ellipse/line are always AI-generated decorations — never user-added.
+      # Keep only image, video, icon, chart_*, and text boxes not present in new theme.
+      user_kept_types = %w[image video icon text chart_bar chart_donut]
+      user_added = old_els.reject do |e|
+        new_ids.include?(e["id"]) || !user_kept_types.any? { |t| e["type"].to_s.start_with?(t) }
+      end
       new_slide["elements"] = new_els + user_added unless user_added.empty?
 
       # Preserve text edits on existing elements
