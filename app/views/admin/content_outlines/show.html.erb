@@ -43,7 +43,7 @@
   </div>
 <% elsif @outline.output_type.in?(["slide", "slide_script"]) && @outline.content.include?("slide-deck-root") %>
   <!-- Slide viewer + editor layout -->
-  <div id="slide-editor-layout" style="display:flex;gap:12px;align-items:stretch;height:82vh;">
+  <div id="slide-editor-layout" style="display:flex;gap:12px;align-items:flex-start;">
 
     <!-- SLIDE PANEL: thumbnail sidebar -->
     <div id="slide-panel" style="width:160px;flex-shrink:0;background:#f8fafc;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;flex-direction:column;">
@@ -1045,22 +1045,19 @@
       var wrap = viewer.parentElement;
       var vw = wrap ? wrap.clientWidth : viewer.clientWidth;
       if (!vw) return;
-      /* Constrain to the layout container height (82vh) */
-      var layout = document.getElementById('slide-editor-layout');
-      var maxH = layout ? layout.clientHeight : Math.round(window.innerHeight * 0.82);
-      var scaleW = vw / 1280;
-      var scaleH = maxH / 720;
-      var scale = Math.min(scaleW, scaleH);
-      var scaledW = Math.round(1280 * scale);
+      /* Always fill full width — no side bars ever */
+      var scale = vw / 1280;
       var scaledH = Math.round(720 * scale);
-      var ml = Math.round((vw - scaledW) / 2);
       if (wrap) { wrap.style.paddingBottom = '0'; wrap.style.height = scaledH + 'px'; }
       stage.style.transformOrigin = 'top left';
       stage.style.transform = 'scale(' + scale + ')';
       stage.style.position = 'absolute';
-      stage.style.left = ml + 'px';
+      stage.style.left = '0';
       stage.style.top  = '0';
       stage.style.margin = '0';
+      /* Keep thumbnail panel same height as slide */
+      var panel = document.getElementById('slide-panel');
+      if (panel) panel.style.maxHeight = scaledH + 'px';
     }
 
     /* ─── Navigation ─── */
@@ -2256,17 +2253,16 @@
       var wrap = document.getElementById('slide-viewer') && document.getElementById('slide-viewer').parentElement;
       if (!wrap) return;
       if (fs) {
-        /* fullscreen: scale to fill the screen */
+        /* fullscreen: always fill full width, no side bars */
         var sw = screen.width, sh = screen.height;
-        var scale = Math.min(sw / 1280, sh / 720);
-        var scaledW = Math.round(1280 * scale);
+        var scale = sw / 1280;
         var scaledH = Math.round(720 * scale);
         var stage = document.getElementById('slide-stage');
         if (stage) {
           stage.style.transformOrigin = 'top left';
           stage.style.transform = 'scale(' + scale + ')';
-          stage.style.left = Math.round((sw - scaledW) / 2) + 'px';
-          stage.style.top  = Math.round((sh - scaledH) / 2) + 'px';
+          stage.style.left = '0';
+          stage.style.top  = Math.max(0, Math.round((sh - scaledH) / 2)) + 'px';
         }
         wrap.style.height = sh + 'px';
       } else {
