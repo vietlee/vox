@@ -236,6 +236,18 @@
         </div>
 
         <!-- Delete slide confirm modal -->
+        <div id="dup-slide-modal" style="display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+          <div style="background:#fff;border-radius:18px;padding:28px 32px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
+            <div style="font-size:36px;margin-bottom:12px;">📋</div>
+            <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:8px;">Nhân đôi slide này?</div>
+            <div style="font-size:13px;color:#64748b;margin-bottom:24px;">Một bản sao sẽ được chèn ngay sau slide hiện tại.</div>
+            <div style="display:flex;gap:10px;">
+              <button onclick="cancelDupSlide()" style="flex:1;background:#f1f5f9;border:none;color:#64748b;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">Huỷ</button>
+              <button onclick="confirmDupSlide()" style="flex:1;background:#6366f1;border:none;color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Nhân đôi</button>
+            </div>
+          </div>
+        </div>
+
         <div id="delete-slide-modal" style="display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
           <div style="background:#fff;border-radius:18px;padding:28px 32px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
             <div style="font-size:36px;margin-bottom:12px;">🗑️</div>
@@ -2718,22 +2730,39 @@
     /* ═══════════════════════════════════════════════════
        DUPLICATE SLIDE
     ═══════════════════════════════════════════════════ */
+    var _dupSlideIdx = null;
     function duplicateSlide(idx) {
       if (idx === undefined) idx = current;
+      _dupSlideIdx = idx;
+      var modal = document.getElementById('dup-slide-modal');
+      if (modal) { modal.style.display = 'flex'; }
+    }
+    function cancelDupSlide() {
+      var modal = document.getElementById('dup-slide-modal');
+      if (modal) modal.style.display = 'none';
+      _dupSlideIdx = null;
+    }
+    function confirmDupSlide() {
+      var modal = document.getElementById('dup-slide-modal');
+      if (modal) modal.style.display = 'none';
+      var idx = (_dupSlideIdx !== null) ? _dupSlideIdx : current;
+      _dupSlideIdx = null;
       saveHistorySnapshot();
       var src = slides[idx];
       var copy = JSON.parse(JSON.stringify(src));
       var ts = Date.now();
       copy.id = 'slide_dup_' + ts;
-      /* give all elements new IDs to avoid collisions */
       (copy.elements || []).forEach(function(el, i) { el.id = 'el_dup_' + ts + '_' + i; });
       slides.splice(idx + 1, 0, copy);
       total = slides.length;
       deck.slides = slides;
       autoSave();
       goToSlide(idx + 1);
+      renderThumbnails();
     }
     window.duplicateSlide = duplicateSlide;
+    window.cancelDupSlide = cancelDupSlide;
+    window.confirmDupSlide = confirmDupSlide;
 
     /* ═══════════════════════════════════════════════════
        COPY / PASTE / DUPLICATE ELEMENT
