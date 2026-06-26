@@ -2909,10 +2909,13 @@
       var stage = document.getElementById('slide-stage');
       if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
       attachEditorHandlers();
-      /* re-select */
+      /* re-select with handles */
       selectedElId = el.id;
-      var domEl = document.querySelector('[data-ei="'+el.id+'"]');
-      if (domEl) { domEl.classList.add('sel-el'); }
+      var domEl2 = stage && stage.querySelector('[data-ei="'+el.id+'"]');
+      if (domEl2) {
+        domEl2.classList.add('sel-el');
+        if (typeof addResizeHandles === 'function') addResizeHandles(domEl2);
+      }
       autoSave();
     }
     window.zOrder = zOrder;
@@ -3061,22 +3064,17 @@
       panel.style.display = 'block';
       panel.style.right = '';
       panel.style.transform = '';
-      /* Position near the selected element without covering it */
-      var anchorEl = elId && document.querySelector('.slide-el[data-ei="'+elId+'"]');
       var panelW = 320, panelH = 380;
       var vw = window.innerWidth, vh = window.innerHeight;
       var left, top;
-      if (anchorEl) {
-        var r = anchorEl.getBoundingClientRect();
-        /* Prefer right of element, fall back to left */
-        if (r.right + 12 + panelW <= vw - 8) {
-          left = r.right + 12;
-        } else {
-          left = Math.max(8, r.left - panelW - 12);
-        }
-        /* Align top with element, clamp to viewport */
-        top = Math.min(r.top, vh - panelH - 8);
-        top = Math.max(8, top);
+      /* When changing icon via toolbar, anchor near the toolbar button */
+      var toolbarBtn = mode === 'change' && document.getElementById('tt-icon-edit');
+      if (toolbarBtn) {
+        var r = toolbarBtn.getBoundingClientRect();
+        left = r.left;
+        top  = r.bottom + 8;
+        if (left + panelW > vw - 8) left = Math.max(8, vw - panelW - 8);
+        if (top + panelH > vh - 8)  top  = Math.max(8, r.top - panelH - 8);
       } else {
         left = vw - panelW - 20;
         top = Math.round((vh - panelH) / 2);
