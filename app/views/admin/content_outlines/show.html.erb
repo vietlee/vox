@@ -388,7 +388,7 @@
           <!-- Chart edit button (shown only for chart elements) -->
           <div id="tt-sep-chart" style="display:none;width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
           <button id="tt-chart-edit" onclick="openChartEditor(this.dataset.elid)" title="Sửa dữ liệu biểu đồ"
-            style="display:none;background:#4f46e5;border:none;color:#fff;border-radius:5px;height:28px;padding:0 10px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;">
+            style="display:none;background:#4f46e5;border:none;color:#fff;border-radius:5px;height:28px;padding:0 10px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;align-items:center;gap:4px;">
             📊 Sửa dữ liệu
           </button>
           <!-- Icon replace button (shown only for icon elements) -->
@@ -410,7 +410,7 @@
             </div>
             <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
               <span style="font-size:7px;color:#64748b;line-height:1;">Op%</span>
-              <input id="tt-op" type="number" min="0" max="100" oninput="setPosVal('opacity',this.value/100)" title="Opacity" style="width:38px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#fff;font-size:10px;padding:2px 4px;outline:none;text-align:center;">
+              <input id="tt-op" type="number" min="0" max="100" oninput="setPosVal('opacity',this.value/100)" title="Opacity" style="width:44px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#fff;font-size:10px;padding:2px 4px;outline:none;text-align:center;">
             </div>
           </div>
           <div id="tt-sep-z" style="width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
@@ -1572,7 +1572,11 @@
         else c.style.display = SHOW[c.id] ? '' : 'none';
       });
       tb.style.display = 'flex';
-      tb.style.left = Math.max(8, rect.left) + 'px';
+      /* Clamp left so toolbar never overflows right edge of viewport */
+      var tbW = tb.offsetWidth || 520;
+      var leftPos = Math.max(8, rect.left);
+      if (leftPos + tbW > window.innerWidth - 8) leftPos = Math.max(8, window.innerWidth - tbW - 8);
+      tb.style.left = leftPos + 'px';
       tb.style.top  = (rect.top - 50) + 'px';
       if (parseFloat(tb.style.top) < 8) tb.style.top = (rect.bottom + 6) + 'px';
       setTimeout(updatePosPanel, 0);
