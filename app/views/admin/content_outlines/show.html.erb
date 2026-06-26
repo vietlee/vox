@@ -508,6 +508,9 @@
     #slide-stage img { border:none !important; outline:none !important; display:block; }
     .sel-el { outline:1px dashed #4f46e5; outline-offset:1px; cursor:move; }
     .slide-el { overflow:hidden !important; min-width:0 !important; min-height:0 !important; }
+    .snap-guide { position:absolute; background:#f43f5e; pointer-events:none; z-index:99999; opacity:.85; }
+    .snap-guide.h { height:1px; left:0; right:0; }
+    .snap-guide.v { width:1px; top:0; bottom:0; }
     #txt-toolbar button.tt-on { background:#6366f1 !important; }
     #txt-toolbar { user-select:none; }
     .sel-handle { position:absolute; width:8px; height:8px; background:#6366f1; border:2px solid #fff;
@@ -1389,6 +1392,74 @@
       document.addEventListener('mouseup', onDragEnd);
     }
 
+    /* ── Snap guides ──────────────────────────────────────────────────── */
+    var SNAP_T = 6; /* snap threshold in 1280×720 px units */
+    var SLIDE_W = 1280, SLIDE_H = 720;
+
+    function clearGuides() {
+      var stage = document.getElementById('slide-stage');
+      if (stage) stage.querySelectorAll('.snap-guide').forEach(function(g){ g.remove(); });
+    }
+
+    function drawGuide(stage, axis, pos) {
+      var g = document.createElement('div');
+      g.className = 'snap-guide ' + axis;
+      if (axis === 'h') g.style.top  = pos + 'px';
+      else              g.style.left = pos + 'px';
+      stage.appendChild(g);
+    }
+
+    function snapToGuides(dragEl, rawL, rawT, w, h) {
+      var stage = document.getElementById('slide-stage');
+      clearGuides();
+      if (!stage) return { l: rawL, t: rawT };
+
+      /* Candidate snap lines from other elements + slide edges + slide center */
+      var xLines = [0, SLIDE_W / 2, SLIDE_W];   /* slide left / center / right */
+      var yLines = [0, SLIDE_H / 2, SLIDE_H];   /* slide top  / center / bottom */
+
+      stage.querySelectorAll('.slide-el').forEach(function(el) {
+        if (el === dragEl) return;
+        var l = parseFloat(el.style.left) || 0;
+        var t = parseFloat(el.style.top)  || 0;
+        var ew = el.offsetWidth, eh = el.offsetHeight;
+        xLines.push(l, l + ew / 2, l + ew);
+        yLines.push(t, t + eh / 2, t + eh);
+      });
+
+      /* dragged element's candidate positions */
+      var snapL = rawL, snapT = rawT;
+      var snapXPos = null, snapYPos = null; /* guide draw positions */
+
+      var dxMin = SNAP_T + 1;
+      xLines.forEach(function(xl) {
+        /* left edge snap */
+        var d = Math.abs(rawL - xl);
+        if (d < dxMin) { dxMin = d; snapL = xl; snapXPos = xl; }
+        /* right edge snap */
+        d = Math.abs(rawL + w - xl);
+        if (d < dxMin) { dxMin = d; snapL = xl - w; snapXPos = xl; }
+        /* center snap */
+        d = Math.abs(rawL + w / 2 - xl);
+        if (d < dxMin) { dxMin = d; snapL = xl - w / 2; snapXPos = xl; }
+      });
+
+      var dyMin = SNAP_T + 1;
+      yLines.forEach(function(yl) {
+        var d = Math.abs(rawT - yl);
+        if (d < dyMin) { dyMin = d; snapT = yl; snapYPos = yl; }
+        d = Math.abs(rawT + h - yl);
+        if (d < dyMin) { dyMin = d; snapT = yl - h; snapYPos = yl; }
+        d = Math.abs(rawT + h / 2 - yl);
+        if (d < dyMin) { dyMin = d; snapT = yl - h / 2; snapYPos = yl; }
+      });
+
+      if (snapXPos !== null) drawGuide(stage, 'v', snapXPos);
+      if (snapYPos !== null) drawGuide(stage, 'h', snapYPos);
+
+      return { l: snapL, t: snapT };
+    }
+
     function onDragMove(e) {
       if (!_dragState) return;
       var dx = (e.clientX - _dragState.startX) / _dragState.scale;
@@ -1404,8 +1475,10 @@
       }
       var el2 = d.domEl;
       if (mode === 'move') {
-        el2.style.left = Math.round(d.startL + dx) + 'px';
-        el2.style.top  = Math.round(d.startT + dy) + 'px';
+        var rawL = d.startL + dx, rawT = d.startT + dy;
+        var snapped = snapToGuides(el2, rawL, rawT, el2.offsetWidth, el2.offsetHeight);
+        el2.style.left = Math.round(snapped.l) + 'px';
+        el2.style.top  = Math.round(snapped.t) + 'px';
       } else {
         var newL = d.startL, newT = d.startT, newW = d.startW, newH = d.startH;
         var MIN_W = 20, MIN_H = 10;
@@ -1432,6 +1505,7 @@
       if (!_dragState) return;
       document.removeEventListener('mousemove', onDragMove);
       document.removeEventListener('mouseup', onDragEnd);
+      clearGuides();
       var wasResize = _dragState.mode !== 'move';
       var draggedEl = _dragState.domEl;
       /* Sync back to deck schema */
