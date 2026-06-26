@@ -1713,7 +1713,11 @@
 
     function ceAddRow() {
       var rowsEl = document.getElementById('ce-rows');
-      rowsEl.appendChild(ceRowHtml('', '', rowsEl.children.length));
+      var newRow = ceRowHtml('', '', rowsEl.children.length);
+      rowsEl.appendChild(newRow);
+      newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      var firstInput = newRow.querySelector('input');
+      if (firstInput) firstInput.focus();
     }
 
     function applyChartEdit() {
@@ -1745,8 +1749,10 @@
 
       var stage = document.getElementById('slide-stage');
       if (stage) { stage.innerHTML = renderSlide(current); applyPendingImages(); }
+      if (editorMode) attachEditorHandlers();
+      renderThumbnails();
       autoSave();
-      closeChartEditor();
+      /* Keep popup open — only close via the × button */
     }
 
     function closeChartEditor() {
