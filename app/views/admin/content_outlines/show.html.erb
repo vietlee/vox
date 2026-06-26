@@ -2987,10 +2987,30 @@
       buildIconGrid('');
       var panel = document.getElementById('icon-picker');
       panel.style.display = 'block';
-      /* position center-right */
-      panel.style.right = '20px';
-      panel.style.top = '50%';
-      panel.style.transform = 'translateY(-50%)';
+      panel.style.right = '';
+      panel.style.transform = '';
+      /* Position near the selected element without covering it */
+      var anchorEl = elId && document.querySelector('.slide-el[data-ei="'+elId+'"]');
+      var panelW = 320, panelH = 380;
+      var vw = window.innerWidth, vh = window.innerHeight;
+      var left, top;
+      if (anchorEl) {
+        var r = anchorEl.getBoundingClientRect();
+        /* Prefer right of element, fall back to left */
+        if (r.right + 12 + panelW <= vw - 8) {
+          left = r.right + 12;
+        } else {
+          left = Math.max(8, r.left - panelW - 12);
+        }
+        /* Align top with element, clamp to viewport */
+        top = Math.min(r.top, vh - panelH - 8);
+        top = Math.max(8, top);
+      } else {
+        left = vw - panelW - 20;
+        top = Math.round((vh - panelH) / 2);
+      }
+      panel.style.left = left + 'px';
+      panel.style.top  = top  + 'px';
     }
 
     function closeIconPicker() {
