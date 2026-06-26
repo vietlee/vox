@@ -1395,6 +1395,7 @@
     /* ── Snap guides ──────────────────────────────────────────────────── */
     var SNAP_T = 6; /* snap threshold in 1280×720 px units */
     var SLIDE_W = 1280, SLIDE_H = 720;
+    var MIN_W = 20, MIN_H = 10;
 
     function clearGuides() {
       var stage = document.getElementById('slide-stage');
@@ -1460,6 +1461,65 @@
       return { l: snapL, t: snapT };
     }
 
+    function snapResizeEdges(dragEl, mode, l, t, w, h) {
+      var stage = document.getElementById('slide-stage');
+      clearGuides();
+      if (!stage) return { l:l, t:t, w:w, h:h };
+
+      var xLines = [0, SLIDE_W / 2, SLIDE_W];
+      var yLines = [0, SLIDE_H / 2, SLIDE_H];
+      stage.querySelectorAll('.slide-el').forEach(function(el) {
+        if (el === dragEl) return;
+        var el_l = parseFloat(el.style.left) || 0;
+        var el_t = parseFloat(el.style.top)  || 0;
+        var ew = el.offsetWidth, eh = el.offsetHeight;
+        xLines.push(el_l, el_l + ew / 2, el_l + ew);
+        yLines.push(el_t, el_t + eh / 2, el_t + eh);
+      });
+
+      var snapXPos = null, snapYPos = null;
+
+      /* Snap right edge (e handle) */
+      if (mode.includes('e')) {
+        var right = l + w, minD = SNAP_T + 1;
+        xLines.forEach(function(xl) {
+          var d = Math.abs(right - xl);
+          if (d < minD) { minD = d; w = xl - l; snapXPos = xl; }
+        });
+        w = Math.max(MIN_W, w);
+      }
+      /* Snap left edge (w handle) */
+      if (mode.includes('w')) {
+        var minD2 = SNAP_T + 1;
+        xLines.forEach(function(xl) {
+          var d = Math.abs(l - xl);
+          if (d < minD2) { minD2 = d; var newW2 = (l + w) - xl; if (newW2 >= MIN_W) { l = xl; w = newW2; snapXPos = xl; } }
+        });
+      }
+      /* Snap bottom edge (s handle) */
+      if (mode.includes('s')) {
+        var bottom = t + h, minD3 = SNAP_T + 1;
+        yLines.forEach(function(yl) {
+          var d = Math.abs(bottom - yl);
+          if (d < minD3) { minD3 = d; h = yl - t; snapYPos = yl; }
+        });
+        h = Math.max(MIN_H, h);
+      }
+      /* Snap top edge (n handle) */
+      if (mode.includes('n')) {
+        var minD4 = SNAP_T + 1;
+        yLines.forEach(function(yl) {
+          var d = Math.abs(t - yl);
+          if (d < minD4) { minD4 = d; var newH2 = (t + h) - yl; if (newH2 >= MIN_H) { t = yl; h = newH2; snapYPos = yl; } }
+        });
+      }
+
+      if (snapXPos !== null) drawGuide(stage, 'v', snapXPos);
+      if (snapYPos !== null) drawGuide(stage, 'h', snapYPos);
+
+      return { l:l, t:t, w:w, h:h };
+    }
+
     function onDragMove(e) {
       if (!_dragState) return;
       var dx = (e.clientX - _dragState.startX) / _dragState.scale;
@@ -1481,7 +1541,6 @@
         el2.style.top  = Math.round(snapped.t) + 'px';
       } else {
         var newL = d.startL, newT = d.startT, newW = d.startW, newH = d.startH;
-        var MIN_W = 20, MIN_H = 10;
         if (mode.includes('e'))  newW = Math.max(MIN_W, d.startW + dx);
         if (mode.includes('s'))  newH = Math.max(MIN_H, d.startH + dy);
         if (mode.includes('w')) {
@@ -1494,6 +1553,9 @@
           newH = Math.max(MIN_H, hh);
           newT = d.startT + d.startH - newH;
         }
+        /* Snap the moving edges */
+        var rs = snapResizeEdges(el2, mode, newL, newT, newW, newH);
+        newL = rs.l; newT = rs.t; newW = rs.w; newH = rs.h;
         el2.style.left   = Math.round(newL) + 'px';
         el2.style.top    = Math.round(newT) + 'px';
         el2.style.width  = Math.round(newW) + 'px';
