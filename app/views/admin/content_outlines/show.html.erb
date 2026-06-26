@@ -1493,10 +1493,21 @@
       e.preventDefault();
       span.contentEditable = 'true';
       span.focus();
-      var range = document.createRange();
-      range.selectNodeContents(span);
-      window.getSelection().removeAllRanges();
-      window.getSelection().addRange(range);
+      /* Place cursor at click position instead of selecting all */
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      var clickRange;
+      if (document.caretRangeFromPoint) {
+        clickRange = document.caretRangeFromPoint(e.clientX, e.clientY);
+      } else if (document.caretPositionFromPoint) {
+        var pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+        if (pos) { clickRange = document.createRange(); clickRange.setStart(pos.offsetNode, pos.offset); clickRange.collapse(true); }
+      }
+      if (clickRange) {
+        sel.addRange(clickRange);
+      } else {
+        var r = document.createRange(); r.selectNodeContents(span); sel.addRange(r);
+      }
       span.addEventListener('blur', function() {
         span.contentEditable = 'false';
         /* Sync text back */
