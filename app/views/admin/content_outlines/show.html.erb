@@ -3045,9 +3045,10 @@
     document.addEventListener('click', function(e) {
       var p = document.getElementById('icon-picker');
       if (p && p.style.display !== 'none' && !p.contains(e.target)) {
-        /* allow clicks on the insert panel to pass through */
+        /* allow clicks on the insert panel or toolbar (which opens the picker) */
         var ip = document.getElementById('insert-panel');
         if (ip && ip.contains(e.target)) return;
+        if (e.target.closest('#txt-toolbar')) return;
         closeIconPicker();
       }
     });
