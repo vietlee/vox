@@ -1405,10 +1405,19 @@
         el2.style.top  = Math.round(d.startT + dy) + 'px';
       } else {
         var newL = d.startL, newT = d.startT, newW = d.startW, newH = d.startH;
-        if (mode.includes('e'))  newW = Math.max(32, d.startW + dx);
-        if (mode.includes('s'))  newH = Math.max(16, d.startH + dy);
-        if (mode.includes('w')) { newL = d.startL + dx; newW = Math.max(32, d.startW - dx); }
-        if (mode.includes('n')) { newT = d.startT + dy; newH = Math.max(16, d.startH - dy); }
+        var MIN_W = 20, MIN_H = 10;
+        if (mode.includes('e'))  newW = Math.max(MIN_W, d.startW + dx);
+        if (mode.includes('s'))  newH = Math.max(MIN_H, d.startH + dy);
+        if (mode.includes('w')) {
+          var ww = d.startW - dx;
+          newW = Math.max(MIN_W, ww);
+          newL = d.startL + d.startW - newW;
+        }
+        if (mode.includes('n')) {
+          var hh = d.startH - dy;
+          newH = Math.max(MIN_H, hh);
+          newT = d.startT + d.startH - newH;
+        }
         el2.style.left   = Math.round(newL) + 'px';
         el2.style.top    = Math.round(newT) + 'px';
         el2.style.width  = Math.round(newW) + 'px';
@@ -1767,6 +1776,8 @@
     window.ceAddRow = ceAddRow;
     window.applyChartEdit = applyChartEdit;
     window.closeChartEditor = closeChartEditor;
+    window.undo = undo;
+    window.redo = redo;
 
     /* Toggle a text prop (bold, italic, underline) and update button state */
     /* ─── Font dropdown with search ─── */
