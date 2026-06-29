@@ -31,7 +31,7 @@ class GenerateLearningPathJob < ApplicationJob
       lp.update!(ai_generated: true, ai_generating: false)
     end
 
-    lp.workspace.active_subscription&.deduct_credits!(5)
+    lp.workspace.credit_subscription&.deduct_credits!(5)
   rescue => e
     lp&.update(ai_generating: false)
     Rails.logger.error "[GenerateLearningPathJob] #{learning_path_id}: #{e.message}"

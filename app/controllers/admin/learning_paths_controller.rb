@@ -58,7 +58,6 @@ class Admin::LearningPathsController < Admin::BaseController
   def ai_generate
     require_credits!(5)
     prompt = params[:prompt].to_s.strip
-    return redirect_to(learning_path_path(@learning_path), alert: "Cần nhập yêu cầu.") if prompt.blank?
 
     @learning_path.update!(ai_generating: true)
     GenerateLearningPathJob.perform_later(@learning_path.id, prompt)

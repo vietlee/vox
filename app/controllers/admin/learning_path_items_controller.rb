@@ -43,7 +43,7 @@ class Admin::LearningPathItemsController < Admin::BaseController
     PROMPT
 
     svc = ClaudeService.new(model: ClaudeService::HAIKU_MODEL)
-    content = svc.chat([{ role: "user", content: prompt }], max_tokens: 1500)
+    content = svc.call(system_prompt: "Bạn là giáo viên chuyên nghiệp. Viết nội dung bài học theo yêu cầu.", user_prompt: prompt, max_tokens: 1500)
     current_workspace.credit_subscription&.deduct_credits!(2)
     render json: { content: content }
   rescue => e
