@@ -29,21 +29,20 @@ class Admin::LearningPathItemsController < Admin::BaseController
 
     subject = @path.subject.presence || @path.title
     prompt = <<~PROMPT
-      Bạn là giáo viên chuyên nghiệp. Hãy viết nội dung bài học cho:
-      - Lộ trình: #{@path.title}
-      - Môn học / lĩnh vực: #{subject}
-      - Tên bài: #{item.title}
+      Viết nội dung bài học cho chủ đề: "#{item.title}"
+      Thuộc lộ trình: #{@path.title} (lĩnh vực: #{subject})
+      Thời lượng học: ~#{item.estimated_minutes} phút
 
-      Yêu cầu:
-      - Viết bằng tiếng Việt, rõ ràng, dễ hiểu
-      - Độ dài phù hợp với #{item.estimated_minutes} phút học
-      - Dùng định dạng Markdown (heading ##, bullet -, bold **text**)
-      - Bao gồm: phần lý thuyết chính, ví dụ minh họa, điểm ghi nhớ
-      - Không cần lời chào hay giải thích, chỉ trả về nội dung bài học
+      Yêu cầu định dạng:
+      - Viết bằng tiếng Việt tự nhiên, không dùng tiêu đề lặp lại tên bài ở đầu
+      - Bắt đầu thẳng vào nội dung (không mở đầu bằng "Trong bài này..." hay tiêu đề ## lại)
+      - Dùng Markdown: heading ### cho từng phần, bullet - cho danh sách, **bold** cho điểm quan trọng
+      - Cấu trúc: lý thuyết chính → ví dụ thực tế → điểm cần nhớ
+      - Không lời chào, không giải thích thêm, chỉ nội dung bài học
     PROMPT
 
     svc = ClaudeService.new(model: ClaudeService::HAIKU_MODEL)
-    content = svc.call(system_prompt: "Bạn là giáo viên chuyên nghiệp. Viết nội dung bài học theo yêu cầu.", user_prompt: prompt, max_tokens: 1500)
+    content = svc.call(system_prompt: "Bạn là chuyên gia viết tài liệu học tập. Viết nội dung súc tích, tự nhiên, đúng trọng tâm.", user_prompt: prompt, max_tokens: 1500)
     current_workspace.credit_subscription&.deduct_credits!(2)
     render json: { content: content }
   rescue => e
