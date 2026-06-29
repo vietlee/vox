@@ -13,7 +13,7 @@ class User < ApplicationRecord
   # All workspaces they own draw from this single pool.
   def primary_subscription
     primary_ws = owned_workspaces.order(:id).first
-    primary_ws&.active_subscription
+    primary_ws&.subscriptions&.where(status: :active)&.order(created_at: :desc)&.first
   end
   has_many :workspace_memberships, dependent: :destroy
   has_many :workspaces, through: :workspace_memberships

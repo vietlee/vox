@@ -1370,8 +1370,9 @@
         var tickLabel = tickVal % 1 === 0 ? String(Math.round(tickVal)) : tickVal.toFixed(1);
         /* horizontal grid line */
         svgContent += '<line x1="'+padLeft+'" y1="'+tickY+'" x2="'+(padLeft+chartW)+'" y2="'+tickY+'" stroke="#E2E8F0" stroke-width="'+(ti===0?1.5:0.8)+'"/>';
-        /* y-axis label */
-        svgContent += '<text x="'+(padLeft-5)+'" y="'+(tickY+4)+'" text-anchor="end" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif">'+escHtml(tickLabel)+'</text>';
+        /* y-axis label — top tick goes above line to avoid overlap with y-axis title */
+        var lblY = (ti === ticks) ? tickY - 3 : tickY + 4;
+        svgContent += '<text x="'+(padLeft-5)+'" y="'+lblY+'" text-anchor="end" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif">'+escHtml(tickLabel)+'</text>';
       }
 
       /* ── Vertical axis line ── */
