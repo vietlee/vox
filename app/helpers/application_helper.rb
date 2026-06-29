@@ -1,5 +1,3 @@
-require 'redcarpet'
-
 module ApplicationHelper
   MARKDOWN_RENDERER = Redcarpet::Render::HTML.new(
     hard_wrap: true, filter_html: false, no_images: false, no_links: false,
