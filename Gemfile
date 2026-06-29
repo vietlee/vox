@@ -11,7 +11,7 @@ gem "tailwindcss-rails"
 
 # Redis — cache, sessions, ActionCable pub/sub
 gem "redis", ">= 4.0.1"
-gem "connection_pool", "~> 2.4"
+gem "connection_pool", "~> 3.0"
 
 # File storage — DigitalOcean Spaces (S3-compatible)
 gem "aws-sdk-s3", "~> 1.170", require: false
