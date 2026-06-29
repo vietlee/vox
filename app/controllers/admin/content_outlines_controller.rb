@@ -3,6 +3,9 @@ class Admin::ContentOutlinesController < Admin::BaseController
 
   def index
     @outlines = current_workspace.content_outlines.includes(:created_by).order(created_at: :desc)
+    if (q = params[:q].to_s.strip).present?
+      @outlines = @outlines.where("title ILIKE ?", "%#{q}%")
+    end
   end
 
   def new

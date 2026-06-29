@@ -3,6 +3,9 @@ class Admin::QuizSetsController < Admin::BaseController
 
   def index
     @quiz_sets = current_workspace.quiz_sets.order(created_at: :desc)
+    if (q = params[:q].to_s.strip).present?
+      @quiz_sets = @quiz_sets.where("title ILIKE ?", "%#{q}%")
+    end
   end
 
   def show

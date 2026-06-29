@@ -20,12 +20,13 @@
   <div class="rounded-[12px] border overflow-hidden flex flex-col h-full" style="border-color:rgba(99,102,241,0.2); background:rgba(238,242,255,0.5);">
 
     <div class="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b" style="background:rgba(99,102,241,0.06); border-color:rgba(99,102,241,0.15);">
-      <div class="relative flex-1 max-w-sm">
-        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
-        <input id="qs-search" type="text" placeholder="Tìm kiếm bộ câu hỏi..."
-          class="w-full pl-8 pr-3 py-1.5 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white"
-          oninput="filterRows('qs-search','qs-row','qs-no-results')">
-      </div>
+      <%= form_with url: quiz_sets_path, method: :get, data: { turbo_action: "replace" }, class: "relative flex-1 max-w-sm" do |f| %>
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+        <%= f.text_field :q, value: params[:q], placeholder: "Tìm kiếm bộ câu hỏi...",
+            class: "w-full pl-8 pr-3 py-1.5 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white",
+            data: { action: "input->search#submit" },
+            oninput: "clearTimeout(this._t);this._t=setTimeout(()=>this.closest('form').requestSubmit(),300)" %>
+      <% end %>
       <span class="text-[11px] text-slate-400 ml-auto"><%= @quiz_sets.count %> bộ câu hỏi</span>
     </div>
 
