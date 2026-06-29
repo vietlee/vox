@@ -57,6 +57,6 @@ class Admin::LearningPathItemsController < Admin::BaseController
   end
 
   def item_params
-    params.require(:learning_path_item).permit(:title, :content, :item_type, :estimated_minutes, :quiz_set_id)
+    params.require(:learning_path_item).permit(:title, :content, :item_type, :estimated_minutes, :quiz_set_id, :flashcard_deck_id)
   end
 end

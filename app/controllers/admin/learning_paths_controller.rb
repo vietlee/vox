@@ -24,11 +24,12 @@ class Admin::LearningPathsController < Admin::BaseController
   end
 
   def show
-    @items = @learning_path.learning_path_items.includes(:quiz_set).order(:position)
+    @items = @learning_path.learning_path_items.includes(:quiz_set, :flashcard_deck).order(:position)
     @assignments = @learning_path.learning_path_assignments.includes(:assignee)
     @my_assignment = @assignments.find_by(assignee: current_user)
     @workspace_members = accessible_workspace_members
     @quiz_sets = current_workspace.quiz_sets.published.order(:title)
+    @flashcard_decks = current_workspace.flashcard_decks.order(:title)
   end
 
   def edit; end
@@ -74,11 +75,18 @@ class Admin::LearningPathsController < Admin::BaseController
     user_ids.each do |uid|
       user = accessible_workspace_members.find { |m| m.id == uid }
       next unless user
-      LearningPathAssignment.find_or_create_by!(learning_path: @learning_path, assignee: user) do |a|
+      asgn = LearningPathAssignment.find_or_create_by!(learning_path: @learning_path, assignee: user) do |a|
         a.assigned_by = current_user
         a.due_date = due_date
         a.status = :active
       end
+      Notification.notify(
+        user: user,
+        type: "learning_path_assigned",
+        title: "Bạn được giao lộ trình: #{@learning_path.title}",
+        body: due_date ? "Hạn hoàn thành: #{Date.parse(due_date).strftime('%d/%m/%Y')}" : nil,
+        resource: asgn
+      ) rescue nil
       assigned += 1
     end
     redirect_to learning_path_path(@learning_path), notice: "Đã giao cho #{assigned} người."

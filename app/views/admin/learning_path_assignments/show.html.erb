@@ -93,6 +93,7 @@
     <% prog = @progresses[item.id] %>
     <% is_done = prog&.completed? %>
     <% is_quiz = item.quiz? %>
+    <% is_flashcard = item.flashcard? %>
     <% has_content = item.content.present? %>
 
     <div id="item-card-<%= item.id %>"
@@ -115,8 +116,8 @@
 
         <!-- Type icon -->
         <div class="w-9 h-9 rounded-xl flex items-center justify-center text-[16px] shrink-0
-             <%= is_quiz ? 'bg-violet-50' : 'bg-indigo-50' %>">
-          <%= is_quiz ? "📝" : "📖" %>
+             <%= is_quiz ? 'bg-violet-50' : (is_flashcard ? 'bg-amber-50' : 'bg-indigo-50') %>">
+          <%= is_quiz ? "📝" : (is_flashcard ? "🃏" : "📖") %>
         </div>
 
         <!-- Info -->
@@ -128,14 +129,18 @@
             <% end %>
           </div>
           <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
-            <span><%= is_quiz ? "Bài kiểm tra" : "Bài học" %></span>
+            <span><%= is_quiz ? "Bài kiểm tra" : (is_flashcard ? "Thẻ ghi nhớ" : "Bài học") %></span>
             <span>·</span>
             <span>~<%= item.estimated_minutes %> phút</span>
             <% if is_quiz && item.quiz_set %>
               <span>·</span>
               <span class="text-violet-600 font-medium"><%= item.quiz_set.title %></span>
             <% end %>
-            <% if !is_quiz && has_content %>
+            <% if is_flashcard && item.flashcard_deck %>
+              <span>·</span>
+              <span class="text-amber-600 font-medium"><%= item.flashcard_deck.title %> (<%= item.flashcard_deck.card_count %> thẻ)</span>
+            <% end %>
+            <% if !is_quiz && !is_flashcard && has_content %>
               <span>·</span>
               <span class="text-indigo-500 font-medium">Có nội dung</span>
             <% end %>
@@ -144,7 +149,14 @@
 
         <!-- Action buttons -->
         <div class="flex items-center gap-2 shrink-0">
-          <% if !is_quiz && has_content %>
+          <% if is_flashcard && item.flashcard_deck %>
+            <%= link_to study_flashcard_deck_path(item.flashcard_deck), target: "_blank",
+                class: "flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[12px] font-semibold rounded-lg transition-colors" do %>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2m10 2V2M4 8h16M5 20h14a2 2 0 002-2V8H3v10a2 2 0 002 2z"/></svg>
+              Ôn thẻ
+            <% end %>
+          <% end %>
+          <% if !is_quiz && !is_flashcard && has_content %>
             <button onclick="toggleLesson(<%= item.id %>)"
                     id="toggle-btn-<%= item.id %>"
                     class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[12px] font-semibold rounded-lg transition-colors border-0 cursor-pointer">
@@ -176,7 +188,7 @@
       </div>
 
       <!-- Lesson content expandable -->
-      <% if !is_quiz && has_content %>
+      <% if !is_quiz && !is_flashcard && has_content %>
         <div id="lesson-panel-<%= item.id %>" class="hidden border-t border-slate-100">
           <div class="px-6 py-5 lesson-content">
             <%= render_markdown(item.content) %>

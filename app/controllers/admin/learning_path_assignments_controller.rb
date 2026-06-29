@@ -2,7 +2,7 @@ class Admin::LearningPathAssignmentsController < Admin::BaseController
   before_action :set_assignment
 
   def show
-    @items = @assignment.learning_path.learning_path_items.order(:position)
+    @items = @assignment.learning_path.learning_path_items.includes(:quiz_set, :flashcard_deck).order(:position)
     @progresses = @assignment.learning_item_progresses.index_by(&:learning_path_item_id)
   end
 

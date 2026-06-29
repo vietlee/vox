@@ -95,6 +95,7 @@
           <select id="new-item-type" class="px-3 py-2 border border-slate-200 rounded-xl text-[13px] bg-white text-slate-700 focus:border-indigo-500 outline-none">
             <option value="lesson">📖 Bài học</option>
             <option value="quiz">📝 Bài kiểm tra</option>
+            <option value="flashcard">🃏 Thẻ ghi nhớ</option>
           </select>
           <button onclick="addItem()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
             Thêm
@@ -115,14 +116,15 @@
               <div class="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 group cursor-pointer"
                    onclick="toggleItemEdit(<%= item.id %>)">
                 <span class="text-slate-300 group-hover:text-slate-400 cursor-grab text-lg leading-none" onclick="event.stopPropagation()">⠿</span>
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[13px] shrink-0 <%= item.quiz? ? 'bg-violet-50' : 'bg-indigo-50' %>">
-                  <%= item.quiz? ? "📝" : "📖" %>
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[13px] shrink-0 <%= item.quiz? ? 'bg-violet-50' : (item.flashcard? ? 'bg-amber-50' : 'bg-indigo-50') %>">
+                  <%= item.quiz? ? "📝" : (item.flashcard? ? "🃏" : "📖") %>
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="text-[13px] font-semibold text-slate-900"><%= i+1 %>. <%= item.title %></div>
                   <div class="text-[11px] text-slate-400 mt-0.5">
-                    <%= item.quiz? ? "Bài kiểm tra" : "Bài học" %> · ~<%= item.estimated_minutes %> phút
+                    <%= item.quiz? ? "Bài kiểm tra" : (item.flashcard? ? "Thẻ ghi nhớ" : "Bài học") %> · ~<%= item.estimated_minutes %> phút
                     <% if item.quiz? && item.quiz_set %> · <span class="text-indigo-500"><%= item.quiz_set.title %></span><% end %>
+                    <% if item.flashcard? && item.flashcard_deck %> · <span class="text-amber-600"><%= item.flashcard_deck.title %></span><% end %>
                     <% if item.lesson? && item.content.present? %> · <span class="text-emerald-500">Có nội dung</span><% end %>
                   </div>
                 </div>
@@ -163,6 +165,18 @@
                         <% end %>
                       </select>
                       <p class="text-[11px] text-slate-400 mt-1">Học viên sẽ làm bài kiểm tra này khi đến bước này trong lộ trình</p>
+                    </div>
+                  <% elsif item.flashcard? %>
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Liên kết bộ thẻ</label>
+                      <select id="item-flashcard-<%= item.id %>"
+                              class="w-full px-3 py-2 border border-slate-200 rounded-xl text-[13px] bg-white focus:border-indigo-500 outline-none">
+                        <option value="">— Chọn bộ thẻ ghi nhớ —</option>
+                        <% @flashcard_decks.each do |deck| %>
+                          <option value="<%= deck.id %>" <%= item.flashcard_deck_id == deck.id ? 'selected' : '' %>><%= deck.title %> (<%= deck.card_count %> thẻ)</option>
+                        <% end %>
+                      </select>
+                      <p class="text-[11px] text-slate-400 mt-1">Học viên sẽ ôn luyện thẻ ghi nhớ này trong lộ trình</p>
                     </div>
                   <% else %>
                     <div>
@@ -335,6 +349,9 @@ function saveItem(id, itemType) {
   if (itemType === 'quiz') {
     const sel = document.getElementById('item-quiz-' + id);
     data.quiz_set_id = sel ? (sel.value || null) : null;
+  } else if (itemType === 'flashcard') {
+    const sel = document.getElementById('item-flashcard-' + id);
+    data.flashcard_deck_id = sel ? (sel.value || null) : null;
   } else {
     const ta = document.getElementById('item-content-' + id);
     data.content = ta ? ta.value : '';

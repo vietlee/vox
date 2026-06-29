@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_29_091712) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_29_142933) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -399,6 +399,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_29_091712) do
     t.integer "estimated_minutes", default: 15
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "flashcard_deck_id"
     t.index ["learning_path_id", "position"], name: "index_learning_path_items_on_learning_path_id_and_position"
     t.index ["learning_path_id"], name: "index_learning_path_items_on_learning_path_id"
   end

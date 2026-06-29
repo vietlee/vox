@@ -6,6 +6,7 @@ class Notification < ApplicationRecord
     workspace_created supporter_invited survey_new feedback_new_pending
     subscription_expiring payment_success survey_submitted ai_job_done
     ai_credits_low monthly_digest anomaly_detected system_broadcast
+    learning_path_assigned
   ].freeze
 
   validates :notification_type, inclusion: { in: TYPES }
