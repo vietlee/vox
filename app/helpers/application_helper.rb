@@ -11,11 +11,22 @@ module ApplicationHelper
     strikethrough: true, superscript: true, underline: false
   )
 
+  ALLOWED_CONTENT_TAGS  = %w[h1 h2 h3 h4 p br ul ol li strong em code pre blockquote table thead tbody tr th td a hr b i s u].freeze
+  ALLOWED_CONTENT_ATTRS = %w[href class].freeze
+
   def render_markdown(text)
     return "" if text.blank?
-    raw sanitize(MARKDOWN.render(text),
-      tags: %w[h1 h2 h3 h4 p br ul ol li strong em code pre blockquote table thead tbody tr th td a hr b i s],
-      attributes: %w[href class])
+    raw sanitize(MARKDOWN.render(text), tags: ALLOWED_CONTENT_TAGS, attributes: ALLOWED_CONTENT_ATTRS)
+  end
+
+  # Renders content stored as either Quill HTML or legacy Markdown
+  def render_content(text)
+    return "" if text.blank?
+    if text.strip.start_with?('<')
+      raw sanitize(text, tags: ALLOWED_CONTENT_TAGS, attributes: ALLOWED_CONTENT_ATTRS)
+    else
+      render_markdown(text)
+    end
   end
 
   def short_url_for(full_url, workspace: nil)

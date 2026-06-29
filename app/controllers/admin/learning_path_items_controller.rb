@@ -44,7 +44,8 @@ class Admin::LearningPathItemsController < Admin::BaseController
     svc = ClaudeService.new(model: ClaudeService::HAIKU_MODEL)
     content = svc.call(system_prompt: "Bạn là chuyên gia viết tài liệu học tập. Viết nội dung súc tích, tự nhiên, đúng trọng tâm.", user_prompt: prompt, max_tokens: 1500)
     current_workspace.credit_subscription&.deduct_credits!(2)
-    render json: { content: content }
+    html = ApplicationHelper::MARKDOWN.render(content)
+    render json: { content: content, html: html }
   rescue => e
     render json: { error: e.message }, status: :internal_server_error
   end
