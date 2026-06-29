@@ -1419,9 +1419,9 @@
       var accent = t.accent || '#1e3a5f';
       var yLabel = (el.chart && el.chart.y_label) || '';
       var xLabel = (el.chart && el.chart.x_label) || '';
-      var padTop = yLabel ? 34 : 24;
+      var padTop = 24;
       var padBot = xLabel ? 36 : 28;
-      var padLeft = 38, padRight = 16;
+      var padLeft = yLabel ? 52 : 38, padRight = 16;
       var chartW = w - padLeft - padRight;
       var chartH = h - padTop - padBot;
       var vals = data.map(function(d){ return parseFloat(d.value)||0; });
@@ -1436,7 +1436,8 @@
         var ty = padTop + chartH - (tv - minVal) / range * chartH;
         var tvStr = tv >= 1000 ? (tv/1000).toFixed(1)+'K' : (Number.isInteger(tv) ? tv : tv.toFixed(1));
         svgContent += '<line x1="'+padLeft+'" y1="'+ty.toFixed(1)+'" x2="'+(padLeft+chartW)+'" y2="'+ty.toFixed(1)+'" stroke="#E2E8F0" stroke-width="1"/>';
-        svgContent += '<text x="'+(padLeft-5)+'" y="'+(ty+4).toFixed(1)+'" text-anchor="end" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif">'+tvStr+'</text>';
+        var tickLabelY = (ti === tickCount) ? (ty - 3).toFixed(1) : (ty + 4).toFixed(1);
+        svgContent += '<text x="'+(padLeft-5)+'" y="'+tickLabelY+'" text-anchor="end" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif">'+tvStr+'</text>';
       }
       /* Axes */
       svgContent += '<line x1="'+padLeft+'" y1="'+padTop+'" x2="'+padLeft+'" y2="'+(padTop+chartH)+'" stroke="#CBD5E1" stroke-width="1"/>';
@@ -1468,9 +1469,12 @@
         svgContent += '<text x="'+lx.toFixed(1)+'" y="'+(padTop+chartH+14)+'" text-anchor="middle" font-size="9" fill="#64748B" font-family="Inter,sans-serif">'+escHtml(data[i].label||'')+'</text>';
       });
       /* Axis labels */
-      if (yLabel) svgContent += '<text x="'+padLeft+'" y="'+(padTop-8)+'" text-anchor="start" font-size="8.5" fill="#94A3B8" font-family="Inter,sans-serif" font-style="italic">'+escHtml(yLabel)+'</text>';
+      if (yLabel) {
+        var midY = padTop + chartH / 2;
+        svgContent += '<text x="0" y="0" transform="translate('+(padLeft-14)+','+midY.toFixed(1)+') rotate(-90)" text-anchor="middle" font-size="8.5" fill="#94A3B8" font-family="Inter,sans-serif" font-style="italic">'+escHtml(yLabel)+'</text>';
+      }
       if (xLabel) svgContent += '<text x="'+(padLeft+chartW)+'" y="'+(padTop+chartH+26)+'" text-anchor="end" font-size="8.5" fill="#94A3B8" font-family="Inter,sans-serif" font-style="italic">'+escHtml(xLabel)+'</text>';
-      return '<div class="slide-el" '+attrs+' style="position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;z-index:'+z+';"><svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" style="display:block;">'+svgContent+'</svg></div>';
+      return '<div class="slide-el" '+attrs+' style="position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;z-index:'+z+';"><svg width="100%" height="100%" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" style="display:block;">'+svgContent+'</svg></div>';
     }
 
     function renderDonutChart(el, x, y, w, h, z, si, attrs) {
