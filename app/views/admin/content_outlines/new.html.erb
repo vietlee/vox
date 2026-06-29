@@ -22,11 +22,33 @@
 
       <%= f.hidden_field :output_type, value: "slide" %>
 
+      <!-- File upload -->
+      <div>
+        <label class="block text-[12px] font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
+          Tài liệu tham khảo <span class="text-slate-400 font-normal normal-case">(tuỳ chọn — PDF, DOCX, TXT)</span>
+        </label>
+        <div id="co-file-drop"
+             onclick="document.getElementById('co-file-input').click()"
+             style="border:1.5px dashed #b3cbe3;border-radius:12px;padding:18px 20px;cursor:pointer;display:flex;align-items:center;gap:12px;background:#f8fbff;transition:border-color .2s,background .2s;">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#4a80a8" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V3m0 0l-3 3m3-3l3 3"/></svg>
+          <div>
+            <p id="co-file-label" style="font-size:13px;font-weight:600;color:#1e3a5f;margin:0;">Chọn hoặc kéo thả file</p>
+            <p style="font-size:11px;color:#94a3b8;margin:2px 0 0;">AI sẽ đọc tài liệu và dùng nội dung để tạo slide chính xác hơn</p>
+          </div>
+          <input type="file" id="co-file-input" accept=".pdf,.docx,.doc,.txt" style="display:none">
+        </div>
+        <div id="co-file-status" style="display:none;margin-top:8px;font-size:12px;color:#64748b;display:flex;align-items:center;gap:6px;"></div>
+        <%= f.hidden_field :source_document_text, id: "co-doc-text-hidden" %>
+      </div>
+
       <div>
         <label class="block text-[12px] font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Mong muốn của bạn</label>
-        <%= f.text_area :prompt_input, rows: 3,
-            placeholder: "VD: 10 slide, ngắn gọn súc tích, có số liệu thực tế, phong cách chuyên nghiệp...",
-            class: "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 outline-none resize-none" %>
+        <!-- Hidden field that gets submitted -->
+        <%= f.hidden_field :prompt_input, id: "prompt_input_hidden" %>
+        <!-- Quill editor wrapper — toolbar + editor as one unified box -->
+        <div id="prompt-quill-wrap" style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;">
+          <div id="prompt-quill-editor" style="min-height:200px;font-size:14px;"></div>
+        </div>
       </div>
 
       <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2 text-[13px] text-amber-700">
@@ -63,7 +85,7 @@
     <div style="font-size:2rem; margin-bottom:12px;">⚠️</div>
     <p id="co-error-msg" style="font-size:14px; color:#ef4444; margin:0 0 16px;"></p>
     <button onclick="document.getElementById('co-error-box').style.display='none'; document.getElementById('ai-submit-btn').disabled=false;"
-            style="padding:8px 20px; background:#6366f1; color:#fff; border:0; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer;">
+            style="padding:8px 20px; background:#1e3a5f; color:#fff; border:0; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer;">
       Đóng
     </button>
   </div>
@@ -73,6 +95,39 @@
 @keyframes vox-pulse {
   0%,100% { transform:scale(1); opacity:1; }
   50%      { transform:scale(0.88); opacity:0.75; }
+}
+
+/* Quill: merge toolbar + editor into one box */
+#prompt-quill-wrap .ql-toolbar {
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0;
+  background: #f8fafc;
+  padding: 6px 10px;
+}
+#prompt-quill-wrap .ql-container {
+  border: none;
+  border-radius: 0;
+  font-size: 14px;
+  font-family: inherit;
+}
+#prompt-quill-wrap .ql-editor {
+  min-height: 200px;
+  padding: 12px 14px;
+  color: #334155;
+  line-height: 1.7;
+}
+#prompt-quill-wrap .ql-editor.ql-blank::before {
+  color: #94a3b8;
+  font-style: normal;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+/* Focus ring on wrapper */
+#prompt-quill-wrap:focus-within {
+  border-color: #1e3a5f;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.12);
 }
 </style>
 
@@ -87,11 +142,11 @@ function makeCoProgressRing(phases) {
   var phase = 0, pct = 0, timer = null;
   document.getElementById(cid).innerHTML = [
     '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0;gap:8px;">',
-      '<span id="co-ring-pct" style="font-size:13px;font-weight:800;color:#7c3aed;letter-spacing:-0.3px;">0%</span>',
+      '<span id="co-ring-pct" style="font-size:13px;font-weight:800;color:#1e3a5f;letter-spacing:-0.3px;">0%</span>',
       '<div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;">',
         '<svg width="88" height="88" viewBox="0 0 88 88" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">',
-          '<circle cx="44" cy="44" r="38" stroke="#ede9fe" stroke-width="6"/>',
-          '<circle id="co-ring-arc" cx="44" cy="44" r="38" stroke="#7c3aed" stroke-width="6" stroke-linecap="round"',
+          '<circle cx="44" cy="44" r="38" stroke="#d9e5f1" stroke-width="6"/>',
+          '<circle id="co-ring-arc" cx="44" cy="44" r="38" stroke="#1e3a5f" stroke-width="6" stroke-linecap="round"',
             'stroke-dasharray="238.8" stroke-dashoffset="238.8" style="transition:stroke-dashoffset 0.6s ease;"/>',
         '</svg>',
         '<div style="position:relative;z-index:2;animation:vox-pulse 1.6s ease-in-out infinite;">',
@@ -105,7 +160,7 @@ function makeCoProgressRing(phases) {
           '</svg>',
         '</div>',
       '</div>',
-      '<p id="co-ring-phase" style="font-size:12px;font-weight:600;color:#6366f1;text-align:center;max-width:220px;margin:0;">' + phases[0] + '</p>',
+      '<p id="co-ring-phase" style="font-size:12px;font-weight:600;color:#1e3a5f;text-align:center;max-width:220px;margin:0;">' + phases[0] + '</p>',
     '</div>'
   ].join('');
 
@@ -206,4 +261,93 @@ document.addEventListener('turbo:before-cache', function() {
   document.getElementById('co-overlay').style.display = 'none';
   document.getElementById('ai-submit-btn').disabled = false;
 });
+
+// Init Quill for prompt_input
+(function initPromptQuill() {
+  var PLACEHOLDER = 'Ví dụ: Tôi muốn tạo 1 bộ slide khoảng 10 trang để thuyết trình cho nhóm sales về chiến lược Q3.\nNgười xem là nhân viên kinh doanh, cần ngắn gọn và thực chiến.\nNhấn mạnh vào số liệu và action steps cụ thể.\nTone năng lượng, tránh học thuật.';
+
+  function waitForQuill(cb) {
+    if (typeof Quill !== 'undefined') { cb(); }
+    else { setTimeout(function() { waitForQuill(cb); }, 80); }
+  }
+
+  waitForQuill(function() {
+    var q = new Quill('#prompt-quill-editor', {
+      theme: 'snow',
+      placeholder: PLACEHOLDER,
+      modules: {
+        toolbar: [
+          ['bold', 'italic', 'underline'],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['clean']
+        ]
+      }
+    });
+
+    // Sync to hidden field on every change
+    q.on('text-change', function() {
+      document.getElementById('prompt_input_hidden').value = q.root.innerHTML;
+    });
+
+    // Also sync before form submit
+    var form = document.getElementById('co-form');
+    form.addEventListener('submit', function() {
+      document.getElementById('prompt_input_hidden').value = q.root.innerHTML;
+    });
+  });
+})();
+
+// ── File upload & extract ──────────────────────────────────────────────────
+(function() {
+  var fileInput  = document.getElementById('co-file-input');
+  var dropZone   = document.getElementById('co-file-drop');
+  var fileLabel  = document.getElementById('co-file-label');
+  var statusEl   = document.getElementById('co-file-status');
+  var hiddenText = document.getElementById('co-doc-text-hidden');
+
+  function setStatus(icon, msg, color) {
+    statusEl.innerHTML = '<span>'+icon+'</span><span style="color:'+color+'">'+msg+'</span>';
+    statusEl.style.display = 'flex';
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    var allowed = ['.pdf','.docx','.doc','.txt'];
+    var ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+    if (!allowed.includes(ext)) {
+      setStatus('⚠️', 'Chỉ hỗ trợ PDF, DOCX, DOC, TXT', '#ef4444'); return;
+    }
+    fileLabel.textContent = '📄 ' + file.name;
+    setStatus('⏳', 'Đang đọc tài liệu...', '#64748b');
+
+    var fd = new FormData();
+    fd.append('file', file);
+    fd.append('authenticity_token', document.querySelector('meta[name="csrf-token"]').content);
+
+    fetch('<%= extract_text_content_outlines_path %>', { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) { setStatus('❌', data.error, '#ef4444'); hiddenText.value = ''; return; }
+        hiddenText.value = data.text;
+        setStatus('✅', 'Đã đọc xong — AI sẽ dùng nội dung này khi tạo slide', '#16a34a');
+        dropZone.style.borderColor = '#22c55e';
+        dropZone.style.background  = '#f0fdf4';
+      })
+      .catch(function() { setStatus('❌', 'Lỗi khi đọc file, thử lại', '#ef4444'); });
+  }
+
+  fileInput.addEventListener('change', function() { handleFile(this.files[0]); });
+
+  dropZone.addEventListener('dragover', function(e) {
+    e.preventDefault(); dropZone.style.borderColor = '#1e3a5f'; dropZone.style.background = '#eef3f9';
+  });
+  dropZone.addEventListener('dragleave', function() {
+    dropZone.style.borderColor = '#b3cbe3'; dropZone.style.background = '#f8fbff';
+  });
+  dropZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dropZone.style.borderColor = '#b3cbe3'; dropZone.style.background = '#f8fbff';
+    handleFile(e.dataTransfer.files[0]);
+  });
+})();
 </script>

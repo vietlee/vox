@@ -40,7 +40,7 @@ class QrCodesController < ActionController::Base
     total      = qr_px + pad * 2
 
     inner_svg = qr_code.as_svg(
-      color:           "4338ca",
+      color:           "1e3a5f",
       shape_rendering: "crispEdges",
       module_size:     mod_size,
       standalone:      false,

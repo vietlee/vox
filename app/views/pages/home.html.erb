@@ -3,71 +3,43 @@
 %>
 
 <style>
-/* ── Fonts & base ── */
 * { box-sizing: border-box; }
 
+/* ── Brand colors ── */
+:root {
+  --navy:    #1e3a5f;
+  --navy-md: #2d5f8a;
+  --navy-lt: #4a80a8;
+  --navy-xl: #d9e5f1;
+}
+
 /* ── Gradient text ── */
-.gtext { background: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.gtext { background: linear-gradient(135deg, #4a80a8 0%, #7aaac9 60%, #b3cbe3 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .gtext-gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
 /* ── Hero dark bg ── */
-.hero-dark {
-  background: #080B1A;
-  position: relative;
-  overflow: hidden;
-}
-/* animated aurora blobs */
-.aurora { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.35; }
-.aurora-1 { width: 600px; height: 600px; background: radial-gradient(circle, #4338ca, transparent 70%); top: -200px; left: -100px; animation: drift1 18s ease-in-out infinite alternate; }
-.aurora-2 { width: 500px; height: 500px; background: radial-gradient(circle, #7c3aed, transparent 70%); top: 0; right: -150px; animation: drift2 14s ease-in-out infinite alternate; }
-.aurora-3 { width: 400px; height: 400px; background: radial-gradient(circle, #0ea5e9, transparent 70%); bottom: -100px; left: 30%; animation: drift3 20s ease-in-out infinite alternate; opacity: 0.2; }
+.hero-dark { background: #06101f; position: relative; overflow: hidden; }
+.aurora { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.3; }
+.aurora-1 { width: 600px; height: 600px; background: radial-gradient(circle, #1e3a5f, transparent 70%); top: -200px; left: -100px; animation: drift1 18s ease-in-out infinite alternate; }
+.aurora-2 { width: 500px; height: 500px; background: radial-gradient(circle, #2d5f8a, transparent 70%); top: 0; right: -150px; animation: drift2 14s ease-in-out infinite alternate; }
+.aurora-3 { width: 400px; height: 400px; background: radial-gradient(circle, #0ea5e9, transparent 70%); bottom: -100px; left: 30%; animation: drift3 20s ease-in-out infinite alternate; opacity: 0.15; }
 
 @keyframes drift1 { from { transform: translate(0,0) scale(1); } to { transform: translate(60px,40px) scale(1.15); } }
 @keyframes drift2 { from { transform: translate(0,0) scale(1); } to { transform: translate(-40px,60px) scale(1.1); } }
 @keyframes drift3 { from { transform: translate(0,0); } to { transform: translate(30px,-30px); } }
 
-/* grid overlay */
 .grid-overlay {
   position: absolute; inset: 0; z-index: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 
-/* ── Glass card ── */
-.glass {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.glass-light {
-  background: rgba(255,255,255,0.7);
-  border: 1px solid rgba(99,102,241,0.12);
-  backdrop-filter: blur(12px);
-}
-
 /* ── Feature cards ── */
-.feat-card {
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  border: 1px solid #f1f5f9;
-  background: #fff;
-}
-.feat-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 24px 48px rgba(99,102,241,0.13);
-  border-color: rgba(99,102,241,0.25);
-}
+.feat-card { transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; border: 1px solid #f1f5f9; background: #fff; }
+.feat-card:hover { transform: translateY(-6px); box-shadow: 0 24px 48px rgba(30,58,95,0.12); border-color: rgba(30,58,95,0.2); }
 
-/* ── Pricing card ── */
-.price-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-.price-card:hover { transform: translateY(-4px); }
-.price-pro {
-  background: linear-gradient(160deg, #1e1b4b 0%, #312e81 100%);
-  border: 1px solid rgba(129,140,248,0.3);
-  box-shadow: 0 32px 64px rgba(79,70,229,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
-}
+/* ── Pricing ── */
+.price-pro { background: linear-gradient(160deg, #0e1e30 0%, #162c47 100%); border: 1px solid rgba(74,128,168,0.3); box-shadow: 0 32px 64px rgba(30,58,95,0.4), inset 0 1px 0 rgba(255,255,255,0.08); }
 
 /* ── Animations ── */
 @keyframes fadeUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
@@ -79,71 +51,52 @@
 @keyframes pulse-ring { 0%,100% { opacity:0.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.04); } }
 .live-ring { animation: pulse-ring 2s ease-in-out infinite; }
 
-/* ── Bar animate on load ── */
 @keyframes barGrow { from { width: 0%; } to { width: var(--w); } }
 .bar-animate { animation: barGrow 1.4s 0.8s cubic-bezier(.16,1,.3,1) forwards; width: 0%; }
-
-/* ── Step connector ── */
-.step-line::after {
-  content: '';
-  position: absolute;
-  top: 28px; left: calc(50% + 28px);
-  width: calc(100% - 56px);
-  height: 2px;
-  background: linear-gradient(90deg, #6366f1, #a855f7);
-  opacity: 0.3;
-}
-
-/* ── Stats bar grid ── */
-.stats-bar-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;text-align:center;}
-@media(min-width:640px){.stats-bar-grid{grid-template-columns:repeat(8,1fr);gap:20px;}}
 
 /* ── Badge pill ── */
 .badge-live {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 14px; border-radius: 999px;
-  font-size: 12px; font-weight: 700; letter-spacing: 0.01em;
-  background: rgba(99,102,241,0.15);
-  border: 1px solid rgba(129,140,248,0.35);
-  color: #a5b4fc;
+  padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.01em;
+  background: rgba(74,128,168,0.15); border: 1px solid rgba(74,128,168,0.35); color: #7aaac9;
 }
+
+/* ── Stats grid ── */
+.stats-bar-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; text-align:center; }
+@media(min-width:640px) { .stats-bar-grid { grid-template-columns:repeat(8,1fr); gap:20px; } }
 </style>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════
      NAV
-════════════════════════════════════════════════════════════════════════════ -->
-<nav style="position:sticky; top:0; z-index:100; background:rgba(8,11,26,0.85); border-bottom:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);">
+══════════════════════════════════════════════ -->
+<nav style="position:sticky; top:0; z-index:100; background:rgba(6,16,31,0.88); border-bottom:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);">
   <div class="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between" style="height:64px;">
     <img src="/vox_logo.svg" alt="VOX" style="height:22px;">
 
     <div class="hidden sm:flex items-center gap-7" style="font-size:14px; font-weight:500; color:rgba(255,255,255,0.6);">
-      <a href="#features"    style="transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'"><%= vi ? "Tính năng" : "Features" %></a>
+      <a href="#features"     style="transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'"><%= vi ? "Tính năng" : "Features" %></a>
       <a href="#how-it-works" style="transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'"><%= vi ? "Cách dùng" : "How it works" %></a>
-      <a href="#pricing"     style="transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'"><%= vi ? "Giá" : "Pricing" %></a>
-      <%= link_to templates_path, style: "transition:color 0.15s; color:rgba(255,255,255,0.6);", onmouseover: "this.style.color='#fff'", onmouseout: "this.style.color='rgba(255,255,255,0.6)'" do %>
-        <%= vi ? "Mẫu có sẵn" : "Templates" %>
-      <% end %>
+      <a href="#pricing"      style="transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'"><%= vi ? "Giá" : "Pricing" %></a>
     </div>
 
     <div class="flex items-center gap-2">
-      <!-- Language pill -->
       <div style="display:flex; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,0.15); font-size:11px; font-weight:700;">
-        <a href="?locale=vi" style="padding:5px 12px; transition:all 0.15s; <%= I18n.locale.to_s == 'vi' ? 'background:#4F46E5; color:#fff;' : 'color:rgba(255,255,255,0.5);' %>">VI</a>
-        <a href="?locale=en" style="padding:5px 12px; transition:all 0.15s; <%= I18n.locale.to_s == 'en' ? 'background:#4F46E5; color:#fff;' : 'color:rgba(255,255,255,0.5);' %>">EN</a>
+        <a href="?locale=vi" style="padding:5px 12px; transition:all 0.15s; <%= I18n.locale.to_s == 'vi' ? 'background:#1e3a5f; color:#fff;' : 'color:rgba(255,255,255,0.5);' %>">VI</a>
+        <a href="?locale=en" style="padding:5px 12px; transition:all 0.15s; <%= I18n.locale.to_s == 'en' ? 'background:#1e3a5f; color:#fff;' : 'color:rgba(255,255,255,0.5);' %>">EN</a>
       </div>
       <%= link_to new_user_session_path, class: "hidden sm:inline", style: "font-size:13px; font-weight:600; color:rgba(255,255,255,0.65); padding:8px 14px; transition:color 0.15s;", onmouseover: "this.style.color='#fff'", onmouseout: "this.style.color='rgba(255,255,255,0.65)'" do %>
         <%= vi ? "Đăng nhập" : "Sign in" %>
       <% end %>
-      <%= link_to new_user_registration_path, style: "font-size:13px; font-weight:700; color:#fff; padding:9px 18px; border-radius:8px; background:linear-gradient(135deg,#4F46E5,#7C3AED); transition:opacity 0.15s; box-shadow:0 0 20px rgba(99,102,241,0.4);", onmouseover: "this.style.opacity='0.88'", onmouseout: "this.style.opacity='1'" do %>
+      <%= link_to new_user_registration_path, style: "font-size:13px; font-weight:700; color:#fff; padding:9px 18px; border-radius:8px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); transition:opacity 0.15s; box-shadow:0 0 20px rgba(30,58,95,0.5);", onmouseover: "this.style.opacity='0.88'", onmouseout: "this.style.opacity='1'" do %>
         <%= vi ? "Dùng thử" : "Try for free" %>
       <% end %>
     </div>
   </div>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     HERO — dark, aurora
-════════════════════════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════ -->
 <section class="hero-dark" style="min-height:92vh; display:flex; align-items:center;">
   <div class="aurora aurora-1"></div>
   <div class="aurora aurora-2"></div>
@@ -152,89 +105,99 @@
 
   <div class="max-w-5xl mx-auto px-4 sm:px-6 text-center relative" style="z-index:1; padding-top:80px; padding-bottom:80px; width:100%;">
 
-    <!-- Badge -->
     <div class="badge-live fade-up" style="margin-bottom:28px; display:inline-flex;">
       <span style="width:7px; height:7px; border-radius:50%; background:#22d3ee; animation:pulse-ring 2s infinite;"></span>
-      <%= vi ? "Nền tảng Survey, Voting & Dynamic Forms thế hệ mới" : "Next-gen Survey, Voting & Dynamic Forms platform" %>
+      <%= vi ? "Nền tảng AI cho dạy học & thu thập ý kiến" : "AI-powered platform for learning & engagement" %>
     </div>
 
-    <!-- Headline -->
     <h1 style="font-size:clamp(36px,7vw,76px); font-weight:900; line-height:1.06; letter-spacing:-0.03em; color:#fff; margin-bottom:24px;" class="fade-up-2">
-      <%= vi ? "Thu thập ý kiến" : "Engage your audience" %><br>
-      <span class="gtext"><%= vi ? "theo thời gian thực" : "in real-time" %></span>
+      <%= vi ? "Tạo nội dung &" : "Create content &" %><br>
+      <span class="gtext"><%= vi ? "tương tác thông minh" : "engage intelligently" %></span>
     </h1>
 
-    <!-- Sub -->
-    <p style="font-size:clamp(15px,2.5vw,20px); color:rgba(255,255,255,0.55); max-width:600px; margin:0 auto 40px; line-height:1.7;" class="fade-up-3">
-      <%= vi ? "VOX giúp bạn tạo khảo sát, bình chọn trực tiếp và thu thập phản hồi — tất cả trong vài giây. Hoàn hảo cho hội thảo, lớp học và team." : "VOX helps you run live surveys, instant polls, and collect feedback — all in seconds. Perfect for workshops, classrooms, and your team." %>
+    <p style="font-size:clamp(15px,2.5vw,20px); color:rgba(255,255,255,0.55); max-width:620px; margin:0 auto 40px; line-height:1.7;" class="fade-up-3">
+      <%= vi ? "VOX tích hợp AI để tạo Quiz, Slide, Flashcards, tóm tắt tài liệu — cùng khảo sát, bình chọn và thu thập phản hồi theo thời gian thực." : "VOX brings AI to create Quizzes, Slides, Flashcards, document summaries — plus surveys, live polls, and real-time feedback." %>
     </p>
 
-    <!-- CTAs -->
     <div class="fade-up-3" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:48px;">
-      <%= link_to new_user_registration_path, style: "display:inline-flex; align-items:center; gap:8px; padding:14px 28px; font-size:15px; font-weight:700; color:#fff; border-radius:12px; background:linear-gradient(135deg,#4F46E5,#7C3AED); box-shadow:0 0 40px rgba(99,102,241,0.5); transition:all 0.2s; text-decoration:none;", onmouseover: "this.style.transform='scale(1.04)'; this.style.boxShadow='0 0 60px rgba(99,102,241,0.65)'", onmouseout: "this.style.transform='scale(1)'; this.style.boxShadow='0 0 40px rgba(99,102,241,0.5)'" do %>
+      <%= link_to new_user_registration_path, style: "display:inline-flex; align-items:center; gap:8px; padding:14px 28px; font-size:15px; font-weight:700; color:#fff; border-radius:12px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); box-shadow:0 0 40px rgba(30,58,95,0.6); transition:all 0.2s; text-decoration:none;", onmouseover: "this.style.transform='scale(1.04)'; this.style.boxShadow='0 0 60px rgba(30,58,95,0.8)'" , onmouseout: "this.style.transform='scale(1)'; this.style.boxShadow='0 0 40px rgba(30,58,95,0.6)'" do %>
         <%= vi ? "Bắt đầu miễn phí" : "Get started free" %>
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
       <% end %>
-      <%= link_to templates_path, style: "display:inline-flex; align-items:center; gap:8px; padding:14px 28px; font-size:15px; font-weight:600; color:rgba(255,255,255,0.8); border-radius:12px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.13); transition:all 0.2s; text-decoration:none;", onmouseover: "this.style.background='rgba(255,255,255,0.12)'", onmouseout: "this.style.background='rgba(255,255,255,0.07)'" do %>
-        📋 <%= vi ? "Xem mẫu có sẵn" : "Browse templates" %>
-      <% end %>
+      <a href="#features" style="display:inline-flex; align-items:center; gap:8px; padding:14px 28px; font-size:15px; font-weight:600; color:rgba(255,255,255,0.8); border-radius:12px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.13); transition:all 0.2s; text-decoration:none;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.07)'">
+        <%= vi ? "Xem tính năng" : "Explore features" %>
+      </a>
     </div>
 
-    <!-- Trust line -->
     <p class="fade-up-4" style="font-size:13px; color:rgba(255,255,255,0.3); letter-spacing:0.01em;">
-      ✓ <%= vi ? "Miễn phí · Không cần thẻ tín dụng · Bắt đầu trong 60 giây" : "Free plan · No credit card required · Live in 60 seconds" %>
+      ✓ <%= vi ? "Miễn phí · 100 AI Credits/tháng · Không cần thẻ tín dụng" : "Free plan · 100 AI Credits/month · No credit card" %>
     </p>
 
-    <!-- ── Product Mockup ── -->
+    <!-- Product mockup: AI Quiz -->
     <div class="fade-up-4" style="margin-top:64px; position:relative;">
-      <!-- Glow under -->
-      <div style="position:absolute; bottom:-40px; left:50%; transform:translateX(-50%); width:70%; height:60px; background:radial-gradient(ellipse,rgba(99,102,241,0.4),transparent 70%); filter:blur(20px);"></div>
-
-      <!-- Browser chrome -->
+      <div style="position:absolute; bottom:-40px; left:50%; transform:translateX(-50%); width:70%; height:60px; background:radial-gradient(ellipse,rgba(30,58,95,0.5),transparent 70%); filter:blur(20px);"></div>
       <div style="border-radius:16px; overflow:hidden; box-shadow:0 40px 120px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08); max-width:780px; margin:0 auto;">
         <!-- Browser bar -->
-        <div style="background:#1a1d2e; padding:12px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div style="background:#111827; padding:12px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,0.07);">
           <div style="display:flex; gap:6px;">
             <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
             <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
             <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
           </div>
-          <div style="flex:1; background:rgba(255,255,255,0.06); border-radius:6px; padding:5px 12px; font-size:12px; color:rgba(255,255,255,0.3); text-align:center;">vox.czin.net/v/team-meeting/present</div>
+          <div style="flex:1; background:rgba(255,255,255,0.06); border-radius:6px; padding:5px 12px; font-size:12px; color:rgba(255,255,255,0.3); text-align:center;">app.vox.czin.net/dashboard</div>
           <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:#4ade80;">
             <span style="width:6px;height:6px;border-radius:50%;background:#4ade80;animation:pulse-ring 2s infinite;"></span>
-            LIVE
+            AI
           </div>
         </div>
-        <!-- Presenter content -->
-        <div style="background:#0F172A; padding:32px 28px 28px;">
-          <h3 style="font-size:clamp(16px,3vw,26px); font-weight:800; color:#fff; text-align:center; margin-bottom:24px; line-height:1.3;">
-            <%= vi ? "🏆 Công cụ collaboration nào nhóm bạn yêu thích nhất?" : "🏆 Which collaboration tool does your team prefer?" %>
-          </h3>
-          <div style="max-width:540px; margin:0 auto;">
-            <% [
-              [vi ? "Microsoft Teams" : "Microsoft Teams", 44, "from-indigo-500 to-violet-600"],
-              [vi ? "Slack" : "Slack",                     31, "from-violet-500 to-purple-600"],
-              [vi ? "Google Meet" : "Google Meet",         16, "from-purple-500 to-fuchsia-500"],
-              [vi ? "Zoom" : "Zoom",                        9, "from-fuchsia-400 to-pink-500"],
-            ].each_with_index do |(label, pct, colors), i| %>
-              <div style="margin-bottom:14px;">
-                <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
-                  <span style="font-weight:600; color:rgba(255,255,255,0.85);"><%= label %></span>
-                  <span style="font-weight:700; color:rgba(255,255,255,0.45);"><%= pct %>%</span>
-                </div>
-                <div style="height:10px; border-radius:999px; background:rgba(255,255,255,0.08); overflow:hidden;">
-                  <div class="bar-animate" style="--w:<%= pct %>%; height:100%; border-radius:999px; background:linear-gradient(90deg,<%= colors == 'from-indigo-500 to-violet-600' ? '#6366f1,#7c3aed' : colors == 'from-violet-500 to-purple-600' ? '#8b5cf6,#9333ea' : colors == 'from-purple-500 to-fuchsia-500' ? '#a855f7,#d946ef' : '#e879f9,#ec4899' %>);"></div>
-                </div>
+        <!-- Dashboard mockup -->
+        <div style="background:#0f172a; padding:24px 28px 28px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <!-- AI Quiz card -->
+          <div style="background:linear-gradient(135deg,#1e3a5f,#162c47); border-radius:14px; padding:20px; border:1px solid rgba(74,128,168,0.3);">
+            <div style="font-size:11px; font-weight:700; color:#7aaac9; letter-spacing:0.08em; margin-bottom:8px;">✨ AI QUIZ & ÔN LUYỆN</div>
+            <div style="font-size:15px; font-weight:700; color:#fff; margin-bottom:12px; line-height:1.4;"><%= vi ? "Kiểm tra Toán lớp 10 — Hàm số bậc hai" : "Math Quiz — Quadratic Functions" %></div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <span style="font-size:11px; padding:3px 10px; border-radius:99px; background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.7);">📋 20 <%= vi ? "câu" : "questions" %></span>
+              <span style="font-size:11px; padding:3px 10px; border-radius:99px; background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.7);">⏱ 30 <%= vi ? "phút" : "min" %></span>
+            </div>
+            <div style="margin-top:14px; height:6px; background:rgba(255,255,255,0.1); border-radius:99px; overflow:hidden;">
+              <div class="bar-animate" style="--w:72%; height:100%; background:linear-gradient(90deg,#4a80a8,#7aaac9); border-radius:99px;"></div>
+            </div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:6px;">72% <%= vi ? "hoàn thành" : "completed" %></div>
+          </div>
+          <!-- AI Slide card -->
+          <div style="background:linear-gradient(135deg,#0c1f35,#0e2240); border-radius:14px; padding:20px; border:1px solid rgba(74,128,168,0.2);">
+            <div style="font-size:11px; font-weight:700; color:#7aaac9; letter-spacing:0.08em; margin-bottom:8px;">🖥️ AI SLIDE</div>
+            <div style="font-size:15px; font-weight:700; color:#fff; margin-bottom:12px; line-height:1.4;"><%= vi ? "Chiến lược Marketing Q3 2025" : "Marketing Strategy Q3 2025" %></div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+              <% ["#1e3a5f","#2d5f8a","#162c47"].each do |c| %>
+                <div style="height:36px; border-radius:6px; background:<%= c %>; border:1px solid rgba(255,255,255,0.08);"></div>
+              <% end %>
+            </div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:10px;">✅ <%= vi ? "10 slide đã tạo xong" : "10 slides generated" %></div>
+          </div>
+          <!-- Survey live card -->
+          <div style="background:rgba(255,255,255,0.03); border-radius:14px; padding:20px; border:1px solid rgba(255,255,255,0.07);">
+            <div style="font-size:11px; font-weight:700; color:#4ade80; letter-spacing:0.08em; margin-bottom:8px; display:flex; align-items:center; gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse-ring 2s infinite;"></span> LIVE <%= vi ? "KHẢO SÁT" : "SURVEY" %></div>
+            <div style="font-size:13px; color:rgba(255,255,255,0.8); margin-bottom:10px;"><%= vi ? "Đánh giá sự hài lòng nhân viên Q2" : "Employee Satisfaction Q2" %></div>
+            <% [[vi ? "Rất hài lòng" : "Very satisfied", 52, "#4ade80"], [vi ? "Hài lòng" : "Satisfied", 31, "#7aaac9"], [vi ? "Bình thường" : "Neutral", 17, "#94a3b8"]].each do |label, pct, color| %>
+              <div style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px; color:rgba(255,255,255,0.6);"><span><%= label %></span><span><%= pct %>%</span></div>
+                <div style="height:5px; background:rgba(255,255,255,0.07); border-radius:99px; overflow:hidden;"><div class="bar-animate" style="--w:<%= pct %>%; height:100%; background:<%= color %>; border-radius:99px;"></div></div>
               </div>
             <% end %>
           </div>
-          <div style="display:flex; align-items:center; justify-content:center; gap:20px; margin-top:20px; font-size:12px; color:rgba(255,255,255,0.3);">
-            <span style="display:flex; align-items:center; gap:6px;">
-              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              248 <%= vi ? "người tham gia" : "participants" %>
-            </span>
-            <span>·</span>
-            <span><%= vi ? "Đang cập nhật theo thời gian thực" : "Updating in real-time" %></span>
+          <!-- Flashcard card -->
+          <div style="background:rgba(255,255,255,0.03); border-radius:14px; padding:20px; border:1px solid rgba(255,255,255,0.07);">
+            <div style="font-size:11px; font-weight:700; color:#f59e0b; letter-spacing:0.08em; margin-bottom:8px;">🎴 FLASHCARDS</div>
+            <div style="font-size:13px; color:rgba(255,255,255,0.8); margin-bottom:12px;"><%= vi ? "Từ vựng IELTS — Band 7.0" : "IELTS Vocabulary — Band 7.0" %></div>
+            <div style="display:flex; gap:8px; justify-content:center;">
+              <div style="background:#1e3a5f; border-radius:10px; padding:12px 16px; text-align:center; flex:1; border:1px solid rgba(74,128,168,0.3);">
+                <div style="font-size:15px; font-weight:800; color:#fff;">Ubiquitous</div>
+                <div style="font-size:11px; color:#7aaac9; margin-top:4px;"><%= vi ? "Phổ biến khắp nơi" : "Present everywhere" %></div>
+              </div>
+            </div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.35); margin-top:10px; text-align:center;">248 <%= vi ? "thẻ · 83% đã thuộc" : "cards · 83% mastered" %></div>
           </div>
         </div>
       </div>
@@ -242,72 +205,75 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════
      STATS BAR
-════════════════════════════════════════════════════════════════════════════ -->
+══════════════════════════════════════════════ -->
 <div style="background:#fff; border-bottom:1px solid #f1f5f9;">
   <div class="max-w-5xl mx-auto px-4 sm:px-6" style="padding-top:40px; padding-bottom:40px;">
     <div class="stats-bar-grid">
       <% [
-        { val: "10+",   label: vi ? "Loại câu hỏi" : "Question types",      icon: "📋", color: "#4F46E5" },
-        { val: "Live",  label: vi ? "Cập nhật tức thì" : "Instant results",  icon: "⚡", color: "#7C3AED" },
-        { val: "Form",  label: vi ? "Dynamic Forms" : "Dynamic Forms",        icon: "📝", color: "#6366f1" },
-        { val: "AI",    label: vi ? "Tích hợp AI" : "AI-powered",            icon: "✨", color: "#D97706" },
-        { val: "SSO",   label: vi ? "Google & Microsoft" : "Google & Microsoft", icon: "🔒", color: "#059669" },
-        { val: "CSV",   label: vi ? "Xuất dữ liệu" : "Data export",          icon: "📥", color: "#0EA5E9" },
-        { val: "TTS",   label: vi ? "Text sang giọng nói" : "Text to speech", icon: "🔊", color: "#EC4899" },
-        { val: "STT",   label: vi ? "Giọng nói sang text" : "Speech to text", icon: "🎙️", color: "#F97316" },
+        { val: "AI",    label: vi ? "Quiz & Ôn luyện" : "Quiz & Practice",       icon: "🎯", color: "#1e3a5f" },
+        { val: "AI",    label: vi ? "Tạo slide" : "Slide Creator",               icon: "🖥️", color: "#2d5f8a" },
+        { val: "AI",    label: vi ? "Phân tích" : "Analysis",                    icon: "✨", color: "#4a80a8" },
+        { val: "Live",  label: vi ? "Khảo sát & Bình chọn" : "Survey & Poll",   icon: "📊", color: "#0ea5e9" },
+        { val: "TTS",   label: vi ? "Text → Giọng nói" : "Text to speech",      icon: "🔊", color: "#059669" },
+        { val: "STT",   label: vi ? "Giọng nói → Text" : "Speech to text",      icon: "🎙️", color: "#d97706" },
+        { val: "SSO",   label: vi ? "Google & Microsoft" : "Google & Microsoft", icon: "🔒", color: "#dc2626" },
+        { val: "CSV",   label: vi ? "Xuất dữ liệu" : "Data export",             icon: "📥", color: "#7c3aed" },
       ].each do |s| %>
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
           <div style="width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; background:linear-gradient(135deg,<%= s[:color] %>22,<%= s[:color] %>11);">
             <%= s[:icon] %>
           </div>
-          <div style="font-size:22px; font-weight:900; color:<%= s[:color] %>; line-height:1; letter-spacing:-0.02em;"><%= s[:val] %></div>
-          <div style="font-size:12px; color:#94a3b8; font-weight:500; line-height:1.4;"><%= s[:label] %></div>
+          <div style="font-size:20px; font-weight:900; color:<%= s[:color] %>; line-height:1; letter-spacing:-0.02em;"><%= s[:val] %></div>
+          <div style="font-size:11px; color:#94a3b8; font-weight:500; line-height:1.4; text-align:center;"><%= s[:label] %></div>
         </div>
       <% end %>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════
      FEATURES
-════════════════════════════════════════════════════════════════════════════ -->
+══════════════════════════════════════════════ -->
 <section id="features" style="padding:96px 0; background:#fafbff;">
   <div class="max-w-6xl mx-auto px-4 sm:px-6">
     <div style="text-align:center; margin-bottom:56px;">
-      <div style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.1em; color:#6366f1; text-transform:uppercase; margin-bottom:12px;"><%= vi ? "Tính năng" : "Features" %></div>
+      <div style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.1em; color:#1e3a5f; text-transform:uppercase; margin-bottom:12px;"><%= vi ? "Tính năng" : "Features" %></div>
       <h2 style="font-size:clamp(28px,5vw,44px); font-weight:900; color:#0f172a; letter-spacing:-0.02em; margin-bottom:14px; line-height:1.15;">
         <%= vi ? "Tất cả công cụ bạn cần" : "Everything you need" %>
       </h2>
-      <p style="font-size:16px; color:#64748b; max-width:520px; margin:0 auto; line-height:1.7;">
-        <%= vi ? "Một nền tảng để tạo khảo sát, bình chọn trực tiếp và thu thập phản hồi từ khán giả." : "One platform to run surveys, live polls, and collect feedback from your audience." %>
+      <p style="font-size:16px; color:#64748b; max-width:540px; margin:0 auto; line-height:1.7;">
+        <%= vi ? "Từ tạo nội dung AI đến thu thập ý kiến theo thời gian thực — trong một nền tảng duy nhất." : "From AI content creation to real-time feedback collection — all in one platform." %>
       </p>
     </div>
 
     <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px;">
       <% [
-        { icon: "📊", grad: "linear-gradient(135deg,#4F46E5,#6366f1)",
-          title: vi ? "Khảo sát thông minh" : "Smart Surveys",
-          desc:  vi ? "10+ loại câu hỏi, logic điều kiện skip, chống trùng lặp và phân tích AI tự động." : "10+ question types, conditional skip logic, duplicate prevention, and AI auto-analysis." },
-        { icon: "🗳️", grad: "linear-gradient(135deg,#7C3AED,#9333ea)",
-          title: vi ? "Bình chọn trực tiếp" : "Live Voting",
-          desc:  vi ? "Kết quả cập nhật tức thì qua WebSocket. Màn hình presenter đẹp cho sự kiện lớn." : "Instant results via WebSocket. Beautiful presenter screen for large events." },
-        { icon: "💬", grad: "linear-gradient(135deg,#0EA5E9,#06b6d4)",
+        { icon: "🎯", grad: "linear-gradient(135deg,#1e3a5f,#2d5f8a)",
+          title: vi ? "AI Quiz & Ôn luyện" : "AI Quiz & Practice",
+          desc:  vi ? "Tạo bộ đề trắc nghiệm từ tài liệu hoặc mô tả chủ đề. AI tự động tạo câu hỏi, đáp án và giải thích chi tiết." : "Generate quizzes from documents or topic descriptions. AI auto-creates questions, answers, and detailed explanations." },
+        { icon: "🖥️", grad: "linear-gradient(135deg,#1e3a5f,#4a80a8)",
+          title: vi ? "Tạo Slide với AI" : "AI Slide Creator",
+          desc:  vi ? "Tải tài liệu lên hoặc mô tả chủ đề — AI tạo bộ slide chuyên nghiệp, xuất PPTX ngay lập tức." : "Upload a document or describe your topic — AI builds a professional deck, export to PPTX instantly." },
+        { icon: "🎴", grad: "linear-gradient(135deg,#0e7490,#0ea5e9)",
+          title: vi ? "Flashcards & Lộ trình" : "Flashcards & Learning Path",
+          desc:  vi ? "Tạo bộ flashcard thông minh, ôn luyện theo thuật toán spaced repetition và theo dõi tiến độ học tập." : "Create smart flashcard decks, study with spaced repetition algorithm, and track learning progress." },
+        { icon: "📄", grad: "linear-gradient(135deg,#d97706,#f59e0b)",
+          title: vi ? "Tóm tắt tài liệu AI" : "AI Document Summary",
+          desc:  vi ? "Upload PDF, DOCX, hình ảnh — AI tóm tắt nội dung, trích xuất điểm chính và tạo ghi chú nhanh." : "Upload PDF, DOCX, images — AI summarizes content, extracts key points, and creates quick notes." },
+        { icon: "📊", grad: "linear-gradient(135deg,#1e3a5f,#2d5f8a)",
+          title: vi ? "Khảo sát & Bình chọn Live" : "Live Surveys & Polls",
+          desc:  vi ? "10+ loại câu hỏi, kết quả cập nhật tức thì qua WebSocket, màn hình presenter đẹp cho sự kiện lớn." : "10+ question types, instant results via WebSocket, beautiful presenter screen for large events." },
+        { icon: "💬", grad: "linear-gradient(135deg,#059669,#10b981)",
           title: vi ? "Thu thập phản hồi" : "Feedback Boards",
-          desc:  vi ? "Bảng phản hồi công khai — đề xuất, upvote, bình luận theo thời gian thực." : "Public boards — suggestions, upvotes, and comments in real-time." },
-        { icon: "📝", grad: "linear-gradient(135deg,#6366f1,#8b5cf6)",
-          title: vi ? "Form tùy chỉnh" : "Dynamic Forms",
-          desc:  vi ? "Tạo form thu thập dữ liệu linh hoạt với 11 loại trường, quản lý phản hồi và xuất CSV." : "Build flexible data collection forms with 11 field types, manage responses and export CSV." },
-        { icon: "✨", grad: "linear-gradient(135deg,#D97706,#f59e0b)",
-          title: vi ? "Phân tích AI" : "AI Analysis",
-          desc:  vi ? "Tóm tắt kết quả, tạo báo cáo chuyên nghiệp và insight thông minh chỉ một cú nhấp." : "Summarize results, generate pro reports, and get smart insights in one click." },
-        { icon: "📱", grad: "linear-gradient(135deg,#059669,#10b981)",
-          title: vi ? "Mọi thiết bị" : "Any Device",
-          desc:  vi ? "Mobile-first, tối ưu trên điện thoại đến màn hình lớn. Người dùng tham gia không cần cài app." : "Mobile-first, optimised from phone to big screen. Participants join with no app needed." },
-        { icon: "🔒", grad: "linear-gradient(135deg,#DC2626,#ef4444)",
-          title: vi ? "Bảo mật & kiểm soát" : "Secure & Controlled",
-          desc:  vi ? "SSO Google/Microsoft, rate limiting, audit log và quản lý workspace theo nhóm." : "Google/Microsoft SSO, rate limiting, audit logs, and team workspace management." },
+          desc:  vi ? "Bảng phản hồi công khai — đề xuất, upvote, bình luận và phân tích AI tự động theo thời gian thực." : "Public boards — suggestions, upvotes, comments, and AI analysis in real-time." },
+        { icon: "🔊", grad: "linear-gradient(135deg,#7c3aed,#a855f7)",
+          title: vi ? "Text-to-Speech & STT" : "Text-to-Speech & STT",
+          desc:  vi ? "Chuyển văn bản thành giọng nói tự nhiên với nhiều giọng đọc. Phiên âm ghi âm sang văn bản chính xác." : "Convert text to natural speech with multiple voices. Accurately transcribe recordings to text." },
+        { icon: "🤖", grad: "linear-gradient(135deg,#0c4a6e,#0ea5e9)",
+          title: vi ? "AI Tutor & AI Chat" : "AI Tutor & AI Chat",
+          desc:  vi ? "Chat trực tiếp với AI về tài liệu, dữ liệu khảo sát hay bất kỳ chủ đề nào. Hỏi đáp thông minh 24/7." : "Chat directly with AI about documents, survey data, or any topic. Smart Q&A available 24/7." },
       ].each do |f| %>
         <div class="feat-card" style="border-radius:20px; padding:28px;">
           <div style="width:48px; height:48px; border-radius:14px; background:<%= f[:grad] %>; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:18px; box-shadow:0 8px 20px rgba(0,0,0,0.12);">
@@ -321,15 +287,15 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════
      HOW IT WORKS
-════════════════════════════════════════════════════════════════════════════ -->
-<section id="how-it-works" style="padding:96px 0; background:#080B1A; position:relative; overflow:hidden;">
-  <div class="aurora" style="width:400px; height:400px; background:radial-gradient(circle,#4338ca,transparent 70%); top:-100px; right:5%; opacity:0.25;"></div>
+══════════════════════════════════════════════ -->
+<section id="how-it-works" style="padding:96px 0; background:#06101f; position:relative; overflow:hidden;">
+  <div class="aurora" style="width:400px; height:400px; background:radial-gradient(circle,#1e3a5f,transparent 70%); top:-100px; right:5%; opacity:0.3;"></div>
   <div class="grid-overlay"></div>
   <div class="max-w-5xl mx-auto px-4 sm:px-6" style="position:relative; z-index:1;">
     <div style="text-align:center; margin-bottom:64px;">
-      <div style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.1em; color:#818cf8; text-transform:uppercase; margin-bottom:12px;"><%= vi ? "Cách dùng" : "How it works" %></div>
+      <div style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.1em; color:#7aaac9; text-transform:uppercase; margin-bottom:12px;"><%= vi ? "Cách dùng" : "How it works" %></div>
       <h2 style="font-size:clamp(28px,5vw,48px); font-weight:900; color:#fff; letter-spacing:-0.02em; line-height:1.15; margin:0;">
         <%= vi ? "Bắt đầu trong 3 bước" : "Up and running in 3 steps" %>
       </h2>
@@ -337,36 +303,31 @@
 
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:24px;">
       <% [
-        { n: "01", grad: "linear-gradient(135deg,#4F46E5,#6366f1)",
+        { n: "01", grad: "linear-gradient(135deg,#1e3a5f,#2d5f8a)",
           title: vi ? "Tạo tài khoản" : "Create account",
-          desc:  vi ? "Đăng ký miễn phí trong 30 giây. Không cần thẻ tín dụng, không cam kết." : "Sign up free in 30 seconds. No credit card, no commitment.",
-          detail: vi ? "✓ Miễn phí mãi mãi  ✓ Bắt đầu ngay" : "✓ Free forever  ✓ Start instantly" },
-        { n: "02", grad: "linear-gradient(135deg,#7C3AED,#a855f7)",
-          title: vi ? "Xây dựng nội dung" : "Build your content",
-          desc:  vi ? "Tạo khảo sát, bình chọn hoặc bảng phản hồi bằng trình kéo-thả trực quan hoặc để AI tạo giúp bạn." : "Create surveys, polls, or feedback boards with the drag-and-drop builder or let AI generate them for you.",
-          detail: vi ? "✓ 10+ loại câu hỏi  ✓ AI tạo tự động" : "✓ 10+ question types  ✓ AI generation" },
-        { n: "03", grad: "linear-gradient(135deg,#0EA5E9,#06b6d4)",
+          desc:  vi ? "Đăng ký miễn phí trong 30 giây với email, Google hoặc Microsoft. Không cần thẻ tín dụng." : "Sign up free in 30 seconds with email, Google, or Microsoft. No credit card needed.",
+          detail: vi ? "✓ Miễn phí mãi mãi  ✓ SSO Google & Microsoft" : "✓ Free forever  ✓ SSO Google & Microsoft" },
+        { n: "02", grad: "linear-gradient(135deg,#1e3a5f,#4a80a8)",
+          title: vi ? "Tạo nội dung với AI" : "Create content with AI",
+          desc:  vi ? "Mô tả chủ đề hoặc upload tài liệu — AI tự động tạo Quiz, Slide, Flashcards hay khảo sát trong vài giây." : "Describe a topic or upload a document — AI instantly creates Quizzes, Slides, Flashcards, or surveys.",
+          detail: vi ? "✓ Upload PDF/DOCX  ✓ AI tạo tự động" : "✓ Upload PDF/DOCX  ✓ AI generation" },
+        { n: "03", grad: "linear-gradient(135deg,#0c4a6e,#0ea5e9)",
           title: vi ? "Chia sẻ & thu thập" : "Share & collect",
-          desc:  vi ? "Gửi link hoặc để người tham gia quét QR. Kết quả hiển thị ngay lập tức theo thời gian thực trên màn hình của bạn." : "Share a link or let participants scan a QR code. Results appear instantly in real-time on your screen.",
-          detail: vi ? "✓ QR code  ✓ Kết quả thời gian thực" : "✓ QR code  ✓ Live results" },
+          desc:  vi ? "Gửi link hoặc để người tham gia quét QR. Kết quả & phân tích AI hiển thị ngay theo thời gian thực." : "Share a link or let participants scan QR. Results and AI analysis appear in real-time.",
+          detail: vi ? "✓ QR code  ✓ AI phân tích tức thì" : "✓ QR code  ✓ Instant AI analysis" },
       ].each do |s| %>
-        <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:32px; position:relative; overflow:hidden; transition:border-color 0.2s, background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.07)'; this.style.borderColor='rgba(129,140,248,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.08)'">
-          <!-- Step number watermark -->
-          <div style="position:absolute; top:-10px; right:20px; font-size:80px; font-weight:900; color:rgba(255,255,255,0.03); line-height:1; pointer-events:none; user-select:none;"><%= s[:n] %></div>
-          <!-- Number badge -->
-          <div style="display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:12px; background:<%= s[:grad] %>; font-size:14px; font-weight:900; color:#fff; margin-bottom:20px; box-shadow:0 6px 20px rgba(0,0,0,0.3);">
-            <%= s[:n] %>
-          </div>
+        <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:32px; position:relative; overflow:hidden; transition:border-color 0.2s, background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.07)'; this.style.borderColor='rgba(74,128,168,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.08)'">
+          <div style="position:absolute; top:-10px; right:20px; font-size:80px; font-weight:900; color:rgba(255,255,255,0.025); line-height:1; pointer-events:none; user-select:none;"><%= s[:n] %></div>
+          <div style="display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:12px; background:<%= s[:grad] %>; font-size:14px; font-weight:900; color:#fff; margin-bottom:20px; box-shadow:0 6px 20px rgba(0,0,0,0.3);"><%= s[:n] %></div>
           <h3 style="font-size:20px; font-weight:800; color:#fff; margin-bottom:10px; letter-spacing:-0.01em;"><%= s[:title] %></h3>
           <p style="font-size:14px; color:rgba(255,255,255,0.55); line-height:1.75; margin-bottom:16px;"><%= s[:desc] %></p>
-          <div style="font-size:12px; color:rgba(129,140,248,0.8); font-weight:600;"><%= s[:detail] %></div>
+          <div style="font-size:12px; color:rgba(122,170,201,0.85); font-weight:600;"><%= s[:detail] %></div>
         </div>
       <% end %>
     </div>
 
-    <!-- Bottom CTA inside section -->
     <div style="text-align:center; margin-top:52px;">
-      <%= link_to new_user_registration_path, style: "display:inline-flex; align-items:center; gap:8px; padding:13px 28px; font-size:14px; font-weight:700; color:#fff; border-radius:10px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); text-decoration:none; transition:all 0.2s;", onmouseover: "this.style.background='rgba(255,255,255,0.16)'", onmouseout: "this.style.background='rgba(255,255,255,0.1)'" do %>
+      <%= link_to new_user_registration_path, style: "display:inline-flex; align-items:center; gap:8px; padding:13px 28px; font-size:14px; font-weight:700; color:#fff; border-radius:10px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); text-decoration:none; transition:all 0.2s;", onmouseover: "this.style.background='rgba(255,255,255,0.16)'" , onmouseout: "this.style.background='rgba(255,255,255,0.1)'" do %>
         <%= vi ? "Bắt đầu ngay — miễn phí" : "Get started — it's free" %>
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
       <% end %>
@@ -374,77 +335,71 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════
      PRICING
-════════════════════════════════════════════════════════════════════════════ -->
+══════════════════════════════════════════════ -->
 <section id="pricing" style="padding:96px 0; background:#f8faff;">
   <div class="max-w-4xl mx-auto px-4 sm:px-6">
     <div style="text-align:center; margin-bottom:56px;">
-      <div style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.1em; color:#6366f1; text-transform:uppercase; margin-bottom:12px;"><%= vi ? "Giá cả" : "Pricing" %></div>
+      <div style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.1em; color:#1e3a5f; text-transform:uppercase; margin-bottom:12px;"><%= vi ? "Giá cả" : "Pricing" %></div>
       <h2 style="font-size:clamp(28px,5vw,44px); font-weight:900; color:#0f172a; letter-spacing:-0.02em; margin-bottom:14px; line-height:1.15;">
-        <%= vi ? "Miễn phí. Tất cả tính năng." : "Free. All features." %>
+        <%= vi ? "Miễn phí. Đầy đủ tính năng." : "Free. Full features." %>
       </h2>
       <p style="font-size:16px; color:#64748b; max-width:520px; margin:0 auto; line-height:1.7;">
-        <%= vi ? "Không giới hạn survey, vote, feedback, form hay thành viên. Mỗi tháng bạn được tặng 100 AI Credits miễn phí — mua thêm khi cần." : "Unlimited surveys, votes, feedback, forms, and members. You get 100 free AI Credits every month — buy more when you need." %>
+        <%= vi ? "Tất cả tính năng mở khóa ngay từ đầu. Mỗi tháng được tặng 100 AI Credits — mua thêm khi cần." : "Every feature unlocked from day one. Get 100 free AI Credits each month — buy more when needed." %>
       </p>
     </div>
 
-    <!-- Single plan card -->
-    <div style="max-width:480px; margin:0 auto;">
-      <div class="price-card price-pro" style="border-radius:24px; padding:32px;">
+    <div style="max-width:520px; margin:0 auto;">
+      <div class="price-pro" style="border-radius:24px; padding:36px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
-          <span style="font-size:12px; font-weight:800; letter-spacing:0.1em; padding:5px 12px; border-radius:6px; background:rgba(129,140,248,0.2); color:#c7d2fe;">
-            VOX
-          </span>
-          <span style="font-size:12px; font-weight:700; color:#4ade80; background:rgba(74,222,128,0.15); padding:4px 12px; border-radius:999px;">
-            <%= vi ? "Miễn phí mãi mãi" : "Free forever" %>
-          </span>
+          <span style="font-size:12px; font-weight:800; letter-spacing:0.1em; padding:5px 12px; border-radius:6px; background:rgba(74,128,168,0.2); color:#b3cbe3;">VOX</span>
+          <span style="font-size:12px; font-weight:700; color:#4ade80; background:rgba(74,222,128,0.15); padding:4px 12px; border-radius:999px;"><%= vi ? "Miễn phí mãi mãi" : "Free forever" %></span>
         </div>
 
         <div style="font-size:48px; font-weight:900; color:#fff; line-height:1; margin-bottom:4px;">0 ₫</div>
-        <div style="font-size:13px; color:rgba(199,210,254,0.6); margin-bottom:28px;"><%= vi ? "Tất cả tính năng, không giới hạn" : "All features, no limits" %></div>
+        <div style="font-size:13px; color:rgba(179,203,227,0.6); margin-bottom:28px;"><%= vi ? "Tất cả tính năng, không giới hạn" : "All features, no limits" %></div>
 
-        <div style="height:1px; background:rgba(255,255,255,0.1); margin-bottom:24px;"></div>
+        <div style="height:1px; background:rgba(255,255,255,0.08); margin-bottom:24px;"></div>
 
-        <div style="margin-bottom:24px;">
+        <div style="margin-bottom:28px;">
           <% [
-            [vi ? "Survey, Vote, Feedback, Form" : "Surveys, Votes, Feedback, Forms", "∞"],
+            [vi ? "AI Quiz, Slide, Flashcards, Tóm tắt" : "AI Quiz, Slides, Flashcards, Summary", "∞"],
+            [vi ? "Khảo sát, Bình chọn, Phản hồi, Form" : "Surveys, Votes, Feedback, Forms", "∞"],
             [vi ? "Thành viên & Supporter" : "Members & Supporters", "∞"],
             [vi ? "AI Credits miễn phí / tháng" : "Free AI Credits / month", "100"],
           ].each do |label, val| %>
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
-              <span style="color:rgba(199,210,254,0.7);"><%= label %></span>
-              <span style="font-weight:700; color:#c7d2fe;"><%= val %></span>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+              <span style="color:rgba(179,203,227,0.75);"><%= label %></span>
+              <span style="font-weight:700; color:#b3cbe3;"><%= val %></span>
             </div>
           <% end %>
         </div>
 
-        <div style="font-size:10px; font-weight:800; letter-spacing:0.12em; margin-bottom:12px; color:rgba(199,210,254,0.5);"><%= vi ? "TẤT CẢ TÍNH NĂNG" : "ALL FEATURES INCLUDED" %></div>
-        <div style="margin-bottom:28px;">
+        <div style="font-size:10px; font-weight:800; letter-spacing:0.12em; margin-bottom:12px; color:rgba(179,203,227,0.45);"><%= vi ? "BAO GỒM TẤT CẢ" : "ALL INCLUDED" %></div>
+        <div style="margin-bottom:28px; display:grid; grid-template-columns:1fr 1fr; gap:4px;">
           <% [
-            vi ? "AI Survey Builder" : "AI Survey Builder",
-            vi ? "AI Phân tích & Báo cáo" : "AI Analysis & Reports",
-            vi ? "AI Chat với dữ liệu" : "AI Chat with data",
-            vi ? "AI Kiểm duyệt nội dung" : "AI Moderation",
-            vi ? "Text-to-Speech & Speech-to-Text" : "Text-to-Speech & Speech-to-Text",
-            vi ? "Xuất CSV & Branding" : "CSV Export & Branding",
-            vi ? "SSO Google & Microsoft" : "SSO Google & Microsoft",
+            vi ? "✨ AI Quiz & Ôn luyện" : "✨ AI Quiz & Practice",
+            vi ? "🖥️ AI Tạo Slide (PPTX)" : "🖥️ AI Slide Creator (PPTX)",
+            vi ? "🎴 Flashcards" : "🎴 Flashcards",
+            vi ? "📄 Tóm tắt tài liệu AI" : "📄 AI Document Summary",
+            vi ? "🔊 Text-to-Speech" : "🔊 Text-to-Speech",
+            vi ? "🎙️ Speech-to-Text" : "🎙️ Speech-to-Text",
+            vi ? "📊 Khảo sát & Bình chọn Live" : "📊 Live Surveys & Polls",
+            vi ? "🔒 SSO Google & Microsoft" : "🔒 SSO Google & Microsoft",
           ].each do |label| %>
-            <div style="display:flex; align-items:center; gap:8px; font-size:13px; padding:4px 0;">
-              <svg width="14" height="14" fill="none" stroke="#a5b4fc" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span style="color:rgba(199,210,254,0.85);"><%= label %></span>
-            </div>
+            <div style="font-size:12px; padding:3px 0; color:rgba(179,203,227,0.8);"><%= label %></div>
           <% end %>
         </div>
 
         <%= link_to new_user_registration_path,
-              style: "display:block; text-align:center; padding:13px 20px; border-radius:12px; font-size:15px; font-weight:700; text-decoration:none; transition:all 0.2s; background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.2);",
-              onmouseover: "this.style.background='rgba(255,255,255,0.25)'",
-              onmouseout: "this.style.background='rgba(255,255,255,0.15)'" do %>
+              style: "display:block; text-align:center; padding:14px 20px; border-radius:12px; font-size:15px; font-weight:700; text-decoration:none; transition:all 0.2s; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); color:#fff; box-shadow:0 8px 24px rgba(30,58,95,0.4);",
+              onmouseover: "this.style.opacity='0.9'",
+              onmouseout: "this.style.opacity='1'" do %>
           <%= vi ? "Bắt đầu miễn phí" : "Get started free" %>
         <% end %>
 
-        <div style="text-align:center; margin-top:12px; font-size:11px; color:rgba(199,210,254,0.4);">
+        <div style="text-align:center; margin-top:12px; font-size:11px; color:rgba(179,203,227,0.35);">
           <%= vi ? "Cần thêm AI Credits? Mua gói bổ sung bất cứ lúc nào." : "Need more AI Credits? Buy add-on packs anytime." %>
         </div>
       </div>
@@ -452,23 +407,23 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     CTA — dark aurora
-════════════════════════════════════════════════════════════════════════════ -->
-<section style="padding:96px 0; background:#080B1A; position:relative; overflow:hidden; text-align:center;">
-  <div class="aurora" style="width:500px; height:500px; background:radial-gradient(circle,#4338ca,transparent 70%); top:-150px; left:50%; transform:translateX(-50%); opacity:0.4;"></div>
+<!-- ══════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════ -->
+<section style="padding:96px 0; background:#06101f; position:relative; overflow:hidden; text-align:center;">
+  <div class="aurora" style="width:500px; height:500px; background:radial-gradient(circle,#1e3a5f,transparent 70%); top:-150px; left:50%; transform:translateX(-50%); opacity:0.45;"></div>
   <div class="grid-overlay"></div>
   <div style="position:relative; z-index:1; max-width:640px; margin:0 auto; padding:0 24px;">
     <h2 style="font-size:clamp(28px,6vw,52px); font-weight:900; color:#fff; letter-spacing:-0.025em; line-height:1.1; margin-bottom:16px;">
-      <%= vi ? "Sẵn sàng tạo cuộc\nbình chọn đầu tiên?" : "Ready to run your\nfirst live poll?" %>
+      <%= vi ? "Sẵn sàng tạo nội dung\nthông minh hơn?" : "Ready to create\nsmarter content?" %>
     </h2>
     <p style="font-size:16px; color:rgba(255,255,255,0.5); margin-bottom:36px; line-height:1.7;">
-      <%= vi ? "Tham gia cùng các nhóm đang sử dụng VOX để tương tác với khán giả theo thời gian thực." : "Join teams already using VOX to engage their audiences in real-time." %>
+      <%= vi ? "Tham gia cùng các nhóm đang dùng VOX để tạo quiz, slide, flashcards và thu thập ý kiến theo thời gian thực." : "Join teams already using VOX to create quizzes, slides, flashcards and gather real-time feedback." %>
     </p>
     <%= link_to new_user_registration_path,
-          style: "display:inline-flex; align-items:center; gap:10px; padding:16px 36px; font-size:16px; font-weight:700; color:#fff; border-radius:14px; background:linear-gradient(135deg,#4F46E5,#7C3AED); box-shadow:0 0 60px rgba(99,102,241,0.5); text-decoration:none; transition:all 0.2s;",
-          onmouseover: "this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 80px rgba(99,102,241,0.7)'",
-          onmouseout:  "this.style.transform='scale(1)'; this.style.boxShadow='0 0 60px rgba(99,102,241,0.5)'" do %>
+          style: "display:inline-flex; align-items:center; gap:10px; padding:16px 36px; font-size:16px; font-weight:700; color:#fff; border-radius:14px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); box-shadow:0 0 60px rgba(30,58,95,0.6); text-decoration:none; transition:all 0.2s;",
+          onmouseover: "this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 80px rgba(30,58,95,0.8)'",
+          onmouseout:  "this.style.transform='scale(1)'; this.style.boxShadow='0 0 60px rgba(30,58,95,0.6)'" do %>
       <%= vi ? "Bắt đầu miễn phí ngay" : "Start for free today" %>
       <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
     <% end %>
@@ -478,12 +433,12 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════
      FOOTER
-════════════════════════════════════════════════════════════════════════════ -->
+══════════════════════════════════════════════ -->
 <footer style="padding:28px 24px; border-top:1px solid #f1f5f9; background:#fff; text-align:center;">
   <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
     <img src="/vox_logo.svg" alt="VOX" style="height:18px; opacity:0.55;">
-    <span style="font-size:12px; color:#94a3b8;">© <%= Date.today.year %> VOX · <%= vi ? "Nền tảng Khảo sát & Bình chọn" : "Survey & Voting Platform" %></span>
+    <span style="font-size:12px; color:#94a3b8;">© <%= Date.today.year %> VOX · <%= vi ? "Nền tảng AI cho học tập & tương tác" : "AI Platform for Learning & Engagement" %></span>
   </div>
 </footer>

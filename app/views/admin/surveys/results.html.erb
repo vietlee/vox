@@ -83,7 +83,7 @@
 <!-- Tabs -->
 <div class="flex" style="border-bottom:2px solid #e2e8f0;">
   <button id="tab-summary" onclick="switchTab('summary')"
-    style="flex:1;padding:10px 16px;font-size:13px;font-weight:700;color:#1e293b;background:#fff;border:0;border-bottom:2px solid #6366f1;margin-bottom:-2px;cursor:pointer;transition:all .15s;">
+    style="flex:1;padding:10px 16px;font-size:13px;font-weight:700;color:#1e293b;background:#fff;border:0;border-bottom:2px solid #1e3a5f;margin-bottom:-2px;cursor:pointer;transition:all .15s;">
     📋 <%= t("surveys.results.tab_summary") %>
   </button>
   <div style="width:1px;background:#e2e8f0;margin:8px 0 10px;flex-shrink:0;"></div>
@@ -279,7 +279,7 @@
         <%= render "admin/surveys/ai_analysis_card", analysis: @ai_analysis %>
       <% else %>
         <div class="flex flex-col items-center justify-center h-full text-center text-slate-400 py-12">
-          <div class="mb-3"><%= render "shared/ai_icon", size: 48, color: "#c4b5fd" %></div>
+          <div class="mb-3"><%= render "shared/ai_icon", size: 48, color: "#7aaac9" %></div>
           <p class="text-[13px]"><%= t("surveys.results.get_analysis") %></p>
         </div>
       <% end %>
@@ -327,7 +327,7 @@
               Ngữ cảnh & Trọng tâm báo cáo
             </label>
             <button type="button" id="suggest-prompt-btn" onclick="suggestReportPrompt()"
-              style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;outline:none;color:#fff;background:linear-gradient(135deg,#7c3aed,#6366f1);box-shadow:0 2px 8px rgba(124,58,237,0.35),inset 0 1px 0 rgba(255,255,255,0.15);transition:box-shadow 0.15s,transform 0.15s;position:relative;overflow:hidden;"
+              style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;outline:none;color:#fff;background:linear-gradient(135deg,#1e3a5f,#1e3a5f);box-shadow:0 2px 8px rgba(124,58,237,0.35),inset 0 1px 0 rgba(255,255,255,0.15);transition:box-shadow 0.15s,transform 0.15s;position:relative;overflow:hidden;"
               onmouseenter="this.style.boxShadow='0 4px 16px rgba(124,58,237,0.5),inset 0 1px 0 rgba(255,255,255,0.2)';this.style.transform='translateY(-1px)'"
               onmouseleave="this.style.boxShadow='0 2px 8px rgba(124,58,237,0.35),inset 0 1px 0 rgba(255,255,255,0.15)';this.style.transform='translateY(0)'"
               onmousedown="this.style.transform='translateY(0) scale(0.97)'"
@@ -340,20 +340,20 @@
           <!-- Hidden input synced with Quill — used by all JS reading #report-context -->
           <input type="hidden" id="report-context">
           <!-- Suggest loading overlay (shown while AI is working) -->
-          <div id="suggest-loading-overlay" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:160px;border-radius:14px;background:linear-gradient(135deg,#f5f3ff,#eef2ff);border:1.5px solid #c4b5fd;padding:28px 20px;">
+          <div id="suggest-loading-overlay" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:160px;border-radius:14px;background:linear-gradient(135deg,#f5f3ff,#eef2ff);border:1.5px solid #7aaac9;padding:28px 20px;">
             <!-- VOX icon pulsing -->
             <div style="position:relative;width:72px;height:72px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <div style="position:absolute;inset:-8px;border-radius:50%;border:2px dashed #c4b5fd;animation:rb-orbit 3s linear infinite"></div>
+              <div style="position:absolute;inset:-8px;border-radius:50%;border:2px dashed #7aaac9;animation:rb-orbit 3s linear infinite"></div>
               <img src="/icon.svg" style="width:56px;height:56px;border-radius:14px;box-shadow:0 4px 16px rgba(124,58,237,.25);animation:vox-pulse 1.6s ease-in-out infinite;object-fit:contain"
                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-              <div style="display:none;width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#4361ee);align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,58,237,.25);animation:vox-pulse 1.6s ease-in-out infinite">
-                <svg width="28" height="28" viewBox="0 0 36 36"><rect width="36" height="36" rx="9" fill="white" fill-opacity=".9"/><polygon points="10,24 6,31 16,24" fill="white"/><rect x="6" y="6" width="24" height="19" rx="5" fill="white"/><rect x="10" y="11" width="4" height="7" rx="1" fill="#7c3aed"/><rect x="16" y="8" width="4" height="13" rx="1" fill="#7c3aed"/><rect x="23" y="10" width="4" height="9" rx="1" fill="#7c3aed"/></svg>
+              <div style="display:none;width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#1e3a5f,#1e3a5f);align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,58,237,.25);animation:vox-pulse 1.6s ease-in-out infinite">
+                <svg width="28" height="28" viewBox="0 0 36 36"><rect width="36" height="36" rx="9" fill="white" fill-opacity=".9"/><polygon points="10,24 6,31 16,24" fill="white"/><rect x="6" y="6" width="24" height="19" rx="5" fill="white"/><rect x="10" y="11" width="4" height="7" rx="1" fill="#1e3a5f"/><rect x="16" y="8" width="4" height="13" rx="1" fill="#1e3a5f"/><rect x="23" y="10" width="4" height="9" rx="1" fill="#1e3a5f"/></svg>
               </div>
             </div>
             <div style="text-align:center">
-              <div style="font-size:11px;font-weight:700;color:#7c3aed;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">✦ AI đang phân tích</div>
+              <div style="font-size:11px;font-weight:700;color:#1e3a5f;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">✦ AI đang phân tích</div>
               <div style="font-size:13px;font-weight:700;color:#3b0764;margin-bottom:3px;">Đang phân tích khảo sát...</div>
-              <div id="suggest-loading-sub" style="font-size:11px;color:#7c3aed;opacity:0.8;">AI đang đọc dữ liệu và tạo gợi ý</div>
+              <div id="suggest-loading-sub" style="font-size:11px;color:#1e3a5f;opacity:0.8;">AI đang đọc dữ liệu và tạo gợi ý</div>
             </div>
           </div>
           <div style="border:1px solid #e9ecef;border-radius:10px;overflow:hidden;">
@@ -396,7 +396,7 @@
         <!-- Generate button -->
         <button id="report-btn" onclick="requestReport()" disabled
           class="w-full py-2.5 text-[13px] font-bold text-white rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-          style="background:linear-gradient(135deg,#7c3aed,#6366f1);">
+          style="background:linear-gradient(135deg,#1e3a5f,#1e3a5f);">
           <span id="report-spinner" class="hidden w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
           ✨ <%= t("surveys.results.create_report") %>
         </button>
@@ -460,7 +460,7 @@
                 <a href="<%= view_ai_report_survey_path(@survey, report_id: rpt.id) %>"
                    target="_blank"
                    class="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg text-white hover:opacity-90 transition-opacity"
-                   style="background:linear-gradient(135deg,#7c3aed,#6366f1);min-width:0;">
+                   style="background:linear-gradient(135deg,#1e3a5f,#1e3a5f);min-width:0;">
                   📊 Xem báo cáo
                 </a>
                 <% if rpt_ctx.present? %>
@@ -665,13 +665,13 @@ function makeProgressRing(containerId, phases, intervalMs) {
   const html = `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;gap:8px;">
       <!-- % on top -->
-      <span id="${containerId}-pct" style="font-size:13px;font-weight:800;color:#7c3aed;letter-spacing:-0.3px;">0%</span>
+      <span id="${containerId}-pct" style="font-size:13px;font-weight:800;color:#1e3a5f;letter-spacing:-0.3px;">0%</span>
       <!-- Ring + icon stacked -->
       <div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;">
         <svg width="88" height="88" viewBox="0 0 88 88" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">
-          <circle cx="44" cy="44" r="38" stroke="#ede9fe" stroke-width="6"/>
+          <circle cx="44" cy="44" r="38" stroke="#d9e5f1" stroke-width="6"/>
           <circle id="${containerId}-ring" cx="44" cy="44" r="38"
-            stroke="#7c3aed" stroke-width="6" stroke-linecap="round"
+            stroke="#1e3a5f" stroke-width="6" stroke-linecap="round"
             stroke-dasharray="238.8" stroke-dashoffset="238.8"
             style="transition:stroke-dashoffset 0.6s ease;"/>
         </svg>
@@ -687,7 +687,7 @@ function makeProgressRing(containerId, phases, intervalMs) {
           </svg>
         </div>
       </div>
-      <p id="${containerId}-phase" style="font-size:12px;font-weight:600;color:#6366f1;text-align:center;max-width:220px;margin:0;">${phases[0]}</p>
+      <p id="${containerId}-phase" style="font-size:12px;font-weight:600;color:#1e3a5f;text-align:center;max-width:220px;margin:0;">${phases[0]}</p>
     </div>`;
 
   document.getElementById(containerId).innerHTML = html;
@@ -755,7 +755,7 @@ function switchTab(tab) {
     if (!btn) return;
     var base = 'flex:1;padding:10px 16px;font-size:13px;background:#fff;border:0;margin-bottom:-2px;cursor:pointer;transition:all .15s;';
     if (t === tab) {
-      btn.style.cssText = base + 'font-weight:700;color:#1e293b;border-bottom:2px solid #6366f1;';
+      btn.style.cssText = base + 'font-weight:700;color:#1e293b;border-bottom:2px solid #1e3a5f;';
     } else {
       btn.style.cssText = base + 'font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;';
     }
@@ -1272,7 +1272,7 @@ async function suggestReportPrompt() {
       if (wrap) { wrap.style.borderColor = data.truncated ? '#f59e0b' : '#8b5cf6'; }
       setTimeout(() => {
         icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt';
-        btn.style.background = 'linear-gradient(135deg,#7c3aed,#6366f1)';
+        btn.style.background = 'linear-gradient(135deg,#1e3a5f,#1e3a5f)';
         if (wrap) wrap.style.borderColor = '';
       }, data.truncated ? 5000 : 2500);
     } else {
@@ -1281,7 +1281,7 @@ async function suggestReportPrompt() {
       btn.style.background = 'linear-gradient(135deg,#dc2626,#ef4444)';
       setTimeout(() => {
         icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt';
-        btn.style.background = 'linear-gradient(135deg,#7c3aed,#6366f1)';
+        btn.style.background = 'linear-gradient(135deg,#1e3a5f,#1e3a5f)';
       }, 3000);
     }
   } catch(e) {
@@ -1291,7 +1291,7 @@ async function suggestReportPrompt() {
     btn.style.background = 'linear-gradient(135deg,#dc2626,#ef4444)';
     setTimeout(() => {
       icon.textContent = '✨'; label.textContent = 'AI gợi ý prompt';
-      btn.style.background = 'linear-gradient(135deg,#7c3aed,#6366f1)';
+      btn.style.background = 'linear-gradient(135deg,#1e3a5f,#1e3a5f)';
     }, 3000);
   } finally {
     btn.disabled = false;
@@ -1334,7 +1334,7 @@ function regenReport(ctx, lang, fmt) {
   const fmtBtns = document.querySelectorAll('[data-format]');
   fmtBtns.forEach(btn => {
     const isActive = btn.dataset.format === fmt;
-    btn.style.background = isActive ? 'linear-gradient(135deg,#7c3aed,#6366f1)' : '';
+    btn.style.background = isActive ? 'linear-gradient(135deg,#1e3a5f,#1e3a5f)' : '';
     btn.style.color = isActive ? 'white' : '';
   });
   updateReportBtn();
@@ -1549,7 +1549,7 @@ document.addEventListener('keydown', function(e) {
     <h3 style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:6px">Chọn ngôn ngữ báo cáo</h3>
     <p style="font-size:13px;color:#64748b;margin-bottom:22px">Báo cáo sẽ được tạo và dịch toàn bộ sang ngôn ngữ bạn chọn</p>
     <div style="display:flex;gap:12px;justify-content:center">
-      <button onclick="openHtmlReport('vi')" style="flex:1;padding:14px 0;border:2px solid #4361ee;border-radius:12px;background:#f0f4ff;color:#4361ee;font-size:15px;font-weight:700;cursor:pointer">
+      <button onclick="openHtmlReport('vi')" style="flex:1;padding:14px 0;border:2px solid #1e3a5f;border-radius:12px;background:#f0f4ff;color:#1e3a5f;font-size:15px;font-weight:700;cursor:pointer">
         🇻🇳 Tiếng Việt
       </button>
       <button onclick="openHtmlReport('en')" style="flex:1;padding:14px 0;border:2px solid #e2e8f0;border-radius:12px;background:#f8fafc;color:#475569;font-size:15px;font-weight:700;cursor:pointer">

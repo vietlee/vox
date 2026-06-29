@@ -33,7 +33,9 @@ class ClaudeService
 
     parsed = JSON.parse(response.body)
     stop_reason = parsed["stop_reason"]
-    Rails.logger.warn "ClaudeService: stop_reason=#{stop_reason}" if stop_reason != "end_turn"
+    input_tokens  = parsed.dig("usage", "input_tokens")
+    output_tokens = parsed.dig("usage", "output_tokens")
+    Rails.logger.info "ClaudeService: model=#{@model} stop_reason=#{stop_reason} in=#{input_tokens} out=#{output_tokens} max=#{max_tokens}"
     parsed.dig("content", 0, "text")
   rescue => e
     Rails.logger.error "ClaudeService error: #{e.message}"

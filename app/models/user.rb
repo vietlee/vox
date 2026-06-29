@@ -8,6 +8,13 @@ class User < ApplicationRecord
 
   belongs_to :workspace, optional: true
   has_many :owned_workspaces, class_name: "Workspace", foreign_key: :owner_id, dependent: :nullify
+
+  # The one subscription that holds this user's shared credit budget.
+  # All workspaces they own draw from this single pool.
+  def primary_subscription
+    primary_ws = owned_workspaces.order(:id).first
+    primary_ws&.active_subscription
+  end
   has_many :workspace_memberships, dependent: :destroy
   has_many :workspaces, through: :workspace_memberships
   has_many :surveys, dependent: :nullify

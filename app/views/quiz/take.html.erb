@@ -2,25 +2,25 @@
 
 <style>
 html, body { background:linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff 100%) !important; min-height:100vh; }
-.q-card { background:#fff; border-radius:16px; border:1px solid rgba(99,102,241,0.12); box-shadow:0 4px 16px rgba(99,102,241,0.06); padding:16px 20px; margin-bottom:16px; }
+.q-card { background:#fff; border-radius:16px; border:1px solid rgba(30,58,95,0.12); box-shadow:0 4px 16px rgba(30,58,95,0.06); padding:16px 20px; margin-bottom:16px; }
 .q-head { display:flex; align-items:flex-start; gap:10px; margin-bottom:14px; }
-.q-num { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#a855f7); color:#fff; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+.q-num { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); color:#fff; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
 .q-text { font-size:15px; font-weight:600; color:#1E293B; line-height:1.5; margin:0; }
 .opt-label { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:14px; border:2px solid #e2e8f0; background:rgba(255,255,255,0.85); cursor:pointer; margin-bottom:8px; transition:all .15s ease; }
-.opt-label:hover { border-color:#a5b4fc; background:rgba(238,240,255,0.5); }
+.opt-label:hover { border-color:#7aaac9; background:rgba(238,243,249,0.5); }
 .opt-label input { position:absolute; opacity:0; width:0; height:0; pointer-events:none; }
-.opt-label:has(input:checked) { border-color:#6366f1; background:rgba(238,240,255,0.9); }
-.opt-label:has(input:checked) .opt-text { color:#4338ca; font-weight:600; }
+.opt-label:has(input:checked) { border-color:#1e3a5f; background:rgba(238,243,249,0.9); }
+.opt-label:has(input:checked) .opt-text { color:#162c47; font-weight:600; }
 .opt-dot { flex-shrink:0; width:18px; height:18px; border-radius:50%; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition:all .15s; position:relative; }
-.opt-label:has(input[type=radio]:checked) .opt-dot { border-color:#6366f1; background:#6366f1; }
+.opt-label:has(input[type=radio]:checked) .opt-dot { border-color:#1e3a5f; background:#1e3a5f; }
 .opt-label:has(input[type=radio]:checked) .opt-dot::after { content:''; width:7px; height:7px; border-radius:50%; background:#fff; }
 .opt-box { flex-shrink:0; width:18px; height:18px; border-radius:5px; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition:all .15s; }
-.opt-label:has(input[type=checkbox]:checked) .opt-box { border-color:#6366f1; background:#6366f1; }
+.opt-label:has(input[type=checkbox]:checked) .opt-box { border-color:#1e3a5f; background:#1e3a5f; }
 .opt-label:has(input[type=checkbox]:checked) .opt-box::after { content:'✓'; color:#fff; font-size:11px; font-weight:900; }
 .short-answer-ta { width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; font-family:inherit; resize:vertical; outline:none; transition:border-color .15s; box-sizing:border-box; background:rgba(255,255,255,0.85); }
-.short-answer-ta:focus { border-color:#6366f1; }
-.quiz-submit-btn { width:100%; padding:14px; background:linear-gradient(135deg,#6366f1,#a855f7); color:#fff; font-size:15px; font-weight:700; border:none; border-radius:14px; cursor:pointer; font-family:inherit; transition:all .2s; box-shadow:0 2px 8px rgba(99,102,241,0.25); }
-.quiz-submit-btn:hover { opacity:0.9; box-shadow:0 4px 16px rgba(99,102,241,0.35); }
+.short-answer-ta:focus { border-color:#1e3a5f; }
+.quiz-submit-btn { width:100%; padding:14px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); color:#fff; font-size:15px; font-weight:700; border:none; border-radius:14px; cursor:pointer; font-family:inherit; transition:all .2s; box-shadow:0 2px 8px rgba(30,58,95,0.25); }
+.quiz-submit-btn:hover { opacity:0.9; box-shadow:0 4px 16px rgba(30,58,95,0.35); }
 .multi-hint { font-size:11px; color:#94a3b8; margin-bottom:8px; }
 </style>
 
@@ -28,7 +28,7 @@ html, body { background:linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff
 <div id="progress-fixed" style="position:fixed; left:0; right:0; z-index:9997; padding:8px 16px;
      background:linear-gradient(135deg,#f8faff 0%,#f0f4ff 50%,#faf5ff 100%);
      border-bottom:1px solid rgba(226,232,240,0.6);
-     box-shadow:0 1px 8px rgba(99,102,241,0.06);">
+     box-shadow:0 1px 8px rgba(30,58,95,0.06);">
   <div style="max-width:680px; margin:0 auto;">
     <div style="display:flex; justify-content:space-between; font-size:11px; color:#64748b; margin-bottom:6px;">
       <span><span id="answered-count">0</span> / <%= @questions.count %> câu đã trả lời</span>
@@ -36,8 +36,8 @@ html, body { background:linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff
         <span id="timer" style="font-family:monospace; font-weight:700; color:#1E293B;">--:--</span>
       <% end %>
     </div>
-    <div style="height:6px; background:rgba(255,255,255,0.6); border-radius:99px; overflow:hidden; border:1px solid rgba(99,102,241,0.15);">
-      <div id="progress-bar" style="height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,#6366f1,#a855f7); transition:width .5s ease;"></div>
+    <div style="height:6px; background:rgba(255,255,255,0.6); border-radius:99px; overflow:hidden; border:1px solid rgba(30,58,95,0.15);">
+      <div id="progress-bar" style="height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,#1e3a5f,#2d5f8a); transition:width .5s ease;"></div>
     </div>
   </div>
 </div>
@@ -124,7 +124,7 @@ html, body { background:linear-gradient(135deg, #f8faff 0%, #f0f4ff 50%, #faf5ff
     <p style="font-size:13px; color:#64748B; margin:0 0 20px;" id="submit-modal-desc"></p>
     <div style="display:flex; gap:8px;">
       <button onclick="confirmSubmit()"
-              style="flex:1; padding:12px; background:linear-gradient(135deg,#6366f1,#a855f7); color:#fff; font-weight:700; font-size:14px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;">
+              style="flex:1; padding:12px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); color:#fff; font-weight:700; font-size:14px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;">
         <%= t("quiz.yes_submit") %>
       </button>
       <button onclick="closeSubmitModal()"

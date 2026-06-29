@@ -1,6 +1,12 @@
 class Workspace < ApplicationRecord
   include Sluggable
   belongs_to :owner, class_name: "User", optional: true
+
+  # Returns the canonical subscription for credit deductions.
+  # All workspaces owned by the same user share the first workspace's credit pool.
+  def credit_subscription
+    owner&.primary_subscription || active_subscription
+  end
   has_many :users, dependent: :destroy
   has_many :workspace_memberships, dependent: :destroy
   has_many :members, through: :workspace_memberships, source: :user
@@ -50,7 +56,7 @@ class Workspace < ApplicationRecord
   end
 
   def ai_credits_remaining
-    active_subscription&.credit_balance || 0
+    credit_subscription&.credit_balance || 0
   end
 
   # Hard-delete workspace and ALL related data in FK-safe order

@@ -736,7 +736,7 @@ class Admin::SurveysController < Admin::BaseController
     return unless require_credits!(5)
 
     language = params[:language].presence_in(%w[vi en]) || current_workspace.language || "vi"
-    current_workspace.active_subscription&.deduct_credits!(5)
+    current_workspace.credit_subscription&.deduct_credits!(5)
     job = AiJob.create!(
       workspace: current_workspace,
       user: current_user,
@@ -800,7 +800,7 @@ class Admin::SurveysController < Admin::BaseController
       Start with what the user wants to understand or compare, mention the most important angle (e.g. by department, over time, top pain points), and end with what they hope to learn or decide.
     PROMPT
 
-    current_workspace.active_subscription&.deduct_credits!(3)
+    current_workspace.credit_subscription&.deduct_credits!(3)
 
     result = ClaudeService.for_feature("survey_report", timeout: 240).call_full(
       system_prompt: system_prompt,
@@ -817,7 +817,7 @@ class Admin::SurveysController < Admin::BaseController
     return unless require_ai_feature!(:ai_executive_report)
     return unless require_credits!(15)
 
-    current_workspace.active_subscription&.deduct_credits!(15)
+    current_workspace.credit_subscription&.deduct_credits!(15)
     job = AiJob.create!(
       workspace: current_workspace,
       user: current_user,
@@ -848,7 +848,7 @@ class Admin::SurveysController < Admin::BaseController
   def build_report_qr_svg(qr_code)
     mod_size = 6; pad = 24; radius = 16
     total    = qr_code.modules.size * mod_size + pad * 2
-    inner    = qr_code.as_svg(color: "4338ca", shape_rendering: "crispEdges",
+    inner    = qr_code.as_svg(color: "1e3a5f", shape_rendering: "crispEdges",
                                module_size: mod_size, standalone: false, use_path: true, offset: 0)
     logo_bg  = (total * 0.22).round; logo_sz = logo_bg - 8
     logo_x   = (total - logo_bg) / 2; logo_y = (total - logo_bg) / 2

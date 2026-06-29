@@ -57,22 +57,34 @@
         <span class="text-[10px] px-1.5 py-0.5 bg-violet-100 text-violet-600 rounded-full font-bold">5 credits</span>
       </div>
       <p class="text-[12px] text-violet-600 mb-3"><%= t("quiz.ai_generate_desc") %></p>
+
+      <!-- Yêu cầu của bạn — luôn hiển thị -->
+      <div class="mb-3">
+        <label class="block text-[11px] font-bold text-violet-600 uppercase tracking-wide mb-1.5">
+          💬 <%= t("quiz.ai_custom_prompt") %> <span class="font-normal text-violet-400 normal-case" id="ai-prompt-optional-label">(<%= t("quiz.optional") %>)</span>
+        </label>
+        <div id="ai-prompt-quill-wrap" style="border:1px solid #b3cbe3;border-radius:12px;overflow:hidden;background:#fff;">
+          <div id="ai-prompt-quill-editor" style="min-height:80px;font-size:13px;"></div>
+        </div>
+        <div id="ai-empty-error" class="hidden mt-1.5 text-[11px] text-red-500 font-medium">
+          ⚠️ Vui lòng nhập yêu cầu hoặc upload tài liệu (hoặc cả hai) để AI tạo câu hỏi.
+        </div>
+      </div>
+
       <div id="ai-upload-area">
         <!-- Drop zone -->
         <div id="ai-drop-zone"
              onclick="document.getElementById('ai-file-input').click()"
              ondragover="aiDragOver(event)" ondragleave="aiDragLeave(event)" ondrop="aiDrop(event)"
-             class="border-2 border-dashed border-violet-300 hover:border-violet-500 bg-white hover:bg-violet-50 rounded-xl px-4 py-5 text-center cursor-pointer transition-all">
-          <div class="text-2xl mb-1">📂</div>
-          <p class="text-[13px] font-semibold text-violet-700" id="ai-drop-label"><%= t("quiz.drop_or_click") %></p>
+             class="border-2 border-dashed border-violet-300 hover:border-violet-500 bg-white hover:bg-violet-50 rounded-xl px-4 py-4 text-center cursor-pointer transition-all">
+          <div class="text-xl mb-1">📂</div>
+          <p class="text-[12px] font-semibold text-violet-700" id="ai-drop-label"><%= t("quiz.drop_or_click") %></p>
           <p class="text-[11px] text-violet-400 mt-0.5"><%= t("quiz.ai_file_hint") %></p>
           <input type="file" id="ai-file-input" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
                  class="hidden" onchange="aiFileSelected(this)">
         </div>
-        <!-- Selected file + controls (shown after file chosen) -->
-        <div id="ai-file-selected" class="hidden mt-2 space-y-2">
-
-          <!-- Row 1: file name -->
+        <!-- Selected file row (shown after file chosen) -->
+        <div id="ai-file-selected" class="hidden mt-2">
           <div class="flex items-center gap-2 bg-white border border-violet-200 rounded-lg px-3 py-2.5">
             <span id="ai-file-icon" class="flex-shrink-0 text-base">📄</span>
             <span id="ai-file-name" class="text-[13px] font-semibold text-slate-700 truncate flex-1 min-w-0"></span>
@@ -80,44 +92,33 @@
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
-
-          <!-- Row 1b: custom prompt -->
-          <div>
-            <label class="block text-[11px] font-bold text-violet-600 uppercase tracking-wide mb-1">
-              💬 <%= t("quiz.ai_custom_prompt") %> <span class="font-normal text-violet-400 normal-case">(<%= t("quiz.optional") %>)</span>
-            </label>
-            <textarea id="ai-custom-prompt" rows="2"
-                      placeholder="<%= t('quiz.ai_custom_prompt_placeholder') %>"
-                      class="w-full px-3 py-2 border border-violet-200 bg-white rounded-lg text-[12px] text-slate-700 focus:border-violet-500 outline-none resize-none placeholder-violet-300"></textarea>
-          </div>
-
-          <!-- Row 2: count mode + generate -->
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex-shrink-0"><%= t("quiz.questions_count") %>:</span>
-            <div class="flex rounded-lg border border-violet-200 bg-white overflow-hidden text-[12px] font-semibold flex-shrink-0">
-              <button id="mode-auto" onclick="setCountMode('auto')"
-                      class="px-3 py-1.5 bg-violet-600 text-white transition-colors whitespace-nowrap">
-                <%= t("quiz.count_mode_auto") %>
-              </button>
-              <button id="mode-custom" onclick="setCountMode('custom')"
-                      class="px-3 py-1.5 text-slate-500 hover:bg-violet-50 transition-colors whitespace-nowrap">
-                <%= t("quiz.count_mode_custom") %>
-              </button>
-            </div>
-            <div id="ai-count-wrap" class="hidden items-center gap-1 flex-shrink-0">
-              <input type="number" id="ai-count" value="10" min="3" max="50"
-                     class="w-16 px-2 py-1.5 border border-violet-300 rounded-lg text-[13px] font-bold text-center text-violet-700 outline-none focus:border-violet-500">
-              <span class="text-[11px] text-slate-400"><%= t("quiz.count_unit") %></span>
-            </div>
-            <button onclick="runAiGenerate()" id="ai-generate-btn"
-                    class="ml-auto px-4 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-bold rounded-lg transition-colors whitespace-nowrap flex-shrink-0">
-              ✨ <%= t("quiz.generate") %>
-            </button>
-          </div>
-
-          <p id="ai-count-hint" class="text-[11px] text-violet-400"><%= t("quiz.count_mode_auto_hint") %></p>
         </div>
       </div>
+
+      <!-- Count mode + generate (luôn hiển thị) -->
+      <div class="flex items-center gap-2 flex-wrap mt-3">
+        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex-shrink-0"><%= t("quiz.questions_count") %>:</span>
+        <div class="flex rounded-lg border border-violet-200 bg-white overflow-hidden text-[12px] font-semibold flex-shrink-0">
+          <button id="mode-auto" onclick="setCountMode('auto')"
+                  class="px-3 py-1.5 bg-violet-600 text-white transition-colors whitespace-nowrap">
+            <%= t("quiz.count_mode_auto") %>
+          </button>
+          <button id="mode-custom" onclick="setCountMode('custom')"
+                  class="px-3 py-1.5 text-slate-500 hover:bg-violet-50 transition-colors whitespace-nowrap">
+            <%= t("quiz.count_mode_custom") %>
+          </button>
+        </div>
+        <div id="ai-count-wrap" class="hidden items-center gap-1 flex-shrink-0">
+          <input type="number" id="ai-count" value="10" min="3" max="50"
+                 class="w-16 px-2 py-1.5 border border-violet-300 rounded-lg text-[13px] font-bold text-center text-violet-700 outline-none focus:border-violet-500">
+          <span class="text-[11px] text-slate-400"><%= t("quiz.count_unit") %></span>
+        </div>
+        <button onclick="runAiGenerate()" id="ai-generate-btn"
+                class="ml-auto px-4 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-bold rounded-lg transition-colors whitespace-nowrap flex-shrink-0">
+          <%= t("quiz.generate") %>
+        </button>
+      </div>
+      <p id="ai-count-hint" class="text-[11px] text-violet-400 mt-1.5"><%= t("quiz.count_mode_auto_hint") %></p>
       <div id="ai-progress" class="hidden"></div>
       <div id="ai-error" class="hidden mt-2 text-[12px] text-red-600 bg-red-50 rounded-lg px-3 py-2"></div>
     </div>
@@ -156,10 +157,6 @@
         <div>
           <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1"><%= t("quiz.field_title") %></label>
           <%= f.text_field :title, class: "w-full px-2.5 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none" %>
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1"><%= t("quiz.field_desc") %></label>
-          <%= f.text_area :description, rows: 2, class: "w-full px-2.5 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none resize-none" %>
         </div>
         <div>
           <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1"><%= t("quiz.time_limit") %></label>
@@ -794,6 +791,7 @@ async function deleteOption(questionId, optionId) {
   }
 }
 
+// init placeholder on load (no file yet)
 // ── AI count mode ────────────────────────────────────────────────
 var aiCountMode = 'auto';
 function setCountMode(mode) {
@@ -821,6 +819,18 @@ function setCountMode(mode) {
 // ── AI file drag & drop ──────────────────────────────────────────
 var FILE_ICONS = { pdf: '📕', doc: '📘', docx: '📘', txt: '📄', png: '🖼️', jpg: '🖼️', jpeg: '🖼️' };
 
+var PLACEHOLDER_NO_FILE  = 'VD: Tạo 15 câu về Chương 3 – Hàm số bậc hai, dành cho HS lớp 10, 60% nhận biết 40% thông hiểu, thêm câu đánh lừa...';
+var PLACEHOLDER_HAS_FILE = 'VD: Tập trung vào chương 3, dùng ngôn ngữ đơn giản, thêm câu đánh lừa, bỏ qua phần phụ lục...';
+
+function _syncPromptPlaceholder(hasFile) {
+  var lbl = document.getElementById('ai-prompt-optional-label');
+  var ph = hasFile ? PLACEHOLDER_HAS_FILE : PLACEHOLDER_NO_FILE;
+  // update Quill placeholder via DOM
+  var editor = document.querySelector('#ai-prompt-quill-editor .ql-editor');
+  if (editor) editor.setAttribute('data-placeholder', ph);
+  if (lbl) lbl.textContent = hasFile ? '(tuỳ chọn)' : '(bắt buộc nếu không upload tài liệu)';
+}
+
 function aiFileSelected(input) {
   if (!input.files.length) return;
   showAiFile(input.files[0]);
@@ -833,6 +843,8 @@ function showAiFile(file) {
   sel.classList.remove('hidden');
   document.getElementById('ai-file-icon').textContent = FILE_ICONS[ext] || '📄';
   document.getElementById('ai-file-name').textContent = file.name;
+  document.getElementById('ai-empty-error').classList.add('hidden');
+  _syncPromptPlaceholder(true);
 }
 
 function aiClearFile() {
@@ -840,8 +852,7 @@ function aiClearFile() {
   document.getElementById('ai-drop-zone').classList.remove('hidden');
   const sel = document.getElementById('ai-file-selected');
   sel.classList.add('hidden');
-  sel.classList.remove('flex');
-  sel.classList.remove('flex');
+  _syncPromptPlaceholder(false);
 }
 
 function aiDragOver(e) {
@@ -875,12 +886,12 @@ function makeProgressRing(containerId, phases, intervalMs) {
   let phase = 0, pct = 0, timer = null;
   const html = `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0;gap:8px;">
-      <span id="${containerId}-pct" style="font-size:13px;font-weight:800;color:#7c3aed;letter-spacing:-0.3px;">0%</span>
+      <span id="${containerId}-pct" style="font-size:13px;font-weight:800;color:#1e3a5f;letter-spacing:-0.3px;">0%</span>
       <div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;">
         <svg width="88" height="88" viewBox="0 0 88 88" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">
-          <circle cx="44" cy="44" r="38" stroke="#ede9fe" stroke-width="6"/>
+          <circle cx="44" cy="44" r="38" stroke="#d9e5f1" stroke-width="6"/>
           <circle id="${containerId}-ring" cx="44" cy="44" r="38"
-            stroke="#7c3aed" stroke-width="6" stroke-linecap="round"
+            stroke="#1e3a5f" stroke-width="6" stroke-linecap="round"
             stroke-dasharray="238.8" stroke-dashoffset="238.8"
             style="transition:stroke-dashoffset 0.6s ease;"/>
         </svg>
@@ -895,7 +906,7 @@ function makeProgressRing(containerId, phases, intervalMs) {
           </svg>
         </div>
       </div>
-      <p id="${containerId}-phase" style="font-size:12px;font-weight:600;color:#6366f1;text-align:center;max-width:220px;margin:0;">${phases[0]}</p>
+      <p id="${containerId}-phase" style="font-size:12px;font-weight:600;color:#1e3a5f;text-align:center;max-width:220px;margin:0;">${phases[0]}</p>
     </div>`;
   document.getElementById(containerId).innerHTML = html;
   const ring  = document.getElementById(`${containerId}-ring`);
@@ -960,8 +971,14 @@ function selectResultMode(mode) {
 async function runAiGenerate() {
   const fileInput = document.getElementById('ai-file-input');
   const count = aiCountMode === 'auto' ? 0 : document.getElementById('ai-count').value;
-  if (!fileInput.files.length) { alert('<%= j t("quiz.select_file") %>'); return; }
-  const customPrompt = (document.getElementById('ai-custom-prompt')?.value || '').trim();
+  const customPrompt = _getAiPromptText();
+  const errEl = document.getElementById('ai-empty-error');
+  if (!fileInput.files.length && !customPrompt) {
+    if (errEl) errEl.classList.remove('hidden');
+    if (_aiPromptQuill) _aiPromptQuill.focus();
+    return;
+  }
+  if (errEl) errEl.classList.add('hidden');
   const formData = new FormData();
   formData.append('file', fileInput.files[0]);
   formData.append('questions_count', count);
@@ -1022,5 +1039,70 @@ async function pollAiStatus(pollUrl) {
     setTimeout(() => pollAiStatus(pollUrl), 3000);
   }
 }
+
+// ── AI prompt Quill ────────────────────────────────────────────────
+var _aiPromptQuill = null;
+
+function _initAiPromptQuill() {
+  if (_aiPromptQuill) return;
+  if (typeof Quill === 'undefined') return;
+  var el = document.getElementById('ai-prompt-quill-editor');
+  if (!el) return;
+  _aiPromptQuill = new Quill(el, {
+    theme: 'snow',
+    placeholder: PLACEHOLDER_NO_FILE,
+    modules: {
+      toolbar: [
+        ['bold', 'italic', 'underline'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['clean']
+      ]
+    }
+  });
+  _syncPromptPlaceholder(false);
+}
+
+(function waitQuill(tries) {
+  if (typeof Quill !== 'undefined') { _initAiPromptQuill(); return; }
+  if (tries > 50) return;
+  setTimeout(function() { waitQuill(tries + 1); }, 100);
+})(0);
+
+function _getAiPromptText() {
+  if (_aiPromptQuill) return _aiPromptQuill.getText().trim();
+  return '';
+}
 </script>
+
+<style>
+#ai-prompt-quill-wrap .ql-toolbar {
+  border: none;
+  border-bottom: 1px solid #d9e5f1;
+  background: #eef3f9;
+  padding: 5px 8px;
+}
+#ai-prompt-quill-wrap .ql-container {
+  border: none;
+  font-size: 13px;
+  font-family: inherit;
+}
+#ai-prompt-quill-wrap .ql-editor {
+  min-height: 80px;
+  padding: 10px 12px;
+  color: #334155;
+  line-height: 1.6;
+}
+#ai-prompt-quill-wrap .ql-editor.ql-blank::before {
+  color: #7aaac9;
+  font-style: normal;
+  font-size: 12px;
+}
+#ai-prompt-quill-wrap:focus-within {
+  border-color: #1e3a5f !important;
+  box-shadow: 0 0 0 3px rgba(124,58,237,.12);
+}
+#ai-prompt-quill-wrap .ql-toolbar .ql-stroke { stroke: #1e3a5f; }
+#ai-prompt-quill-wrap .ql-toolbar .ql-fill  { fill:   #1e3a5f; }
+#ai-prompt-quill-wrap .ql-toolbar button:hover .ql-stroke { stroke: #162c47; }
+</style>
 

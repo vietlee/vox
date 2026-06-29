@@ -40,7 +40,7 @@ class Admin::SttController < Admin::BaseController
   def index
     @has_stt             = current_workspace&.active_subscription&.has_feature?(:stt)
     @has_tts             = current_workspace&.active_subscription&.has_feature?(:tts)
-    @remaining_credits   = current_workspace&.active_subscription&.credit_balance.to_i
+    @remaining_credits   = current_workspace&.credit_subscription&.credit_balance.to_i
     @history_count       = @has_stt ? current_workspace.stt_transcripts.count : 0
   end
 
@@ -192,7 +192,7 @@ class Admin::SttController < Admin::BaseController
         end
       end
 
-      current_workspace.active_subscription&.deduct_credits!(credits)
+      current_workspace.credit_subscription&.deduct_credits!(credits)
       response.headers["X-Credits-Used"] = credits.to_s
 
       # Build speaker segments when diarize was requested
@@ -303,7 +303,7 @@ class Admin::SttController < Admin::BaseController
       PROMPT
     )
 
-    current_workspace.active_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
+    current_workspace.credit_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
     response.headers["X-Credits-Used"] = POSTPROCESS_CREDITS.to_s
     render json: { result: result, type: "summary" }
   rescue => e
@@ -338,7 +338,7 @@ class Admin::SttController < Admin::BaseController
       PROMPT
     )
 
-    current_workspace.active_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
+    current_workspace.credit_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
     response.headers["X-Credits-Used"] = POSTPROCESS_CREDITS.to_s
     render json: { result: result, type: "translation" }
   rescue => e
@@ -403,7 +403,7 @@ class Admin::SttController < Admin::BaseController
     )
 
     # Deduct credits after successful transcription
-    current_workspace.active_subscription&.deduct_credits!(credits)
+    current_workspace.credit_subscription&.deduct_credits!(credits)
     response.headers["X-Credits-Used"] = credits.to_s
 
     # Build speaker segments for history (when diarize was requested)

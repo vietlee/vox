@@ -16,7 +16,8 @@ class QrCode < ApplicationRecord
     when "Vote"          then "/v/#{resource.slug}"
     when "FeedbackBoard" then "/f/#{resource.slug}"
     when "DynamicForm"   then "/forms/#{resource.slug}"
-    when "QuizSet"       then "/q/#{resource.share_token}"
+    when "QuizSet"          then "/q/#{resource.share_token}"
+    when "ContentOutline"   then "/deck/#{resource.share_token}"
     end
   end
 

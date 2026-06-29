@@ -9,19 +9,19 @@
   @keyframes draw-check { to { stroke-dashoffset: 0; } }
   @keyframes pop-in { 0%{transform:scale(0.6);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
   .fade-in { animation: fadeIn 0.35s ease forwards; }
-  .df-field:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); outline: none; }
+  .df-field:focus { border-color: #1e3a5f !important; box-shadow: 0 0 0 3px rgba(30,58,95,0.12); outline: none; }
   .opt-label { transition: all 0.18s ease; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px; border: 2px solid #e2e8f0; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-  .opt-label:hover { border-color: #a5b4fc; background: rgba(238,240,255,0.45); box-shadow: 0 4px 14px rgba(99,102,241,0.1); transform: translateY(-1px); }
-  .opt-label:has(input:checked) { border-color: #6366f1; background: rgba(238,240,255,0.85); box-shadow: 0 4px 18px rgba(99,102,241,0.18); }
+  .opt-label:hover { border-color: #7aaac9; background: rgba(238,243,249,0.45); box-shadow: 0 4px 14px rgba(30,58,95,0.1); transform: translateY(-1px); }
+  .opt-label:has(input:checked) { border-color: #1e3a5f; background: rgba(238,243,249,0.85); box-shadow: 0 4px 18px rgba(30,58,95,0.18); }
   .opt-dot { flex-shrink:0; width:20px; height:20px; border-radius:50%; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition: all 0.18s; }
-  .opt-label:has(input[type=radio]:checked) .opt-dot { border-color:#6366f1; background:#6366f1; }
+  .opt-label:has(input[type=radio]:checked) .opt-dot { border-color:#1e3a5f; background:#1e3a5f; }
   .opt-label:has(input[type=radio]:checked) .opt-dot::after { content:''; width:8px; height:8px; border-radius:50%; background:#fff; display:block; }
   .opt-box { flex-shrink:0; width:20px; height:20px; border-radius:6px; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition: all 0.18s; }
-  .opt-label:has(input[type=checkbox]:checked) .opt-box { border-color:#6366f1; background:#6366f1; }
+  .opt-label:has(input[type=checkbox]:checked) .opt-box { border-color:#1e3a5f; background:#1e3a5f; }
   .opt-label:has(input[type=checkbox]:checked) .opt-box::after { content:'✓'; font-size:12px; font-weight:900; color:#fff; display:block; line-height:1; }
   .upload-zone { transition: all 0.15s; cursor: pointer; border: 1.5px dashed #d1d5db; border-radius: 10px; background: #fafafa; }
-  .upload-zone:hover { border-color: #a5b4fc; background: rgba(238,240,255,0.3); }
-  .upload-zone-active { border-color: #6366f1; background: rgba(238,240,255,0.4); }
+  .upload-zone:hover { border-color: #7aaac9; background: rgba(238,243,249,0.3); }
+  .upload-zone-active { border-color: #1e3a5f; background: rgba(238,243,249,0.4); }
 </style>
 
 
@@ -36,7 +36,7 @@
              style="max-height:56px; max-width:200px;">
       <% else %>
         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl mx-auto mb-2"
-             style="background:linear-gradient(135deg,#6366f1,#a855f7); box-shadow:0 4px 12px rgba(99,102,241,0.3);">📝</div>
+             style="background:linear-gradient(135deg,#1e3a5f,#2d5f8a); box-shadow:0 4px 12px rgba(30,58,95,0.3);">📝</div>
       <% end %>
       <h1 class="text-[18px] font-extrabold text-slate-900 tracking-tight leading-snug mb-1"><%= @form.title %></h1>
       <% if @form.description.present? %>
@@ -64,7 +64,7 @@
             <defs>
               <linearGradient id="success-grad" x1="0" y1="0" x2="72" y2="72" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stop-color="#818cf8"/>
-                <stop offset="100%" stop-color="#6366f1"/>
+                <stop offset="100%" stop-color="#1e3a5f"/>
               </linearGradient>
             </defs>
           </svg>
@@ -82,7 +82,7 @@
         <div class="border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
           <button onclick="resetForm()"
             class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all"
-            style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 2px 10px rgba(99,102,241,0.3);">
+            style="background:linear-gradient(135deg,#1e3a5f,#1e3a5f); box-shadow:0 2px 10px rgba(30,58,95,0.3);">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Gửi thêm một lần nữa
           </button>
@@ -137,7 +137,7 @@
                   <select name="submission[<%= field.field_key %>]" <%= "required" if field.required? %>
                     class="df-field w-full px-3 py-2.5 rounded-lg text-[14px] text-slate-700 outline-none bg-white transition-all"
                     style="border:1.5px solid #e2e8f0;"
-                    onfocus="this.style.borderColor='#6366f1'; this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.08)'"
+                    onfocus="this.style.borderColor='#1e3a5f'; this.style.boxShadow='0 0 0 3px rgba(30,58,95,0.08)'"
                     onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
                     <option value=""><%= field.placeholder.presence || "Chọn một lựa chọn…" %></option>
                     <% field.options_list.each do |opt| %>
@@ -202,7 +202,7 @@
                     <% if field.max_value.present? && field.field_type == "number" %>max="<%= field.max_value %>"<% end %>
                     class="df-field w-full px-3 py-2.5 rounded-lg text-[14px] text-slate-800 outline-none transition-all"
                     style="border:1.5px solid #e2e8f0; background:white;"
-                    onfocus="this.style.borderColor='#6366f1'; this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.08)'"
+                    onfocus="this.style.borderColor='#1e3a5f'; this.style.boxShadow='0 0 0 3px rgba(30,58,95,0.08)'"
                     onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
                 <% end %>
 
@@ -218,7 +218,7 @@
             <div class="pt-4 border-t border-slate-100">
               <button type="submit" id="df-submit-btn"
                 class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all disabled:opacity-60"
-                style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 2px 10px rgba(99,102,241,0.3);">
+                style="background:linear-gradient(135deg,#1e3a5f,#1e3a5f); box-shadow:0 2px 10px rgba(30,58,95,0.3);">
                 <span id="df-btn-text">Gửi</span>
                 <span id="df-btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite;"></span>
               </button>
@@ -295,10 +295,10 @@ function updateFileName(key, input) {
   const files = Array.from(input.files);
   if (files.length === 1) {
     const f = files[0];
-    label.innerHTML = '📎 <span style="color:#4f46e5;font-weight:600;">' + f.name + '</span><br><span style="font-size:11px;color:#94a3b8;">' + (f.size/1024/1024).toFixed(1) + ' MB</span>';
+    label.innerHTML = '📎 <span style="color:#1e3a5f;font-weight:600;">' + f.name + '</span><br><span style="font-size:11px;color:#94a3b8;">' + (f.size/1024/1024).toFixed(1) + ' MB</span>';
   } else {
     const total = files.reduce((s, f) => s + f.size, 0);
-    label.innerHTML = '📎 <span style="color:#4f46e5;font-weight:600;">' + files.length + ' file</span><br><span style="font-size:11px;color:#94a3b8;">' + files.map(f => f.name).join(', ').slice(0, 60) + (files.map(f=>f.name).join(', ').length > 60 ? '…' : '') + ' · ' + (total/1024/1024).toFixed(1) + ' MB</span>';
+    label.innerHTML = '📎 <span style="color:#1e3a5f;font-weight:600;">' + files.length + ' file</span><br><span style="font-size:11px;color:#94a3b8;">' + files.map(f => f.name).join(', ').slice(0, 60) + (files.map(f=>f.name).join(', ').length > 60 ? '…' : '') + ' · ' + (total/1024/1024).toFixed(1) + ' MB</span>';
   }
   zone?.classList.add('upload-zone-active');
 }

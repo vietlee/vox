@@ -89,6 +89,9 @@ Rails.application.routes.draw do
     resource  :ai_model_configs, only: [:show, :update], path: "ai_models"
   end
 
+  # Public slide view (no login required)
+  get '/deck/:token', to: 'public/slides#show', as: :public_slide
+
   # Authenticated workspace admin/supporter area
   scope module: "admin" do
     get "dashboard", to: "dashboard#index", as: :dashboard
@@ -266,12 +269,18 @@ Rails.application.routes.draw do
 
     # Module 1: Tạo nội dung AI
     resources :content_outlines, only: [:index, :new, :create, :show, :destroy] do
+      collection do
+        post :extract_text
+      end
       member do
         post :regenerate
         post :ai_edit
         get  :status
         patch :update_slides
         patch :change_theme
+        post  :toggle_share
+        post  :revoke_share
+        post  :regenerate_share
       end
     end
 

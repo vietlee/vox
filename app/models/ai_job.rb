@@ -46,7 +46,7 @@ class AiJob < ApplicationRecord
   def refund_credits!
     cost = credits_cost.to_i
     return if cost <= 0
-    sub = workspace.active_subscription
+    sub = workspace.credit_subscription
     return unless sub
     sub.increment!(:credit_balance, cost)
   end
