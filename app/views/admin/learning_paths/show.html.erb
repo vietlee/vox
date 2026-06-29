@@ -166,10 +166,19 @@
                     </div>
                   <% else %>
                     <div>
-                      <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Nội dung bài học</label>
-                      <textarea id="item-content-<%= item.id %>" rows="5"
-                                placeholder="Nhập nội dung bài học: lý thuyết, hướng dẫn, tài liệu đọc... Hỗ trợ Markdown."
+                      <div class="flex items-center justify-between mb-1">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase">Nội dung bài học</label>
+                        <button type="button" onclick="aiGenerateContent(<%= item.id %>)"
+                                id="ai-content-btn-<%= item.id %>"
+                                class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-white rounded-lg border-0 cursor-pointer transition-colors"
+                                style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
+                          ✦ AI viết nội dung · 2 credits
+                        </button>
+                      </div>
+                      <textarea id="item-content-<%= item.id %>" rows="6"
+                                placeholder="Nhập nội dung thủ công, hoặc bấm ✦ AI viết nội dung để AI tự tạo dựa theo tiêu đề bài học."
                                 class="w-full px-3 py-2 border border-slate-200 rounded-xl text-[13px] focus:border-indigo-500 outline-none bg-white resize-y"><%= item.content %></textarea>
+                      <p class="text-[11px] text-slate-400 mt-1">Hỗ trợ Markdown — học viên sẽ đọc nội dung này khi học bài</p>
                     </div>
                   <% end %>
                   <div class="flex gap-2">
@@ -262,6 +271,29 @@ function addItem() {
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
     body: JSON.stringify({ learning_path_item: { title, item_type: type, estimated_minutes: 15 } })
   }).then(() => location.reload());
+}
+function aiGenerateContent(id) {
+  const btn = document.getElementById('ai-content-btn-' + id);
+  const ta  = document.getElementById('item-content-' + id);
+  if (!btn || !ta) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang tạo...';
+  fetch('<%= learning_path_path(@learning_path) %>/learning_path_items/' + id + '/ai_content', {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.content) {
+      ta.value = data.content;
+      btn.textContent = '✦ AI viết lại · 2 credits';
+    } else {
+      alert(data.error || 'Có lỗi xảy ra');
+      btn.textContent = '✦ AI viết nội dung · 2 credits';
+    }
+    btn.disabled = false;
+  })
+  .catch(() => { btn.disabled = false; btn.textContent = '✦ AI viết nội dung · 2 credits'; });
 }
 function toggleItemEdit(id) {
   const panel = document.getElementById('edit-item-' + id);

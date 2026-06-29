@@ -294,6 +294,7 @@ Rails.application.routes.draw do
       end
       resources :learning_path_items, only: [:create, :update, :destroy] do
         collection { patch :reorder }
+        member { post :ai_content }
       end
     end
     resources :learning_path_assignments, only: [:show, :destroy] do
