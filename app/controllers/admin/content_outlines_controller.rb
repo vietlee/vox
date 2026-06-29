@@ -27,6 +27,11 @@ class Admin::ContentOutlinesController < Admin::BaseController
 
   def show
     @share_qr = QrCode.find_by(resource: @outline, workspace: current_workspace)
+    # Auto-create QR if share link exists but QR record was never generated
+    if @outline.share_token.present? && @share_qr.nil?
+      @share_qr = QrCode.create!(resource: @outline, workspace: current_workspace,
+                                  token: SecureRandom.urlsafe_base64(12))
+    end
   end
 
   def status
