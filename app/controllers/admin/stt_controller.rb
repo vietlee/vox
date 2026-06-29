@@ -38,8 +38,8 @@ class Admin::SttController < Admin::BaseController
                                             :summarize, :translate, :history, :save_mic, :destroy_history]
 
   def index
-    @has_stt             = current_workspace&.active_subscription&.has_feature?(:stt)
-    @has_tts             = current_workspace&.active_subscription&.has_feature?(:tts)
+    @has_stt             = current_workspace&.feature_subscription&.has_feature?(:stt)
+    @has_tts             = current_workspace&.feature_subscription&.has_feature?(:tts)
     @remaining_credits   = current_workspace&.credit_subscription&.credit_balance.to_i
     @history_count       = @has_stt ? current_workspace.stt_transcripts.count : 0
   end
@@ -182,7 +182,7 @@ class Admin::SttController < Admin::BaseController
 
       # If we need more than 1 credit, verify balance and deduct the remainder
       if credits > 1
-        sub = current_workspace.active_subscription
+        sub = current_workspace.credit_subscription
         if sub && !sub.enterprise? && sub.credit_balance < credits
           render json: {
             error:               "Không đủ AI credits (cần #{credits} credit cho video này).",
@@ -356,7 +356,7 @@ class Admin::SttController < Admin::BaseController
     credits   = credits_for_duration(0, file_size)
 
     if credits > 1
-      sub = current_workspace.active_subscription
+      sub = current_workspace.credit_subscription
       if sub && !sub.enterprise? && sub.credit_balance < credits
         render json: {
           error:               "Không đủ AI credits (ước tính cần #{credits} credit cho file này).",
@@ -520,7 +520,7 @@ class Admin::SttController < Admin::BaseController
   end
 
   def check_stt_feature
-    unless current_workspace&.active_subscription&.has_feature?(:stt)
+    unless current_workspace&.feature_subscription&.has_feature?(:stt)
       render json: {
         error:            t("stt.upgrade_required"),
         upgrade_required: true

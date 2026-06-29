@@ -2,7 +2,7 @@ class Admin::TtsController < Admin::BaseController
   before_action :check_tts_feature, only: [:voices, :generate]
 
   def index
-    @has_tts = current_workspace&.active_subscription&.has_feature?(:tts)
+    @has_tts = current_workspace&.feature_subscription&.has_feature?(:tts)
   end
 
   def voices
@@ -89,7 +89,7 @@ class Admin::TtsController < Admin::BaseController
 
   def check_tts_feature
     return if params[:source] == "flashcard"
-    unless current_workspace&.active_subscription&.has_feature?(:tts)
+    unless current_workspace&.feature_subscription&.has_feature?(:tts)
       render json: { error: t("tts.upgrade_required"), upgrade_required: true }, status: :payment_required
     end
   end

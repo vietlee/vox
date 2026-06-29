@@ -2,11 +2,13 @@ class Workspace < ApplicationRecord
   include Sluggable
   belongs_to :owner, class_name: "User", optional: true
 
-  # Returns the canonical subscription for credit deductions.
+  # Returns the canonical subscription for credit deductions AND feature checks.
   # All workspaces owned by the same user share the first workspace's credit pool.
+  # Does not filter by ends_at — credits/features remain usable even if the plan period expired.
   def credit_subscription
-    owner&.primary_subscription || active_subscription
+    owner&.primary_subscription || subscriptions.where(status: :active).order(created_at: :desc).first
   end
+  alias_method :feature_subscription, :credit_subscription
   has_many :users, dependent: :destroy
   has_many :workspace_memberships, dependent: :destroy
   has_many :members, through: :workspace_memberships, source: :user
