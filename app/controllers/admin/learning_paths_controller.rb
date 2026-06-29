@@ -24,10 +24,11 @@ class Admin::LearningPathsController < Admin::BaseController
   end
 
   def show
-    @items = @learning_path.learning_path_items.includes(:quiz_set)
+    @items = @learning_path.learning_path_items.includes(:quiz_set).order(:position)
     @assignments = @learning_path.learning_path_assignments.includes(:assignee)
     @my_assignment = @assignments.find_by(assignee: current_user)
     @workspace_members = accessible_workspace_members
+    @quiz_sets = current_workspace.quiz_sets.published.order(:title)
   end
 
   def edit; end
