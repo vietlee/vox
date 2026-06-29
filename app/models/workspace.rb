@@ -2,9 +2,6 @@ class Workspace < ApplicationRecord
   include Sluggable
   belongs_to :owner, class_name: "User", optional: true
 
-  # Returns the canonical subscription for credit deductions AND feature checks.
-  # All workspaces owned by the same user share the first workspace's credit pool.
-  # Does not filter by ends_at — credits/features remain usable even if the plan period expired.
   def credit_subscription
     owner&.primary_subscription || subscriptions.where(status: :active).order(created_at: :desc).first
   end
@@ -48,9 +45,7 @@ class Workspace < ApplicationRecord
   end
 
   def active_subscription
-    subscriptions.active
-                 .where("ends_at IS NULL OR ends_at > ?", Time.current)
-                 .order(created_at: :desc).first
+    subscriptions.active.order(created_at: :desc).first
   end
 
   def plan
