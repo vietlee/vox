@@ -10,7 +10,7 @@ class Admin::LearningPathAssignmentsController < Admin::BaseController
     item = @assignment.learning_path.learning_path_items.find(params[:item_id])
     progress = @assignment.learning_item_progresses.find_or_initialize_by(learning_path_item: item)
     progress.update!(status: params[:status], completed_at: params[:status].to_s == "completed" ? Time.current : nil)
-    render json: { pct: @assignment.progress_pct }
+    pct = @assignment.reload.progress_pct; done = @assignment.learning_item_progresses.completed.count; @assignment.update!(status: :completed) if pct == 100 && @assignment.active? rescue nil; render json: { pct: pct, done_count: done }
   end
 
   def destroy

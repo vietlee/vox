@@ -90,3 +90,4 @@ group :development do
   gem "ed25519",             "~> 1.3",  require: false
   gem "bcrypt_pbkdf",        "~> 1.1",  require: false
 end
+gem "redcarpet"

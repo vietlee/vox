@@ -240,20 +240,47 @@
     <!-- Progress -->
     <% if @assignments.any? %>
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-slate-100">
-          <h3 class="text-[14px] font-bold text-slate-900">📊 Tiến độ (<%= @assignments.size %> người)</h3>
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h3 class="text-[14px] font-bold text-slate-900">📊 Tiến độ học viên</h3>
+          <span class="text-[11px] text-slate-400"><%= @assignments.size %> người</span>
         </div>
         <div class="divide-y divide-slate-100">
           <% @assignments.each do |asgn| %>
-            <div class="px-5 py-3">
-              <div class="flex items-center justify-between text-[12px] mb-1.5">
-                <span class="font-semibold text-slate-700 truncate"><%= asgn.assignee.name rescue "?" %></span>
-                <span class="text-slate-500 shrink-0 ml-2"><%= asgn.progress_pct %>%</span>
+            <% pct = asgn.progress_pct %>
+            <% done = asgn.learning_item_progresses.completed.count %>
+            <% is_completed = asgn.completed? %>
+            <%= link_to learning_path_assignment_path(asgn),
+                class: "block px-5 py-3.5 hover:bg-slate-50 transition-colors" do %>
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
+                  <%= (asgn.assignee.name rescue "?")[0].upcase %>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-semibold text-slate-800 truncate"><%= asgn.assignee.name rescue "?" %></div>
+                  <div class="text-[10px] text-slate-400 truncate"><%= asgn.assignee.email rescue "" %></div>
+                </div>
+                <div class="shrink-0 text-right">
+                  <% if is_completed %>
+                    <span class="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold rounded-full">✓ Xong</span>
+                  <% else %>
+                    <span class="text-[12px] font-bold <%= pct > 0 ? 'text-indigo-600' : 'text-slate-400' %>"><%= pct %>%</span>
+                  <% end %>
+                </div>
               </div>
-              <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div class="h-1.5 bg-indigo-500 rounded-full" style="width:<%= asgn.progress_pct %>%"></div>
+              <div class="flex items-center gap-2">
+                <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-1.5 rounded-full transition-all"
+                       style="width:<%= pct %>%;background:<%= is_completed ? '#10b981' : 'linear-gradient(90deg,#6366f1,#8b5cf6)' %>"></div>
+                </div>
+                <span class="text-[10px] text-slate-400 shrink-0"><%= done %>/<%= @items.size %> bài</span>
               </div>
-            </div>
+              <% if asgn.due_date %>
+                <% overdue = asgn.due_date < Date.current && !is_completed %>
+                <div class="mt-1 text-[10px] <%= overdue ? 'text-red-500 font-semibold' : 'text-slate-400' %>">
+                  <%= overdue ? "⚠ Quá hạn: " : "Hạn: " %><%= asgn.due_date.strftime("%d/%m/%Y") %>
+                </div>
+              <% end %>
+            <% end %>
           <% end %>
         </div>
       </div>

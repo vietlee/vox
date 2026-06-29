@@ -1,4 +1,20 @@
 module ApplicationHelper
+  MARKDOWN_RENDERER = Redcarpet::Render::HTML.new(
+    hard_wrap: true, filter_html: false, no_images: false, no_links: false,
+    safe_links_only: true, with_toc_data: false, prettify: false
+  )
+  MARKDOWN = Redcarpet::Markdown.new(
+    MARKDOWN_RENDERER,
+    autolink: true, tables: true, fenced_code_blocks: true,
+    strikethrough: true, superscript: true, underline: false
+  )
+
+  def render_markdown(text)
+    return "" if text.blank?
+    raw sanitize(MARKDOWN.render(text),
+      tags: %w[h1 h2 h3 h4 p br ul ol li strong em code pre blockquote table thead tbody tr th td a hr b i s],
+      attributes: %w[href class])
+  end
 
   def short_url_for(full_url, workspace: nil)
     sl = ShortLink.for_url(full_url, workspace: workspace)
