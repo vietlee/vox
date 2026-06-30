@@ -42,7 +42,121 @@
     <%= link_to "← Thử lại", new_document_summary_path, class: "px-5 py-2.5 bg-red-600 text-white text-[13px] font-bold rounded-xl" %>
   </div>
 <% else %>
+  <!-- ── Shortcut actions ──────────────────────────────────────────────── -->
+  <% doc_title = @summary.title.presence || @summary.source_filename.presence || "Tài liệu" %>
+  <% doc_text  = @summary.summary.to_s %>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 mb-5">
+    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Làm gì tiếp theo với tài liệu này?</div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+
+      <!-- AI Tutor -->
+      <%= link_to ai_tutor_page_path(context_type: "document_summary", context_id: @summary.id),
+          class: "group flex flex-col items-center gap-2 bg-slate-50 hover:bg-violet-50 border border-slate-200 hover:border-violet-300 rounded-xl px-3 py-4 text-center transition-all" do %>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:#ede9fe">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="w-6 h-6">
+            <g fill="none" stroke="#7c3aed" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="60" y="6" width="80" height="40" rx="10"/>
+              <line x1="100" y1="46" x2="100" y2="54"/>
+              <path d="M50,54 L150,54 A26,26 0 0 1 176,80 L176,130 A26,26 0 0 1 150,156 L92,156 L70,188 L64,156 L50,156 A26,26 0 0 1 24,130 L24,80 A26,26 0 0 1 50,54 Z"/>
+              <path d="M78,128 Q100,148 122,128"/>
+            </g>
+            <path d="M86,12 Q86,24 98,24 Q86,24 86,36 Q86,24 74,24 Q86,24 86,12 Z" fill="#7c3aed"/>
+            <path d="M108,23 Q108,30 115,30 Q108,30 108,37 Q108,30 101,30 Q108,30 108,23 Z" fill="#7c3aed"/>
+            <circle cx="76" cy="88" r="13" fill="#7c3aed"/>
+            <circle cx="124" cy="88" r="13" fill="#7c3aed"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-[12px] font-bold text-slate-800 group-hover:text-violet-700">AI Tutor</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Hỏi đáp về tài liệu</div>
+        </div>
+      <% end %>
+
+      <!-- Flashcard (POST form → auto AI generate) -->
+      <%= form_tag flashcard_decks_path, method: :post,
+          class: "group flex flex-col items-center gap-2 bg-slate-50 hover:bg-[#1e3a5f] border border-slate-200 hover:border-[#1e3a5f] rounded-xl px-3 py-4 text-center transition-all cursor-pointer",
+          style: "appearance:none" do %>
+        <%= hidden_field_tag "flashcard_deck[title]", doc_title %>
+        <%= hidden_field_tag "flashcard_deck[subject]", lp_subject = @summary.respond_to?(:subject) ? @summary.subject.to_s : "" %>
+        <%= hidden_field_tag "source_text", doc_text.truncate(8000) %>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:#e0e7ff">🃏</div>
+        <div>
+          <div class="text-[12px] font-bold text-slate-800 group-hover:text-indigo-700">Tạo Flashcard</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">AI sinh thẻ từ tài liệu · 3 credits</div>
+        </div>
+      <% end %>
+
+      <!-- Quiz (POST form → auto AI generate) -->
+      <%= form_tag quiz_sets_path, method: :post,
+          class: "group flex flex-col items-center gap-2 bg-slate-50 hover:bg-[#1e3a5f] border border-slate-200 hover:border-[#1e3a5f] rounded-xl px-3 py-4 text-center transition-all cursor-pointer",
+          style: "appearance:none" do %>
+        <%= hidden_field_tag "quiz_set[title]", doc_title %>
+        <%= hidden_field_tag "source_text", doc_text.truncate(12000) %>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:#fef9c3">📝</div>
+        <div>
+          <div class="text-[12px] font-bold text-slate-800 group-hover:text-amber-700">Tạo Quiz</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">AI sinh câu hỏi từ tài liệu · 5 credits</div>
+        </div>
+      <% end %>
+
+      <!-- Slide AI -->
+      <%= link_to new_content_outline_path(title: doc_title, source_document_text: doc_text.truncate(4000)),
+          class: "group flex flex-col items-center gap-2 bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-xl px-3 py-4 text-center transition-all" do %>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:#e0f2fe">🖥️</div>
+        <div>
+          <div class="text-[12px] font-bold text-slate-800 group-hover:text-sky-700">Tạo Slide AI</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Trình bày bài giảng</div>
+        </div>
+      <% end %>
+
+      <!-- TTS -->
+      <%= link_to tts_path(text: doc_text.truncate(4500)),
+          class: "group flex flex-col items-center gap-2 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl px-3 py-4 text-center transition-all" do %>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:#d1fae5">🎙️</div>
+        <div>
+          <div class="text-[12px] font-bold text-slate-800 group-hover:text-emerald-700">Đọc thành giọng</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Text-to-speech</div>
+        </div>
+      <% end %>
+
+    </div>
+  </div>
+
   <div class="space-y-4">
+    <!-- Source content -->
+    <% type_label = { "pdf"=>"PDF","docx"=>"Word","doc"=>"Word","txt"=>"Text","csv"=>"CSV","xlsx"=>"Excel","xls"=>"Excel","pptx"=>"PowerPoint","image"=>"Ảnh","text"=>"Văn bản nhập" }[@summary.source_type] || @summary.source_type %>
+    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nguồn tài liệu · <%= type_label %></span>
+      </div>
+      <% if @summary.source_file.attached? %>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-[18px] shrink-0">
+            <%= { "pdf"=>"📕","docx"=>"📘","doc"=>"📘","txt"=>"📄","csv"=>"📊","xlsx"=>"📊","xls"=>"📊","pptx"=>"📑","image"=>"🖼️" }[@summary.source_type] || "📎" %>
+          </div>
+          <div class="min-w-0">
+            <div class="text-[13px] font-semibold text-slate-800 truncate"><%= @summary.source_filename %></div>
+            <div class="text-[11px] text-slate-400"><%= number_to_human_size(@summary.source_file.blob.byte_size) %></div>
+          </div>
+          <%= link_to rails_blob_path(@summary.source_file, disposition: "attachment"),
+              class: "ml-auto shrink-0 px-3 py-1.5 text-[12px] font-semibold text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 hover:border-indigo-400 rounded-lg transition-colors",
+              target: "_blank" do %>
+            ↓ Tải về
+          <% end %>
+        </div>
+      <% elsif @summary.source_text.present? %>
+        <div id="src-text-wrap" class="relative">
+          <div id="src-text-inner" class="text-[13px] text-slate-600 leading-relaxed whitespace-pre-wrap line-clamp-4 overflow-hidden" style="max-height:5.5rem"><%= @summary.source_text %></div>
+          <% if @summary.source_text.length > 300 %>
+            <button onclick="document.getElementById('src-text-inner').style.maxHeight='none';document.getElementById('src-text-inner').classList.remove('line-clamp-4');this.style.display='none'"
+                    class="mt-1 text-[12px] text-indigo-500 hover:text-indigo-700 font-semibold bg-transparent border-0 cursor-pointer px-0">
+              Xem thêm ↓
+            </button>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
     <!-- Summary -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
       <div class="flex items-center gap-2 mb-3">

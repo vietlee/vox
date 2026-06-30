@@ -66,11 +66,10 @@
   <div class="flex items-start justify-between">
     <div class="flex items-start gap-3">
       <%= render "admin/shared/back_btn" %>
+      <div class="w-11 h-11 rounded-xl flex items-center justify-center text-[28px] bg-slate-100 shrink-0">🎤</div>
       <div>
-        <h1 class="text-[21px] font-extrabold text-slate-900 flex items-center gap-2">
-          🎤 <%= t("stt.title") %>
-        </h1>
-        <p class="text-[13px] text-slate-500 mt-0.5">
+        <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight"><%= t("stt.title") %></h1>
+        <p class="text-[13px] font-medium text-slate-600 mt-0.5">
           <%= t("stt.page_subtitle") %> ·
           <span class="text-indigo-500 font-semibold"><%= t("stt.credit_rate") %></span>
         </p>
@@ -284,7 +283,7 @@
               <span><%= t("stt.copy_btn") %></span>
             </button>
             <button onclick="downloadText('file-transcript-text','transcript')"
-              class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
+              class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-600 rounded-lg border-0 cursor-pointer">
               ⬇ <%= t("stt.download_btn") %>
             </button>
           </div>
@@ -332,11 +331,11 @@
           </div>
           <div class="flex gap-2 flex-wrap">
             <button onclick="openAiModal('summarize', getPlainText('file-transcript-text'))"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg cursor-pointer transition-colors">
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-violet-50 hover:bg-[#1e3a5f] hover:text-white text-violet-700 border border-violet-200 rounded-lg cursor-pointer transition-colors">
               <%= t("stt.ai_summarize") %>
             </button>
             <button onclick="openAiModal('translate', getPlainText('file-transcript-text'))"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg cursor-pointer transition-colors">
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-blue-50 hover:bg-[#1e3a5f] hover:text-white text-blue-700 border border-blue-200 rounded-lg cursor-pointer transition-colors">
               <%= t("stt.ai_translate") %>
             </button>
           </div>
@@ -414,7 +413,7 @@
         </div>
         <div class="flex gap-2">
           <button onclick="clearMicTranscript()"
-            class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
+            class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-600 rounded-lg border-0 cursor-pointer">
             🗑 <%= t("stt.clear_btn") %>
           </button>
           <button onclick="copyText('mic-transcript-text', this)" class="vox-copy-btn">
@@ -422,7 +421,7 @@
             <span><%= t("stt.copy_btn") %></span>
           </button>
           <button onclick="downloadText('mic-transcript-text','transcript-mic')"
-            class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border-0 cursor-pointer">
+            class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-600 rounded-lg border-0 cursor-pointer">
             ⬇ <%= t("stt.download_btn") %>
           </button>
         </div>
@@ -455,7 +454,7 @@
       <!-- Load more -->
       <div id="hist-load-more-wrap" class="hidden border-t border-slate-100 px-5 py-3 text-center">
         <button id="hist-load-more-btn" onclick="loadMoreHistory()"
-          class="inline-flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border-0 cursor-pointer transition-colors">
+          class="inline-flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-indigo-600 hover:text-white bg-indigo-50 hover:bg-[#1e3a5f] rounded-lg border-0 cursor-pointer transition-colors">
           <span id="hist-load-more-lbl"><%= t("stt.history_load_more") %></span>
           <svg id="hist-load-more-spin" class="hidden w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -1518,7 +1517,7 @@ function renderHistory(items, total, hasMore) {
 
   container.innerHTML = items.map(item => `
     <div id="hist-${item.id}" class="group">
-      <div class="px-5 py-3.5 hover:bg-slate-50 transition-colors">
+      <div class="px-5 py-3.5 hover:bg-[#1e3a5f] hover:text-white transition-colors">
         <div class="flex items-start gap-3">
           <span class="text-xl flex-shrink-0 mt-0.5">${histSourceIcon(item.source)}</span>
           <div class="flex-1 min-w-0">
@@ -1583,11 +1582,11 @@ function renderHistory(items, total, hasMore) {
             </div>
             <div class="flex gap-2 flex-wrap">
               <button onclick="openAiModal('summarize', getHistText(${item.id}))"
-                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg cursor-pointer transition-colors">
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-violet-50 hover:bg-[#1e3a5f] hover:text-white text-violet-700 border border-violet-200 rounded-lg cursor-pointer transition-colors">
                 ${I18N.hist_ai_sum}
               </button>
               <button onclick="openAiModal('translate', getHistText(${item.id}))"
-                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg cursor-pointer transition-colors">
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-blue-50 hover:bg-[#1e3a5f] hover:text-white text-blue-700 border border-blue-200 rounded-lg cursor-pointer transition-colors">
                 ${I18N.hist_ai_tr}
               </button>
             </div>
@@ -1606,7 +1605,7 @@ function appendHistory(items, total, hasMore) {
   const frag = document.createRange().createContextualFragment(
     items.map(item => `
     <div id="hist-${item.id}" class="group">
-      <div class="px-5 py-3.5 hover:bg-slate-50 transition-colors">
+      <div class="px-5 py-3.5 hover:bg-[#1e3a5f] hover:text-white transition-colors">
         <div class="flex items-start gap-3">
           <span class="text-xl flex-shrink-0 mt-0.5">${histSourceIcon(item.source)}</span>
           <div class="flex-1 min-w-0">
@@ -1668,11 +1667,11 @@ function appendHistory(items, total, hasMore) {
             </div>
             <div class="flex gap-2 flex-wrap">
               <button onclick="openAiModal('summarize', getHistText(${item.id}))"
-                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg cursor-pointer transition-colors">
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-violet-50 hover:bg-[#1e3a5f] hover:text-white text-violet-700 border border-violet-200 rounded-lg cursor-pointer transition-colors">
                 ${I18N.hist_ai_sum}
               </button>
               <button onclick="openAiModal('translate', getHistText(${item.id}))"
-                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg cursor-pointer transition-colors">
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-blue-50 hover:bg-[#1e3a5f] hover:text-white text-blue-700 border border-blue-200 rounded-lg cursor-pointer transition-colors">
                 ${I18N.hist_ai_tr}
               </button>
             </div>

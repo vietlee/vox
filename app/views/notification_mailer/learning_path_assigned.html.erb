@@ -1,0 +1,106 @@
+<p style="margin:0 0 6px;font-size:22px;font-weight:800;color:#0f172a;">
+  📚 Bạn được giao lộ trình học tập
+</p>
+<p style="margin:0 0 24px;font-size:15px;color:#64748b;">
+  Xin chào <strong style="color:#0f172a;"><%= @user.name.presence || @user.email %></strong>,
+  bạn vừa được giao lộ trình <strong style="color:#6C5CE7;"><%= @learning_path.title %></strong>.
+</p>
+
+<!-- Learning path info -->
+<table cellpadding="0" cellspacing="0" width="100%"
+       style="background:#f8faff;border:1.5px solid #e0e7ff;border-radius:12px;margin-bottom:24px;">
+  <tr>
+    <td style="padding:20px 24px;">
+      <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#0f172a;">
+        <%= @learning_path.title %>
+      </p>
+      <% if @learning_path.description.present? %>
+        <p style="margin:0 0 8px;font-size:13px;color:#64748b;"><%= @learning_path.description %></p>
+      <% end %>
+      <% if @assignment.due_date.present? %>
+        <p style="margin:0;font-size:12px;color:#dc2626;font-weight:600;">
+          ⏰ Hạn hoàn thành: <%= @assignment.due_date.strftime('%d/%m/%Y') %>
+        </p>
+      <% end %>
+    </td>
+  </tr>
+</table>
+
+<% if @new_account && @plain_password.present? %>
+<!-- New account credentials -->
+<table cellpadding="0" cellspacing="0" width="100%"
+       style="background:#fefce8;border:1.5px solid #fde047;border-radius:12px;margin-bottom:24px;">
+  <tr>
+    <td style="padding:20px 24px;">
+      <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#713f12;">🔑 Tài khoản VOX của bạn đã được tạo</p>
+      <table cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding:3px 0;font-size:13px;color:#64748b;width:80px;">Email:</td>
+          <td style="padding:3px 0;font-size:13px;font-weight:600;color:#0f172a;"><%= @user.email %></td>
+        </tr>
+        <tr>
+          <td style="padding:3px 0;font-size:13px;color:#64748b;">Mật khẩu:</td>
+          <td style="padding:3px 0;font-size:13px;font-weight:600;color:#0f172a;font-family:monospace;letter-spacing:1px;"><%= @plain_password %></td>
+        </tr>
+      </table>
+      <p style="margin:10px 0 0;font-size:11px;color:#92400e;">Vui lòng đổi mật khẩu sau khi đăng nhập lần đầu.</p>
+    </td>
+  </tr>
+</table>
+<% end %>
+
+<!-- CTA -->
+<table cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+  <tr>
+    <td style="background:#6C5CE7;border-radius:8px;">
+      <a href="<%= @view_url %>"
+         style="display:inline-block;padding:12px 28px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">
+        Bắt đầu học →
+      </a>
+    </td>
+  </tr>
+</table>
+
+<!-- Hướng dẫn truy cập -->
+<table cellpadding="0" cellspacing="0" width="100%"
+       style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:24px;">
+  <tr>
+    <td style="padding:16px 20px;">
+      <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#0f172a;">📖 Cách xem lộ trình của bạn</p>
+      <table cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="padding:4px 0;vertical-align:top;">
+            <span style="display:inline-block;width:20px;height:20px;background:#6C5CE7;border-radius:50%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:#fff;">1</span>
+          </td>
+          <td style="padding:4px 0 4px 8px;font-size:13px;color:#475569;">
+            <% if @new_account %>
+              <a href="<%= @login_url %>" style="color:#6C5CE7;font-weight:600;">Đăng nhập vào VOX</a> bằng email và mật khẩu ở trên
+            <% else %>
+              Đăng nhập vào <a href="<%= @login_url %>" style="color:#6C5CE7;font-weight:600;">VOX</a>
+            <% end %>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:4px 0;vertical-align:top;">
+            <span style="display:inline-block;width:20px;height:20px;background:#6C5CE7;border-radius:50%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:#fff;">2</span>
+          </td>
+          <td style="padding:4px 0 4px 8px;font-size:13px;color:#475569;">
+            Trên thanh menu trái, chọn <strong style="color:#0f172a;">Lộ trình học tập</strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:4px 0;vertical-align:top;">
+            <span style="display:inline-block;width:20px;height:20px;background:#6C5CE7;border-radius:50%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:#fff;">3</span>
+          </td>
+          <td style="padding:4px 0 4px 8px;font-size:13px;color:#475569;">
+            Lộ trình được giao sẽ hiển thị ngay đầu trang trong mục <strong style="color:#0f172a;">"Được giao cho tôi"</strong>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0;font-size:12px;color:#94a3b8;">
+  Bạn nhận được email này vì được giao lộ trình học tập trên VOX.
+</p>

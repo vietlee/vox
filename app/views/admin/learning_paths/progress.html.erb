@@ -1,0 +1,213 @@
+<% content_for :title, "Tiến độ học viên – #{@learning_path.title}" %>
+
+<!-- Header -->
+<div class="flex items-center gap-3 mb-6">
+  <%= render "admin/shared/back_btn" %>
+  <div class="w-11 h-11 rounded-xl flex items-center justify-center text-[28px] bg-slate-100 shrink-0">📊</div>
+  <div class="flex-1 min-w-0">
+    <h1 class="text-[19px] font-extrabold text-slate-900">Tiến độ học viên</h1>
+    <p class="text-[13px] font-medium text-slate-500 mt-0.5 truncate"><%= @learning_path.title %></p>
+  </div>
+  <div class="flex items-center gap-2">
+    <%
+      total_assignees  = @assignments.count
+      not_done_count   = @assignments.count { |a| a.progress_pct < 100 }
+      all_done         = total_assignees > 0 && not_done_count == 0
+    %>
+    <% if all_done %>
+      <button id="lp-ai-eval-btn" onclick="lpAiEvaluate()"
+              class="flex items-center gap-1.5 px-3 py-2 text-[13px] font-bold text-white rounded-xl border-0 cursor-pointer transition-colors"
+              style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        ✦ Phân tích AI toàn lớp · 3 credits
+      </button>
+    <% else %>
+      <div title="Còn <%= not_done_count %> học viên chưa hoàn thành"
+           class="flex items-center gap-1.5 px-3 py-2 text-[13px] font-bold text-white rounded-xl opacity-40 cursor-not-allowed select-none"
+           style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        Phân tích AI · còn <%= not_done_count %> chưa xong
+      </div>
+    <% end %>
+    <%= link_to learning_path_path(@learning_path),
+        class: "flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-[#1e3a5f] hover:text-white text-slate-700 text-[13px] font-semibold rounded-xl border border-slate-300 transition-colors" do %>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Xem lộ trình
+    <% end %>
+  </div>
+</div>
+
+<% if @assignments.empty? %>
+  <div class="text-center py-20 text-slate-400">
+    <div class="text-5xl mb-3">👥</div>
+    <p class="font-semibold text-slate-500 text-[15px]">Chưa có học viên nào được giao lộ trình này</p>
+    <%= link_to "Giao ngay →", learning_path_path(@learning_path),
+        class: "mt-3 inline-block text-[13px] text-indigo-600 hover:underline font-semibold" %>
+  </div>
+<% else %>
+  <%
+    total       = @assignments.count
+    completed   = @assignments.select { |a| a.completed? || a.progress_pct == 100 }.count
+    in_progress = @assignments.select { |a| a.progress_pct > 0 && a.progress_pct < 100 }.count
+    not_started = @assignments.select { |a| a.progress_pct == 0 }.count
+    avg_pct     = total > 0 ? (@assignments.sum(&:progress_pct) / total.to_f).round : 0
+  %>
+
+  <!-- Summary cards -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+    <div class="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
+      <div class="text-[26px] font-extrabold text-slate-900"><%= total %></div>
+      <div class="text-[12px] text-slate-500 mt-0.5">Tổng học viên</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
+      <div class="text-[26px] font-extrabold text-emerald-600"><%= completed %></div>
+      <div class="text-[12px] text-slate-500 mt-0.5">Hoàn thành</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
+      <div class="text-[26px] font-extrabold text-indigo-600"><%= in_progress %></div>
+      <div class="text-[12px] text-slate-500 mt-0.5">Đang học</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
+      <div class="text-[26px] font-extrabold text-slate-400"><%= not_started %></div>
+      <div class="text-[12px] text-slate-500 mt-0.5">Chưa bắt đầu</div>
+    </div>
+  </div>
+
+  <!-- Average progress bar -->
+  <div class="bg-white border border-slate-200 rounded-xl p-4 mb-5 shadow-sm">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-[13px] font-semibold text-slate-700">Tiến độ trung bình</span>
+      <span class="text-[13px] font-bold text-indigo-600"><%= avg_pct %>%</span>
+    </div>
+    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+      <div class="h-2 rounded-full bg-indigo-500 transition-all" style="width:<%= avg_pct %>%"></div>
+    </div>
+  </div>
+
+  <!-- Assignment list -->
+  <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+    <table class="w-full">
+      <thead>
+        <tr class="border-b border-slate-100 bg-slate-50">
+          <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide">Học viên</th>
+          <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide">Tiến độ</th>
+          <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide">Trạng thái</th>
+          <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide">Hạn</th>
+          <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide">Ngày giao</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        <% @assignments.each do |asgn| %>
+          <% pct        = asgn.progress_pct
+             done_count = asgn.learning_item_progresses.select(&:completed?).count
+             total_items = @items.count
+             overdue    = asgn.due_date && asgn.due_date < Date.today && !asgn.completed?
+          %>
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-[13px] font-bold text-indigo-600 shrink-0">
+                  <%= asgn.assignee.name.presence&.first&.upcase || asgn.assignee.email.first.upcase %>
+                </div>
+                <div>
+                  <div class="text-[13px] font-semibold text-slate-800"><%= asgn.assignee.name.presence || asgn.assignee.email %></div>
+                  <div class="text-[11px] text-slate-400"><%= asgn.assignee.email %></div>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2 min-w-[140px]">
+                <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-1.5 rounded-full transition-all <%= pct == 100 ? 'bg-emerald-500' : 'bg-indigo-500' %>"
+                       style="width:<%= pct %>%"></div>
+                </div>
+                <span class="text-[12px] font-semibold text-slate-600 w-9 text-right"><%= pct %>%</span>
+              </div>
+              <div class="text-[11px] text-slate-400 mt-0.5"><%= done_count %>/<%= total_items %> bài</div>
+            </td>
+            <td class="px-4 py-3">
+              <% badge_class, badge_text = case
+                 when asgn.completed? || pct == 100 then ["bg-emerald-50 text-emerald-700 border border-emerald-200", "Hoàn thành"]
+                 when pct > 0                       then ["bg-indigo-50 text-indigo-700 border border-indigo-200",   "Đang học"]
+                 else                                    ["bg-slate-100 text-slate-500 border border-slate-200",     "Chưa bắt đầu"]
+                 end %>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold <%= badge_class %>">
+                <%= badge_text %>
+              </span>
+            </td>
+            <td class="px-4 py-3 text-[12px] <%= overdue ? 'text-red-500 font-semibold' : 'text-slate-500' %>">
+              <% if asgn.due_date %>
+                <%= asgn.due_date.strftime("%d/%m/%Y") %>
+                <% if overdue %><span class="block text-[10px]">Quá hạn</span><% end %>
+              <% else %>
+                <span class="text-slate-300">—</span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 text-[12px] text-slate-400">
+              <%= asgn.created_at.strftime("%d/%m/%Y") %>
+            </td>
+            <td class="px-4 py-3 text-right">
+              <%= link_to learning_path_assignment_path(asgn),
+                  class: "inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-600 text-[12px] font-semibold rounded-lg transition-colors" do %>
+                Chi tiết
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- AI evaluation result panel -->
+  <div id="lp-ai-result" class="hidden mt-5 bg-white border border-violet-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="flex items-center gap-3 px-5 py-4 border-b border-violet-100" style="background:linear-gradient(135deg,#f5f3ff,#eef2ff)">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center text-[18px]" style="background:#ede9fe">✦</div>
+      <div>
+        <div class="text-[14px] font-extrabold text-violet-900">Phân tích AI toàn lớp</div>
+        <div id="lp-ai-eval-time" class="text-[11px] text-violet-500 mt-0.5"></div>
+      </div>
+    </div>
+    <div id="lp-ai-result-body" class="px-5 py-4 ai-md"></div>
+  </div>
+<% end %>
+
+<script>
+function lpAiEvaluate() {
+  var btn = document.getElementById('lp-ai-eval-btn');
+  var result = document.getElementById('lp-ai-result');
+  var body = document.getElementById('lp-ai-result-body');
+  var timeEl = document.getElementById('lp-ai-eval-time');
+
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Đang phân tích...';
+
+  result.classList.remove('hidden');
+  body.innerHTML = '<div class="flex items-center gap-2 py-6 text-slate-400 text-[13px]"><svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> AI đang phân tích kết quả toàn lớp...</div>';
+
+  fetch('<%= ai_evaluate_progress_learning_path_path(@learning_path) %>', {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) {
+      body.innerHTML = '<p class="text-red-500 text-[13px] py-4">' + data.error + '</p>';
+      btn.disabled = false;
+      btn.innerHTML = '✦ Phân tích AI toàn lớp · 3 credits';
+    } else {
+      body.innerHTML = data.html;
+      timeEl.textContent = 'Đã phân tích lúc ' + new Date().toLocaleTimeString('vi-VN');
+      btn.innerHTML = '✦ Phân tích lại · 3 credits';
+      btn.disabled = false;
+      result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  })
+  .catch(() => {
+    body.innerHTML = '<p class="text-red-500 text-[13px] py-4">Lỗi kết nối. Vui lòng thử lại.</p>';
+    btn.disabled = false;
+    btn.innerHTML = '✦ Phân tích AI toàn lớp · 3 credits';
+  });
+}
+</script>

@@ -24,7 +24,8 @@
   </div>
   <div class="flex gap-2">
     <% if @vote.draft? %>
-      <button onclick="openVoteFromShow()" class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors cursor-pointer">
+      <button onclick="openVoteFromShow()" class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-semibold rounded-lg transition-colors cursor-pointer border-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <%= t("votes.show.open_vote") %>
       </button>
       <script>
@@ -52,19 +53,23 @@
       }
       </script>
     <% elsif @vote.active? %>
-      <%= button_to close_vote_path(@vote), method: :patch, class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors" do %>
+      <%= button_to close_vote_path(@vote), method: :patch, class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700 text-[13px] font-semibold rounded-lg transition-colors" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10h6v4H9z"/></svg>
         <%= t("votes.show.close_vote") %>
       <% end %>
-      <%= link_to present_vote_path(@vote), target: "_blank", class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors" do %>
+      <%= link_to present_vote_path(@vote), target: "_blank", class: "inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-semibold rounded-lg transition-colors" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
         <%= t("votes.show.present") %>
       <% end %>
     <% end %>
     <% if @vote.closed? %>
-      <%= link_to results_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 text-[13px] font-semibold rounded-lg transition-colors" do %>
+      <%= link_to results_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700 text-[13px] font-semibold rounded-lg transition-colors" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
         <%= t("votes.show.view_results") %>
       <% end %>
     <% end %>
-    <%= link_to edit_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-[13px] font-semibold rounded-lg transition-colors" do %>
+    <%= link_to edit_vote_path(@vote), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-slate-700 text-[13px] font-semibold rounded-lg transition-colors" do %>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
       <%= t("votes.show.edit") %>
     <% end %>
   </div>
@@ -174,7 +179,7 @@
         </thead>
         <tbody>
           <% @responses.each do |r| %>
-            <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <tr class="border-b border-slate-100 hover:bg-[#1e3a5f] hover:text-white">
               <td class="px-4 py-3 font-medium text-slate-800">
                 <% if r.respondent_email.present? %>
                   <%= r.respondent_email %>

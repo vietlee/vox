@@ -18,6 +18,8 @@ class Admin::DocumentSummariesController < Admin::BaseController
     )
 
     if params[:source_file].present?
+      ext = File.extname(params[:source_file].original_filename.to_s).delete(".").downcase
+      @summary.source_type  = ext.in?(%w[pdf docx doc txt csv xlsx xls pptx]) ? ext : (params[:source_file].content_type.to_s.start_with?("image/") ? "image" : ext)
       @summary.source_file.attach(params[:source_file])
       @summary.source_filename = params[:source_file].original_filename
     elsif params[:source_text].present?
@@ -43,7 +45,13 @@ class Admin::DocumentSummariesController < Admin::BaseController
 
   def ai_status
     if @summary.pending?
-      render json: { pending: true }
+      # Auto-fail after 10 minutes to prevent infinite polling
+      if @summary.created_at < 10.minutes.ago
+        @summary.update_columns(status: 2)
+        render json: { failed: true, error: "Xử lý quá thời gian. Vui lòng thử lại." }
+      else
+        render json: { pending: true }
+      end
     elsif @summary.failed?
       render json: { failed: true, error: "AI gặp lỗi khi tóm tắt. Vui lòng thử lại." }
     else

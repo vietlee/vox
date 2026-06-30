@@ -33,11 +33,12 @@
       <%= render "admin/shared/back_btn" %>
       <div>
         <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">👥 <%= t("members.title") %></h1>
-        <p class="text-[12px] text-slate-500 mt-0.5"><%= t("members.subtitle") %></p>
+        <p class="text-[13px] font-medium text-slate-600 mt-0.5"><%= t("members.subtitle") %></p>
       </div>
     </div>
-    <%= link_to new_member_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors" do %>
-      + <%= t("members.invite") %>
+    <%= link_to new_member_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors" do %>
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+      <%= t("members.invite") %>
     <% end %>
   </div>
 </div>
@@ -97,18 +98,25 @@
                 </td>
                 <td class="px-4 py-3 text-[12px] text-slate-500"><%= I18n.l(membership.created_at.to_date) %></td>
                 <td class="px-4 py-3">
-                  <div class="flex gap-1.5 justify-end flex-wrap">
+                  <div class="flex gap-1 justify-end flex-wrap">
                     <%= button_to reset_password_member_path(member), method: :post,
                           data: { confirm: t("members.reset_password_confirm", email: member.email) },
-                          class: "px-2.5 py-1 text-[11px] bg-amber-50 rounded-md text-amber-700 hover:bg-amber-100 font-medium border-0 cursor-pointer" do %>
-                      🔑 <%= t("members.reset_password") %>
+                          class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 border border-amber-100 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-amber-700 text-[12px] font-semibold rounded-lg transition-colors cursor-pointer" do %>
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                      <%= t("members.reset_password") %>
                     <% end %>
                     <%= button_to toggle_status_member_path(member), method: :patch,
-                          class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 font-medium border-0 cursor-pointer" do %>
+                          class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-slate-600 text-[12px] font-semibold rounded-lg transition-colors cursor-pointer" do %>
+                      <% if membership.active? %>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                      <% else %>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      <% end %>
                       <%= membership.active? ? t("members.disable") : t("members.enable") %>
                     <% end %>
                     <button type="button" onclick="openDeleteModal('<%= member_path(member) %>', '<%= j member.name %>')"
-                            class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 font-medium border-0 cursor-pointer">
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-red-100 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-red-400 hover:text-white text-[12px] font-semibold rounded-lg transition-colors cursor-pointer">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       <%= t("members.remove") %>
                     </button>
                   </div>
@@ -127,7 +135,7 @@
           <div class="text-4xl mb-3">👥</div>
           <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("members.empty") %></h3>
           <%= link_to t("members.invite"), new_member_path,
-                class: "mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors" %>
+                class: "mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" %>
         </div>
       <% end %>
     </div>

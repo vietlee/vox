@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_29_142933) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_30_024036) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -383,6 +383,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_29_142933) do
     t.integer "status", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "ai_feedback"
+    t.datetime "ai_feedback_at"
     t.index ["assigned_by_id"], name: "index_learning_path_assignments_on_assigned_by_id"
     t.index ["assignee_id"], name: "index_learning_path_assignments_on_assignee_id"
     t.index ["learning_path_id", "assignee_id"], name: "idx_on_learning_path_id_assignee_id_44b44d6f23", unique: true

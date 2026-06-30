@@ -1,20 +1,10 @@
 module ApplicationHelper
-  MARKDOWN_RENDERER = Redcarpet::Render::HTML.new(
-    hard_wrap: true, filter_html: false, no_images: false, no_links: false,
-    safe_links_only: true, with_toc_data: false, prettify: false
-  )
-  MARKDOWN = Redcarpet::Markdown.new(
-    MARKDOWN_RENDERER,
-    autolink: true, tables: true, fenced_code_blocks: true,
-    strikethrough: true, superscript: true, underline: false
-  )
-
   ALLOWED_CONTENT_TAGS  = %w[h1 h2 h3 h4 p br ul ol li strong em code pre blockquote table thead tbody tr th td a hr b i s u].freeze
   ALLOWED_CONTENT_ATTRS = %w[href class].freeze
 
   def render_markdown(text)
     return "" if text.blank?
-    raw sanitize(MARKDOWN.render(text), tags: ALLOWED_CONTENT_TAGS, attributes: ALLOWED_CONTENT_ATTRS)
+    raw sanitize(MarkdownRenderer.render(text), tags: ALLOWED_CONTENT_TAGS, attributes: ALLOWED_CONTENT_ATTRS)
   end
 
   # Renders content stored as either Quill HTML or legacy Markdown

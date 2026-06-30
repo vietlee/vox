@@ -2,7 +2,10 @@ class Admin::LearningPathItemsController < Admin::BaseController
   before_action :set_path
 
   def create
-    item = @path.learning_path_items.create!(item_params.merge(position: @path.learning_path_items.count))
+    next_pos = (@path.learning_path_items.maximum(:position) || -1) + 1
+    item = @path.learning_path_items.create!(item_params.merge(position: next_pos))
+    # Adding a new item invalidates "completed" assignments — reset them to active
+    @path.learning_path_assignments.completed.update_all(status: 0)
     render json: { id: item.id, title: item.title, item_type: item.item_type }
   end
 
@@ -10,6 +13,8 @@ class Admin::LearningPathItemsController < Admin::BaseController
     item = @path.learning_path_items.find(params[:id])
     item.update!(item_params)
     render json: { ok: true }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def destroy
@@ -44,8 +49,53 @@ class Admin::LearningPathItemsController < Admin::BaseController
     svc = ClaudeService.new(model: ClaudeService::HAIKU_MODEL)
     content = svc.call(system_prompt: "Bạn là chuyên gia viết tài liệu học tập. Viết nội dung súc tích, tự nhiên, đúng trọng tâm.", user_prompt: prompt, max_tokens: 1500)
     current_workspace.credit_subscription&.deduct_credits!(2)
-    html = ApplicationHelper::MARKDOWN.render(content)
+    html = MarkdownRenderer.render(content)
     render json: { content: content, html: html }
+  rescue => e
+    render json: { error: e.message }, status: :internal_server_error
+  end
+
+  def ai_create_quiz
+    item = @path.learning_path_items.find(params[:id])
+    return render json: { error: "Chỉ dùng cho bài kiểm tra" }, status: :unprocessable_entity unless item.quiz?
+    return unless require_credits!(5)
+
+    subject = @path.subject.presence || @path.title
+    quiz_set = current_workspace.quiz_sets.create!(
+      title: item.title,
+      user: current_user,
+      status: :draft,
+      ai_generating: true
+    )
+
+    topic_text = "Chủ đề: #{item.title}\nLĩnh vực: #{subject}\nLộ trình: #{@path.title}\n\nTạo bộ câu hỏi trắc nghiệm phù hợp để kiểm tra kiến thức về chủ đề này."
+    GenerateQuizQuestionsJob.perform_later(quiz_set.id, topic_text, 8, nil)
+
+    item.update!(quiz_set_id: quiz_set.id)
+    render json: { ok: true, quiz_set_id: quiz_set.id, quiz_set_title: quiz_set.title,
+                   poll_url: ai_generate_status_quiz_set_path(quiz_set, format: :json) }
+  rescue => e
+    render json: { error: e.message }, status: :internal_server_error
+  end
+
+  def ai_create_flashcard
+    item = @path.learning_path_items.find(params[:id])
+    return render json: { error: "Chỉ dùng cho thẻ ghi nhớ" }, status: :unprocessable_entity unless item.flashcard?
+    return unless require_credits!(3)
+
+    subject = @path.subject.presence || @path.title
+    deck = current_workspace.flashcard_decks.create!(
+      title: item.title,
+      subject: subject,
+      created_by: current_user,
+      ai_generating: true
+    )
+
+    GenerateFlashcardsJob.perform_later(deck.id, "#{item.title} (#{subject})", 15, current_user.id)
+
+    item.update!(flashcard_deck_id: deck.id)
+    render json: { ok: true, deck_id: deck.id, deck_title: deck.title,
+                   poll_url: ai_status_flashcard_deck_path(deck, format: :json) }
   rescue => e
     render json: { error: e.message }, status: :internal_server_error
   end

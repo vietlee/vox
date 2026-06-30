@@ -2,6 +2,9 @@ class Flashcard < ApplicationRecord
   belongs_to :flashcard_deck
   has_many :flashcard_reviews, dependent: :destroy
 
+  validates :front, presence: true, length: { maximum: 500 }
+  validates :back,  presence: true, length: { maximum: 1000 }
+
   def review_for(user)
     flashcard_reviews.find_by(user: user)
   end

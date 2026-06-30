@@ -1,7 +1,15 @@
 <% active = request.path.start_with?(path.gsub(/\?.*$/, '')) %>
-<%= link_to path, data: { turbo_action: "advance" }, class: "flex items-center gap-2.5 px-3 mx-2 py-2 text-[13px] font-medium transition-all rounded-lg border-l-[3px] #{active ? 'text-white bg-white/[0.12] border-[#4a80a8] font-semibold' : 'text-slate-400 hover:text-white hover:bg-white/[0.06] border-transparent'}" do %>
+<% has_sub = local_assigns[:subtitle].present? %>
+<%= link_to path, data: { turbo_action: "advance" }, class: "flex items-center gap-2.5 px-3 mx-2 #{has_sub ? 'py-1.5' : 'py-2'} transition-all rounded-lg border-l-[3px] #{active ? 'bg-white/[0.12] border-[#4a80a8]' : 'hover:bg-white/[0.06] border-transparent'}" do %>
   <span class="text-[15px] w-[18px] text-center flex-shrink-0"><%= icon %></span>
-  <span class="sb-label"><%= label %></span>
+  <% if has_sub %>
+    <span class="sb-label flex flex-col min-w-0">
+      <span class="text-[13px] leading-tight <%= active ? 'text-white font-bold' : 'text-slate-300 font-semibold' %>"><%= label %></span>
+      <span class="text-[10px] font-normal leading-tight truncate <%= active ? 'text-slate-300' : 'text-slate-500' %>"><%= subtitle %></span>
+    </span>
+  <% else %>
+    <span class="sb-label text-[13px] font-medium <%= active ? 'text-white font-semibold' : 'text-slate-400 hover:text-white' %>"><%= label %></span>
+  <% end %>
   <% if local_assigns[:badge].to_i > 0 %>
     <span class="ml-auto bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"><%= badge %></span>
   <% end %>

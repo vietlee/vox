@@ -8,14 +8,16 @@
   <div class="flex items-start gap-3 justify-between mb-4">
     <div class="flex items-start gap-3">
       <%= render "admin/shared/back_btn" %>
+      <div class="w-11 h-11 rounded-xl flex items-center justify-center text-[28px] bg-slate-100 shrink-0">🗳️</div>
       <div>
-        <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">🗳️ <%= t("votes.title") %></h1>
-        <p class="text-[12px] text-slate-500 mt-0.5"><%= t("votes.subtitle") %></p>
+        <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight"><%= t("votes.title") %></h1>
+        <p class="text-[13px] font-medium text-slate-600 mt-0.5"><%= t("votes.subtitle") %></p>
       </div>
     </div>
     <div class="flex gap-2">
-      <%= link_to new_vote_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors" do %>
-        + <%= t("votes.new") %>
+      <%= link_to new_vote_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors" do %>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+        <%= t("votes.new") %>
       <% end %>
     </div>
   </div>
@@ -91,25 +93,40 @@
                 <td class="px-4 py-3 text-[13px] text-slate-700" id="vote-count-<%= vote.id %>"><%= vote.participant_count %></td>
                 <td class="px-4 py-3 text-[12px] text-slate-500"><%= vote.created_at.strftime("%d/%m/%Y") %></td>
                 <td class="px-4 py-3">
-                  <div class="flex gap-1.5 justify-end" id="vote-actions-<%= vote.id %>">
+                  <div class="flex gap-1 justify-end" id="vote-actions-<%= vote.id %>">
                     <% if vote.draft? %>
                       <button onclick="openVote(<%= vote.id %>, '<%= open_vote_path(vote) %>', '<%= present_vote_path(vote) %>')"
-                        class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 cursor-pointer border-0">
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 border border-emerald-100 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-emerald-700 text-[12px] font-semibold rounded-lg transition-colors cursor-pointer">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <%= t("votes.open") %>
                       </button>
                     <% end %>
                     <% if vote.active? %>
-                      <%= link_to present_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100", target: "_blank" do %><%= t("votes.present") %><% end %>
+                      <%= link_to present_vote_path(vote), target: "_blank",
+                          class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 border border-indigo-100 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-indigo-700 text-[12px] font-semibold rounded-lg transition-colors" do %>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        <%= t("votes.present") %>
+                      <% end %>
                       <button onclick="closeVote(<%= vote.id %>, '<%= close_vote_path(vote) %>')"
-                        class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-700 hover:bg-red-100 cursor-pointer border-0">
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-red-100 hover:border-red-300 hover:bg-[#1e3a5f] hover:text-white text-red-500 text-[12px] font-semibold rounded-lg transition-colors cursor-pointer">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         <%= t("votes.close") %>
                       </button>
                     <% end %>
-                    <%= link_to results_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %><%= t("votes.results_btn") %><% end %>
-                    <%= link_to edit_vote_path(vote), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" do %><%= t("votes.edit_btn") %><% end %>
+                    <%= link_to results_vote_path(vote),
+                        class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-slate-500 hover:text-white text-[12px] font-semibold rounded-lg transition-colors" do %>
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                      <%= t("votes.results_btn") %>
+                    <% end %>
+                    <%= link_to edit_vote_path(vote),
+                        class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-slate-500 hover:text-white text-[12px] font-semibold rounded-lg transition-colors" do %>
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      <%= t("votes.edit_btn") %>
+                    <% end %>
                     <% unless vote.active? %>
                       <button onclick="confirmDelete(<%= vote.id %>, '<%= j(vote.title) %>', '<%= vote_path(vote) %>')"
-                        class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 cursor-pointer border-0">
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-red-100 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-red-400 hover:text-white text-[12px] font-semibold rounded-lg transition-colors cursor-pointer">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         <%= t("votes.delete") %>
                       </button>
                     <% end %>
@@ -127,7 +144,7 @@
           <div class="text-4xl mb-3">🗳️</div>
           <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("votes.empty") %></h3>
           <p class="text-[13px] text-slate-400 mb-4"><%= t("votes.empty_desc") %></p>
-          <%= link_to t("votes.create_vote"), new_vote_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors" %>
+          <%= link_to t("votes.create_vote"), new_vote_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" %>
         </div>
       <% end %>
     </div><!-- /scrollable -->
@@ -164,7 +181,7 @@
       <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-[18px]">🗑</div>
       <div>
         <p class="text-[15px] font-bold text-slate-800"><%= t("votes.delete_confirm_title") %></p>
-        <p class="text-[12px] text-slate-500 mt-0.5"><%= t("votes.delete_confirm_irreversible") %></p>
+        <p class="text-[13px] font-medium text-slate-600 mt-0.5"><%= t("votes.delete_confirm_irreversible") %></p>
       </div>
     </div>
     <p class="text-[13px] text-slate-600 mb-5"><%= t("votes.delete_confirm_msg") %> <span id="delete-modal-title" class="font-semibold text-slate-800"></span>?</p>
@@ -225,8 +242,8 @@ async function openVote(id, openUrl, presentUrl) {
   if (actions) {
     const closeUrl = openUrl.replace('/open', '/close');
     actions.innerHTML = `
-      <a href="${presentUrl}" target="_blank" class="px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100"><%= t("votes.present") %></a>
-      <button onclick="closeVote(${id}, '${closeUrl}')" class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-700 hover:bg-red-100 cursor-pointer border-0"><%= t("votes.close") %></button>
+      <a href="${presentUrl}" target="_blank" class="px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-[#1e3a5f] hover:text-white"><%= t("votes.present") %></a>
+      <button onclick="closeVote(${id}, '${closeUrl}')" class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-700 hover:bg-[#1e3a5f] hover:text-white cursor-pointer border-0"><%= t("votes.close") %></button>
       <a href="${openUrl.replace('/open', '/results')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><%= t("votes.results_btn") %></a>
       <a href="${openUrl.replace('/open', '/edit')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><%= t("votes.edit_btn") %></a>`;
   }
@@ -249,11 +266,11 @@ async function closeVote(id, url) {
       <form action="${openPath}" method="post" style="display:inline">
         <input type="hidden" name="_method" value="patch">
         <input type="hidden" name="authenticity_token" value="${csrf}">
-        <button class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-emerald-100 border-0 cursor-pointer"><%= t("votes.open") %></button>
+        <button class="px-2.5 py-1 text-[11px] bg-emerald-50 rounded-md text-emerald-700 hover:bg-[#1e3a5f] hover:text-white border-0 cursor-pointer"><%= t("votes.open") %></button>
       </form>
       <a href="${url.replace('/close', '/results')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><%= t("votes.results_btn") %></a>
       <a href="${url.replace('/close', '/edit')}" class="px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><%= t("votes.edit_btn") %></a>
-      <button onclick="confirmDelete(${id}, '${voteTitle.replace(/'/g,"\\'")}', '${deleteUrl}')" class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 cursor-pointer border-0"><%= t("votes.delete") %></button>`;
+      <button onclick="confirmDelete(${id}, '${voteTitle.replace(/'/g,"\\'")}', '${deleteUrl}')" class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-[#1e3a5f] hover:text-white cursor-pointer border-0"><%= t("votes.delete") %></button>`;
   }
 }
 </script>

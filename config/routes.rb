@@ -291,14 +291,23 @@ Rails.application.routes.draw do
         post  :ai_generate
         get   :ai_status
         post  :assign
+        get   :progress
+        post  :ai_evaluate_progress
       end
       resources :learning_path_items, only: [:create, :update, :destroy] do
         collection { patch :reorder }
-        member { post :ai_content }
+        member do
+          post :ai_content
+          post :ai_create_quiz
+          post :ai_create_flashcard
+        end
       end
     end
     resources :learning_path_assignments, only: [:show, :destroy] do
-      member { patch :update_progress }
+      member do
+        patch :update_progress
+        post  :ai_evaluate
+      end
     end
 
     # Module 3: Flashcards
@@ -308,6 +317,7 @@ Rails.application.routes.draw do
         get  :ai_status
         get  :study
         post :review
+        get  :analytics
       end
       resources :flashcards, only: [:update]
     end

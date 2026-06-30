@@ -7,13 +7,14 @@
   <div class="flex items-start gap-3 justify-between mb-4">
     <div class="flex items-start gap-3">
       <%= render "admin/shared/back_btn" %>
+      <div class="w-11 h-11 rounded-xl flex items-center justify-center text-[28px] bg-slate-100 shrink-0">📝</div>
       <div>
-        <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">📝 <%= t("dynamic_forms.index_title") %></h1>
-        <p class="text-[12px] text-slate-500 mt-0.5"><%= t("dynamic_forms.index_subtitle") %></p>
+        <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight"><%= t("dynamic_forms.index_title") %></h1>
+        <p class="text-[13px] font-medium text-slate-600 mt-0.5"><%= t("dynamic_forms.index_subtitle") %></p>
       </div>
     </div>
     <div class="flex gap-2">
-      <%= link_to new_dynamic_form_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors" do %>
+      <%= link_to new_dynamic_form_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors" do %>
         <%= t("dynamic_forms.create_btn") %>
       <% end %>
     </div>
@@ -101,17 +102,30 @@
                 </td>
                 <td class="px-4 py-3 text-[12px] text-slate-500"><%= I18n.l(form.created_at, format: :short) %></td>
                 <td class="px-4 py-3">
-                  <div class="flex gap-1.5 justify-end flex-wrap">
-                    <%= link_to edit_dynamic_form_path(form), class: "px-2.5 py-1 text-[11px] bg-indigo-50 rounded-md text-indigo-700 hover:bg-indigo-100 font-medium" do %><%= t("dynamic_forms.edit_btn") %><% end %>
-                    <%= link_to submissions_dynamic_form_path(form), class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 font-medium" do %><%= t("dynamic_forms.submissions_title") %><% end %>
+                  <div class="flex gap-1 justify-end flex-wrap">
+                    <%= link_to edit_dynamic_form_path(form),
+                        class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-slate-500 hover:text-white text-[12px] font-semibold rounded-lg transition-colors" do %>
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      <%= t("dynamic_forms.edit_btn") %>
+                    <% end %>
+                    <%= link_to submissions_dynamic_form_path(form),
+                        class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-slate-500 hover:text-white text-[12px] font-semibold rounded-lg transition-colors" do %>
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                      <%= t("dynamic_forms.submissions_title") %>
+                    <% end %>
                     <% if form.active? %>
                       <% _idx_short = short_url_for(participate_dynamic_form_url(form.slug), workspace: current_workspace) rescue participate_dynamic_form_url(form.slug) %>
-                      <%= link_to _idx_short, target: "_blank", class: "px-2.5 py-1 text-[11px] bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200 font-medium" do %>🔗<% end %>
+                      <%= link_to _idx_short, target: "_blank",
+                          class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-slate-500 text-[12px] font-semibold rounded-lg transition-colors" do %>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                        Link
+                      <% end %>
                     <% end %>
                     <% if form.deletable? %>
                       <button type="button"
                         onclick="showDeleteConfirm('<%= dynamic_form_path(form) %>', '<%= j form.title %>')"
-                        class="px-2.5 py-1 text-[11px] bg-red-50 rounded-md text-red-500 hover:bg-red-100 font-medium border-0 cursor-pointer">
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-red-100 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-red-400 hover:text-white text-[12px] font-semibold rounded-lg transition-colors cursor-pointer">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         <%= t("dynamic_forms.delete_btn_short") %>
                       </button>
                     <% end %>
@@ -131,7 +145,7 @@
             <h3 class="text-[15px] font-semibold text-slate-700 mb-1"><%= t("dynamic_forms.no_forms_title") %></h3>
             <p class="text-[13px] text-slate-400 mb-4"><%= t("dynamic_forms.no_forms_hint") %></p>
             <%= link_to t("dynamic_forms.create_btn"), new_dynamic_form_path,
-                  class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors" %>
+                  class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" %>
           <% end %>
         </div>
       <% end %>

@@ -61,6 +61,24 @@ class NotificationMailer < ApplicationMailer
     mail(to: assignee.email, subject: subject)
   end
 
+  def learning_path_assigned(assignment, new_account: false)
+    @assignment    = assignment
+    @learning_path = assignment.learning_path
+    @user          = assignment.assignee
+    @workspace     = @learning_path.workspace
+    @new_account   = new_account
+    @plain_password = @user.instance_variable_get(:@plain_password) if new_account
+    @login_url = Rails.application.routes.url_helpers.new_user_session_url(
+      host: ENV.fetch("APP_HOST", "localhost:3000")
+    )
+    @view_url = Rails.application.routes.url_helpers.learning_path_assignment_url(
+      assignment,
+      host: ENV.fetch("APP_HOST", "localhost:3000")
+    )
+    subject = "[VOX] Bạn được giao lộ trình: \"#{@learning_path.title}\""
+    mail(to: @user.email, subject: subject)
+  end
+
   def new_response(response, admin)
     @response  = response
     @survey    = response.survey

@@ -13,53 +13,86 @@ class Admin::MembersController < Admin::BaseController
   end
 
   def create
-    email = params[:user][:email].to_s.strip.downcase
-    name  = params[:user][:name].to_s.strip
+    name   = params[:user][:name].to_s.strip
+    emails = params[:user][:emails].to_s.split(",").map { |e| e.strip.downcase }.uniq.select(&:present?)
 
-    # Check if already an ACTIVE member of this workspace
-    existing_user = User.find_by(email: email)
-    if existing_user && current_workspace.workspace_memberships.active.exists?(user: existing_user)
-      @member = User.new(email: email, name: name)
-      @member.errors.add(:email, t("members.already_member"))
+    if emails.empty?
+      @member = User.new(name: name)
+      @member.errors.add(:email, t("members.field_required"))
       return render :new, status: :unprocessable_entity
     end
 
-    if existing_user
-      # User exists globally — restore or create membership
-      membership = current_workspace.workspace_memberships.find_or_initialize_by(user: existing_user)
-      membership.update!(role: :supporter, status: :active)
-      MemberMailer.workspace_added(existing_user, current_workspace).deliver_later
-      audit_log("member.invite", resource: existing_user)
-      redirect_to members_path, notice: t("members.invited")
-    else
-      # New user — create account then membership
-      password = SecureRandom.hex(8)
-      @member = User.new(
-        name:                  name,
-        email:                 email,
-        workspace:             current_workspace,
-        role:                  :supporter,
-        password:              password,
-        password_confirmation: password,
-        must_change_password:  true,
-        confirmed_at:          Time.current
-      )
-      @member.skip_confirmation_notification!
+    invited = 0
+    errors  = []
 
-      if @member.save
-        current_workspace.workspace_memberships.create!(user: @member, role: :supporter)
-        MemberMailer.invitation(@member, password).deliver_later
-        audit_log("member.invite", resource: @member)
-        redirect_to members_path, notice: t("members.invited")
-      else
-        render :new, status: :unprocessable_entity
+    emails.each do |email|
+      existing_user = User.find_by(email: email)
+
+      if existing_user && current_workspace.workspace_memberships.active.exists?(user: existing_user)
+        errors << "#{email}: #{t("members.already_member")}"
+        next
       end
+
+      if existing_user
+        membership = current_workspace.workspace_memberships.find_or_initialize_by(user: existing_user)
+        membership.update!(role: :supporter, status: :active)
+        MemberMailer.workspace_added(existing_user, current_workspace).deliver_later
+        audit_log("member.invite", resource: existing_user)
+        invited += 1
+      else
+        password = SecureRandom.hex(8)
+        user = User.new(
+          name:                  name,
+          email:                 email,
+          workspace:             current_workspace,
+          role:                  :supporter,
+          password:              password,
+          password_confirmation: password,
+          must_change_password:  true,
+          confirmed_at:          Time.current
+        )
+        user.skip_confirmation_notification!
+        if user.save
+          current_workspace.workspace_memberships.create!(user: user, role: :supporter)
+          MemberMailer.invitation(user, password).deliver_later
+          audit_log("member.invite", resource: user)
+          invited += 1
+        else
+          errors << "#{email}: #{user.errors.full_messages.join(", ")}"
+        end
+      end
+    end
+
+    if errors.any? && invited == 0
+      @member = User.new(name: name)
+      @member.errors.add(:email, errors.join("; "))
+      render :new, status: :unprocessable_entity
+    elsif errors.any?
+      redirect_to members_path, alert: "Mời #{invited} thành viên thành công. Lỗi: #{errors.join("; ")}"
+    else
+      redirect_to members_path, notice: invited == 1 ? t("members.invited") : "Đã mời #{invited} thành viên thành công."
     end
   end
 
   def destroy
     membership = current_workspace.workspace_memberships.find_by!(user_id: params[:id])
+    user = membership.user
     membership.destroy!
+
+    # Nếu workspace này là workspace chính của user → tạo workspace cá nhân mới
+    if user.workspace_id == current_workspace.id
+      adjectives = %w[Sáng Xanh Vàng Mới Nhanh Thông Minh Sáng Tạo Năng Động]
+      nouns      = %w[Không Gian Góc Làm Việc Studio Hub Trạm Tổ Bàn]
+      name = "#{adjectives.sample} #{nouns.sample} của #{user.name.split.first}"
+      personal_ws = Workspace.create!(
+        name:      name,
+        owner:     user,
+        status:    :active,
+        plan_type: :free
+      )
+      user.update_columns(workspace_id: personal_ws.id)
+    end
+
     redirect_to members_path, notice: t("members.deactivated")
   end
 

@@ -20,11 +20,11 @@
     </div>
     <div class="flex items-center gap-2">
       <%= link_to submissions_dynamic_form_path(@form),
-            class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm transition-colors" do %>
+            class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-[#1e3a5f] hover:text-white shadow-sm transition-colors" do %>
         📬 <%= t("dynamic_forms.submissions_btn", count: @form.submissions_count) %>
       <% end %>
       <%= link_to participate_dynamic_form_url(@form.slug), target: "_blank",
-            class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm transition-colors" do %>
+            class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-[#1e3a5f] hover:text-white shadow-sm transition-colors" do %>
         🔗 <%= t("dynamic_forms.view_form_btn") %>
       <% end %>
       <% if @form.draft? %>
@@ -34,19 +34,19 @@
         <% end %>
       <% elsif @form.active? %>
         <%= button_to close_dynamic_form_path(@form), method: :patch,
-              class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm transition-colors" do %>
+              class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] shadow-sm transition-colors" do %>
           🔒 <%= t("dynamic_forms.close_btn") %>
         <% end %>
       <% elsif @form.closed? %>
         <%= button_to reopen_dynamic_form_path(@form), method: :patch,
-              class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 shadow-sm transition-colors" do %>
+              class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-white border border-emerald-200 text-emerald-700 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] shadow-sm transition-colors" do %>
           ✅ <%= t("dynamic_forms.reopen_btn") %>
         <% end %>
       <% end %>
       <% if @form.deletable? %>
         <%= button_to dynamic_form_path(@form), method: :delete,
               data: { confirm: t("dynamic_forms.delete_confirm", title: @form.title) },
-              class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-white border border-red-200 text-red-500 hover:bg-red-50 shadow-sm transition-colors" do %>
+              class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold bg-white border border-red-200 text-red-500 hover:bg-[#1e3a5f] hover:text-white shadow-sm transition-colors" do %>
           🗑 <%= t("dynamic_forms.delete_btn") %>
         <% end %>
       <% end %>
@@ -85,7 +85,7 @@
             <input type="hidden" name="settings_data" id="settings-data-input">
             <div class="pt-3 border-t border-slate-100 flex justify-end">
               <button type="submit" onclick="syncFieldsData()"
-                class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-[12px] font-semibold rounded-lg cursor-pointer transition-colors shadow-sm border-0">
+                class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-[#162d4a] text-white text-[12px] font-semibold rounded-lg cursor-pointer transition-colors shadow-sm border-0">
                 💾 <%= t("dynamic_forms.save_info_btn") %>
               </button>
             </div>
@@ -100,7 +100,7 @@
             <%= t("dynamic_forms.fields_section") %> &nbsp;<span class="text-indigo-600 font-bold" id="field-count">0</span>
           </h2>
           <button type="button" id="add-field-btn-main" onclick="addField()"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[12px] font-semibold rounded-lg transition-colors">
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-[#162d4a] text-white text-[12px] font-semibold rounded-lg transition-colors">
             <%= t("dynamic_forms.add_field_btn") %>
           </button>
         </div>
@@ -173,7 +173,7 @@
               <span>Copy QR</span>
             </button>
             <a href="<%= qr_image_path(@form.qr_code.token) %>" download="qr-<%= @form.slug %>.png"
-              class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[12px] font-semibold rounded-lg transition-colors">
+              class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-600 text-[12px] font-semibold rounded-lg transition-colors">
               ⬇ <%= t("dynamic_forms.qr_download") %>
             </a>
           </div>
@@ -265,7 +265,7 @@
           <p class="text-[10px] text-amber-600 font-medium mb-2"><%= t("dynamic_forms.settings_status_default_hint") %></p>
           <div id="custom-statuses-list" class="space-y-1.5 mb-2"></div>
           <button type="button" onclick="addCustomStatus()"
-            class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg border-0 cursor-pointer transition-colors">
+            class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-[#1e3a5f] hover:text-white rounded-lg border-0 cursor-pointer transition-colors">
             <%= t("dynamic_forms.settings_add_status") %>
           </button>
         </div>
@@ -290,7 +290,7 @@
             <div class="space-y-0.5">
               <% @form_assignees.each do |user| %>
                 <% uname = user.name.presence || user.email %>
-                <label class="flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                <label class="flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-[#1e3a5f] hover:text-white transition-colors">
                   <input type="checkbox"
                          id="notif-user-<%= user.id %>"
                          data-user-id="<%= user.id %>"
@@ -348,7 +348,7 @@
       <p class="text-[13px] text-slate-500 text-center mb-5"><%= t("dynamic_forms.delete_field_hint").html_safe %></p>
       <div class="flex gap-3">
         <button onclick="_cancelDeleteField()"
-          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 cursor-pointer transition-colors">
+          class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-600 border-0 cursor-pointer transition-colors">
           <%= t("dynamic_forms.cancel") %>
         </button>
         <button onclick="_confirmDeleteField()"

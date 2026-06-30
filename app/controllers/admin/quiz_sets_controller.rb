@@ -13,14 +13,20 @@ class Admin::QuizSetsController < Admin::BaseController
   end
 
   def new
-    @quiz_set = current_workspace.quiz_sets.build
+    @quiz_set = current_workspace.quiz_sets.build(title: params[:title])
   end
 
   def create
     @quiz_set = current_workspace.quiz_sets.build(quiz_set_params)
     @quiz_set.user = current_user
     if @quiz_set.save
-      redirect_to edit_quiz_set_path(@quiz_set), notice: t("quiz.created")
+      if (src = params[:source_text].to_s.strip).present?
+        return unless require_credits!(5)
+        GenerateQuizQuestionsJob.perform_later(@quiz_set.id, src.truncate(12000), 10, nil)
+        redirect_to edit_quiz_set_path(@quiz_set), notice: "Bộ đề đã tạo — AI đang sinh câu hỏi từ tài liệu..."
+      else
+        redirect_to edit_quiz_set_path(@quiz_set), notice: t("quiz.created")
+      end
     else
       render :new, status: :unprocessable_entity
     end

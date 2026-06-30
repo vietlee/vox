@@ -41,7 +41,7 @@
   
     <% if @survey.active? %>
       <button onclick="showSurveyCloseConfirm()"
-        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-slate-700 transition-colors">
+        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700 transition-colors">
         ⏹ <%= t("surveys.close_action") %>
       </button>
       <form id="survey-close-form" action="<%= close_survey_path(@survey) %>" method="post" class="hidden">
@@ -50,30 +50,30 @@
       </form>
     <% elsif @survey.closed? %>
       <%= button_to reopen_survey_path(@survey), method: :patch,
-          class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 text-emerald-600 transition-colors" do %>
+          class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-emerald-200 hover:bg-[#1e3a5f] hover:text-white text-emerald-600 transition-colors" do %>
         ▶ <%= t("surveys.reopen") %>
       <% end %>
     <% end %>
     <button onclick="switchTab('ai')"
-      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-violet-50 hover:text-violet-700 hover:border-violet-200 text-slate-700 transition-colors">
+      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700 transition-colors">
       <%= t("surveys.results.tab_ai") %>
       <% if @ai_analysis %>
         <span class="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block"></span>
       <% end %>
     </button>
     <button onclick="switchTab('report')"
-      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-700 transition-colors">
+      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700 transition-colors">
       <%= t("surveys.results.tab_report") %>
     </button>
     <button onclick="openHtmlReportLangModal()"
-       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 transition-colors">
+       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700 transition-colors">
       📊 <%= t("surveys.results.tab_html_report") %>
     </button>
     <!-- Export CSV -->
     <a href="<%= export_survey_path(@survey) %>"
        data-turbo="false"
        onclick="btnDownloadLoading(this)"
-       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 transition-colors">
+       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700 transition-colors">
       ⬇ CSV
     </a>
     
@@ -200,7 +200,7 @@
             <% if remaining > 0 %>
               <button type="button"
                 onclick="openAnswersModal(<%= question.id %>, '<%= j question.title %>')"
-                class="w-full mt-1 py-2 text-[12px] font-semibold text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
+                class="w-full mt-1 py-2 text-[12px] font-semibold text-indigo-500 hover:text-white hover:bg-[#1e3a5f] rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
                 <%= t("surveys.results.more_responses", count: remaining) %>
               </button>
             <% end %>
@@ -465,12 +465,12 @@
                 </a>
                 <% if rpt_ctx.present? %>
                 <button onclick="regenReport('<%= j rpt_ctx %>', '<%= rpt_lang.downcase %>', '<%= rpt_fmt %>')"
-                  class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border border-violet-200 text-violet-600 hover:bg-violet-50 transition-colors cursor-pointer bg-white">
+                  class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border border-violet-200 text-violet-600 hover:bg-[#1e3a5f] hover:text-white transition-colors cursor-pointer bg-white">
                   ↺ Tạo lại
                 </button>
                 <% end %>
                 <button onclick="deleteReport(<%= rpt.id %>, '<%= delete_report_survey_path(@survey, report_id: rpt.id) %>')"
-                  class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-red-500 hover:bg-red-50 rounded-lg border border-red-200 transition-colors cursor-pointer bg-white">
+                  class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-red-500 hover:bg-[#1e3a5f] hover:text-white rounded-lg border border-red-200 transition-colors cursor-pointer bg-white">
                   Xoá
                 </button>
               </div>
@@ -510,7 +510,7 @@
           </thead>
           <tbody>
             <% @individual_responses.each do |resp| %>
-              <tr class="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onclick="toggleRow(<%= resp.id %>)">
+              <tr class="border-b border-slate-100 hover:bg-[#1e3a5f] hover:text-white cursor-pointer" onclick="toggleRow(<%= resp.id %>)">
                 <td class="px-4 py-3 font-medium text-slate-800">
                   <% if resp.respondent_email.present? %>
                     <%= resp.respondent_email %>
@@ -558,7 +558,7 @@
           <div class="flex items-center gap-1">
             <% if @pagy_responses.prev %>
               <%= link_to results_survey_path(@survey, anchor: "individual", responses_page: @pagy_responses.prev),
-                  class: "px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors",
+                  class: "px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-[#1e3a5f] hover:text-white transition-colors",
                   data: { turbo: false } do %>
                 ← Trước
               <% end %>
@@ -569,25 +569,25 @@
             <% pagy_window = ([1, @pagy_responses.page - 2].max..[[@pagy_responses.pages, @pagy_responses.page + 2].min, @pagy_responses.pages].min) %>
             <% if pagy_window.first > 1 %>
               <%= link_to results_survey_path(@survey, anchor: "individual", responses_page: 1),
-                  class: "px-2.5 py-1.5 text-[12px] rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50",
+                  class: "px-2.5 py-1.5 text-[12px] rounded-lg border border-slate-200 text-slate-600 hover:bg-[#1e3a5f] hover:text-white",
                   data: { turbo: false } do %>1<% end %>
               <span class="text-slate-300 text-[12px] px-1">…</span>
             <% end %>
             <% pagy_window.each do |p| %>
               <%= link_to results_survey_path(@survey, anchor: "individual", responses_page: p),
-                  class: "px-2.5 py-1.5 text-[12px] rounded-lg border transition-colors #{p == @pagy_responses.page ? 'bg-indigo-600 border-indigo-600 text-white font-semibold' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}",
+                  class: "px-2.5 py-1.5 text-[12px] rounded-lg border transition-colors #{p == @pagy_responses.page ? 'bg-indigo-600 border-indigo-600 text-white font-semibold' : 'border-slate-200 text-slate-600 hover:bg-[#1e3a5f] hover:text-white'}",
                   data: { turbo: false } do %><%= p %><% end %>
             <% end %>
             <% if pagy_window.last < @pagy_responses.pages %>
               <span class="text-slate-300 text-[12px] px-1">…</span>
               <%= link_to results_survey_path(@survey, anchor: "individual", responses_page: @pagy_responses.pages),
-                  class: "px-2.5 py-1.5 text-[12px] rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50",
+                  class: "px-2.5 py-1.5 text-[12px] rounded-lg border border-slate-200 text-slate-600 hover:bg-[#1e3a5f] hover:text-white",
                   data: { turbo: false } do %><%= @pagy_responses.pages %><% end %>
             <% end %>
 
             <% if @pagy_responses.next %>
               <%= link_to results_survey_path(@survey, anchor: "individual", responses_page: @pagy_responses.next),
-                  class: "px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors",
+                  class: "px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-[#1e3a5f] hover:text-white transition-colors",
                   data: { turbo: false } do %>
                 Tiếp →
               <% end %>
@@ -1357,7 +1357,7 @@ function hideSurveyCloseConfirm() {
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-4">
     <div class="flex items-center justify-between">
       <h3 class="text-[15px] font-bold text-slate-900">Chọn báo cáo để tải xuống</h3>
-      <button onclick="closeExportPicker()" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">✕</button>
+      <button onclick="closeExportPicker()" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:bg-[#1e3a5f] hover:text-white transition-colors">✕</button>
     </div>
     <div id="export-picker-list" class="flex flex-col gap-2 max-h-80 overflow-y-auto"></div>
   </div>

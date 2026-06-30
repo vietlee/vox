@@ -21,25 +21,29 @@
       <span class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[7px] text-[12px] font-bold bg-emerald-500 text-white"><%= t("quiz.status_published") %></span>
       <% quiz_url = quiz_url(@quiz_set.share_token) %>
       <button onclick="copyLink('<%= quiz_url %>')"
-              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 transition-colors whitespace-nowrap">
-        🔗 <%= t("quiz.copy_link") %>
+              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-slate-700 transition-colors whitespace-nowrap">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+        <%= t("quiz.copy_link") %>
       </button>
       <%= button_to unpublish_quiz_set_path(@quiz_set), method: :patch,
-          class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 text-slate-700 cursor-pointer transition-colors whitespace-nowrap" do %>
-        👁‍🗨 <%= t("quiz.unpublish") %>
+          class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700 cursor-pointer transition-colors whitespace-nowrap" do %>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+        <%= t("quiz.unpublish") %>
       <% end %>
     <% else %>
       <span class="inline-flex items-center px-2.5 py-1.5 rounded-[7px] text-[12px] font-bold bg-slate-100 text-slate-500"><%= t("quiz.status_draft") %></span>
       <% if @questions.any? %>
         <%= button_to publish_quiz_set_path(@quiz_set), method: :patch,
-            class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 cursor-pointer transition-colors whitespace-nowrap" do %>
-          🚀 <%= t("quiz.publish") %>
+            class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-colors whitespace-nowrap border-0" do %>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          <%= t("quiz.publish") %>
         <% end %>
       <% end %>
     <% end %>
     <%= link_to results_quiz_set_path(@quiz_set),
-        class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 transition-colors whitespace-nowrap" do %>
-      📊 <%= t("quiz.results") %> (<%= @quiz_set.attempt_count %>)
+        class: "inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700 transition-colors whitespace-nowrap" do %>
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      <%= t("quiz.results") %> (<%= @quiz_set.attempt_count %>)
     <% end %>
   </div>
 </div>
@@ -76,7 +80,7 @@
         <div id="ai-drop-zone"
              onclick="document.getElementById('ai-file-input').click()"
              ondragover="aiDragOver(event)" ondragleave="aiDragLeave(event)" ondrop="aiDrop(event)"
-             class="border-2 border-dashed border-violet-300 hover:border-violet-500 bg-white hover:bg-violet-50 rounded-xl px-4 py-4 text-center cursor-pointer transition-all">
+             class="border-2 border-dashed border-violet-300 hover:border-[#1e3a5f] bg-white hover:bg-[#1e3a5f] hover:text-white rounded-xl px-4 py-4 text-center cursor-pointer transition-all">
           <div class="text-xl mb-1">📂</div>
           <p class="text-[12px] font-semibold text-violet-700" id="ai-drop-label"><%= t("quiz.drop_or_click") %></p>
           <p class="text-[11px] text-violet-400 mt-0.5"><%= t("quiz.ai_file_hint") %></p>
@@ -278,7 +282,7 @@
           </div>
         </button>
         <button onclick="selectQType('multiple_choice', true)" id="qtype-mc-multi"
-                class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-violet-400 hover:bg-violet-50">
+                class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
           <span class="text-lg">☑️</span>
           <div>
             <div class="font-bold">Nhiều đáp án</div>
@@ -286,7 +290,7 @@
           </div>
         </button>
         <button onclick="selectQType('true_false', false)" id="qtype-tf"
-                class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-amber-400 hover:bg-amber-50">
+                class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
           <span class="text-lg">✅</span>
           <div>
             <div class="font-bold">Đúng / Sai</div>
@@ -294,7 +298,7 @@
           </div>
         </button>
         <button onclick="selectQType('short_answer', false)" id="qtype-sa"
-                class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-emerald-400 hover:bg-emerald-50">
+                class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
           <span class="text-lg">✍️</span>
           <div>
             <div class="font-bold">Tự luận</div>
@@ -325,7 +329,7 @@
                  class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-[13px] focus:border-indigo-500 outline-none"
                  onkeydown="if(event.key==='Enter'){event.preventDefault();addModalOption()}">
           <button onclick="addModalOption()"
-                  class="px-3 py-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 text-[12px] font-semibold rounded-xl transition-colors flex-shrink-0">
+                  class="px-3 py-2 bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-500 text-[12px] font-semibold rounded-xl transition-colors flex-shrink-0">
             + Thêm
           </button>
         </div>
@@ -385,7 +389,7 @@
     <p class="text-[13px] text-slate-400 mb-5">Hành động này không thể hoàn tác.</p>
     <div class="flex gap-2">
       <button onclick="cancelDeleteQuestion()"
-              class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[13px] font-semibold rounded-xl transition-colors">
+              class="flex-1 py-2.5 bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-600 text-[13px] font-semibold rounded-xl transition-colors">
         Huỷ
       </button>
       <button onclick="confirmDeleteQuestion()"
@@ -638,7 +642,7 @@ function questionCardHtml(q, index) {
                  class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-500 outline-none"
                  onkeydown="if(event.key==='Enter'){event.preventDefault();addOption(${q.id})}">
           <button onclick="addOption(${q.id})"
-                  class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 text-[12px] font-semibold rounded-lg transition-colors">
+                  class="px-3 py-1.5 bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-500 text-[12px] font-semibold rounded-lg transition-colors">
             + Thêm lựa chọn
           </button>
         </div>` : '';

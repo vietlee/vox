@@ -4,6 +4,7 @@
 <% done_count = @progresses.values.count(&:completed?) %>
 <% pct = total > 0 ? (done_count * 100.0 / total).round : 0 %>
 <% completed_all = done_count == total && total > 0 %>
+<% is_admin_view = current_workspace_admin? && @assignment.assignee != current_user %>
 
 <style>
   .lesson-content h1,.lesson-content h2,.lesson-content h3{font-weight:700;color:#1e293b;margin:1em 0 .4em;line-height:1.3}
@@ -19,7 +20,6 @@
   .lesson-content th{background:#f8fafc;font-weight:700;padding:6px 10px;border:1px solid #e2e8f0;text-align:left}
   .lesson-content td{padding:6px 10px;border:1px solid #e2e8f0}
   .lesson-content hr{border:none;border-top:1px solid #e2e8f0;margin:1em 0}
-  @keyframes pulse-ring{0%{transform:scale(.9);opacity:.7}50%{transform:scale(1.05);opacity:1}100%{transform:scale(.9);opacity:.7}}
 </style>
 
 <!-- Header -->
@@ -42,18 +42,20 @@
       <p class="text-[13px] text-slate-500 mt-1"><%= lp.description %></p>
     <% end %>
   </div>
-  <%= link_to ai_tutor_page_path(context_type: "learning_path"),
-      class: "flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold rounded-xl transition-colors shrink-0 text-white",
-      style: "background:linear-gradient(135deg,#7c3aed,#4f46e5)" do %>
-    🤖 Hỏi AI Tutor
-  <% end %>
+  <div class="flex items-center gap-2 shrink-0">
+    <%= link_to ai_tutor_page_path(context_type: "learning_path"),
+        class: "flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold rounded-xl transition-colors text-white",
+        style: "background:linear-gradient(135deg,#7c3aed,#4f46e5)" do %>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="16" height="16"><g fill="none" stroke="white" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"><rect x="60" y="6" width="80" height="40" rx="10"/><line x1="100" y1="46" x2="100" y2="54"/><path d="M50,54 L150,54 A26,26 0 0 1 176,80 L176,130 A26,26 0 0 1 150,156 L92,156 L70,188 L64,156 L50,156 A26,26 0 0 1 24,130 L24,80 A26,26 0 0 1 50,54 Z"/><path d="M78,128 Q100,148 122,128"/></g><path d="M86,12 Q86,24 98,24 Q86,24 86,36 Q86,24 74,24 Q86,24 86,12 Z" fill="white"/><path d="M108,23 Q108,30 115,30 Q108,30 108,37 Q108,30 101,30 Q108,30 108,23 Z" fill="white"/><circle cx="76" cy="88" r="13" fill="white"/><circle cx="124" cy="88" r="13" fill="white"/></svg>
+      Hỏi AI Tutor
+    <% end %>
+  </div>
 </div>
 
 <!-- Progress hero -->
 <div class="rounded-2xl mb-6 overflow-hidden border border-slate-200 shadow-sm"
      style="background:linear-gradient(135deg,#f5f3ff 0%,#eef2ff 100%)">
   <div class="flex items-center gap-6 px-6 py-5">
-    <!-- Circle progress -->
     <div class="relative w-[72px] h-[72px] shrink-0">
       <svg viewBox="0 0 72 72" class="w-full h-full -rotate-90">
         <circle cx="36" cy="36" r="30" fill="none" stroke="#e2e8f0" stroke-width="6"/>
@@ -65,7 +67,6 @@
         <span class="text-[14px] font-black text-slate-900" id="pct-display"><%= pct %>%</span>
       </div>
     </div>
-    <!-- Stats -->
     <div class="flex-1">
       <div class="text-[18px] font-extrabold text-slate-900 mb-0.5">
         <% if completed_all %>🎉 Hoàn thành xuất sắc!
@@ -78,7 +79,6 @@
         <% mins_left = @items.reject { |it| @progresses[it.id]&.completed? }.sum(&:estimated_minutes) %>
         <% if mins_left > 0 %> · ~<%= mins_left %> phút còn lại<% end %>
       </div>
-      <!-- Bar -->
       <div class="mt-2.5 h-2 bg-white/70 rounded-full overflow-hidden w-full max-w-xs">
         <div id="progress-bar" class="h-2 rounded-full transition-all duration-700"
              style="width:<%= pct %>%;background:<%= completed_all ? '#10b981' : 'linear-gradient(90deg,#6366f1,#8b5cf6)' %>"></div>
@@ -87,138 +87,236 @@
   </div>
 </div>
 
-<!-- Items timeline -->
-<div class="space-y-3" id="items-list">
-  <% @items.each_with_index do |item, i| %>
-    <% prog = @progresses[item.id] %>
-    <% is_done = prog&.completed? %>
-    <% is_quiz = item.quiz? %>
-    <% is_flashcard = item.flashcard? %>
-    <% has_content = item.content.present? %>
+<!-- Tabs -->
+<div class="flex mb-4" style="border-bottom:2px solid #e2e8f0;">
+  <button id="tab-items" onclick="switchTab('items')"
+          style="padding:10px 20px;font-size:13px;font-weight:700;color:#1e293b;background:#fff;border:0;border-bottom:2px solid #1e3a5f;margin-bottom:-2px;cursor:pointer;transition:all .15s;">
+    📋 Lộ trình học
+  </button>
+  <div style="width:1px;background:#e2e8f0;margin:8px 0 10px;flex-shrink:0;"></div>
+  <button id="tab-ai" onclick="switchTab('ai')"
+          style="padding:10px 20px;font-size:13px;font-weight:600;color:#94a3b8;background:#fff;border:0;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;transition:all .15s;">
+    ✦ Đánh giá AI
+    <span style="font-size:10px;font-weight:700;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;padding:1px 7px;border-radius:20px;margin-left:5px;vertical-align:middle;">AI</span>
+  </button>
+</div>
 
-    <div id="item-card-<%= item.id %>"
-         class="bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300
-                <%= is_done ? 'border-emerald-200' : 'border-slate-200' %>">
+<!-- Pane: Items list -->
+<div id="pane-items">
+  <div class="space-y-3" id="items-list">
+    <% @items.each_with_index do |item, i| %>
+      <% prog = @progresses[item.id] %>
+      <% is_done = prog&.completed? %>
+      <% is_quiz = item.quiz? %>
+      <% is_flashcard = item.flashcard? %>
+      <% has_content = item.content.present? %>
+      <% is_owner = @assignment.assignee == current_user %>
 
-      <!-- Row -->
-      <div class="flex items-center gap-4 px-5 py-4">
-        <!-- Step circle -->
-        <div class="relative shrink-0">
-          <div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-[13px]
-               <%= is_done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500' %>">
-            <% if is_done %>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-            <% else %>
-              <%= i + 1 %>
-            <% end %>
+      <div id="item-card-<%= item.id %>"
+           class="bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300
+                  <%= is_done ? 'border-emerald-200' : 'border-slate-200' %>">
+        <div class="flex items-center gap-4 px-5 py-4">
+          <div class="relative shrink-0">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-[13px]
+                 <%= is_done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500' %>">
+              <% if is_done %>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              <% else %>
+                <%= i + 1 %>
+              <% end %>
+            </div>
           </div>
-        </div>
 
-        <!-- Type icon -->
-        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-[16px] shrink-0
-             <%= is_quiz ? 'bg-violet-50' : (is_flashcard ? 'bg-amber-50' : 'bg-indigo-50') %>">
-          <%= is_quiz ? "📝" : (is_flashcard ? "🃏" : "📖") %>
-        </div>
-
-        <!-- Info -->
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-[14px] font-bold text-slate-900"><%= item.title %></span>
-            <% if is_done && prog.completed_at %>
-              <span class="text-[10px] text-emerald-600 font-semibold">✓ <%= prog.completed_at.strftime("%d/%m %H:%M") %></span>
-            <% end %>
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center text-[16px] shrink-0
+               <%= is_quiz ? 'bg-violet-50' : (is_flashcard ? 'bg-amber-50' : 'bg-indigo-50') %>">
+            <%= is_quiz ? "📝" : (is_flashcard ? "🃏" : "📖") %>
           </div>
-          <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
-            <span><%= is_quiz ? "Bài kiểm tra" : (is_flashcard ? "Thẻ ghi nhớ" : "Bài học") %></span>
-            <span>·</span>
-            <span>~<%= item.estimated_minutes %> phút</span>
-            <% if is_quiz && item.quiz_set %>
+
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[14px] font-bold text-slate-900"><%= item.title %></span>
+              <% if is_done && prog.completed_at %>
+                <span class="text-[10px] text-emerald-600 font-semibold">✓ <%= prog.completed_at.strftime("%d/%m %H:%M") %></span>
+              <% end %>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
+              <span><%= is_quiz ? "Bài kiểm tra" : (is_flashcard ? "Thẻ ghi nhớ" : "Bài học") %></span>
               <span>·</span>
-              <span class="text-violet-600 font-medium"><%= item.quiz_set.title %></span>
-            <% end %>
-            <% if is_flashcard && item.flashcard_deck %>
-              <span>·</span>
-              <span class="text-amber-600 font-medium"><%= item.flashcard_deck.title %> (<%= item.flashcard_deck.card_count %> thẻ)</span>
+              <span>~<%= item.estimated_minutes %> phút</span>
+              <% if is_quiz && item.quiz_set %>
+                <span>·</span><span class="text-violet-600 font-medium"><%= item.quiz_set.title %></span>
+              <% end %>
+              <% if is_flashcard && item.flashcard_deck %>
+                <span>·</span><span class="text-amber-600 font-medium"><%= item.flashcard_deck.title %> (<%= item.flashcard_deck.card_count %> thẻ)</span>
+              <% end %>
+              <% if !is_quiz && !is_flashcard && has_content %>
+                <span>·</span><span class="text-indigo-500 font-medium">Có nội dung</span>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <% if is_flashcard && item.flashcard_deck && is_owner %>
+              <%= link_to study_flashcard_deck_path(item.flashcard_deck), target: "_blank",
+                  class: "inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[12px] font-semibold rounded-lg transition-colors" do %>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2m10 2V2M4 8h16M5 20h14a2 2 0 002-2V8H3v10a2 2 0 002 2z"/></svg>
+                Ôn thẻ
+              <% end %>
             <% end %>
             <% if !is_quiz && !is_flashcard && has_content %>
-              <span>·</span>
-              <span class="text-indigo-500 font-medium">Có nội dung</span>
+              <button onclick="toggleLesson(<%= item.id %>)"
+                      id="toggle-btn-<%= item.id %>"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-semibold rounded-lg transition-colors border-0 cursor-pointer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                Đọc bài
+              </button>
+            <% end %>
+            <% if is_quiz && item.quiz_set && is_owner %>
+              <%= link_to quiz_path(item.quiz_set.share_token), target: "_blank",
+                  class: "inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-semibold rounded-lg transition-colors" do %>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Làm bài
+              <% end %>
+            <% end %>
+            <% if is_owner %>
+              <% if is_done %>
+                <button onclick="markItem(<%= @assignment.id %>, <%= item.id %>, 'not_started')"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white text-[12px] font-bold rounded-lg border-0 cursor-pointer hover:bg-emerald-600 transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  Hoàn thành
+                </button>
+              <% else %>
+                <button onclick="markItem(<%= @assignment.id %>, <%= item.id %>, 'completed')"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#1e3a5f] hover:text-white cursor-pointer transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  Đánh dấu xong
+                </button>
+              <% end %>
+            <% else %>
+              <% if is_done %>
+                <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 text-[12px] font-semibold rounded-lg border border-emerald-200">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  Hoàn thành
+                </span>
+              <% else %>
+                <span class="inline-flex items-center px-3 py-1.5 bg-slate-100 text-slate-400 text-[12px] font-medium rounded-lg border border-slate-200">
+                  Chưa xong
+                </span>
+              <% end %>
             <% end %>
           </div>
         </div>
 
-        <!-- Action buttons -->
-        <div class="flex items-center gap-2 shrink-0">
-          <% if is_flashcard && item.flashcard_deck %>
-            <%= link_to study_flashcard_deck_path(item.flashcard_deck), target: "_blank",
-                class: "flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[12px] font-semibold rounded-lg transition-colors" do %>
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2m10 2V2M4 8h16M5 20h14a2 2 0 002-2V8H3v10a2 2 0 002 2z"/></svg>
-              Ôn thẻ
-            <% end %>
-          <% end %>
-          <% if !is_quiz && !is_flashcard && has_content %>
-            <button onclick="toggleLesson(<%= item.id %>)"
-                    id="toggle-btn-<%= item.id %>"
-                    class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[12px] font-semibold rounded-lg transition-colors border-0 cursor-pointer">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-              Đọc bài
-            </button>
-          <% end %>
-          <% if is_quiz && item.quiz_set %>
-            <%= link_to quiz_path(item.quiz_set.share_token), target: "_blank",
-                class: "flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-700 text-[12px] font-semibold rounded-lg transition-colors" do %>
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-              Làm bài
-            <% end %>
-          <% end %>
-          <% if is_done %>
-            <button onclick="markItem(<%= @assignment.id %>, <%= item.id %>, 'not_started')"
-                    class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white text-[12px] font-bold rounded-lg border-0 cursor-pointer hover:bg-emerald-600 transition-colors">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-              Hoàn thành
-            </button>
-          <% else %>
-            <button onclick="markItem(<%= @assignment.id %>, <%= item.id %>, 'completed')"
-                    class="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 text-[12px] font-semibold rounded-lg border border-slate-200 hover:border-emerald-300 cursor-pointer transition-colors">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              Đánh dấu xong
-            </button>
-          <% end %>
-        </div>
-      </div>
-
-      <!-- Lesson content expandable -->
-      <% if !is_quiz && !is_flashcard && has_content %>
-        <div id="lesson-panel-<%= item.id %>" class="hidden border-t border-slate-100">
-          <div class="px-6 py-5 lesson-content">
-            <%= render_content(item.content) %>
-          </div>
-          <div class="px-6 pb-4">
-            <% unless is_done %>
+        <% if !is_quiz && !is_flashcard && has_content %>
+          <div id="lesson-panel-<%= item.id %>" class="hidden border-t border-slate-100">
+            <div class="px-6 py-5 lesson-content">
+              <%= render_content(item.content) %>
+            </div>
+            <% if @assignment.assignee == current_user && !is_done %>
+            <div class="px-6 pb-4">
               <button onclick="markItem(<%= @assignment.id %>, <%= item.id %>, 'completed')"
-                      class="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
+                      class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                 Đã đọc xong — Đánh dấu hoàn thành
               </button>
+            </div>
             <% end %>
           </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Pane: AI evaluation -->
+<div id="pane-ai" class="hidden">
+  <% if is_admin_view %>
+    <!-- Admin: show eval button + result -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100" style="background:linear-gradient(135deg,#f5f3ff,#eef2ff)">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center text-[18px]" style="background:#ede9fe">✦</div>
+          <div>
+            <div class="text-[15px] font-extrabold text-violet-900">Đánh giá AI cá nhân</div>
+            <div class="text-[12px] text-violet-500 mt-0.5">Học viên: <strong><%= @assignment.assignee.name.presence || @assignment.assignee.email %></strong></div>
+          </div>
+        </div>
+        <% if completed_all %>
+          <button id="asgn-ai-eval-btn" onclick="asgnAiEvaluate()"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-bold text-white rounded-xl border-0 cursor-pointer transition-colors"
+                  style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            ✦ <%= @assignment.ai_feedback.present? ? 'Đánh giá lại · 2 credits' : 'Đánh giá AI · 2 credits' %>
+          </button>
+        <% else %>
+          <div title="Học viên chưa hoàn thành (<%= pct %>%)"
+               class="inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-bold text-white rounded-xl opacity-40 cursor-not-allowed"
+               style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            Chưa xong (<%= pct %>%)
+          </div>
+        <% end %>
+      </div>
+      <% if @assignment.ai_feedback.present? %>
+        <div class="px-1 py-1 bg-violet-50 border-b border-violet-100">
+          <div class="text-[11px] text-violet-500 text-center py-1">Đánh giá lúc <%= @assignment.ai_feedback_at.strftime("%H:%M %d/%m/%Y") %></div>
+        </div>
+        <div id="asgn-ai-result-body" class="px-5 py-4 ai-md"><%= raw @assignment.ai_feedback %></div>
+      <% else %>
+        <div id="asgn-ai-result-body" class="px-5 py-10 text-center text-slate-400">
+          <div class="text-4xl mb-3">✦</div>
+          <p class="text-[13px]"><%= completed_all ? 'Nhấn "Đánh giá AI" để tạo nhận xét cho học viên này.' : "Học viên cần hoàn thành 100% để có thể đánh giá AI." %></p>
         </div>
       <% end %>
     </div>
+  <% else %>
+    <!-- Student: view AI feedback -->
+    <% if @assignment.ai_feedback.present? %>
+      <div class="bg-white border border-violet-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="flex items-center gap-3 px-5 py-4 border-b border-violet-100" style="background:linear-gradient(135deg,#f5f3ff,#eef2ff)">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center text-[18px]" style="background:#ede9fe">✦</div>
+          <div>
+            <div class="text-[14px] font-extrabold text-violet-900">Nhận xét từ AI</div>
+            <div class="text-[11px] text-violet-500 mt-0.5">Đánh giá lúc <%= @assignment.ai_feedback_at.strftime("%H:%M %d/%m/%Y") %></div>
+          </div>
+        </div>
+        <div class="px-5 py-4 ai-md"><%= raw @assignment.ai_feedback %></div>
+      </div>
+    <% else %>
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-10 text-center text-slate-400">
+        <div class="text-4xl mb-3">✦</div>
+        <p class="text-[13px]">Chưa có nhận xét AI nào. Hãy hoàn thành lộ trình để nhận đánh giá từ AI.</p>
+      </div>
+    <% end %>
   <% end %>
 </div>
 
 <script>
+function switchTab(name) {
+  var tabs = ['items', 'ai'];
+  tabs.forEach(function(t) {
+    var btn = document.getElementById('tab-' + t);
+    var pane = document.getElementById('pane-' + t);
+    var active = t === name;
+    btn.style.color = active ? '#1e293b' : '#94a3b8';
+    btn.style.fontWeight = active ? '700' : '600';
+    btn.style.borderBottom = active ? '2px solid #1e3a5f' : '2px solid transparent';
+    if (pane) pane.classList.toggle('hidden', !active);
+  });
+}
+
 function toggleLesson(id) {
   const panel = document.getElementById('lesson-panel-' + id);
   const btn   = document.getElementById('toggle-btn-' + id);
   if (!panel) return;
   const hidden = panel.classList.toggle('hidden');
-  if (btn) btn.style.background = hidden ? '' : '#e0e7ff';
+  if (btn) {
+    btn.style.background = hidden ? '' : '#1d4ed8';
+  }
 }
 
 function markItem(asgmtId, itemId, status) {
-  fetch('/admin/learning_path_assignments/' + asgmtId + '/update_progress', {
+  fetch('/learning_path_assignments/' + asgmtId + '/update_progress', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
     body: JSON.stringify({ item_id: itemId, status })
@@ -227,7 +325,6 @@ function markItem(asgmtId, itemId, status) {
   .then(data => {
     const pct = data.pct;
     const done = data.done_count;
-    // Update circle + bar + text
     const circ = document.querySelector('circle[stroke-dasharray]');
     if (circ) circ.setAttribute('stroke-dasharray', (188.4 * pct / 100).toFixed(1) + ' 188.4');
     const pctEl = document.getElementById('pct-display');
@@ -239,4 +336,40 @@ function markItem(asgmtId, itemId, status) {
     location.reload();
   });
 }
+
+function asgnAiEvaluate() {
+  var btn = document.getElementById('asgn-ai-eval-btn');
+  var body = document.getElementById('asgn-ai-result-body');
+
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Đang đánh giá...';
+  body.innerHTML = '<div class="flex items-center gap-2 py-10 justify-center text-slate-400 text-[13px]"><svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> AI đang phân tích và viết nhận xét...</div>';
+
+  fetch('<%= ai_evaluate_learning_path_assignment_path(@assignment) %>', {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) {
+      body.innerHTML = '<p class="text-red-500 text-[13px] py-4 px-5">' + data.error + '</p>';
+      btn.disabled = false;
+      btn.innerHTML = '✦ Đánh giá AI · 2 credits';
+    } else {
+      body.innerHTML = '<div class="px-5 py-4 ai-md">' + data.html + '</div>';
+      btn.innerHTML = '✦ Đánh giá lại · 2 credits';
+      btn.disabled = false;
+    }
+  })
+  .catch(() => {
+    body.innerHTML = '<p class="text-red-500 text-[13px] py-4 px-5">Lỗi kết nối. Vui lòng thử lại.</p>';
+    btn.disabled = false;
+    btn.innerHTML = '✦ Đánh giá AI · 2 credits';
+  });
+}
+
+// Auto-switch to AI tab if there's feedback and hash is #ai
+<% if @assignment.ai_feedback.present? %>
+if (window.location.hash === '#ai') switchTab('ai');
+<% end %>
 </script>

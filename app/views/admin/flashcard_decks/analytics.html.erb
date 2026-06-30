@@ -1,0 +1,174 @@
+<% content_for :title, "Analytics – #{@deck.title}" %>
+
+<%# ── Header ── %>
+<div class="flex items-center gap-3 mb-6">
+  <%= render "admin/shared/back_btn" %>
+  <div class="flex-1 min-w-0">
+    <h1 class="text-[20px] font-extrabold text-slate-900 truncate">📊 Analytics – <%= @deck.title %></h1>
+    <div class="text-[12px] text-slate-400 mt-0.5"><%= @deck.subject.presence || "Tổng hợp" %> · <%= @deck.flashcards.count %> thẻ</div>
+  </div>
+  <%= link_to flashcard_deck_path(@deck),
+      class: "flex items-center gap-1.5 px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 text-[13px] font-semibold rounded-xl transition-colors" do %>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+    Danh sách thẻ
+  <% end %>
+  <%= link_to study_flashcard_deck_path(@deck),
+      class: "flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl transition-colors" do %>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+    Học ngay
+  <% end %>
+</div>
+
+<%# ── Summary Cards ── %>
+<div class="grid grid-cols-4 gap-4 mb-6">
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+    <div class="text-[11px] uppercase font-bold text-slate-500 tracking-wide mb-2">Tổng lượt ôn</div>
+    <div class="text-2xl font-bold text-slate-900"><%= @total_reviews %></div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+    <div class="text-[11px] uppercase font-bold text-slate-500 tracking-wide mb-2">Người học</div>
+    <div class="text-2xl font-bold text-slate-900"><%= @unique_learners %></div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+    <div class="text-[11px] uppercase font-bold text-slate-500 tracking-wide mb-2">Tỉ lệ ghi nhớ</div>
+    <div class="text-2xl font-bold <%= @mastery_rate >= 70 ? 'text-emerald-600' : (@mastery_rate >= 40 ? 'text-amber-500' : 'text-red-500') %>">
+      <%= @mastery_rate %>%
+    </div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+    <div class="text-[11px] uppercase font-bold text-slate-500 tracking-wide mb-2">Tổng thẻ</div>
+    <div class="text-2xl font-bold text-slate-900"><%= @deck.flashcards.count %></div>
+  </div>
+</div>
+
+<%# ── Activity Chart ── %>
+<div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-6">
+  <h2 class="text-[13px] font-bold text-slate-900 mb-4">Hoạt động 14 ngày qua</h2>
+  <% max_count = @daily_activity.map { |d| d[:count] }.max.to_i %>
+  <% if max_count == 0 %>
+    <div class="flex items-center justify-center h-48 text-slate-400 text-[13px]">Chưa có dữ liệu ôn tập.</div>
+  <% else %>
+    <div style="height:280px; position:relative;">
+      <svg viewBox="0 0 840 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+        <% bar_width = 40 %>
+        <% gap = 20 %>
+        <% chart_h = 200 %>
+        <% bottom = 230 %>
+        <% @daily_activity.each_with_index do |day, i| %>
+          <% x = i * (bar_width + gap) + 10 %>
+          <% bar_h = max_count > 0 ? (day[:count].to_f / max_count * chart_h).round : 0 %>
+          <% y = bottom - bar_h %>
+          <% label = day[:date].strftime("%d/%m") %>
+          <% if bar_h > 0 %>
+            <rect x="<%= x %>" y="<%= y %>" width="<%= bar_width %>" height="<%= bar_h %>"
+                  rx="6" fill="#6366f1" opacity="0.85"/>
+            <text x="<%= x + bar_width / 2 %>" y="<%= y - 4 %>" text-anchor="middle"
+                  font-size="10" fill="#6366f1" font-weight="600"><%= day[:count] %></text>
+          <% else %>
+            <rect x="<%= x %>" y="<%= bottom - 2 %>" width="<%= bar_width %>" height="2"
+                  rx="1" fill="#e2e8f0"/>
+          <% end %>
+          <text x="<%= x + bar_width / 2 %>" y="<%= bottom + 16 %>" text-anchor="middle"
+                font-size="10" fill="#94a3b8"><%= label %></text>
+        <% end %>
+        <line x1="0" y1="<%= bottom %>" x2="840" y2="<%= bottom %>" stroke="#e2e8f0" stroke-width="1"/>
+      </svg>
+    </div>
+  <% end %>
+</div>
+
+<%# ── Two-column layout ── %>
+<div class="grid grid-cols-2 gap-5">
+
+  <%# Left: Hardest cards %>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+    <h2 class="text-[13px] font-bold text-slate-900 mb-4">Thẻ khó nhất</h2>
+    <% top_cards = @cards_with_stats.first(10) %>
+    <% if top_cards.empty? %>
+      <div class="text-center py-8 text-slate-400 text-[13px]">Chưa có dữ liệu.</div>
+    <% else %>
+      <table class="w-full text-[12px]">
+        <thead>
+          <tr class="border-b border-slate-100">
+            <th class="text-left py-2 pr-2 text-[11px] uppercase font-bold text-slate-400 w-8">STT</th>
+            <th class="text-left py-2 pr-2 text-[11px] uppercase font-bold text-slate-400">Mặt trước</th>
+            <th class="text-right py-2 pr-2 text-[11px] uppercase font-bold text-slate-400 w-16">Lượt ôn</th>
+            <th class="text-right py-2 text-[11px] uppercase font-bold text-slate-400 w-20">% Khó</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% top_cards.each_with_index do |s, i| %>
+            <tr class="border-b border-slate-50 hover:bg-[#1e3a5f] hover:text-white transition-colors">
+              <td class="py-2 pr-2 text-slate-400 font-semibold"><%= i + 1 %></td>
+              <td class="py-2 pr-2 text-slate-700 font-medium"><%= truncate(s[:card].front, length: 50) %></td>
+              <td class="py-2 pr-2 text-right text-slate-600">
+                <%= s[:review_count] > 0 ? s[:review_count] : '—' %>
+              </td>
+              <td class="py-2 text-right">
+                <% if s[:review_count] == 0 %>
+                  <span class="text-slate-400">—</span>
+                <% else %>
+                  <% hard_pct = (s[:hard_count].to_f / s[:review_count] * 100).round %>
+                  <span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold
+                    <%= hard_pct > 60 ? 'bg-red-100 text-red-700' : (hard_pct > 30 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700') %>">
+                    <%= hard_pct %>%
+                  </span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  </div>
+
+  <%# Right: Learners %>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+    <h2 class="text-[13px] font-bold text-slate-900 mb-4">Học viên</h2>
+    <% if @learner_stats.empty? %>
+      <div class="flex flex-col items-center justify-center py-12 text-slate-400">
+        <svg class="w-10 h-10 mb-3 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <p class="text-[13px]">Chưa có học viên nào ôn tập.</p>
+      </div>
+    <% else %>
+      <table class="w-full text-[12px]">
+        <thead>
+          <tr class="border-b border-slate-100">
+            <th class="text-left py-2 pr-2 text-[11px] uppercase font-bold text-slate-400">Học viên</th>
+            <th class="text-right py-2 pr-2 text-[11px] uppercase font-bold text-slate-400 w-16">Lượt ôn</th>
+            <th class="text-right py-2 pr-2 text-[11px] uppercase font-bold text-slate-400 w-20">% Ghi nhớ</th>
+            <th class="text-right py-2 text-[11px] uppercase font-bold text-slate-400 w-24">Lần cuối</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @learner_stats.each do |s| %>
+            <tr class="border-b border-slate-50 hover:bg-[#1e3a5f] hover:text-white transition-colors">
+              <td class="py-2 pr-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-bold flex items-center justify-center shrink-0">
+                    <%= s[:user].name.to_s.first.upcase %>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="text-slate-800 font-semibold truncate"><%= s[:user].name %></div>
+                    <div class="text-slate-400 truncate text-[11px]"><%= s[:user].email %></div>
+                  </div>
+                </div>
+              </td>
+              <td class="py-2 pr-2 text-right text-slate-600 font-semibold"><%= s[:total_reviews] %></td>
+              <td class="py-2 pr-2 text-right">
+                <% mem_pct = s[:total_reviews] > 0 ? (s[:mastered].to_f / s[:total_reviews] * 100).round : 0 %>
+                <span class="font-bold <%= mem_pct >= 70 ? 'text-emerald-600' : (mem_pct >= 40 ? 'text-amber-500' : 'text-red-500') %>">
+                  <%= mem_pct %>%
+                </span>
+              </td>
+              <td class="py-2 text-right text-slate-400 text-[11px]">
+                <%= s[:last_reviewed] ? time_ago_in_words(s[:last_reviewed]) + " trước" : "—" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  </div>
+
+</div>

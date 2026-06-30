@@ -11,7 +11,7 @@ class LearningPath < ApplicationRecord
     return nil unless assignment
     total = learning_path_items.count
     return 0 if total == 0
-    done = assignment.learning_item_progresses.completed.count
+    done = assignment.learning_item_progresses.loaded? ? assignment.learning_item_progresses.count(&:completed?) : assignment.learning_item_progresses.completed.count
     (done * 100.0 / total).round
   end
 end

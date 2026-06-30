@@ -102,7 +102,7 @@ class GenerateDocumentSummaryJob < ApplicationJob
     json_str = cleaned.match(/\{.*\}/m)&.to_s || cleaned
     data     = JSON.parse(json_str)
 
-    summary.workspace.active_subscription&.deduct_credits!(2)
+    summary.workspace.credit_subscription&.deduct_credits!(2)
     summary.update!(
       summary:    data["summary"],
       key_points: data["key_points"].to_json,
@@ -130,28 +130,27 @@ class GenerateDocumentSummaryJob < ApplicationJob
   def extract_pdf(data)
     require "open3"
     tmp = Tempfile.new(["ds_upload", ".pdf"])
-    tmp.binmode; tmp.write(data); tmp.flush
-
-    # 1. pdftotext (poppler-utils) — handles compressed/encrypted PDFs
-    stdout, _e, status = Open3.capture3("pdftotext", "-enc", "UTF-8", tmp.path, "-")
-    if status.success? && stdout.strip.present?
-      tmp.close!
-      return stdout.strip
-    end
-
-    # 2. pdf-reader gem (pure Ruby fallback)
     begin
-      require "pdf-reader"
-      reader = PDF::Reader.new(StringIO.new(data))
-      text   = reader.pages.map(&:text).join("\n").strip
-      tmp.close!
-      return text if text.present?
-    rescue => e
-      Rails.logger.warn "[GenerateDocumentSummaryJob] pdf-reader: #{e.message}"
-    end
+      tmp.binmode; tmp.write(data); tmp.flush
 
-    tmp.close!
-    nil
+      # 1. pdftotext (poppler-utils) — handles compressed/encrypted PDFs
+      stdout, _e, status = Open3.capture3("pdftotext", "-enc", "UTF-8", tmp.path, "-")
+      return stdout.strip if status.success? && stdout.strip.present?
+
+      # 2. pdf-reader gem (pure Ruby fallback)
+      begin
+        require "pdf-reader"
+        reader = PDF::Reader.new(StringIO.new(data))
+        text   = reader.pages.map(&:text).join("\n").strip
+        return text if text.present?
+      rescue => e
+        Rails.logger.warn "[GenerateDocumentSummaryJob] pdf-reader: #{e.message}"
+      end
+
+      nil
+    ensure
+      tmp.close!
+    end
   rescue => e
     Rails.logger.error "[GenerateDocumentSummaryJob] extract_pdf: #{e.message}"
     nil

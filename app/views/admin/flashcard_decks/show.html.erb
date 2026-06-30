@@ -12,6 +12,16 @@
       <% if @deck.ai_generated? %><span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-violet-100 text-violet-700">✨ AI</span><% end %>
     </div>
   </div>
+  <%= link_to edit_flashcard_deck_path(@deck),
+      class: "flex items-center gap-1.5 px-3 py-2.5 bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-slate-600 text-[13px] font-semibold rounded-xl transition-colors" do %>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+    Sửa
+  <% end %>
+  <%= link_to analytics_flashcard_deck_path(@deck),
+      class: "flex items-center gap-1.5 px-3 py-2.5 bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-slate-600 text-[13px] font-semibold rounded-xl transition-colors" do %>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    Analytics
+  <% end %>
   <%= link_to study_flashcard_deck_path(@deck), class: "flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl transition-colors" do %>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
     Học ngay
@@ -30,15 +40,20 @@
     </div>
   </div>
   <%= form_with url: ai_generate_flashcard_deck_path(@deck), method: :post, local: false, id: "ai-gen-form" do %>
-    <div class="flex gap-2">
-      <input type="text" name="topic" placeholder="Chủ đề (mặc định: <%= @deck.title %>)"
-             class="flex-1 px-3 py-2 border border-violet-200 rounded-xl text-[13px] bg-white focus:border-violet-400 outline-none">
-      <div class="flex items-center border border-violet-200 rounded-xl bg-white overflow-hidden">
-        <input type="number" name="count" value="10" min="5" max="30"
-               class="w-16 px-3 py-2 text-[13px] border-0 outline-none text-center">
-        <span class="pr-3 text-[11px] text-slate-400">thẻ</span>
+    <div class="flex flex-col gap-2">
+      <textarea name="topic" rows="2" placeholder="Chủ đề (mặc định: <%= @deck.title %>)"
+                class="w-full px-3 py-2.5 border border-violet-200 rounded-xl text-[13px] bg-white focus:border-violet-400 outline-none resize-none leading-relaxed"></textarea>
+      <div class="flex gap-2 items-center">
+        <div class="flex items-center border border-violet-200 rounded-xl bg-white overflow-hidden">
+          <input type="number" name="count" value="10" min="5" max="30"
+                 class="w-16 px-3 py-2 text-[13px] border-0 outline-none text-center">
+          <span class="pr-3 text-[11px] text-slate-400">thẻ</span>
+        </div>
+        <button type="submit" id="ai-gen-btn" class="inline-flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z"/></svg>
+          Tạo
+        </button>
       </div>
-      <button type="submit" id="ai-gen-btn" class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">Tạo</button>
     </div>
   <% end %>
 </div>
@@ -76,12 +91,21 @@
           has_img = card.image_data.present?
         %>
         <div class="group relative" style="perspective:900px;">
-          <!-- Image upload button -->
-          <label title="Thêm/đổi ảnh" class="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white transition-all opacity-0 group-hover:opacity-100"
-                 style="border:1px solid #e2e8f0;">
-            <svg style="width:14px;height:14px;color:#1e3a5f;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            <input type="file" accept="image/*" class="hidden" onchange="uploadCardImage(this, '<%= flashcard_deck_flashcard_path(@deck, card) %>', '<%= dom_id(card) %>')">
-          </label>
+          <!-- Action buttons -->
+          <div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+            <button type="button" title="Chỉnh sửa thẻ"
+                    onclick="event.stopPropagation(); openCardEdit(<%= card.id %>, <%= raw card.front.to_json %>, <%= raw card.back.to_json %>)"
+                    class="w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center hover:bg-white transition-all"
+                    style="border:1px solid #e2e8f0;">
+              <svg style="width:13px;height:13px;color:#1e3a5f;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </button>
+            <label title="Thêm/đổi ảnh" class="w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white transition-all"
+                   onclick="event.stopPropagation();"
+                   style="border:1px solid #e2e8f0;">
+              <svg style="width:13px;height:13px;color:#1e3a5f;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <input type="file" accept="image/*" class="hidden" onchange="uploadCardImage(this, '<%= flashcard_deck_flashcard_path(@deck, card) %>', '<%= dom_id(card) %>')">
+            </label>
+          </div>
 
           <div id="<%= dom_id(card) %>" class="relative cursor-pointer card-mini-flip"
                style="transform-style:preserve-3d; -webkit-transform-style:preserve-3d; transition:transform 0.45s ease; height:<%= has_img ? '240px' : '140px' %>;"
@@ -91,7 +115,13 @@
                  style="backface-visibility:hidden; -webkit-backface-visibility:hidden; background:<%= gradients[i % gradients.size] %>;">
               <% if has_img %>
                 <div class="flex-shrink-0 relative" style="height:160px;overflow:hidden;">
-                  <img src="<%= card.image_data %>" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+                  <% if card.image_data.to_s.strip.start_with?('<svg') %>
+                    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.15);padding:8px;">
+                      <%= raw card.image_data.to_s.gsub(/<\/script>/i, '') %>
+                    </div>
+                  <% else %>
+                    <img src="<%= card.image_data %>" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+                  <% end %>
                   <div style="position:absolute;bottom:0;left:0;right:0;height:50px;background:linear-gradient(transparent,rgba(0,0,0,0.5));"></div>
                 </div>
                 <div class="flex-1 flex flex-col items-center justify-center p-3 text-center">
@@ -102,7 +132,7 @@
                 <div class="flex-1 flex flex-col items-center justify-center p-4 text-center">
                   <div class="text-[9px] font-bold uppercase tracking-widest text-white/70 mb-2">Thẻ <%= i+1 %></div>
                   <p class="text-[13px] font-bold text-white leading-tight line-clamp-3"><%= card.front %></p>
-                  <div class="mt-2 text-white/40 text-[10px]">📷 hover để thêm ảnh</div>
+                  <div class="mt-2 text-white/40 text-[10px]">✨ AI sẽ tạo minh họa · hover để thay ảnh</div>
                 </div>
               <% end %>
             </div>
@@ -118,10 +148,49 @@
         </div>
       <% end %>
     </div>
-    <p class="text-[11px] text-slate-400 text-center mt-3">Nhấn vào thẻ để lật · Hover để thêm ảnh</p>
+    <p class="text-[11px] text-slate-400 text-center mt-3">Nhấn vào thẻ để lật · Hover để sửa hoặc thêm ảnh</p>
 
 
     <script>
+    var _editCardId = null;
+    var _editCardUrls = <%= raw @cards.map { |c| [c.id, flashcard_deck_flashcard_path(@deck, c)] }.to_h.to_json %>;
+
+    function openCardEdit(id, front, back) {
+      _editCardId = id;
+      document.getElementById('card-edit-front').value = front;
+      document.getElementById('card-edit-back').value  = back;
+      document.getElementById('card-edit-modal').style.display = 'flex';
+      setTimeout(function(){ document.getElementById('card-edit-front').focus(); }, 50);
+    }
+    function closeCardEdit() {
+      document.getElementById('card-edit-modal').style.display = 'none';
+      _editCardId = null;
+    }
+    function saveCardEdit() {
+      var front = document.getElementById('card-edit-front').value.trim();
+      var back  = document.getElementById('card-edit-back').value.trim();
+      if (!front || !back) { alert('Vui lòng điền cả mặt trước và mặt sau.'); return; }
+      var url  = _editCardUrls[_editCardId];
+      var csrf = document.querySelector('meta[name="csrf-token"]').content;
+      fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        body: JSON.stringify({ flashcard: { front: front, back: back } })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ok) { closeCardEdit(); location.reload(); }
+        else alert('Lỗi: ' + (d.error || 'Không thể lưu'));
+      })
+      .catch(function(e) { alert('Lỗi kết nối: ' + e.message); });
+    }
+    document.getElementById('card-edit-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeCardEdit();
+    });
+    window.openCardEdit = openCardEdit;
+    window.closeCardEdit = closeCardEdit;
+    window.saveCardEdit = saveCardEdit;
+
     function uploadCardImage(input, patchUrl, cardDomId) {
       var file = input.files[0]; if (!file) return;
       var label = input.closest('label');
@@ -171,6 +240,25 @@
     }
     </script>
   <% end %>
+</div>
+
+<!-- Card edit modal -->
+<div id="card-edit-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(15,23,42,0.5);backdrop-filter:blur(3px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:28px;width:90%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <h3 style="margin:0 0 20px;font-size:16px;font-weight:800;color:#0f172a;">✏️ Chỉnh sửa thẻ</h3>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Mặt trước</label>
+      <textarea id="card-edit-front" rows="3" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:14px;font-family:inherit;outline:none;resize:vertical;box-sizing:border-box;" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Mặt sau (đáp án)</label>
+      <textarea id="card-edit-back" rows="4" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:14px;font-family:inherit;outline:none;resize:vertical;box-sizing:border-box;" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="saveCardEdit()" style="flex:1;padding:11px;background:#4f46e5;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;">Lưu</button>
+      <button onclick="closeCardEdit()" style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;">Hủy</button>
+    </div>
+  </div>
 </div>
 
 <!-- Single overlay — quiz_sets style -->
@@ -244,25 +332,28 @@ function makeFcProgressRing() {
 }
 
 // AJAX submit
-document.getElementById('ai-gen-form').addEventListener('ajax:before', function() {
-  document.getElementById('ai-gen-btn').disabled = true;
-});
-document.getElementById('ai-gen-form').addEventListener('ajax:success', function(e) {
-  var data = e.detail[0]; var resp = e.detail[2];
-  if (data.error) {
+var _aiGenForm = document.getElementById('ai-gen-form');
+if (_aiGenForm) {
+  _aiGenForm.addEventListener('ajax:before', function() {
+    document.getElementById('ai-gen-btn').disabled = true;
+  });
+  _aiGenForm.addEventListener('ajax:success', function(e) {
+    var data = e.detail[0]; var resp = e.detail[2];
+    if (data.error) {
+      document.getElementById('ai-gen-btn').disabled = false;
+      if (handleAiError(data, { status: resp.status })) return;
+      alert(data.error);
+      return;
+    }
+    document.getElementById('fc-overlay').style.display = 'flex';
+    _fcRingCtrl = makeFcProgressRing();
+    pollFcStatus(data.poll_url, data.show_url);
+  });
+  _aiGenForm.addEventListener('ajax:error', function() {
     document.getElementById('ai-gen-btn').disabled = false;
-    if (handleAiError(data, { status: resp.status })) return;
-    alert(data.error);
-    return;
-  }
-  document.getElementById('fc-overlay').style.display = 'flex';
-  _fcRingCtrl = makeFcProgressRing();
-  pollFcStatus(data.poll_url, data.show_url);
-});
-document.getElementById('ai-gen-form').addEventListener('ajax:error', function() {
-  document.getElementById('ai-gen-btn').disabled = false;
-  alert('Có lỗi xảy ra. Vui lòng thử lại.');
-});
+    alert('Có lỗi xảy ra. Vui lòng thử lại.');
+  });
+}
 
 function pollFcStatus(pollUrl, showUrl) {
   fetch(pollUrl, { headers: { 'Accept': 'application/json' } })

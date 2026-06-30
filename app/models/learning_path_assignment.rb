@@ -7,9 +7,10 @@ class LearningPathAssignment < ApplicationRecord
   enum :status, { active: 0, completed: 1, cancelled: 2 }
 
   def progress_pct
-    total = learning_path.learning_path_items.count
+    items = learning_path.learning_path_items
+    total = items.loaded? ? items.size : items.count
     return 0 if total == 0
-    done = learning_item_progresses.completed.count
+    done = learning_item_progresses.loaded? ? learning_item_progresses.count(&:completed?) : learning_item_progresses.completed.count
     (done * 100.0 / total).round
   end
 end

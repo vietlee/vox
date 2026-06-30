@@ -3,8 +3,8 @@
   <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
   <style>
     .ql-toolbar.ql-snow{border-radius:10px 10px 0 0;border-color:#e2e8f0;background:#f8fafc}
-    .ql-container.ql-snow{border-radius:0 0 10px 10px;border-color:#e2e8f0;font-size:14px;min-height:220px}
-    .ql-editor{min-height:220px;line-height:1.7;color:#374151}
+    .ql-container.ql-snow{border-radius:0 0 10px 10px;border-color:#e2e8f0;font-size:14px;min-height:320px}
+    .ql-editor{min-height:320px;line-height:1.7;color:#374151}
     .ql-editor h1,.ql-editor h2{font-weight:700;color:#1e293b;margin:.8em 0 .3em}
     .ql-editor h3{font-weight:600;color:#475569;margin:.6em 0 .2em}
     .ql-editor p{margin:.4em 0}
@@ -36,14 +36,105 @@
   </div>
   <div class="flex items-center gap-2 flex-shrink-0">
     <% unless @learning_path.published? %>
-      <%= button_to publish_learning_path_path(@learning_path), method: :patch,
-          class: "flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors" do %>
+      <%
+        incomplete_lessons  = @items.select { |it| it.lesson? && it.content.blank? }
+        incomplete_quizzes  = @items.select { |it| it.quiz? && it.quiz_set_id.nil? }
+        incomplete_flashcards = @items.select { |it| it.flashcard? && it.flashcard_deck_id.nil? }
+        has_warnings = incomplete_lessons.any? || incomplete_quizzes.any? || incomplete_flashcards.any?
+      %>
+      <!-- Hidden publish form -->
+      <%= form_with url: publish_learning_path_path(@learning_path), method: :patch, id: "publish-form", local: true do %>
+      <% end %>
+
+      <button type="button" onclick="confirmPublish()"
+              class="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
         Phát hành
-      <% end %>
+      </button>
+
+      <!-- Publish warning modal -->
+      <div id="publish-modal" style="display:none"
+           class="fixed inset-0 z-50 flex items-center justify-center p-4"
+           onclick="if(event.target===this)this.style.display='none'">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div class="flex items-start gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-[20px]">⚠️</div>
+            <div>
+              <h3 class="text-[16px] font-extrabold text-slate-900">Phát hành lộ trình?</h3>
+              <p class="text-[13px] text-slate-500 mt-0.5">Học viên sẽ thấy và có thể bắt đầu học ngay.</p>
+            </div>
+          </div>
+
+          <% if has_warnings %>
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 space-y-2">
+            <p class="text-[12px] font-bold text-amber-800 uppercase tracking-wide">⚠ Cảnh báo — nội dung chưa hoàn chỉnh</p>
+            <% if incomplete_lessons.any? %>
+              <div class="space-y-1">
+                <% incomplete_lessons.each do |it| %>
+                  <div class="flex items-center gap-2 text-[12px] text-amber-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
+                    Bài học "<%= it.title %>" chưa có nội dung
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+            <% if incomplete_quizzes.any? %>
+              <div class="space-y-1">
+                <% incomplete_quizzes.each do |it| %>
+                  <div class="flex items-center gap-2 text-[12px] text-amber-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
+                    Bài kiểm tra "<%= it.title %>" chưa liên kết quiz
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+            <% if incomplete_flashcards.any? %>
+              <div class="space-y-1">
+                <% incomplete_flashcards.each do |it| %>
+                  <div class="flex items-center gap-2 text-[12px] text-amber-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
+                    Thẻ ghi nhớ "<%= it.title %>" chưa liên kết bộ thẻ
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+          <% end %>
+
+          <div class="flex gap-2 justify-end">
+            <button type="button" onclick="document.getElementById('publish-modal').style.display='none'"
+                    class="px-4 py-2 text-[13px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+              Huỷ
+            </button>
+            <% if has_warnings %>
+              <button type="button" onclick="document.getElementById('publish-form').submit()"
+                      class="px-4 py-2 text-[13px] font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors">
+                Vẫn phát hành
+              </button>
+            <% else %>
+              <button type="button" onclick="document.getElementById('publish-form').submit()"
+                      class="px-4 py-2 text-[13px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors">
+                Phát hành ngay
+              </button>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        function confirmPublish() {
+          document.getElementById('publish-modal').style.display = 'flex';
+        }
+      </script>
+    <% end %>
+    <%= link_to progress_learning_path_path(@learning_path),
+        class: "flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-[#1e3a5f] hover:text-white text-slate-700 text-[13px] font-semibold rounded-xl border border-slate-300 transition-colors" do %>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      Tiến độ
     <% end %>
     <%= link_to edit_learning_path_path(@learning_path),
-        class: "flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[13px] font-semibold rounded-xl transition-colors" do %>
+        class: "flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-[#1e3a5f] hover:text-white text-slate-700 text-[13px] font-semibold rounded-xl border border-slate-300 transition-colors" do %>
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
       Chỉnh sửa
     <% end %>
@@ -80,10 +171,12 @@
       </div>
       <%= form_with url: ai_generate_learning_path_path(@learning_path), method: :post, local: true, id: "ai-lp-form" do %>
         <div class="flex gap-2">
-          <input type="text" name="prompt"
-                 placeholder="VD: học sinh lớp 10, mức cơ bản, tập trung nghe và phát âm... (để trống AI tự quyết)"
+          <input type="text" name="prompt" id="ai-lp-prompt"
+                 oninput="document.getElementById('ai-lp-btn').disabled = !this.value.trim()"
+                 placeholder="VD: học sinh lớp 10, mức cơ bản, tập trung nghe và phát âm..."
                  class="flex-1 px-3 py-2 border border-violet-200 rounded-xl text-[13px] bg-white focus:border-violet-400 outline-none">
-          <button type="submit" id="ai-lp-btn" class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors whitespace-nowrap">
+          <button type="submit" id="ai-lp-btn" disabled
+                  class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl border-0 transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-violet-600">
             ✦ Tạo ngay
           </button>
         </div>
@@ -95,7 +188,7 @@
       <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
         <h3 class="text-[14px] font-bold text-slate-900">📚 Danh sách bài học (<%= @items.size %>)</h3>
         <button onclick="document.getElementById('add-item-row').classList.toggle('hidden')"
-                class="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition-colors border-0 cursor-pointer">
+                class="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-indigo-50 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-indigo-700 rounded-lg transition-colors border-0 cursor-pointer">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
           Cách 2 — Thêm thủ công
         </button>
@@ -128,7 +221,7 @@
           <% @items.each_with_index do |item, i| %>
             <div data-item-id="<%= item.id %>">
               <!-- Item row -->
-              <div class="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 group cursor-pointer"
+              <div class="flex items-center gap-3 px-5 py-3.5 hover:bg-[#1e3a5f] hover:text-white group cursor-pointer"
                    onclick="toggleItemEdit(<%= item.id %>)">
                 <span class="text-slate-300 group-hover:text-slate-400 cursor-grab text-lg leading-none" onclick="event.stopPropagation()">⠿</span>
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[13px] shrink-0 <%= item.quiz? ? 'bg-violet-50' : (item.flashcard? ? 'bg-amber-50' : 'bg-indigo-50') %>">
@@ -145,18 +238,18 @@
                 </div>
                 <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation()">
                   <button onclick="toggleItemEdit(<%= item.id %>)" title="Chỉnh sửa"
-                          class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
+                          class="p-1.5 text-slate-400 hover:text-white hover:bg-[#1e3a5f] rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                   </button>
                   <button onclick="deleteItem(<%= item.id %>)" title="Xóa"
-                          class="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
+                          class="p-1.5 text-slate-300 hover:text-white hover:bg-[#1e3a5f] rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                   </button>
                 </div>
               </div>
               <!-- Inline edit panel -->
               <div id="edit-item-<%= item.id %>" class="hidden bg-slate-50 border-t border-slate-100 px-5 py-4">
-                <div class="space-y-3 max-w-lg">
+                <div class="space-y-3">
                   <div class="grid grid-cols-2 gap-3">
                     <div>
                       <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Tiêu đề</label>
@@ -171,27 +264,111 @@
                   </div>
                   <% if item.quiz? %>
                     <div>
-                      <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Liên kết bộ câu hỏi</label>
-                      <select id="item-quiz-<%= item.id %>"
-                              class="w-full px-3 py-2 border border-slate-200 rounded-xl text-[13px] bg-white focus:border-indigo-500 outline-none">
-                        <option value="">— Chọn bộ câu hỏi —</option>
-                        <% @quiz_sets.each do |qs| %>
-                          <option value="<%= qs.id %>" <%= item.quiz_set_id == qs.id ? 'selected' : '' %>><%= qs.title %></option>
-                        <% end %>
-                      </select>
-                      <p class="text-[11px] text-slate-400 mt-1">Học viên sẽ làm bài kiểm tra này khi đến bước này trong lộ trình</p>
+                      <label class="block text-[11px] font-bold text-slate-500 uppercase mb-2">Bộ câu hỏi</label>
+                      <!-- Linked card (shows when quiz_set linked) -->
+                      <% if item.quiz_set %>
+                        <div id="quiz-linked-<%= item.id %>" class="flex items-center gap-3 p-3 bg-violet-50 border border-violet-200 rounded-xl mb-2">
+                          <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-[15px] shrink-0">📝</div>
+                          <div class="flex-1 min-w-0">
+                            <div class="text-[13px] font-semibold text-violet-900 truncate"><%= item.quiz_set.title %></div>
+                            <div class="text-[11px] text-violet-500"><%= item.quiz_set.quiz_questions.count %> câu hỏi · <%= item.quiz_set.status %></div>
+                          </div>
+                          <a href="<%= edit_quiz_set_path(item.quiz_set) %>" target="_blank" class="text-[11px] text-violet-600 font-semibold hover:underline shrink-0">Xem →</a>
+                        </div>
+                      <% else %>
+                        <div id="quiz-linked-<%= item.id %>" class="hidden"></div>
+                      <% end %>
+                      <!-- AI generate card -->
+                      <div id="quiz-ai-card-<%= item.id %>" class="hidden p-3 bg-indigo-50 border border-indigo-200 rounded-xl mb-2">
+                        <div class="flex items-center gap-2 mb-1">
+                          <div class="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                          <span class="text-[12px] font-semibold text-indigo-700" id="quiz-ai-title-<%= item.id %>">AI đang tạo câu hỏi...</span>
+                        </div>
+                        <div class="text-[11px] text-indigo-500">Sẽ sẵn sàng sau ~30 giây · <a id="quiz-ai-link-<%= item.id %>" href="#" target="_blank" class="underline font-semibold">Xem bộ quiz</a></div>
+                      </div>
+                      <!-- AI generating overlay -->
+                      <div id="quiz-gen-overlay-<%= item.id %>" class="hidden rounded-xl border border-violet-200 overflow-hidden mb-2" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe)">
+                        <div class="px-5 py-5 text-center">
+                          <div class="flex items-center justify-center gap-2 mb-3">
+                            <svg class="w-5 h-5 text-violet-500 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            <span class="text-[13px] font-bold text-violet-700" id="quiz-gen-label-<%= item.id %>">AI đang soạn câu hỏi...</span>
+                          </div>
+                          <div class="h-1.5 bg-violet-100 rounded-full overflow-hidden w-48 mx-auto">
+                            <div id="quiz-gen-bar-<%= item.id %>" class="h-1.5 rounded-full transition-all duration-700" style="width:5%;background:linear-gradient(90deg,#7c3aed,#6366f1)"></div>
+                          </div>
+                          <p class="text-[11px] text-violet-400 mt-2">Đang tạo ~8 câu hỏi trắc nghiệm · 20–40 giây</p>
+                        </div>
+                      </div>
+                      <!-- Actions row -->
+                      <div class="flex gap-2">
+                        <select id="item-quiz-<%= item.id %>"
+                                class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-[13px] bg-white focus:border-indigo-500 outline-none">
+                          <option value="">— Chọn bộ câu hỏi có sẵn —</option>
+                          <% @quiz_sets.each do |qs| %>
+                            <option value="<%= qs.id %>" <%= item.quiz_set_id == qs.id ? 'selected' : '' %>><%= qs.title %></option>
+                          <% end %>
+                        </select>
+                        <button type="button" onclick="aiCreateQuiz(<%= item.id %>)"
+                                id="ai-quiz-btn-<%= item.id %>"
+                                class="flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold text-white rounded-xl border-0 cursor-pointer whitespace-nowrap shrink-0 transition-all"
+                                style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+                          ✦ AI tạo mới · 5 credits
+                        </button>
+                      </div>
                     </div>
                   <% elsif item.flashcard? %>
                     <div>
-                      <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Liên kết bộ thẻ</label>
-                      <select id="item-flashcard-<%= item.id %>"
-                              class="w-full px-3 py-2 border border-slate-200 rounded-xl text-[13px] bg-white focus:border-indigo-500 outline-none">
-                        <option value="">— Chọn bộ thẻ ghi nhớ —</option>
-                        <% @flashcard_decks.each do |deck| %>
-                          <option value="<%= deck.id %>" <%= item.flashcard_deck_id == deck.id ? 'selected' : '' %>><%= deck.title %> (<%= deck.card_count %> thẻ)</option>
-                        <% end %>
-                      </select>
-                      <p class="text-[11px] text-slate-400 mt-1">Học viên sẽ ôn luyện thẻ ghi nhớ này trong lộ trình</p>
+                      <label class="block text-[11px] font-bold text-slate-500 uppercase mb-2">Bộ thẻ ghi nhớ</label>
+                      <!-- Linked card -->
+                      <% if item.flashcard_deck %>
+                        <div id="fc-linked-<%= item.id %>" class="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl mb-2">
+                          <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-[15px] shrink-0">🃏</div>
+                          <div class="flex-1 min-w-0">
+                            <div class="text-[13px] font-semibold text-amber-900 truncate"><%= item.flashcard_deck.title %></div>
+                            <div class="text-[11px] text-amber-600"><%= item.flashcard_deck.card_count %> thẻ<% if item.flashcard_deck.ai_generating? %> · <span class="text-amber-500">đang tạo...</span><% end %></div>
+                          </div>
+                          <a href="<%= edit_flashcard_deck_path(item.flashcard_deck) %>" target="_blank" class="text-[11px] text-amber-700 font-semibold hover:underline shrink-0">Xem →</a>
+                        </div>
+                      <% else %>
+                        <div id="fc-linked-<%= item.id %>" class="hidden"></div>
+                      <% end %>
+                      <!-- AI generating card -->
+                      <div id="fc-ai-card-<%= item.id %>" class="hidden p-3 bg-amber-50 border border-amber-200 rounded-xl mb-2">
+                        <div class="flex items-center gap-2 mb-1">
+                          <div class="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                          <span class="text-[12px] font-semibold text-amber-700" id="fc-ai-title-<%= item.id %>">AI đang tạo thẻ ghi nhớ...</span>
+                        </div>
+                        <div class="text-[11px] text-amber-600">Sẽ sẵn sàng sau ~30 giây · <a id="fc-ai-link-<%= item.id %>" href="#" target="_blank" class="underline font-semibold">Xem bộ thẻ</a></div>
+                      </div>
+                      <!-- AI generating overlay -->
+                      <div id="fc-gen-overlay-<%= item.id %>" class="hidden rounded-xl border border-amber-200 overflow-hidden mb-2" style="background:linear-gradient(135deg,#fffbeb,#fef3c7)">
+                        <div class="px-5 py-5 text-center">
+                          <div class="flex items-center justify-center gap-2 mb-3">
+                            <svg class="w-5 h-5 text-amber-500 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            <span class="text-[13px] font-bold text-amber-700" id="fc-gen-label-<%= item.id %>">AI đang tạo thẻ ghi nhớ...</span>
+                          </div>
+                          <div class="h-1.5 bg-amber-100 rounded-full overflow-hidden w-48 mx-auto">
+                            <div id="fc-gen-bar-<%= item.id %>" class="h-1.5 rounded-full transition-all duration-700" style="width:5%;background:linear-gradient(90deg,#d97706,#f59e0b)"></div>
+                          </div>
+                          <p class="text-[11px] text-amber-400 mt-2">Đang tạo ~15 thẻ · 20–40 giây</p>
+                        </div>
+                      </div>
+                      <!-- Actions row -->
+                      <div class="flex gap-2">
+                        <select id="item-flashcard-<%= item.id %>"
+                                class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-[13px] bg-white focus:border-indigo-500 outline-none">
+                          <option value="">— Chọn bộ thẻ có sẵn —</option>
+                          <% @flashcard_decks.each do |deck| %>
+                            <option value="<%= deck.id %>" <%= item.flashcard_deck_id == deck.id ? 'selected' : '' %>><%= deck.title %> (<%= deck.card_count %> thẻ)</option>
+                          <% end %>
+                        </select>
+                        <button type="button" onclick="aiCreateFlashcard(<%= item.id %>)"
+                                id="ai-fc-btn-<%= item.id %>"
+                                class="flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold text-white rounded-xl border-0 cursor-pointer whitespace-nowrap shrink-0 transition-all"
+                                style="background:linear-gradient(135deg,#d97706,#b45309)">
+                          ✦ AI tạo mới · 3 credits
+                        </button>
+                      </div>
                     </div>
                   <% else %>
                     <div>
@@ -204,6 +381,20 @@
                           ✦ AI viết nội dung · 2 credits
                         </button>
                       </div>
+                      <!-- AI generating overlay -->
+                      <div id="ai-content-overlay-<%= item.id %>" class="hidden rounded-xl border border-indigo-200 overflow-hidden mb-1" style="background:linear-gradient(135deg,#f5f3ff,#eef2ff)">
+                        <div class="px-5 py-6 text-center">
+                          <div class="flex items-center justify-center gap-2 mb-3">
+                            <svg class="w-5 h-5 text-indigo-500 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            <span class="text-[13px] font-bold text-indigo-700" id="ai-content-label-<%= item.id %>">AI đang viết nội dung...</span>
+                          </div>
+                          <!-- Fake progress bar -->
+                          <div class="h-1.5 bg-indigo-100 rounded-full overflow-hidden w-48 mx-auto">
+                            <div id="ai-content-bar-<%= item.id %>" class="h-1.5 bg-indigo-500 rounded-full transition-all duration-700" style="width:5%"></div>
+                          </div>
+                          <p class="text-[11px] text-indigo-400 mt-2">Thường mất 10–20 giây</p>
+                        </div>
+                      </div>
                       <div id="quill-<%= item.id %>" class="rounded-xl overflow-hidden border border-slate-200"></div>
                       <input type="hidden" id="item-content-<%= item.id %>" value="">
                       <p class="text-[11px] text-slate-400 mt-1">Hỗ trợ định dạng phong phú — học viên sẽ đọc nội dung này khi học bài</p>
@@ -215,7 +406,7 @@
                       Lưu
                     </button>
                     <button onclick="toggleItemEdit(<%= item.id %>)"
-                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[12px] font-semibold rounded-xl border-0 cursor-pointer transition-colors">
+                            class="px-4 py-2 bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-600 text-[12px] font-semibold rounded-xl border-0 cursor-pointer transition-colors">
                       Hủy
                     </button>
                   </div>
@@ -238,31 +429,164 @@
       <div class="p-4">
         <%= form_with url: assign_learning_path_path(@learning_path), method: :post, local: true do %>
           <div class="space-y-3">
-            <% if @workspace_members.empty? %>
-              <p class="text-[12px] text-slate-400 text-center py-4">Chưa có thành viên trong workspace</p>
-            <% else %>
-              <div class="border border-slate-200 rounded-xl overflow-hidden max-h-44 overflow-y-auto">
-                <% @workspace_members.each do |member| %>
-                  <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0">
-                    <input type="checkbox" name="user_ids[]" value="<%= member.id %>" class="w-4 h-4 rounded text-indigo-600">
-                    <div class="flex-1 min-w-0">
-                      <div class="text-[12px] font-semibold text-slate-800 truncate"><%= member.name %></div>
-                      <div class="text-[11px] text-slate-400 truncate"><%= member.email %></div>
-                    </div>
-                  </label>
-                <% end %>
+            <!-- Tab: chọn thành viên hoặc nhập email -->
+            <div class="flex bg-slate-100 rounded-xl p-1 gap-1" id="assign-tabs">
+              <button type="button" onclick="switchTab('members')"
+                      id="tab-members"
+                      class="flex-1 py-1.5 text-[12px] font-semibold rounded-lg bg-white text-indigo-700 shadow-sm transition-all">
+                Thành viên
+              </button>
+              <button type="button" onclick="switchTab('email')"
+                      id="tab-email"
+                      class="flex-1 py-1.5 text-[12px] font-semibold rounded-lg text-slate-500 transition-all">
+                Nhập email
+              </button>
+            </div>
+
+            <!-- Panel: thành viên -->
+            <div id="panel-members">
+              <% if @workspace_members.empty? %>
+                <p class="text-[12px] text-slate-400 text-center py-4">Chưa có thành viên trong workspace</p>
+              <% else %>
+                <div class="border border-slate-200 rounded-xl overflow-hidden max-h-44 overflow-y-auto">
+                  <% @workspace_members.each do |member| %>
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#1e3a5f] hover:text-white cursor-pointer border-b border-slate-100 last:border-0">
+                      <input type="checkbox" name="user_ids[]" value="<%= member.id %>" class="w-4 h-4 rounded text-indigo-600">
+                      <div class="flex-1 min-w-0">
+                        <div class="text-[12px] font-semibold text-slate-800 truncate"><%= member.name %></div>
+                        <div class="text-[11px] text-slate-400 truncate"><%= member.email %></div>
+                      </div>
+                    </label>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+
+            <!-- Panel: nhập email -->
+            <div id="panel-email" style="display:none">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Email</label>
+                <input type="hidden" name="invite_emails" id="lp-emails-hidden">
+                <div id="lp-email-wrap"
+                     onclick="document.getElementById('lp-email-input').focus()"
+                     class="min-h-[40px] w-full flex flex-wrap gap-1.5 px-2.5 py-2 border border-slate-200 rounded-xl cursor-text focus-within:border-indigo-400 transition-all bg-white">
+                  <input id="lp-email-input" type="text" inputmode="email"
+                         placeholder="Nhập email rồi nhấn Enter..."
+                         class="flex-1 min-w-[160px] text-[13px] outline-none bg-transparent placeholder-slate-400 py-0.5">
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Nhấn <strong>Enter</strong> để thêm email. Tự động tạo tài khoản nếu chưa có.</p>
               </div>
-            <% end %>
+            </div>
+
             <div>
               <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Hạn nộp (tuỳ chọn)</label>
               <input type="date" name="due_date" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-[13px] focus:border-indigo-500 outline-none">
             </div>
-            <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
+            <button type="submit" id="lp-assign-btn" disabled
+                    class="w-full py-2.5 bg-[#1e3a5f] text-white text-[13px] font-bold rounded-xl border-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#162d4a] disabled:hover:bg-[#1e3a5f]">
               Giao lộ trình
             </button>
           </div>
         <% end %>
       </div>
+      <script>
+        function syncAssignBtn() {
+          var btn = document.getElementById('lp-assign-btn');
+          if (!btn) return;
+          var activeTab = document.getElementById('panel-email').style.display === 'none' ? 'members' : 'email';
+          var ok = false;
+          if (activeTab === 'members') {
+            ok = document.querySelectorAll('input[name="user_ids[]"]:checked').length > 0;
+          } else {
+            ok = (document.getElementById('lp-emails-hidden').value || '').trim().length > 0;
+          }
+          btn.disabled = !ok;
+        }
+
+        function switchTab(tab) {
+          document.getElementById('panel-members').style.display = tab === 'members' ? 'block' : 'none';
+          document.getElementById('panel-email').style.display   = tab === 'email'   ? 'block' : 'none';
+          document.getElementById('tab-members').className = 'flex-1 py-1.5 text-[12px] font-semibold rounded-lg transition-all ' + (tab === 'members' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500');
+          document.getElementById('tab-email').className   = 'flex-1 py-1.5 text-[12px] font-semibold rounded-lg transition-all ' + (tab === 'email'   ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500');
+          syncAssignBtn();
+        }
+
+        document.addEventListener('change', function(e) {
+          if (e.target && e.target.name === 'user_ids[]') syncAssignBtn();
+        });
+
+        (function() {
+          var input  = document.getElementById('lp-email-input');
+          var wrap   = document.getElementById('lp-email-wrap');
+          var hidden = document.getElementById('lp-emails-hidden');
+          if (!input) return;
+          var emails = [];
+
+          function validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+          function syncHidden() { hidden.value = emails.join(','); syncAssignBtn(); }
+
+          function addEmail(raw) {
+            var email = raw.trim().toLowerCase().replace(/,+$/, '');
+            if (!email) { input.value = ''; return; }
+            if (!validEmail(email)) {
+              input.style.color = '#ef4444';
+              setTimeout(function() { input.style.color = ''; }, 700);
+              return;
+            }
+            if (emails.indexOf(email) !== -1) { input.value = ''; return; }
+            emails.push(email);
+            syncHidden();
+            var chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[12px] font-medium rounded-md';
+            chip.dataset.email = email;
+            var label = document.createTextNode(email);
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.innerHTML = '&times;';
+            btn.className = 'ml-0.5 text-indigo-400 hover:text-indigo-700 text-[14px] font-bold leading-none';
+            btn.addEventListener('click', function() {
+              emails = emails.filter(function(e) { return e !== chip.dataset.email; });
+              syncHidden();
+              chip.remove();
+              if (emails.length === 0) input.placeholder = 'Nhập email rồi nhấn Enter...';
+            });
+            chip.appendChild(label);
+            chip.appendChild(btn);
+            wrap.insertBefore(chip, input);
+            input.value = '';
+            input.placeholder = 'Thêm email khác...';
+          }
+
+          input.addEventListener('keydown', function(e) {
+            if (e.isComposing || e.keyCode === 229) return; // IME đang compose
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              addEmail(this.value);
+              setTimeout(function() { input.value = ''; }, 0); // clear sau khi IME commit
+            } else if (e.key === ',') {
+              e.preventDefault();
+              addEmail(this.value);
+              setTimeout(function() { input.value = input.value.replace(/,/g, ''); }, 0);
+            } else if (e.key === 'Backspace' && !this.value && emails.length > 0) {
+              var chips = wrap.querySelectorAll('[data-email]');
+              var last = chips[chips.length - 1];
+              if (last) last.querySelector('button').click();
+            }
+          });
+
+          input.addEventListener('paste', function(e) {
+            e.preventDefault();
+            var text = (e.clipboardData || window.clipboardData).getData('text');
+            text.split(/[,\s]+/).forEach(function(p) { if (p) addEmail(p); });
+          });
+
+          input.addEventListener('blur', function() {
+            if (this.value.trim()) addEmail(this.value);
+          });
+        })();
+      </script>
     </div>
 
     <!-- Progress -->
@@ -275,40 +599,46 @@
         <div class="divide-y divide-slate-100">
           <% @assignments.each do |asgn| %>
             <% pct = asgn.progress_pct %>
-            <% done = asgn.learning_item_progresses.completed.count %>
+            <% done = asgn.learning_item_progresses.count(&:completed?) %>
             <% is_completed = asgn.completed? %>
-            <%= link_to learning_path_assignment_path(asgn),
-                class: "block px-5 py-3.5 hover:bg-slate-50 transition-colors" do %>
-              <div class="flex items-center gap-3 mb-2">
-                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
-                  <%= (asgn.assignee.name rescue "?")[0].upcase %>
+            <div class="flex items-start gap-2 px-5 py-3.5 hover:bg-[#1e3a5f] hover:text-white transition-colors group">
+              <%= link_to learning_path_assignment_path(asgn), class: "flex-1 min-w-0" do %>
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
+                    <%= (asgn.assignee.name rescue "?")[0].upcase %>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[12px] font-semibold text-slate-800 truncate"><%= asgn.assignee.name rescue "?" %></div>
+                    <div class="text-[10px] text-slate-400 truncate"><%= asgn.assignee.email rescue "" %></div>
+                  </div>
+                  <div class="shrink-0 text-right">
+                    <% if is_completed %>
+                      <span class="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold rounded-full">✓ Xong</span>
+                    <% else %>
+                      <span class="text-[12px] font-bold <%= pct > 0 ? 'text-indigo-600' : 'text-slate-400' %>"><%= pct %>%</span>
+                    <% end %>
+                  </div>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-[12px] font-semibold text-slate-800 truncate"><%= asgn.assignee.name rescue "?" %></div>
-                  <div class="text-[10px] text-slate-400 truncate"><%= asgn.assignee.email rescue "" %></div>
+                <div class="flex items-center gap-2">
+                  <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-1.5 rounded-full transition-all"
+                         style="width:<%= pct %>%;background:<%= is_completed ? '#10b981' : 'linear-gradient(90deg,#6366f1,#8b5cf6)' %>"></div>
+                  </div>
+                  <span class="text-[10px] text-slate-400 shrink-0"><%= done %>/<%= @items.size %> bài</span>
                 </div>
-                <div class="shrink-0 text-right">
-                  <% if is_completed %>
-                    <span class="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold rounded-full">✓ Xong</span>
-                  <% else %>
-                    <span class="text-[12px] font-bold <%= pct > 0 ? 'text-indigo-600' : 'text-slate-400' %>"><%= pct %>%</span>
-                  <% end %>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div class="h-1.5 rounded-full transition-all"
-                       style="width:<%= pct %>%;background:<%= is_completed ? '#10b981' : 'linear-gradient(90deg,#6366f1,#8b5cf6)' %>"></div>
-                </div>
-                <span class="text-[10px] text-slate-400 shrink-0"><%= done %>/<%= @items.size %> bài</span>
-              </div>
-              <% if asgn.due_date %>
-                <% overdue = asgn.due_date < Date.current && !is_completed %>
-                <div class="mt-1 text-[10px] <%= overdue ? 'text-red-500 font-semibold' : 'text-slate-400' %>">
-                  <%= overdue ? "⚠ Quá hạn: " : "Hạn: " %><%= asgn.due_date.strftime("%d/%m/%Y") %>
-                </div>
+                <% if asgn.due_date %>
+                  <% overdue = asgn.due_date < Date.current && !is_completed %>
+                  <div class="mt-1 text-[10px] <%= overdue ? 'text-red-500 font-semibold' : 'text-slate-400' %>">
+                    <%= overdue ? "⚠ Quá hạn: " : "Hạn: " %><%= asgn.due_date.strftime("%d/%m/%Y") %>
+                  </div>
+                <% end %>
               <% end %>
-            <% end %>
+              <button type="button"
+                      onclick="deleteAssignment('<%= learning_path_assignment_path(asgn) %>')"
+                      class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-50 border-0 bg-transparent cursor-pointer text-slate-300 hover:text-red-400">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
           <% end %>
         </div>
       </div>
@@ -322,7 +652,7 @@
     <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
       <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
     </div>
-    <p class="text-[15px] font-bold text-slate-900 text-center mb-1">Xóa bài học?</p>
+    <p class="text-[15px] font-bold text-slate-900 text-center mb-1" id="confirm-modal-title">Xác nhận xóa?</p>
     <p class="text-[13px] text-slate-500 text-center mb-5">Hành động này không thể hoàn tác.</p>
     <div class="flex gap-3">
       <button onclick="closeConfirm()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[13px] font-semibold rounded-xl border-0 cursor-pointer transition-colors">Hủy</button>
@@ -333,7 +663,7 @@
 
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
-const QUILL_TOOLBAR = [
+var QUILL_TOOLBAR = [
   [{ header: [2, 3, false] }],
   ['bold', 'italic', 'underline', 'strike'],
   [{ list: 'ordered' }, { list: 'bullet' }],
@@ -342,12 +672,13 @@ const QUILL_TOOLBAR = [
   ['clean']
 ];
 
-const quillEditors = {};
+var quillEditors = {};
 
-// Existing content per item (may be HTML or Markdown — store as data attr on the div)
+const ITEM_CONTENT = {
 <% @items.select(&:lesson?).each do |item| %>
-const _content_<%= item.id %> = <%= item.content.to_json %>;
+  <%= item.id %>: <%= raw item.content.to_json %>,
 <% end %>
+};
 
 function initQuill(id) {
   if (quillEditors[id]) return;
@@ -356,7 +687,7 @@ function initQuill(id) {
   const q = new Quill(container, { theme: 'snow', modules: { toolbar: QUILL_TOOLBAR } });
 
   // Load existing content
-  const existing = (typeof window['_content_' + id] !== 'undefined') ? window['_content_' + id] : '';
+  const existing = ITEM_CONTENT[id] || '';
   if (existing) {
     if (existing.trim().startsWith('<')) {
       q.clipboard.dangerouslyPasteHTML(existing);
@@ -380,26 +711,55 @@ function addItem() {
 }
 
 function aiGenerateContent(id) {
-  const btn = document.getElementById('ai-content-btn-' + id);
+  const btn     = document.getElementById('ai-content-btn-' + id);
+  const overlay = document.getElementById('ai-content-overlay-' + id);
+  const bar     = document.getElementById('ai-content-bar-' + id);
+  const label   = document.getElementById('ai-content-label-' + id);
+  const editor  = document.getElementById('quill-' + id);
   if (!btn) return;
+
+  // Show overlay, hide editor
   btn.disabled = true;
-  btn.textContent = '⏳ Đang tạo...';
+  btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin inline mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Đang tạo...';
+  overlay.classList.remove('hidden');
+  if (editor) editor.style.display = 'none';
+
+  // Animated progress: 5% → 30% → 60% → 85%
+  const phases = [
+    { pct: 30, label: 'Đang phân tích chủ đề...', delay: 1500 },
+    { pct: 60, label: 'Đang viết nội dung...', delay: 5000 },
+    { pct: 85, label: 'Đang hoàn thiện...', delay: 12000 },
+  ];
+  phases.forEach(p => setTimeout(() => { if (bar) bar.style.width = p.pct + '%'; if (label) label.textContent = p.label; }, p.delay));
+
   fetch('<%= learning_path_path(@learning_path) %>/learning_path_items/' + id + '/ai_content', {
     method: 'POST',
     headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
   })
   .then(r => r.json())
   .then(data => {
-    if (data.html && quillEditors[id]) {
-      quillEditors[id].clipboard.dangerouslyPasteHTML(data.html);
-      btn.textContent = '✦ AI viết lại · 2 credits';
-    } else if (data.error) {
-      alert(data.error);
-      btn.textContent = '✦ AI viết nội dung · 2 credits';
-    }
-    btn.disabled = false;
+    // Complete progress
+    if (bar) bar.style.width = '100%';
+    if (label) label.textContent = 'Hoàn thành!';
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      if (editor) editor.style.display = '';
+      if (data.html && quillEditors[id]) {
+        quillEditors[id].clipboard.dangerouslyPasteHTML(data.html);
+        btn.innerHTML = '✦ AI viết lại · 2 credits';
+      } else if (data.error) {
+        alert(data.error);
+        btn.innerHTML = '✦ AI viết nội dung · 2 credits';
+      }
+      btn.disabled = false;
+    }, 500);
   })
-  .catch(() => { btn.disabled = false; btn.textContent = '✦ AI viết nội dung · 2 credits'; });
+  .catch(() => {
+    overlay.classList.add('hidden');
+    if (editor) editor.style.display = '';
+    btn.disabled = false;
+    btn.innerHTML = '✦ AI viết nội dung · 2 credits';
+  });
 }
 
 function toggleItemEdit(id) {
@@ -413,7 +773,7 @@ function toggleItemEdit(id) {
 function saveItem(id, itemType) {
   const title = document.getElementById('item-title-' + id).value.trim();
   const mins  = document.getElementById('item-mins-' + id).value;
-  if (!title) { showAlert('Vui lòng nhập tiêu đề'); return; }
+  if (!title) { alert('Vui lòng nhập tiêu đề'); return; }
   const data = { title, estimated_minutes: parseInt(mins) };
   if (itemType === 'quiz') {
     const sel = document.getElementById('item-quiz-' + id);
@@ -423,13 +783,36 @@ function saveItem(id, itemType) {
     data.flashcard_deck_id = sel ? (sel.value || null) : null;
   } else {
     const q = quillEditors[id];
-    data.content = q ? q.root.innerHTML : '';
+    if (!q) { alert('Lỗi: editor chưa sẵn sàng, vui lòng thử lại'); return; }
+    const html = q.root.innerHTML;
+    // Quill empty = <p><br></p> — treat as blank
+    data.content = (html === '<p><br></p>') ? '' : html;
   }
+  const saveBtn = document.querySelector(`[onclick="saveItem(${id}, '${itemType}')"]`);
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Đang lưu...'; }
   fetch('<%= learning_path_learning_path_items_path(@learning_path) %>/' + id, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
     body: JSON.stringify({ learning_path_item: data })
-  }).then(() => location.reload());
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.error) { alert('Lỗi lưu: ' + d.error); if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Lưu'; } }
+    else location.reload();
+  })
+  .catch(e => { alert('Lỗi kết nối: ' + e.message); if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Lưu'; } });
+}
+
+function deleteAssignment(url) {
+  _deleteCallback = () => {
+    fetch(url, {
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
+    }).then(() => location.reload());
+  };
+  const title = document.getElementById('confirm-modal-title');
+  if (title) title.textContent = 'Hủy giao lộ trình?';
+  document.getElementById('confirm-modal').style.display = 'flex';
 }
 
 let _deleteCallback = null;
@@ -440,6 +823,8 @@ function deleteItem(id) {
       headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
     }).then(() => location.reload());
   };
+  const title = document.getElementById('confirm-modal-title');
+  if (title) title.textContent = 'Xóa bài học?';
   document.getElementById('confirm-modal').style.display = 'flex';
 }
 document.getElementById('confirm-ok').addEventListener('click', () => {
@@ -452,6 +837,92 @@ function closeConfirm() {
 document.getElementById('confirm-modal').addEventListener('click', function(e) {
   if (e.target === this) closeConfirm();
 });
+
+function aiCreateQuiz(id) {
+  const btn     = document.getElementById('ai-quiz-btn-' + id);
+  const overlay = document.getElementById('quiz-gen-overlay-' + id);
+  const bar     = document.getElementById('quiz-gen-bar-' + id);
+  const label   = document.getElementById('quiz-gen-label-' + id);
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin inline mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Đang tạo...';
+  overlay.classList.remove('hidden');
+  const phases = [
+    { pct: 25, text: 'Đang phân tích chủ đề...', delay: 1000 },
+    { pct: 55, text: 'Đang soạn câu hỏi...', delay: 5000 },
+    { pct: 80, text: 'Đang tạo đáp án...', delay: 15000 },
+  ];
+  phases.forEach(p => setTimeout(() => { if (bar) bar.style.width = p.pct + '%'; if (label) label.textContent = p.text; }, p.delay));
+
+  fetch('<%= learning_path_path(@learning_path) %>/learning_path_items/' + id + '/ai_create_quiz', {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) {
+      overlay.classList.add('hidden');
+      alert(data.error); btn.disabled = false; btn.innerHTML = '✦ AI tạo mới · 5 credits'; return;
+    }
+    if (bar) bar.style.width = '100%';
+    if (label) label.textContent = 'Đã tạo quiz thành công!';
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      const sel = document.getElementById('item-quiz-' + id);
+      const opt = new Option(data.quiz_set_title, data.quiz_set_id, true, true);
+      sel.add(opt);
+      const card = document.getElementById('quiz-ai-card-' + id);
+      document.getElementById('quiz-ai-title-' + id).textContent = data.quiz_set_title + ' — AI đang viết câu hỏi';
+      document.getElementById('quiz-ai-link-' + id).href = '/quiz_sets/' + data.quiz_set_id + '/edit';
+      card.style.display = 'block';
+      document.getElementById('quiz-linked-' + id).style.display = 'none';
+      btn.innerHTML = '✓ Đã tạo'; btn.style.background = '#10b981';
+    }, 600);
+  })
+  .catch(e => { overlay.classList.add('hidden'); alert('Lỗi: ' + e.message); btn.disabled = false; btn.innerHTML = '✦ AI tạo mới · 5 credits'; });
+}
+
+function aiCreateFlashcard(id) {
+  const btn     = document.getElementById('ai-fc-btn-' + id);
+  const overlay = document.getElementById('fc-gen-overlay-' + id);
+  const bar     = document.getElementById('fc-gen-bar-' + id);
+  const label   = document.getElementById('fc-gen-label-' + id);
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin inline mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Đang tạo...';
+  overlay.classList.remove('hidden');
+  const phases = [
+    { pct: 25, text: 'Đang phân tích chủ đề...', delay: 1000 },
+    { pct: 55, text: 'Đang tạo từ vựng & khái niệm...', delay: 5000 },
+    { pct: 80, text: 'Đang viết mặt sau thẻ...', delay: 15000 },
+  ];
+  phases.forEach(p => setTimeout(() => { if (bar) bar.style.width = p.pct + '%'; if (label) label.textContent = p.text; }, p.delay));
+
+  fetch('<%= learning_path_path(@learning_path) %>/learning_path_items/' + id + '/ai_create_flashcard', {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) {
+      overlay.classList.add('hidden');
+      alert(data.error); btn.disabled = false; btn.innerHTML = '✦ AI tạo mới · 3 credits'; return;
+    }
+    if (bar) bar.style.width = '100%';
+    if (label) label.textContent = 'Đã tạo bộ thẻ thành công!';
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      const sel = document.getElementById('item-flashcard-' + id);
+      const opt = new Option(data.deck_title, data.deck_id, true, true);
+      sel.add(opt);
+      const card = document.getElementById('fc-ai-card-' + id);
+      document.getElementById('fc-ai-title-' + id).textContent = data.deck_title + ' — AI đang viết thẻ';
+      document.getElementById('fc-ai-link-' + id).href = '/flashcard_decks/' + data.deck_id + '/edit';
+      card.style.display = 'block';
+      document.getElementById('fc-linked-' + id).style.display = 'none';
+      btn.innerHTML = '✓ Đã tạo'; btn.style.background = '#10b981';
+    }, 600);
+  })
+  .catch(e => { overlay.classList.add('hidden'); alert('Lỗi: ' + e.message); btn.disabled = false; btn.innerHTML = '✦ AI tạo mới · 3 credits'; });
+}
 
 document.getElementById('ai-lp-form').addEventListener('submit', function() {
   document.getElementById('ai-lp-btn').disabled = true;

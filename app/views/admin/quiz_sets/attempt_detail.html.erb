@@ -48,7 +48,7 @@
   <% if @quiz_set.result_later? %>
     <button onclick="sendEmail(this)"
             data-attempt="<%= @attempt.id %>"
-            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 transition-colors">
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-[7px] text-[13px] font-semibold bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700 transition-colors">
       📧 Gửi kết quả qua email
     </button>
   <% end %>
@@ -236,7 +236,7 @@
                   <p class="text-[12px] text-slate-600 m-0"><%= answer_record.ai_feedback %></p>
                 </div>
               <% else %>
-                <button onclick="gradeEssay(<%= answer_record.id %>)" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-600 text-[12px] font-semibold rounded-lg border border-violet-200 cursor-pointer transition-colors">
+                <button onclick="gradeEssay(<%= answer_record.id %>)" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 hover:bg-[#1e3a5f] hover:text-white text-violet-600 text-[12px] font-semibold rounded-lg border border-violet-200 cursor-pointer transition-colors">
                   ✨ AI chấm bài (1 credit)
                 </button>
               <% end %>
@@ -424,7 +424,7 @@ function sendEmail(btn) {
   }).then(r => r.json()).then(data => {
     if (data.success) {
       btn.textContent = '✅ Đã gửi email';
-      btn.className = btn.className.replace('hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700', 'text-emerald-700 bg-emerald-50 border-emerald-200');
+      btn.className = btn.className.replace('hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700', 'text-emerald-700 bg-emerald-50 border-emerald-200');
       showToast('Email kết quả đã gửi thành công!');
     } else {
       btn.disabled = false; btn.textContent = '📧 Gửi kết quả qua email';

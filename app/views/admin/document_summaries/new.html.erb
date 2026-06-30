@@ -5,7 +5,7 @@
   <h1 class="text-[20px] font-extrabold text-slate-900">📄 Tóm tắt tài liệu bằng AI</h1>
 </div>
 
-<div class="max-w-xl bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
   <div id="ds-error" class="hidden mb-4 bg-red-50 border border-red-200 text-red-700 text-[13px] rounded-xl px-4 py-3"></div>
 
   <div class="space-y-4">
@@ -18,23 +18,23 @@
     <div>
       <label class="block text-[12px] font-bold text-slate-700 mb-2 uppercase tracking-wide">Loại tài liệu</label>
       <div class="flex gap-2 mb-3">
-        <button type="button" id="tab-text" onclick="switchTab('text')"
-                class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold border-2 border-indigo-500 bg-indigo-50 text-indigo-700 cursor-pointer transition-colors">
-          📝 Văn bản
-        </button>
         <button type="button" id="tab-file" onclick="switchTab('file')"
-                class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold border-2 border-slate-200 text-slate-600 cursor-pointer hover:border-slate-300 transition-colors">
+                class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold border-2 border-indigo-500 bg-indigo-50 text-indigo-700 cursor-pointer transition-colors">
           📁 Upload file
         </button>
+        <button type="button" id="tab-text" onclick="switchTab('text')"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold border-2 border-slate-200 text-slate-600 cursor-pointer hover:border-slate-300 transition-colors">
+          📝 Văn bản
+        </button>
       </div>
 
-      <div id="panel-text">
-        <textarea id="ds-source-text" rows="8"
-                  placeholder="Dán nội dung văn bản vào đây (tối đa ~15.000 ký tự)..."
-                  class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[13px] focus:border-indigo-500 outline-none resize-none"></textarea>
+      <div id="panel-text" class="hidden">
+        <div id="ds-quill-wrap" style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;">
+          <div id="ds-quill-editor" style="min-height:200px;font-size:14px;"></div>
+        </div>
       </div>
 
-      <div id="panel-file" class="hidden">
+      <div id="panel-file">
         <label id="file-drop-zone"
                class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-8 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-colors">
           <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-3 text-2xl">📁</div>
@@ -66,7 +66,7 @@
               class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl cursor-pointer transition-colors border-0">
         ✨ Tóm tắt ngay
       </button>
-      <%= link_to "Hủy", document_summaries_path, class: "px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[13px] font-semibold rounded-xl transition-colors" %>
+      <%= link_to "Hủy", document_summaries_path, class: "px-5 py-2.5 bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-600 text-[13px] font-semibold rounded-xl transition-colors" %>
     </div>
   </div>
 </div>
@@ -87,12 +87,38 @@
   0%,100% { transform:scale(1); opacity:1; }
   50%      { transform:scale(0.88); opacity:0.75; }
 }
+#ds-quill-wrap .ql-toolbar {
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 6px 10px;
+}
+#ds-quill-wrap .ql-container {
+  border: none;
+  font-size: 14px;
+  font-family: inherit;
+}
+#ds-quill-wrap .ql-editor { min-height: 200px; }
+#ds-quill-wrap .ql-editor.ql-blank::before { color: #94a3b8; font-style: normal; }
 </style>
 
 <script>
 var DS_PHASES = ["Đang đọc tài liệu...", "Đang phân tích nội dung...", "Đang trích xuất ý chính...", "Đang tổng hợp kết quả..."];
 var _dsRingCtrl = null;
-var _dsActiveTab = 'text';
+var _dsActiveTab = 'file';
+var _dsQuill = null;
+
+(function initDsQuill() {
+  function tryInit() {
+    if (typeof Quill === 'undefined') { setTimeout(tryInit, 80); return; }
+    _dsQuill = new Quill('#ds-quill-editor', {
+      theme: 'snow',
+      placeholder: 'Dán nội dung văn bản vào đây (tối đa ~15.000 ký tự)...',
+      modules: { toolbar: [['bold','italic','underline'],[{list:'ordered'},{list:'bullet'}],['clean']] }
+    });
+  }
+  tryInit();
+})();
 
 function makeDsProgressRing() {
   var phases = DS_PHASES;
@@ -163,7 +189,7 @@ async function runDsSummarize() {
     if (!file) { showDsError('Vui lòng chọn file.'); return; }
     formData.append('source_file', file);
   } else {
-    var text = document.getElementById('ds-source-text').value.trim();
+    var text = (_dsQuill ? _dsQuill.getText().trim() : '');
     if (!text) { showDsError('Vui lòng nhập nội dung văn bản.'); return; }
     formData.append('source_text', text);
   }

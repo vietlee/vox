@@ -543,7 +543,21 @@
       "Bash(sed -i '' 's|<p class=\"text-\\\\[12px\\\\] text-slate-500 mt-0\\\\.5\"><%= @decks\\\\.count %> bộ thẻ</p>|<p class=\"text-[12px] font-bold text-slate-500 mt-0.5\">Học và ghi nhớ kiến thức với thẻ lật tương tác, hỗ trợ TTS</p>|' app/views/admin/flashcard_decks/index.html.erb)",
       "Bash(sed -i '' 's|<p class=\"text-\\\\[12px\\\\] text-slate-500 mt-0\\\\.5\"><%= @summaries\\\\.count %> tài liệu</p>|<p class=\"text-[12px] font-bold text-slate-500 mt-0.5\">Tải tài liệu lên, AI tóm tắt thành nội dung cô đọng dễ đọc</p>|' app/views/admin/document_summaries/index.html.erb)",
       "Bash(bundle add *)",
-      "Bash(ruby -e \"require 'erb'; ERB.new\\(File.read\\('app/views/admin/learning_paths/show.html.erb'\\)\\).src\")"
+      "Bash(ruby -e \"require 'erb'; ERB.new\\(File.read\\('app/views/admin/learning_paths/show.html.erb'\\)\\).src\")",
+      "Bash(ssh deploy@188.166.189.119 \"tail -100 /var/www/vox/shared/log/production.log 2>/dev/null | tail -30\")",
+      "Bash(ssh deploy@188.166.189.119 \"cat /var/www/vox/shared/log/production.log | tail -50\")",
+      "Bash(sed -i '' 's|href=\"<%= quiz_set_path\\(item.quiz_set\\) %>\"|href=\"<%= edit_quiz_set_path\\(item.quiz_set\\) %>\"|g' /Users/mac/Desktop/VOX/app/views/admin/learning_paths/show.html.erb)",
+      "Bash(sed -i '' 's|href=\"<%= flashcard_deck_path\\(item.flashcard_deck\\) %>\"|href=\"<%= edit_flashcard_deck_path\\(item.flashcard_deck\\) %>\"|g' /Users/mac/Desktop/VOX/app/views/admin/learning_paths/show.html.erb)",
+      "Bash(sed -i '' 's|href = '\\\\''/quiz_sets/'\\\\'' + data.quiz_set_id|href = '\\\\''/quiz_sets/'\\\\'' + data.quiz_set_id + '\\\\''/edit'\\\\''|g' /Users/mac/Desktop/VOX/app/views/admin/learning_paths/show.html.erb)",
+      "Bash(sed -i '' 's|href = '\\\\''/flashcard_decks/'\\\\'' + data.deck_id|href = '\\\\''/flashcard_decks/'\\\\'' + data.deck_id + '\\\\''/edit'\\\\''|g' /Users/mac/Desktop/VOX/app/views/admin/learning_paths/show.html.erb)",
+      "Bash(grep -E '\\\\.\\(rb|erb|js\\)$')",
+      "Bash(awk '/create_table \"learning_paths\"/,/^  end/' /Users/mac/Desktop/VOX/db/schema.rb)",
+      "Bash(awk '/create_table \"flashcard_reviews\"/,/^  end/' /Users/mac/Desktop/VOX/db/schema.rb)",
+      "Bash(awk '/create_table \"learning_item_progresses\"/,/^  end/' /Users/mac/Desktop/VOX/db/schema.rb)",
+      "Bash(awk '/create_table \"learning_path_assignments\"/,/^  end/' /Users/mac/Desktop/VOX/db/schema.rb)",
+      "Bash(git -C /Users/mac/Desktop/VOX diff --stat HEAD)",
+      "Bash(sed -i '' 's/class=\"text-\\\\[12px\\\\] font-bold text-slate-500 mt-0\\\\.5\"/class=\"text-[13px] text-slate-500 mt-0.5\"/g' /Users/mac/Desktop/VOX/app/views/admin/quiz_sets/index.html.erb /Users/mac/Desktop/VOX/app/views/admin/learning_paths/index.html.erb /Users/mac/Desktop/VOX/app/views/admin/document_summaries/index.html.erb /Users/mac/Desktop/VOX/app/views/admin/flashcard_decks/index.html.erb /Users/mac/Desktop/VOX/app/views/admin/content_outlines/index.html.erb)",
+      "Bash(sed -i '' 's/class=\"text-\\\\[12px\\\\] text-slate-500 mt-0\\\\.5\"/class=\"text-[13px] text-slate-500 mt-0.5\"/g' /Users/mac/Desktop/VOX/app/views/admin/feedback_boards/index.html.erb /Users/mac/Desktop/VOX/app/views/admin/dynamic_forms/index.html.erb /Users/mac/Desktop/VOX/app/views/admin/audit_logs/index.html.erb /Users/mac/Desktop/VOX/app/views/admin/votes/index.html.erb /Users/mac/Desktop/VOX/app/views/admin/surveys/index.html.erb /Users/mac/Desktop/VOX/app/views/admin/members/index.html.erb /Users/mac/Desktop/VOX/app/views/admin/ai/chat_page.html.erb /Users/mac/Desktop/VOX/app/views/admin/tts/index.html.erb /Users/mac/Desktop/VOX/app/views/admin/stt/index.html.erb)"
     ]
   }
 }

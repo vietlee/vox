@@ -40,6 +40,7 @@ export default class extends Controller {
 
   // ── localStorage persistence ──────────────────────────────────────
   restoreText() {
+    if (this.textTarget.value.trim()) return  // prefilled from URL param — keep it
     const saved = localStorage.getItem("tts_text")
     if (saved) this.textTarget.value = saved
   }
@@ -85,6 +86,7 @@ export default class extends Controller {
     }`
 
     this.updateCost()
+    this.generateBtnTarget.disabled = len === 0
   }
 
   updateCost() {

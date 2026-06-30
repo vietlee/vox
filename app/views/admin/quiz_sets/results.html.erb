@@ -103,14 +103,14 @@
             <td class="px-4 py-3 text-center">
               <%= link_to attempt_detail_quiz_set_path(@quiz_set, attempt_id: attempt.id),
                   data: { turbo: false },
-                  class: "inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 text-[11px] font-semibold rounded-lg transition-colors border border-slate-200" do %>
+                  class: "inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 hover:bg-[#1e3a5f] hover:text-white text-slate-500 text-[11px] font-semibold rounded-lg transition-colors border border-slate-200" do %>
                 👁 Xem chi tiết
               <% end %>
             </td>
             <% if @quiz_set.result_later? %>
               <td class="px-4 py-3 text-center">
                 <button onclick="sendResultEmail(<%= attempt.id %>, this)"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[11px] font-bold rounded-lg transition-colors border-0 cursor-pointer">
+                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-[#1e3a5f] hover:text-white text-indigo-600 text-[11px] font-bold rounded-lg transition-colors border-0 cursor-pointer">
                   📧 Gửi kết quả
                 </button>
               </td>
@@ -131,15 +131,15 @@
     <div class="flex gap-1">
       <% if @pagy.prev %>
         <%= link_to "‹ Trước", results_quiz_set_path(@quiz_set, page: @pagy.prev),
-            class: "px-3 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" %>
+            class: "px-3 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-[#1e3a5f] hover:text-white" %>
       <% end %>
       <% (@pagy.from > 1 ? [[@pagy.page - 1, 1].max, @pagy.page, [@pagy.page + 1, @pagy.pages].min] : (1..[@pagy.pages, 3].min).to_a).uniq.each do |p| %>
         <%= link_to p, results_quiz_set_path(@quiz_set, page: p),
-            class: "px-3 py-1.5 text-[12px] font-semibold rounded-lg border #{p == @pagy.page ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}" %>
+            class: "px-3 py-1.5 text-[12px] font-semibold rounded-lg border #{p == @pagy.page ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-200 bg-white text-slate-600 hover:bg-[#1e3a5f] hover:text-white'}" %>
       <% end %>
       <% if @pagy.next %>
         <%= link_to "Sau ›", results_quiz_set_path(@quiz_set, page: @pagy.next),
-            class: "px-3 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" %>
+            class: "px-3 py-1.5 text-[12px] font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-[#1e3a5f] hover:text-white" %>
       <% end %>
     </div>
   </div>
@@ -366,7 +366,7 @@ function sendResultEmail(attemptId, btn) {
   .then(data => {
     if (data.success) {
       btn.textContent = '✅ Đã gửi';
-      btn.className = btn.className.replace('bg-indigo-50 hover:bg-indigo-100 text-indigo-600', 'bg-emerald-50 text-emerald-600');
+      btn.className = btn.className.replace('bg-indigo-50 hover:bg-[#1e3a5f] hover:text-white text-indigo-600', 'bg-emerald-50 text-emerald-600');
       showToast('Email kết quả đã được gửi thành công!');
     } else {
       btn.disabled = false; btn.textContent = '📧 Gửi kết quả';

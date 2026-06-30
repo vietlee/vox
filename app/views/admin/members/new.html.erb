@@ -5,7 +5,7 @@
     <h1 class="text-[19px] font-extrabold text-slate-900">👥 <%= t("members.new_title") %></h1>
   </div>
   <div class="bg-white rounded-[10px] border border-slate-200 shadow-sm p-6">
-    <%= form_with model: [:admin, @member], url: members_path, local: true do |f| %>
+    <%= form_with model: [:admin, @member], url: members_path, local: true, id: "invite-form" do |f| %>
       <% if @member.errors.any? %>
         <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <% @member.errors.full_messages.each do |msg| %>
@@ -20,20 +20,124 @@
                 oninvalid: "this.setCustomValidity('#{j t("members.field_required")}')",
                 oninput:   "this.setCustomValidity('')",
                 class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-500 outline-none" %>
+          <p class="text-[11px] text-slate-400 mt-1">Khi mời nhiều email, tên này áp dụng cho tất cả</p>
         </div>
+
+        <!-- Email tag input -->
         <div>
           <label class="block text-[12px] font-semibold text-slate-700 mb-1.5"><%= t("members.email") %> *</label>
-          <%= f.email_field :email, required: true,
-                oninvalid: "this.setCustomValidity(this.value ? '#{j t("members.email_invalid")}' : '#{j t("members.field_required")}')",
-                oninput:   "this.setCustomValidity('')",
-                class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-indigo-500 outline-none #{@member.errors[:email].any? ? 'border-red-400' : ''}" %>
+          <!-- Hidden input carries the final comma-separated list -->
+          <input type="hidden" name="user[emails]" id="emails-hidden">
+
+          <!-- Chip container -->
+          <div id="email-tags-wrap"
+               onclick="document.getElementById('email-tag-input').focus()"
+               class="min-h-[44px] w-full flex flex-wrap gap-1.5 px-2.5 py-2 border border-slate-200 rounded-lg cursor-text focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+            <!-- Chips inserted here by JS -->
+            <input id="email-tag-input"
+                   type="text"
+                   inputmode="email"
+                   placeholder="Nhập email rồi nhấn Enter..."
+                   class="flex-1 min-w-[180px] text-[14px] outline-none bg-transparent placeholder-slate-400 py-0.5">
+          </div>
+          <p class="text-[12px] text-slate-500 mt-1.5">Nhập từng email rồi nhấn <kbd class="px-1 py-0.5 bg-slate-100 border border-slate-200 rounded text-[11px]">Enter</kbd> để thêm. Tự động tạo tài khoản nếu chưa có.</p>
         </div>
+
         <p class="text-[12px] text-slate-500 bg-slate-50 p-3 rounded-lg"><%= t("members.temp_password_note") %></p>
         <div class="flex gap-2 pt-2">
-          <%= f.submit t("members.send_invitation"), class: "px-5 py-2.5 bg-blue-500 text-white text-[13px] font-semibold rounded-lg cursor-pointer" %>
+          <%= f.submit t("members.send_invitation"), id: "invite-submit-btn",
+              class: "px-5 py-2.5 bg-blue-500 text-white text-[13px] font-semibold rounded-lg cursor-pointer" %>
           <%= link_to t("members.cancel"), members_path, class: "px-5 py-2.5 bg-slate-100 text-slate-600 text-[13px] font-semibold rounded-lg" %>
         </div>
       </div>
     <% end %>
   </div>
 </div>
+
+<script>
+(function initEmailTags() {
+  var input  = document.getElementById('email-tag-input');
+  var wrap   = document.getElementById('email-tags-wrap');
+  var hidden = document.getElementById('emails-hidden');
+  var form   = document.getElementById('invite-form');
+  if (!input || !wrap || !hidden || !form) return;
+  var emails = [];
+
+  function isValidEmail(e) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+  }
+
+  function syncHidden() {
+    hidden.value = emails.join(',');
+  }
+
+  function addEmail(raw) {
+    var email = raw.trim().toLowerCase().replace(/,+$/, '');
+    if (!email) { input.value = ''; return; }
+    if (!isValidEmail(email)) {
+      input.style.color = '#ef4444';
+      setTimeout(function() { input.style.color = ''; }, 800);
+      return;
+    }
+    if (emails.includes(email)) { input.value = ''; return; }
+
+    emails.push(email);
+    syncHidden();
+
+    var chip = document.createElement('span');
+    chip.className = 'inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[13px] font-medium rounded-md';
+    chip.dataset.email = email;
+    chip.innerHTML = email + '<button type="button" class="ml-1 text-indigo-400 hover:text-indigo-700 leading-none text-[16px] font-bold">&times;</button>';
+    chip.querySelector('button').addEventListener('click', function() { removeChip(chip); });
+    wrap.insertBefore(chip, input);
+    input.value = '';
+    input.placeholder = 'Thêm email khác...';
+  }
+
+  function removeChip(chip) {
+    var email = chip.dataset.email;
+    emails = emails.filter(function(e) { return e !== email; });
+    syncHidden();
+    chip.remove();
+    if (emails.length === 0) input.placeholder = 'Nhập email rồi nhấn Enter...';
+  }
+
+  input.addEventListener('keydown', function(e) {
+    if (e.isComposing || e.keyCode === 229) return; // IME đang compose
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      addEmail(this.value);
+      setTimeout(function() { input.value = ''; }, 0);
+    } else if (e.key === ',') {
+      e.preventDefault();
+      addEmail(this.value);
+      setTimeout(function() { input.value = input.value.replace(/,/g, ''); }, 0);
+    } else if (e.key === 'Backspace' && !this.value && emails.length > 0) {
+      var chips = wrap.querySelectorAll('[data-email]');
+      var last  = chips[chips.length - 1];
+      if (last) removeChip(last);
+    }
+  });
+
+  input.addEventListener('paste', function(e) {
+    e.preventDefault();
+    var text = (e.clipboardData || window.clipboardData).getData('text');
+    text.split(/[,\s]+/).forEach(function(part) { if (part) addEmail(part); });
+  });
+
+  input.addEventListener('blur', function() {
+    if (this.value.trim()) addEmail(this.value);
+  });
+
+  form.addEventListener('submit', function(e) {
+    if (input.value.trim()) addEmail(input.value);
+    if (emails.length === 0) {
+      e.preventDefault();
+      input.focus();
+      input.placeholder = 'Bắt buộc — nhập ít nhất 1 email';
+      wrap.style.borderColor = '#f87171';
+    }
+  });
+})();
+</script>

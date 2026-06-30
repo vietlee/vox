@@ -1,45 +1,48 @@
 <% content_for :title, "Lộ trình học tập" %>
 <% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
 
+<%
+  asgn_in_progress = @my_assignments.reject { |a| a.progress_pct == 100 || a.completed? }
+  asgn_done        = @my_assignments.select { |a| a.progress_pct == 100 || a.completed? }
+  has_assignments  = @my_assignments.any?
+%>
+
 <div class="flex-shrink-0 px-6 pt-5 pb-0 bg-slate-100">
   <div class="flex items-center justify-between mb-4">
     <div class="flex items-center gap-3">
       <%= render "admin/shared/back_btn" %>
+      <div class="w-11 h-11 rounded-xl flex items-center justify-center text-[28px] bg-slate-100 shrink-0">🗺️</div>
       <div>
-        <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">🗺️ Lộ trình học tập</h1>
-        <p class="text-[12px] font-bold text-slate-500 mt-0.5">Xây dựng chương trình học theo lộ trình có cấu trúc, giao cho học viên</p>
+        <h1 class="text-[19px] font-extrabold text-slate-900 tracking-tight">Lộ trình học tập</h1>
+        <p class="text-[13px] font-medium text-slate-600 mt-0.5">Xây dựng chương trình học theo lộ trình có cấu trúc, giao cho học viên</p>
       </div>
     </div>
-    <%= link_to new_learning_path_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors" do %>
-      + Tạo lộ trình
-    <% end %>
-  </div>
-</div>
-
-<% if @my_assignments.any? %>
-  <div class="flex-shrink-0 px-6 pt-2 pb-0">
-    <div class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">📌 Được giao cho tôi</div>
-    <div class="grid grid-cols-2 gap-3 mb-4">
-      <% @my_assignments.each do |asgn| %>
-        <a href="<%= learning_path_assignment_path(asgn) %>" class="block bg-white border border-indigo-200 hover:border-indigo-400 rounded-xl p-4 transition-colors group">
-          <div class="flex items-start justify-between gap-2 mb-3">
-            <div class="text-[13px] font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1"><%= asgn.learning_path.title %></div>
-            <span class="text-[12px] font-bold text-indigo-600 shrink-0"><%= asgn.progress_pct %>%</span>
-          </div>
-          <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div class="h-1.5 bg-indigo-500 rounded-full transition-all" style="width: <%= asgn.progress_pct %>%"></div>
-          </div>
-          <div class="mt-2 text-[11px] text-slate-400">
-            <%= asgn.learning_path.learning_path_items.count %> bài
-            <% if asgn.due_date %> · Hạn <%= asgn.due_date.strftime("%d/%m/%Y") %><% end %>
-          </div>
-        </a>
+    <div id="lp-create-btn">
+      <%= link_to new_learning_path_path, class: "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors" do %>
+        + Tạo lộ trình
       <% end %>
     </div>
   </div>
-<% end %>
 
-<div class="flex-1 min-h-0 overflow-hidden px-6 pt-<%= @my_assignments.any? ? 0 : 3 %> pb-5">
+  <!-- Main tabs -->
+  <div class="flex gap-0 border-b border-slate-200">
+    <button id="main-tab-manage" onclick="switchMainTab('manage')"
+            class="px-4 py-2.5 text-[13px] font-semibold border-b-2 border-indigo-600 text-indigo-600 transition-all -mb-px">
+      Quản lý
+      <span class="ml-1.5 text-[11px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full font-bold"><%= @learning_paths.count %></span>
+    </button>
+    <button id="main-tab-assigned" onclick="switchMainTab('assigned')"
+            class="px-4 py-2.5 text-[13px] font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-700 transition-all -mb-px">
+      Được giao cho tôi
+      <% if has_assignments %>
+        <span class="ml-1.5 text-[11px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full font-bold"><%= @my_assignments.size %></span>
+      <% end %>
+    </button>
+  </div>
+</div>
+
+<!-- ═══ Tab: Quản lý ═══ -->
+<div id="panel-manage" class="flex-1 min-h-0 overflow-hidden px-6 pt-3 pb-5">
   <div class="rounded-[12px] border overflow-hidden flex flex-col h-full" style="border-color:rgba(99,102,241,0.2); background:rgba(238,242,255,0.5);">
 
     <div class="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b" style="background:rgba(99,102,241,0.06); border-color:rgba(99,102,241,0.15);">
@@ -76,23 +79,37 @@
                       class: "text-[13px] font-semibold text-slate-800 hover:text-indigo-600 transition-colors" %>
                 </td>
                 <td class="px-4 py-3 text-[13px] text-slate-600"><%= lp.learning_path_items.size %> bài</td>
-                <td class="px-4 py-3 text-[13px] text-slate-600"><%= lp.learning_path_assignments.count %></td>
+                <td class="px-4 py-3 text-[13px] text-slate-600"><%= lp.learning_path_assignments.size %></td>
                 <td class="px-4 py-3 text-[12px] text-slate-400"><%= lp.created_at.strftime("%d/%m %H:%M") %></td>
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-1 justify-end">
-                    <%= link_to "Xem", learning_path_path(lp),
-                        class: "text-[12px] text-slate-500 hover:text-indigo-600 font-semibold px-2 py-1 rounded hover:bg-indigo-50 transition-colors" %>
-                    <%= link_to "Sửa", edit_learning_path_path(lp),
-                        class: "text-[12px] text-slate-500 hover:text-indigo-600 font-semibold px-2 py-1 rounded hover:bg-indigo-50 transition-colors" %>
+                    <%= link_to learning_path_path(lp),
+                        class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-slate-500 hover:text-white text-[12px] font-semibold rounded-lg transition-colors" do %>
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                      Xem
+                    <% end %>
+                    <%= link_to progress_learning_path_path(lp),
+                        class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-slate-500 hover:text-white text-[12px] font-semibold rounded-lg transition-colors" do %>
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                      Tiến độ
+                    <% end %>
+                    <%= link_to edit_learning_path_path(lp),
+                        class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-slate-500 hover:text-white text-[12px] font-semibold rounded-lg transition-colors" do %>
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      Sửa
+                    <% end %>
                     <button type="button" onclick="confirmDelete('<%= learning_path_path(lp) %>', '<%= j lp.title %>')"
-                            class="text-[12px] text-red-400 hover:text-red-600 font-semibold px-2 py-1 rounded hover:bg-red-50 transition-colors border-0 bg-transparent cursor-pointer">Xóa</button>
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-red-100 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-red-400 hover:text-white text-[12px] font-semibold rounded-lg transition-colors cursor-pointer">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      Xóa
+                    </button>
                   </div>
                 </td>
               </tr>
             <% end %>
           </tbody>
         </table>
-      <% elsif @my_assignments.empty? %>
+      <% else %>
         <div class="py-20 text-center">
           <div class="text-5xl mb-4">🗺️</div>
           <h3 class="text-[15px] font-bold text-slate-700 mb-2">Chưa có lộ trình nào</h3>
@@ -102,6 +119,127 @@
       <% end %>
     </div>
   </div>
+</div>
+
+<!-- ═══ Tab: Được giao cho tôi ═══ -->
+<div id="panel-assigned" class="flex-1 min-h-0 overflow-hidden px-6 pt-4 pb-5" style="display:none">
+  <% if has_assignments %>
+    <!-- Sub-tabs -->
+    <div class="flex items-center gap-2 mb-4">
+      <div class="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+        <button id="asgn-tab-active" onclick="switchAsgnTab('active')"
+                class="px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all bg-indigo-600 text-white shadow-sm">
+          🎓 Đang học
+          <% if asgn_in_progress.any? %><span class="ml-1 bg-white/30 text-white px-1.5 py-0.5 rounded-full text-[10px]"><%= asgn_in_progress.size %></span><% end %>
+        </button>
+        <button id="asgn-tab-done" onclick="switchAsgnTab('done')"
+                class="px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all text-slate-500 hover:text-slate-700">
+          ✅ Hoàn thành
+          <% if asgn_done.any? %><span class="ml-1 bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full text-[10px]"><%= asgn_done.size %></span><% end %>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sub-panel: Đang học -->
+    <div id="asgn-panel-active" class="overflow-y-auto" style="max-height:calc(100vh - 240px)">
+      <% if asgn_in_progress.any? %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <% asgn_in_progress.each do |asgn| %>
+            <% pct = asgn.progress_pct
+               lp  = asgn.learning_path
+               overdue = asgn.due_date && asgn.due_date < Date.current
+               total_items = lp.learning_path_items.size
+               done_items  = asgn.learning_item_progresses.count(&:completed?)
+            %>
+            <a href="<%= learning_path_assignment_path(asgn) %>"
+               class="group flex gap-4 bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-md rounded-2xl p-4 transition-all">
+              <!-- Circle progress -->
+              <div class="relative w-12 h-12 shrink-0 mt-0.5">
+                <svg viewBox="0 0 44 44" class="w-full h-full -rotate-90">
+                  <circle cx="22" cy="22" r="18" fill="none" stroke="#e2e8f0" stroke-width="4"/>
+                  <circle cx="22" cy="22" r="18" fill="none"
+                          stroke="<%= pct > 0 ? '#4a80a8' : '#e2e8f0' %>" stroke-width="4"
+                          stroke-dasharray="<%= (113.1 * pct / 100).round(1) %> 113.1"
+                          stroke-linecap="round"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <span class="text-[9px] font-black text-slate-700"><%= pct %>%</span>
+                </div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[14px] font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug mb-1.5"><%= lp.title %></div>
+                <% if lp.subject.present? %>
+                  <div class="text-[10px] text-indigo-500 font-semibold mb-1.5"><%= lp.subject %></div>
+                <% end %>
+                <div class="flex items-center gap-2 flex-wrap mb-2">
+                  <span class="text-[11px] text-slate-400"><%= done_items %>/<%= total_items %> bài</span>
+                  <% if asgn.due_date %>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold <%= overdue ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500' %>">
+                      <%= overdue ? "⚠ Quá hạn " : "Hạn " %><%= asgn.due_date.strftime("%d/%m") %>
+                    </span>
+                  <% end %>
+                </div>
+                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2">
+                  <div class="h-full rounded-full transition-all <%= pct > 0 ? 'bg-indigo-500' : 'bg-slate-200' %>" style="width:<%= [pct,100].min %>%"></div>
+                </div>
+                <span class="text-[12px] font-semibold text-indigo-600 group-hover:underline"><%= pct == 0 ? 'Bắt đầu →' : 'Tiếp tục học →' %></span>
+              </div>
+            </a>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-16 text-slate-400">
+          <div class="text-5xl mb-3">🎉</div>
+          <p class="text-[14px] font-semibold">Bạn đã hoàn thành tất cả lộ trình!</p>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Sub-panel: Hoàn thành -->
+    <div id="asgn-panel-done" class="overflow-y-auto" style="display:none; max-height:calc(100vh - 240px)">
+      <% if asgn_done.any? %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <% asgn_done.each do |asgn| %>
+            <% lp = asgn.learning_path %>
+            <a href="<%= learning_path_assignment_path(asgn) %>"
+               class="group flex gap-4 bg-emerald-50 border border-emerald-200 hover:border-emerald-400 hover:shadow-md rounded-2xl p-4 transition-all">
+              <div class="w-12 h-12 shrink-0 bg-emerald-500 rounded-full flex items-center justify-center mt-0.5">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[14px] font-bold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-snug mb-1.5"><%= lp.title %></div>
+                <% if lp.subject.present? %>
+                  <div class="text-[10px] text-emerald-600 font-semibold mb-1.5"><%= lp.subject %></div>
+                <% end %>
+                <div class="flex items-center gap-2 text-[11px] text-slate-500 mb-2">
+                  <span><%= lp.learning_path_items.size %> bài</span>
+                  <% if asgn.updated_at %>
+                    <span>· Xong <%= asgn.updated_at.strftime("%d/%m/%Y") %></span>
+                  <% end %>
+                </div>
+                <div class="h-1.5 bg-emerald-200 rounded-full overflow-hidden mb-2">
+                  <div class="h-full bg-emerald-500 rounded-full w-full"></div>
+                </div>
+                <span class="text-[12px] font-semibold text-emerald-600">✓ Đã hoàn thành</span>
+              </div>
+            </a>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-16 text-slate-400">
+          <div class="text-5xl mb-3">📚</div>
+          <p class="text-[14px] font-semibold">Chưa có lộ trình nào hoàn thành.</p>
+        </div>
+      <% end %>
+    </div>
+
+  <% else %>
+    <div class="flex flex-col items-center justify-center h-full text-center py-20">
+      <div class="text-6xl mb-4">📭</div>
+      <h3 class="text-[16px] font-bold text-slate-700 mb-2">Chưa có lộ trình nào được giao</h3>
+      <p class="text-[13px] text-slate-400">Khi quản trị viên giao lộ trình cho bạn, chúng sẽ xuất hiện ở đây.</p>
+    </div>
+  <% end %>
 </div>
 
 <!-- Delete modal -->
@@ -122,25 +260,47 @@
 </div>
 
 <script>
-let _lpDeletePath = null;
+function switchMainTab(tab) {
+  var isManage = tab === 'manage';
+  document.getElementById('panel-manage').style.display   = isManage ? '' : 'none';
+  document.getElementById('panel-assigned').style.display = isManage ? 'none' : '';
+  document.getElementById('lp-create-btn').style.display  = isManage ? '' : 'none';
+
+  var tManage   = document.getElementById('main-tab-manage');
+  var tAssigned = document.getElementById('main-tab-assigned');
+  tManage.className   = 'px-4 py-2.5 text-[13px] font-semibold border-b-2 transition-all -mb-px ' +
+    (isManage ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-700');
+  tAssigned.className = 'px-4 py-2.5 text-[13px] font-semibold border-b-2 transition-all -mb-px ' +
+    (!isManage ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-700');
+}
+
+function switchAsgnTab(tab) {
+  var isActive = tab === 'active';
+  document.getElementById('asgn-panel-active').style.display = isActive ? '' : 'none';
+  document.getElementById('asgn-panel-done').style.display   = isActive ? 'none' : '';
+  var btnActive = document.getElementById('asgn-tab-active');
+  var btnDone   = document.getElementById('asgn-tab-done');
+  if (isActive) {
+    btnActive.className = 'px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all bg-indigo-600 text-white shadow-sm';
+    btnDone.className   = 'px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all text-slate-500 hover:text-slate-700';
+  } else {
+    btnDone.className   = 'px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all bg-emerald-600 text-white shadow-sm';
+    btnActive.className = 'px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all text-slate-500 hover:text-slate-700';
+  }
+}
+
+var _lpDeletePath = null;
 function confirmDelete(path, title) {
   _lpDeletePath = path;
-  document.getElementById('lp-delete-desc').textContent = 'Bạn sắp xóa "' + title + '". Hành động này không thể hoàn tác.';
+  document.getElementById('lp-delete-desc').textContent = 'Bạn sắp xóa lộ trình "' + title + '". Hành động này không thể hoàn tác.';
   document.getElementById('lp-delete-modal').style.display = 'flex';
 }
 function executeDelete() {
   if (!_lpDeletePath) return;
-  const btn = document.getElementById('lp-delete-btn'); btn.disabled = true; btn.textContent = '...';
-  const f = document.createElement('form'); f.method = 'POST'; f.action = _lpDeletePath;
-  const m = document.createElement('input'); m.type='hidden'; m.name='_method'; m.value='delete';
-  const c = document.createElement('input'); c.type='hidden'; c.name='authenticity_token'; c.value=document.querySelector('meta[name="csrf-token"]').content;
-  f.appendChild(m); f.appendChild(c); document.body.appendChild(f); f.submit();
-}
-function filterRows(input, rowClass, noResultId) {
-  var q = input.value.toLowerCase();
-  var rows = document.querySelectorAll('.' + rowClass);
-  var found = 0;
-  rows.forEach(function(r) { var show = !q || (r.dataset.title||'').includes(q); r.style.display = show ? '' : 'none'; if(show) found++; });
-  document.getElementById(noResultId).classList.toggle('hidden', found > 0 || !q);
+  var form = document.createElement('form');
+  form.method = 'POST'; form.action = _lpDeletePath;
+  var m = document.createElement('input'); m.type='hidden'; m.name='_method'; m.value='DELETE'; form.appendChild(m);
+  var c = document.createElement('input'); c.type='hidden'; c.name='authenticity_token'; c.value=document.querySelector('meta[name=csrf-token]').content; form.appendChild(c);
+  document.body.appendChild(form); form.submit();
 }
 </script>
