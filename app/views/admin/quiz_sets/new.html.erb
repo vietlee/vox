@@ -42,6 +42,17 @@
         </ul>
       </div>
 
+      <% if params[:source_text].present? %>
+        <div class="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-[12px] text-indigo-700 flex items-center gap-2">
+          <svg id="qs-suggest-spinner" class="animate-spin w-3.5 h-3.5 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+          </svg>
+          <span id="qs-suggest-icon" class="hidden">✅</span>
+          <span id="qs-suggest-msg">AI đang phân tích tài liệu và đề xuất tiêu đề...</span>
+        </div>
+        <%= hidden_field_tag "source_text", params[:source_text] %>
+      <% end %>
       <div class="flex gap-2 pt-1">
         <%= f.submit t("quiz.create_and_add"), id: "qs-submit",
             class: "px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl cursor-pointer transition-colors" %>
@@ -50,4 +61,38 @@
     </div>
   <% end %>
 </div>
+
+<% if params[:source_text].present? %>
+<script>
+(function() {
+  var titleField = document.querySelector('[name="quiz_set[title]"]');
+  var sourceText = <%= raw params[:source_text].to_s.to_json %>;
+
+  var spinner = document.getElementById('qs-suggest-spinner');
+  var iconEl  = document.getElementById('qs-suggest-icon');
+  var msgEl   = document.getElementById('qs-suggest-msg');
+
+  function setDone(msg) {
+    if (spinner) spinner.classList.add('hidden');
+    if (iconEl)  iconEl.classList.remove('hidden');
+    if (msgEl)   msgEl.textContent = msg;
+    titleField.placeholder = <%= raw t("quiz.title_placeholder").to_json %>;
+  }
+
+  var fd = new FormData();
+  fd.append('content', sourceText.slice(0, 3000));
+  fd.append('authenticity_token', document.querySelector('meta[name="csrf-token"]').content);
+
+  fetch('<%= ai_suggest_meta_path %>', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.title) titleField.value = d.title;
+      setDone('Đã nhận nội dung tài liệu — AI sẽ tạo câu hỏi từ tài liệu này sau khi bạn tạo bộ đề.');
+    })
+    .catch(function() {
+      setDone('Đã nhận nội dung tài liệu — AI sẽ tạo câu hỏi từ tài liệu này sau khi bạn tạo bộ đề.');
+    });
+})();
+</script>
+<% end %>
 

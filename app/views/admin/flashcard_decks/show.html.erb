@@ -35,8 +35,8 @@
       <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
     </div>
     <div>
-      <div class="text-[13px] font-bold text-violet-900">✨ Tạo thẻ bằng AI</div>
-      <div class="text-[12px] text-violet-700 mt-0.5">AI tự động tạo flashcard cho chủ đề bạn chọn · <strong>3 credits</strong></div>
+      <div class="text-[13px] font-bold text-violet-900"><%= t("flashcard.ai_generate_title") %></div>
+      <div class="text-[12px] text-violet-700 mt-0.5"><%= t("flashcard.ai_generate_desc", credits: 3) %></div>
     </div>
   </div>
   <%= form_with url: ai_generate_flashcard_deck_path(@deck), method: :post, local: false, id: "ai-gen-form" do %>
@@ -61,12 +61,12 @@
 <!-- Card grid -->
 <div>
   <div class="flex items-center justify-between mb-3">
-    <h3 class="text-[14px] font-bold text-slate-900">Danh sách thẻ (<%= @cards.count %>)</h3>
+    <h3 class="text-[14px] font-bold text-slate-900"><%= t("flashcard.cards_title", count: @cards.count) %></h3>
   </div>
   <% if @cards.empty? %>
     <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
       <div class="text-5xl mb-3">🃏</div>
-      <p class="text-[13px] text-slate-400">Chưa có thẻ nào. Dùng AI để tạo bên trên.</p>
+      <p class="text-[13px] text-slate-400"><%= t("flashcard.no_cards") %></p>
     </div>
   <% else %>
     <%
@@ -94,7 +94,7 @@
           <!-- Action buttons -->
           <div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
             <button type="button" title="Chỉnh sửa thẻ"
-                    onclick="event.stopPropagation(); openCardEdit(<%= card.id %>, <%= raw card.front.to_json %>, <%= raw card.back.to_json %>)"
+                    onclick="event.stopPropagation(); openCardEdit(<%= card.id %>)"
                     class="w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center hover:bg-white transition-all"
                     style="border:1px solid #e2e8f0;">
               <svg style="width:13px;height:13px;color:#1e3a5f;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -141,7 +141,7 @@
                  style="backface-visibility:hidden; -webkit-backface-visibility:hidden;
                         transform:rotateY(180deg); -webkit-transform:rotateY(180deg);
                         border-color:<%= bc %>;">
-              <div class="text-[9px] font-bold uppercase tracking-widest mb-2" style="color:<%= ac %>">Đáp án</div>
+              <div class="text-[9px] font-bold uppercase tracking-widest mb-2" style="color:<%= ac %>"><%= t("flashcard.answer_label") %></div>
               <p class="text-[12px] text-slate-700 leading-snug line-clamp-4"><%= card.back %></p>
             </div>
           </div>
@@ -154,11 +154,13 @@
     <script>
     var _editCardId = null;
     var _editCardUrls = <%= raw @cards.map { |c| [c.id, flashcard_deck_flashcard_path(@deck, c)] }.to_h.to_json %>;
+    var _editCardData = <%= raw @cards.map { |c| [c.id, { front: c.front, back: c.back }] }.to_h.to_json %>;
 
-    function openCardEdit(id, front, back) {
+    function openCardEdit(id) {
       _editCardId = id;
-      document.getElementById('card-edit-front').value = front;
-      document.getElementById('card-edit-back').value  = back;
+      var data = _editCardData[id] || {};
+      document.getElementById('card-edit-front').value = data.front || '';
+      document.getElementById('card-edit-back').value  = data.back  || '';
       document.getElementById('card-edit-modal').style.display = 'flex';
       setTimeout(function(){ document.getElementById('card-edit-front').focus(); }, 50);
     }
@@ -184,8 +186,14 @@
       })
       .catch(function(e) { alert('Lỗi kết nối: ' + e.message); });
     }
-    document.getElementById('card-edit-modal').addEventListener('click', function(e) {
-      if (e.target === this) closeCardEdit();
+    document.addEventListener('DOMContentLoaded', function() {
+      var modal = document.getElementById('card-edit-modal');
+      if (modal) modal.addEventListener('click', function(e) { if (e.target === this) closeCardEdit(); });
+    });
+    // Also handle Turbo navigation
+    document.addEventListener('turbo:load', function() {
+      var modal = document.getElementById('card-edit-modal');
+      if (modal && !modal._hasListener) { modal._hasListener = true; modal.addEventListener('click', function(e) { if (e.target === this) closeCardEdit(); }); }
     });
     window.openCardEdit = openCardEdit;
     window.closeCardEdit = closeCardEdit;
@@ -266,9 +274,15 @@
      style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center;
             background:rgba(15,23,42,0.65); backdrop-filter:blur(4px);">
   <div style="background:#fff; border-radius:20px; padding:32px 40px; text-align:center;
-              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%;">
+              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%; position:relative;">
+    <button onclick="fcMinimize()" title="Thu nhỏ — tiếp tục làm việc khác" data-navy-hover="1"
+            style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;color:#1e3a5f;transition:background .15s,border-color .15s;"
+            onmouseenter="this.style.background='#e8f0f8';this.style.borderColor='#b3cbe3'" onmouseleave="this.style.background='#fff';this.style.borderColor='#e2e8f0'">
+      <svg width="12" height="3" viewBox="0 0 12 3" fill="none"><rect y="0.5" width="12" height="2" rx="1" fill="#1e3a5f"/></svg>
+      Thu nhỏ
+    </button>
     <div id="fc-ring-container"></div>
-    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Đừng tắt trang này.</p>
+    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Nhấn <strong style="color:#1e3a5f">Thu nhỏ</strong> để tiếp tục làm việc.</p>
   </div>
 </div>
 
@@ -279,6 +293,22 @@
 <script>
 var _fcRingCtrl = null;
 var FC_PHASES = ['Đang kết nối AI...', 'Đang phân tích chủ đề...', 'Đang tạo flashcard...', 'Đang soạn đáp án...', 'Đang hoàn thiện bộ thẻ...'];
+var FC_TASK_META = {
+  id:           'fc-<%= @deck.id %>',
+  icon:         '🃏',
+  label:        'Tạo Flashcard',
+  title:        <%= raw @deck.title.to_json %>,
+  redirect_url: '<%= flashcard_deck_path(@deck) %>'
+};
+
+function fcMinimize() {
+  document.getElementById('fc-overlay').style.display = 'none';
+  if (window.VoxTaskManager) {
+    VoxTaskManager.add(Object.assign({}, FC_TASK_META, {
+      poll_url: '<%= ai_status_flashcard_deck_path(@deck, format: :json) %>'
+    }));
+  }
+}
 
 function makeFcProgressRing() {
   var phases = FC_PHASES, totalPhases = phases.length;
@@ -356,6 +386,8 @@ if (_aiGenForm) {
 }
 
 function pollFcStatus(pollUrl, showUrl) {
+  var overlay = document.getElementById('fc-overlay');
+  if (overlay && overlay.style.display === 'none') return; // minimized
   fetch(pollUrl, { headers: { 'Accept': 'application/json' } })
     .then(function(r){ return r.json(); })
     .then(function(data) {
@@ -372,6 +404,11 @@ function pollFcStatus(pollUrl, showUrl) {
 // Auto-start polling if page loaded while ai_generating
 <% if @deck.ai_generating? %>
 (function() {
+  // Nếu VoxTaskManager đang track → skip overlay (ví dụ sau khi switch ngôn ngữ)
+  try {
+    var _t = JSON.parse(localStorage.getItem('vox_active_tasks') || '[]');
+    if (_t.some(function(t) { return t.id === FC_TASK_META.id; })) return;
+  } catch(e) {}
   document.getElementById('fc-overlay').style.display = 'flex';
   _fcRingCtrl = makeFcProgressRing();
   pollFcStatus('<%= ai_status_flashcard_deck_path(@deck, format: :json) %>', '<%= flashcard_deck_path(@deck) %>');

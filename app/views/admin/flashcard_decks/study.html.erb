@@ -1,4 +1,4 @@
-<% content_for :title, "Học: #{@deck.title}" %>
+<% content_for :title, t("flashcard.study_session_title", title: @deck.title) %>
 <% content_for :main_class, 'flex-1 overflow-y-auto bg-slate-50' %>
 <meta name="turbo-visit-control" content="reload">
 
@@ -23,9 +23,9 @@
     <% if @study_cards.empty? %>
       <div class="bg-white rounded-3xl border border-slate-200 shadow-lg p-14 text-center">
         <div class="text-5xl mb-4">🎉</div>
-        <h2 class="text-[22px] font-extrabold text-slate-900 mb-2">Học xong hôm nay!</h2>
-        <p class="text-[13px] text-slate-500 mb-7">Hệ thống sẽ nhắc bạn ôn lại vào đúng thời điểm tốt nhất.</p>
-        <%= link_to "← Xem bộ thẻ", flashcard_deck_path(@deck), class: "inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white text-[14px] font-bold rounded-2xl hover:bg-indigo-700 transition-colors" %>
+        <h2 class="text-[22px] font-extrabold text-slate-900 mb-2"><%= t("flashcard.done_title") %></h2>
+        <p class="text-[13px] text-slate-500 mb-7"><%= t("flashcard.done_desc") %></p>
+        <%= link_to "← #{t("flashcard.view_deck")}", flashcard_deck_path(@deck), class: "inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white text-[14px] font-bold rounded-2xl hover:bg-indigo-700 transition-colors" %>
       </div>
     <% else %>
 
@@ -60,23 +60,23 @@
         <div class="grid grid-cols-4 gap-2.5">
           <button onclick="rate(0)" class="flex flex-col items-center py-4 bg-white rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md" style="border:2px solid #fca5a5; color:#dc2626;">
             <span style="font-size:24px; margin-bottom:4px;">😵</span>
-            <span style="font-size:12px; font-weight:700;">Quên</span>
-            <span id="hint-0" style="font-size:10px; color:#ef4444; margin-top:2px;">1 ngày</span>
+            <span style="font-size:12px; font-weight:700;"><%= t("flashcard.rating_again") %></span>
+            <span id="hint-0" style="font-size:10px; color:#ef4444; margin-top:2px;"><%= t("flashcard.rating_again_time") %></span>
           </button>
           <button onclick="rate(1)" class="flex flex-col items-center py-4 bg-white rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md" style="border:2px solid #fdba74; color:#ea580c;">
             <span style="font-size:24px; margin-bottom:4px;">😅</span>
-            <span style="font-size:12px; font-weight:700;">Khó</span>
-            <span id="hint-1" style="font-size:10px; color:#f97316; margin-top:2px;">1 ngày</span>
+            <span style="font-size:12px; font-weight:700;"><%= t("flashcard.rating_hard") %></span>
+            <span id="hint-1" style="font-size:10px; color:#f97316; margin-top:2px;"><%= t("flashcard.rating_hard_time") %></span>
           </button>
           <button onclick="rate(2)" class="flex flex-col items-center py-4 bg-white rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md" style="border:2px solid #93c5fd; color:#2563eb;">
             <span style="font-size:24px; margin-bottom:4px;">👍</span>
-            <span style="font-size:12px; font-weight:700;">Ổn</span>
-            <span id="hint-2" style="font-size:10px; color:#3b82f6; margin-top:2px;">1 ngày</span>
+            <span style="font-size:12px; font-weight:700;"><%= t("flashcard.rating_good") %></span>
+            <span id="hint-2" style="font-size:10px; color:#3b82f6; margin-top:2px;"><%= t("flashcard.rating_good_time") %></span>
           </button>
           <button onclick="rate(3)" class="flex flex-col items-center py-4 bg-white rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md" style="border:2px solid #6ee7b7; color:#059669;">
             <span style="font-size:24px; margin-bottom:4px;">⭐</span>
-            <span style="font-size:12px; font-weight:700;">Dễ</span>
-            <span id="hint-3" style="font-size:10px; color:#10b981; margin-top:2px;">2 ngày</span>
+            <span style="font-size:12px; font-weight:700;"><%= t("flashcard.rating_easy") %></span>
+            <span id="hint-3" style="font-size:10px; color:#10b981; margin-top:2px;"><%= t("flashcard.rating_easy_time") %></span>
           </button>
         </div>
         <div class="text-center mt-2">
@@ -93,7 +93,7 @@
           Trước
         </button>
         <div id="flip-hint" class="text-center">
-          <span class="text-[12px] text-slate-400">Nhấn thẻ hoặc <kbd class="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono shadow-sm">Space</kbd> để lật</span>
+          <span class="text-[12px] text-slate-400"><%= t("flashcard.flip_hint") %></span>
         </div>
         <button id="nav-next" onclick="navNext()"
                 class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold border transition-all"

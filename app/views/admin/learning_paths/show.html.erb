@@ -17,9 +17,13 @@
 
 <% if @learning_path.ai_generating? %>
   <%= render "admin/shared/ai_generating_overlay",
-        poll_url: ai_status_learning_path_path(@learning_path, format: :json),
-        message: "AI đang tạo lộ trình học tập...",
-        submessage: "Đừng tắt trang này." %>
+        poll_url:      ai_status_learning_path_path(@learning_path, format: :json),
+        message:       "AI đang tạo lộ trình học tập...",
+        vtask_id:      "lp-#{@learning_path.id}",
+        vtask_icon:    "🗺️",
+        vtask_label:   "Lộ trình học tập",
+        vtask_title:   @learning_path.title,
+        vtask_redirect: learning_path_path(@learning_path) %>
 <% end %>
 
 <div class="flex items-center gap-3 mb-6">
@@ -49,7 +53,7 @@
       <button type="button" onclick="confirmPublish()"
               class="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-        Phát hành
+        <%= t("learning_path.publish_btn") %>
       </button>
 
       <!-- Publish warning modal -->
@@ -131,12 +135,12 @@
     <%= link_to progress_learning_path_path(@learning_path),
         class: "flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-[#1e3a5f] hover:text-white text-slate-700 text-[13px] font-semibold rounded-xl border border-slate-300 transition-colors" do %>
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-      Tiến độ
+      <%= t("learning_path.progress_label") %>
     <% end %>
     <%= link_to edit_learning_path_path(@learning_path),
         class: "flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-[#1e3a5f] hover:text-white text-slate-700 text-[13px] font-semibold rounded-xl border border-slate-300 transition-colors" do %>
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-      Chỉnh sửa
+      <%= t("common.edit") %>
     <% end %>
   </div>
 </div>
@@ -165,8 +169,8 @@
           <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
         </div>
         <div>
-          <div class="text-[13px] font-bold text-violet-900">✨ Cách 1 — Tạo bài học tự động bằng AI</div>
-          <div class="text-[12px] text-violet-700 mt-0.5">AI tạo ngay 5–8 bài học xen kẽ bài kiểm tra dựa trên chủ đề · <strong>5 credits</strong></div>
+          <div class="text-[13px] font-bold text-violet-900"><%= t("learning_path.ai_generate_title") %></div>
+          <div class="text-[12px] text-violet-700 mt-0.5"><%= t("learning_path.ai_generate_desc", credits: 5) %></div>
         </div>
       </div>
       <%= form_with url: ai_generate_learning_path_path(@learning_path), method: :post, local: true, id: "ai-lp-form" do %>
@@ -177,7 +181,7 @@
                  class="flex-1 px-3 py-2 border border-violet-200 rounded-xl text-[13px] bg-white focus:border-violet-400 outline-none">
           <button type="submit" id="ai-lp-btn" disabled
                   class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl border-0 transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-violet-600">
-            ✦ Tạo ngay
+            ✦ <%= t("learning_path.ai_generate_btn") %>
           </button>
         </div>
       <% end %>
@@ -186,7 +190,7 @@
     <!-- Items list -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-        <h3 class="text-[14px] font-bold text-slate-900">📚 Danh sách bài học (<%= @items.size %>)</h3>
+        <h3 class="text-[14px] font-bold text-slate-900">📚 <%= t("learning_path.items_title", count: @items.size) %></h3>
         <button onclick="document.getElementById('add-item-row').classList.toggle('hidden')"
                 class="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-indigo-50 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-indigo-700 rounded-lg transition-colors border-0 cursor-pointer">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
@@ -424,7 +428,7 @@
     <!-- Assign -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="px-5 py-4 border-b border-slate-100">
-        <h3 class="text-[14px] font-bold text-slate-900">👤 Giao cho người tham gia</h3>
+        <h3 class="text-[14px] font-bold text-slate-900">👤 <%= t("learning_path.assign_title") %></h3>
       </div>
       <div class="p-4">
         <%= form_with url: assign_learning_path_path(@learning_path), method: :post, local: true do %>
@@ -446,7 +450,7 @@
             <!-- Panel: thành viên -->
             <div id="panel-members">
               <% if @workspace_members.empty? %>
-                <p class="text-[12px] text-slate-400 text-center py-4">Chưa có thành viên trong workspace</p>
+                <p class="text-[12px] text-slate-400 text-center py-4"><%= t("learning_path.no_members") %></p>
               <% else %>
                 <div class="border border-slate-200 rounded-xl overflow-hidden max-h-44 overflow-y-auto">
                   <% @workspace_members.each do |member| %>
@@ -483,7 +487,7 @@
               <input type="date" name="due_date" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-[13px] focus:border-indigo-500 outline-none">
             </div>
             <button type="submit" id="lp-assign-btn" disabled
-                    class="w-full py-2.5 bg-[#1e3a5f] text-white text-[13px] font-bold rounded-xl border-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#162d4a] disabled:hover:bg-[#1e3a5f]">
+                    class="w-full py-2.5 bg-[#1e3a5f] text-white text-[13px] font-bold rounded-xl border-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1e3a5f] disabled:hover:bg-[#1e3a5f]">
               Giao lộ trình
             </button>
           </div>
@@ -593,8 +597,7 @@
     <% if @assignments.any? %>
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 class="text-[14px] font-bold text-slate-900">📊 Tiến độ học viên</h3>
-          <span class="text-[11px] text-slate-400"><%= @assignments.size %> người</span>
+          <h3 class="text-[14px] font-bold text-slate-900">📊 <%= t("learning_path.progress_title", count: @assignments.size) %></h3>
         </div>
         <div class="divide-y divide-slate-100">
           <% @assignments.each do |asgn| %>

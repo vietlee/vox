@@ -24,6 +24,38 @@
       --color-indigo-600: #1e3a5f; --color-indigo-700: #162c47;
       --color-indigo-800: #0e1e30; --color-indigo-900: #070f18;
     }
+
+    /* ── Đồng bộ hover: tất cả button/link/label neutral → navy + trắng ── */
+    button.hover\:bg-slate-50:hover,
+    button.hover\:bg-slate-100:hover,
+    button.hover\:bg-slate-200:hover,
+    button.hover\:bg-gray-100:hover,
+    button.hover\:bg-gray-200:hover,
+    a.hover\:bg-slate-50:hover,
+    a.hover\:bg-slate-100:hover,
+    a.hover\:bg-slate-200:hover,
+    a.hover\:bg-gray-100:hover,
+    label.hover\:bg-slate-50:hover,
+    label.hover\:bg-slate-100:hover,
+    label.hover\:bg-slate-200:hover,
+    [onclick].hover\:bg-slate-50:hover,
+    [onclick].hover\:bg-slate-100:hover,
+    [onclick].hover\:bg-slate-200:hover,
+    [onclick].hover\:bg-gray-100:hover {
+      background-color: #1e3a5f !important;
+      color: #fff !important;
+      border-color: #1e3a5f !important;
+    }
+
+    /* Unify hover:bg-indigo-50 trên button/link (light hover không phù hợp) */
+    button.hover\:bg-indigo-50:hover,
+    a.hover\:bg-indigo-50:hover {
+      background-color: #1e3a5f !important;
+      color: #fff !important;
+    }
+
+    /* Unify darker navy variant → chuẩn */
+    .hover\:bg-\[#162d4a\]:hover { background-color: #1e3a5f !important; }
   </style>
   <%= javascript_importmap_tags %>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -190,26 +222,26 @@
       <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_overview") %></div>
       <%= render "shared/nav_item", icon: "📊", label: t("nav.dashboard"), path: dashboard_path %>
 
-      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Học tập & kiểm tra</div>
+      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_learning") %></div>
       <%= render "shared/nav_item", icon: "🎓", label: t("quiz.nav"), path: quiz_sets_path %>
-      <%= render "shared/nav_item", icon: "🃏", label: "Flashcards", path: flashcard_decks_path %>
-      <%= render "shared/nav_item", icon: "🗺️", label: "Lộ trình học tập", path: learning_paths_path %>
+      <%= render "shared/nav_item", icon: "🃏", label: t("flashcard.nav"), path: flashcard_decks_path %>
+      <%= render "shared/nav_item", icon: "🗺️", label: t("learning_path.nav"), path: learning_paths_path %>
 
-      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Tạo nội dung AI</div>
-      <%= render "shared/nav_item", icon: "✍️", label: "Slide AI", path: content_outlines_path %>
-      <%= render "shared/nav_item", icon: "📄", label: "Tóm tắt tài liệu", path: document_summaries_path %>
+      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_ai_content") %></div>
+      <%= render "shared/nav_item", icon: "✍️", label: t("content_outline.nav"), path: content_outlines_path %>
+      <%= render "shared/nav_item", icon: "📄", label: t("document_summary.nav"), path: document_summaries_path %>
 
-      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Trợ lý AI</div>
-      <%= render "shared/nav_item", icon: "🎓", label: "AI Tutor", subtitle: "Gia sư · dẫn dắt tư duy", path: ai_tutor_page_path %>
-      <%= render "shared/nav_item", icon: "🔍", label: t("nav.ai_chat"), subtitle: "Hỏi đáp dữ liệu workspace", path: ai_chat_page_path %>
+      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_ai_assistant") %></div>
+      <%= render "shared/nav_item", icon: "🎓", label: t("ai_tutor.nav"), subtitle: t("nav.ai_tutor_subtitle"), path: ai_tutor_page_path %>
+      <%= render "shared/nav_item", icon: "🔍", label: t("nav.ai_chat"), subtitle: t("nav.ai_chat_subtitle"), path: ai_chat_page_path %>
 
-      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Thu thập dữ liệu</div>
-      <%= render "shared/nav_item", icon: "📝", label: "Dynamic Forms", path: dynamic_forms_path %>
+      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_data_collection") %></div>
+      <%= render "shared/nav_item", icon: "📝", label: t("nav.dynamic_forms"), path: dynamic_forms_path %>
       <%= render "shared/nav_item", icon: "📋", label: t("nav.surveys"), path: surveys_path, badge: current_workspace&.surveys&.active&.count %>
       <%= render "shared/nav_item", icon: "🗳️", label: t("nav.votes"), path: votes_path, badge: current_workspace&.votes&.active&.count %>
       <%= render "shared/nav_item", icon: "💬", label: t("nav.feedback"), path: feedback_boards_path %>
 
-      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Công cụ giọng nói</div>
+      <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_voice_tools") %></div>
       <%= render "shared/nav_item", icon: "🎙️", label: t("nav.tts"), path: tts_path %>
       <%= render "shared/nav_item", icon: "🎤", label: t("nav.stt"), path: stt_path %>
 
@@ -627,6 +659,248 @@ window.voxConfirm = function(message, onOk) {
   document.getElementById('vox-confirm-ok').onclick = () => { close(); onOk(); };
 };
 </script>
+<!-- ── VoxTaskManager: floating minimizable task dock ── -->
+<div id="vox-task-dock"></div>
+
+<style>
+#vox-task-dock {
+  position: fixed;
+  bottom: 0;
+  right: 16px;
+  z-index: 9998;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+.vtask-card {
+  pointer-events: all;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 -4px 24px rgba(0,0,0,.13);
+  width: 240px;
+  font-family: inherit;
+  overflow: hidden;
+  transition: box-shadow .2s;
+}
+.vtask-card:hover { box-shadow: 0 -6px 32px rgba(0,0,0,.18); }
+.vtask-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #1e3a5f;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+}
+.vtask-header-label { flex: 1; font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vtask-btn { background: rgba(255,255,255,.15); border: none; color: #fff; width: 20px; height: 20px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.vtask-btn:hover { background: rgba(255,255,255,.28); }
+.vtask-body { padding: 10px 12px 12px; }
+.vtask-title { font-size: 12px; color: #475569; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; }
+.vtask-bar-track { background: #e2e8f0; border-radius: 99px; height: 5px; overflow: hidden; margin-bottom: 4px; }
+.vtask-bar-fill { height: 100%; background: linear-gradient(90deg,#4a80a8,#1e3a5f); border-radius: 99px; transition: width .5s ease; }
+.vtask-pct { font-size: 11px; color: #94a3b8; text-align: right; }
+/* Toast */
+.vox-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 99999;
+  background: #1e3a5f;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 32px rgba(0,0,0,.22);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: vox-toast-in .3s ease;
+  max-width: 380px;
+}
+.vox-toast a { color: #93c5fd; text-decoration: underline; }
+@keyframes vox-toast-in { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+</style>
+
+<script>
+window.VoxTaskManager = (function() {
+  var STORE_KEY = 'vox_active_tasks';
+  var POLL_MS   = 3000;
+  var _tasks    = [];
+  var _timer    = null;
+
+  function _load() {
+    try { _tasks = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) { _tasks = []; }
+  }
+  function _save() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(_tasks));
+  }
+  function _render() {
+    var dock = document.getElementById('vox-task-dock');
+    if (!dock) return;
+    if (!_tasks.length) { dock.innerHTML = ''; return; }
+    dock.innerHTML = _tasks.map(function(t) {
+      var bodyHtml = t.minimized ? '' : (
+        '<div class="vtask-body">' +
+          '<div class="vtask-title" title="' + _esc(t.title) + '">' + _esc(t.title) + '</div>' +
+          '<div class="vtask-bar-track"><div class="vtask-bar-fill" style="width:' + (t.pct||0) + '%"></div></div>' +
+          '<div class="vtask-pct">' + (t.pct||0) + '%</div>' +
+        '</div>'
+      );
+      return '<div class="vtask-card" data-vtask="' + _esc(t.id) + '">' +
+        '<div class="vtask-header" onclick="VoxTaskManager.toggle(\'' + _esc(t.id) + '\')">' +
+          '<span style="font-size:14px">' + (t.icon||'⚙️') + '</span>' +
+          '<span class="vtask-header-label">' + _esc(t.label) + '</span>' +
+          '<button class="vtask-btn" onclick="event.stopPropagation();VoxTaskManager.toggle(\'' + _esc(t.id) + '\')" title="Thu nhỏ/Mở rộng">' + (t.minimized ? '▲' : '▼') + '</button>' +
+          '<button class="vtask-btn" onclick="event.stopPropagation();VoxTaskManager.dismiss(\'' + _esc(t.id) + '\')" title="Ẩn">×</button>' +
+        '</div>' + bodyHtml + '</div>';
+    }).join('');
+  }
+  function _esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function _startPolling() {
+    if (_timer) return;
+    _timer = setInterval(_poll, POLL_MS);
+  }
+  function _stopPolling() {
+    clearInterval(_timer); _timer = null;
+  }
+  async function _poll() {
+    if (!_tasks.length) { _stopPolling(); return; }
+    for (var i = 0; i < _tasks.length; i++) {
+      var t = _tasks[i];
+      try {
+        var r = await fetch(t.poll_url, { headers: { 'Accept': 'application/json' } });
+        var d = await r.json();
+        if (d.success) {
+          _complete(t, d.redirect || t.redirect_url);
+        } else if (d.failed || d.error) {
+          _fail(t, d.error || 'Có lỗi xảy ra');
+        } else {
+          // still pending — fake progress up to 92%
+          t.pct = Math.min((t.pct||0) + Math.floor(Math.random()*6+3), 92);
+          _save(); _render();
+        }
+      } catch(e) { /* network error, keep polling */ }
+    }
+  }
+  function _complete(task, redirectUrl) {
+    _tasks = _tasks.filter(function(t) { return t.id !== task.id; });
+    _save(); _render();
+    if (!_tasks.length) _stopPolling();
+    _showToast('✅', task.label, task.title, redirectUrl);
+    // If we're currently on this task's redirect page, reload to show results
+    if (redirectUrl && window.location.pathname === new URL(redirectUrl, location.href).pathname) {
+      setTimeout(function() { window.location.reload(); }, 800);
+    }
+  }
+  function _fail(task, msg) {
+    _tasks = _tasks.filter(function(t) { return t.id !== task.id; });
+    _save(); _render();
+    if (!_tasks.length) _stopPolling();
+    _showToast('❌', task.label + ' thất bại', msg || '', null);
+  }
+  function _showToast(icon, label, title, url) {
+    var el = document.createElement('div');
+    el.className = 'vox-toast';
+    var link = url ? ' <a href="' + url + '">Xem ngay →</a>' : '';
+    el.innerHTML = icon + ' <strong>' + _esc(label) + ':</strong> ' + _esc(title) + link;
+    document.body.appendChild(el);
+    setTimeout(function() {
+      el.style.transition = 'opacity .4s';
+      el.style.opacity = '0';
+      setTimeout(function() { el.remove(); }, 400);
+    }, 8000);
+  }
+
+  // Public API
+  return {
+    add: function(task) {
+      // task: {id, icon, label, title, poll_url, redirect_url}
+      var existing = _tasks.find(function(t) { return t.id === task.id; });
+      if (existing) {
+        // Task đã có — chỉ update poll_url (nếu thay đổi), giữ pct và trạng thái
+        existing.poll_url = task.poll_url || existing.poll_url;
+        _save(); _startPolling(); return;
+      }
+      task.pct = 0;
+      task.minimized = false;
+      _tasks.push(task);
+      _save(); _render(); _startPolling();
+    },
+    toggle: function(id) {
+      var t = _tasks.find(function(t) { return t.id === id; });
+      if (t) { t.minimized = !t.minimized; _save(); _render(); }
+    },
+    dismiss: function(id) {
+      _tasks = _tasks.filter(function(t) { return t.id !== id; });
+      _save(); _render();
+      if (!_tasks.length) _stopPolling();
+    },
+    init: function() {
+      _load(); _render();
+      if (_tasks.length) _startPolling();
+    }
+  };
+})();
+
+document.addEventListener('DOMContentLoaded', function() { VoxTaskManager.init(); });
+document.addEventListener('turbo:load', function() { VoxTaskManager.init(); });
+
+// ── Đồng bộ hover navy cho inline-styled buttons chưa có hover ──
+(function applyNavyHover() {
+  var NEUTRAL_BG = ['#f1f5f9','#f8fafc','#f0f4f8','#f4f6f8','rgb(241,245,249)','rgb(248,250,252)'];
+  var SKIP_BG    = ['#1e3a5f','#ef4444','#dc2626','#10b981','#059669','#6d28d9','#7c3aed','#f59e0b','rgba'];
+
+  function isNeutral(bg) {
+    if (!bg) return false;
+    var b = bg.toLowerCase().replace(/\s/g,'');
+    return NEUTRAL_BG.some(function(c){ return b === c || b === c.toLowerCase(); });
+  }
+  function isSkip(bg) {
+    if (!bg) return true;
+    return SKIP_BG.some(function(c){ return bg.includes(c); });
+  }
+
+  function applyToEl(el) {
+    // Skip if already has navy hover class or a colored bg
+    var cls = el.className || '';
+    if (cls.includes('1e3a5f') || el.dataset.navyHover) return;
+    var style = el.getAttribute('style') || '';
+    var bgMatch = style.match(/background(?:-color)?:\s*([^;]+)/i);
+    var bg = bgMatch ? bgMatch[1].trim() : null;
+    if (!bg || isSkip(bg) || !isNeutral(bg)) return;
+    // Has light neutral background — add navy hover
+    el.dataset.navyHover = '1';
+    var origBg    = bg;
+    var origColor = (style.match(/(?:^|;)\s*color:\s*([^;]+)/i)||[])[1] || '';
+    el.addEventListener('mouseenter', function() {
+      el.style.background = '#1e3a5f';
+      el.style.color = '#fff';
+      if (el.style.borderColor) el.style.borderColor = '#1e3a5f';
+    });
+    el.addEventListener('mouseleave', function() {
+      el.style.background = origBg;
+      el.style.color = origColor;
+      if (el.style.borderColor) el.style.borderColor = '';
+    });
+  }
+
+  function run() {
+    document.querySelectorAll('button[style], a[style][href], [onclick][style]').forEach(applyToEl);
+  }
+
+  document.addEventListener('DOMContentLoaded', run);
+  document.addEventListener('turbo:load', run);
+})();
+</script>
+
 <script>
 (function(){
   var KEY = 'vox_sb_collapsed';

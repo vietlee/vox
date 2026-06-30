@@ -80,10 +80,10 @@
         <div id="ai-drop-zone"
              onclick="document.getElementById('ai-file-input').click()"
              ondragover="aiDragOver(event)" ondragleave="aiDragLeave(event)" ondrop="aiDrop(event)"
-             class="border-2 border-dashed border-violet-300 hover:border-[#1e3a5f] bg-white hover:bg-[#1e3a5f] hover:text-white rounded-xl px-4 py-4 text-center cursor-pointer transition-all">
+             class="group border-2 border-dashed border-violet-300 hover:border-[#1e3a5f] bg-white hover:bg-[#1e3a5f] rounded-xl px-4 py-4 text-center cursor-pointer transition-all">
           <div class="text-xl mb-1">📂</div>
-          <p class="text-[12px] font-semibold text-violet-700" id="ai-drop-label"><%= t("quiz.drop_or_click") %></p>
-          <p class="text-[11px] text-violet-400 mt-0.5"><%= t("quiz.ai_file_hint") %></p>
+          <p class="text-[12px] font-semibold text-violet-700 group-hover:text-white transition-colors" id="ai-drop-label"><%= t("quiz.drop_or_click") %></p>
+          <p class="text-[11px] text-violet-400 group-hover:text-white/70 mt-0.5 transition-colors"><%= t("quiz.ai_file_hint") %></p>
           <input type="file" id="ai-file-input" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
                  class="hidden" onchange="aiFileSelected(this)">
         </div>
@@ -364,9 +364,15 @@
      style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center;
             background:rgba(15,23,42,0.65); backdrop-filter:blur(4px);">
   <div style="background:#fff; border-radius:20px; padding:32px 40px; text-align:center;
-              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%;">
+              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%; position:relative;">
+    <button onclick="minimizeAiTask()" title="Thu nhỏ — tiếp tục làm việc khác" data-navy-hover="1"
+            style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;color:#1e3a5f;transition:background .15s,border-color .15s;"
+            onmouseenter="this.style.background='#e8f0f8';this.style.borderColor='#b3cbe3'" onmouseleave="this.style.background='#fff';this.style.borderColor='#e2e8f0'">
+      <svg width="12" height="3" viewBox="0 0 12 3" fill="none"><rect y="0.5" width="12" height="2" rx="1" fill="#1e3a5f"/></svg>
+      Thu nhỏ
+    </button>
     <div id="ai-ring-container"></div>
-    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Đừng tắt trang này.</p>
+    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Nhấn <strong style="color:#1e3a5f">Thu nhỏ</strong> để tiếp tục làm việc.</p>
   </div>
 </div>
 
@@ -403,9 +409,45 @@
 <script>
 // Guard: Turbo Drive re-executes scripts on every visit; re-assigning window vars is safe, re-declaring const is not.
 window.ROUTES = {
-  questions:  "<%= quiz_set_quiz_questions_path(@quiz_set) %>",
-  aiGenerate: "<%= ai_generate_quiz_set_path(@quiz_set) %>"
+  questions:       "<%= quiz_set_quiz_questions_path(@quiz_set) %>",
+  aiGenerate:      "<%= ai_generate_quiz_set_path(@quiz_set) %>",
+  aiGenerateStatus:"<%= ai_generate_status_quiz_set_path(@quiz_set) %>",
+  editQuizSet:     "<%= edit_quiz_set_path(@quiz_set) %>"
 };
+window.QUIZ_SET_META = {
+  id:    "quiz-<%= @quiz_set.id %>",
+  title: <%= raw @quiz_set.title.to_json %>
+};
+
+function minimizeAiTask() {
+  document.getElementById('ai-loading-overlay').style.display = 'none';
+  if (window.VoxTaskManager) {
+    VoxTaskManager.add({
+      id:          QUIZ_SET_META.id,
+      icon:        '🎯',
+      label:       'Tạo Quiz',
+      title:       QUIZ_SET_META.title,
+      poll_url:    ROUTES.aiGenerateStatus,
+      redirect_url: ROUTES.editQuizSet
+    });
+  }
+}
+
+<% if @quiz_set.ai_generating? %>
+// Quiz đang sinh câu hỏi từ background job — đăng ký task window ngay
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.VoxTaskManager) {
+    VoxTaskManager.add({
+      id:           QUIZ_SET_META.id,
+      icon:         '🎯',
+      label:        'Tạo Quiz',
+      title:        QUIZ_SET_META.title,
+      poll_url:     ROUTES.aiGenerateStatus,
+      redirect_url: ROUTES.editQuizSet
+    });
+  }
+});
+<% end %>
 
 function copyLink(url) {
   navigator.clipboard.writeText(url).then(function() {
@@ -1021,6 +1063,9 @@ async function runAiGenerate() {
 }
 
 async function pollAiStatus(pollUrl) {
+  // If overlay was minimized, VoxTaskManager takes over — stop local polling
+  const overlay = document.getElementById('ai-loading-overlay');
+  if (overlay && overlay.style.display === 'none' && window.VoxTaskManager) return;
   try {
     const res = await fetch(pollUrl, { headers: { 'Accept': 'application/json' } });
     const data = await res.json();
@@ -1036,7 +1081,6 @@ async function pollAiStatus(pollUrl) {
       document.getElementById('ai-error').textContent = data.error || 'AI gặp lỗi. Vui lòng thử lại.';
       document.getElementById('ai-error').classList.remove('hidden');
     } else {
-      // Unexpected state — retry a few more times then give up
       setTimeout(() => pollAiStatus(pollUrl), 3000);
     }
   } catch(e) {

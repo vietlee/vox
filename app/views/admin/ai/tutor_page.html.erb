@@ -1,4 +1,4 @@
-<% content_for :title, "AI Tutor" %>
+<% content_for :title, t("ai_tutor.title") %>
 <% content_for :main_class, 'flex-1 overflow-hidden flex flex-col' %>
 <% content_for :head do %>
   <meta name="turbo-visit-control" content="reload">
@@ -10,12 +10,12 @@
   <div class="flex items-center gap-3 flex-1 min-w-0">
     <div class="w-11 h-11 rounded-lg flex items-center justify-center p-0.5 shrink-0"><%= render "admin/shared/ai_bot_icon" %></div>
     <div>
-      <div class="text-[19px] font-extrabold text-slate-900">AI Tutor</div>
+      <div class="text-[19px] font-extrabold text-slate-900"><%= t("ai_tutor.title") %></div>
       <div class="text-[13px] font-medium text-slate-600 mt-0.5">
         <% if @context_title.present? %>
-          Đang hỗ trợ: <strong class="text-slate-800"><%= @context_title %></strong>
+          <%= t("ai_tutor.context_label") %> <strong class="text-slate-800"><%= @context_title %></strong>
         <% else %>
-          Dẫn dắt bạn hiểu vấn đề — không đưa đáp án thẳng
+          <%= t("ai_tutor.subtitle") %>
         <% end %>
       </div>
     </div>
@@ -26,7 +26,7 @@
               class="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-xl border transition-colors cursor-pointer bg-slate-50 border-slate-200 text-slate-400 hover:border-violet-300 hover:text-violet-600">
         <svg id="speak-icon-off" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
         <svg id="speak-icon-on" class="w-3.5 h-3.5 hidden text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-3-3m3 3l3-3M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM18.364 5.636a9 9 0 010 12.728"/></svg>
-        <span id="speak-label">Tắt tiếng</span>
+        <span id="speak-label">Tự đọc câu trả lời</span>
       </button>
     <% end %>
     <button onclick="clearHistory()" title="Xóa lịch sử"
@@ -58,10 +58,10 @@
     <div class="w-14 h-14 rounded-xl flex items-center justify-center p-1 shrink-0 mt-0.5"><%= render "admin/shared/ai_bot_icon" %></div>
     <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm max-w-lg">
       <p class="text-[13px] text-slate-700 leading-relaxed">
-        Xin chào! Tôi là AI Tutor. Hãy hỏi tôi bất kỳ điều gì bạn muốn hiểu.
+        <%= t("ai_tutor.welcome_p1") %>
       </p>
       <p class="text-[13px] text-slate-700 leading-relaxed mt-2">
-        💡 Tôi sẽ <strong>dẫn dắt bạn tư duy</strong> thay vì đưa đáp án thẳng — cách này giúp bạn hiểu sâu và nhớ lâu hơn nhiều.
+        <%= t("ai_tutor.welcome_p2").html_safe %>
       </p>
     </div>
   </div>
@@ -365,11 +365,11 @@ function toggleAutoSpeak() {
   if (_autoSpeak) {
     btn.className = btn.className.replace('border-slate-200 text-slate-400', 'border-violet-400 text-violet-600 bg-violet-50');
     iconOff.classList.add('hidden'); iconOn.classList.remove('hidden');
-    label.textContent = 'Đang bật';
+    label.textContent = 'Tắt tự đọc';
   } else {
     btn.className = btn.className.replace('border-violet-400 text-violet-600 bg-violet-50', 'border-slate-200 text-slate-400');
     iconOn.classList.add('hidden'); iconOff.classList.remove('hidden');
-    label.textContent = 'Tắt tiếng';
+    label.textContent = 'Tự đọc câu trả lời';
     if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
   }
 }

@@ -17,15 +17,53 @@
      "Đang hoàn thiện..."]
 %>
 
+<%
+  vtask_id       = local_assigns[:vtask_id]
+  vtask_label    = local_assigns[:vtask_label]
+  vtask_title    = local_assigns[:vtask_title]
+  vtask_icon     = local_assigns[:vtask_icon] || '⚙️'
+  vtask_redirect = local_assigns[:vtask_redirect]
+  can_minimize   = vtask_id.present?
+%>
 <div id="ai-gen-overlay"
      style="display:flex; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center;
             background:rgba(15,23,42,0.65); backdrop-filter:blur(4px);">
   <div style="background:#fff; border-radius:20px; padding:32px 40px; text-align:center;
-              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%;">
+              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%; position:relative;">
+    <% if can_minimize %>
+      <button onclick="voxMinimizeTask()" title="Thu nhỏ — tiếp tục làm việc khác" data-navy-hover="1"
+              style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;color:#1e3a5f;transition:background .15s,border-color .15s;"
+              onmouseenter="this.style.background='#e8f0f8';this.style.borderColor='#b3cbe3'" onmouseleave="this.style.background='#fff';this.style.borderColor='#e2e8f0'">
+        <svg width="12" height="3" viewBox="0 0 12 3" fill="none"><rect y="0.5" width="12" height="2" rx="1" fill="#1e3a5f"/></svg>
+        Thu nhỏ
+      </button>
+    <% end %>
     <div id="ai-gen-ring-container"></div>
-    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Đừng tắt trang này.</p>
+    <% if can_minimize %>
+      <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Nhấn <strong style="color:#1e3a5f">Thu nhỏ</strong> để tiếp tục làm việc.</p>
+    <% else %>
+      <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Đừng tắt trang này.</p>
+    <% end %>
   </div>
 </div>
+
+<% if can_minimize %>
+<script>
+window._voxGenTask = {
+  id:          <%= raw vtask_id.to_json %>,
+  icon:        <%= raw vtask_icon.to_json %>,
+  label:       <%= raw vtask_label.to_json %>,
+  title:       <%= raw vtask_title.to_s.to_json %>,
+  redirect_url:<%= raw vtask_redirect.to_s.to_json %>
+};
+window.voxMinimizeTask = function() {
+  document.getElementById('ai-gen-overlay').style.display = 'none';
+  if (window.VoxTaskManager && window._voxGenTask) {
+    VoxTaskManager.add(Object.assign({}, window._voxGenTask, { poll_url: window._voxGenPollUrl }));
+  }
+};
+</script>
+<% end %>
 
 <style>
 @keyframes vox-pulse {
@@ -38,6 +76,18 @@
 (function() {
   var AI_GEN_PHASES = <%= raw phases.to_json %>;
   var pollUrl = '<%= j poll_url %>';
+  window._voxGenPollUrl = pollUrl;
+
+  /* ── Skip nếu VoxTaskManager đang track task này (vd: sau khi switch ngôn ngữ) ── */
+  <% if can_minimize %>
+  try {
+    var _existing = JSON.parse(localStorage.getItem('vox_active_tasks') || '[]');
+    if (_existing.some(function(t) { return t.id === '<%= j vtask_id %>'; })) {
+      document.getElementById('ai-gen-overlay').style.display = 'none';
+      return; // VoxTaskManager đang poll — không cần overlay
+    }
+  } catch(e) {}
+  <% end %>
 
   /* ── Progress ring ── */
   (function buildRing() {
@@ -98,6 +148,8 @@
 
   /* ── Polling ── */
   function poll() {
+    var overlay = document.getElementById('ai-gen-overlay');
+    if (overlay && overlay.style.display === 'none') return; // minimized — VoxTaskManager takes over
     fetch(pollUrl, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function(r) { return r.json(); })
       .then(function(data) {

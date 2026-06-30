@@ -8,7 +8,7 @@
   <div class="flex-1 min-w-0">
     <h1 class="text-[20px] font-extrabold text-slate-900 truncate"><%= @outline.title %></h1>
     <div class="flex items-center gap-2 mt-0.5 text-[12px] text-slate-400">
-      <span><%= { "outline" => "📋 Dàn ý", "slide" => "🖥️ Slide", "slide_script" => "🖥️ Slide", "lesson_plan" => "📚 Kế hoạch buổi học" }[@outline.output_type] %></span>
+      <span><%= { "outline" => t("content_outline.nav_icon_outline"), "slide" => "🖥️ Slide", "slide_script" => "🖥️ Slide", "lesson_plan" => t("content_outline.nav_icon_plan") }[@outline.output_type] %></span>
       <% if @outline.subject.present? %><span>· <%= @outline.subject %></span><% end %>
       <span>· <%= @outline.created_at.strftime("%d/%m/%Y %H:%M") %></span>
     </div>
@@ -25,16 +25,20 @@
         onclick="handleRegenerate()"
         class="flex items-center gap-1.5 px-3 py-2 bg-violet-50 hover:bg-[#1e3a5f] hover:text-white text-violet-700 text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-      Tạo lại (5 credits)
+      <%= t("content_outline.regenerate") %> (5 credits)
     </button>
   </div>
 </div>
 
 <% if @outline.pending? %>
   <%= render "admin/shared/ai_generating_overlay",
-        poll_url: status_content_outline_path(@outline, format: :json),
-        message: "AI đang tạo #{@outline.output_type == 'slide' ? 'slide' : 'nội dung'}...",
-        submessage: "Đừng tắt trang này." %>
+        poll_url:      status_content_outline_path(@outline, format: :json),
+        message:       "AI đang tạo #{@outline.output_type == 'slide' ? 'slide' : 'nội dung'}...",
+        vtask_id:      "co-#{@outline.id}",
+        vtask_icon:    "✍️",
+        vtask_label:   @outline.output_type == 'slide' ? 'Tạo Slide AI' : 'Tạo nội dung AI',
+        vtask_title:   @outline.title,
+        vtask_redirect: content_outline_path(@outline) %>
 <% elsif @outline.failed? %>
   <div class="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
     <div class="text-4xl mb-3">⚠️</div>

@@ -167,6 +167,32 @@ class Admin::AiController < Admin::BaseController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  # Suggest title + subject for a slide/content from document summary text
+  def suggest_meta
+    content = params[:content].to_s.strip.truncate(3000)
+    return render json: { error: "Thiếu nội dung" }, status: :unprocessable_entity if content.blank?
+
+    svc = ClaudeService.new(model: ClaudeService::HAIKU_MODEL, timeout: 15)
+    raw = svc.call(
+      system_prompt: "Bạn là trợ lý phân tích tài liệu. Chỉ trả về JSON hợp lệ, không giải thích.",
+      user_prompt: <<~PROMPT,
+        Dựa vào nội dung tóm tắt tài liệu sau, hãy đề xuất:
+        - title: Tiêu đề ngắn gọn cho bộ slide thuyết trình (5-10 từ, tiếng Việt)
+        - subject: Lĩnh vực / ngành của tài liệu (1-3 từ, VD: "Marketing", "Công nghệ", "Y tế", "Giáo dục"...)
+
+        Nội dung tài liệu:
+        #{content}
+
+        Trả về JSON: {"title":"...","subject":"..."}
+      PROMPT
+      max_tokens: 150
+    )
+    data = JSON.parse(raw.match(/\{.*\}/m)&.to_s || "{}")
+    render json: { title: data["title"].to_s, subject: data["subject"].to_s }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   private
 
   def resolve_tutor_context
