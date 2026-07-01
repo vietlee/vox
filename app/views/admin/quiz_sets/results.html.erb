@@ -44,12 +44,12 @@
 <div class="flex mb-4" style="border-bottom:2px solid #e2e8f0;">
   <button id="tab-results" onclick="switchResultTab('results')"
           style="flex:1;padding:10px 16px;font-size:13px;font-weight:700;color:#1e293b;background:#fff;border:0;border-bottom:2px solid #1e3a5f;margin-bottom:-2px;cursor:pointer;transition:all .15s;">
-    📋 Danh sách kết quả
+    📋 <%= t("quiz.tab_results_list") %>
   </button>
   <div style="width:1px;background:#e2e8f0;margin:8px 0 10px;flex-shrink:0;"></div>
   <button id="tab-class-ai" onclick="switchResultTab('class-ai')"
           style="flex:1;padding:10px 16px;font-size:13px;font-weight:600;color:#94a3b8;background:#fff;border:0;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;transition:all .15s;<%= has_ai ? '' : 'opacity:.4;pointer-events:none;' %>">
-    ✨ Phân tích AI toàn bộ
+    ✨ <%= t("quiz.tab_ai_analysis") %>
     <span style="font-size:10px;font-weight:700;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;padding:1px 7px;border-radius:20px;margin-left:5px;vertical-align:middle;">✦ AI</span>
   </button>
 </div>
@@ -153,12 +153,12 @@
   <% if has_ai && @quiz_set.ai_class_evaluation.blank? %>
   <div id="class-ai-empty" style="background:#fff;border:1.5px dashed #7aaac9;border-radius:16px;padding:48px 24px;text-align:center;">
     <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#f5f3ff,#d9e5f1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;">✨</div>
-    <p style="font-size:15px;font-weight:800;color:#1e293b;margin:0 0 8px;">Phân tích AI toàn bộ kết quả</p>
-    <p style="font-size:13px;color:#64748b;line-height:1.6;margin:0 0 6px;">AI sẽ phân tích dữ liệu của <strong><%= @all_attempts.count %> người</strong> tham gia —<br>tìm ra câu yếu, xu hướng sai và đề xuất cải thiện.</p>
-    <p style="font-size:11px;color:#94a3b8;margin:0 0 20px;">Chi phí: 3 credits · Kết quả được lưu lại</p>
+    <p style="font-size:15px;font-weight:800;color:#1e293b;margin:0 0 8px;"><%= t("quiz.tab_ai_analysis") %></p>
+    <p style="font-size:13px;color:#64748b;line-height:1.6;margin:0 0 6px;"><%= t("quiz.ai_analysis_desc_html", count: @all_attempts.count).html_safe %></p>
+    <p style="font-size:11px;color:#94a3b8;margin:0 0 20px;"><%= t("quiz.ai_analysis_cost") %></p>
     <button onclick="runClassAiEval(this)" id="class-ai-run-btn"
             style="display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:10px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#1e3a5f,#6d28d9);color:#fff;border:0;cursor:pointer;box-shadow:0 4px 14px rgba(124,58,237,.35);">
-      ✨ Chạy phân tích AI
+      ✨ <%= t("quiz.run_ai_analysis") %>
     </button>
   </div>
   <% end %>
@@ -184,13 +184,13 @@
   <div id="class-ai-result" style="<%= @quiz_set.ai_class_evaluation.present? ? '' : 'display:none;' %>background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
     <div style="display:flex;align-items:center;gap:8px;padding:12px 20px;background:linear-gradient(135deg,#f5f3ff,#d9e5f1);border-bottom:1px solid #e9d5ff;">
       <span style="font-size:14px;">✨</span>
-      <span style="font-size:13px;font-weight:700;color:#6d28d9;">Phân tích AI — Toàn bộ kết quả</span>
+      <span style="font-size:13px;font-weight:700;color:#6d28d9;"><%= t("quiz.tab_ai_analysis") %></span>
       <% if @quiz_set.ai_class_evaluated_at %>
         <span style="font-size:11px;color:#4a80a8;margin-left:4px;" id="class-ai-timestamp"><%= @quiz_set.ai_class_evaluated_at.strftime("%d/%m/%Y %H:%M") %></span>
       <% else %>
         <span style="font-size:11px;color:#4a80a8;margin-left:4px;" id="class-ai-timestamp"></span>
       <% end %>
-      <button onclick="runClassAiEval(null, true)" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;background:#faf5ff;border:1px solid #e9d5ff;color:#1e3a5f;cursor:pointer;">↻ Tạo lại</button>
+      <button onclick="runClassAiEval(null, true)" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;background:#faf5ff;border:1px solid #e9d5ff;color:#1e3a5f;cursor:pointer;">↻ <%= t("quiz.regenerate") %></button>
     </div>
     <div id="class-ai-content" style="padding:24px 28px;font-size:13px;color:#475569;line-height:1.65;">
       <%= @quiz_set.ai_class_evaluation&.html_safe %>
@@ -278,7 +278,7 @@ function runClassAiEval(triggerBtn, force) {
   }).then(function(r) { return r.json(); }).then(function(data) {
     clearInterval(classPhTimer);
     loading.style.display = 'none';
-    if (_classAiBtn) { _classAiBtn.disabled = false; _classAiBtn.innerHTML = '✨ Chạy phân tích AI'; }
+    if (_classAiBtn) { _classAiBtn.disabled = false; _classAiBtn.innerHTML = '✨ <%= j t("quiz.run_ai_analysis") %>'; }
     if (data.html) {
       document.getElementById('class-ai-content').innerHTML = data.html;
       if (!data.cached) {
@@ -287,7 +287,7 @@ function runClassAiEval(triggerBtn, force) {
         if (window.deductDisplayCredits) window.deductDisplayCredits(3);
       }
       result.style.display = 'block';
-      document.getElementById('tab-class-ai').innerHTML = '✨ Phân tích AI toàn bộ <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;margin-left:6px;vertical-align:middle;"></span> <span style="font-size:10px;font-weight:700;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;padding:1px 7px;border-radius:20px;margin-left:5px;vertical-align:middle;">✦ AI</span>';
+      document.getElementById('tab-class-ai').innerHTML = '✨ <%= j t("quiz.tab_ai_analysis") %> <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;margin-left:6px;vertical-align:middle;"></span> <span style="font-size:10px;font-weight:700;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;padding:1px 7px;border-radius:20px;margin-left:5px;vertical-align:middle;">✦ AI</span>';
     } else {
       if (empty) empty.style.display = 'block';
       alert('Lỗi: ' + (data.error || 'Không thể phân tích'));
@@ -296,7 +296,7 @@ function runClassAiEval(triggerBtn, force) {
     clearInterval(classPhTimer);
     loading.style.display = 'none';
     if (empty) empty.style.display = 'block';
-    if (_classAiBtn) { _classAiBtn.disabled = false; _classAiBtn.innerHTML = '✨ Chạy phân tích AI'; }
+    if (_classAiBtn) { _classAiBtn.disabled = false; _classAiBtn.innerHTML = '✨ <%= j t("quiz.run_ai_analysis") %>'; }
     alert('Lỗi kết nối');
   });
 }
