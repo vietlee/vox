@@ -798,14 +798,38 @@ window.VoxTaskManager = (function() {
     if (fill)  fill.style.width    = (t.pct || 0) + '%';
     if (pctEl) pctEl.textContent   = (t.pct || 0) + '%';
   }
+  var TOAST_STORE_KEY = 'vox_pending_toasts';
+  var TOAST_TTL_MS    = 300000; // 5 minutes
+
+  function _persistToast(icon, label, title, url) {
+    try {
+      var toasts = JSON.parse(sessionStorage.getItem(TOAST_STORE_KEY) || '[]');
+      toasts.push({ icon: icon, label: label, title: title, url: url, at: Date.now() });
+      sessionStorage.setItem(TOAST_STORE_KEY, JSON.stringify(toasts));
+    } catch(e) {}
+  }
+
+  function _restoreToasts() {
+    try {
+      var toasts = JSON.parse(sessionStorage.getItem(TOAST_STORE_KEY) || '[]');
+      var now = Date.now();
+      var remaining = toasts.filter(function(t) { return (now - t.at) < TOAST_TTL_MS; });
+      sessionStorage.setItem(TOAST_STORE_KEY, JSON.stringify(remaining));
+      remaining.forEach(function(t) {
+        _renderToast(t.icon, t.label, t.title, t.url, TOAST_TTL_MS - (now - t.at));
+      });
+    } catch(e) {}
+  }
+
   function _complete(task, redirectUrl) {
     _tasks = _tasks.filter(function(t) { return t.id !== task.id; });
     _save(); _render();
     if (!_tasks.length) _stopPolling();
-    _showToast('✅', task.label, task.title, redirectUrl);
-    // If we're currently on this task's redirect page, reload to show results
+    _persistToast('✅', task.label, task.title, redirectUrl);
     if (redirectUrl && window.location.pathname === new URL(redirectUrl, location.href).pathname) {
-      setTimeout(function() { window.location.reload(); }, 800);
+      setTimeout(function() { window.location.reload(); }, 400);
+    } else {
+      _showToast('✅', task.label, task.title, redirectUrl);
     }
   }
   function _fail(task, msg) {
@@ -814,7 +838,7 @@ window.VoxTaskManager = (function() {
     if (!_tasks.length) _stopPolling();
     _showToast('❌', task.label + ' thất bại', msg || '', null);
   }
-  function _showToast(icon, label, title, url) {
+  function _renderToast(icon, label, title, url, ttl) {
     var el = document.createElement('div');
     el.className = 'vox-toast';
     var link = url ? ' <a href="' + url + '">Xem ngay →</a>' : '';
@@ -825,7 +849,10 @@ window.VoxTaskManager = (function() {
       el.style.transition = 'opacity .4s';
       el.style.opacity = '0';
       setTimeout(function() { el.remove(); }, 400);
-    }, 300000);
+    }, ttl || TOAST_TTL_MS);
+  }
+  function _showToast(icon, label, title, url) {
+    _renderToast(icon, label, title, url, TOAST_TTL_MS);
   }
 
   // Public API
@@ -855,6 +882,7 @@ window.VoxTaskManager = (function() {
     init: function() {
       _load(); _render();
       if (_tasks.length) _startPolling();
+      _restoreToasts();
     }
   };
 })();
