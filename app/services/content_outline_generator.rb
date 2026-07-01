@@ -1807,7 +1807,8 @@ class ContentOutlineGenerator
   end
 
   def attach_pptx(path)
-    filename = "#{@outline.title.parameterize}.pptx"
+    safe_title = @outline.title.to_s.gsub(/[^\p{L}\p{N}\s\-_]/, '').gsub(/\s+/, '-').strip.presence || "slide"
+    filename = "#{safe_title}.pptx"
     @outline.pptx_file.attach(
       io: File.open(path),
       filename: filename,

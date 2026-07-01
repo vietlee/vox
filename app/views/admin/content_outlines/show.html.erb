@@ -4744,8 +4744,19 @@ function handleRegenerate() {
   var overlay = document.createElement('div');
   overlay.id = 'ai-gen-overlay';
   overlay.style.cssText = 'display:flex;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);';
-  overlay.innerHTML = '<div style="background:#fff;border-radius:20px;padding:32px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.22);max-width:320px;width:90%;"><div id="ai-gen-ring-container"></div><p style="font-size:11px;color:#94A3B8;margin:12px 0 0;">Đừng tắt trang này.</p></div>';
+  overlay.innerHTML = '<div style="background:#fff;border-radius:20px;padding:32px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.22);max-width:320px;width:90%;position:relative;">' +
+    '<button onclick="aiEditMinimize()" style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;color:#1e3a5f;transition:background .15s,border-color .15s;" onmouseenter="this.style.background=\'#e8f0f8\';this.style.borderColor=\'#b3cbe3\'" onmouseleave="this.style.background=\'#fff\';this.style.borderColor=\'#e2e8f0\'"><svg width="12" height="3" viewBox="0 0 12 3" fill="none"><rect y="0.5" width="12" height="2" rx="1" fill="#1e3a5f"/></svg> Thu nhỏ</button>' +
+    '<div id="ai-gen-ring-container"></div>' +
+    '<p style="font-size:11px;color:#94A3B8;margin:12px 0 0;">Nhấn <strong style="color:#1e3a5f">Thu nhỏ</strong> để tiếp tục làm việc.</p>' +
+    '</div>';
   document.body.appendChild(overlay);
+
+  window.aiEditMinimize = function() {
+    overlay.style.display = 'none';
+    if (window.VoxTaskManager) {
+      VoxTaskManager.add({ id: 'co-edit-<%= @outline.id %>', icon: '✍️', label: '<%= @outline.output_type == "slide" ? "Tạo Slide AI" : "Tạo nội dung AI" %>', title: <%= @outline.title.to_json %>, poll_url: pollUrl, redirect_url: '<%= content_outline_path(@outline) %>' });
+    }
+  };
 
   var phases = ["AI đang tạo <%= @outline.output_type == 'slide' ? 'slide' : 'nội dung' %>...","Đang phân tích...","Đang tạo nội dung...","Đang hoàn thiện..."];
   buildGenRing(phases);
