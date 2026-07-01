@@ -1,7 +1,7 @@
 <% type_label = case question.question_type
-  when "multiple_choice" then (question.allow_multiple ? "Nhiều đáp án" : "1 đáp án")
-  when "true_false"      then "Đúng/Sai"
-  when "short_answer"    then "Tự luận"
+  when "multiple_choice" then (question.allow_multiple ? t("quiz.badge_multi") : t("quiz.badge_single"))
+  when "true_false"      then t("quiz.badge_tf")
+  when "short_answer"    then t("quiz.badge_sa")
   end
   type_color = case question.question_type
     when "multiple_choice" then question.allow_multiple ? "bg-violet-100 text-violet-700" : "bg-indigo-100 text-indigo-700"
@@ -25,7 +25,7 @@
       <% end %>
 
       <% if question.short_answer? %>
-        <p class="text-[12px] text-slate-400 italic mb-3">✍️ Học sinh sẽ tự nhập câu trả lời</p>
+        <p class="text-[12px] text-slate-400 italic mb-3">✍️ <%= t("quiz.student_types_answer") %></p>
       <% else %>
         <!-- Options -->
         <div id="opts-<%= question.id %>" class="space-y-0.5 mb-3">

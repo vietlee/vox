@@ -168,13 +168,13 @@
               class: "w-full px-2.5 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none" %>
         </div>
         <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Điểm đạt tối thiểu (%)</label>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1"><%= t("quiz.passing_score_label") %></label>
           <div class="relative">
             <%= f.number_field :passing_score, min: 1, max: 100, value: @quiz_set.passing_score || 50,
                 class: "w-full px-2.5 py-2 border border-slate-200 rounded-lg text-[13px] focus:border-indigo-500 outline-none pr-8" %>
             <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] text-slate-400 font-semibold">%</span>
           </div>
-          <p class="text-[11px] text-slate-400 mt-1">Mặc định: 50% — học sinh đạt từ ngưỡng này trở lên</p>
+          <p class="text-[11px] text-slate-400 mt-1"><%= t("quiz.passing_score_hint") %></p>
         </div>
         <!-- Result mode -->
         <div>
@@ -277,32 +277,32 @@
                 class="qtype-btn active-type flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-indigo-500 bg-indigo-50 text-indigo-700 text-[12px] font-bold transition-all text-left">
           <span class="text-lg">🔘</span>
           <div>
-            <div class="font-bold">Trắc nghiệm</div>
-            <div class="text-[10px] font-normal text-indigo-500">1 đáp án đúng</div>
+            <div class="font-bold"><%= t("quiz.type_mc") %></div>
+            <div class="text-[10px] font-normal text-indigo-500"><%= t("quiz.type_mc_hint") %></div>
           </div>
         </button>
         <button onclick="selectQType('multiple_choice', true)" id="qtype-mc-multi"
                 class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
           <span class="text-lg">☑️</span>
           <div>
-            <div class="font-bold">Nhiều đáp án</div>
-            <div class="text-[10px] font-normal text-slate-400">Chọn nhiều đáp án đúng</div>
+            <div class="font-bold"><%= t("quiz.type_mc_multi") %></div>
+            <div class="text-[10px] font-normal text-slate-400"><%= t("quiz.type_mc_multi_hint") %></div>
           </div>
         </button>
         <button onclick="selectQType('true_false', false)" id="qtype-tf"
                 class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
           <span class="text-lg">✅</span>
           <div>
-            <div class="font-bold">Đúng / Sai</div>
-            <div class="text-[10px] font-normal text-slate-400">Tự động tạo 2 lựa chọn</div>
+            <div class="font-bold"><%= t("quiz.type_tf") %></div>
+            <div class="text-[10px] font-normal text-slate-400"><%= t("quiz.type_tf_hint") %></div>
           </div>
         </button>
         <button onclick="selectQType('short_answer', false)" id="qtype-sa"
                 class="qtype-btn flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-[12px] font-bold transition-all text-left hover:border-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white">
           <span class="text-lg">✍️</span>
           <div>
-            <div class="font-bold">Tự luận</div>
-            <div class="text-[10px] font-normal text-slate-400">Học sinh nhập câu trả lời</div>
+            <div class="font-bold"><%= t("quiz.type_sa") %></div>
+            <div class="text-[10px] font-normal text-slate-400"><%= t("quiz.type_sa_hint") %></div>
           </div>
         </button>
       </div>
@@ -318,19 +318,19 @@
       <!-- Options section (hidden for short_answer) -->
       <div id="modal-opts-section">
         <div class="flex items-center justify-between mb-1.5">
-          <label class="text-[11px] font-bold text-slate-500 uppercase">Lựa chọn *</label>
-          <span id="modal-opts-hint-label" class="text-[10px] text-slate-400">Bấm ○ để đánh dấu đáp án đúng</span>
+          <label class="text-[11px] font-bold text-slate-500 uppercase"><%= t("quiz.options") %> *</label>
+          <span id="modal-opts-hint-label" class="text-[10px] text-slate-400"><%= t("quiz.options_hint_single") %></span>
         </div>
         <!-- Option list -->
         <div id="modal-opts-list" class="space-y-1.5 mb-2"></div>
         <!-- Add option input (hidden for true_false) -->
         <div id="modal-add-opt-row" class="flex gap-2">
-          <input type="text" id="modal-opt-input" placeholder="Nhập lựa chọn rồi bấm Thêm hoặc Enter..."
+          <input type="text" id="modal-opt-input" placeholder="<%= t('quiz.option_add_placeholder') %>"
                  class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-[13px] focus:border-indigo-500 outline-none"
                  onkeydown="if(event.key==='Enter'){event.preventDefault();addModalOption()}">
           <button onclick="addModalOption()"
                   class="px-3 py-2 bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-500 text-[12px] font-semibold rounded-xl transition-colors flex-shrink-0">
-            + Thêm
+            + <%= t("quiz.add_option") %>
           </button>
         </div>
         <p id="modal-opts-error" class="hidden text-[11px] text-red-500 mt-1"></p>
@@ -468,10 +468,10 @@ var QTYPE_COLORS = {
   'sa':       { border: 'border-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700' }
 };
 var QTYPE_HINTS = {
-  'mc1':      '💡 Sau khi thêm, nhập các lựa chọn và bấm ○ để đánh dấu đáp án đúng.',
-  'mc-multi': '💡 Sau khi thêm, nhập các lựa chọn và bấm ☐ để đánh dấu nhiều đáp án đúng.',
-  'tf':       '💡 Hai lựa chọn Đúng/Sai sẽ được tạo tự động.',
-  'sa':       '💡 Học sinh sẽ tự nhập câu trả lời dạng văn bản.'
+  'mc1':      '💡 <%= j t("quiz.hint_mc1") %>',
+  'mc-multi': '💡 <%= j t("quiz.hint_mc_multi") %>',
+  'tf':       '💡 <%= j t("quiz.hint_tf") %>',
+  'sa':       '💡 <%= j t("quiz.hint_sa") %>'
 };
 
 // ── Modal options state ──────────────────────────────────────────
@@ -564,16 +564,16 @@ function selectQType(type, allowMultiple) {
   } else if (type === 'true_false') {
     optsSection.classList.remove('hidden');
     if (addOptRow) addOptRow.classList.add('hidden');
-    if (hintLabel) hintLabel.textContent = 'Bấm ○ để đánh dấu đáp án đúng';
+    if (hintLabel) hintLabel.textContent = '<%= j t("quiz.options_hint_single") %>';
     // Only reset if coming from a different type
-    if (!modalOptions.some(function(o) { return o.text === 'Đúng'; })) {
+    if (!modalOptions.some(function(o) { return o.text === 'Đúng' || o.text === 'True'; })) {
       modalOptions = [{ text: 'Đúng', correct: true }, { text: 'Sai', correct: false }];
     }
     renderModalOptions();
   } else {
     optsSection.classList.remove('hidden');
     if (addOptRow) addOptRow.classList.remove('hidden');
-    if (hintLabel) hintLabel.textContent = allowMultiple ? 'Bấm ☐ để đánh dấu nhiều đáp án đúng' : 'Bấm ○ để đánh dấu 1 đáp án đúng';
+    if (hintLabel) hintLabel.textContent = allowMultiple ? '<%= j t("quiz.options_hint_multi") %>' : '<%= j t("quiz.options_hint_single") %>';
     // Reset if coming from true_false
     if (modalOptions.some(function(o) { return o.text === 'Đúng' || o.text === 'Sai'; })) {
       modalOptions = [];
@@ -621,7 +621,7 @@ async function submitNewQuestion() {
       return;
     }
     if (!modalOptions.some(function(o) { return o.correct; })) {
-      showOptsError('Vui lòng đánh dấu ít nhất 1 đáp án đúng (bấm ○ hoặc ☐).');
+      showOptsError('<%= j t("quiz.error_mark_correct") %>');
       return;
     }
   }
@@ -653,7 +653,7 @@ async function submitNewQuestion() {
     newEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     if (window.MathJax) MathJax.typesetPromise([newEl]);
   } else {
-    showOptsError(data.error || 'Có lỗi xảy ra.');
+    showOptsError(data.error || '<%= j t("common.error_generic", default: "An error occurred.") %>');
   }
 }
 
@@ -662,12 +662,12 @@ function questionCardHtml(q, index) {
   let typeBadge = '';
   if (q.question_type === 'multiple_choice') {
     typeBadge = q.allow_multiple
-      ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-violet-100 text-violet-700 flex-shrink-0">Nhiều đáp án</span>'
-      : '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700 flex-shrink-0">1 đáp án</span>';
+      ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-violet-100 text-violet-700 flex-shrink-0"><%= j t("quiz.badge_multi") %></span>'
+      : '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700 flex-shrink-0"><%= j t("quiz.badge_single") %></span>';
   } else if (q.question_type === 'true_false') {
-    typeBadge = '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700 flex-shrink-0">Đúng/Sai</span>';
+    typeBadge = '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700 flex-shrink-0"><%= j t("quiz.badge_tf") %></span>';
   } else {
-    typeBadge = '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 flex-shrink-0">Tự luận</span>';
+    typeBadge = '<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 flex-shrink-0"><%= j t("quiz.badge_sa") %></span>';
   }
 
   const explanation = q.explanation
@@ -675,17 +675,17 @@ function questionCardHtml(q, index) {
 
   let bodyHtml = '';
   if (q.question_type === 'short_answer') {
-    bodyHtml = '<p class="text-[12px] text-slate-400 italic mb-3">✍️ Học sinh sẽ tự nhập câu trả lời</p>';
+    bodyHtml = '<p class="text-[12px] text-slate-400 italic mb-3">✍️ <%= j t("quiz.student_types_answer") %></p>';
   } else {
     const opts = (q.options || []).map(function(o) { return optionHtml(o.id, o.text, o.correct, q.id, q.allow_multiple); }).join('');
     const addRow = q.question_type !== 'true_false'
       ? `<div class="flex gap-2">
-          <input type="text" id="opt-input-${q.id}" placeholder="Nhập lựa chọn..."
+          <input type="text" id="opt-input-${q.id}" placeholder="<%= j t('quiz.option_placeholder') %>"
                  class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-500 outline-none"
                  onkeydown="if(event.key==='Enter'){event.preventDefault();addOption(${q.id})}">
           <button onclick="addOption(${q.id})"
                   class="px-3 py-1.5 bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-500 text-[12px] font-semibold rounded-lg transition-colors">
-            + Thêm lựa chọn
+            + <%= j t("quiz.add_option") %>
           </button>
         </div>` : '';
     bodyHtml = `<div id="opts-${q.id}" class="space-y-0.5 mb-3">${opts}</div>${addRow}`;
