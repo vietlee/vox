@@ -27,8 +27,8 @@ class MonthlyFreeResetJob < ApplicationJob
 
     Subscription.active.where(id: all_ids).find_each do |sub|
       sub.update_columns(
-        credit_balance: sub.credit_balance + monthly_credits,
-        max_ai_credits: [sub.max_ai_credits.to_i, monthly_credits].max
+        credit_balance: monthly_credits,
+        max_ai_credits: monthly_credits
       )
       count += 1
     end
