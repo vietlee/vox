@@ -172,6 +172,7 @@
 </div>
 
 <script>
+(function() {
 const contextType = '<%= @context_type %>';
 const contextId   = '<%= @context_id %>';
 const STORAGE_KEY = 'vox_tutor_history_<%= current_workspace.id %>_<%= current_user.id %>';
@@ -818,6 +819,21 @@ async function transcribeAndSend(blob) {
     setTimeout(() => { input.placeholder = 'Hỏi bất cứ điều gì bạn muốn hiểu...'; }, 2000);
   }
 }
+
+// Expose functions called from HTML event attributes
+window.clearHistory = clearHistory;
+window.handleAttach = handleAttach;
+window.removeAttach = removeAttach;
+window.sendMsg = sendMsg;
+window.toggleAutoSpeak = toggleAutoSpeak;
+window.enterVoiceCall = enterVoiceCall;
+window.closeVoicePicker = closeVoicePicker;
+window.selectVoice = selectVoice;
+window.startVoiceCall = startVoiceCall;
+window.exitVoiceCall = exitVoiceCall;
+window.toggleRecording = toggleRecording;
+window.stopRecording = stopRecording;
+})();
 </script>
 
 <!-- Voice Picker Modal -->
