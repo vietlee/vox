@@ -24,11 +24,11 @@
     <div class="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b" style="background:rgba(99,102,241,0.06); border-color:rgba(99,102,241,0.15);">
       <div class="relative flex-1 max-w-sm">
         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
-        <input type="text" placeholder="Tìm kiếm tài liệu..."
+        <input type="text" placeholder="<%= t('document_summary.search_placeholder') %>"
           class="w-full pl-8 pr-3 py-1.5 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white"
           oninput="filterRows(this,'ds-row','ds-no-results')">
       </div>
-      <span class="text-[11px] text-slate-400 ml-auto"><%= @summaries.size %> tài liệu</span>
+      <span class="text-[11px] text-slate-400 ml-auto"><%= t("document_summary.count_label", count: @summaries.size) %></span>
     </div>
 
     <div class="flex-1 min-h-0 overflow-y-auto">
@@ -36,10 +36,10 @@
         <table class="w-full border-collapse">
           <thead>
             <tr class="border-b border-slate-200" style="position:sticky;top:0;z-index:1;background:rgba(248,250,252,0.97);">
-              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Tên tài liệu</th>
-              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Loại</th>
-              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Trạng thái</th>
-              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Tạo lúc</th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("document_summary.th_name") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("document_summary.th_type") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("document_summary.th_status") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("document_summary.th_created") %></th>
               <th class="px-4 py-2.5"></th>
             </tr>
           </thead>
@@ -59,11 +59,11 @@
                 <td class="px-4 py-3 text-[12px] text-slate-500"><%= type_icon %> <%= type_label %></td>
                 <td class="px-4 py-3">
                   <% if doc.done? %>
-                    <span class="text-[11px] font-bold text-emerald-600">Hoàn thành</span>
+                    <span class="text-[11px] font-bold text-emerald-600"><%= t("document_summary.status_done") %></span>
                   <% elsif doc.pending? %>
-                    <span class="text-[11px] font-semibold text-amber-500">Đang xử lý...</span>
+                    <span class="text-[11px] font-semibold text-amber-500"><%= t("document_summary.status_processing") %></span>
                   <% else %>
-                    <span class="text-[11px] font-semibold text-red-500">Thất bại</span>
+                    <span class="text-[11px] font-semibold text-red-500"><%= t("document_summary.status_failed") %></span>
                   <% end %>
                 </td>
                 <td class="px-4 py-3 text-[12px] text-slate-400"><%= doc.created_at.strftime("%d/%m %H:%M") %></td>
@@ -72,12 +72,12 @@
                     <%= link_to document_summary_path(doc),
                         class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-slate-500 hover:text-white text-[12px] font-semibold rounded-lg transition-colors" do %>
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                      Xem
+                      <%= t("document_summary.btn_view") %>
                     <% end %>
                     <button type="button" onclick="confirmDelete('<%= document_summary_path(doc) %>', '<%= j(doc.title.presence || "tài liệu này") %>')"
                             class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-red-100 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-red-400 hover:text-white text-[12px] font-semibold rounded-lg transition-colors cursor-pointer">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                      Xóa
+                      <%= t("document_summary.btn_delete") %>
                     </button>
                   </div>
                 </td>
@@ -107,9 +107,9 @@
     <p id="ds-delete-desc" style="font-size:13px; color:#64748B; text-align:center; margin:0 0 20px;"></p>
     <div style="display:flex; gap:8px;">
       <button id="ds-delete-btn" onclick="executeDelete()"
-              style="flex:1; padding:11px; background:#EF4444; color:#fff; font-weight:700; font-size:13px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;">Xóa</button>
+              style="flex:1; padding:11px; background:#EF4444; color:#fff; font-weight:700; font-size:13px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;"><%= t("common.delete") %></button>
       <button onclick="document.getElementById('ds-delete-modal').style.display='none'"
-              style="flex:1; padding:11px; background:#F1F5F9; color:#475569; font-weight:600; font-size:13px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;">Hủy</button>
+              style="flex:1; padding:11px; background:#F1F5F9; color:#475569; font-weight:600; font-size:13px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;"><%= t("common.cancel") %></button>
     </div>
   </div>
 </div>

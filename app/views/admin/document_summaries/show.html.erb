@@ -50,7 +50,7 @@
   <% doc_title = @summary.title.presence || @summary.source_filename.presence || t("document_summary.no_title") %>
   <% doc_text  = @summary.source_text.presence || @summary.summary.to_s %>
   <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 mb-5">
-    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Làm gì tiếp theo với tài liệu này?</div>
+    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3"><%= t("document_summary.next_action_label") %></div>
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
 
       <!-- AI Tutor -->
@@ -61,7 +61,7 @@
         </div>
         <div>
           <div class="text-[12px] font-bold text-slate-800 group-hover:text-white">AI Tutor</div>
-          <div class="text-[10px] text-slate-400 group-hover:text-slate-300 mt-0.5">Hỏi đáp về tài liệu</div>
+          <div class="text-[10px] text-slate-400 group-hover:text-slate-300 mt-0.5"><%= t("document_summary.action_ai_tutor_sub") %></div>
         </div>
       <% end %>
 
@@ -70,7 +70,7 @@
           class: "group flex flex-col items-center gap-2 bg-slate-50 hover:bg-[#1e3a5f] border border-slate-200 hover:border-[#1e3a5f] rounded-xl px-3 py-4 text-center transition-all" do %>
         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:#e0e7ff">🃏</div>
         <div>
-          <div class="text-[12px] font-bold text-slate-800 group-hover:text-white">Tạo Flashcard</div>
+          <div class="text-[12px] font-bold text-slate-800 group-hover:text-white"><%= t("document_summary.action_flashcard") %></div>
           <div class="text-[10px] text-slate-400 group-hover:text-slate-300 mt-0.5">AI sinh thẻ từ tài liệu · 3 credits</div>
         </div>
       <% end %>
@@ -80,7 +80,7 @@
           class: "group flex flex-col items-center gap-2 bg-slate-50 hover:bg-[#1e3a5f] border border-slate-200 hover:border-[#1e3a5f] rounded-xl px-3 py-4 text-center transition-all" do %>
         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:#fef9c3">📝</div>
         <div>
-          <div class="text-[12px] font-bold text-slate-800 group-hover:text-white">Tạo Quiz</div>
+          <div class="text-[12px] font-bold text-slate-800 group-hover:text-white"><%= t("document_summary.action_quiz") %></div>
           <div class="text-[10px] text-slate-400 group-hover:text-slate-300 mt-0.5">AI sinh câu hỏi từ tài liệu · 5 credits</div>
         </div>
       <% end %>
@@ -94,8 +94,8 @@
           class: "group flex flex-col items-center gap-2 bg-slate-50 hover:bg-[#1e3a5f] border border-slate-200 hover:border-[#1e3a5f] rounded-xl px-3 py-4 text-center transition-all" do %>
         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:#e0f2fe">🖥️</div>
         <div>
-          <div class="text-[12px] font-bold text-slate-800 group-hover:text-white">Tạo Slide AI</div>
-          <div class="text-[10px] text-slate-400 group-hover:text-slate-300 mt-0.5">Trình bày bài giảng</div>
+          <div class="text-[12px] font-bold text-slate-800 group-hover:text-white"><%= t("document_summary.action_slide") %></div>
+          <div class="text-[10px] text-slate-400 group-hover:text-slate-300 mt-0.5"><%= t("document_summary.action_slide_sub") %></div>
         </div>
       <% end %>
 
@@ -104,7 +104,7 @@
           class: "group flex flex-col items-center gap-2 bg-slate-50 hover:bg-[#1e3a5f] border border-slate-200 hover:border-[#1e3a5f] rounded-xl px-3 py-4 text-center transition-all" do %>
         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:#d1fae5">🎙️</div>
         <div>
-          <div class="text-[12px] font-bold text-slate-800 group-hover:text-white">Đọc thành giọng</div>
+          <div class="text-[12px] font-bold text-slate-800 group-hover:text-white"><%= t("document_summary.action_tts") %></div>
           <div class="text-[10px] text-slate-400 group-hover:text-slate-300 mt-0.5">Text-to-speech</div>
         </div>
       <% end %>
@@ -117,7 +117,7 @@
     <% type_label = { "pdf"=>"PDF","docx"=>"Word","doc"=>"Word","txt"=>"Text","csv"=>"CSV","xlsx"=>"Excel","xls"=>"Excel","pptx"=>"PowerPoint","image"=>"Ảnh","text"=>"Văn bản nhập" }[@summary.source_type] || @summary.source_type %>
     <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
       <div class="flex items-center gap-2 mb-2">
-        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nguồn tài liệu · <%= type_label %></span>
+        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest"><%= t("document_summary.source_label", type: type_label) %></span>
       </div>
       <% if @summary.source_file.attached? %>
         <div class="flex items-center gap-3">
@@ -131,7 +131,7 @@
           <%= link_to rails_blob_path(@summary.source_file, disposition: "attachment"),
               class: "ml-auto shrink-0 px-3 py-1.5 text-[12px] font-semibold text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 hover:border-indigo-400 rounded-lg transition-colors",
               target: "_blank" do %>
-            ↓ Tải về
+            ↓ <%= t("document_summary.btn_download") %>
           <% end %>
         </div>
       <% elsif @summary.source_text.present? %>

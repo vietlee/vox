@@ -18,7 +18,7 @@
       <%= link_to rails_blob_path(@outline.pptx_file, disposition: "attachment"),
           class: "flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition-colors" do %>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-        Tải PPTX
+        <%= t("content_outline.download_pptx") %>
       <% end %>
     <% end %>
     <button type="button" id="regenerate-btn"
@@ -75,32 +75,32 @@
                     id="wysiwyg-btn"
                     title="Kéo thả chỉnh sửa trực tiếp trên slide"
                     class="text-[12px] text-slate-600 hover:text-white px-3 py-1 bg-slate-50 hover:bg-[#1e3a5f] rounded-lg transition-colors border-0 cursor-pointer font-medium">
-              ✏️ Sửa trực tiếp
+              <%= t("content_outline.btn_edit_direct") %>
             </button>
             <!-- AI edit panel toggle -->
             <button onclick="toggleAiPanel()"
                     id="ai-panel-btn"
                     class="text-[12px] text-indigo-600 hover:text-white px-3 py-1 bg-indigo-50 hover:bg-[#1e3a5f] rounded-lg transition-colors border-0 cursor-pointer font-semibold">
-              ✨ Sửa bằng AI
+              <%= t("content_outline.btn_edit_ai") %>
             </button>
             <button onclick="enterFullscreen()"
                     class="text-[12px] text-slate-500 hover:text-white px-3 py-1 bg-slate-50 hover:bg-[#1e3a5f] rounded-lg transition-colors border-0 cursor-pointer">
-              ⛶ Toàn màn hình
+              <%= t("content_outline.btn_fullscreen") %>
             </button>
             <button onclick="openShareDialog()"
                     class="text-[12px] text-slate-500 hover:text-white px-3 py-1 bg-slate-50 hover:bg-[#1e3a5f] rounded-lg transition-colors border-0 cursor-pointer">
-              🔗 Chia sẻ
+              <%= t("content_outline.btn_share") %>
             </button>
           </div>
         </div>
 
         <!-- WYSIWYG mode bar -->
         <div id="wysiwyg-bar" style="display:none;background:var(--vox-accent-dk);color:#fff;padding:5px 12px;font-size:11px;font-weight:600;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span style="flex:1;min-width:160px;">✏️ Kéo di chuyển · Kéo góc resize · Double-click sửa text/biểu đồ</span>
+          <span style="flex:1;min-width:160px;"><%= t("content_outline.canvas_hint") %></span>
           <!-- Slide background color panel -->
           <div style="position:relative;">
             <button id="bg-btn" onclick="toggleBgPanel()" style="background:rgba(255,255,255,.18);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">
-              🪣 Màu nền
+              <%= t("content_outline.btn_bg_color") %>
               <span id="bg-preview" style="width:14px;height:14px;border-radius:3px;background:#fff;border:1px solid rgba(255,255,255,.4);display:inline-block;flex-shrink:0;"></span>
             </button>
             <div id="bg-panel" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:10001;background:#fff;color:#1e293b;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:14px;width:260px;">
@@ -118,7 +118,7 @@
           </div>
           <!-- Image insert -->
           <label style="background:rgba(255,255,255,.18);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;">
-            📷 Chèn ảnh
+            <%= t("content_outline.btn_insert_image") %>
             <input type="file" id="img-upload-input" accept="image/*" style="display:none;" onchange="insertImageFromFile(this)">
           </label>
           <div style="display:flex;gap:2px;background:rgba(255,255,255,.12);border-radius:6px;padding:2px;">
@@ -127,7 +127,7 @@
           </div>
           <!-- Insert component -->
           <div style="position:relative;">
-            <button onclick="toggleInsertPanel()" style="background:rgba(255,255,255,.18);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;">➕ Thêm</button>
+            <button onclick="toggleInsertPanel()" style="background:rgba(255,255,255,.18);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;">➕ <%= t("content_outline.btn_add") %></button>
             <div id="insert-panel" style="display:none;position:absolute;right:0;top:calc(100%+6px);z-index:10050;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:14px 12px;width:340px;max-height:560px;overflow-y:auto;">
 
               <!-- Text & Media -->
@@ -197,7 +197,7 @@
               .ins-shape:hover{background:#f1f5f9;border-color:#e2e8f0;}
             </style>
           </div>
-          <button onclick="toggleWysiwyg()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Thoát</button>
+          <button onclick="toggleWysiwyg()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;"><%= t("content_outline.btn_exit") %></button>
         </div>
 
 
@@ -221,7 +221,7 @@
         <div id="share-modal" style="display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;" onclick="if(event.target===this)closeShareDialog()">
           <div style="background:#1e293b;border-radius:18px;padding:28px 28px 24px;max-width:440px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.4);position:relative;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-              <div style="font-size:15px;font-weight:700;color:#fff;">🔗 Chia sẻ slide</div>
+              <div style="font-size:15px;font-weight:700;color:#fff;">🔗 <%= t("content_outline.share_title") %></div>
               <button onclick="closeShareDialog()" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer;line-height:1;">✕</button>
             </div>
             <!-- Active share state -->
@@ -382,7 +382,7 @@
           <div id="ce-colors" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;"></div>
           <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Dữ liệu</div>
           <div id="ce-rows" style="display:flex;flex-direction:column;gap:5px;max-height:180px;overflow-y:auto;"></div>
-          <button onclick="ceAddRow()" style="margin-top:8px;width:100%;background:#334155;border:none;color:#94a3b8;border-radius:7px;padding:5px;font-size:11px;cursor:pointer;">+ Thêm dòng</button>
+          <button onclick="ceAddRow()" style="margin-top:8px;width:100%;background:#334155;border:none;color:#94a3b8;border-radius:7px;padding:5px;font-size:11px;cursor:pointer;"><%= t("content_outline.btn_add_row") %></button>
           <div style="display:flex;gap:8px;margin-top:12px;">
             <button onclick="applyChartEdit()" style="flex:1;background:#1e3a5f;border:none;color:#fff;border-radius:8px;padding:7px;font-size:12px;font-weight:700;cursor:pointer;">✓ Áp dụng</button>
             <button onclick="closeChartEditor()" style="flex:1;background:#334155;border:none;color:#94a3b8;border-radius:8px;padding:7px;font-size:12px;cursor:pointer;">Huỷ</button>
@@ -476,7 +476,7 @@
           <div style="position:relative;" id="tt-bg-wrap">
             <button id="tt-bg-btn" onclick="toggleElBgDropdown()" title="Màu nền block"
               style="background:#334155;border:none;color:#fff;border-radius:5px;height:28px;padding:0 7px;cursor:pointer;display:flex;align-items:center;gap:4px;flex-shrink:0;">
-              <span style="font-size:10px;font-weight:600;">Màu nền</span>
+              <span style="font-size:10px;font-weight:600;"><%= t("content_outline.bg_color_label") %></span>
               <span id="tt-bg-preview" style="width:12px;height:12px;border-radius:2px;background:#ffffff;border:1px solid rgba(255,255,255,.3);display:inline-block;flex-shrink:0;"></span>
               <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1 2.5L4 5.5L7 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
             </button>

@@ -32,7 +32,7 @@
     <h1 class="text-[20px] font-extrabold text-slate-900 truncate"><%= @learning_path.title %></h1>
     <div class="flex items-center gap-2 mt-0.5 flex-wrap">
       <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold <%= @learning_path.published? ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' %>">
-        <%= @learning_path.published? ? "Đã phát hành" : "Nháp" %>
+        <%= @learning_path.published? ? t("learning_path.status_published") : t("learning_path.status_draft") %>
       </span>
       <% if @learning_path.subject.present? %><span class="text-[12px] text-slate-400"><%= @learning_path.subject %></span><% end %>
       <% if @learning_path.ai_generated? %><span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-violet-100 text-violet-700">✨ AI</span><% end %>
@@ -78,7 +78,7 @@
                 <% incomplete_lessons.each do |it| %>
                   <div class="flex items-center gap-2 text-[12px] text-amber-700">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
-                    Bài học "<%= it.title %>" chưa có nội dung
+                    <%= t("learning_path.no_content_warning", title: it.title) %>
                   </div>
                 <% end %>
               </div>
@@ -88,7 +88,7 @@
                 <% incomplete_quizzes.each do |it| %>
                   <div class="flex items-center gap-2 text-[12px] text-amber-700">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
-                    Bài kiểm tra "<%= it.title %>" chưa liên kết quiz
+                    <%= t("learning_path.no_quiz_warning", title: it.title) %>
                   </div>
                 <% end %>
               </div>
@@ -194,23 +194,23 @@
         <button onclick="document.getElementById('add-item-row').classList.toggle('hidden')"
                 class="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-indigo-50 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-indigo-700 rounded-lg transition-colors border-0 cursor-pointer">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-          Cách 2 — Thêm thủ công
+          <%= t("learning_path.add_manual_title") %>
         </button>
       </div>
 
       <!-- Add item row -->
       <div id="add-item-row" class="hidden px-5 py-3 bg-slate-50 border-b border-slate-100">
-        <p class="text-[11px] text-slate-400 mb-2">Nhập tên từng bài, chọn loại rồi bấm Thêm — có thể kéo thả để sắp xếp thứ tự sau</p>
+        <p class="text-[11px] text-slate-400 mb-2"><%= t("learning_path.add_manual_desc") %></p>
         <div class="flex gap-2">
           <input type="text" id="new-item-title" placeholder="VD: Bài 1 — Giới thiệu, Unit 2: Listening skills, Kiểm tra giữa kỳ..."
                  class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-[13px] focus:border-indigo-500 outline-none bg-white">
           <select id="new-item-type" class="px-3 py-2 border border-slate-200 rounded-xl text-[13px] bg-white text-slate-700 focus:border-indigo-500 outline-none">
-            <option value="lesson">📖 Bài học</option>
-            <option value="quiz">📝 Bài kiểm tra</option>
-            <option value="flashcard">🃏 Thẻ ghi nhớ</option>
+            <option value="lesson">📖 <%= t("learning_path.item_type_lesson") %></option>
+            <option value="quiz">📝 <%= t("learning_path.item_type_quiz") %></option>
+            <option value="flashcard">🃏 <%= t("learning_path.item_type_flashcard") %></option>
           </select>
           <button onclick="addItem()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
-            Thêm
+            <%= t("learning_path.btn_add") %>
           </button>
         </div>
       </div>
@@ -218,7 +218,7 @@
       <% if @items.empty? %>
         <div class="p-12 text-center">
           <div class="text-4xl mb-3">📖</div>
-          <p class="text-[14px] text-slate-400">Chưa có bài học nào. Dùng AI hoặc thêm thủ công.</p>
+          <p class="text-[14px] text-slate-400"><%= t("learning_path.no_items_yet") %></p>
         </div>
       <% else %>
         <div class="divide-y divide-slate-100" id="items-list">
@@ -234,10 +234,10 @@
                 <div class="flex-1 min-w-0">
                   <div class="text-[13px] font-semibold text-slate-900"><%= i+1 %>. <%= item.title %></div>
                   <div class="text-[11px] text-slate-400 mt-0.5">
-                    <%= item.quiz? ? "Bài kiểm tra" : (item.flashcard? ? "Thẻ ghi nhớ" : "Bài học") %> · ~<%= item.estimated_minutes %> phút
+                    <%= item.quiz? ? t("learning_path.item_type_quiz") : (item.flashcard? ? t("learning_path.item_type_flashcard") : t("learning_path.item_type_lesson")) %> · ~<%= item.estimated_minutes %> phút
                     <% if item.quiz? && item.quiz_set %> · <span class="text-indigo-500"><%= item.quiz_set.title %></span><% end %>
                     <% if item.flashcard? && item.flashcard_deck %> · <span class="text-amber-600"><%= item.flashcard_deck.title %></span><% end %>
-                    <% if item.lesson? && item.content.present? %> · <span class="text-emerald-500">Có nội dung</span><% end %>
+                    <% if item.lesson? && item.content.present? %> · <span class="text-emerald-500"><%= t("learning_path.has_content") %></span><% end %>
                   </div>
                 </div>
                 <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation()">
@@ -438,12 +438,12 @@
               <button type="button" onclick="switchTab('members')"
                       id="tab-members"
                       class="flex-1 py-1.5 text-[12px] font-semibold rounded-lg bg-white text-indigo-700 shadow-sm transition-all">
-                Thành viên
+                <%= t("learning_path.tab_members") %>
               </button>
               <button type="button" onclick="switchTab('email')"
                       id="tab-email"
                       class="flex-1 py-1.5 text-[12px] font-semibold rounded-lg text-slate-500 transition-all">
-                Nhập email
+                <%= t("learning_path.tab_email") %>
               </button>
             </div>
 
@@ -475,7 +475,7 @@
                      onclick="document.getElementById('lp-email-input').focus()"
                      class="min-h-[40px] w-full flex flex-wrap gap-1.5 px-2.5 py-2 border border-slate-200 rounded-xl cursor-text focus-within:border-indigo-400 transition-all bg-white">
                   <input id="lp-email-input" type="text" inputmode="email"
-                         placeholder="Nhập email rồi nhấn Enter..."
+                         placeholder="<%= t('learning_path.due_date_placeholder') %>"
                          class="flex-1 min-w-[160px] text-[13px] outline-none bg-transparent placeholder-slate-400 py-0.5">
                 </div>
                 <p class="text-[11px] text-slate-400 mt-1">Nhấn <strong>Enter</strong> để thêm email. Tự động tạo tài khoản nếu chưa có.</p>
@@ -488,7 +488,7 @@
             </div>
             <button type="submit" id="lp-assign-btn" disabled
                     class="w-full py-2.5 bg-[#1e3a5f] text-white text-[13px] font-bold rounded-xl border-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1e3a5f] disabled:hover:bg-[#1e3a5f]">
-              Giao lộ trình
+              <%= t("learning_path.btn_assign") %>
             </button>
           </div>
         <% end %>
@@ -616,7 +616,7 @@
                   </div>
                   <div class="shrink-0 text-right">
                     <% if is_completed %>
-                      <span class="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold rounded-full">✓ Xong</span>
+                      <span class="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold rounded-full">✓ <%= t("learning_path.done_on") %></span>
                     <% else %>
                       <span class="text-[12px] font-bold <%= pct > 0 ? 'text-indigo-600' : 'text-slate-400' %>"><%= pct %>%</span>
                     <% end %>
@@ -627,12 +627,12 @@
                     <div class="h-1.5 rounded-full transition-all"
                          style="width:<%= pct %>%;background:<%= is_completed ? '#10b981' : 'linear-gradient(90deg,#6366f1,#8b5cf6)' %>"></div>
                   </div>
-                  <span class="text-[10px] text-slate-400 shrink-0"><%= done %>/<%= @items.size %> bài</span>
+                  <span class="text-[10px] text-slate-400 shrink-0"><%= t("learning_path.n_done_of", done: done, total: @items.size) %></span>
                 </div>
                 <% if asgn.due_date %>
                   <% overdue = asgn.due_date < Date.current && !is_completed %>
                   <div class="mt-1 text-[10px] <%= overdue ? 'text-red-500 font-semibold' : 'text-slate-400' %>">
-                    <%= overdue ? "⚠ Quá hạn: " : "Hạn: " %><%= asgn.due_date.strftime("%d/%m/%Y") %>
+                    <%= overdue ? "⚠ #{t('learning_path.overdue')}: " : "#{t('learning_path.due')}: " %><%= asgn.due_date.strftime("%d/%m/%Y") %>
                   </div>
                 <% end %>
               <% end %>

@@ -8,14 +8,14 @@
     <h1 class="text-[20px] font-extrabold text-slate-900 truncate">🃏 <%= @deck.title %></h1>
     <div class="flex items-center gap-2 mt-0.5 text-[12px] text-slate-400">
       <span><%= @deck.subject.presence || "Tổng hợp" %></span>
-      <span>· <%= @cards.count %> thẻ</span>
+      <span>· <%= t("flashcard.n_cards_unit", count: @cards.count) %></span>
       <% if @deck.ai_generated? %><span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-violet-100 text-violet-700">✨ AI</span><% end %>
     </div>
   </div>
   <%= link_to edit_flashcard_deck_path(@deck),
       class: "flex items-center gap-1.5 px-3 py-2.5 bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-slate-600 text-[13px] font-semibold rounded-xl transition-colors" do %>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-    Sửa
+    <%= t("flashcard.btn_edit") %>
   <% end %>
   <%= link_to analytics_flashcard_deck_path(@deck),
       class: "flex items-center gap-1.5 px-3 py-2.5 bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-slate-600 text-[13px] font-semibold rounded-xl transition-colors" do %>
@@ -24,7 +24,7 @@
   <% end %>
   <%= link_to study_flashcard_deck_path(@deck), class: "flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl transition-colors" do %>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-    Học ngay
+    <%= t("flashcard.btn_study") %>
   <% end %>
 </div>
 
@@ -47,11 +47,11 @@
         <div class="flex items-center border border-violet-200 rounded-xl bg-white overflow-hidden">
           <input type="number" name="count" value="10" min="5" max="30"
                  class="w-16 px-3 py-2 text-[13px] border-0 outline-none text-center">
-          <span class="pr-3 text-[11px] text-slate-400">thẻ</span>
+          <span class="pr-3 text-[11px] text-slate-400"><%= t("flashcard.ai_cards_unit") %></span>
         </div>
         <button type="submit" id="ai-gen-btn" class="inline-flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl border-0 cursor-pointer transition-colors">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z"/></svg>
-          Tạo
+          <%= t("flashcard.ai_generate_btn") %>
         </button>
       </div>
     </div>
@@ -125,14 +125,14 @@
                   <div style="position:absolute;bottom:0;left:0;right:0;height:50px;background:linear-gradient(transparent,rgba(0,0,0,0.5));"></div>
                 </div>
                 <div class="flex-1 flex flex-col items-center justify-center p-3 text-center">
-                  <div class="text-[9px] font-bold uppercase tracking-widest text-white/70 mb-1">Thẻ <%= i+1 %></div>
+                  <div class="text-[9px] font-bold uppercase tracking-widest text-white/70 mb-1"><%= t("flashcard.card_n", n: i+1) %></div>
                   <p class="text-[12px] font-bold text-white leading-tight line-clamp-2"><%= card.front %></p>
                 </div>
               <% else %>
                 <div class="flex-1 flex flex-col items-center justify-center p-4 text-center">
-                  <div class="text-[9px] font-bold uppercase tracking-widest text-white/70 mb-2">Thẻ <%= i+1 %></div>
+                  <div class="text-[9px] font-bold uppercase tracking-widest text-white/70 mb-2"><%= t("flashcard.card_n", n: i+1) %></div>
                   <p class="text-[13px] font-bold text-white leading-tight line-clamp-3"><%= card.front %></p>
-                  <div class="mt-2 text-white/40 text-[10px]">✨ AI sẽ tạo minh họa · hover để thay ảnh</div>
+                  <div class="mt-2 text-white/40 text-[10px]"><%= t("flashcard.hover_hint") %></div>
                 </div>
               <% end %>
             </div>
@@ -148,7 +148,7 @@
         </div>
       <% end %>
     </div>
-    <p class="text-[11px] text-slate-400 text-center mt-3">Nhấn vào thẻ để lật · Hover để sửa hoặc thêm ảnh</p>
+    <p class="text-[11px] text-slate-400 text-center mt-3"><%= t("flashcard.hover_hint") %></p>
 
 
     <script>
