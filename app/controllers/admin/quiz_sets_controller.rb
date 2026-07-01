@@ -500,7 +500,25 @@ class Admin::QuizSetsController < Admin::BaseController
   end
 
   def extract_image_via_ai(file)
-    { image_base64: Base64.strict_encode64(file.read), mime_type: file.content_type }
+    data = resize_image_for_claude(file.path || file.tempfile.path)
+    { image_base64: Base64.strict_encode64(data), mime_type: file.content_type }
+  end
+
+  MAX_IMAGE_DIMENSION = 7000
+
+  def resize_image_for_claude(path)
+    require "mini_magick"
+    img = MiniMagick::Image.open(path)
+    w, h = img.width, img.height
+    if w > MAX_IMAGE_DIMENSION || h > MAX_IMAGE_DIMENSION
+      img.resize "#{MAX_IMAGE_DIMENSION}x#{MAX_IMAGE_DIMENSION}>"
+      img.to_blob
+    else
+      File.binread(path)
+    end
+  rescue => e
+    Rails.logger.warn "[extract_image_via_ai] resize failed: #{e.message}, sending original"
+    File.binread(path)
   end
 
   def call_ai_generate(content, count, custom_prompt = nil)

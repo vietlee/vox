@@ -81,12 +81,29 @@ class GenerateDocumentSummaryJob < ApplicationJob
 
   # ── Image-based summarization (AI vision) ────────────────────────────────────
 
+  MAX_IMAGE_DIMENSION = 7000
+
+  def resize_image_for_claude(data)
+    require "mini_magick"
+    img = MiniMagick::Image.read(data)
+    if img.width > MAX_IMAGE_DIMENSION || img.height > MAX_IMAGE_DIMENSION
+      img.resize "#{MAX_IMAGE_DIMENSION}x#{MAX_IMAGE_DIMENSION}>"
+      img.to_blob
+    else
+      data
+    end
+  rescue => e
+    Rails.logger.warn "[GenerateDocumentSummaryJob] resize failed: #{e.message}"
+    data
+  end
+
   def summarize_image(summary, data, mime_type)
+    safe_data = resize_image_for_claude(data)
     svc = ClaudeService.for_feature("feedback_analysis", timeout: 180)
     messages = [{
       role: "user",
       content: [
-        { type: "image", source: { type: "base64", media_type: mime_type, data: Base64.strict_encode64(data) } },
+        { type: "image", source: { type: "base64", media_type: mime_type, data: Base64.strict_encode64(safe_data) } },
         { type: "text", text: build_image_prompt }
       ]
     }]

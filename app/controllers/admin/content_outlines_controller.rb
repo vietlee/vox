@@ -38,12 +38,18 @@ class Admin::ContentOutlinesController < Admin::BaseController
   end
 
   def status
-    render json: {
-      pending:   @outline.pending?,
-      failed:    @outline.failed?,
-      show_url:  content_outline_path(@outline),
-      deck_json: (@outline.done? && @outline.slide_json.present?) ? @outline.slide_json : nil
-    }
+    if @outline.pending?
+      render json: { pending: true }
+    elsif @outline.failed?
+      render json: { failed: true }
+    else
+      render json: {
+        success:   true,
+        redirect:  content_outline_path(@outline),
+        show_url:  content_outline_path(@outline),
+        deck_json: @outline.slide_json.presence
+      }
+    end
   end
 
   def regenerate

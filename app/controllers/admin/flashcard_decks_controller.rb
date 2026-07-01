@@ -45,7 +45,13 @@ class Admin::FlashcardDecksController < Admin::BaseController
   end
 
   def ai_status
-    render json: { pending: @deck.ai_generating? }
+    if @deck.ai_generating?
+      render json: { pending: true }
+    elsif @deck.ai_generated? && @deck.card_count.to_i > 0
+      render json: { success: true, redirect: flashcard_deck_path(@deck) }
+    else
+      render json: { failed: true, error: "AI gặp lỗi khi tạo thẻ. Vui lòng thử lại." }
+    end
   end
 
   def ai_generate

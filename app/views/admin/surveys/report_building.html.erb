@@ -79,13 +79,36 @@ p{font-size:13px;color:#64748b;line-height:1.65;margin-bottom:20px}
   </div>
 
   <div class="error-box" id="errorBox">Có lỗi xảy ra. <a href="<%= html_report_survey_path(@survey) %>" style="color:#dc2626;font-weight:600">Thử lại</a></div>
+  <button onclick="rbMinimize()" title="Thu nhỏ — tiếp tục làm việc khác"
+          style="display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;color:#1e3a5f;margin-bottom:12px;"
+          onmouseenter="this.style.background='#e8f0f8'" onmouseleave="this.style.background='#f1f5f9'">
+    <svg width="12" height="3" viewBox="0 0 12 3" fill="none"><rect y="0.5" width="12" height="2" rx="1" fill="#1e3a5f"/></svg>
+    Thu nhỏ — tiếp tục làm việc
+  </button>
   <a href="<%= results_survey_path(@survey) %>" class="btn-back">← Quay lại</a>
 </div>
 
 <script>
 const CHECK_URL  = '<%= raw html_report_survey_path(@survey, check_structure: 1, lang: @report_lang) %>';
 const REPORT_URL = '<%= raw html_report_survey_path(@survey, lang: @report_lang) %>';
+const BACK_URL   = '<%= raw results_survey_path(@survey) %>';
 let attempt = 0;
+let _minimized = false;
+
+function rbMinimize() {
+  _minimized = true;
+  // Inline VoxTaskManager (standalone page — no admin layout)
+  var STORE_KEY = 'vox_active_tasks';
+  try {
+    var tasks = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+    var id = 'survey-report-<%= @survey.id %>';
+    if (!tasks.find(function(t){ return t.id === id; })) {
+      tasks.push({ id: id, icon: '📊', label: 'Tạo báo cáo AI', title: <%= @survey.title.to_json %>, poll_url: CHECK_URL, redirect_url: REPORT_URL, pct: 0, minimized: false });
+      localStorage.setItem(STORE_KEY, JSON.stringify(tasks));
+    }
+  } catch(e) {}
+  window.location.href = BACK_URL;
+}
 
 const stepsData = [
   { id:'step2', pct:40, text:'AI phân tích & gom nhóm dữ liệu...',   delay:0 },

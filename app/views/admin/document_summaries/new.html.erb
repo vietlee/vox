@@ -76,9 +76,15 @@
      style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center;
             background:rgba(15,23,42,0.65); backdrop-filter:blur(4px);">
   <div style="background:#fff; border-radius:20px; padding:32px 40px; text-align:center;
-              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%;">
+              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%; position:relative;">
+    <button id="ds-minimize-btn" onclick="dsMinimize()" title="Thu nhỏ — tiếp tục làm việc khác"
+            style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;color:#1e3a5f;"
+            onmouseenter="this.style.background='#e8f0f8';this.style.borderColor='#b3cbe3'" onmouseleave="this.style.background='#fff';this.style.borderColor='#e2e8f0'">
+      <svg width="12" height="3" viewBox="0 0 12 3" fill="none"><rect y="0.5" width="12" height="2" rx="1" fill="#1e3a5f"/></svg>
+      Thu nhỏ
+    </button>
     <div id="ds-ring-container"></div>
-    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Đừng tắt trang này.</p>
+    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Nhấn <strong style="color:#1e3a5f">Thu nhỏ</strong> để tiếp tục làm việc.</p>
   </div>
 </div>
 
@@ -214,6 +220,8 @@ async function runDsSummarize() {
       return;
     }
     if (data.pending) {
+      window._dsPollUrl = data.poll_url;
+      window._dsShowUrl = data.show_url;
       pollDsStatus(data.poll_url, data.show_url);
     } else if (data.redirect) {
       if (_dsRingCtrl) _dsRingCtrl.finish();
@@ -226,7 +234,24 @@ async function runDsSummarize() {
   }
 }
 
+function dsMinimize() {
+  var overlay = document.getElementById('ds-overlay');
+  if (overlay) overlay.style.display = 'none';
+  if (window.VoxTaskManager && window._dsPollUrl) {
+    VoxTaskManager.add({
+      id:          'doc-summary-new',
+      icon:        '📄',
+      label:       'Tóm tắt tài liệu',
+      title:       document.getElementById('ds-title').value.trim() || 'Tài liệu',
+      poll_url:    window._dsPollUrl,
+      redirect_url: window._dsShowUrl || ''
+    });
+  }
+}
+
 async function pollDsStatus(pollUrl, showUrl) {
+  var overlay = document.getElementById('ds-overlay');
+  if (overlay && overlay.style.display === 'none') return; // minimized — VoxTaskManager takes over
   try {
     var res = await fetch(pollUrl, { headers: { 'Accept': 'application/json' } });
     var data = await res.json();

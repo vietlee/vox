@@ -778,17 +778,25 @@ window.VoxTaskManager = (function() {
       try {
         var r = await fetch(t.poll_url, { headers: { 'Accept': 'application/json' } });
         var d = await r.json();
-        if (d.success) {
+        if (d.success || d.ready) {
           _complete(t, d.redirect || t.redirect_url);
         } else if (d.failed || d.error) {
           _fail(t, d.error || 'Có lỗi xảy ra');
         } else {
           // still pending — fake progress up to 92%
           t.pct = Math.min((t.pct||0) + Math.floor(Math.random()*6+3), 92);
-          _save(); _render();
+          _save(); _updateProgressInPlace(t);
         }
       } catch(e) { /* network error, keep polling */ }
     }
+  }
+  function _updateProgressInPlace(t) {
+    var card = document.querySelector('[data-vtask="' + CSS.escape(t.id) + '"]');
+    if (!card) { _render(); return; }
+    var fill  = card.querySelector('.vtask-bar-fill');
+    var pctEl = card.querySelector('.vtask-pct');
+    if (fill)  fill.style.width    = (t.pct || 0) + '%';
+    if (pctEl) pctEl.textContent   = (t.pct || 0) + '%';
   }
   function _complete(task, redirectUrl) {
     _tasks = _tasks.filter(function(t) { return t.id !== task.id; });
@@ -810,13 +818,14 @@ window.VoxTaskManager = (function() {
     var el = document.createElement('div');
     el.className = 'vox-toast';
     var link = url ? ' <a href="' + url + '">Xem ngay →</a>' : '';
-    el.innerHTML = icon + ' <strong>' + _esc(label) + ':</strong> ' + _esc(title) + link;
+    el.innerHTML = icon + ' <strong>' + _esc(label) + ':</strong> ' + _esc(title) + link +
+      ' <button onclick="this.parentElement.remove()" style="margin-left:10px;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:13px;line-height:1.4;">×</button>';
     document.body.appendChild(el);
     setTimeout(function() {
       el.style.transition = 'opacity .4s';
       el.style.opacity = '0';
       setTimeout(function() { el.remove(); }, 400);
-    }, 8000);
+    }, 300000);
   }
 
   // Public API

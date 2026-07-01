@@ -391,9 +391,17 @@ function pollFcStatus(pollUrl, showUrl) {
   fetch(pollUrl, { headers: { 'Accept': 'application/json' } })
     .then(function(r){ return r.json(); })
     .then(function(data) {
-      if (!data.pending) {
+      if (data.failed) {
+        overlay.innerHTML = '<div style="background:#fff;border-radius:20px;padding:32px 40px;text-align:center;max-width:320px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.22);">' +
+          '<div style="font-size:2rem;margin-bottom:12px;">⚠️</div>' +
+          '<p style="font-size:14px;color:#ef4444;margin:0 0 16px;">' + (data.error || 'AI gặp lỗi. Vui lòng thử lại.') + '</p>' +
+          '<button onclick="location.reload()" style="padding:8px 20px;background:#1e3a5f;color:#fff;border:0;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">Thử lại</button>' +
+          '</div>';
+      } else if (data.success) {
         if (_fcRingCtrl) _fcRingCtrl.finish();
-        setTimeout(function(){ window.location.href = showUrl; }, 400);
+        setTimeout(function(){ window.location.reload(); }, 400);
+      } else if (data.pending) {
+        setTimeout(function(){ pollFcStatus(pollUrl, showUrl); }, 2500);
       } else {
         setTimeout(function(){ pollFcStatus(pollUrl, showUrl); }, 2500);
       }

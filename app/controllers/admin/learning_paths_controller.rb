@@ -54,7 +54,11 @@ class Admin::LearningPathsController < Admin::BaseController
   end
 
   def ai_status
-    render json: { pending: @learning_path.ai_generating? }
+    if @learning_path.ai_generating?
+      render json: { pending: true }
+    else
+      render json: { success: true, redirect: learning_path_path(@learning_path) }
+    end
   end
 
   def ai_generate
