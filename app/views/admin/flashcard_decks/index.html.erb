@@ -24,11 +24,11 @@
     <div class="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b" style="background:rgba(99,102,241,0.06); border-color:rgba(99,102,241,0.15);">
       <div class="relative flex-1 max-w-sm">
         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
-        <input type="text" placeholder="Tìm kiếm bộ thẻ..."
+        <input type="text" placeholder="<%= t('flashcard.search_placeholder') %>"
           class="w-full pl-8 pr-3 py-1.5 text-[13px] border border-slate-200 rounded-lg focus:border-indigo-400 outline-none bg-white"
           oninput="filterRows(this,'fd-row','fd-no-results')">
       </div>
-      <span class="text-[11px] text-slate-400 ml-auto"><%= @decks.count %> bộ thẻ</span>
+      <span class="text-[11px] text-slate-400 ml-auto"><%= t("flashcard.count_label", count: @decks.count) %></span>
     </div>
 
     <div class="flex-1 min-h-0 overflow-y-auto">
@@ -36,16 +36,16 @@
         <table class="w-full border-collapse">
           <thead>
             <tr class="border-b border-slate-200" style="position:sticky;top:0;z-index:1;background:rgba(248,250,252,0.97);">
-              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Tên bộ thẻ</th>
-              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Số thẻ</th>
-              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Chủ đề</th>
-              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5">Tạo lúc</th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("flashcard.th_name") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("flashcard.th_count") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("flashcard.th_subject") %></th>
+              <th class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-[0.5px] px-4 py-2.5"><%= t("flashcard.th_created") %></th>
               <th class="px-4 py-2.5"></th>
             </tr>
           </thead>
           <tbody>
             <tr id="fd-no-results" class="hidden">
-              <td colspan="5" class="px-4 py-10 text-center text-[13px] text-slate-400">Không tìm thấy kết quả</td>
+              <td colspan="5" class="px-4 py-10 text-center text-[13px] text-slate-400"><%= t("flashcard.no_results") %></td>
             </tr>
             <% @decks.each do |deck| %>
               <tr class="fd-row border-b border-slate-200 hover:bg-white/70 transition-colors"
@@ -59,25 +59,25 @@
                     <% end %>
                   </div>
                 </td>
-                <td class="px-4 py-3 text-[13px] text-slate-600"><%= deck.flashcards.count %> thẻ</td>
-                <td class="px-4 py-3 text-[12px] text-slate-500"><%= deck.subject.presence || "Tổng hợp" %></td>
+                <td class="px-4 py-3 text-[13px] text-slate-600"><%= t("flashcard.n_cards_count", count: deck.flashcards.count) %></td>
+                <td class="px-4 py-3 text-[12px] text-slate-500"><%= deck.subject.presence || t("flashcard.default_subject") %></td>
                 <td class="px-4 py-3 text-[12px] text-slate-400"><%= deck.created_at.strftime("%d/%m %H:%M") %></td>
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-1 justify-end">
                     <%= link_to study_flashcard_deck_path(deck),
                         class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 border border-indigo-100 hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-indigo-600 text-[12px] font-semibold rounded-lg transition-colors" do %>
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                      Ôn tập
+                      <%= t("flashcard.btn_review") %>
                     <% end %>
                     <%= link_to flashcard_deck_path(deck),
                         class: "inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-slate-500 hover:text-white text-[12px] font-semibold rounded-lg transition-colors" do %>
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                      Xem
+                      <%= t("common.view", default: "View") %>
                     <% end %>
-                    <button type="button" onclick="confirmDelete('<%= flashcard_deck_path(deck) %>', '<%= j deck.title %>')"
+                    <button type="button" onclick="confirmDelete('<%= flashcard_deck_path(deck) %>', '<%= j deck.title %>', '<%= j t("flashcard.delete_desc", title: deck.title) %>')"
                             class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-red-100 hover:border-[#1e3a5f] hover:bg-[#1e3a5f] text-red-400 hover:text-white text-[12px] font-semibold rounded-lg transition-colors cursor-pointer">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                      Xóa
+                      <%= t("common.delete") %>
                     </button>
                   </div>
                 </td>
@@ -107,18 +107,18 @@
     <p id="fd-delete-desc" style="font-size:13px; color:#64748B; text-align:center; margin:0 0 20px;"></p>
     <div style="display:flex; gap:8px;">
       <button id="fd-delete-btn" onclick="executeDelete()"
-              style="flex:1; padding:11px; background:#EF4444; color:#fff; font-weight:700; font-size:13px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;">Xóa</button>
+              style="flex:1; padding:11px; background:#EF4444; color:#fff; font-weight:700; font-size:13px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;"><%= t("common.delete") %></button>
       <button onclick="document.getElementById('fd-delete-modal').style.display='none'"
-              style="flex:1; padding:11px; background:#F1F5F9; color:#475569; font-weight:600; font-size:13px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;">Hủy</button>
+              style="flex:1; padding:11px; background:#F1F5F9; color:#475569; font-weight:600; font-size:13px; border:none; border-radius:12px; cursor:pointer; font-family:inherit;"><%= t("common.cancel") %></button>
     </div>
   </div>
 </div>
 
 <script>
 let _fdDeletePath = null;
-function confirmDelete(path, title) {
+function confirmDelete(path, title, desc) {
   _fdDeletePath = path;
-  document.getElementById('fd-delete-desc').textContent = 'Xóa "' + title + '" và toàn bộ thẻ. Không thể hoàn tác.';
+  document.getElementById('fd-delete-desc').textContent = desc || (title + ' — cannot be undone.');
   document.getElementById('fd-delete-modal').style.display = 'flex';
 }
 function executeDelete() {
