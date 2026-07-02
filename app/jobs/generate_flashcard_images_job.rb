@@ -45,6 +45,18 @@ class GenerateFlashcardImagesJob < ApplicationJob
     prompt = "Educational flashcard illustration for: #{card.front}. " \
              "Clean, simple, colorful flat illustration style. No text in image."
 
+    # Try dall-e-3 first, fall back to dall-e-2 if unavailable
+    ["dall-e-3", "dall-e-2"].each do |model|
+      result = call_dalle(prompt, model, card.id, api_key)
+      return result if result
+    end
+    nil
+  end
+
+  def call_dalle(prompt, model, card_id, api_key)
+    body = { model: model, prompt: prompt, n: 1,
+             size: model == "dall-e-3" ? "1024x1024" : "512x512" }
+
     uri = URI(DALLE_API_URL)
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
@@ -53,25 +65,20 @@ class GenerateFlashcardImagesJob < ApplicationJob
     req = Net::HTTP::Post.new(uri)
     req["Content-Type"]  = "application/json"
     req["Authorization"] = "Bearer #{api_key}"
-    req.body = {
-      model:   "dall-e-3",
-      prompt:  prompt,
-      n:       1,
-      size:    "1024x1024",
-      quality: "standard"
-    }.to_json
+    req.body = body.to_json
 
-    res = http.request(req)
+    res  = http.request(req)
     data = JSON.parse(res.body)
 
     if res.is_a?(Net::HTTPSuccess)
       data.dig("data", 0, "url")
     else
-      Rails.logger.warn "[GenerateFlashcardImagesJob] DALL-E error for card #{card.id}: #{data['error']&.dig('message')}"
+      msg = data.dig("error", "message").to_s
+      Rails.logger.warn "[GenerateFlashcardImagesJob] #{model} error for card #{card_id}: #{msg}"
       nil
     end
   rescue => e
-    Rails.logger.warn "[GenerateFlashcardImagesJob] HTTP error for card #{card.id}: #{e.message}"
+    Rails.logger.warn "[GenerateFlashcardImagesJob] HTTP error (#{model}) for card #{card_id}: #{e.message}"
     nil
   end
 end
