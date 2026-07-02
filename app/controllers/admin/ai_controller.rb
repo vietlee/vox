@@ -1,4 +1,5 @@
 class Admin::AiController < Admin::BaseController
+  include ActionController::Live
   def generate_survey
     return unless require_ai_feature!(:ai_survey_builder)
     return unless require_credits!(5)
@@ -140,6 +141,42 @@ class Admin::AiController < Admin::BaseController
   rescue => e
     Rails.logger.error "[AI Tutor] #{e.class}: #{e.message}"
     render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  # Streaming voice-mode tutor — streams text chunks directly so client can start
+  # TTS on the first sentence without waiting for the full response.
+  def tutor_voice
+    return unless require_credits!(1)
+    message      = params[:message].to_s.strip
+    history      = params[:history] || []
+    context_text = resolve_tutor_content(params[:context_type], params[:context_id])
+
+    system_prompt = <<~PROMPT
+      Bạn là AI Tutor giọng nói — gia sư thân thiện, trả lời ngắn gọn để đọc to.
+      - Trả lời TỐI ĐA 2-3 câu, súc tích, dễ nghe
+      - KHÔNG dùng markdown, bullet, bold, tiêu đề — chỉ văn xuôi thuần
+      - Không dùng ký hiệu đặc biệt: *, #, **, --, []
+      - Nói tự nhiên như trò chuyện, thân mật
+      #{context_text.present? ? "\nTài liệu tham khảo: #{context_text.truncate(2000)}\n" : ""}
+      Trả lời bằng tiếng Việt.
+    PROMPT
+
+    messages  = history.last(6).map { |h| { role: h["role"], content: h["content"] } }
+    messages << { role: "user", content: message }
+
+    response.headers['Content-Type']  = 'text/plain; charset=utf-8'
+    response.headers['Cache-Control'] = 'no-cache, no-store'
+    response.headers['X-Accel-Buffering'] = 'no'
+
+    svc = ClaudeService.new(model: ClaudeService::HAIKU_MODEL, timeout: 15)
+    svc.stream_call(system_prompt: system_prompt, messages: messages, max_tokens: 200) do |chunk|
+      response.stream.write(chunk)
+    end
+    current_workspace.credit_subscription&.deduct_credits!(1)
+  rescue => e
+    Rails.logger.error "[AI Tutor Voice] #{e.class}: #{e.message}"
+  ensure
+    response.stream.close rescue nil
   end
 
   # AI Writing assistant — sửa lỗi và cải thiện văn bản

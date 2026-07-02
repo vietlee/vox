@@ -605,7 +605,7 @@ function vcDetectSilence() {
   let speechDetected = false;
   const SPEECH_THRESHOLD = 20;  // avg > 20 = đang nói
   const SILENCE_THRESHOLD = 14; // avg < 14 = im lặng
-  const SILENCE_LIMIT = 1600;   // 1.6s im lặng sau khi nói → gửi
+  const SILENCE_LIMIT = 1000;   // 1.0s im lặng sau khi nói → gửi
   const MAX_RECORD = 30000;
   const startTime = Date.now();
 
@@ -712,92 +712,117 @@ async function vcProcessAndReply() {
   if (txEl) { txEl.textContent = '🗣 ' + userText; txEl.style.opacity = '1'; }
   vcSetStatus('processing');
 
-  // AI
+  // AI — streaming response, pipeline TTS per sentence
   const thinkEl = appendMsg('assistant', '<span class="inline-flex gap-1"><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:.15s"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:.3s"></span></span>', true);
   let reply = '';
+  let vcRes;
   try {
-    const res = await fetch('<%= ai_tutor_path %>', {
+    vcRes = await fetch('<%= ai_tutor_voice_path %>', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf() },
-      body: JSON.stringify({ message: userText, history: chatHistory.slice(0,-1), context_type: contextType, context_id: contextId, voice_mode: true })
+      body: JSON.stringify({ message: userText, history: chatHistory.slice(0,-1), context_type: contextType, context_id: contextId })
     });
-    const data = await res.json();
-    reply = data.response || '';
-    thinkEl.innerHTML = md(reply);
-    if (reply) {
-      chatHistory.push({ role: 'assistant', content: reply });
-      saveHistory();
-      if (typeof window.deductDisplayCredits === 'function') window.deductDisplayCredits(1);
-      addSpeakButton(thinkEl, reply);
-      if (txEl) txEl.textContent = '🤖 ' + reply.slice(0, 80) + (reply.length > 80 ? '...' : '');
-    }
-  } catch(e) { thinkEl.innerHTML = '<span class="text-red-500">Lỗi kết nối.</span>'; }
+  } catch(e) { thinkEl.innerHTML = '<span class="text-red-500">Lỗi kết nối.</span>'; if (_vcActive) vcStartListening(); return; }
 
-  if (!reply || !_vcActive) { if (_vcActive) vcStartListening(); return; }
+  if (!vcRes.ok) { thinkEl.innerHTML = '<span class="text-red-500">Lỗi kết nối.</span>'; if (_vcActive) vcStartListening(); return; }
 
-  // TTS with sentence-level streaming: split into sentences and pipeline audio
-  vcSetStatus('speaking');
-  const cleanText = reply.replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1')
-                         .replace(/`(.+?)`/g,'$1').replace(/#+\s*/g,'').trim().slice(0, 1000);
+  // TTS queue: sentences are fetched as soon as they're complete, played in order
+  const ttsQueue = [];   // { url, failed }
+  let   ttsNext  = 0;    // index of next chunk to play
+  let   ttsDone  = false; // all TTS fetches queued
 
-  // Split into sentences (by . ! ? — keep short enough for fast TTS)
-  const sentences = cleanText.match(/[^.!?。！？]+[.!?。！？]*/g) || [cleanText];
-  const chunks = [];
-  let buf = '';
-  for (const s of sentences) {
-    buf += s;
-    if (buf.trim().length >= 60 || sentences.indexOf(s) === sentences.length - 1) {
-      if (buf.trim()) chunks.push(buf.trim());
-      buf = '';
-    }
-  }
-  if (!chunks.length) chunks.push(cleanText);
-
-  async function fetchAudio(text) {
+  async function vcFetchTTS(text, idx) {
+    const clean = text.replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1')
+                      .replace(/`(.+?)`/g,'$1').replace(/#+\s*/g,'').trim();
+    if (!clean) { ttsQueue[idx].failed = true; vcPlayNext(); return; }
     const fd2 = new FormData();
-    fd2.append('text', text); fd2.append('model', 'eleven_flash_v2_5');
+    fd2.append('text', clean); fd2.append('model', 'eleven_flash_v2_5');
     fd2.append('source', 'voice_call'); fd2.append('skip_normalize', 'true');
     fd2.append('speed', String(_vcSpeed));
     fd2.append('authenticity_token', csrf());
     if (_vcVoiceId) fd2.append('voice_id', _vcVoiceId);
-    const ar = await fetch('<%= tts_generate_path %>', { method: 'POST', body: fd2 });
-    if (!ar.ok) return null;
-    const blob = await ar.blob();
-    return URL.createObjectURL(blob);
+    try {
+      const ar = await fetch('<%= tts_generate_path %>', { method: 'POST', body: fd2 });
+      if (!ar.ok) { ttsQueue[idx].failed = true; }
+      else { const blob = await ar.blob(); ttsQueue[idx].url = URL.createObjectURL(blob); }
+    } catch(e) { ttsQueue[idx].failed = true; }
+    vcPlayNext();
   }
 
-  async function playChunks(urls, idx) {
-    if (!_vcActive || idx >= urls.length) {
-      if (_vcActive) vcStartListening();
+  function vcPlayNext() {
+    if (!_vcActive) return;
+    if (ttsNext >= ttsQueue.length) {
+      // Nothing to play yet — check if everything is done
+      if (ttsDone && ttsQueue.every(e => e.url || e.failed)) { if (_vcActive) vcStartListening(); }
       return;
     }
-    const url = urls[idx];
-    if (!url) { playChunks(urls, idx + 1); return; }
-    _currentAudio = new Audio(url);
+    const entry = ttsQueue[ttsNext];
+    if (!entry.url && !entry.failed) return; // not ready yet, will retry when ready
+    const idx = ttsNext++;
+    if (!entry.url) { vcPlayNext(); return; } // failed, skip
+    vcSetStatus('speaking');
+    _currentAudio = new Audio(entry.url);
     _currentAudio.onended = () => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(entry.url);
       _currentAudio = null;
-      playChunks(urls, idx + 1);
+      vcPlayNext();
+      if (ttsDone && ttsNext >= ttsQueue.length) { if (_vcActive) vcStartListening(); }
     };
-    _currentAudio.play().catch(() => playChunks(urls, idx + 1));
+    _currentAudio.play().catch(() => { _currentAudio = null; vcPlayNext(); });
   }
 
+  let sentBuf = '';
+  let ttsIdx  = 0;
+
+  function vcQueueSentence(text) {
+    if (!text.trim()) return;
+    const i = ttsIdx++;
+    ttsQueue.push({ url: null, failed: false });
+    vcFetchTTS(text, i);
+  }
+
+  function vcFlushSentences(force) {
+    // Extract complete sentences from sentBuf
+    const re = /^(.*?[.!?。！？]+)\s*/s;
+    let m;
+    while ((m = sentBuf.match(re))) {
+      if (m[1].trim().length < 5) { sentBuf = sentBuf.slice(m[0].length); continue; }
+      vcQueueSentence(m[1]);
+      sentBuf = sentBuf.slice(m[0].length);
+    }
+    if (force && sentBuf.trim()) { vcQueueSentence(sentBuf); sentBuf = ''; }
+  }
+
+  // Read the streaming body
   try {
-    // Fetch all chunks in parallel, play in order
-    const urlPromises = chunks.map(c => fetchAudio(c));
-    // Start playing first chunk as soon as it's ready, don't wait for all
-    const urls = new Array(chunks.length).fill(null);
-    let firstReady = false;
-    urlPromises.forEach((p, i) => {
-      p.then(url => {
-        urls[i] = url;
-        if (i === 0 && !firstReady) { firstReady = true; playChunks(urls, 0); }
-      }).catch(() => {});
-    });
-    // Fallback: if first chunk fails, wait for all
-    await urlPromises[0];
-    if (!firstReady) playChunks(urls, 0);
-  } catch(e) { if (_vcActive) vcStartListening(); }
+    const reader  = vcRes.body.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      reply   += chunk;
+      sentBuf += chunk;
+      thinkEl.innerHTML = md(reply);
+      vcFlushSentences(false);
+    }
+    vcFlushSentences(true); // flush remaining
+  } catch(e) { /* network error mid-stream */ }
+
+  if (reply) {
+    chatHistory.push({ role: 'assistant', content: reply });
+    saveHistory();
+    if (typeof window.deductDisplayCredits === 'function') window.deductDisplayCredits(1);
+    addSpeakButton(thinkEl, reply);
+    if (txEl) txEl.textContent = '🤖 ' + reply.slice(0, 80) + (reply.length > 80 ? '...' : '');
+  }
+
+  ttsDone = true;
+  if (ttsIdx === 0) { if (_vcActive) vcStartListening(); return; } // no TTS queued at all
+  // In case all TTS already completed before ttsDone was set
+  if (ttsQueue.every(e => e.url || e.failed) && ttsNext >= ttsQueue.length) {
+    if (_vcActive) vcStartListening();
+  }
 }
 
 // ── STT: Voice input ─────────────────────────────────────────────────────────

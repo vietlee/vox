@@ -330,8 +330,9 @@ Rails.application.routes.draw do
     end
 
     # Module 3: AI Tutor & Writing
-    get  "ai/tutor",   to: "ai#tutor_page",  as: :ai_tutor_page
-    post "ai/tutor",   to: "ai#tutor",       as: :ai_tutor
+    get  "ai/tutor",       to: "ai#tutor_page",  as: :ai_tutor_page
+    post "ai/tutor",       to: "ai#tutor",       as: :ai_tutor
+    post "ai/tutor/voice", to: "ai#tutor_voice", as: :ai_tutor_voice
     post "ai/writing",      to: "ai#writing",      as: :ai_writing
     post "ai/suggest_meta", to: "ai#suggest_meta", as: :ai_suggest_meta
   end

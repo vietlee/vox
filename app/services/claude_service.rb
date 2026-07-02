@@ -72,6 +72,41 @@ class ClaudeService
     raise
   end
 
+  # Streams text deltas to a block, returns full accumulated text
+  def stream_call(system_prompt:, messages:, max_tokens: 200, &block)
+    require 'net/http'
+    uri  = URI(API_URL)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl     = true
+    http.read_timeout = @timeout
+
+    req = Net::HTTP::Post.new(uri)
+    req['x-api-key']         = @api_key
+    req['anthropic-version'] = '2023-06-01'
+    req['content-type']      = 'application/json'
+    req.body = { model: @model, max_tokens: max_tokens, stream: true,
+                 system: system_prompt, messages: messages }.to_json
+
+    full_text = ''
+    http.request(req) do |resp|
+      resp.read_body do |raw|
+        raw.each_line do |line|
+          next unless line.start_with?('data: ')
+          data = JSON.parse(line[6..].strip) rescue next
+          next unless data['type'] == 'content_block_delta'
+          text = data.dig('delta', 'text').to_s
+          next if text.empty?
+          full_text += text
+          block.call(text)
+        end
+      end
+    end
+    full_text
+  rescue => e
+    Rails.logger.error "ClaudeService#stream_call: #{e.message}"
+    raise
+  end
+
   def self.haiku       = new(model: HAIKU_MODEL)
   def self.sonnet      = new(model: SONNET_MODEL, timeout: 90)
   def self.sonnet_long = new(model: SONNET_MODEL, timeout: 240)
