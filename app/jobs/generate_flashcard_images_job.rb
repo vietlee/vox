@@ -49,7 +49,7 @@ class GenerateFlashcardImagesJob < ApplicationJob
   end
 
   def call_dalle(prompt, card_id, api_key)
-    body = { model: "gpt-image-1", prompt: prompt, n: 1, size: "1024x1024", output_format: "url" }
+    body = { model: "gpt-image-1", prompt: prompt, n: 1, size: "1024x1024", output_format: "webp" }
 
     uri = URI(DALLE_API_URL)
     http = Net::HTTP.new(uri.host, uri.port)
@@ -65,13 +65,8 @@ class GenerateFlashcardImagesJob < ApplicationJob
     data = JSON.parse(res.body)
 
     if res.is_a?(Net::HTTPSuccess)
-      item = data.dig("data", 0)
-      # gpt-image-1 returns base64, dall-e-* returns url
-      if item&.key?("b64_json")
-        "data:image/png;base64,#{item['b64_json']}"
-      else
-        item&.dig("url")
-      end
+      b64 = data.dig("data", 0, "b64_json")
+      b64.present? ? "data:image/webp;base64,#{b64}" : nil
     else
       msg = data.dig("error", "message").to_s
       Rails.logger.warn "[GenerateFlashcardImagesJob] gpt-image-1 error for card #{card_id}: #{msg}"
