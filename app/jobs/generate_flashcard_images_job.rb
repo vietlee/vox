@@ -42,14 +42,19 @@ class GenerateFlashcardImagesJob < ApplicationJob
   private
 
   def generate_image(card, api_key)
-    prompt = "Educational flashcard illustration for: #{card.front}. " \
-             "Clean, simple, colorful flat illustration style. No text in image."
+    # Include deck subject/topic context to avoid ambiguous terms (e.g. "mouse" → computer mouse not animal)
+    deck_context = card.flashcard_deck.subject.presence || card.flashcard_deck.title
+    prompt = "Flat illustration for an educational flashcard. " \
+             "Topic/subject: #{deck_context}. " \
+             "Concept: #{card.front}. " \
+             "Show the concept as used in the context of #{deck_context}. " \
+             "Clean, simple, colorful vector illustration style. No text, no labels, no words in image."
 
     call_dalle(prompt, card.id, api_key)
   end
 
   def call_dalle(prompt, card_id, api_key)
-    body = { model: "gpt-image-1", prompt: prompt, n: 1, size: "1024x1024", output_format: "webp" }
+    body = { model: "gpt-image-1.5", prompt: prompt, n: 1, size: "512x512", output_format: "webp" }
 
     uri = URI(DALLE_API_URL)
     http = Net::HTTP.new(uri.host, uri.port)
