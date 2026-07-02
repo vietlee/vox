@@ -315,6 +315,8 @@ Rails.application.routes.draw do
       member do
         post :ai_generate
         get  :ai_status
+        post :generate_images
+        get  :image_status
         get  :study
         post :review
         get  :analytics

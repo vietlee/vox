@@ -1,5 +1,5 @@
 class Admin::FlashcardDecksController < Admin::BaseController
-  before_action :set_deck, only: [:show, :edit, :update, :destroy, :ai_generate, :ai_status, :study, :review, :analytics]
+  before_action :set_deck, only: [:show, :edit, :update, :destroy, :ai_generate, :ai_status, :generate_images, :image_status, :study, :review, :analytics]
 
   def index
     @decks = current_workspace.flashcard_decks.includes(:created_by).order(created_at: :desc)
@@ -69,6 +69,32 @@ class Admin::FlashcardDecksController < Admin::BaseController
     respond_to do |format|
       format.json { render json: { error: e.message.truncate(100) }, status: :unprocessable_entity }
       format.html { redirect_to flashcard_deck_path(@deck), alert: "Lỗi: #{e.message.truncate(100)}" }
+    end
+  end
+
+  def generate_images
+    return render json: { error: "Không có thẻ nào" }, status: :unprocessable_entity if @deck.flashcards.empty?
+    return render json: { error: "Đang xử lý" }, status: :unprocessable_entity if @deck.image_generating?
+
+    require_credits!(5)
+    @deck.update!(image_generating: true)
+    GenerateFlashcardImagesJob.perform_later(@deck.id, current_user.id)
+
+    render json: {
+      pending: true,
+      poll_url: image_status_flashcard_deck_path(@deck, format: :json),
+      show_url: flashcard_deck_path(@deck)
+    }
+  rescue => e
+    @deck.update(image_generating: false)
+    render json: { error: e.message.truncate(100) }, status: :unprocessable_entity
+  end
+
+  def image_status
+    if @deck.image_generating?
+      render json: { pending: true }
+    else
+      render json: { success: true, redirect: flashcard_deck_path(@deck) }
     end
   end
 

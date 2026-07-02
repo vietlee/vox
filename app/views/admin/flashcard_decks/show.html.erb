@@ -62,6 +62,20 @@
 <div>
   <div class="flex items-center justify-between mb-3">
     <h3 class="text-[14px] font-bold text-slate-900"><%= t("flashcard.cards_title", count: @cards.count) %></h3>
+    <% if @cards.any? %>
+      <% if @deck.image_generating? %>
+        <button disabled class="flex items-center gap-1.5 px-3 py-2 bg-purple-100 text-purple-400 text-[12px] font-semibold rounded-xl border border-purple-200 cursor-not-allowed">
+          <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+          Đang tạo ảnh...
+        </button>
+      <% else %>
+        <button id="gen-img-btn" onclick="startImageGeneration()"
+                class="flex items-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-[12px] font-semibold rounded-xl border-0 cursor-pointer transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          ✨ Tạo ảnh AI (5 credits)
+        </button>
+      <% end %>
+    <% end %>
   </div>
   <% if @cards.empty? %>
     <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
@@ -250,6 +264,23 @@
   <% end %>
 </div>
 
+<!-- Image generation overlay -->
+<div id="img-overlay"
+     style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center;
+            background:rgba(15,23,42,0.65); backdrop-filter:blur(4px);">
+  <div style="background:#fff; border-radius:20px; padding:32px 40px; text-align:center;
+              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:320px; width:90%; position:relative;">
+    <button onclick="imgMinimize()" title="Thu nhỏ — tiếp tục làm việc khác"
+            style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;color:#7e22ce;transition:background .15s,border-color .15s;"
+            onmouseenter="this.style.background='#f3e8ff';this.style.borderColor='#c4b5fd'" onmouseleave="this.style.background='#fff';this.style.borderColor='#e2e8f0'">
+      <svg width="12" height="3" viewBox="0 0 12 3" fill="none"><rect y="0.5" width="12" height="2" rx="1" fill="#7e22ce"/></svg>
+      Thu nhỏ
+    </button>
+    <div id="img-ring-container"></div>
+    <p style="font-size:11px; color:#94A3B8; margin:12px 0 0;">Nhấn <strong style="color:#7e22ce">Thu nhỏ</strong> để tiếp tục làm việc.</p>
+  </div>
+</div>
+
 <!-- Card edit modal -->
 <div id="card-edit-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(15,23,42,0.5);backdrop-filter:blur(3px);align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:20px;padding:28px;width:90%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
@@ -425,5 +456,117 @@ function pollFcStatus(pollUrl, showUrl) {
 
 document.addEventListener('turbo:before-cache', function() {
   document.getElementById('fc-overlay').style.display = 'none';
+  document.getElementById('img-overlay').style.display = 'none';
 });
+
+// ── Image generation ──
+var _imgRingCtrl = null;
+var IMG_TASK_META = {
+  id:           'fc-img-<%= @deck.id %>',
+  icon:         '🖼️',
+  label:        'Tạo ảnh Flashcard',
+  title:        <%= raw @deck.title.to_json %>,
+  redirect_url: '<%= flashcard_deck_path(@deck) %>'
+};
+
+function startImageGeneration() {
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  fetch('<%= generate_images_flashcard_deck_path(@deck, format: :json) %>', {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) {
+      if (window.handleAiError) handleAiError(data, {});
+      else alert(data.error);
+      return;
+    }
+    document.getElementById('img-overlay').style.display = 'flex';
+    _imgRingCtrl = makeImgProgressRing();
+    pollImgStatus(data.poll_url, data.show_url);
+  })
+  .catch(function(e) { alert('Lỗi kết nối: ' + e.message); });
+}
+
+function imgMinimize() {
+  document.getElementById('img-overlay').style.display = 'none';
+  if (window.VoxTaskManager) {
+    VoxTaskManager.add(Object.assign({}, IMG_TASK_META, {
+      poll_url: '<%= image_status_flashcard_deck_path(@deck, format: :json) %>'
+    }));
+  }
+}
+
+function pollImgStatus(pollUrl, showUrl) {
+  var overlay = document.getElementById('img-overlay');
+  if (overlay && overlay.style.display === 'none') return;
+  fetch(pollUrl, { headers: { 'Accept': 'application/json' } })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        if (_imgRingCtrl) _imgRingCtrl.finish();
+        setTimeout(function() { window.location.reload(); }, 400);
+      } else if (data.pending) {
+        setTimeout(function() { pollImgStatus(pollUrl, showUrl); }, 3000);
+      } else {
+        setTimeout(function() { pollImgStatus(pollUrl, showUrl); }, 3000);
+      }
+    })
+    .catch(function() { setTimeout(function() { pollImgStatus(pollUrl, showUrl); }, 4000); });
+}
+
+function makeImgProgressRing() {
+  var phases = ['Đang kết nối DALL-E 3...', 'Đang phân tích nội dung thẻ...', 'Đang tạo ảnh minh hoạ...', 'Đang xử lý từng thẻ...', 'Đang lưu kết quả...'];
+  var totalPhases = phases.length, phase = 0, pct = 0, timer = null;
+  document.getElementById('img-ring-container').innerHTML = [
+    '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0;">',
+      '<span id="img-pct" style="font-size:13px;font-weight:800;color:#7e22ce;">0%</span>',
+      '<div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;">',
+        '<svg width="88" height="88" viewBox="0 0 88 88" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">',
+          '<circle cx="44" cy="44" r="38" stroke="#ede9fe" stroke-width="6"/>',
+          '<circle id="img-arc" cx="44" cy="44" r="38" stroke="#7e22ce" stroke-width="6" stroke-linecap="round"',
+            ' stroke-dasharray="238.8" stroke-dashoffset="238.8" style="transition:stroke-dashoffset 0.6s ease;"/>',
+        '</svg>',
+        '<div style="position:relative;z-index:2;animation:vox-fc-pulse 1.6s ease-in-out infinite;font-size:28px;">🖼️</div>',
+      '</div>',
+      '<p id="img-phase" style="font-size:12px;font-weight:600;color:#7e22ce;text-align:center;max-width:220px;margin:0;">' + phases[0] + '</p>',
+    '</div>'
+  ].join('');
+
+  var arc = document.getElementById('img-arc');
+  var pctEl = document.getElementById('img-pct');
+  var phEl  = document.getElementById('img-phase');
+  var milestones = phases.map(function(_, i) { return Math.round(((i+1)/totalPhases)*85); });
+
+  function setProgress(p) {
+    arc.style.strokeDashoffset = 238.8 * (1 - p/100);
+    pctEl.textContent = Math.round(p) + '%';
+  }
+
+  timer = setInterval(function() {
+    var target = milestones[phase] || 85;
+    pct = Math.min(pct + 0.8, target);
+    setProgress(pct);
+    if (pct >= (milestones[phase]||85) && phase < totalPhases-1) { phase++; phEl.textContent = phases[phase]; }
+    if (pct >= 85 && phase >= totalPhases-1) {
+      clearInterval(timer);
+      timer = setInterval(function() { if (pct>=98) { clearInterval(timer); return; } pct = Math.min(pct+0.2, 98); setProgress(pct); }, 4000);
+    }
+  }, 500);
+
+  return { finish: function() { clearInterval(timer); arc.style.strokeDashoffset = '0'; pctEl.textContent = '100%'; } };
+}
+
+<% if @deck.image_generating? %>
+(function() {
+  try {
+    var _t = JSON.parse(localStorage.getItem('vox_active_tasks') || '[]');
+    if (_t.some(function(t) { return t.id === IMG_TASK_META.id; })) return;
+  } catch(e) {}
+  document.getElementById('img-overlay').style.display = 'flex';
+  _imgRingCtrl = makeImgProgressRing();
+  pollImgStatus('<%= image_status_flashcard_deck_path(@deck, format: :json) %>', '<%= flashcard_deck_path(@deck) %>');
+})();
+<% end %>
 </script>
