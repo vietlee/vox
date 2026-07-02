@@ -163,6 +163,7 @@ const ERROR_CONNECT = "<%= j t('ai.error_connect') %>";
 const NO_RESPONSE   = "<%= j t('ai.no_response') %>";
 const AI_ERROR      = "<%= j t('ai.ai_error') %>";
 const USER_INITIALS = "<%= j current_user.initials %>";
+const AI_BOT_ICON  = <%= render("admin/shared/ai_bot_icon").to_json %>;
 
 // ── localStorage key per workspace ───────────────────────────────────────────
 const STORAGE_KEY = "vox_chat_<%= current_workspace.id %>_<%= current_user.id %>";
@@ -268,7 +269,7 @@ function appendMessage(role, content) {
   if (!isUser) {
     const av = document.createElement('div');
     av.className = 'w-14 h-14 rounded-xl flex items-center justify-center p-1 shrink-0 mt-0.5';
-    av.innerHTML = '<%= render "admin/shared/ai_bot_icon" %>';
+    av.innerHTML = AI_BOT_ICON;
     wrapper.appendChild(av);
   }
   const bubble = document.createElement('div');
@@ -287,13 +288,12 @@ function appendTyping() {
   const div = document.createElement('div');
   div.id = 'typing-indicator';
   div.className = 'flex gap-3 max-w-2xl';
-  div.innerHTML = `
-    <div class="w-14 h-14 rounded-xl flex items-center justify-center p-1 shrink-0 mt-0.5"><%= render "admin/shared/ai_bot_icon" %></div>
-    <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex gap-1 items-center">
-      <span class="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style="animation-delay:0ms"></span>
-      <span class="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style="animation-delay:150ms"></span>
-      <span class="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style="animation-delay:300ms"></span>
-    </div>`;
+  div.innerHTML = '<div class="w-14 h-14 rounded-xl flex items-center justify-center p-1 shrink-0 mt-0.5">' + AI_BOT_ICON + '</div>' +
+    '<div class="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex gap-1 items-center">' +
+    '<span class="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style="animation-delay:0ms"></span>' +
+    '<span class="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style="animation-delay:150ms"></span>' +
+    '<span class="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style="animation-delay:300ms"></span>' +
+    '</div>';
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
 }
