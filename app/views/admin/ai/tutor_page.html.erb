@@ -726,15 +726,16 @@ async function vcProcessAndReply() {
 
   if (!vcRes.ok) { thinkEl.innerHTML = '<span class="text-red-500">Lỗi kết nối.</span>'; if (_vcActive) vcStartListening(); return; }
 
-  // TTS queue: sentences are fetched as soon as they're complete, played in order
-  const ttsQueue = [];   // { url, failed }
-  let   ttsNext  = 0;    // index of next chunk to play
-  let   ttsDone  = false; // all TTS fetches queued
+  // TTS pipeline: fetch per sentence in parallel, play strictly in order
+  const ttsQueue = [];    // { url: string|null, failed: bool }
+  let   ttsNext  = 0;     // next index to play
+  let   ttsDone  = false; // all sentences have been queued
+  let   ttsPlaying = false; // guard: only one audio at a time
 
   async function vcFetchTTS(text, idx) {
     const clean = text.replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1')
                       .replace(/`(.+?)`/g,'$1').replace(/#+\s*/g,'').trim();
-    if (!clean) { ttsQueue[idx].failed = true; vcPlayNext(); return; }
+    if (!clean) { ttsQueue[idx].failed = true; vcAdvancePlay(); return; }
     const fd2 = new FormData();
     fd2.append('text', clean); fd2.append('model', 'eleven_flash_v2_5');
     fd2.append('source', 'voice_call'); fd2.append('skip_normalize', 'true');
@@ -746,29 +747,37 @@ async function vcProcessAndReply() {
       if (!ar.ok) { ttsQueue[idx].failed = true; }
       else { const blob = await ar.blob(); ttsQueue[idx].url = URL.createObjectURL(blob); }
     } catch(e) { ttsQueue[idx].failed = true; }
-    vcPlayNext();
+    vcAdvancePlay();
   }
 
-  function vcPlayNext() {
-    if (!_vcActive) return;
+  // Called whenever a TTS fetch completes or an audio clip ends.
+  // Plays the next ready chunk in order; ignores if already playing.
+  function vcAdvancePlay() {
+    if (!_vcActive || ttsPlaying) return;
+    // Skip past failed entries
+    while (ttsNext < ttsQueue.length && ttsQueue[ttsNext].failed) ttsNext++;
+    // Check if finished
     if (ttsNext >= ttsQueue.length) {
-      // Nothing to play yet — check if everything is done
-      if (ttsDone && ttsQueue.every(e => e.url || e.failed)) { if (_vcActive) vcStartListening(); }
+      if (ttsDone) { if (_vcActive) vcStartListening(); }
       return;
     }
     const entry = ttsQueue[ttsNext];
-    if (!entry.url && !entry.failed) return; // not ready yet, will retry when ready
-    const idx = ttsNext++;
-    if (!entry.url) { vcPlayNext(); return; } // failed, skip
+    if (!entry.url) return; // not ready yet — will be called again when ready
+    ttsNext++;
+    ttsPlaying = true;
     vcSetStatus('speaking');
     _currentAudio = new Audio(entry.url);
     _currentAudio.onended = () => {
       URL.revokeObjectURL(entry.url);
       _currentAudio = null;
-      vcPlayNext();
-      if (ttsDone && ttsNext >= ttsQueue.length) { if (_vcActive) vcStartListening(); }
+      ttsPlaying = false;
+      vcAdvancePlay(); // play next in sequence
     };
-    _currentAudio.play().catch(() => { _currentAudio = null; vcPlayNext(); });
+    _currentAudio.play().catch(() => {
+      _currentAudio = null;
+      ttsPlaying = false;
+      vcAdvancePlay();
+    });
   }
 
   let sentBuf = '';
@@ -782,11 +791,10 @@ async function vcProcessAndReply() {
   }
 
   function vcFlushSentences(force) {
-    // Extract complete sentences from sentBuf
     const re = /^(.*?[.!?。！？]+)\s*/s;
     let m;
     while ((m = sentBuf.match(re))) {
-      if (m[1].trim().length < 5) { sentBuf = sentBuf.slice(m[0].length); continue; }
+      if (m[1].trim().length < 4) { sentBuf = sentBuf.slice(m[0].length); continue; }
       vcQueueSentence(m[1]);
       sentBuf = sentBuf.slice(m[0].length);
     }
@@ -806,7 +814,7 @@ async function vcProcessAndReply() {
       thinkEl.innerHTML = md(reply);
       vcFlushSentences(false);
     }
-    vcFlushSentences(true); // flush remaining
+    vcFlushSentences(true);
   } catch(e) { /* network error mid-stream */ }
 
   if (reply) {
@@ -818,11 +826,9 @@ async function vcProcessAndReply() {
   }
 
   ttsDone = true;
-  if (ttsIdx === 0) { if (_vcActive) vcStartListening(); return; } // no TTS queued at all
-  // In case all TTS already completed before ttsDone was set
-  if (ttsQueue.every(e => e.url || e.failed) && ttsNext >= ttsQueue.length) {
-    if (_vcActive) vcStartListening();
-  }
+  if (ttsIdx === 0) { if (_vcActive) vcStartListening(); return; }
+  // All TTS may have already finished before ttsDone was set — trigger check
+  vcAdvancePlay();
 }
 
 // ── STT: Voice input ─────────────────────────────────────────────────────────
