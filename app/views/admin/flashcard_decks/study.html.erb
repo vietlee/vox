@@ -145,6 +145,7 @@
   var GENERATE_URL   = '<%= tts_generate_path %>';
   var CSRF_TTS       = document.querySelector('meta[name="csrf-token"]').content;
   var _fcAudio       = null;
+  var _ttsCache      = {};   /* key: voiceId+text → blob URL */
   var _voicesLoaded  = false;
   var _pendingSpeak  = null;   /* text to speak once voices finish loading */
 
@@ -278,6 +279,26 @@
     speak(flipped ? card.back : card.front, !flipped);
   };
 
+  /* Prefetch audio for a card silently (no playback) */
+  function prefetchSpeak(text, isFront) {
+    if (!ttsOn || !_voicesLoaded || !text) return;
+    var selId   = (isFront !== false) ? 'fc-front-voice' : 'fc-back-voice';
+    var voiceId = document.getElementById(selId).value;
+    if (!voiceId) return;
+    var cacheKey = voiceId + '|' + text;
+    if (_ttsCache[cacheKey]) return; /* already cached */
+    var fd = new FormData();
+    fd.append('text', text); fd.append('voice_id', voiceId);
+    fd.append('model', 'eleven_turbo_v2_5'); fd.append('speed', '0.92');
+    fd.append('stability', '0.5'); fd.append('similarity', '0.75');
+    fd.append('style', '0.0'); fd.append('output_format', 'mp3_44100_128');
+    fd.append('source', 'flashcard');
+    fetch(GENERATE_URL, { method: 'POST', headers: { 'X-CSRF-Token': CSRF_TTS, 'Accept': 'audio/mpeg, application/json' }, body: fd })
+      .then(function(r) { return r.ok ? r.blob() : null; })
+      .then(function(blob) { if (blob) _ttsCache[cacheKey] = URL.createObjectURL(blob); })
+      .catch(function() {});
+  }
+
   function speak(text, isFront) {
     if (!ttsOn) return;
     if (!_voicesLoaded) { _pendingSpeak = { text: text, isFront: isFront }; return; }
@@ -287,6 +308,15 @@
     var selId   = (isFront !== false) ? 'fc-front-voice' : 'fc-back-voice';
     var voiceId = document.getElementById(selId).value;
     if (!voiceId) return;
+
+    var cacheKey = voiceId + '|' + text;
+
+    /* Serve from cache if available */
+    if (_ttsCache[cacheKey]) {
+      _fcAudio = new Audio(_ttsCache[cacheKey]);
+      _fcAudio.play();
+      return;
+    }
 
     var fd = new FormData();
     fd.append('text',          text);
@@ -317,8 +347,8 @@
     .then(function(blob) {
       if (!blob || !ttsOn) return;
       var url = URL.createObjectURL(blob);
+      _ttsCache[cacheKey] = url;   /* cache for replay / revisit */
       _fcAudio = new Audio(url);
-      _fcAudio.onended = function() { URL.revokeObjectURL(url); };
       _fcAudio.play();
     })
     .catch(function() {});
@@ -418,6 +448,13 @@
     var frontEl = makeCard(card, 'Câu hỏi', g[0], g[1], false);
     frontEl.onclick = function() { flipCard(card, i); };
     speak(card.front, true);
+
+    /* Prefetch back of current card and front of next card */
+    setTimeout(function() {
+      prefetchSpeak(card.back, false);
+      var next = cards[i + 1];
+      if (next) { prefetchSpeak(next.front, true); }
+    }, 800);
 
     area.innerHTML = '';
     area.appendChild(frontEl);
