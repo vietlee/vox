@@ -602,9 +602,9 @@ function vcDetectSilence() {
   const data = new Uint8Array(_vcAnalyser.frequencyBinCount);
   let silenceMs = 0;
   let speechDetected = false;
-  const SPEECH_THRESHOLD = 18;  // avg > 18 = đang nói
-  const SILENCE_THRESHOLD = 12; // avg < 12 = im lặng
-  const SILENCE_LIMIT = 800;    // 0.8s im lặng sau khi nói → gửi
+  const SPEECH_THRESHOLD = 20;  // avg > 20 = đang nói
+  const SILENCE_THRESHOLD = 14; // avg < 14 = im lặng
+  const SILENCE_LIMIT = 1600;   // 1.6s im lặng sau khi nói → gửi
   const MAX_RECORD = 30000;
   const startTime = Date.now();
 
@@ -734,21 +734,67 @@ async function vcProcessAndReply() {
 
   if (!reply || !_vcActive) { if (_vcActive) vcStartListening(); return; }
 
-  // TTS → play → then listen again
+  // TTS with sentence-level streaming: split into sentences and pipeline audio
   vcSetStatus('speaking');
-  const plain = reply.replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1').replace(/`(.+?)`/g,'$1').replace(/#+\s/g,'').trim().slice(0, 1000);
-  try {
+  const cleanText = reply.replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1')
+                         .replace(/`(.+?)`/g,'$1').replace(/#+\s*/g,'').trim().slice(0, 1000);
+
+  // Split into sentences (by . ! ? — keep short enough for fast TTS)
+  const sentences = cleanText.match(/[^.!?。！？]+[.!?。！？]*/g) || [cleanText];
+  const chunks = [];
+  let buf = '';
+  for (const s of sentences) {
+    buf += s;
+    if (buf.trim().length >= 60 || sentences.indexOf(s) === sentences.length - 1) {
+      if (buf.trim()) chunks.push(buf.trim());
+      buf = '';
+    }
+  }
+  if (!chunks.length) chunks.push(cleanText);
+
+  async function fetchAudio(text) {
     const fd2 = new FormData();
-    fd2.append('text', plain); fd2.append('model', 'eleven_flash_v2_5'); fd2.append('source', 'voice_call'); fd2.append('skip_normalize', 'true'); fd2.append('authenticity_token', csrf());
+    fd2.append('text', text); fd2.append('model', 'eleven_flash_v2_5');
+    fd2.append('source', 'voice_call'); fd2.append('skip_normalize', 'true');
+    fd2.append('authenticity_token', csrf());
     if (_vcVoiceId) fd2.append('voice_id', _vcVoiceId);
     const ar = await fetch('<%= tts_generate_path %>', { method: 'POST', body: fd2 });
-    if (ar.ok) {
-      const ab = await ar.blob();
-      const url = URL.createObjectURL(ab);
-      _currentAudio = new Audio(url);
-      _currentAudio.onended = () => { URL.revokeObjectURL(url); _currentAudio = null; if (_vcActive) vcStartListening(); };
-      _currentAudio.play();
-    } else { if (_vcActive) vcStartListening(); }
+    if (!ar.ok) return null;
+    const blob = await ar.blob();
+    return URL.createObjectURL(blob);
+  }
+
+  async function playChunks(urls, idx) {
+    if (!_vcActive || idx >= urls.length) {
+      if (_vcActive) vcStartListening();
+      return;
+    }
+    const url = urls[idx];
+    if (!url) { playChunks(urls, idx + 1); return; }
+    _currentAudio = new Audio(url);
+    _currentAudio.onended = () => {
+      URL.revokeObjectURL(url);
+      _currentAudio = null;
+      playChunks(urls, idx + 1);
+    };
+    _currentAudio.play().catch(() => playChunks(urls, idx + 1));
+  }
+
+  try {
+    // Fetch all chunks in parallel, play in order
+    const urlPromises = chunks.map(c => fetchAudio(c));
+    // Start playing first chunk as soon as it's ready, don't wait for all
+    const urls = new Array(chunks.length).fill(null);
+    let firstReady = false;
+    urlPromises.forEach((p, i) => {
+      p.then(url => {
+        urls[i] = url;
+        if (i === 0 && !firstReady) { firstReady = true; playChunks(urls, 0); }
+      }).catch(() => {});
+    });
+    // Fallback: if first chunk fails, wait for all
+    await urlPromises[0];
+    if (!firstReady) playChunks(urls, 0);
   } catch(e) { if (_vcActive) vcStartListening(); }
 }
 
