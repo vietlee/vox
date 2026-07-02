@@ -42,12 +42,14 @@ class GenerateFlashcardImagesJob < ApplicationJob
   private
 
   def generate_image(card, api_key)
-    # Include deck subject/topic context to avoid ambiguous terms (e.g. "mouse" → computer mouse not animal)
     deck_context = card.flashcard_deck.subject.presence || card.flashcard_deck.title
+    # Use back content to disambiguate (e.g. "Mouse" + "A pointing device" → computer mouse, not animal)
+    explanation = card.back.to_s.truncate(120)
     prompt = "Flat illustration for an educational flashcard. " \
              "Topic/subject: #{deck_context}. " \
              "Concept: #{card.front}. " \
-             "Show the concept as used in the context of #{deck_context}. " \
+             "Definition/explanation: #{explanation}. " \
+             "Illustrate exactly what the definition describes. " \
              "Clean, simple, colorful vector illustration style. No text, no labels, no words in image."
 
     call_dalle(prompt, card.id, api_key)
