@@ -420,6 +420,7 @@ let _vcSilTimer  = null;
 let _vcAudioCtx  = null;
 let _vcAnimFrame = null;
 let _vcVoiceId   = localStorage.getItem('vc_voice_id') || '';
+let _vcSpeed     = parseFloat(localStorage.getItem('vc_speed') || '0.85');
 
 // ── Voice picker modal ────────────────────────────────────────────────────────
 let _voiceList = null; // cached from API
@@ -756,6 +757,7 @@ async function vcProcessAndReply() {
     const fd2 = new FormData();
     fd2.append('text', text); fd2.append('model', 'eleven_flash_v2_5');
     fd2.append('source', 'voice_call'); fd2.append('skip_normalize', 'true');
+    fd2.append('speed', String(_vcSpeed));
     fd2.append('authenticity_token', csrf());
     if (_vcVoiceId) fd2.append('voice_id', _vcVoiceId);
     const ar = await fetch('<%= tts_generate_path %>', { method: 'POST', body: fd2 });
@@ -883,6 +885,20 @@ window.startVoiceCall = startVoiceCall;
 window.exitVoiceCall = exitVoiceCall;
 window.toggleRecording = toggleRecording;
 window.stopRecording = stopRecording;
+
+const VC_SPEEDS = [0.75, 0.85, 0.95, 1.0, 1.1];
+window.vcToggleSpeed = function() {
+  const idx = VC_SPEEDS.indexOf(_vcSpeed);
+  _vcSpeed = VC_SPEEDS[(idx + 1) % VC_SPEEDS.length];
+  localStorage.setItem('vc_speed', String(_vcSpeed));
+  const lbl = document.getElementById('vc-speed-label');
+  if (lbl) lbl.textContent = _vcSpeed + '×';
+};
+// Sync label to restored speed on load
+document.addEventListener('DOMContentLoaded', function() {
+  const lbl = document.getElementById('vc-speed-label');
+  if (lbl) lbl.textContent = _vcSpeed + '×';
+});
 })();
 </script>
 
@@ -986,6 +1002,13 @@ window.stopRecording = stopRecording;
 
   <!-- Controls -->
   <div class="flex items-center gap-6">
+    <!-- Speed toggle -->
+    <button id="vc-speed-btn" onclick="vcToggleSpeed()"
+            class="w-12 h-12 rounded-full flex items-center justify-content-center cursor-pointer border-0 transition-colors text-[12px] font-bold"
+            style="background:rgba(255,255,255,0.1); color:#94a3b8; flex-direction:column; display:flex; align-items:center; justify-content:center; gap:1px;">
+      <span style="font-size:10px; opacity:0.7;">Tốc độ</span>
+      <span id="vc-speed-label">0.85×</span>
+    </button>
     <!-- End session -->
     <button onclick="exitVoiceCall()"
             class="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center cursor-pointer border-0 transition-colors shadow-lg shadow-red-500/40">
