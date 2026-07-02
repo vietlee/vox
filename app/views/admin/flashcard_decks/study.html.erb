@@ -314,7 +314,8 @@
     /* Serve from cache if available */
     if (_ttsCache[cacheKey]) {
       _fcAudio = new Audio(_ttsCache[cacheKey]);
-      _fcAudio.play();
+      _fcAudio.onended = function() { _fcAudio = null; };
+      var p = _fcAudio.play(); if (p && p.catch) p.catch(function() {});
       return;
     }
 
@@ -349,7 +350,8 @@
       var url = URL.createObjectURL(blob);
       _ttsCache[cacheKey] = url;   /* cache for replay / revisit */
       _fcAudio = new Audio(url);
-      _fcAudio.play();
+      _fcAudio.onended = function() { _fcAudio = null; };
+      var p = _fcAudio.play(); if (p && p.catch) p.catch(function() {});
     })
     .catch(function() {});
   }
@@ -515,7 +517,8 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
       body: JSON.stringify({ card_id: card.id, rating: rating })
-    }).then(function() { current++; showCard(current); });
+    }).then(function() { current++; showCard(current); })
+    .catch(function() {});
   }
 
   window.rate = rate;
