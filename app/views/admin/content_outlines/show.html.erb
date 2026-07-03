@@ -555,11 +555,20 @@
                 <button onclick="applyBorderStyle('double')"  id="tt-bs-double" style="flex:1;background:#334155;border:2px solid transparent;border-radius:5px;color:#fff;font-size:10px;padding:4px;cursor:pointer;"><svg width="30" height="8" viewBox="0 0 30 8"><line x1="2" y1="2.5" x2="28" y2="2.5" stroke="#e2e8f0" stroke-width="1.5"/><line x1="2" y1="5.5" x2="28" y2="5.5" stroke="#e2e8f0" stroke-width="1.5"/></svg></button>
               </div>
               <div style="font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Độ dày</div>
-              <div style="display:flex;gap:5px;">
+              <div style="display:flex;gap:5px;margin-bottom:8px;">
                 <button onclick="applyBorderWidth(1)"  id="tt-bw-1" style="flex:1;background:#334155;border:2px solid transparent;border-radius:5px;color:#e2e8f0;font-size:10px;padding:4px;cursor:pointer;">1px</button>
                 <button onclick="applyBorderWidth(2)"  id="tt-bw-2" style="flex:1;background:#334155;border:2px solid transparent;border-radius:5px;color:#e2e8f0;font-size:10px;padding:4px;cursor:pointer;">2px</button>
                 <button onclick="applyBorderWidth(3)"  id="tt-bw-3" style="flex:1;background:#334155;border:2px solid transparent;border-radius:5px;color:#e2e8f0;font-size:10px;padding:4px;cursor:pointer;">3px</button>
                 <button onclick="applyBorderWidth(4)"  id="tt-bw-4" style="flex:1;background:#334155;border:2px solid transparent;border-radius:5px;color:#e2e8f0;font-size:10px;padding:4px;cursor:pointer;">4px</button>
+              </div>
+              <div id="tt-border-radius-row" style="display:none;">
+                <div style="font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Bo góc</div>
+                <div style="display:flex;gap:5px;">
+                  <button onclick="applyBorderRadius(0)"   id="tt-br-0"  style="flex:1;background:#334155;border:2px solid transparent;border-radius:5px;color:#e2e8f0;font-size:10px;padding:4px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="0" fill="none" stroke="#e2e8f0" stroke-width="1.5"/></svg></button>
+                  <button onclick="applyBorderRadius(4)"   id="tt-br-4"  style="flex:1;background:#334155;border:2px solid transparent;border-radius:5px;color:#e2e8f0;font-size:10px;padding:4px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="3" fill="none" stroke="#e2e8f0" stroke-width="1.5"/></svg></button>
+                  <button onclick="applyBorderRadius(10)"  id="tt-br-10" style="flex:1;background:#334155;border:2px solid transparent;border-radius:5px;color:#e2e8f0;font-size:10px;padding:4px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="6" fill="none" stroke="#e2e8f0" stroke-width="1.5"/></svg></button>
+                  <button onclick="applyBorderRadius(50)"  id="tt-br-50" style="flex:1;background:#334155;border:2px solid transparent;border-radius:5px;color:#e2e8f0;font-size:10px;padding:4px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="9" fill="none" stroke="#e2e8f0" stroke-width="1.5"/></svg></button>
+                </div>
               </div>
             </div>
           </div>
@@ -2652,6 +2661,10 @@
         if (bInp) bInp.value = bColor || '#1e3a5f';
         buildBorderColorSwatches();
         syncBorderStyleBtns(bStyle, bWidth);
+        /* Show border-radius row only for rect */
+        var brRow = document.getElementById('tt-border-radius-row');
+        if (brRow) brRow.style.display = (elData2.type === 'rect') ? 'block' : 'none';
+        syncBorderRadiusBtns(elData2.style && elData2.style.borderRadius != null ? elData2.style.borderRadius : null);
         document.getElementById('tt-border-wrap').dataset.elid = ei2;
         document.getElementById('tt-border-wrap').dataset.si   = si2;
       }
@@ -2833,6 +2846,29 @@
       });
     }
 
+    function syncBorderRadiusBtns(val) {
+      [0,4,10,50].forEach(function(r) {
+        var b = document.getElementById('tt-br-'+r);
+        if (b) b.style.borderColor = (val === r) ? '#818cf8' : 'transparent';
+      });
+    }
+
+    function applyBorderRadius(r) {
+      var elData = _getBorderShapeEl(); if (!elData || elData.type !== 'rect') return;
+      saveHistorySnapshot();
+      if (!elData.style) elData.style = {};
+      elData.style.borderRadius = r;
+      syncBorderRadiusBtns(r);
+      /* Apply directly to DOM */
+      var stage = document.getElementById('slide-stage');
+      var wrap = document.getElementById('tt-border-wrap');
+      if (stage && wrap) {
+        var domEl = stage.querySelector('[data-ei="'+wrap.dataset.elid+'"]');
+        if (domEl) domEl.style.borderRadius = r + 'px';
+      }
+      renderThumbnails(); scheduleSave();
+    }
+
     function _getBorderShapeEl() {
       var wrap = document.getElementById('tt-border-wrap');
       if (!wrap) return null;
@@ -2916,6 +2952,9 @@
           domEl.style.border = '';
           domEl.style.boxSizing = '';
         }
+        if (elData.type === 'rect' && s.borderRadius != null) {
+          domEl.style.borderRadius = s.borderRadius + 'px';
+        }
         return true; /* handled via DOM — no full re-render needed */
       }
       return false; /* polygon shapes still need full re-render */
@@ -2925,6 +2964,7 @@
     window.applyBorderColor = applyBorderColor;
     window.applyBorderStyle = applyBorderStyle;
     window.applyBorderWidth = applyBorderWidth;
+    window.applyBorderRadius = applyBorderRadius;
 
     /* Close border panel on outside click */
     document.addEventListener('click', function(e) {
