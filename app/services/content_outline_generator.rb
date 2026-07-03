@@ -499,6 +499,7 @@ class ContentOutlineGenerator
       8. NOTE bắt buộc: 2-3 câu gợi ý người thuyết trình (điểm nhấn, số liệu bổ sung, câu hỏi gợi mở).
       9. Số slide: 7–10 (1 cover + N content + 1 closing). Chất lượng hơn số lượng.
       10. FOOTER: chỉ dùng cho nguồn dữ liệu ("Nguồn: Nielsen Vietnam 2024") hoặc context thêm.
+      11. CALLOUT: tuỳ chọn — dùng khi có 1 con số/insight đặc biệt nổi bật cần nhấn mạnh. Đặt SAU NOTE, tối đa 90 ký tự.
     SYS
   end
 
@@ -539,7 +540,8 @@ class ContentOutlineGenerator
       [nội dung theo format của layout đã chọn]
       STYLE: [tùy chọn style, xem bên dưới]
       FOOTER: [tuỳ chọn — nguồn dữ liệu hiển thị nhỏ dưới slide, VD: "Nguồn: IMARC Group 2023" hoặc disclaimer ngắn]
-      NOTE: [tuỳ chọn — speaker note chỉ để trong file, KHÔNG hiển thị lên slide. Dùng để gợi ý cách trình bày, VD: "Nhấn mạnh: con số 90% là từ pilot thực tế"]
+      NOTE: [tuỳ chọn — speaker note chỉ để trong file, KHÔNG hiển thị lên slide. Dùng để gợi ý cách trình bày]
+      CALLOUT: [tuỳ chọn — 1 câu key insight hoặc stat nổi bật, hiển thị dạng thanh ngang ở cuối slide, tối đa 90 ký tự. VD: "68% người dùng → Tỷ lệ bỏ dở tăng 2x khi thiếu tích hợp"]
       ---END---
 
       ═══════════════════════════════════════════
@@ -850,6 +852,7 @@ class ContentOutlineGenerator
       style_raw = s[/STYLE:\s*(.+)/, 1]&.strip || ""
       footer   = s[/FOOTER:\s*(.+)/, 1]&.strip || ""
       note     = s[/NOTE:\s*(.+)/, 1]&.strip || ""
+      callout  = s[/CALLOUT:\s*(.+)/, 1]&.strip || ""
       lines  = body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
 
       style = {}
@@ -866,6 +869,7 @@ class ContentOutlineGenerator
       slide = { "title" => title, "layout" => layout, "note" => note }
       slide["subtitle"] = subtitle if subtitle.present?
       slide["footer"] = footer if footer.present?
+      slide["callout"] = callout if callout.present?
       slide["style"] = style if style.any?
 
       case layout
@@ -1463,7 +1467,8 @@ class ContentOutlineGenerator
 
   def compile_content(s, t, idx, total)
     has_note = false
-    bot = 5.10
+    has_callout = s["callout"].present?
+    bot = has_callout ? 4.72 : 5.10
     layout_els = case (s["layout"] || "bullets")
       when "stats"      then compile_stats(s, t, has_note, bot)
       when "chart"      then compile_chart(s, t, has_note, bot)
@@ -1478,7 +1483,17 @@ class ContentOutlineGenerator
       when "principles" then compile_principles(s, t, has_note, bot)
       else                   compile_bullets(s, t, has_note, bot)
       end
-    common_header(s, t, idx, total) + layout_els
+    callout_els = if has_callout
+      accent = t["accent"] || "#1e3a5f"
+      [
+        el_rect("callout_bg", LM, 4.80, CW, 0.38, accent, z: 1, opacity: 0.12, radius: 8),
+        el_text("callout_txt", LM, 4.80, CW, 0.38, s["callout"],
+          body_style(11, color: t["primary"] || "#1e3a5f", align: "center").merge("fontWeight" => "700"), z: 2)
+      ]
+    else
+      []
+    end
+    common_header(s, t, idx, total) + layout_els + callout_els
   end
 
   # ─── Cards ──────────────────────────────────────────────────────────────────
