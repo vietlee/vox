@@ -71,6 +71,25 @@
   <% end %>
 </div>
 
+<!-- Meta-analysis overlay — shown while suggest_meta AI call runs -->
+<div id="co-meta-overlay"
+     style="display:none; position:fixed; inset:0; z-index:9998; align-items:center; justify-content:center;
+            background:rgba(15,23,42,0.65); backdrop-filter:blur(4px);">
+  <div style="background:#fff; border-radius:20px; padding:36px 44px; text-align:center;
+              box-shadow:0 20px 60px rgba(0,0,0,0.22); max-width:300px; width:90%;">
+    <div style="margin-bottom:18px;">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style="display:inline-block;">
+        <circle cx="24" cy="24" r="22" stroke="#e2e8f0" stroke-width="4"/>
+        <circle cx="24" cy="24" r="22" stroke="#1e3a5f" stroke-width="4"
+                stroke-dasharray="138" stroke-dashoffset="100"
+                style="transform-origin:center;animation:co-spin 1.2s linear infinite;"/>
+      </svg>
+    </div>
+    <p style="font-size:15px;font-weight:700;color:#1e3a5f;margin:0 0 6px;">Đang phân tích tài liệu...</p>
+    <p style="font-size:12px;color:#94a3b8;margin:0;">AI đang đề xuất tiêu đề và lĩnh vực phù hợp</p>
+  </div>
+</div>
+
 <!-- Loading overlay — same style as quiz_sets -->
 <div id="co-overlay"
      style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center;
@@ -103,6 +122,10 @@
 @keyframes vox-pulse {
   0%,100% { transform:scale(1); opacity:1; }
   50%      { transform:scale(0.88); opacity:0.75; }
+}
+@keyframes co-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 /* Quill: merge toolbar + editor into one box */
@@ -329,22 +352,19 @@ document.addEventListener('turbo:before-cache', function() {
         fd.append('content', suggestedPrompt);
         fd.append('authenticity_token', csrf);
 
-        // Show loading hint
-        if (!titleField.value.trim())   { titleField.placeholder = 'AI đang đề xuất...'; }
-        if (!subjectField.value.trim()) { subjectField.placeholder = 'AI đang đề xuất...'; }
+        // Show full-screen analysis overlay
+        var metaOverlay = document.getElementById('co-meta-overlay');
+        if (metaOverlay) metaOverlay.style.display = 'flex';
 
         fetch('<%= ai_suggest_meta_path %>', { method: 'POST', body: fd })
           .then(function(r) { return r.json(); })
           .then(function(d) {
             if (d.title   && !titleField.value.trim())   titleField.value   = d.title;
             if (d.subject && !subjectField.value.trim()) subjectField.value = d.subject;
-            // Restore placeholders
-            titleField.placeholder   = 'VD: Phương trình bậc hai, Marketing Digital, Lịch sử VN...';
-            subjectField.placeholder = 'VD: Marketing, Công nghệ, Tài chính, Y tế...';
           })
-          .catch(function() {
-            titleField.placeholder   = 'VD: Phương trình bậc hai, Marketing Digital, Lịch sử VN...';
-            subjectField.placeholder = 'VD: Marketing, Công nghệ, Tài chính, Y tế...';
+          .catch(function() {})
+          .finally(function() {
+            if (metaOverlay) metaOverlay.style.display = 'none';
           });
       }
     }
