@@ -2384,6 +2384,9 @@
       if (!span) return;
       e.preventDefault();
       span.contentEditable = 'true';
+      /* Show text cursor, hide move cursor on parent while editing */
+      span.style.cursor = 'text';
+      domEl.style.cursor = 'text';
       span.focus();
       /* Place cursor at click position instead of selecting all */
       var sel = window.getSelection();
@@ -2400,6 +2403,18 @@
       } else {
         var r = document.createRange(); r.selectNodeContents(span); sel.addRange(r);
       }
+      /* Dblclick inside span → select all text in span */
+      function _onDblClick(ev) { ev.stopPropagation(); var r2 = document.createRange(); r2.selectNodeContents(span); var s2 = window.getSelection(); s2.removeAllRanges(); s2.addRange(r2); }
+      span.addEventListener('dblclick', _onDblClick);
+      /* Ctrl/Cmd+A inside span → select all text in span */
+      function _onKeyDown(ev) {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key === 'a') {
+          ev.preventDefault(); ev.stopPropagation();
+          var r3 = document.createRange(); r3.selectNodeContents(span);
+          var s3 = window.getSelection(); s3.removeAllRanges(); s3.addRange(r3);
+        }
+      }
+      span.addEventListener('keydown', _onKeyDown);
       function _syncTextEl() {
         var si = parseInt(domEl.dataset.si);
         var ei = domEl.dataset.ei;
@@ -2415,7 +2430,11 @@
       span.addEventListener('input', _syncTextEl);
       span.addEventListener('blur', function() {
         span.contentEditable = 'false';
+        span.style.cursor = '';
+        domEl.style.cursor = '';
         span.removeEventListener('input', _syncTextEl);
+        span.removeEventListener('dblclick', _onDblClick);
+        span.removeEventListener('keydown', _onKeyDown);
         _syncTextEl();
         saveHistorySnapshot();
         /* Clear browser caret/selection so it doesn't linger visually */
