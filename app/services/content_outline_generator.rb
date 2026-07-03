@@ -479,11 +479,20 @@ class ContentOutlineGenerator
       - Mỗi slide content PHẢI có visual element: số liệu lớn, chart, grid card, hay timeline.
       - Tuyệt đối KHÔNG dùng plain bullet list thuần túy — luôn có cấu trúc visual.
 
+      CUNG BẬC CÂU CHUYỆN (narrative arc) — Khi thiết kế deck, hãy nghĩ như một câu chuyện:
+      1. Móc câu (Hook): Vấn đề/Cơ hội hiện tại là gì? (1-2 slide đầu)
+      2. Bằng chứng: Dữ liệu/phân tích ủng hộ luận điểm (1-2 slide)
+      3. Giải pháp: Chúng ta đề xuất/làm gì? (2-3 slide — đây thường là nơi dùng cards/pillars)
+      4. Triển khai/Kế hoạch: Làm thế nào và khi nào? (1-2 slide — timeline phù hợp đây)
+      5. Tác động: Kết quả mong đợi/đã đạt được (1 slide — stats hoặc chart)
+      6. Kêu gọi hành động (Closing): Bước tiếp theo là gì?
+      Không phải mọi deck đều cần đủ 6 bước — linh hoạt theo nội dung thực tế.
+
       QUY TẮC BẮT BUỘC:
       1. COVER: TITLE = tên chủ đề ngắn (tối đa 4 từ). SUBTITLE = 1 câu mô tả định vị. KHÔNG có số liệu.
       2. Mỗi content slide có STYLE: category= (nhãn 2-3 từ viết hoa, ví dụ: "BỐI CẢNH THỊ TRƯỜNG").
       3. TITLE content slide: insight 1 câu (≤50 ký tự), viết thường, không dấu chấm hỏi.
-      4. Layout đa dạng, KHÔNG lặp liên tiếp cùng layout — xen kẽ: stats, pillars, two-col, timeline, chart, donut.
+      4. Layout đa dạng, KHÔNG lặp liên tiếp cùng layout — xen kẽ: stats, cards, pillars, two-col, timeline, chart, donut.
       5. KHÔNG dùng emoji hay [icon placeholder]. KHÔNG có accent lines dưới title.
       6. TIÊU ĐỀ item/bullet: ≤25 ký tự. Giải thích sau "::".
       7. Mỗi slide lấp ≥85% diện tích — không để khoảng trắng lớn.
@@ -529,8 +538,9 @@ class ContentOutlineGenerator
       BODY:
       [nội dung theo format của layout đã chọn]
       STYLE: [tùy chọn style, xem bên dưới]
+      CALLOUT: [Thông điệp chính của slide — 1 câu ngắn, in đậm, hiển thị dạng highlight bar cho AUDIENCE xem. Dùng khi có 1 insight/kết luận quan trọng cần nổi bật. VD: "GDOS 2.0 giảm 70% thời gian triển khai so với custom development"]
       FOOTER: [nguồn dữ liệu nhỏ — VD: "Nguồn: IMARC Group 2023"]
-      NOTE: [SỐ LIỆU NỔI BẬT — hiển thị dạng dark banner. VD: "58,85 triệu USD → 175,41 triệu USD   Quy mô thị trường thuần chay Việt Nam, 2024 → 2033 (CAGR 11,54%)". Chỉ dùng cho slide có data đáng highlight]
+      NOTE: [Gợi ý người thuyết trình — KHÔNG hiển thị lên slide. VD: "Nhấn mạnh: con số 90% là kết quả thực tế từ 3 khách hàng đầu tiên, không phải projection"]
       ---END---
 
       ═══════════════════════════════════════════
@@ -615,8 +625,21 @@ class ContentOutlineGenerator
         - Triển khai :: Học theo lộ trình với mentor hỗ trợ
         - Đánh giá :: Đo lường kết quả và điều chỉnh
 
+      LAYOUT: cards
+        Khi nào dùng: 3–5 module/tính năng/nhóm chức năng song song — tốt nhất khi cần hiển thị "scope", "what's included", hoặc platform components.
+        Khác với pillars (text-heavy, strategic); cards phù hợp hơn khi mỗi item là một THỰC THỂ rõ ràng (module, tính năng, workstream).
+        Format: mỗi dòng "- Tên module [icon=TÊN] :: bullet1 | bullet2 | bullet3"
+        Icon PHẢI có (xem hướng dẫn chọn icon bên dưới).
+        Tối đa 3 bullets per card. Bullets ngắn gọn (≤5 từ mỗi bullet).
+        Ví dụ:
+        - Platform Foundation [icon=server] :: API Gateway | Shared Infrastructure | Connection Manager
+        - Workflow Builder [icon=workflow] :: Form Builder | Review & Approval | Data Grid
+        - Module Builder [icon=cube] :: Module Config | Template Builder
+        - Access Control [icon=shield] :: Roles & Permissions | Authentication | Multi-Tenant Isolation
+
       LAYOUT: pillars
         Khi nào dùng: 3–4 trụ cột/chiến lược/nhóm nội dung song song (vision, giá trị, framework)
+        Khác với cards: pillars dùng cho nội dung CHIẾN LƯỢC/TRỪU TƯỢNG; cards dùng cho THỰC THỂ cụ thể.
         Format: mỗi dòng "- TÊN TRỤ CỘT :: bullet1 | bullet2 | bullet3"
         Ví dụ:
         - Chất lượng giảng dạy :: Áp dụng AI tools toàn diện | Đào tạo giáo viên định kỳ | Chuẩn hóa giáo án
@@ -662,17 +685,19 @@ class ContentOutlineGenerator
 
       Chọn layout PHÙ HỢP NHẤT với nội dung của từng slide — không có thứ tự cố định.
       Hãy để nội dung quyết định layout:
-      - Vấn đề thị trường, giải pháp, tính năng → bullets (PHẢI CÓ ĐÚNG 3 items với ::, KHÔNG ĐƯỢC ÍT HƠN 3)
+      - Module, tính năng, scope, workstream (thực thể cụ thể, 3-5 items) → cards
+      - Vấn đề thị trường, giải pháp, điểm mạnh (3 items trừu tượng) → bullets
       - Tăng trưởng, KPI → stats (2 stats + chart_items combo)
       - Phân bổ ngân sách, tỷ lệ % → donut
-      - Mô hình kinh doanh, nguồn thu → pillars (PHẢI CÓ ĐÚNG 4 trụ cột, KHÔNG ĐƯỢC ÍT HƠN 4, mỗi trụ 2-3 bullets)
+      - Chiến lược, framework, giá trị cốt lõi (trừu tượng) → pillars
       - Nhiều vai trò, bộ phận → roles
       - Mục tiêu, key results → okr
-      - Quy trình tuần tự → timeline
-      - 2 phía so sánh → two-col
+      - Quy trình tuần tự, roadmap → timeline
+      - 2 phía so sánh (cũ vs mới, trước vs sau) → two-col
       - Slide mở đầu overview → agenda
-      - Giá trị, nguyên tắc → principles
-      - KHÔNG dùng two-col cho mô hình kinh doanh — dùng pillars thay vào
+      - Nguyên tắc, giá trị → principles
+      - KHÔNG dùng two-col cho mô hình kinh doanh — dùng pillars
+      - KHÔNG dùng pillars khi nội dung là module/tính năng cụ thể — dùng cards
 
       ═══════════════════════════════════════════
       TÙY CHỌN STYLE (dòng STYLE: tùy chọn, dùng dấu phẩy ngăn cách):
@@ -733,12 +758,27 @@ class ContentOutlineGenerator
 
       ═══ QUY TẮC NỘI DUNG ═══
       - Bullets dùng format "Tiêu đề [icon=TÊN] :: Mô tả chi tiết" — phần mô tả 1-2 câu ngắn gọn, có ngữ cảnh
-        + [icon=TÊN] BẮT BUỘC cho mọi bullet. Chọn icon phù hợp ngữ nghĩa với nội dung bullet đó.
-        + Danh sách icon: search, store, check, clock, person, people, rocket, code, chart, money, percent, megaphone, crown, lightbulb, shield, star, heart, globe, target, handshake, leaf, phone, truck, fire, bolt, lock, eye, flag, award, cube, layers, settings, share, book, camera, music, map, tools, diamond, briefcase, coins, wallet, calculator, invoice, bank, growth, investment, contract, rss, team, user_plus, id_card, graduation, pencil, notebook, certificate, heartbeat, cross, pill, ai, chip, robot, cloud_upload, terminal, network, warehouse, shipping, route, calendar, checklist, workflow, tree, recycle, puzzle, filter, zoom_in, external_link, check_circle, x_circle, bell, thumbs_up, smile, trending_up, bar_chart, pie_chart, gift, shopping_cart, credit_card, tag, database, server, refresh, info, help, alert, bike, plane, building, hospital, school, car, compass, navigation, video, mic, headphones, send, download, upload, wifi, bluetooth, cpu, monitor, smartphone, printer, mail
-        + Brand icons (dùng khi nhắc đến nền tảng cụ thể): facebook, instagram, youtube, tiktok, linkedin, twitter, zalo, shopee, google, whatsapp, telegram
-        + Ví dụ: "Chi phí giảm 90% [icon=chart] :: Từ 0.37 USD/kWh năm 2010 xuống 0.04 USD/kWh năm 2023"
-        + Ví dụ: "Năng lượng tái tạo [icon=leaf] :: Chiếm 30% sản lượng điện toàn cầu năm 2023"
-        + Ví dụ: "Bảo mật dữ liệu [icon=shield] :: Mã hóa AES-256 end-to-end cho mọi giao dịch"
+        + [icon=TÊN] BẮT BUỘC cho mọi bullet và mọi card. Chọn icon bằng cách SUY LUẬN semantic:
+
+        CÁCH CHỌN ICON — Hỏi: "Domain cốt lõi của nội dung này là gì?" rồi chọn icon phù hợp nhất:
+        · Công nghệ/Kỹ thuật: chip, code, terminal, robot, ai, network, server, cloud_upload, database, cpu, monitor, wifi
+        · Kinh doanh/Tài chính: briefcase, chart, money, growth, investment, contract, handshake, coins, wallet, calculator, invoice, bank, credit_card
+        · Con người/Tổ chức: team, person, people, user_plus, graduation, id_card, crown, award
+        · Quy trình/Thời gian: workflow, checklist, calendar, route, clock, refresh, layers, puzzle
+        · An toàn/Bảo mật/Kiểm soát: shield, lock, eye, flag, check_circle, x_circle, alert
+        · Tăng trưởng/Kết quả/Mục tiêu: trending_up, bar_chart, target, rocket, star, percent, pie_chart
+        · Vận hành/Hạ tầng/Logistics: warehouse, truck, shipping, tools, settings, cube, building
+        · Truyền thông/Kết nối/Marketing: megaphone, share, globe, send, mail, rss, phone
+        · Tri thức/Sáng tạo/Học tập: lightbulb, pencil, book, notebook, certificate, school, music, camera
+        · Sức khỏe/Y tế: heartbeat, cross, pill, hospital
+        · Bền vững/Môi trường: leaf, tree, recycle, globe
+        · Brand (khi nhắc nền tảng cụ thể): facebook, instagram, youtube, tiktok, linkedin, twitter, zalo, shopee, google, whatsapp, telegram
+
+        Ví dụ tư duy: "Chi phí vận hành giảm 40%" → domain=Kinh doanh+Tăng trưởng → growth hoặc trending_up
+                      "Bảo mật đa lớp" → domain=An toàn → shield
+                      "Tự động hóa workflow" → domain=Quy trình+Công nghệ → workflow hoặc robot
+                      "Đội ngũ 50 chuyên gia" → domain=Con người → team
+                      "Tốc độ triển khai nhanh" → domain=Quy trình+Tăng trưởng → rocket hoặc checklist
       - Số liệu phải CỤ THỂ và có nguồn nếu có trong prompt
       - KHÔNG dùng emoji bất kỳ đâu trong nội dung
       - TITLE content slide: viết thường tự nhiên, truyền tải insight chính
@@ -811,6 +851,7 @@ class ContentOutlineGenerator
       style_raw = s[/STYLE:\s*(.+)/, 1]&.strip || ""
       footer   = s[/FOOTER:\s*(.+)/, 1]&.strip || ""
       note     = s[/NOTE:\s*(.+)/, 1]&.strip || ""
+      callout  = s[/CALLOUT:\s*(.+)/, 1]&.strip || ""
       lines  = body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
 
       style = {}
@@ -827,6 +868,7 @@ class ContentOutlineGenerator
       slide = { "title" => title, "layout" => layout, "note" => note }
       slide["subtitle"] = subtitle if subtitle.present?
       slide["footer"] = footer if footer.present?
+      slide["callout"] = callout if callout.present?
       slide["style"] = style if style.any?
 
       case layout
@@ -887,6 +929,17 @@ class ContentOutlineGenerator
         slide["items"] = lines.map do |l|
           parts = l.split("::", 2).map(&:strip)
           { "step" => parts[0].gsub(/\s*\[icon=[a-z_]+\]/i, "").strip, "desc" => parts[1] || "" }
+        end
+        slide["bullets"] = lines
+      when "cards"
+        slide["items"] = lines.map do |l|
+          parts = l.split("::", 2).map(&:strip)
+          raw_title = parts[0]
+          icon_match = raw_title.match(/\[icon=([a-z_]+)\]/i)
+          icon = icon_match ? icon_match[1].downcase : nil
+          clean_title = raw_title.gsub(/\s*\[icon=[a-z_]+\]/i, "").strip
+          card_bullets = (parts[1] || "").split("|").map(&:strip).reject(&:empty?)
+          { "title" => clean_title, "icon" => icon, "bullets" => card_bullets }.compact
         end
         slide["bullets"] = lines
       when "pillars"
@@ -1198,6 +1251,16 @@ class ContentOutlineGenerator
         "textTransform" => "uppercase", "letterSpacing" => 2)) if cat.present?
     els << el_text("title", 0, 0.68, SW, 0.90, s["title"] || "",
       heading_style(22, align: "center"), z: 2)
+    # CALLOUT — audience-facing highlight bar (accent tint bg, bold text)
+    if s["callout"].present?
+      cl_color  = t["primary"] || t["accent"] || "#1E3A5F"
+      cl_r = cl_color[1,2].to_i(16); cl_g = cl_color[3,2].to_i(16); cl_b = cl_color[5,2].to_i(16)
+      cl_lt = "#%02X%02X%02X" % [(cl_r + (255 - cl_r) * 0.88).round, (cl_g + (255 - cl_g) * 0.88).round, (cl_b + (255 - cl_b) * 0.88).round]
+      els << el_rect("callout_bg", LM, 4.48, CW, 0.50, cl_lt, radius: 6, z: 1)
+      els << el_rect("callout_bar", LM, 4.48, 0.04, 0.50, cl_color, radius: 3, z: 2)
+      els << el_text("callout_txt", LM + 0.16, 4.48, CW - 0.20, 0.50, s["callout"],
+        body_style(11, color: cl_color, weight: 700).merge("valign" => "center"), z: 3)
+    end
     if s["note"].present?
       els << el_rect("note_bg", LM, 4.45, CW, 0.68, t["card_bgs"][0], radius: 8)
       els << el_text("note_txt", LM + 0.15, 4.45, CW - 0.30, 0.68, s["note"],
@@ -1417,14 +1480,16 @@ class ContentOutlineGenerator
   # ─── Content ────────────────────────────────────────────────────────────────
 
   def compile_content(s, t, idx, total)
-    has_note = s["note"].present?
-    bot = has_note ? 4.35 : 5.10
+    has_note    = s["note"].present?
+    has_callout = s["callout"].present?
+    bot = if has_note then 4.35 elsif has_callout then 4.42 else 5.10 end
     layout_els = case (s["layout"] || "bullets")
       when "stats"      then compile_stats(s, t, has_note, bot)
       when "chart"      then compile_chart(s, t, has_note, bot)
       when "donut"      then compile_donut(s, t, has_note, bot)
       when "two-col"    then compile_two_col(s, t, has_note, bot)
       when "timeline"   then compile_timeline(s, t, has_note, bot)
+      when "cards"      then compile_cards(s, t, has_note, bot)
       when "pillars"    then compile_pillars(s, t, has_note, bot)
       when "agenda"     then compile_agenda(s, t, has_note, bot)
       when "roles"      then compile_roles(s, t, has_note, bot)
@@ -1433,6 +1498,50 @@ class ContentOutlineGenerator
       else                   compile_bullets(s, t, has_note, bot)
       end
     common_header(s, t, idx, total) + layout_els
+  end
+
+  # ─── Cards ──────────────────────────────────────────────────────────────────
+  # Icon-grid layout: each card has an icon circle, bold title, and sub-bullets.
+  # Inspired by GDOS-style feature/scope showcase decks.
+  def compile_cards(s, t, has_note, bot)
+    items = (s["items"] || []).first(5)
+    return compile_bullets(s, t, has_note, bot) if items.empty?
+
+    n       = items.length
+    gap     = 0.18
+    card_w  = (CW - gap * (n - 1)) / n
+    top     = 1.72
+    card_h  = [bot - top - 0.10, 0.80].max
+    els     = []
+
+    n.times do |i|
+      it     = items[i]
+      ac     = t["card_icons"][i % 3]
+      bg     = t["card_bgs"][i % 3]
+      ico    = it["icon"] || "star"
+      cx     = LM + i * (card_w + gap)
+      blts   = (it["bullets"] || [])[0..2]
+
+      els << el_rect("card#{i}", cx, top, card_w, card_h, bg, radius: 10, z: 1)
+
+      # Icon: square with rounded corners (matches GDOS card style)
+      icon_sz = [card_w * 0.38, 0.52].min
+      icon_x  = cx + (card_w - icon_sz) / 2
+      els << el_icon("ico#{i}", icon_x, top + 0.18, icon_sz, ico, "#fff", ac, radius: "10px", z: 2)
+
+      # Card title — bold, centered, under icon
+      title_y = top + 0.18 + icon_sz + 0.12
+      els << el_text("ctit#{i}", cx + 0.08, title_y, card_w - 0.16, 0.44,
+        it["title"] || "", heading_style(10, color: "#1F2A44", align: "center"), z: 2)
+
+      # Sub-bullets — small, muted, centered
+      bul_y = title_y + 0.46
+      blts.each_with_index do |b, j|
+        els << el_text("cbul#{i}_#{j}", cx + 0.08, bul_y + j * 0.38, card_w - 0.16, 0.36,
+          b, body_style(8, color: "#5B6478", align: "center"), z: 2)
+      end
+    end
+    els
   end
 
   # ─── Bullets ────────────────────────────────────────────────────────────────
