@@ -507,13 +507,13 @@
           </button>
           <div id="tt-sep-icon-color" style="display:none;width:1px;height:20px;background:#475569;margin:0 2px;flex-shrink:0;"></div>
           <div id="tt-icon-color" style="display:none;position:relative;flex-shrink:0;align-items:center;gap:4px;">
-            <button id="tt-icon-color-btn" onclick="toggleIconColorPanel()" title="Màu icon"
+            <button id="tt-icon-color-btn" onclick="toggleIconColorPanel()" title="Màu"
               style="background:#334155;border:none;color:#fff;border-radius:5px;height:28px;padding:0 7px;cursor:pointer;display:flex;align-items:center;gap:4px;flex-shrink:0;">
-              <span style="font-size:10px;font-weight:600;">Màu icon</span>
+              <span id="tt-icon-color-label" style="font-size:10px;font-weight:600;">Màu</span>
               <span id="tt-icon-color-preview" style="width:12px;height:12px;border-radius:2px;background:#ffffff;border:1px solid rgba(255,255,255,.3);display:inline-block;flex-shrink:0;"></span>
             </button>
             <div id="tt-icon-color-panel" style="display:none;position:absolute;left:0;top:calc(100%+6px);z-index:10200;background:#1e293b;border-radius:12px;padding:10px;box-shadow:0 8px 28px rgba(0,0,0,.45);min-width:180px;">
-              <div style="font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;">Màu icon</div>
+              <div id="tt-icon-color-panel-title" style="font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;">Màu</div>
               <div id="tt-icon-color-swatches" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;"></div>
               <div style="display:flex;align-items:center;gap:6px;">
                 <input type="color" id="tt-icon-color-input" style="width:28px;height:26px;border:none;border-radius:4px;cursor:pointer;padding:1px;background:none;" oninput="applyIconColor(this.value);document.getElementById('tt-icon-color-preview').style.background=this.value;">
@@ -2556,24 +2556,40 @@
       var elType = elData2 ? elData2.type : '';
       var isChart = elType.indexOf('chart') === 0;
       var isIcon  = elType === 'icon';
+      var isArrow = elType === 'arrow' || elType === 'arrow_dbl' || elType === 'arrow_down';
       var isTable = elType === 'table';
       var SHOW = {'txt-toolbar-handle':1,'tt-bg-wrap':1,'tt-sep-bg':1,'tt-sep-dims':1,'tt-dims':1,'tt-sep-z':1,'tt-zorder':1};
       if (isChart) { SHOW['tt-sep-chart'] = 1; SHOW['tt-chart-edit'] = 1; }
       if (isIcon)  { SHOW['tt-sep-icon']  = 1; SHOW['tt-icon-edit']  = 1; SHOW['tt-sep-icon-color'] = 1; SHOW['tt-icon-color'] = 1; }
+      if (isArrow) { SHOW['tt-sep-icon-color'] = 1; SHOW['tt-icon-color'] = 1; }
       if (isTable) { SHOW['tt-sep-table'] = 1; SHOW['tt-table-edit'] = 1; }
       /* Store element id on action buttons so onclick doesn't rely on global */
       var chartBtn = document.getElementById('tt-chart-edit');
       var iconBtn  = document.getElementById('tt-icon-edit');
       if (chartBtn) chartBtn.dataset.elid = ei2;
       if (iconBtn)  iconBtn.dataset.elid  = ei2;
-      /* Sync icon color preview */
-      if (isIcon && elData2) {
-        var iconColor = (elData2.style && elData2.style.color) || '#ffffff';
+      /* Sync icon/arrow color preview */
+      var lbl = document.getElementById('tt-icon-color-label');
+      var ptitle = document.getElementById('tt-icon-color-panel-title');
+      if (isIcon) {
+        if (lbl) lbl.textContent = 'Màu icon';
+        if (ptitle) ptitle.textContent = 'Màu icon';
+      } else if (isArrow) {
+        if (lbl) lbl.textContent = 'Màu mũi tên';
+        if (ptitle) ptitle.textContent = 'Màu mũi tên';
+      }
+      if ((isIcon || isArrow) && elData2) {
+        var iconColor = isArrow
+          ? ((elData2.style && elData2.style.stroke) || '#1e3a5f')
+          : ((elData2.style && elData2.style.color)  || '#ffffff');
         var prev = document.getElementById('tt-icon-color-preview');
         var inp  = document.getElementById('tt-icon-color-input');
         if (prev) prev.style.background = iconColor;
-        if (inp)  inp.value = (iconColor === 'transparent' || iconColor === 'none') ? '#ffffff' : iconColor;
+        if (inp)  inp.value = (iconColor === 'transparent' || iconColor === 'none') ? '#1e3a5f' : iconColor;
         buildIconColorSwatches();
+        /* tag the panel so applyIconColor knows which property to update */
+        document.getElementById('tt-icon-color').dataset.mode = isArrow ? 'arrow' : 'icon';
+        document.getElementById('tt-icon-color').dataset.elid = ei2;
       }
       /* Store table element ref */
       if (isTable) {
@@ -2700,16 +2716,23 @@
     function applyIconColor(color) {
       var tb = document.getElementById('txt-toolbar');
       if (!tb) return;
-      /* find currently selected icon element */
-      var iconBtn = document.getElementById('tt-icon-edit');
-      var ei = iconBtn && iconBtn.dataset.elid;
+      var colorWrap = document.getElementById('tt-icon-color');
+      var mode = colorWrap && colorWrap.dataset.mode; /* 'icon' or 'arrow' */
+      /* find element id: arrow uses colorWrap.dataset.elid, icon uses iconBtn */
+      var ei = (mode === 'arrow' && colorWrap.dataset.elid)
+        ? colorWrap.dataset.elid
+        : (document.getElementById('tt-icon-edit') && document.getElementById('tt-icon-edit').dataset.elid);
       if (!ei) return;
       var sl = slides[current];
       var elData = sl && (sl.elements||[]).find(function(e){ return e.id === ei; });
       if (!elData) return;
       saveHistorySnapshot();
       if (!elData.style) elData.style = {};
-      elData.style.color = color;
+      if (mode === 'arrow') {
+        elData.style.stroke = color;
+      } else {
+        elData.style.color = color;
+      }
       var prev = document.getElementById('tt-icon-color-preview');
       if (prev) prev.style.background = color;
       var stage = document.getElementById('slide-stage');
