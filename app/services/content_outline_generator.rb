@@ -538,7 +538,6 @@ class ContentOutlineGenerator
       BODY:
       [nội dung theo format của layout đã chọn]
       STYLE: [tùy chọn style, xem bên dưới]
-      CALLOUT: [Thông điệp chính của slide — 1 câu ngắn, in đậm, hiển thị dạng highlight bar cho AUDIENCE xem. Dùng khi có 1 insight/kết luận quan trọng cần nổi bật. VD: "GDOS 2.0 giảm 70% thời gian triển khai so với custom development"]
       FOOTER: [nguồn dữ liệu nhỏ — VD: "Nguồn: IMARC Group 2023"]
       NOTE: [Gợi ý người thuyết trình — KHÔNG hiển thị lên slide. VD: "Nhấn mạnh: con số 90% là kết quả thực tế từ 3 khách hàng đầu tiên, không phải projection"]
       ---END---
@@ -847,12 +846,11 @@ class ContentOutlineGenerator
       title    = s[/TITLE:\s*(.+)/, 1]&.strip || "Slide"
       subtitle = s[/SUBTITLE:\s*(.+)/, 1]&.strip || ""
       layout   = s[/LAYOUT:\s*(\S+)/, 1]&.strip&.downcase || "bullets"
-      body     = s[/BODY:\n(.*?)(?:\nSTYLE:|\nFOOTER:|\nNOTE:|\nCALLOUT:|\z)/m, 1]&.strip || ""
+      body     = s[/BODY:\n(.*?)(?:\nSTYLE:|\nFOOTER:|\nNOTE:|\z)/m, 1]&.strip || ""
       style_raw = s[/STYLE:\s*(.+)/, 1]&.strip || ""
       footer   = s[/FOOTER:\s*(.+)/, 1]&.strip || ""
       note     = s[/NOTE:\s*(.+)/, 1]&.strip || ""
-      callout  = s[/CALLOUT:\s*(.+)/, 1]&.strip || ""
-      lines  = body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?).reject { |l| l =~ /\ACALLOUT:/i }
+      lines  = body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
 
       style = {}
       style_raw.split(",").each do |pair|
@@ -868,7 +866,6 @@ class ContentOutlineGenerator
       slide = { "title" => title, "layout" => layout, "note" => note }
       slide["subtitle"] = subtitle if subtitle.present?
       slide["footer"] = footer if footer.present?
-      slide["callout"] = callout if callout.present?
       slide["style"] = style if style.any?
 
       case layout
@@ -1251,16 +1248,6 @@ class ContentOutlineGenerator
         "textTransform" => "uppercase", "letterSpacing" => 2)) if cat.present?
     els << el_text("title", 0, 0.68, SW, 0.90, s["title"] || "",
       heading_style(22, align: "center"), z: 2)
-    # CALLOUT — audience-facing highlight bar (accent tint bg, bold text)
-    if s["callout"].present?
-      cl_color  = t["primary"] || t["accent"] || "#1E3A5F"
-      cl_r = cl_color[1,2].to_i(16); cl_g = cl_color[3,2].to_i(16); cl_b = cl_color[5,2].to_i(16)
-      cl_lt = "#%02X%02X%02X" % [(cl_r + (255 - cl_r) * 0.88).round, (cl_g + (255 - cl_g) * 0.88).round, (cl_b + (255 - cl_b) * 0.88).round]
-      els << el_rect("callout_bg", LM, 4.48, CW, 0.50, cl_lt, radius: 6, z: 1)
-      els << el_rect("callout_bar", LM, 4.48, 0.04, 0.50, cl_color, radius: 3, z: 2)
-      els << el_text("callout_txt", LM + 0.16, 4.48, CW - 0.20, 0.50, s["callout"],
-        body_style(11, color: cl_color, weight: 700).merge("valign" => "center"), z: 3)
-    end
     if s["note"].present?
       els << el_rect("note_bg", LM, 4.45, CW, 0.68, t["card_bgs"][0], radius: 8)
       els << el_text("note_txt", LM + 0.15, 4.45, CW - 0.30, 0.68, s["note"],
@@ -1481,8 +1468,7 @@ class ContentOutlineGenerator
 
   def compile_content(s, t, idx, total)
     has_note    = s["note"].present?
-    has_callout = s["callout"].present?
-    bot = if has_note then 4.35 elsif has_callout then 4.42 else 5.10 end
+    bot = has_note ? 4.35 : 5.10
     layout_els = case (s["layout"] || "bullets")
       when "stats"      then compile_stats(s, t, has_note, bot)
       when "chart"      then compile_chart(s, t, has_note, bot)
