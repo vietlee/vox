@@ -2857,29 +2857,31 @@
         if (color) { bPrev.style.background = color; bPrev.style.border = '2px solid '+color; }
         else { bPrev.style.background = 'transparent'; bPrev.style.border = '1.5px dashed #64748b'; }
       }
-      _reRenderAndSave();
+      if (!_applyBorderToDom(elData)) _reRenderAndSave();
+      else { renderThumbnails(); scheduleSave(); }
     }
 
     function applyBorderStyle(style) {
       var elData = _getBorderShapeEl(); if (!elData) return;
+      /* Don't auto-apply a color if there's no stroke yet — let user pick color first */
+      if (!elData.style || !elData.style.stroke) return;
       saveHistorySnapshot();
-      if (!elData.style) elData.style = {};
       elData.style.strokeStyle = style;
-      if (!elData.style.stroke) elData.style.stroke = '#1e3a5f';
       if (!elData.style.strokeWidth) elData.style.strokeWidth = 2;
       syncBorderStyleBtns(style, elData.style.strokeWidth || 2);
-      _reRenderAndSave();
+      if (!_applyBorderToDom(elData)) _reRenderAndSave();
+      else { renderThumbnails(); scheduleSave(); }
     }
 
     function applyBorderWidth(w) {
       var elData = _getBorderShapeEl(); if (!elData) return;
+      if (!elData.style || !elData.style.stroke) return;
       saveHistorySnapshot();
-      if (!elData.style) elData.style = {};
       elData.style.strokeWidth = w;
-      if (!elData.style.stroke) elData.style.stroke = '#1e3a5f';
       if (!elData.style.strokeStyle) elData.style.strokeStyle = 'solid';
       syncBorderStyleBtns(elData.style.strokeStyle || 'solid', w);
-      _reRenderAndSave();
+      if (!_applyBorderToDom(elData)) _reRenderAndSave();
+      else { renderThumbnails(); scheduleSave(); }
     }
 
     function toggleBorderColorPanel() {
@@ -2894,6 +2896,29 @@
       if (editorMode) attachEditorHandlers();
       renderThumbnails();
       scheduleSave();
+    }
+
+    /* Update border on DOM directly for rect/ellipse without full re-render
+       (avoids losing backgroundColor set via direct DOM manipulation) */
+    function _applyBorderToDom(elData) {
+      if (!elData) return;
+      var stage = document.getElementById('slide-stage');
+      var wrap = document.getElementById('tt-border-wrap');
+      if (!stage || !wrap) return;
+      var domEl = stage.querySelector('[data-ei="'+wrap.dataset.elid+'"]');
+      if (!domEl) return;
+      var s = elData.style || {};
+      if (elData.type === 'rect' || elData.type === 'ellipse') {
+        if (s.stroke) {
+          domEl.style.border = Math.round(s.strokeWidth||2)+'px '+(s.strokeStyle||'solid')+' '+s.stroke;
+          domEl.style.boxSizing = 'border-box';
+        } else {
+          domEl.style.border = '';
+          domEl.style.boxSizing = '';
+        }
+        return true; /* handled via DOM — no full re-render needed */
+      }
+      return false; /* polygon shapes still need full re-render */
     }
 
     window.toggleBorderColorPanel = toggleBorderColorPanel;
