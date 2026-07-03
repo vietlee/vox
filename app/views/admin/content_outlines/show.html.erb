@@ -281,6 +281,19 @@
           </div>
         </div>
 
+        <!-- Regen confirm modal -->
+        <div id="regen-confirm-modal" style="display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+          <div style="background:#fff;border-radius:18px;padding:28px 32px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
+            <div style="font-size:36px;margin-bottom:12px;">🔄</div>
+            <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:8px;">Tạo lại slide?</div>
+            <div style="font-size:13px;color:#64748b;margin-bottom:24px;">Nội dung hiện tại sẽ bị thay thế bởi bản mới.</div>
+            <div style="display:flex;gap:10px;">
+              <button onclick="closeRegenModal()" style="flex:1;background:#f1f5f9;border:none;color:#64748b;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">Huỷ</button>
+              <button onclick="confirmRegen()" style="flex:1;background:#1e3a5f;border:none;color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Tạo lại</button>
+            </div>
+          </div>
+        </div>
+
         <div id="delete-slide-modal" style="display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
           <div style="background:#fff;border-radius:18px;padding:28px 32px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
             <div style="font-size:36px;margin-bottom:12px;">🗑️</div>
@@ -3878,7 +3891,15 @@
 
     /* ─── Regenerate polling ─── */
     function handleRegenerate() {
-      if (!confirm('Tạo lại slide? Nội dung hiện tại sẽ bị thay thế.')) return;
+      var m = document.getElementById('regen-confirm-modal');
+      if (m) { m.style.display = 'flex'; }
+    }
+    function closeRegenModal() {
+      var m = document.getElementById('regen-confirm-modal');
+      if (m) m.style.display = 'none';
+    }
+    function confirmRegen() {
+      closeRegenModal();
       var btn = document.getElementById('regenerate-btn');
       if (btn) btn.disabled = true;
       fetch('<%= regenerate_content_outline_path(@outline) %>', {
