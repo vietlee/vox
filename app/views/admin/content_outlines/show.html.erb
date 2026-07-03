@@ -1937,7 +1937,15 @@
         } else if (elType === 'progress') {
           domEl.addEventListener('dblclick', startProgressEdit);
         } else {
-          domEl.addEventListener('dblclick', startTextEdit);
+          /* dblclick on text element → select all (edit already entered on single click) */
+          domEl.addEventListener('dblclick', function(ev) {
+            var sp = ev.currentTarget.querySelector('span');
+            if (!sp) return;
+            ev.preventDefault(); ev.stopPropagation();
+            if (sp.contentEditable !== 'true') { sp.contentEditable = 'true'; sp.focus(); }
+            var r = document.createRange(); r.selectNodeContents(sp);
+            var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+          });
         }
       });
     }
@@ -2011,6 +2019,9 @@
       var elData2 = slides[si2] && slides[si2].elements.find(function(el2){ return el2.id === ei; });
       if (elData2 && elData2.type === 'text') {
         showTextToolbar(domEl);
+        /* Single click on text element → enter edit mode immediately */
+        startTextEdit(e);
+        return;
       } else {
         /* Show toolbar with only the Nền button for non-text elements */
         hideTextToolbar();
@@ -2378,35 +2389,41 @@
 
     function startTextEdit(e) {
       if (!editorMode) return;
-      var domEl = e.currentTarget;
-      if (domEl.dataset.type !== 'text' && !domEl.classList.contains('slide-el')) return;
+      var domEl = e.currentTarget || e.target.closest('.slide-el') || e.target;
+      if (!domEl) return;
       var span = domEl.querySelector('span');
       if (!span) return;
+      /* Already editing this span — do nothing */
+      if (span.contentEditable === 'true') return;
       e.preventDefault();
       span.contentEditable = 'true';
       /* Show text cursor, hide move cursor on parent while editing */
       span.style.cursor = 'text';
       domEl.style.cursor = 'text';
       span.focus();
-      /* Place cursor at click position instead of selecting all */
+      /* Place cursor at click position */
       var sel = window.getSelection();
       sel.removeAllRanges();
       var clickRange;
-      if (document.caretRangeFromPoint) {
+      if (e.clientX != null && document.caretRangeFromPoint) {
         clickRange = document.caretRangeFromPoint(e.clientX, e.clientY);
-      } else if (document.caretPositionFromPoint) {
+      } else if (e.clientX != null && document.caretPositionFromPoint) {
         var pos = document.caretPositionFromPoint(e.clientX, e.clientY);
         if (pos) { clickRange = document.createRange(); clickRange.setStart(pos.offsetNode, pos.offset); clickRange.collapse(true); }
       }
       if (clickRange) {
         sel.addRange(clickRange);
       } else {
-        var r = document.createRange(); r.selectNodeContents(span); sel.addRange(r);
+        var r = document.createRange(); r.selectNodeContents(span); r.collapse(false); sel.addRange(r);
       }
-      /* Dblclick inside span → select all text in span */
-      function _onDblClick(ev) { ev.stopPropagation(); var r2 = document.createRange(); r2.selectNodeContents(span); var s2 = window.getSelection(); s2.removeAllRanges(); s2.addRange(r2); }
+      /* Dblclick inside span → select all text */
+      function _onDblClick(ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        var r2 = document.createRange(); r2.selectNodeContents(span);
+        var s2 = window.getSelection(); s2.removeAllRanges(); s2.addRange(r2);
+      }
       span.addEventListener('dblclick', _onDblClick);
-      /* Ctrl/Cmd+A inside span → select all text in span */
+      /* Ctrl/Cmd+A → select all text in span only */
       function _onKeyDown(ev) {
         if ((ev.ctrlKey || ev.metaKey) && ev.key === 'a') {
           ev.preventDefault(); ev.stopPropagation();
