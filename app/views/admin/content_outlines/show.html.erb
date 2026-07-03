@@ -3906,18 +3906,8 @@
         method:'POST',
         headers:{'X-CSRF-Token':CSRF_TOKEN,'Accept':'application/json'}
       }).then(function(r){return r.json();}).then(function(data){
-        if (data.pending) pollStatus('<%= status_content_outline_path(@outline, format: :json) %>');
+        if (data.pending) window.location.reload();
       }).catch(console.error);
-    }
-
-    function pollStatus(url) {
-      setTimeout(function() {
-        fetch(url).then(function(r){return r.json();}).then(function(d){
-          if (!d.pending && !d.failed) { window.location.reload(); }
-          else if (d.failed) { alert('Có lỗi xảy ra khi tạo lại.'); }
-          else { pollStatus(url); }
-        }).catch(function(){ setTimeout(function(){ pollStatus(url); }, 3000); });
-      }, 2500);
     }
 
     /* ─── Init ─── */
