@@ -1937,14 +1937,20 @@
         } else if (elType === 'progress') {
           domEl.addEventListener('dblclick', startProgressEdit);
         } else {
-          /* dblclick on text element → select all (edit already entered on single click) */
+          /* dblclick on text element: word → browser default; whitespace → select all */
           domEl.addEventListener('dblclick', function(ev) {
             var sp = ev.currentTarget.querySelector('span');
             if (!sp) return;
-            ev.preventDefault(); ev.stopPropagation();
+            ev.stopPropagation();
             if (sp.contentEditable !== 'true') { sp.contentEditable = 'true'; sp.focus(); }
-            var r = document.createRange(); r.selectNodeContents(sp);
-            var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+            setTimeout(function() {
+              var s = window.getSelection();
+              var sel = s ? s.toString() : '';
+              if (!sel || /^\s+$/.test(sel)) {
+                var r = document.createRange(); r.selectNodeContents(sp);
+                s.removeAllRanges(); s.addRange(r);
+              }
+            }, 0);
           });
         }
       });
@@ -2416,11 +2422,22 @@
       } else {
         var r = document.createRange(); r.selectNodeContents(span); r.collapse(false); sel.addRange(r);
       }
-      /* Dblclick inside span → select all text */
+      /* Dblclick: if on a word → let browser select that word (default).
+         If on whitespace/empty area → select all text in span. */
       function _onDblClick(ev) {
-        ev.preventDefault(); ev.stopPropagation();
-        var r2 = document.createRange(); r2.selectNodeContents(span);
-        var s2 = window.getSelection(); s2.removeAllRanges(); s2.addRange(r2);
+        ev.stopPropagation();
+        /* Check what browser selected after its native dblclick word-select */
+        setTimeout(function() {
+          var s2 = window.getSelection();
+          var selected = s2 ? s2.toString() : '';
+          /* If nothing selected or only whitespace → select all */
+          if (!selected || /^\s+$/.test(selected)) {
+            ev.preventDefault();
+            var r2 = document.createRange(); r2.selectNodeContents(span);
+            s2.removeAllRanges(); s2.addRange(r2);
+          }
+          /* Otherwise keep browser's word selection as-is */
+        }, 0);
       }
       span.addEventListener('dblclick', _onDblClick);
       /* Ctrl/Cmd+A → select all text in span only */
