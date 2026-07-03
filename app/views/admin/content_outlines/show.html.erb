@@ -2314,18 +2314,17 @@
           newH = Math.max(MIN_H, hh);
           newT = d.startT + d.startH - newH;
         }
-        /* Shift = lock aspect ratio (corner handles only, like PowerPoint) */
-        if (e.shiftKey && d.startW > 0 && d.startH > 0 && mode.length === 2) {
-          var ratio = d.startW / d.startH;
-          /* Pick the dominant axis by comparing relative change */
+        /* Circle (ellipse w==h) always locks 1:1; Shift = lock aspect ratio for others */
+        var isCircle = d.domEl && d.domEl.dataset.type === 'ellipse' && Math.abs(d.startW - d.startH) < 4;
+        var lockRatio = isCircle || (e.shiftKey && mode.length === 2);
+        if (lockRatio && d.startW > 0 && d.startH > 0) {
+          var ratio = isCircle ? 1 : d.startW / d.startH;
           var relDw = Math.abs(newW - d.startW) / d.startW;
           var relDh = Math.abs(newH - d.startH) / d.startH;
           if (relDw >= relDh) {
-            /* Width drives → derive height, re-anchor top if needed */
             newH = Math.max(MIN_H, newW / ratio);
             if (mode.includes('n')) newT = d.startT + d.startH - newH;
           } else {
-            /* Height drives → derive width, re-anchor left if needed */
             newW = Math.max(MIN_W, newH * ratio);
             if (mode.includes('w')) newL = d.startL + d.startW - newW;
           }
@@ -3874,7 +3873,7 @@
       var el;
       /* All coordinates in inches: slide = 10 × 5.625 inches */
       if (type === 'text') {
-        el = { id: uid, type: 'text', x: 1.5, y: 2.0, w: 7.0, h: 0.70, z: 10,
+        el = { id: uid, type: 'text', x: 2.5, y: 2.2, w: 5.0, h: 0.55, z: 10,
                content: 'Văn bản mới',
                style: { fontSize: 20, fontWeight: 400, color: '#1e293b', textAlign: 'left', fontFamily: 'Inter' } };
       } else if (type === 'rect') {
@@ -3949,19 +3948,19 @@
         el = { id: uid, type: 'arrow', x: 3.0, y: 2.6, w: 4.0, h: 0.35, z: 10,
                style: { stroke: accent, strokeWidth: 0.04 } };
       } else if (type === 'stat') {
-        el = { id: uid, type: 'stat', x: 1.5, y: 1.5, w: 2.8, h: 2.0, z: 10,
+        el = { id: uid, type: 'stat', x: 3.8, y: 1.8, w: 2.4, h: 1.6, z: 10,
                content: '87%|Tỉ lệ thành công|+12% so với năm ngoái',
                style: { accentColor: accent, color: '#1F2A44', borderRadius: 16, backgroundColor: accent+'15' } };
       } else if (type === 'quote') {
-        el = { id: uid, type: 'quote', x: 1.0, y: 1.5, w: 8.0, h: 2.0, z: 10,
+        el = { id: uid, type: 'quote', x: 1.5, y: 1.8, w: 7.0, h: 1.6, z: 10,
                content: 'Nhập nội dung trích dẫn vào đây...|— Tác giả',
                style: { accentColor: accent, color: '#1F2A44' } };
       } else if (type === 'callout') {
-        el = { id: uid, type: 'callout', x: 1.0, y: 1.8, w: 8.0, h: 1.4, z: 10,
+        el = { id: uid, type: 'callout', x: 1.5, y: 2.0, w: 7.0, h: 1.2, z: 10,
                content: 'info|Tiêu đề callout|Nội dung chi tiết của callout box. Dùng để highlight thông tin quan trọng.',
                style: { accentColor: accent } };
       } else if (type === 'progress') {
-        el = { id: uid, type: 'progress', x: 1.5, y: 2.3, w: 7.0, h: 0.70, z: 10,
+        el = { id: uid, type: 'progress', x: 2.0, y: 2.4, w: 6.0, h: 0.60, z: 10,
                content: 'Hoàn thành dự án|72|72%',
                style: { accentColor: accent, color: '#1F2A44' } };
       } else if (type === 'table') {
