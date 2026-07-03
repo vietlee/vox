@@ -179,31 +179,31 @@
         </thead>
         <tbody>
           <% @responses.each do |r| %>
-            <tr class="border-b border-slate-100 hover:bg-[#1e3a5f] hover:text-white">
-              <td class="px-4 py-3 font-medium text-slate-800">
+            <tr class="group border-b border-slate-100 hover:bg-[#1e3a5f] hover:text-white">
+              <td class="px-4 py-3 font-medium text-slate-800 group-hover:text-white">
                 <% if r.respondent_email.present? %>
                   <%= r.respondent_email %>
                 <% else %>
-                  <span class="text-slate-400 font-mono">···<%= r.respondent_token&.last(6) %></span>
+                  <span class="text-slate-400 group-hover:text-white font-mono">···<%= r.respondent_token&.last(6) %></span>
                 <% end %>
               </td>
-              <td class="px-4 py-3 text-slate-700">
+              <td class="px-4 py-3 text-slate-700 group-hover:text-white">
                 <% if r.text_value.present? %>
                   <%= r.text_value.truncate(80) %>
                 <% elsif r.selected_option_ids.present? %>
                   <div class="flex flex-wrap gap-1">
                     <% Array(r.selected_option_ids).each do |oid| %>
                       <% opt = @option_map[oid.to_s] %>
-                      <span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full text-[11px] font-medium">
+                      <span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 group-hover:bg-transparent group-hover:text-white rounded-full text-[11px] font-medium">
                         <%= opt&.label || "Option ##{oid}" %>
                       </span>
                     <% end %>
                   </div>
                 <% else %>
-                  <span class="text-slate-300">—</span>
+                  <span class="text-slate-300 group-hover:text-white">—</span>
                 <% end %>
               </td>
-              <td class="px-4 py-3 text-slate-400"><%= r.created_at.strftime("%d/%m %H:%M") %></td>
+              <td class="px-4 py-3 text-slate-400 group-hover:text-white"><%= r.created_at.strftime("%d/%m %H:%M") %></td>
             </tr>
           <% end %>
         </tbody>

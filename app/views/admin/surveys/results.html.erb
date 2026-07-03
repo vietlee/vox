@@ -510,18 +510,18 @@
           </thead>
           <tbody>
             <% @individual_responses.each do |resp| %>
-              <tr class="border-b border-slate-100 hover:bg-[#1e3a5f] hover:text-white cursor-pointer" onclick="toggleRow(<%= resp.id %>)">
-                <td class="px-4 py-3 font-medium text-slate-800">
+              <tr class="group border-b border-slate-100 hover:bg-[#1e3a5f] hover:text-white cursor-pointer" onclick="toggleRow(<%= resp.id %>)">
+                <td class="px-4 py-3 font-medium text-slate-800 group-hover:text-white">
                   <% if resp.respondent_email.present? %>
                     <%= resp.respondent_email %>
                   <% else %>
-                    <span class="text-slate-400 font-mono text-[11px]">···<%= resp.respondent_token&.last(6) %></span>
+                    <span class="text-slate-400 group-hover:text-white font-mono text-[11px]">···<%= resp.respondent_token&.last(6) %></span>
                   <% end %>
                 </td>
-                <td class="px-4 py-3 text-slate-500"><%= resp.completed_at&.in_time_zone&.strftime("%d/%m %H:%M") %></td>
+                <td class="px-4 py-3 text-slate-500 group-hover:text-white"><%= resp.completed_at&.in_time_zone&.strftime("%d/%m %H:%M") %></td>
                 <% ans_map = response_answer_map[resp.id] || {} %>
                 <% @questions.each do |q| %>
-                  <td class="px-4 py-3 text-slate-700 max-w-[180px] truncate">
+                  <td class="px-4 py-3 text-slate-700 group-hover:text-white max-w-[180px] truncate">
                     <%= fmt_answer(ans_map[q.id], option_labels) %>
                   </td>
                 <% end %>
