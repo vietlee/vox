@@ -2723,6 +2723,7 @@
     }
     window.toggleElBgDropdown = toggleElBgDropdown;
 
+    var SHAPE_EL_TYPES = ['rect','ellipse','triangle','diamond','hexagon','pentagon','star','parallelogram','trapezoid'];
     function applyElBg(color) {
       if (!selectedElId) return;
       saveHistorySnapshot();
@@ -2733,6 +2734,10 @@
       var elData = slides[si] && slides[si].elements.find(function(e){ return e.id === selectedElId; });
       if (!elData) return;
       if (!elData.style) elData.style = {};
+      /* For shapes using SVG fill, write to style.fill so re-render reads it correctly */
+      if (SHAPE_EL_TYPES.indexOf(elData.type) >= 0) {
+        elData.style.fill = color;
+      }
       elData.style.backgroundColor = color;
       /* apply directly to DOM without full re-render */
       domEl.style.backgroundColor = color === 'transparent' ? '' : color;
