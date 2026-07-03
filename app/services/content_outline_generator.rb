@@ -847,12 +847,12 @@ class ContentOutlineGenerator
       title    = s[/TITLE:\s*(.+)/, 1]&.strip || "Slide"
       subtitle = s[/SUBTITLE:\s*(.+)/, 1]&.strip || ""
       layout   = s[/LAYOUT:\s*(\S+)/, 1]&.strip&.downcase || "bullets"
-      body     = s[/BODY:\n(.*?)(?:\nSTYLE:|\nFOOTER:|\nNOTE:|\z)/m, 1]&.strip || ""
+      body     = s[/BODY:\n(.*?)(?:\nSTYLE:|\nFOOTER:|\nNOTE:|\nCALLOUT:|\z)/m, 1]&.strip || ""
       style_raw = s[/STYLE:\s*(.+)/, 1]&.strip || ""
       footer   = s[/FOOTER:\s*(.+)/, 1]&.strip || ""
       note     = s[/NOTE:\s*(.+)/, 1]&.strip || ""
       callout  = s[/CALLOUT:\s*(.+)/, 1]&.strip || ""
-      lines  = body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?)
+      lines  = body.lines.map { |l| l.sub(/^-\s*/, "").strip }.reject(&:empty?).reject { |l| l =~ /\ACALLOUT:/i }
 
       style = {}
       style_raw.split(",").each do |pair|
