@@ -538,8 +538,8 @@ class ContentOutlineGenerator
       BODY:
       [nội dung theo format của layout đã chọn]
       STYLE: [tùy chọn style, xem bên dưới]
-      FOOTER: [nguồn dữ liệu nhỏ — VD: "Nguồn: IMARC Group 2023"]
-      NOTE: [Gợi ý người thuyết trình — KHÔNG hiển thị lên slide. VD: "Nhấn mạnh: con số 90% là kết quả thực tế từ 3 khách hàng đầu tiên, không phải projection"]
+      FOOTER: [tuỳ chọn — nguồn dữ liệu hiển thị nhỏ dưới slide, VD: "Nguồn: IMARC Group 2023" hoặc disclaimer ngắn]
+      NOTE: [tuỳ chọn — speaker note chỉ để trong file, KHÔNG hiển thị lên slide. Dùng để gợi ý cách trình bày, VD: "Nhấn mạnh: con số 90% là từ pilot thực tế"]
       ---END---
 
       ═══════════════════════════════════════════
@@ -1248,11 +1248,6 @@ class ContentOutlineGenerator
         "textTransform" => "uppercase", "letterSpacing" => 2)) if cat.present?
     els << el_text("title", 0, 0.68, SW, 0.90, s["title"] || "",
       heading_style(22, align: "center"), z: 2)
-    if s["note"].present?
-      els << el_rect("note_bg", LM, 4.45, CW, 0.68, t["card_bgs"][0], radius: 8)
-      els << el_text("note_txt", LM + 0.15, 4.45, CW - 0.30, 0.68, s["note"],
-        body_style(11, weight: 700).merge("valign" => "center"))
-    end
     if s["footer"].present?
       els << el_text("footer", LM, SH - 0.28, 8.0, 0.25, s["footer"],
         body_style(7, color: "#94A3B8"), z: 1)
@@ -1467,8 +1462,8 @@ class ContentOutlineGenerator
   # ─── Content ────────────────────────────────────────────────────────────────
 
   def compile_content(s, t, idx, total)
-    has_note    = s["note"].present?
-    bot = has_note ? 4.35 : 5.10
+    has_note = false
+    bot = 5.10
     layout_els = case (s["layout"] || "bullets")
       when "stats"      then compile_stats(s, t, has_note, bot)
       when "chart"      then compile_chart(s, t, has_note, bot)
