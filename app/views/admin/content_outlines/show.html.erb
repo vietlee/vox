@@ -1978,15 +1978,19 @@
     var _dragState = null;
     function startMove(e) {
       if (!editorMode) return;
-      /* Commit any active text edit before switching element */
+      var domEl = e.currentTarget;
+      var ei = domEl.dataset.ei;
+      /* If mousedown is on the same element that's already in text-edit → let
+         the browser handle it (cursor placement, dblclick word-select, etc.)
+         Don't interrupt or re-enter edit mode. */
       var activeSpan = document.querySelector('span[contenteditable="true"]');
+      if (activeSpan && activeSpan.closest('.slide-el') === domEl) return;
+      /* Commit any active text edit on a DIFFERENT element */
       if (activeSpan) {
         activeSpan.contentEditable = 'false';
         var sel = window.getSelection(); if (sel) sel.removeAllRanges();
       }
       e.preventDefault();
-      var domEl = e.currentTarget;
-      var ei = domEl.dataset.ei;
 
       /* Ctrl/Cmd+click → toggle this element in multi-selection */
       if (e.ctrlKey || e.metaKey) {
