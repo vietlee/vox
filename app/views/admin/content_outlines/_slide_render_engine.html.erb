@@ -262,7 +262,7 @@
           var fill = s.fill||'#E8F0FF';
           var r = s.borderRadius||0;
           var op = s.opacity!==undefined?s.opacity:1;
-          var border = s.stroke ? 'border:'+PX(s.strokeWidth||0.02)+'px solid '+s.stroke+';' : '';
+          var border = s.stroke ? 'border:'+PX(s.strokeWidth||0.02)+'px '+(s.strokeStyle||'solid')+' '+s.stroke+';' : '';
           /* card_style visual treatment — only applies to "card" rects (z≥2, no stroke override, reasonable size) */
           var cardStyle = (deck.theme && deck.theme.card_style) || 'flat';
           var cardCss = '';
@@ -290,7 +290,8 @@
         case 'ellipse': {
           var fill = s.fill||'#1e3a5f';
           var op = s.opacity!==undefined?s.opacity:1;
-          return '<div class="slide-el" '+attrs+' style="'+base+'background:'+fill+';border-radius:50%;opacity:'+op+';"></div>';
+          var ellBorder = s.stroke ? 'border:'+Math.round(s.strokeWidth||2)+'px '+(s.strokeStyle||'solid')+' '+s.stroke+';box-sizing:border-box;' : '';
+          return '<div class="slide-el" '+attrs+' style="'+base+'background:'+fill+';border-radius:50%;opacity:'+op+';'+ellBorder+'"></div>';
         }
         case 'line': {
           var color = s.stroke||'#1e3a5f';
@@ -542,7 +543,13 @@
       var t = deck.theme || {};
       var fill = s.fill || s.backgroundColor || t.accent || '#1e3a5f';
       var op = s.opacity !== undefined ? s.opacity : 1;
-      var stroke = s.stroke ? 'stroke="'+s.stroke+'" stroke-width="'+(s.strokeWidth||2)+'"' : '';
+      /* strokeWidth stored in px; scale to SVG viewBox (1000×1000 vs actual px) */
+      var swPx = s.strokeWidth || 0;
+      var swSvg = swPx > 10 ? swPx : swPx * (1000 / Math.max(w, 1));
+      var dashAttr = '';
+      if (s.strokeStyle === 'dashed') dashAttr = ' stroke-dasharray="60 40"';
+      else if (s.strokeStyle === 'dotted') dashAttr = ' stroke-dasharray="20 40" stroke-linecap="round"';
+      var stroke = s.stroke ? 'stroke="'+s.stroke+'" stroke-width="'+Math.max(swSvg,8)+'"'+dashAttr : '';
       var pts = pointsFn(1000, 1000);
       return '<div class="slide-el" '+attrs+' style="position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;z-index:'+z+';opacity:'+op+';">' +
         '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="none">' +
@@ -959,7 +966,13 @@
       var t = deck.theme || {};
       var fill = s.fill || s.backgroundColor || t.accent || '#1e3a5f';
       var op = s.opacity !== undefined ? s.opacity : 1;
-      var stroke = s.stroke ? 'stroke="'+s.stroke+'" stroke-width="'+(s.strokeWidth||2)+'"' : '';
+      /* strokeWidth stored in px; scale to SVG viewBox (1000×1000 vs actual px) */
+      var swPx = s.strokeWidth || 0;
+      var swSvg = swPx > 10 ? swPx : swPx * (1000 / Math.max(w, 1));
+      var dashAttr = '';
+      if (s.strokeStyle === 'dashed') dashAttr = ' stroke-dasharray="60 40"';
+      else if (s.strokeStyle === 'dotted') dashAttr = ' stroke-dasharray="20 40" stroke-linecap="round"';
+      var stroke = s.stroke ? 'stroke="'+s.stroke+'" stroke-width="'+Math.max(swSvg,8)+'"'+dashAttr : '';
       var pts = pointsFn(1000, 1000);
       return '<div class="slide-el" '+attrs+' style="position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;z-index:'+z+';opacity:'+op+';">' +
         '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="none">' +
