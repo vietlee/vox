@@ -8,6 +8,9 @@ class GenerateFlashcardImagesJob < ApplicationJob
     deck = FlashcardDeck.find_by(id: deck_id)
     return unless deck
 
+    # Re-set flag on retries (first attempt may have cleared it via rescue)
+    deck.update_column(:image_generating, true)
+
     api_key = ENV["OPENAI_API_KEY"]
     unless api_key.present?
       Rails.logger.error "[GenerateFlashcardImagesJob] OPENAI_API_KEY not set"
