@@ -59,7 +59,7 @@ class Admin::LearningPathAssignmentsController < Admin::BaseController
     svc    = ClaudeService.for_feature("learning_path_eval", timeout: 120)
     result = svc.call(system_prompt: "Bạn là chuyên gia đánh giá học tập. Viết nhận xét cá nhân, thân thiện bằng tiếng Việt, dùng markdown.", user_prompt: prompt, max_tokens: 900)
     html   = markdown_to_html(result)
-    current_subscription.deduct_credits!(2)
+    workspace_billing_subscription&.deduct_credits!(2)
     @assignment.update_columns(ai_feedback: html, ai_feedback_at: Time.current)
     render json: { html: html }
   end

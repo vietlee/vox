@@ -182,7 +182,7 @@ class Admin::SttController < Admin::BaseController
 
       # If we need more than 1 credit, verify balance and deduct the remainder
       if credits > 1
-        sub = current_subscription
+        sub = workspace_billing_subscription
         if sub && !sub.enterprise? && sub.credit_balance < credits
           render json: {
             error:               "Không đủ AI credits (cần #{credits} credit cho video này).",
@@ -192,7 +192,7 @@ class Admin::SttController < Admin::BaseController
         end
       end
 
-      current_subscription&.deduct_credits!(credits)
+      workspace_billing_subscription&.deduct_credits!(credits)
       response.headers["X-Credits-Used"] = credits.to_s
 
       # Build speaker segments when diarize was requested
@@ -303,7 +303,7 @@ class Admin::SttController < Admin::BaseController
       PROMPT
     )
 
-    current_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
+    workspace_billing_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
     response.headers["X-Credits-Used"] = POSTPROCESS_CREDITS.to_s
     render json: { result: result, type: "summary" }
   rescue => e
@@ -338,7 +338,7 @@ class Admin::SttController < Admin::BaseController
       PROMPT
     )
 
-    current_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
+    workspace_billing_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
     response.headers["X-Credits-Used"] = POSTPROCESS_CREDITS.to_s
     render json: { result: result, type: "translation" }
   rescue => e
@@ -403,7 +403,7 @@ class Admin::SttController < Admin::BaseController
     )
 
     # Deduct credits after successful transcription
-    current_subscription&.deduct_credits!(credits)
+    workspace_billing_subscription&.deduct_credits!(credits)
     response.headers["X-Credits-Used"] = credits.to_s
 
     # Build speaker segments for history (when diarize was requested)

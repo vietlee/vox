@@ -94,7 +94,7 @@ class Admin::FeedbackBoardsController < Admin::BaseController
     return unless require_credits!(3)
 
     language = params[:language].presence_in(%w[vi en]) || current_workspace.language || "vi"
-    current_subscription&.deduct_credits!(3)
+    workspace_billing_subscription&.deduct_credits!(3)
     job = AiJob.create!(workspace: current_workspace, user: current_user, job_type: "feedback_analysis", resource_type: "FeedbackBoard", resource_id: @board.id, credits_cost: 3, input_data: { language: language })
     AiFeedbackAnalysisJob.perform_later(job.id)
     render json: { job_id: job.id }

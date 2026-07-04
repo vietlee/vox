@@ -131,7 +131,7 @@ class Admin::LearningPathsController < Admin::BaseController
     svc    = ClaudeService.for_feature("learning_path_eval", timeout: 120)
     result = svc.call(system_prompt: "Bạn là chuyên gia phân tích kết quả học tập. Trả lời bằng tiếng Việt, dùng markdown.", user_prompt: prompt, max_tokens: 1200)
     html   = markdown_to_html(result)
-    current_subscription.deduct_credits!(3)
+    workspace_billing_subscription&.deduct_credits!(3)
     render json: { html: html }
   end
 

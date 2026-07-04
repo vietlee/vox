@@ -736,7 +736,7 @@ class Admin::SurveysController < Admin::BaseController
     return unless require_credits!(5)
 
     language = params[:language].presence_in(%w[vi en]) || current_workspace.language || "vi"
-    current_subscription&.deduct_credits!(5)
+    workspace_billing_subscription&.deduct_credits!(5)
     job = AiJob.create!(
       workspace: current_workspace,
       user: current_user,
@@ -800,7 +800,7 @@ class Admin::SurveysController < Admin::BaseController
       Start with what the user wants to understand or compare, mention the most important angle (e.g. by department, over time, top pain points), and end with what they hope to learn or decide.
     PROMPT
 
-    current_subscription&.deduct_credits!(3)
+    workspace_billing_subscription&.deduct_credits!(3)
 
     result = ClaudeService.for_feature("survey_report", timeout: 240).call_full(
       system_prompt: system_prompt,
@@ -817,7 +817,7 @@ class Admin::SurveysController < Admin::BaseController
     return unless require_ai_feature!(:ai_executive_report)
     return unless require_credits!(15)
 
-    current_subscription&.deduct_credits!(15)
+    workspace_billing_subscription&.deduct_credits!(15)
     job = AiJob.create!(
       workspace: current_workspace,
       user: current_user,

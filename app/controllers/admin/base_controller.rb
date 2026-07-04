@@ -3,12 +3,17 @@ class Admin::BaseController < ApplicationController
   before_action :require_workspace_active!
   layout "admin"
 
-  # Returns the subscription to use for credit checks/deductions in admin context.
-  # Owners see their primary workspace's subscription; invited members see the workspace's own.
+  # For DISPLAY: owners see their primary subscription; invited members see workspace's own.
   def current_subscription
     current_workspace&.credit_subscription_for(current_user)
   end
   helper_method :current_subscription
+
+  # For DEDUCTION: always target the workspace owner's primary subscription,
+  # regardless of who the current user is (owner or invited member).
+  def workspace_billing_subscription
+    current_workspace&.credit_subscription
+  end
 
   private
 
