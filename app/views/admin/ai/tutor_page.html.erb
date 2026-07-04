@@ -659,16 +659,30 @@ function vcDetectSilence() {
 
 function vcAnimateBars() {
   if (!_vcAnalyser) return;
+  _vcAnalyser.fftSize = 256;
+  _vcAnalyser.smoothingTimeConstant = 0.75;
   const data = new Uint8Array(_vcAnalyser.frequencyBinCount);
   const bars = document.querySelectorAll('.vc-bar');
+  const smoothed = new Array(bars.length).fill(4);
+  // Focus on voice frequency range (roughly 80Hz-3kHz = first ~40% of bins)
+  const voiceBins = Math.floor(_vcAnalyser.frequencyBinCount * 0.40);
   function frame() {
     if (!_vcActive) return;
     _vcAnalyser.getByteFrequencyData(data);
-    const slice = Math.floor(data.length / bars.length);
+    const slice = Math.max(1, Math.floor(voiceBins / bars.length));
     bars.forEach((b, i) => {
-      const val = data[i * slice] || 0;
-      const h = Math.max(4, Math.min(48, val * 0.4));
-      b.style.height = h + 'px';
+      const idx = i * slice;
+      // Average a small window for smoother result
+      let sum = 0;
+      for (let j = 0; j < Math.min(slice, 3); j++) sum += (data[idx + j] || 0);
+      const raw = sum / Math.min(slice, 3);
+      // Boost sensitivity: amplify low values more aggressively
+      const boosted = Math.pow(raw / 255, 0.55) * 255;
+      const target = Math.max(3, Math.min(44, boosted * 0.55));
+      // Ease toward target
+      smoothed[i] = smoothed[i] * 0.5 + target * 0.5;
+      b.style.height = smoothed[i].toFixed(1) + 'px';
+      b.style.animation = 'none';
     });
     _vcAnimFrame = requestAnimationFrame(frame);
   }
@@ -1087,12 +1101,12 @@ document.addEventListener('DOMContentLoaded', vcSyncSpeedLabel);
   <!-- Orb area -->
   <div style="position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:40px;animation:vc-float 5s ease-in-out infinite;">
     <!-- Pulse ring 1 -->
-    <div id="vc-ring1" style="position:absolute;width:200px;height:200px;border-radius:50%;border:1.5px solid rgba(139,92,246,0.30);animation:vc-ring-pulse 2.2s ease-in-out infinite;pointer-events:none;"></div>
+    <div id="vc-ring1" style="position:absolute;width:140px;height:140px;border-radius:50%;border:1.5px solid rgba(139,92,246,0.30);animation:vc-ring-pulse 2.2s ease-in-out infinite;pointer-events:none;"></div>
     <!-- Pulse ring 2 -->
-    <div id="vc-ring2" style="position:absolute;width:250px;height:250px;border-radius:50%;border:1px solid rgba(139,92,246,0.15);animation:vc-ring-pulse2 2.2s ease-in-out infinite 0.4s;pointer-events:none;"></div>
+    <div id="vc-ring2" style="position:absolute;width:175px;height:175px;border-radius:50%;border:1px solid rgba(139,92,246,0.15);animation:vc-ring-pulse2 2.2s ease-in-out infinite 0.4s;pointer-events:none;"></div>
 
     <!-- Orb -->
-    <div id="vc-dot" style="width:156px;height:156px;border-radius:50%;overflow:hidden;position:relative;animation:vc-blob 7s ease-in-out infinite, vc-glow-listening 2.5s ease-in-out infinite;flex-shrink:0;">
+    <div id="vc-dot" style="width:108px;height:108px;border-radius:50%;overflow:hidden;position:relative;animation:vc-blob 7s ease-in-out infinite, vc-glow-listening 2.5s ease-in-out infinite;flex-shrink:0;">
       <!-- base deep -->
       <div style="position:absolute;inset:0;background:radial-gradient(circle at 35% 30%,#3730a3 0%,#1e1b4b 45%,#070712 100%);"></div>
       <!-- wisp 1 -->
