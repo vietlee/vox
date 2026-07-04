@@ -61,12 +61,42 @@ class GenerateQuizQuestionsJob < ApplicationJob
   # Split large content into chunks, run AI on each, merge all questions.
   # If questions_count is set, distribute evenly across chunks then slice.
   def extract_questions_chunked(svc, text, questions_count, custom_prompt)
-    chunks = split_into_chunks(text, CHUNK_CHAR_LIMIT)
-    # Count document sections embedded by controller (--- Tài liệu N ---)
-    doc_count = text.scan(/--- Tài liệu \d+/).size
-    all_questions = []
+    # Split by document markers first — process each doc separately for reliability
+    doc_sections = split_by_documents(text)
+    doc_count = doc_sections.size
 
-    Rails.logger.info "[GenerateQuizQuestionsJob] chunks=#{chunks.size}, doc_count=#{doc_count}, questions_count=#{questions_count.inspect}"
+    Rails.logger.info "[GenerateQuizQuestionsJob] doc_count=#{doc_count}, questions_count=#{questions_count.inspect}, total_chars=#{text.length}"
+
+    if doc_count > 1
+      all_questions = []
+      doc_sections.each_with_index do |section, idx|
+        doc_q_count = if questions_count
+          per = (questions_count.to_f / doc_count).ceil
+          idx == doc_count - 1 ? questions_count - all_questions.size : per
+        end
+        next if doc_q_count && doc_q_count <= 0
+
+        # For each doc section, still chunk if very large
+        chunks = split_into_chunks(section, CHUNK_CHAR_LIMIT)
+        chunks.each_with_index do |chunk, cidx|
+          chunk_count = doc_q_count ? (cidx == chunks.size - 1 ? doc_q_count - (all_questions.size - (idx * (questions_count.to_f / doc_count).ceil).to_i) : (doc_q_count.to_f / chunks.size).ceil.to_i) : nil
+          chunk_count = nil if chunk_count && chunk_count <= 0
+          next if chunk_count&.<=(0)
+
+          user_prompt = "#{build_prompt(chunk_count || doc_q_count, idx == 0 && cidx == 0 ? custom_prompt : nil, 1)}\n\n---\n#{chunk}"
+          raw = svc.call(system_prompt: SYSTEM_PROMPT, user_prompt: user_prompt, max_tokens: 8000)
+          parsed = parse_ai_response(raw)
+          Rails.logger.info "[GenerateQuizQuestionsJob] doc #{idx} chunk #{cidx}: got #{parsed&.size || 0} questions"
+          all_questions.concat(parsed) if parsed.present?
+        end
+      end
+      return questions_count ? all_questions.first(questions_count) : all_questions
+    end
+
+    # Single document — chunk by size
+    chunks = split_into_chunks(text, CHUNK_CHAR_LIMIT)
+    Rails.logger.info "[GenerateQuizQuestionsJob] single_doc chunks=#{chunks.size}"
+    all_questions = []
 
     chunks.each_with_index do |chunk, idx|
       chunk_count = if questions_count
@@ -75,7 +105,7 @@ class GenerateQuizQuestionsJob < ApplicationJob
       end
       next if chunk_count && chunk_count <= 0
 
-      user_prompt = "#{build_prompt(chunk_count, idx == 0 ? custom_prompt : nil, doc_count)}\n\n---\n#{chunk}"
+      user_prompt = "#{build_prompt(chunk_count, idx == 0 ? custom_prompt : nil, 1)}\n\n---\n#{chunk}"
       raw = svc.call(system_prompt: SYSTEM_PROMPT, user_prompt: user_prompt, max_tokens: 8000)
       parsed = parse_ai_response(raw)
       Rails.logger.info "[GenerateQuizQuestionsJob] chunk #{idx}: got #{parsed&.size || 0} questions"
@@ -83,6 +113,13 @@ class GenerateQuizQuestionsJob < ApplicationJob
     end
 
     questions_count ? all_questions.first(questions_count) : all_questions
+  end
+
+  # Split combined text into per-document sections by the markers the controller embeds
+  def split_by_documents(text)
+    parts = text.split(/(?=--- Tài liệu \d+)/)
+    sections = parts.map(&:strip).reject(&:blank?)
+    sections.size > 1 ? sections : [text]
   end
 
   # Split on paragraph/section boundaries to avoid cutting mid-sentence
