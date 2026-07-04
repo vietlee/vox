@@ -12,8 +12,13 @@ class User < ApplicationRecord
   # The one subscription that holds this user's shared credit budget.
   # All workspaces they own draw from this single pool.
   def primary_subscription
-    primary_ws = owned_workspaces.order(:id).first
-    primary_ws&.subscriptions&.where(status: :active)&.order(created_at: :desc)&.first
+    # Return the active subscription of the user's oldest owned workspace.
+    # Uses a single JOIN so workspaces without any subscription are skipped gracefully.
+    Subscription
+      .joins("INNER JOIN workspaces ON subscriptions.workspace_id = workspaces.id")
+      .where("workspaces.owner_id = ? AND subscriptions.status = 0", id)
+      .order("workspaces.id ASC, subscriptions.created_at DESC")
+      .first
   end
   has_many :workspace_memberships, dependent: :destroy
   has_many :workspaces, through: :workspace_memberships

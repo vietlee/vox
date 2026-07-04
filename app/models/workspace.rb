@@ -15,7 +15,7 @@ class Workspace < ApplicationRecord
   def credit_subscription_for(user)
     return credit_subscription if user.nil?
     if owner_id == user.id
-      user.primary_subscription
+      user.primary_subscription || subscriptions.where(status: :active).order(created_at: :desc).first
     else
       subscriptions.where(status: :active).order(created_at: :desc).first
     end
