@@ -70,6 +70,17 @@ window.voxMinimizeTask = function() {
   0%,100% { transform:scale(1); opacity:1; }
   50%      { transform:scale(0.88); opacity:0.75; }
 }
+@keyframes vox-siri-spin  { to { transform: rotate(360deg); } }
+@keyframes vox-siri-spin2 { to { transform: rotate(-360deg); } }
+@keyframes vox-siri-glow  {
+  0%,100% { box-shadow: 0 0 18px 4px rgba(139,92,246,.65), 0 0 40px 8px rgba(99,102,241,.30); }
+  50%     { box-shadow: 0 0 26px 8px rgba(167,139,250,.80), 0 0 56px 14px rgba(236,72,153,.25); }
+}
+@keyframes vox-siri-blob  {
+  0%,100% { border-radius: 60% 40% 55% 45% / 50% 60% 40% 50%; }
+  33%     { border-radius: 45% 55% 40% 60% / 60% 40% 55% 45%; }
+  66%     { border-radius: 55% 45% 60% 40% / 40% 55% 45% 60%; }
+}
 </style>
 
 <script>
@@ -96,21 +107,25 @@ window.voxMinimizeTask = function() {
     var phase = 0, pct = 0, timer = null;
     document.getElementById('ai-gen-ring-container').innerHTML = [
       '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0;gap:8px;">',
-        '<span id="ai-gen-pct" style="font-size:13px;font-weight:800;color:#1e3a5f;letter-spacing:-0.3px;">0%</span>',
+        '<span id="ai-gen-pct" style="font-size:13px;font-weight:800;background:linear-gradient(90deg,#6366f1,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.3px;">0%</span>',
         '<div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;">',
           '<svg width="88" height="88" viewBox="0 0 88 88" fill="none" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">',
-            '<circle cx="44" cy="44" r="38" stroke="#d9e5f1" stroke-width="6"/>',
-            '<circle id="ai-gen-arc" cx="44" cy="44" r="38" stroke="#1e3a5f" stroke-width="6" stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="238.8" style="transition:stroke-dashoffset 0.6s ease;"/>',
+            '<circle cx="44" cy="44" r="38" stroke="#e8e0ff" stroke-width="5"/>',
+            '<circle id="ai-gen-arc" cx="44" cy="44" r="38" stroke="url(#siri-arc-grad)" stroke-width="5" stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="238.8" style="transition:stroke-dashoffset 0.6s ease;"/>',
+            '<defs><linearGradient id="siri-arc-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a78bfa"/><stop offset="50%" stop-color="#6366f1"/><stop offset="100%" stop-color="#ec4899"/></linearGradient></defs>',
           '</svg>',
-          '<div style="position:relative;z-index:2;animation:vox-pulse 1.6s ease-in-out infinite;">',
-            '<svg width="32" height="32" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">',
-              '<rect x="0" y="0" width="36" height="36" rx="9" fill="#1A6BFF"/>',
-              '<polygon points="10,24 6,31 16,24" fill="white"/>',
-              '<rect x="6" y="6" width="24" height="19" rx="5" fill="white"/>',
-              '<rect x="10" y="11" width="4" height="7" rx="1" fill="#1A6BFF"/>',
-              '<rect x="16" y="8" width="4" height="13" rx="1" fill="#1A6BFF"/>',
-              '<rect x="23" y="10" width="4" height="9" rx="1" fill="#1A6BFF"/>',
-            '</svg>',
+          /* Siri-style animated orb */
+          '<div style="position:relative;z-index:2;width:54px;height:54px;border-radius:50%;overflow:hidden;animation:vox-siri-blob 6s ease-in-out infinite,vox-siri-glow 3s ease-in-out infinite;">',
+            /* deep navy base */
+            '<div style="position:absolute;inset:0;background:radial-gradient(circle at 32% 28%,#4f46e5 0%,#1e1b4b 50%,#0d0920 100%);"></div>',
+            /* spinning iridescent wisps layer 1 */
+            '<div style="position:absolute;inset:-4px;background:conic-gradient(from 0deg at 50% 50%,transparent 0%,rgba(167,139,250,.85) 12%,transparent 25%,rgba(96,165,250,.70) 40%,transparent 55%,rgba(236,72,153,.60) 70%,transparent 82%,rgba(34,211,238,.50) 95%,transparent 100%);animation:vox-siri-spin 5s linear infinite;mix-blend-mode:screen;border-radius:50%;"></div>',
+            /* counter-spinning wisps layer 2 */
+            '<div style="position:absolute;inset:-2px;background:conic-gradient(from 180deg at 40% 60%,transparent 0%,rgba(251,191,36,.40) 10%,transparent 22%,rgba(139,92,246,.60) 38%,transparent 55%,rgba(20,184,166,.50) 72%,transparent 88%,rgba(244,114,182,.45) 98%,transparent 100%);animation:vox-siri-spin2 7s linear infinite;mix-blend-mode:screen;border-radius:50%;"></div>',
+            /* glass highlight top-left */
+            '<div style="position:absolute;inset:0;background:radial-gradient(ellipse 55% 45% at 33% 24%,rgba(255,255,255,.50) 0%,rgba(255,255,255,.08) 45%,transparent 70%);"></div>',
+            /* depth shadow bottom-right */
+            '<div style="position:absolute;inset:0;background:radial-gradient(ellipse 65% 55% at 72% 78%,rgba(0,0,0,.55) 0%,transparent 60%);"></div>',
           '</div>',
         '</div>',
         '<p id="ai-gen-phase" style="font-size:12px;font-weight:600;color:#1e3a5f;text-align:center;max-width:220px;margin:0;">' + phases[0] + '</p>',
