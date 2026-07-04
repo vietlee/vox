@@ -1,5 +1,6 @@
 class Subscription < ApplicationRecord
   belongs_to :workspace
+  belongs_to :user, optional: true
   has_many :payments, dependent: :destroy
 
   enum :plan,   { free: 0, pro: 1, enterprise: 2 }
