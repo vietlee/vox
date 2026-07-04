@@ -595,7 +595,24 @@ function vcSetStatus(state) {
   var r2 = document.getElementById('vc-ring2'); if (r2) r2.style.borderColor = (ringColors[state] || ringColors.idle).replace('0.35','0.15');
   var di = document.getElementById('vc-dot-indicator'); if (di) di.style.background = dotColors[state] || dotColors.idle;
   if (tap) { tap.disabled = s.tapDisabled; tap.style.opacity = s.tapDisabled ? '0.4' : '1'; }
-  document.getElementById('vc-bars-wrap').style.opacity = state === 'listening' ? '1' : '0.35';
+  var barsWrap = document.getElementById('vc-bars-wrap');
+  var barEls = document.querySelectorAll('.vc-bar');
+  if (state === 'listening') {
+    barsWrap.style.opacity = '1';
+    barsWrap.style.color = '#6366f1';
+    barEls.forEach(function(b){ b.style.animation = ''; }); // restore CSS animation until analyser kicks in
+  } else if (state === 'speaking') {
+    barsWrap.style.opacity = '1';
+    barsWrap.style.color = '#10b981';
+    barEls.forEach(function(b){ b.style.animation = ''; }); // let CSS wave run
+  } else if (state === 'processing') {
+    barsWrap.style.opacity = '0.5';
+    barsWrap.style.color = '#f59e0b';
+    barEls.forEach(function(b){ b.style.animation = ''; });
+  } else {
+    barsWrap.style.opacity = '0.20';
+    barEls.forEach(function(b){ b.style.animation = ''; });
+  }
 }
 
 async function vcStartListening() {
@@ -659,29 +676,27 @@ function vcDetectSilence() {
 
 function vcAnimateBars() {
   if (!_vcAnalyser) return;
-  _vcAnalyser.fftSize = 256;
-  _vcAnalyser.smoothingTimeConstant = 0.75;
+  _vcAnalyser.fftSize = 512;
+  _vcAnalyser.smoothingTimeConstant = 0.80;
   const data = new Uint8Array(_vcAnalyser.frequencyBinCount);
   const bars = document.querySelectorAll('.vc-bar');
-  const smoothed = new Array(bars.length).fill(4);
-  // Focus on voice frequency range (roughly 80Hz-3kHz = first ~40% of bins)
-  const voiceBins = Math.floor(_vcAnalyser.frequencyBinCount * 0.40);
+  const smoothed = new Array(bars.length).fill(0.10);
+  // Voice frequency range: ~80Hz-4kHz = first 35% of bins at 48kHz
+  const voiceBins = Math.floor(_vcAnalyser.frequencyBinCount * 0.35);
   function frame() {
     if (!_vcActive) return;
     _vcAnalyser.getByteFrequencyData(data);
     const slice = Math.max(1, Math.floor(voiceBins / bars.length));
     bars.forEach((b, i) => {
-      const idx = i * slice;
-      // Average a small window for smoother result
-      let sum = 0;
-      for (let j = 0; j < Math.min(slice, 3); j++) sum += (data[idx + j] || 0);
-      const raw = sum / Math.min(slice, 3);
-      // Boost sensitivity: amplify low values more aggressively
-      const boosted = Math.pow(raw / 255, 0.55) * 255;
-      const target = Math.max(3, Math.min(44, boosted * 0.55));
-      // Ease toward target
-      smoothed[i] = smoothed[i] * 0.5 + target * 0.5;
-      b.style.height = smoothed[i].toFixed(1) + 'px';
+      // Average a small window around this band
+      let sum = 0, cnt = Math.min(slice, 4);
+      for (let j = 0; j < cnt; j++) sum += (data[i * slice + j] || 0);
+      const raw = sum / cnt;
+      // Aggressive boost for low signals (power < 1 amplifies quiet sounds)
+      const boosted = Math.pow(raw / 255, 0.45);
+      const target = Math.max(0.08, Math.min(1.0, boosted * 1.4));
+      smoothed[i] = smoothed[i] * 0.4 + target * 0.6;
+      b.style.transform = 'scaleY(' + smoothed[i].toFixed(3) + ')';
       b.style.animation = 'none';
     });
     _vcAnimFrame = requestAnimationFrame(frame);
@@ -1080,8 +1095,16 @@ document.addEventListener('DOMContentLoaded', vcSyncSpeedLabel);
 @keyframes vc-glow-idle {
   0%,100% { box-shadow: 0 0 24px 6px rgba(100,116,139,.35), 0 0 48px 12px rgba(71,85,105,.15); }
 }
-@keyframes vc-bar-idle { 0%,100%{height:4px} 50%{height:8px} }
-.vc-bar { width: 3px; border-radius: 99px; background: currentColor; transition: height 0.06s ease; }
+@keyframes vc-wave-a { 0%,100%{transform:scaleY(.10)} 50%{transform:scaleY(1.00)} }
+@keyframes vc-wave-b { 0%,100%{transform:scaleY(.18)} 50%{transform:scaleY(.80)} }
+@keyframes vc-wave-c { 0%,100%{transform:scaleY(.25)} 50%{transform:scaleY(.60)} }
+.vc-bar {
+  width: 3px; border-radius: 99px; background: currentColor;
+  transform-origin: center;
+  transform: scaleY(0.10);
+  transition: transform 0.06s ease;
+  height: 40px; /* fixed tall, scale controls visual height */
+}
 </style>
 
 <div id="vc-overlay" style="display:none; position:fixed; inset:0; z-index:100; background:linear-gradient(160deg,#07080f 0%,#0d0f1e 50%,#080c18 100%); backdrop-filter:blur(20px);"
@@ -1127,8 +1150,9 @@ document.addEventListener('DOMContentLoaded', vcSyncSpeedLabel);
   <div id="vc-status-sub" style="font-size:13px;color:#475569;margin-bottom:32px;transition:all .3s;">Nói câu hỏi của bạn</div>
 
   <!-- Waveform -->
-  <div id="vc-bars-wrap" style="display:flex;align-items:center;gap:3px;height:44px;margin-bottom:32px;transition:opacity .3s;color:#6366f1;">
-    <% 18.times do |i| %><div class="vc-bar" style="height:4px;animation:vc-bar-idle <%= 1.2 + (i % 5) * 0.15 %>s ease-in-out infinite <%= (i * 0.07).round(2) %>s;"></div><% end %>
+  <div id="vc-bars-wrap" style="display:flex;align-items:center;gap:4px;height:48px;margin-bottom:32px;transition:opacity .3s;color:#6366f1;">
+    <% waves = ['a','b','c','b','a','c','b','a','c','b','a','b','c','b','a','b','c','b','a','b','c','b'] %>
+    <% waves.each_with_index do |w, i| %><div class="vc-bar" style="animation:vc-wave-<%= w %> <%= 1.1 + (i%5)*0.18 %>s ease-in-out infinite <%= (i*0.09).round(2) %>s;"></div><% end %>
   </div>
 
   <!-- Transcript bubble -->
