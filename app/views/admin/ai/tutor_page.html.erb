@@ -798,6 +798,9 @@ async function vcProcessAndReply() {
     fd2.append('text', clean); fd2.append('model', 'eleven_flash_v2_5');
     fd2.append('source', 'voice_call'); fd2.append('skip_normalize', 'true');
     fd2.append('speed', String(_vcSpeed));
+    fd2.append('stability', '0.75');    // high = consistent volume & tone
+    fd2.append('similarity', '0.85');   // high = stays true to chosen voice
+    fd2.append('style', '0.0');         // 0 = no style exaggeration (more stable)
     fd2.append('authenticity_token', csrf());
     if (_vcVoiceId) fd2.append('voice_id', _vcVoiceId);
     try {
