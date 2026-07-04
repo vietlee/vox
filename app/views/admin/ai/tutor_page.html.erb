@@ -420,7 +420,7 @@ let _vcSilTimer  = null;
 let _vcAudioCtx  = null;
 let _vcAnimFrame = null;
 let _vcVoiceId   = localStorage.getItem('vc_voice_id') || '';
-let _vcSpeed     = parseFloat(localStorage.getItem('vc_speed') || '0.85');
+let _vcSpeed     = parseFloat(localStorage.getItem('vc_speed') || '0.95');
 
 // ── Voice picker modal ────────────────────────────────────────────────────────
 let _voiceList = null; // cached from API
@@ -922,18 +922,29 @@ window.toggleRecording = toggleRecording;
 window.stopRecording = stopRecording;
 
 const VC_SPEEDS = [0.75, 0.85, 0.95, 1.0, 1.1];
-window.vcToggleSpeed = function() {
+function vcSyncSpeedLabel() {
+  const lbl = document.getElementById('vc-speed-label');
+  if (lbl) lbl.textContent = _vcSpeed + '×';
+  const btnDec = document.getElementById('vc-speed-dec');
+  const btnInc = document.getElementById('vc-speed-inc');
+  if (btnDec) btnDec.style.opacity = _vcSpeed <= VC_SPEEDS[0] ? '0.3' : '1';
+  if (btnInc) btnInc.style.opacity = _vcSpeed >= VC_SPEEDS[VC_SPEEDS.length-1] ? '0.3' : '1';
+}
+window.vcSpeedDec = function() {
   const idx = VC_SPEEDS.indexOf(_vcSpeed);
-  _vcSpeed = VC_SPEEDS[(idx + 1) % VC_SPEEDS.length];
+  if (idx <= 0) return;
+  _vcSpeed = VC_SPEEDS[idx - 1];
   localStorage.setItem('vc_speed', String(_vcSpeed));
-  const lbl = document.getElementById('vc-speed-label');
-  if (lbl) lbl.textContent = _vcSpeed + '×';
+  vcSyncSpeedLabel();
 };
-// Sync label to restored speed on load
-document.addEventListener('DOMContentLoaded', function() {
-  const lbl = document.getElementById('vc-speed-label');
-  if (lbl) lbl.textContent = _vcSpeed + '×';
-});
+window.vcSpeedInc = function() {
+  const idx = VC_SPEEDS.indexOf(_vcSpeed);
+  if (idx >= VC_SPEEDS.length - 1) return;
+  _vcSpeed = VC_SPEEDS[idx + 1];
+  localStorage.setItem('vc_speed', String(_vcSpeed));
+  vcSyncSpeedLabel();
+};
+document.addEventListener('DOMContentLoaded', vcSyncSpeedLabel);
 })();
 </script>
 
@@ -1063,13 +1074,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
   <!-- Controls -->
   <div class="flex items-center gap-6">
-    <!-- Speed toggle -->
-    <button id="vc-speed-btn" onclick="vcToggleSpeed()"
-            class="w-12 h-12 rounded-full flex items-center justify-content-center cursor-pointer border-0 transition-colors text-[12px] font-bold"
-            style="background:rgba(255,255,255,0.1); color:#94a3b8; flex-direction:column; display:flex; align-items:center; justify-content:center; gap:1px;">
-      <span style="font-size:10px; opacity:0.7;">Tốc độ</span>
-      <span id="vc-speed-label">0.85×</span>
-    </button>
+    <!-- Speed control -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <span style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Tốc độ</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button id="vc-speed-dec" onclick="vcSpeedDec()" style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.10);border:0;color:#94a3b8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;" onmouseenter="this.style.background='rgba(255,255,255,0.18)'" onmouseleave="this.style.background='rgba(255,255,255,0.10)'">−</button>
+        <span id="vc-speed-label" style="font-size:13px;font-weight:700;color:#e2e8f0;min-width:38px;text-align:center;">0.95×</span>
+        <button id="vc-speed-inc" onclick="vcSpeedInc()" style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.10);border:0;color:#94a3b8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;" onmouseenter="this.style.background='rgba(255,255,255,0.18)'" onmouseleave="this.style.background='rgba(255,255,255,0.10)'">+</button>
+      </div>
+    </div>
     <!-- End session -->
     <button onclick="exitVoiceCall()"
             class="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center cursor-pointer border-0 transition-colors shadow-lg shadow-red-500/40">
