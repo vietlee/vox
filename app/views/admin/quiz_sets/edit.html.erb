@@ -1099,9 +1099,10 @@ async function pollAiStatus(pollUrl) {
     if (data.pending) {
       setTimeout(() => pollAiStatus(pollUrl), 3000);
     } else if (data.success) {
-      // Re-check: if minimized while fetch was in-flight, let VoxTaskManager handle it
+      // Re-check: if minimized or navigated away, let VoxTaskManager handle it
       const overlayNow = document.getElementById('ai-loading-overlay');
-      if (overlayNow && overlayNow.style.display === 'none' && window.VoxTaskManager) return;
+      const isGoneOrHidden = !overlayNow || overlayNow.style.display === 'none';
+      if (isGoneOrHidden && window.VoxTaskManager) return;
       if (_aiRingCtrl) _aiRingCtrl.finish();
       window.location.href = data.redirect;
     } else if (data.failed || data.error) {
