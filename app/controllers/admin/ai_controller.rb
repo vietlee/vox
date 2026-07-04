@@ -151,16 +151,13 @@ class Admin::AiController < Admin::BaseController
     history      = params[:history] || []
     context_text = resolve_tutor_content(params[:context_type], params[:context_id])
 
-    voice_language = params[:voice_language].presence || "vi"
-    language_instruction = voice_language.start_with?("en") ? "Always reply in English." : "Trả lời bằng tiếng Việt."
-
     system_prompt = <<~PROMPT
       You are a friendly voice AI Tutor — give short, natural spoken answers (2-3 sentences max).
       - NO markdown, bullets, bold, headers — plain prose only
       - NO special characters: *, #, **, --, []
       - Speak naturally as in a conversation
+      - ALWAYS reply in the same language the user is speaking. If they speak Vietnamese, reply in Vietnamese. If they speak English, reply in English.
       #{context_text.present? ? "\nReference material: #{context_text.truncate(2000)}\n" : ""}
-      #{language_instruction}
     PROMPT
 
     messages  = history.last(6).map { |h| { role: h["role"], content: h["content"] } }
