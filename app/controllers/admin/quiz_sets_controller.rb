@@ -227,31 +227,47 @@ class Admin::QuizSetsController < Admin::BaseController
     @quiz_set = current_workspace.quiz_sets.find(params[:id])
     return unless require_credits!(5)
 
-    uploaded = params[:file]
-    unless uploaded
-      return render json: { error: t("quiz.no_file") }, status: :unprocessable_entity
-    end
+    uploaded_files = Array(params[:files]).compact.select { |f| f.respond_to?(:read) }
+    # Fallback: support old single-file param
+    uploaded_files = [params[:file]].compact if uploaded_files.empty? && params[:file].present?
 
-    content = extract_text_from_upload(uploaded)
-    if content.blank?
-      return render json: { error: t("quiz.extract_failed") }, status: :unprocessable_entity
+    custom_prompt = params[:custom_prompt].to_s.strip.presence
+    if uploaded_files.empty? && custom_prompt.nil?
+      return render json: { error: t("quiz.no_file") }, status: :unprocessable_entity
     end
 
     questions_count = params[:questions_count].to_i
     auto_mode       = questions_count <= 0
     questions_count = questions_count.clamp(3, 50) unless auto_mode
-    custom_prompt   = params[:custom_prompt].to_s.strip.presence
 
-    # For image content (hash with base64), write to shared/tmp/uploads (persists across deploys).
-    # For text content, pass directly as job argument.
-    if content.is_a?(Hash)
+    # Extract and combine text from all uploaded files
+    combined_text = ""
+    image_payloads = []
+    uploaded_files.each_with_index do |f, idx|
+      content = extract_text_from_upload(f)
+      next if content.blank?
+      if content.is_a?(Hash)
+        image_payloads << content
+      else
+        combined_text += "\n\n--- Tài liệu #{idx + 1}: #{f.original_filename} ---\n#{content}"
+      end
+    end
+
+    # Build job_content: prefer text; fall back to first image if no text
+    if combined_text.present?
+      job_content = combined_text.truncate(18000)
+    elsif image_payloads.any?
       uploads_dir = Rails.root.join("tmp", "uploads")
       FileUtils.mkdir_p(uploads_dir)
       tmp_path = uploads_dir.join("quiz_#{@quiz_set.id}_#{Time.now.to_i}.json")
-      File.write(tmp_path, content.to_json)
+      File.write(tmp_path, image_payloads.first.to_json)
       job_content = { "tmp_file" => tmp_path.to_s }
     else
-      job_content = content.to_s.truncate(18000)
+      job_content = nil
+    end
+
+    if job_content.nil? && custom_prompt.nil?
+      return render json: { error: t("quiz.extract_failed") }, status: :unprocessable_entity
     end
 
     @quiz_set.update!(ai_generating: true)

@@ -85,17 +85,12 @@
           <p class="text-[12px] font-semibold text-violet-700 group-hover:text-white transition-colors" id="ai-drop-label"><%= t("quiz.drop_or_click") %></p>
           <p class="text-[11px] text-violet-400 group-hover:text-white/70 mt-0.5 transition-colors"><%= t("quiz.ai_file_hint") %></p>
           <input type="file" id="ai-file-input" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
-                 class="hidden" onchange="aiFileSelected(this)">
+                 class="hidden" multiple onchange="aiFileSelected(this)">
         </div>
-        <!-- Selected file row (shown after file chosen) -->
-        <div id="ai-file-selected" class="hidden mt-2">
-          <div class="flex items-center gap-2 bg-white border border-violet-200 rounded-lg px-3 py-2.5">
-            <span id="ai-file-icon" class="flex-shrink-0 text-base">📄</span>
-            <span id="ai-file-name" class="text-[13px] font-semibold text-slate-700 truncate flex-1 min-w-0"></span>
-            <button onclick="aiClearFile()" class="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 ml-2">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-          </div>
+        <!-- Selected files list (shown after files chosen) -->
+        <div id="ai-file-selected" class="hidden mt-2 space-y-1.5">
+          <div id="ai-file-list"></div>
+          <button onclick="document.getElementById('ai-file-input').click()" class="text-[11px] text-violet-500 hover:text-violet-700 font-semibold transition-colors">+ Thêm file</button>
         </div>
       </div>
 
@@ -877,28 +872,54 @@ function _syncPromptPlaceholder(hasFile) {
   if (lbl) lbl.textContent = hasFile ? '(tuỳ chọn)' : '(bắt buộc nếu không upload tài liệu)';
 }
 
+var _aiFiles = []; // DataTransfer-backed file list
+
 function aiFileSelected(input) {
   if (!input.files.length) return;
-  showAiFile(input.files[0]);
+  Array.from(input.files).forEach(function(f) {
+    if (!_aiFiles.find(function(x){ return x.name === f.name && x.size === f.size; })) {
+      _aiFiles.push(f);
+    }
+  });
+  input.value = ''; // reset so same file can be re-added if removed
+  renderAiFileList();
 }
 
-function showAiFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  document.getElementById('ai-drop-zone').classList.add('hidden');
-  const sel = document.getElementById('ai-file-selected');
+function renderAiFileList() {
+  const list = document.getElementById('ai-file-list');
+  const sel  = document.getElementById('ai-file-selected');
+  const zone = document.getElementById('ai-drop-zone');
+  if (_aiFiles.length === 0) {
+    sel.classList.add('hidden');
+    zone.classList.remove('hidden');
+    _syncPromptPlaceholder(false);
+    return;
+  }
+  zone.classList.add('hidden');
   sel.classList.remove('hidden');
-  document.getElementById('ai-file-icon').textContent = FILE_ICONS[ext] || '📄';
-  document.getElementById('ai-file-name').textContent = file.name;
+  list.innerHTML = _aiFiles.map(function(f, i) {
+    const ext = f.name.split('.').pop().toLowerCase();
+    return '<div class="flex items-center gap-2 bg-white border border-violet-200 rounded-lg px-3 py-2">' +
+      '<span class="flex-shrink-0 text-sm">' + (FILE_ICONS[ext] || '📄') + '</span>' +
+      '<span class="text-[12px] font-semibold text-slate-700 truncate flex-1 min-w-0">' + f.name + '</span>' +
+      '<span class="text-[11px] text-slate-400 flex-shrink-0">' + (f.size > 1048576 ? (f.size/1048576).toFixed(1)+'MB' : Math.round(f.size/1024)+'KB') + '</span>' +
+      '<button onclick="aiRemoveFile(' + i + ')" class="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 ml-1">' +
+        '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>' +
+      '</button></div>';
+  }).join('');
   document.getElementById('ai-empty-error').classList.add('hidden');
   _syncPromptPlaceholder(true);
 }
 
+function aiRemoveFile(idx) {
+  _aiFiles.splice(idx, 1);
+  renderAiFileList();
+}
+
 function aiClearFile() {
+  _aiFiles = [];
   document.getElementById('ai-file-input').value = '';
-  document.getElementById('ai-drop-zone').classList.remove('hidden');
-  const sel = document.getElementById('ai-file-selected');
-  sel.classList.add('hidden');
-  _syncPromptPlaceholder(false);
+  renderAiFileList();
 }
 
 function aiDragOver(e) {
@@ -913,13 +934,12 @@ function aiDragLeave(e) {
 function aiDrop(e) {
   e.preventDefault();
   aiDragLeave(e);
-  const file = e.dataTransfer.files[0];
-  if (!file) return;
-  // assign to input
-  const dt = new DataTransfer();
-  dt.items.add(file);
-  document.getElementById('ai-file-input').files = dt.files;
-  showAiFile(file);
+  Array.from(e.dataTransfer.files).forEach(function(f) {
+    if (!_aiFiles.find(function(x){ return x.name === f.name && x.size === f.size; })) {
+      _aiFiles.push(f);
+    }
+  });
+  renderAiFileList();
 }
 
 var AI_PHASES = [
@@ -1015,18 +1035,17 @@ function selectResultMode(mode) {
 }
 
 async function runAiGenerate() {
-  const fileInput = document.getElementById('ai-file-input');
   const count = aiCountMode === 'auto' ? 0 : document.getElementById('ai-count').value;
   const customPrompt = _getAiPromptText();
   const errEl = document.getElementById('ai-empty-error');
-  if (!fileInput.files.length && !customPrompt) {
+  if (!_aiFiles.length && !customPrompt) {
     if (errEl) errEl.classList.remove('hidden');
     if (_aiPromptQuill) _aiPromptQuill.focus();
     return;
   }
   if (errEl) errEl.classList.add('hidden');
   const formData = new FormData();
-  formData.append('file', fileInput.files[0]);
+  _aiFiles.forEach(function(f) { formData.append('files[]', f); });
   formData.append('questions_count', count);
   formData.append('custom_prompt', customPrompt);
   formData.append('authenticity_token', document.querySelector('meta[name="csrf-token"]').content);
