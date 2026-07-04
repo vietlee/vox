@@ -3,12 +3,6 @@ class Admin::LearningPathsController < Admin::BaseController
 
   def index
     @learning_paths = current_workspace.learning_paths.includes(:created_by, :learning_path_items, :learning_path_assignments).order(created_at: :desc)
-    # Assignments cho current_user — từ mọi workspace (kể cả workspace đã rời)
-    @my_assignments = LearningPathAssignment
-                        .where(assignee: current_user)
-                        .joins(:learning_path)
-                        .includes(:learning_path)
-                        .order(created_at: :desc)
   end
 
   def new

@@ -1,11 +1,6 @@
 <% content_for :title, t("learning_path.title") %>
 <% content_for :main_class, "flex-1 overflow-hidden flex flex-col" %>
 
-<%
-  asgn_in_progress = @my_assignments.reject { |a| a.progress_pct == 100 || a.completed? }
-  asgn_done        = @my_assignments.select { |a| a.progress_pct == 100 || a.completed? }
-  has_assignments  = @my_assignments.any?
-%>
 
 <div class="flex-shrink-0 px-6 pt-5 pb-0 bg-slate-100">
   <div class="flex items-center justify-between mb-4">
@@ -24,21 +19,7 @@
     </div>
   </div>
 
-  <!-- Main tabs -->
-  <div class="flex gap-0 border-b border-slate-200">
-    <button id="main-tab-manage" onclick="switchMainTab('manage')"
-            class="px-4 py-2.5 text-[13px] font-semibold border-b-2 border-indigo-600 text-indigo-600 transition-all -mb-px">
-      <%= t("learning_path.tab_manage") %>
-      <span class="ml-1.5 text-[11px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full font-bold"><%= @learning_paths.count %></span>
-    </button>
-    <button id="main-tab-assigned" onclick="switchMainTab('assigned')"
-            class="px-4 py-2.5 text-[13px] font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-700 transition-all -mb-px">
-      <%= t("learning_path.tab_assigned") %>
-      <% if has_assignments %>
-        <span class="ml-1.5 text-[11px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full font-bold"><%= @my_assignments.size %></span>
-      <% end %>
-    </button>
-  </div>
+  <div class="border-b border-slate-200"></div>
 </div>
 
 <!-- ═══ Tab: Quản lý ═══ -->
@@ -121,126 +102,6 @@
   </div>
 </div>
 
-<!-- ═══ Tab: Được giao cho tôi ═══ -->
-<div id="panel-assigned" class="flex-1 min-h-0 overflow-hidden px-6 pt-4 pb-5" style="display:none">
-  <% if has_assignments %>
-    <!-- Sub-tabs -->
-    <div class="flex items-center gap-2 mb-4">
-      <div class="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
-        <button id="asgn-tab-active" onclick="switchAsgnTab('active')"
-                class="px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all bg-indigo-600 text-white shadow-sm">
-          🎓 <%= t("learning_path.tab_in_progress") %>
-          <% if asgn_in_progress.any? %><span class="ml-1 bg-white/30 text-white px-1.5 py-0.5 rounded-full text-[10px]"><%= asgn_in_progress.size %></span><% end %>
-        </button>
-        <button id="asgn-tab-done" onclick="switchAsgnTab('done')"
-                class="px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all text-slate-500 hover:text-slate-700">
-          ✅ <%= t("learning_path.tab_completed") %>
-          <% if asgn_done.any? %><span class="ml-1 bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full text-[10px]"><%= asgn_done.size %></span><% end %>
-        </button>
-      </div>
-    </div>
-
-    <!-- Sub-panel: Đang học -->
-    <div id="asgn-panel-active" class="overflow-y-auto" style="max-height:calc(100vh - 240px)">
-      <% if asgn_in_progress.any? %>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <% asgn_in_progress.each do |asgn| %>
-            <% pct = asgn.progress_pct
-               lp  = asgn.learning_path
-               overdue = asgn.due_date && asgn.due_date < Date.current
-               total_items = lp.learning_path_items.size
-               done_items  = asgn.learning_item_progresses.count(&:completed?)
-            %>
-            <a href="<%= learning_path_assignment_path(asgn) %>"
-               class="group flex gap-4 bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-md rounded-2xl p-4 transition-all">
-              <!-- Circle progress -->
-              <div class="relative w-12 h-12 shrink-0 mt-0.5">
-                <svg viewBox="0 0 44 44" class="w-full h-full -rotate-90">
-                  <circle cx="22" cy="22" r="18" fill="none" stroke="#e2e8f0" stroke-width="4"/>
-                  <circle cx="22" cy="22" r="18" fill="none"
-                          stroke="<%= pct > 0 ? '#4a80a8' : '#e2e8f0' %>" stroke-width="4"
-                          stroke-dasharray="<%= (113.1 * pct / 100).round(1) %> 113.1"
-                          stroke-linecap="round"/>
-                </svg>
-                <div class="absolute inset-0 flex items-center justify-center">
-                  <span class="text-[9px] font-black text-slate-700"><%= pct %>%</span>
-                </div>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-[14px] font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug mb-1.5"><%= lp.title %></div>
-                <% if lp.subject.present? %>
-                  <div class="text-[10px] text-indigo-500 font-semibold mb-1.5"><%= lp.subject %></div>
-                <% end %>
-                <div class="flex items-center gap-2 flex-wrap mb-2">
-                  <span class="text-[11px] text-slate-400"><%= t("learning_path.n_done_of", done: done_items, total: total_items) %></span>
-                  <% if asgn.due_date %>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold <%= overdue ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500' %>">
-                      <%= overdue ? "⚠ #{t('learning_path.overdue')} " : "#{t('learning_path.due')} " %><%= asgn.due_date.strftime("%d/%m") %>
-                    </span>
-                  <% end %>
-                </div>
-                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2">
-                  <div class="h-full rounded-full transition-all <%= pct > 0 ? 'bg-indigo-500' : 'bg-slate-200' %>" style="width:<%= [pct,100].min %>%"></div>
-                </div>
-                <span class="text-[12px] font-semibold text-indigo-600 group-hover:underline"><%= pct == 0 ? t('learning_path.btn_start') : t('learning_path.btn_continue') %> →</span>
-              </div>
-            </a>
-          <% end %>
-        </div>
-      <% else %>
-        <div class="text-center py-16 text-slate-400">
-          <div class="text-5xl mb-3">🎉</div>
-          <p class="text-[14px] font-semibold"><%= t("learning_path.all_done") %></p>
-        </div>
-      <% end %>
-    </div>
-
-    <!-- Sub-panel: Hoàn thành -->
-    <div id="asgn-panel-done" class="overflow-y-auto" style="display:none; max-height:calc(100vh - 240px)">
-      <% if asgn_done.any? %>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <% asgn_done.each do |asgn| %>
-            <% lp = asgn.learning_path %>
-            <a href="<%= learning_path_assignment_path(asgn) %>"
-               class="group flex gap-4 bg-emerald-50 border border-emerald-200 hover:border-emerald-400 hover:shadow-md rounded-2xl p-4 transition-all">
-              <div class="w-12 h-12 shrink-0 bg-emerald-500 rounded-full flex items-center justify-center mt-0.5">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-[14px] font-bold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-snug mb-1.5"><%= lp.title %></div>
-                <% if lp.subject.present? %>
-                  <div class="text-[10px] text-emerald-600 font-semibold mb-1.5"><%= lp.subject %></div>
-                <% end %>
-                <div class="flex items-center gap-2 text-[11px] text-slate-500 mb-2">
-                  <span><%= t("learning_path.n_lessons_count", count: lp.learning_path_items.size) %></span>
-                  <% if asgn.updated_at %>
-                    <span>· <%= t("learning_path.done_on") %> <%= asgn.updated_at.strftime("%d/%m/%Y") %></span>
-                  <% end %>
-                </div>
-                <div class="h-1.5 bg-emerald-200 rounded-full overflow-hidden mb-2">
-                  <div class="h-full bg-emerald-500 rounded-full w-full"></div>
-                </div>
-                <span class="text-[12px] font-semibold text-emerald-600">✓ <%= t("learning_path.completed_label") %></span>
-              </div>
-            </a>
-          <% end %>
-        </div>
-      <% else %>
-        <div class="text-center py-16 text-slate-400">
-          <div class="text-5xl mb-3">📚</div>
-          <p class="text-[14px] font-semibold"><%= t("learning_path.none_completed") %></p>
-        </div>
-      <% end %>
-    </div>
-
-  <% else %>
-    <div class="flex flex-col items-center justify-center h-full text-center py-20">
-      <div class="text-6xl mb-4">📭</div>
-      <h3 class="text-[16px] font-bold text-slate-700 mb-2"><%= t("learning_path.none_assigned") %></h3>
-      <p class="text-[13px] text-slate-400"><%= t("learning_path.none_assigned_desc") %></p>
-    </div>
-  <% end %>
-</div>
 
 <!-- Delete modal -->
 <div id="lp-delete-modal" style="display:none; position:fixed; inset:0; z-index:60; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,0.5);">
@@ -260,35 +121,6 @@
 </div>
 
 <script>
-function switchMainTab(tab) {
-  var isManage = tab === 'manage';
-  document.getElementById('panel-manage').style.display   = isManage ? '' : 'none';
-  document.getElementById('panel-assigned').style.display = isManage ? 'none' : '';
-  document.getElementById('lp-create-btn').style.display  = isManage ? '' : 'none';
-
-  var tManage   = document.getElementById('main-tab-manage');
-  var tAssigned = document.getElementById('main-tab-assigned');
-  tManage.className   = 'px-4 py-2.5 text-[13px] font-semibold border-b-2 transition-all -mb-px ' +
-    (isManage ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-700');
-  tAssigned.className = 'px-4 py-2.5 text-[13px] font-semibold border-b-2 transition-all -mb-px ' +
-    (!isManage ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-700');
-}
-
-function switchAsgnTab(tab) {
-  var isActive = tab === 'active';
-  document.getElementById('asgn-panel-active').style.display = isActive ? '' : 'none';
-  document.getElementById('asgn-panel-done').style.display   = isActive ? 'none' : '';
-  var btnActive = document.getElementById('asgn-tab-active');
-  var btnDone   = document.getElementById('asgn-tab-done');
-  if (isActive) {
-    btnActive.className = 'px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all bg-indigo-600 text-white shadow-sm';
-    btnDone.className   = 'px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all text-slate-500 hover:text-slate-700';
-  } else {
-    btnDone.className   = 'px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all bg-emerald-600 text-white shadow-sm';
-    btnActive.className = 'px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all text-slate-500 hover:text-slate-700';
-  }
-}
-
 var _lpDeletePath = null;
 function confirmDelete(path, title) {
   _lpDeletePath = path;
