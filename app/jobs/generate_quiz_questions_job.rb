@@ -62,23 +62,26 @@ class GenerateQuizQuestionsJob < ApplicationJob
   # If questions_count is set, distribute evenly across chunks then slice.
   def extract_questions_chunked(svc, text, questions_count, custom_prompt)
     chunks = split_into_chunks(text, CHUNK_CHAR_LIMIT)
+    # Count document sections embedded by controller (--- Tài liệu N ---)
+    doc_count = text.scan(/--- Tài liệu \d+/).size
     all_questions = []
 
+    Rails.logger.info "[GenerateQuizQuestionsJob] chunks=#{chunks.size}, doc_count=#{doc_count}, questions_count=#{questions_count.inspect}"
+
     chunks.each_with_index do |chunk, idx|
-      # For fixed count: ask proportional share per chunk; for auto: extract all
       chunk_count = if questions_count
         per = (questions_count.to_f / chunks.size).ceil
         idx == chunks.size - 1 ? questions_count - all_questions.size : per
       end
       next if chunk_count && chunk_count <= 0
 
-      user_prompt = "#{build_prompt(chunk_count, idx == 0 ? custom_prompt : nil)}\n\n---\n#{chunk}"
+      user_prompt = "#{build_prompt(chunk_count, idx == 0 ? custom_prompt : nil, doc_count)}\n\n---\n#{chunk}"
       raw = svc.call(system_prompt: SYSTEM_PROMPT, user_prompt: user_prompt, max_tokens: 8000)
       parsed = parse_ai_response(raw)
+      Rails.logger.info "[GenerateQuizQuestionsJob] chunk #{idx}: got #{parsed&.size || 0} questions"
       all_questions.concat(parsed) if parsed.present?
     end
 
-    # If fixed count requested, trim to exact number
     questions_count ? all_questions.first(questions_count) : all_questions
   end
 
@@ -160,10 +163,13 @@ class GenerateQuizQuestionsJob < ApplicationJob
     str.gsub(/\\(?!["\\\/bfnrt]|u[0-9a-fA-F]{4})/, '\\\\')
   end
 
-  def build_prompt(count, custom_prompt)
-    count_instruction = count.nil? \
-      ? "Extract ALL multiple-choice questions found in the provided content (there may be multiple documents/sections). Do not invent new ones — extract every question present across all documents." \
-      : "Generate exactly #{count} multiple-choice questions based on the content."
+  def build_prompt(count, custom_prompt, doc_count = 1)
+    if count.nil?
+      doc_hint = doc_count > 1 ? "There are #{doc_count} separate documents in the content below. " : ""
+      count_instruction = "#{doc_hint}Extract EVERY multiple-choice question from ALL documents/sections. Do not stop early. Do not invent new ones — only extract questions that already exist in the text."
+    else
+      count_instruction = "Generate exactly #{count} multiple-choice questions based on the content."
+    end
     user_instruction = custom_prompt.present? ? "\n\nAdditional instructions: #{custom_prompt}" : ""
     <<~PROMPT
       #{count_instruction}#{user_instruction}
