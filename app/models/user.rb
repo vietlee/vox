@@ -9,17 +9,11 @@ class User < ApplicationRecord
   belongs_to :workspace, optional: true
   has_many :owned_workspaces, class_name: "Workspace", foreign_key: :owner_id, dependent: :nullify
 
-  # The one subscription that holds this user's shared credit budget.
-  # All workspaces they own draw from this single pool.
-  def primary_subscription
-    # Return the active subscription of the user's oldest owned workspace.
-    # Uses a single JOIN so workspaces without any subscription are skipped gracefully.
-    Subscription
-      .joins("INNER JOIN workspaces ON subscriptions.workspace_id = workspaces.id")
-      .where("workspaces.owner_id = ? AND subscriptions.status = 0", id)
-      .order("workspaces.id ASC, subscriptions.created_at DESC")
-      .first
-  end
+  # User's single credit budget — subscription is now directly per-user via user_id column.
+  has_one :subscription, -> { where(status: :active).order(created_at: :desc) }, foreign_key: :user_id
+
+  # Alias so existing callers (primary_subscription) still work during transition.
+  alias_method :primary_subscription, :subscription
   has_many :workspace_memberships, dependent: :destroy
   has_many :workspaces, through: :workspace_memberships
   has_many :surveys, dependent: :nullify

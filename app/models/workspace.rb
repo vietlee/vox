@@ -3,9 +3,9 @@ class Workspace < ApplicationRecord
   belongs_to :owner, class_name: "User", optional: true
 
   # The subscription that pays for all AI usage in this workspace.
-  # Always resolves to the workspace owner's personal subscription budget.
+  # Always the workspace owner's personal subscription (user_id-based).
   def credit_subscription
-    owner&.primary_subscription || subscriptions.where(status: :active).order(created_at: :desc).first
+    owner&.subscription || subscriptions.where(status: :active).order(created_at: :desc).first
   end
   alias_method :feature_subscription, :credit_subscription
   has_many :users, dependent: :destroy

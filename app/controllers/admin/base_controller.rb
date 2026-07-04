@@ -14,6 +14,7 @@ class Admin::BaseController < ApplicationController
     ws = current_user&.owned_workspaces&.order(:id)&.first || current_workspace
     return nil unless ws
     ws.subscriptions.create!(
+      user_id:        current_user.id,
       plan:           :free,
       status:         :active,
       starts_at:      Time.current,

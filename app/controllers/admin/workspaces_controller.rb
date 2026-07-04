@@ -17,7 +17,9 @@ class Admin::WorkspacesController < Admin::BaseController
       workspace.save!
       # New workspaces do NOT get fresh credits — credits are per-user (primary workspace).
       # credit_subscription always resolves to owner.primary_subscription for billing.
+      # Secondary workspaces get no credits — user has one shared budget via user_id subscription.
       workspace.subscriptions.create!(
+        user_id:        current_user.id,
         plan:           :free,
         status:         :active,
         starts_at:      Time.current,

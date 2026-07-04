@@ -103,10 +103,9 @@ class Admin::SubscriptionsController < Admin::BaseController
   end
 
   def create_user_subscription!
-    primary_ws = current_user.owned_workspaces.order(:id).first
-    # Fall back to current workspace if user somehow has no primary
-    ws = primary_ws || current_workspace
+    ws = current_user.owned_workspaces.order(:id).first || current_workspace
     ws.subscriptions.create!(
+      user_id:        current_user.id,
       plan:           :free,
       status:         :active,
       starts_at:      Time.current,

@@ -10,10 +10,10 @@ class SuperAdmin::SubscriptionsController < SuperAdmin::BaseController
       .order("users.id ASC")
       .includes(:owned_workspaces)
 
-    # For each owner, find their primary subscription using the same logic as User#primary_subscription
+    # For each owner, load their subscription directly via user_id
     @primary_subs = {}
     @owners.each do |user|
-      @primary_subs[user.id] = user.primary_subscription
+      @primary_subs[user.id] = user.subscription
     end
   end
 

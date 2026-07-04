@@ -41,11 +41,12 @@ class Auth::SsoWorkspacesController < ApplicationController
       user.update_columns(workspace_id: workspace.id)
 
       workspace.subscriptions.create!(
+        user_id:        user.id,
         plan:           :free,
         status:         :active,
         starts_at:      Time.current,
-        credit_balance: 0,
-        max_ai_credits: 0
+        credit_balance: Subscription.monthly_free_credits,
+        max_ai_credits: Subscription.monthly_free_credits
       )
     end
 
