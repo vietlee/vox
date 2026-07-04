@@ -22,10 +22,10 @@ class GenerateQuizQuestionsJob < ApplicationJob
           { type: "text", text: build_prompt(questions_count, custom_prompt) }
         ]
       }]
-      raw = svc.call(system_prompt: SYSTEM_PROMPT, messages: messages, max_tokens: 4000)
+      raw = svc.call(system_prompt: SYSTEM_PROMPT, messages: messages, max_tokens: 8000)
     else
-      user_prompt = "#{build_prompt(questions_count, custom_prompt)}\n\n---\n#{content.to_s.truncate(16000)}"
-      raw = svc.call(system_prompt: SYSTEM_PROMPT, user_prompt: user_prompt, max_tokens: 4000)
+      user_prompt = "#{build_prompt(questions_count, custom_prompt)}\n\n---\n#{content.to_s.truncate(22000)}"
+      raw = svc.call(system_prompt: SYSTEM_PROMPT, user_prompt: user_prompt, max_tokens: 8000)
     end
 
     questions = parse_ai_response(raw)
@@ -121,7 +121,7 @@ class GenerateQuizQuestionsJob < ApplicationJob
 
   def build_prompt(count, custom_prompt)
     count_instruction = count.nil? \
-      ? "Extract ALL multiple-choice questions found in the document. Do not invent new ones." \
+      ? "Extract ALL multiple-choice questions found in the provided content (there may be multiple documents/sections). Do not invent new ones — extract every question present across all documents." \
       : "Generate exactly #{count} multiple-choice questions based on the content."
     user_instruction = custom_prompt.present? ? "\n\nAdditional instructions: #{custom_prompt}" : ""
     <<~PROMPT

@@ -255,7 +255,7 @@ class Admin::QuizSetsController < Admin::BaseController
 
     # Build job_content: prefer text; fall back to first image if no text
     if combined_text.present?
-      job_content = combined_text.truncate(18000)
+      job_content = combined_text.truncate(24000)
     elsif image_payloads.any?
       uploads_dir = Rails.root.join("tmp", "uploads")
       FileUtils.mkdir_p(uploads_dir)
