@@ -259,7 +259,9 @@ Rails.application.routes.draw do
         post  :ai_evaluate_results
         patch :update_ai_evaluation
         post  :send_ai_evaluation_email
-        post  :ai_grade_essay         # chấm tự luận
+        post  :ai_grade_essay
+        post  :assign_learner
+        get   :learner_assignments
       end
       resources :quiz_questions, only: [:create, :update, :destroy] do
         collection { post :reorder }
@@ -291,6 +293,8 @@ Rails.application.routes.draw do
         post  :ai_generate
         get   :ai_status
         post  :assign
+        post  :assign_learner
+        get   :learner_assignments
         get   :progress
         post  :ai_evaluate_progress
       end
@@ -320,6 +324,8 @@ Rails.application.routes.draw do
         get  :study
         post :review
         get  :analytics
+        post :assign_learner
+        get  :learner_assignments
       end
       resources :flashcards, only: [:update]
     end

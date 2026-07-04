@@ -1,5 +1,5 @@
 class Admin::QuizSetsController < Admin::BaseController
-  before_action :set_quiz_set, only: [:show, :edit, :update, :destroy, :publish, :unpublish, :results, :attempt_detail, :send_result_email, :ai_evaluate_attempt, :ai_evaluate_results, :update_ai_evaluation, :send_ai_evaluation_email, :ai_grade_essay]
+  before_action :set_quiz_set, only: [:show, :edit, :update, :destroy, :publish, :unpublish, :results, :attempt_detail, :send_result_email, :ai_evaluate_attempt, :ai_evaluate_results, :update_ai_evaluation, :send_ai_evaluation_email, :ai_grade_essay, :assign_learner, :learner_assignments]
 
   def index
     @quiz_sets = current_workspace.quiz_sets.order(created_at: :desc)
@@ -362,6 +362,34 @@ class Admin::QuizSetsController < Admin::BaseController
     render json: { error: "AI trả về kết quả không hợp lệ" }, status: :unprocessable_entity
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def assign_learner
+    email  = params[:email].to_s.strip.downcase
+    name   = params[:name].to_s.strip
+    due_at = params[:due_at].presence
+
+    unless email.match?(URI::MailTo::EMAIL_REGEXP)
+      redirect_to edit_quiz_set_path(@quiz_set), alert: "Email không hợp lệ."; return
+    end
+
+    learner  = Learner.find_or_invite!(email: email, name: name, assigned_by: current_user)
+    existing = QuizAssignment.find_by(quiz_set: @quiz_set, learner: learner)
+    if existing
+      redirect_to edit_quiz_set_path(@quiz_set), alert: "#{email} đã được giao quiz này rồi."; return
+    end
+
+    QuizAssignment.create!(quiz_set: @quiz_set, learner: learner, assigned_by: current_user, due_at: due_at)
+    redirect_to edit_quiz_set_path(@quiz_set), notice: "Đã giao quiz cho #{email}."
+  rescue => e
+    redirect_to edit_quiz_set_path(@quiz_set), alert: "Lỗi: #{e.message}"
+  end
+
+  def learner_assignments
+    @assignments = @quiz_set.quiz_assignments.includes(:learner).order(created_at: :desc)
+    render json: @assignments.map { |a|
+      { id: a.id, email: a.learner.email, name: a.learner.name, status: a.status, due_at: a.due_at }
+    }
   end
 
   private

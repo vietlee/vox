@@ -1,5 +1,5 @@
 class Admin::FlashcardDecksController < Admin::BaseController
-  before_action :set_deck, only: [:show, :edit, :update, :destroy, :ai_generate, :ai_status, :generate_images, :image_status, :study, :review, :analytics]
+  before_action :set_deck, only: [:show, :edit, :update, :destroy, :ai_generate, :ai_status, :generate_images, :image_status, :study, :review, :analytics, :assign_learner, :learner_assignments]
 
   def index
     @decks = current_workspace.flashcard_decks.includes(:created_by).order(created_at: :desc)
@@ -183,6 +183,34 @@ class Admin::FlashcardDecksController < Admin::BaseController
     new_ef, _, new_interval = Flashcard.next_interval(rating, ef, interval)
     rev.update!(rating: rating, ease_factor: [1.3, new_ef].max, interval_days: new_interval, next_review_at: Time.current + new_interval.days)
     render json: { ok: true, next_days: new_interval }
+  end
+
+  def assign_learner
+    email  = params[:email].to_s.strip.downcase
+    name   = params[:name].to_s.strip
+    due_at = params[:due_at].presence
+
+    unless email.match?(URI::MailTo::EMAIL_REGEXP)
+      redirect_to flashcard_deck_path(@deck), alert: "Email không hợp lệ."; return
+    end
+
+    learner  = Learner.find_or_invite!(email: email, name: name, assigned_by: current_user)
+    existing = FlashcardAssignment.find_by(flashcard_deck: @deck, learner: learner)
+    if existing
+      redirect_to flashcard_deck_path(@deck), alert: "#{email} đã được giao bộ flashcard này rồi."; return
+    end
+
+    FlashcardAssignment.create!(flashcard_deck: @deck, learner: learner, assigned_by: current_user, due_at: due_at)
+    redirect_to flashcard_deck_path(@deck), notice: "Đã giao flashcard cho #{email}."
+  rescue => e
+    redirect_to flashcard_deck_path(@deck), alert: "Lỗi: #{e.message}"
+  end
+
+  def learner_assignments
+    @assignments = @deck.flashcard_assignments.includes(:learner).order(created_at: :desc)
+    render json: @assignments.map { |a|
+      { id: a.id, email: a.learner.email, name: a.learner.name, status: a.status, due_at: a.due_at }
+    }
   end
 
   private

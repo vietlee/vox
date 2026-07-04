@@ -1,5 +1,5 @@
 class Admin::LearningPathsController < Admin::BaseController
-  before_action :set_path, only: [:show, :edit, :update, :destroy, :publish, :ai_generate, :ai_status, :assign, :progress, :ai_evaluate_progress]
+  before_action :set_path, only: [:show, :edit, :update, :destroy, :publish, :ai_generate, :ai_status, :assign, :assign_learner, :learner_assignments, :progress, :ai_evaluate_progress]
 
   def index
     @learning_paths = current_workspace.learning_paths.includes(:created_by, :learning_path_items, :learning_path_assignments).order(created_at: :desc)
@@ -163,6 +163,40 @@ class Admin::LearningPathsController < Admin::BaseController
     end
 
     redirect_to learning_path_path(@learning_path), notice: "Đã giao cho #{assigned} người."
+  end
+
+  def assign_learner
+    email  = params[:email].to_s.strip.downcase
+    name   = params[:name].to_s.strip
+    due_date = params[:due_date].presence
+
+    unless email.match?(URI::MailTo::EMAIL_REGEXP)
+      redirect_to learning_path_path(@learning_path), alert: "Email không hợp lệ."; return
+    end
+
+    learner  = Learner.find_or_invite!(email: email, name: name, assigned_by: current_user)
+    existing = LearningPathAssignment.find_by(learning_path: @learning_path, learner: learner)
+    if existing
+      redirect_to learning_path_path(@learning_path), alert: "#{email} đã được giao lộ trình này rồi."; return
+    end
+
+    LearningPathAssignment.create!(
+      learning_path: @learning_path,
+      learner:       learner,
+      assigned_by:   current_user,
+      due_date:      due_date,
+      status:        :active
+    )
+    redirect_to learning_path_path(@learning_path), notice: "Đã giao lộ trình cho #{email}."
+  rescue => e
+    redirect_to learning_path_path(@learning_path), alert: "Lỗi: #{e.message}"
+  end
+
+  def learner_assignments
+    @assignments = @learning_path.learning_path_assignments.where.not(learner_id: nil).includes(:learner).order(created_at: :desc)
+    render json: @assignments.map { |a|
+      { id: a.id, email: a.learner.email, name: a.learner.name, status: a.status }
+    }
   end
 
   private

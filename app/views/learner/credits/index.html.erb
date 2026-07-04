@@ -1,39 +1,78 @@
 <% content_for :title, "Credits" %>
 
-<div style="text-align:center;padding:20px 0;">
-  <div style="width:80px;height:80px;background:linear-gradient(135deg,#fdf4ff,#fae8ff);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:2px solid #e9d5ff;">
+<!-- Balance card -->
+<div style="text-align:center;padding:24px 0 20px;">
+  <div style="width:80px;height:80px;background:linear-gradient(135deg,#fdf4ff,#fae8ff);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;border:2px solid #e9d5ff;">
     <svg width="40" height="40" fill="none" stroke="#9333ea" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
   </div>
-  <p style="font-size:14px;color:#9ca3af;">Số dư hiện tại</p>
-  <p style="font-size:48px;font-weight:900;color:#7c3aed;line-height:1;"><%= current_learner.credits %></p>
-  <p style="font-size:14px;color:#9ca3af;margin-top:4px;">credits</p>
+  <p style="font-size:13px;color:#9ca3af;margin-bottom:4px;">Số dư hiện tại</p>
+  <p style="font-size:52px;font-weight:900;color:#7c3aed;line-height:1;"><%= current_learner.credits %></p>
+  <p style="font-size:14px;color:#9ca3af;margin-top:6px;">credits</p>
 </div>
 
-<div style="background:#f5f3ff;border-radius:14px;padding:12px 16px;margin-bottom:20px;display:flex;gap:10px;align-items:flex-start;">
+<!-- Info box -->
+<div style="background:#f5f3ff;border-radius:14px;padding:12px 16px;margin-bottom:24px;display:flex;gap:10px;align-items:flex-start;">
   <svg width="18" height="18" fill="none" stroke="#7c3aed" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
   <div>
     <p style="font-size:13px;font-weight:700;color:#6b21a8;">Cách dùng credit</p>
-    <p style="font-size:12px;color:#7c3aed;margin-top:2px;">1 credit / tin nhắn AI Tutor · Miễn phí 50 credit/tháng</p>
+    <p style="font-size:12px;color:#7c3aed;margin-top:2px;">1 credit / tin nhắn AI Tutor · <%= number_to_currency(@price_per_credit, unit: "₫", delimiter: ".", separator: ",", format: "%n %u") %>/credit</p>
   </div>
 </div>
 
+<!-- Buy credits -->
 <p class="lp-section-title">Mua thêm credit</p>
-<% @packages.each do |pkg| %>
-  <div class="lp-card" style="margin-bottom:10px;">
-    <div class="lp-card-body" style="display:flex;align-items:center;gap:12px;">
-      <div style="flex:1;">
-        <p style="font-weight:700;font-size:15px;"><%= pkg[:label] %></p>
-        <p style="font-size:13px;color:#9ca3af;margin-top:2px;"><%= pkg[:credits] %> credits</p>
+<div class="lp-card">
+  <div class="lp-card-body">
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:8px;">Số credit muốn mua</label>
+      <div style="display:flex;align-items:center;border:1.5px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fff;">
+        <input id="credit-amount" type="number" min="10" max="10000" step="10" value="50"
+               oninput="updateTotal()"
+               style="flex:1;padding:12px 14px;border:none;outline:none;font-size:18px;font-weight:800;color:#4f46e5;font-family:inherit;background:transparent;">
+        <span style="padding:12px 14px;font-size:14px;color:#9ca3af;font-weight:600;background:#f9fafb;border-left:1.5px solid #e5e7eb;">credits</span>
       </div>
-      <div style="text-align:right;">
-        <p style="font-weight:800;font-size:16px;color:#6366f1;"><%= number_to_currency(pkg[:price], unit: "₫", delimiter: ".", separator: ",", format: "%n %u") %></p>
-        <p style="font-size:11px;color:#9ca3af;"><%= (pkg[:price].to_f / pkg[:credits]).round %>₫/credit</p>
-      </div>
-      <button onclick="alert('Tính năng đang triển khai!')" class="lp-btn lp-btn-primary" style="padding:9px 16px;font-size:13px;flex-shrink:0;">
-        Mua
-      </button>
+      <p style="font-size:11px;color:#9ca3af;margin-top:6px;">Tối thiểu 10 credits</p>
     </div>
-  </div>
-<% end %>
 
-<p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:16px;">50 credit miễn phí được cấp vào đầu mỗi tháng</p>
+    <!-- Quick picks -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+      <% [50, 100, 200, 500].each do |q| %>
+        <button onclick="setAmount(<%= q %>)"
+                style="padding:6px 14px;border:1.5px solid #e5e7eb;border-radius:20px;font-size:12px;font-weight:700;color:#6b7280;background:#fff;cursor:pointer;"
+                onmouseover="this.style.borderColor='#6366f1';this.style.color='#4f46e5';"
+                onmouseout="this.style.borderColor='#e5e7eb';this.style.color='#6b7280';">
+          +<%= q %>
+        </button>
+      <% end %>
+    </div>
+
+    <!-- Total -->
+    <div style="background:#f5f3ff;border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:14px;color:#6b7280;">Thành tiền</span>
+      <span id="total-price" style="font-size:22px;font-weight:900;color:#7c3aed;">50.000 ₫</span>
+    </div>
+
+    <button onclick="buyCredits()" class="lp-btn lp-btn-primary lp-btn-full" style="font-size:15px;padding:14px;">
+      Thanh toán ngay →
+    </button>
+    <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:10px;">Thanh toán qua PayOS · An toàn &amp; bảo mật</p>
+  </div>
+</div>
+
+<script>
+var PRICE_PER_CREDIT = <%= @price_per_credit %>;
+function updateTotal() {
+  var amt = parseInt(document.getElementById('credit-amount').value) || 0;
+  document.getElementById('total-price').textContent = (amt * PRICE_PER_CREDIT).toLocaleString('vi-VN') + ' ₫';
+}
+function setAmount(n) {
+  document.getElementById('credit-amount').value = n;
+  updateTotal();
+}
+function buyCredits() {
+  var amt = parseInt(document.getElementById('credit-amount').value) || 0;
+  if (amt < 10) { alert('Vui lòng nhập ít nhất 10 credits.'); return; }
+  alert('Tính năng thanh toán đang được triển khai. Vui lòng thử lại sau!');
+}
+updateTotal();
+</script>
