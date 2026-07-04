@@ -4,10 +4,25 @@ class Admin::BaseController < ApplicationController
   layout "admin"
 
   # DISPLAY: always the logged-in user's own subscription (user-level budget).
+  # Creates one on their primary workspace if none exists yet.
   def current_subscription
-    current_user&.primary_subscription
+    current_user&.primary_subscription || ensure_user_subscription
   end
   helper_method :current_subscription
+
+  def ensure_user_subscription
+    ws = current_user&.owned_workspaces&.order(:id)&.first || current_workspace
+    return nil unless ws
+    ws.subscriptions.create!(
+      plan:           :free,
+      status:         :active,
+      starts_at:      Time.current,
+      credit_balance: Subscription.monthly_free_credits,
+      max_ai_credits: Subscription.monthly_free_credits
+    )
+  rescue
+    nil
+  end
 
   # DEDUCTION: the workspace owner's subscription — whoever owns the current workspace pays.
   def workspace_billing_subscription

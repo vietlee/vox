@@ -2,8 +2,19 @@ class SuperAdmin::SubscriptionsController < SuperAdmin::BaseController
   before_action :set_subscription, only: [:show, :edit, :update]
 
   def index
-    scope = Subscription.active.includes(:workspace).order(created_at: :desc)
-    @pagy, @subscriptions = pagy(scope, items: 25)
+    # List per-user: each workspace owner with their primary subscription
+    @user_subs = User
+      .joins("INNER JOIN workspaces ON workspaces.owner_id = users.id")
+      .select("users.id, users.name, users.email,
+               MIN(workspaces.id) AS primary_workspace_id,
+               COUNT(DISTINCT workspaces.id) AS workspace_count")
+      .group("users.id, users.name, users.email")
+      .order("users.id ASC")
+
+    primary_ws_ids = @user_subs.map(&:primary_workspace_id).compact
+    @primary_subs  = Subscription.where(workspace_id: primary_ws_ids, status: :active)
+                                  .order(created_at: :desc)
+                                  .index_by(&:workspace_id)
   end
 
   def show
