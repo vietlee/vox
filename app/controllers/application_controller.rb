@@ -48,6 +48,13 @@ class ApplicationController < ActionController::Base
     current_workspace_role == :admin
   end
 
+  # True only for the workspace owner (not added members)
+  def workspace_owner?
+    return false unless current_user && current_workspace
+    current_workspace.owner_id == current_user.id
+  end
+  helper_method :workspace_owner?
+
   def set_locale
     if params[:locale].present? && I18n.available_locales.map(&:to_s).include?(params[:locale])
       session[:locale] = params[:locale]

@@ -1,0 +1,189 @@
+<% content_for :title, @folder.name %>
+
+<div class="flex items-center gap-3 mb-6">
+  <%= render "admin/shared/back_btn" %>
+  <div class="flex-1 min-w-0">
+    <h1 class="text-[20px] font-extrabold text-slate-900 truncate">📁 <%= @folder.name %></h1>
+    <p class="text-[13px] text-slate-400 mt-0.5"><%= @members.count %> learners · Tạo <%= @folder.created_at.strftime("%d/%m/%Y") %></p>
+  </div>
+  <div class="flex items-center gap-2">
+    <!-- Import Excel -->
+    <button onclick="document.getElementById('import-modal').style.display='flex'"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+      Import Excel/CSV
+    </button>
+    <!-- Add learner -->
+    <button onclick="document.getElementById('add-learner-modal').style.display='flex'"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors">
+      + Thêm Learner
+    </button>
+  </div>
+</div>
+
+<% if flash[:notice] %>
+  <div class="mb-4 px-4 py-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-[13px] font-semibold"><%= flash[:notice] %></div>
+<% end %>
+<% if flash[:alert] %>
+  <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-[13px] font-semibold"><%= flash[:alert] %></div>
+<% end %>
+
+<!-- Learner table -->
+<div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+  <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100" style="background:rgba(248,250,252,0.8)">
+    <span class="text-[12px] font-bold text-slate-500 uppercase tracking-wide"><%= @members.count %> Learners trong folder</span>
+    <a href="<%= template_learner_folder_path(@folder) %>"
+       class="inline-flex items-center gap-1 text-[12px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      Tải template Excel
+    </a>
+  </div>
+
+  <% if @members.any? %>
+    <table class="w-full border-collapse">
+      <thead>
+        <tr class="border-b border-slate-100" style="background:#f8fafc;">
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3">Learner</th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3">Email</th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3">Trạng thái tài khoản</th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3">Thêm vào</th>
+          <th class="px-5 py-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @members.each do |m| %>
+          <% l = m.learner %>
+          <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+            <td class="px-5 py-3">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shrink-0">
+                  <span class="text-white text-[13px] font-black"><%= l.name.first.upcase %></span>
+                </div>
+                <span class="text-[13px] font-semibold text-slate-800"><%= l.name %></span>
+              </div>
+            </td>
+            <td class="px-5 py-3 text-[13px] text-slate-500"><%= l.email %></td>
+            <td class="px-5 py-3">
+              <% if l.invite_token.present? && !l.password_set? %>
+                <span class="text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700">⏳ Chờ thiết lập</span>
+              <% else %>
+                <span class="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700">✅ Đã kích hoạt</span>
+              <% end %>
+            </td>
+            <td class="px-5 py-3 text-[12px] text-slate-400"><%= m.created_at.strftime("%d/%m/%Y") %></td>
+            <td class="px-5 py-3 text-right">
+              <%= button_to remove_learner_learner_folder_path(@folder, learner_id: l.id), method: :delete,
+                  data: { confirm: "Xoá #{l.email} khỏi folder này?" },
+                  class: "inline-flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-semibold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border-0 cursor-pointer transition-colors" do %>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/></svg>
+                Xoá
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <div class="py-16 text-center">
+      <div class="text-5xl mb-3">👤</div>
+      <p class="text-[14px] font-bold text-slate-600 mb-1">Folder trống</p>
+      <p class="text-[13px] text-slate-400">Thêm learner bằng email hoặc import file Excel/CSV</p>
+    </div>
+  <% end %>
+</div>
+
+<!-- Add learner modal -->
+<div id="add-learner-modal" style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);"
+     onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);width:100%;max-width:400px;padding:28px 24px;">
+    <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 4px;">Thêm Learner</h3>
+    <p style="font-size:12px;color:#9ca3af;margin:0 0 20px;">Nếu chưa có tài khoản, hệ thống sẽ tự tạo và gửi email mời.</p>
+    <%= form_with url: add_learner_learner_folder_path(@folder), method: :post do |f| %>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">Email <span style="color:#ef4444">*</span></label>
+        <%= f.email_field :email, required: true, placeholder: "learner@example.com",
+            style: "width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;font-family:inherit;",
+            onfocus: "this.style.borderColor='#6366f1'", onblur: "this.style.borderColor='#e5e7eb'" %>
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">Tên (tuỳ chọn)</label>
+        <%= f.text_field :name, placeholder: "Nguyễn Văn A",
+            style: "width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;font-family:inherit;",
+            onfocus: "this.style.borderColor='#6366f1'", onblur: "this.style.borderColor='#e5e7eb'" %>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <%= f.submit "Thêm vào Folder", style: "flex:1;padding:11px;background:#4f46e5;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;" %>
+        <button type="button" onclick="document.getElementById('add-learner-modal').style.display='none'"
+                style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">Huỷ</button>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Import modal -->
+<div id="import-modal" style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);"
+     onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);width:100%;max-width:440px;padding:28px 24px;">
+    <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 4px;">Import Learner từ File</h3>
+    <p style="font-size:12px;color:#9ca3af;margin:0 0 16px;">Hỗ trợ file <strong>.xlsx</strong> hoặc <strong>.csv</strong> với cột Email và Tên.</p>
+
+    <!-- Template download -->
+    <div style="background:#f0fdf4;border:1.5px dashed #86efac;border-radius:12px;padding:12px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+      <svg width="20" height="20" fill="none" stroke="#16a34a" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      <div style="flex:1;">
+        <p style="font-size:13px;font-weight:700;color:#166534;margin:0;">Chưa có template?</p>
+        <p style="font-size:11px;color:#16a34a;margin:2px 0 0;">Tải về file mẫu Excel để điền thông tin learner</p>
+      </div>
+      <a href="<%= template_learner_folder_path(@folder) %>"
+         style="padding:7px 14px;background:#16a34a;color:#fff;font-size:12px;font-weight:700;border-radius:9px;text-decoration:none;white-space:nowrap;">
+        Tải mẫu
+      </a>
+    </div>
+
+    <%= form_with url: import_learner_folder_path(@folder), method: :post, multipart: true do |f| %>
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;">Chọn file <span style="color:#ef4444">*</span></label>
+        <div style="border:2px dashed #e5e7eb;border-radius:12px;padding:20px;text-align:center;cursor:pointer;"
+             onclick="document.getElementById('import-file-input').click()"
+             ondragover="event.preventDefault();this.style.borderColor='#6366f1'"
+             ondragleave="this.style.borderColor='#e5e7eb'"
+             ondrop="event.preventDefault();handleDrop(event)">
+          <div id="file-placeholder">
+            <svg width="32" height="32" fill="none" stroke="#9ca3af" viewBox="0 0 24 24" style="margin:0 auto 8px;display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <p style="font-size:13px;color:#6b7280;font-weight:600;">Kéo thả hoặc click để chọn</p>
+            <p style="font-size:11px;color:#9ca3af;margin-top:4px;">.xlsx hoặc .csv</p>
+          </div>
+          <div id="file-selected" style="display:none;">
+            <p id="file-name" style="font-size:13px;color:#4f46e5;font-weight:700;"></p>
+          </div>
+          <%= f.file_field :file, id: "import-file-input", accept: ".xlsx,.csv",
+              style: "display:none;", onchange: "showFileName(this)" %>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <%= f.submit "Import ngay", style: "flex:1;padding:11px;background:#059669;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;" %>
+        <button type="button" onclick="document.getElementById('import-modal').style.display='none'"
+                style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">Huỷ</button>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+function showFileName(input) {
+  if (input.files && input.files[0]) {
+    document.getElementById('file-placeholder').style.display = 'none';
+    document.getElementById('file-selected').style.display = 'block';
+    document.getElementById('file-name').textContent = '📄 ' + input.files[0].name;
+  }
+}
+function handleDrop(e) {
+  var file = e.dataTransfer.files[0];
+  if (!file) return;
+  var input = document.getElementById('import-file-input');
+  var dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  showFileName(input);
+}
+</script>

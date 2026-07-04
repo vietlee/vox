@@ -307,6 +307,16 @@ Rails.application.routes.draw do
         end
       end
     end
+    # Learner Management (folders)
+    resources :learner_folders do
+      member do
+        post   :add_learner
+        delete :remove_learner
+        get    :template
+        post   :import
+      end
+    end
+
     resources :learning_path_assignments, only: [:show, :destroy] do
       member do
         patch :update_progress

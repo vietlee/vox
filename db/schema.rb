@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_04_111611) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -379,6 +379,26 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_111611) do
     t.datetime "updated_at", null: false
     t.text "image_data"
     t.index ["flashcard_deck_id"], name: "index_flashcards_on_flashcard_deck_id"
+  end
+
+  create_table "learner_folder_members", force: :cascade do |t|
+    t.bigint "learner_folder_id", null: false
+    t.bigint "learner_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_folder_id", "learner_id"], name: "idx_learner_folder_members_unique", unique: true
+    t.index ["learner_folder_id"], name: "index_learner_folder_members_on_learner_folder_id"
+    t.index ["learner_id"], name: "index_learner_folder_members_on_learner_id"
+  end
+
+  create_table "learner_folders", force: :cascade do |t|
+    t.bigint "workspace_id", null: false
+    t.bigint "created_by_id", null: false
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_learner_folders_on_created_by_id"
+    t.index ["workspace_id"], name: "index_learner_folders_on_workspace_id"
   end
 
   create_table "learners", force: :cascade do |t|
@@ -980,6 +1000,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_111611) do
   add_foreign_key "flashcard_reviews", "flashcards"
   add_foreign_key "flashcard_reviews", "users"
   add_foreign_key "flashcards", "flashcard_decks"
+  add_foreign_key "learner_folder_members", "learner_folders"
+  add_foreign_key "learner_folder_members", "learners"
+  add_foreign_key "learner_folders", "users", column: "created_by_id"
+  add_foreign_key "learner_folders", "workspaces"
   add_foreign_key "learning_item_progresses", "learning_path_assignments"
   add_foreign_key "learning_item_progresses", "learning_path_items"
   add_foreign_key "learning_path_assignments", "learning_paths"
