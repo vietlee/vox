@@ -826,11 +826,7 @@ window.VoxTaskManager = window.VoxTaskManager || (function() {
     _save(); _render();
     if (!_tasks.length) _stopPolling();
     _persistToast('✅', task.label, task.title, redirectUrl);
-    if (redirectUrl && window.location.pathname === new URL(redirectUrl, location.href).pathname) {
-      setTimeout(function() { window.location.reload(); }, 400);
-    } else {
-      _showToast('✅', task.label, task.title, redirectUrl);
-    }
+    _showToast('✅', task.label, task.title, redirectUrl);
   }
   function _fail(task, msg) {
     _tasks = _tasks.filter(function(t) { return t.id !== task.id; });
