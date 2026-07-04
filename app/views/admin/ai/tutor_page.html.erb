@@ -420,6 +420,7 @@ let _vcSilTimer  = null;
 let _vcAudioCtx  = null;
 let _vcAnimFrame = null;
 let _vcVoiceId   = localStorage.getItem('vc_voice_id') || '';
+let _vcVoiceLang = localStorage.getItem('vc_voice_lang') || 'vi';
 let _vcSpeed     = parseFloat(localStorage.getItem('vc_speed') || '0.95');
 
 // ── Voice picker modal ────────────────────────────────────────────────────────
@@ -503,9 +504,13 @@ function renderVoiceGrid() {
 function selectVoice(voiceId, el) {
   _vcVoiceId = voiceId;
   localStorage.setItem('vc_voice_id', voiceId);
-  renderVoiceGrid(); // re-render to update all cards cleanly
   const v = _voiceList.find(x => x.id === voiceId);
-  if (v) document.getElementById('vc-selected-name').textContent = v.name;
+  if (v) {
+    _vcVoiceLang = v.language || 'vi';
+    localStorage.setItem('vc_voice_lang', _vcVoiceLang);
+    document.getElementById('vc-selected-name').textContent = v.name;
+  }
+  renderVoiceGrid();
 }
 
 let _previewAudio = null;
@@ -724,7 +729,7 @@ async function vcProcessAndReply() {
     vcRes = await fetch('<%= ai_tutor_voice_path %>', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf() },
-      body: JSON.stringify({ message: userText, history: chatHistory.slice(0,-1), context_type: contextType, context_id: contextId })
+      body: JSON.stringify({ message: userText, history: chatHistory.slice(0,-1), context_type: contextType, context_id: contextId, voice_language: _vcVoiceLang })
     });
   } catch(e) { thinkEl.innerHTML = '<span class="text-red-500">Lỗi kết nối.</span>'; if (_vcActive) vcStartListening(); return; }
 

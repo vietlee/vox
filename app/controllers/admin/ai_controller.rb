@@ -151,14 +151,16 @@ class Admin::AiController < Admin::BaseController
     history      = params[:history] || []
     context_text = resolve_tutor_content(params[:context_type], params[:context_id])
 
+    voice_language = params[:voice_language].presence || "vi"
+    language_instruction = voice_language.start_with?("en") ? "Always reply in English." : "Trả lời bằng tiếng Việt."
+
     system_prompt = <<~PROMPT
-      Bạn là AI Tutor giọng nói — gia sư thân thiện, trả lời ngắn gọn để đọc to.
-      - Trả lời TỐI ĐA 2-3 câu, súc tích, dễ nghe
-      - KHÔNG dùng markdown, bullet, bold, tiêu đề — chỉ văn xuôi thuần
-      - Không dùng ký hiệu đặc biệt: *, #, **, --, []
-      - Nói tự nhiên như trò chuyện, thân mật
-      #{context_text.present? ? "\nTài liệu tham khảo: #{context_text.truncate(2000)}\n" : ""}
-      Trả lời bằng tiếng Việt.
+      You are a friendly voice AI Tutor — give short, natural spoken answers (2-3 sentences max).
+      - NO markdown, bullets, bold, headers — plain prose only
+      - NO special characters: *, #, **, --, []
+      - Speak naturally as in a conversation
+      #{context_text.present? ? "\nReference material: #{context_text.truncate(2000)}\n" : ""}
+      #{language_instruction}
     PROMPT
 
     messages  = history.last(6).map { |h| { role: h["role"], content: h["content"] } }
