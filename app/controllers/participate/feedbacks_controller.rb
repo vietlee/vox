@@ -115,7 +115,7 @@ class Participate::FeedbacksController < Participate::BaseController
       render json: { error: t("participate.feedback.voice_not_enabled") }, status: :forbidden and return
     end
 
-    sub = @workspace.active_subscription
+    sub = @workspace.credit_subscription
     unless sub&.has_feature?(:stt)
       render json: { error: t("participate.feedback.voice_upgrade_required") }, status: :payment_required and return
     end

@@ -2,24 +2,12 @@ class Workspace < ApplicationRecord
   include Sluggable
   belongs_to :owner, class_name: "User", optional: true
 
-  # Credits are per-user (resolved from the owner's primary workspace subscription).
-  # Used by background jobs where no current_user context is available.
+  # The subscription that pays for all AI usage in this workspace.
+  # Always resolves to the workspace owner's personal subscription budget.
   def credit_subscription
     owner&.primary_subscription || subscriptions.where(status: :active).order(created_at: :desc).first
   end
   alias_method :feature_subscription, :credit_subscription
-
-  # User-context-aware credit resolution (use this in controllers):
-  #   - If user OWNS this workspace → use their primary subscription (shared pool across all owned workspaces)
-  #   - If user is a MEMBER (invited) → use this workspace's own subscription
-  def credit_subscription_for(user)
-    return credit_subscription if user.nil?
-    if owner_id == user.id
-      user.primary_subscription || subscriptions.where(status: :active).order(created_at: :desc).first
-    else
-      subscriptions.where(status: :active).order(created_at: :desc).first
-    end
-  end
   has_many :users, dependent: :destroy
   has_many :workspace_memberships, dependent: :destroy
   has_many :members, through: :workspace_memberships, source: :user

@@ -2,29 +2,31 @@ class Admin::SubscriptionsController < Admin::BaseController
   before_action :require_admin!
 
   def show
-    @subscription  = current_workspace.active_subscription || ensure_subscription!
+    @subscription  = user_subscription
     @addon_credits = AddonConfig.active.ai_credits
-    @payments      = current_workspace.payments.includes(:addon_config, :subscription).order(created_at: :desc).limit(10)
+    # Payment history: all payments across workspaces the user owns
+    primary_ws = current_user.owned_workspaces.order(:id).first
+    @payments = primary_ws ? primary_ws.payments.includes(:addon_config, :subscription).order(created_at: :desc).limit(10) : Payment.none
   end
 
   def billing
-    @subscription  = current_workspace.active_subscription || ensure_subscription!
+    @subscription  = user_subscription
     @addon_credits = AddonConfig.active.ai_credits
   end
 
-  # POST /subscription/checkout_addon — buy AI credits
+  # POST /subscription/checkout_addon — buy AI credits → always tops up user's subscription
   def checkout_addon
     addon = AddonConfig.active.ai_credits.find_by(id: params[:addon_config_id])
     unless addon
       redirect_to subscription_path, alert: t("subscription_errors.addon_not_found") and return
     end
 
-    sub = current_workspace.active_subscription || ensure_subscription!
+    sub = user_subscription
 
-    order_code = Time.current.to_i * 10 + current_workspace.id % 10
+    order_code = Time.current.to_i * 10 + current_user.id % 10
 
     payment = sub.payments.create!(
-      workspace:        current_workspace,
+      workspace:        sub.workspace,
       addon_config:     addon,
       amount_cents:     addon.price_cents,
       currency:         "VND",
@@ -54,7 +56,9 @@ class Admin::SubscriptionsController < Admin::BaseController
   end
 
   def payment_return
-    @payment = current_workspace.payments.find_by(id: params[:payment_id])
+    @payment = Payment.joins(subscription: { workspace: :owner })
+                      .where(workspaces: { owner_id: current_user.id })
+                      .find_by(id: params[:payment_id])
     if @payment&.completed?
       redirect_to subscription_path, notice: t("subscription.addon_purchase_success", bonus: @payment.addon_config&.bonus_summary)
     else
@@ -63,7 +67,9 @@ class Admin::SubscriptionsController < Admin::BaseController
   end
 
   def payment_status
-    payment = current_workspace.payments.find_by(id: params[:payment_id])
+    payment = Payment.joins(subscription: { workspace: :owner })
+                     .where(workspaces: { owner_id: current_user.id })
+                     .find_by(id: params[:payment_id])
     if payment&.completed?
       render json: { status: "completed" }
     elsif payment&.failed?
@@ -74,7 +80,9 @@ class Admin::SubscriptionsController < Admin::BaseController
   end
 
   def payment_cancel
-    payment = current_workspace.payments.find_by(id: params[:payment_id])
+    payment = Payment.joins(subscription: { workspace: :owner })
+                     .where(workspaces: { owner_id: current_user.id })
+                     .find_by(id: params[:payment_id])
     payment&.update_column(:status, Payment.statuses[:failed])
     redirect_to subscription_path, alert: t("subscription_errors.payment_cancelled")
   end
@@ -88,8 +96,17 @@ class Admin::SubscriptionsController < Admin::BaseController
 
   private
 
-  def ensure_subscription!
-    current_workspace.subscriptions.create!(
+  # Always returns the current user's subscription (user-level budget).
+  # Creates one on their primary workspace if none exists.
+  def user_subscription
+    current_user.primary_subscription || create_user_subscription!
+  end
+
+  def create_user_subscription!
+    primary_ws = current_user.owned_workspaces.order(:id).first
+    # Fall back to current workspace if user somehow has no primary
+    ws = primary_ws || current_workspace
+    ws.subscriptions.create!(
       plan:           :free,
       status:         :active,
       starts_at:      Time.current,

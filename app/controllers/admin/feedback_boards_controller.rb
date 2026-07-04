@@ -13,7 +13,7 @@ class Admin::FeedbackBoardsController < Admin::BaseController
 
   def new
     @board    = current_workspace.feedback_boards.build
-    @has_stt  = current_workspace.active_subscription&.has_feature?(:stt)
+    @has_stt  = current_workspace.credit_subscription&.has_feature?(:stt)
   end
 
   def create
@@ -36,7 +36,7 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   end
 
   def edit
-    @has_stt = current_workspace.active_subscription&.has_feature?(:stt)
+    @has_stt = current_workspace.credit_subscription&.has_feature?(:stt)
   end
 
   def update
@@ -109,7 +109,7 @@ class Admin::FeedbackBoardsController < Admin::BaseController
   def board_params
     permitted = params.require(:feedback_board).permit(:title, :description, :identity_mode, :auto_moderation, :manual_approval, :allow_replies, :allow_upvotes, :allow_voice_input, :logo)
     # Strip allow_voice_input unless workspace has STT feature (Pro+/Enterprise)
-    unless current_workspace.active_subscription&.has_feature?(:stt)
+    unless current_workspace.credit_subscription&.has_feature?(:stt)
       permitted.delete(:allow_voice_input)
     end
     permitted
