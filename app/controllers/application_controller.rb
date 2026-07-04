@@ -67,7 +67,7 @@ class ApplicationController < ActionController::Base
   end
 
   def require_credits!(amount)
-    subscription = current_workspace&.credit_subscription
+    subscription = current_workspace&.credit_subscription_for(current_user)
     if subscription.nil? || subscription.credit_balance < amount
       respond_to do |format|
         format.json { render json: { insufficient_credits: true, error: t("ai.insufficient_credits") }, status: :payment_required }

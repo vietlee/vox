@@ -141,7 +141,7 @@ class Admin::QuizSetsController < Admin::BaseController
     )
 
     html = markdown_to_html(result)
-    current_workspace.credit_subscription.deduct_credits!(2)
+    current_subscription.deduct_credits!(2)
     attempt.update_columns(ai_evaluation: html, ai_evaluated_at: Time.current)
 
     render json: { html: html, cached: false, evaluated_at: Time.current }
@@ -206,7 +206,7 @@ class Admin::QuizSetsController < Admin::BaseController
       max_tokens:    1200
     )
     html = markdown_to_html(result)
-    current_workspace.credit_subscription.deduct_credits!(3)
+    current_subscription.deduct_credits!(3)
     @quiz_set.update_columns(ai_class_evaluation: html, ai_class_evaluated_at: Time.current)
     render json: { html: html, cached: false, evaluated_at: Time.current }
   rescue => e
@@ -338,7 +338,7 @@ class Admin::QuizSetsController < Admin::BaseController
     grade    = [data["grade"].to_i, max_pts].min
     feedback = data["feedback"].to_s
 
-    current_workspace.credit_subscription.deduct_credits!(1)
+    current_subscription.deduct_credits!(1)
     answer.update_columns(ai_grade: grade, ai_feedback: feedback, ai_graded_at: Time.current)
 
     render json: { grade: grade, feedback: feedback, max_points: max_pts, cached: false }

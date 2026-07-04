@@ -72,7 +72,7 @@ class Admin::TtsController < Admin::BaseController
     audio = service.text_to_speech(**tts_opts)
 
     Rails.cache.write(cache_key, audio, expires_in: 24.hours)
-    current_workspace.credit_subscription&.deduct_credits!(credits_needed) unless skip_credits
+    current_subscription&.deduct_credits!(credits_needed) unless skip_credits
 
     response.headers["X-Credits-Used"] = credits_needed.to_s
     response.headers["X-Cache"]        = "MISS"

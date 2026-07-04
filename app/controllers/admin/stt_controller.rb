@@ -40,7 +40,7 @@ class Admin::SttController < Admin::BaseController
   def index
     @has_stt             = current_workspace&.feature_subscription&.has_feature?(:stt)
     @has_tts             = current_workspace&.feature_subscription&.has_feature?(:tts)
-    @remaining_credits   = current_workspace&.credit_subscription&.credit_balance.to_i
+    @remaining_credits   = current_subscription&.credit_balance.to_i
     @history_count       = @has_stt ? current_workspace.stt_transcripts.count : 0
   end
 
@@ -182,7 +182,7 @@ class Admin::SttController < Admin::BaseController
 
       # If we need more than 1 credit, verify balance and deduct the remainder
       if credits > 1
-        sub = current_workspace.credit_subscription
+        sub = current_subscription
         if sub && !sub.enterprise? && sub.credit_balance < credits
           render json: {
             error:               "Không đủ AI credits (cần #{credits} credit cho video này).",
@@ -192,7 +192,7 @@ class Admin::SttController < Admin::BaseController
         end
       end
 
-      current_workspace.credit_subscription&.deduct_credits!(credits)
+      current_subscription&.deduct_credits!(credits)
       response.headers["X-Credits-Used"] = credits.to_s
 
       # Build speaker segments when diarize was requested
@@ -303,7 +303,7 @@ class Admin::SttController < Admin::BaseController
       PROMPT
     )
 
-    current_workspace.credit_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
+    current_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
     response.headers["X-Credits-Used"] = POSTPROCESS_CREDITS.to_s
     render json: { result: result, type: "summary" }
   rescue => e
@@ -338,7 +338,7 @@ class Admin::SttController < Admin::BaseController
       PROMPT
     )
 
-    current_workspace.credit_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
+    current_subscription&.deduct_credits!(POSTPROCESS_CREDITS)
     response.headers["X-Credits-Used"] = POSTPROCESS_CREDITS.to_s
     render json: { result: result, type: "translation" }
   rescue => e
@@ -356,7 +356,7 @@ class Admin::SttController < Admin::BaseController
     credits   = credits_for_duration(0, file_size)
 
     if credits > 1
-      sub = current_workspace.credit_subscription
+      sub = current_subscription
       if sub && !sub.enterprise? && sub.credit_balance < credits
         render json: {
           error:               "Không đủ AI credits (ước tính cần #{credits} credit cho file này).",
@@ -403,7 +403,7 @@ class Admin::SttController < Admin::BaseController
     )
 
     # Deduct credits after successful transcription
-    current_workspace.credit_subscription&.deduct_credits!(credits)
+    current_subscription&.deduct_credits!(credits)
     response.headers["X-Credits-Used"] = credits.to_s
 
     # Build speaker segments for history (when diarize was requested)
