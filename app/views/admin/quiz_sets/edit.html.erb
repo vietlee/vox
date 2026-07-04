@@ -1099,6 +1099,9 @@ async function pollAiStatus(pollUrl) {
     if (data.pending) {
       setTimeout(() => pollAiStatus(pollUrl), 3000);
     } else if (data.success) {
+      // Re-check: if minimized while fetch was in-flight, let VoxTaskManager handle it
+      const overlayNow = document.getElementById('ai-loading-overlay');
+      if (overlayNow && overlayNow.style.display === 'none' && window.VoxTaskManager) return;
       if (_aiRingCtrl) _aiRingCtrl.finish();
       window.location.href = data.redirect;
     } else if (data.failed || data.error) {

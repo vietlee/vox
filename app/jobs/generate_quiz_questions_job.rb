@@ -61,10 +61,15 @@ class GenerateQuizQuestionsJob < ApplicationJob
 
   def extract_questions_from_images(svc, images, questions_count, custom_prompt)
     all_questions = []
+    first_image_count = nil  # used as count hint for subsequent images in auto_mode
+
     images.each_with_index do |img, idx|
       img_count = if questions_count
         per = (questions_count.to_f / images.size).ceil
         idx == images.size - 1 ? questions_count - all_questions.size : per
+      elsif idx > 0 && first_image_count
+        # auto_mode: use first image's count as target for subsequent images
+        first_image_count
       end
       next if img_count && img_count <= 0
 
@@ -78,6 +83,7 @@ class GenerateQuizQuestionsJob < ApplicationJob
       raw = svc.call(system_prompt: SYSTEM_PROMPT, messages: messages, max_tokens: 8000)
       parsed = parse_ai_response(raw)
       Rails.logger.info "[GenerateQuizQuestionsJob] image #{idx}: got #{parsed&.size || 0} questions"
+      first_image_count ||= parsed&.size if idx == 0
       all_questions.concat(parsed) if parsed.present?
     end
     questions_count ? all_questions.first(questions_count) : all_questions
