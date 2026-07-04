@@ -19,10 +19,18 @@ class Admin::WorkspaceSettingsController < Admin::BaseController
   def destroy
     workspace = current_workspace
     name = workspace.name
+
+    # Resolve other workspace BEFORE purging — purge! deletes users with workspace_id = wid,
+    # which would delete current_user if their workspace_id still points here.
+    other = current_user.owned_workspaces.where.not(id: workspace.id).order(:id).first
+
+    if other
+      # Move current_user out of the workspace being deleted so purge! doesn't delete them
+      current_user.update_column(:workspace_id, other.id)
+    end
+
     workspace.purge!
 
-    # Switch to another owned workspace if available; otherwise sign out
-    other = current_user.owned_workspaces.where.not(id: workspace.id).order(:id).first
     if other
       session[:current_workspace_id] = other.id
       redirect_to dashboard_path,
