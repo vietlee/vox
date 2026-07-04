@@ -54,9 +54,19 @@
     </h2>
     <p class="text-[12px] text-slate-500 mb-4">
       <%= I18n.locale == :vi ?
-        "Xóa workspace sẽ xóa vĩnh viễn toàn bộ dữ liệu: surveys, votes, feedback, thành viên và tài khoản của bạn. Hành động này không thể hoàn tác." :
-        "Deleting your workspace permanently removes all data: surveys, votes, feedback, members and your account. This action cannot be undone." %>
+        "Xóa workspace sẽ xóa vĩnh viễn toàn bộ dữ liệu: surveys, votes, feedback, thành viên. Hành động này không thể hoàn tác." :
+        "Deleting this workspace permanently removes all data: surveys, votes, feedback, members. This action cannot be undone." %>
     </p>
+    <% if @is_last_owned_workspace %>
+      <div class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 mb-4">
+        <span class="text-red-500 mt-0.5">⚠️</span>
+        <p class="text-[12px] text-red-700 font-semibold">
+          <%= I18n.locale == :vi ?
+            "Đây là workspace duy nhất của bạn. Nếu xóa, bạn sẽ bị đăng xuất và tài khoản sẽ không còn workspace nào." :
+            "This is your only workspace. Deleting it will sign you out and your account will have no workspaces." %>
+        </p>
+      </div>
+    <% end %>
     <button type="button" onclick="document.getElementById('delete-workspace-modal').style.display='flex'"
       class="px-4 py-2 bg-red-600 text-white text-[13px] font-semibold rounded-lg hover:bg-red-700">
       🗑 <%= I18n.locale == :vi ? "Xóa workspace này" : "Delete this workspace" %>
@@ -71,9 +81,15 @@
       <%= I18n.locale == :vi ? "Xác nhận xóa workspace" : "Confirm workspace deletion" %>
     </h3>
     <p class="text-[13px] text-slate-500 mb-4">
-      <%= I18n.locale == :vi ?
-        "Nhập tên workspace để xác nhận. Tất cả dữ liệu sẽ bị xóa vĩnh viễn." :
-        "Type the workspace name to confirm. All data will be permanently deleted." %>
+      <% if @is_last_owned_workspace %>
+        <%= I18n.locale == :vi ?
+          "Đây là workspace cuối cùng. Sau khi xóa bạn sẽ bị đăng xuất. Nhập tên workspace để xác nhận." :
+          "This is your last workspace. You will be signed out after deletion. Type the workspace name to confirm." %>
+      <% else %>
+        <%= I18n.locale == :vi ?
+          "Nhập tên workspace để xác nhận. Sau khi xóa bạn sẽ được chuyển sang workspace khác." :
+          "Type the workspace name to confirm. You will be switched to another workspace after deletion." %>
+      <% end %>
     </p>
     <p class="text-[12px] font-bold text-slate-700 mb-2">
       <%= I18n.locale == :vi ? "Tên workspace:" : "Workspace name:" %>

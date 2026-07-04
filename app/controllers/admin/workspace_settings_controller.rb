@@ -3,6 +3,7 @@ class Admin::WorkspaceSettingsController < Admin::BaseController
 
   def show
     @workspace = current_workspace
+    @is_last_owned_workspace = current_user.owned_workspaces.count <= 1
   end
 
   def update
@@ -19,11 +20,22 @@ class Admin::WorkspaceSettingsController < Admin::BaseController
     workspace = current_workspace
     name = workspace.name
     workspace.purge!
-    sign_out current_user
-    redirect_to new_user_session_path,
-      notice: I18n.locale == :vi ?
-        "Workspace \"#{name}\" đã được xóa vĩnh viễn." :
-        "Workspace \"#{name}\" has been permanently deleted."
+
+    # Switch to another owned workspace if available; otherwise sign out
+    other = current_user.owned_workspaces.where.not(id: workspace.id).order(:id).first
+    if other
+      session[:current_workspace_id] = other.id
+      redirect_to dashboard_path,
+        notice: I18n.locale == :vi ?
+          "Workspace \"#{name}\" đã được xóa. Đã chuyển sang \"#{other.name}\"." :
+          "Workspace \"#{name}\" deleted. Switched to \"#{other.name}\"."
+    else
+      sign_out current_user
+      redirect_to new_user_session_path,
+        notice: I18n.locale == :vi ?
+          "Workspace \"#{name}\" đã được xóa vĩnh viễn." :
+          "Workspace \"#{name}\" has been permanently deleted."
+    end
   rescue => e
     Rails.logger.error "[WorkspacePurge] #{e.message}"
     redirect_to workspace_settings_path,
