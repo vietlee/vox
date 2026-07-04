@@ -14,7 +14,7 @@ class GenerateQuizQuestionsJob < ApplicationJob
 
     svc = ClaudeService.for_feature("quiz_generate", timeout: 180)
 
-    if content.is_a?(Hash) && content[:image_base64]
+    questions = if content.is_a?(Hash) && content[:image_base64]
       messages = [{
         role: "user",
         content: [
@@ -23,12 +23,11 @@ class GenerateQuizQuestionsJob < ApplicationJob
         ]
       }]
       raw = svc.call(system_prompt: SYSTEM_PROMPT, messages: messages, max_tokens: 8000)
+      parse_ai_response(raw)
     else
-      user_prompt = "#{build_prompt(questions_count, custom_prompt)}\n\n---\n#{content.to_s.truncate(22000)}"
-      raw = svc.call(system_prompt: SYSTEM_PROMPT, user_prompt: user_prompt, max_tokens: 8000)
+      extract_questions_chunked(svc, content.to_s, questions_count, custom_prompt)
     end
 
-    questions = parse_ai_response(raw)
     raise "No questions found in AI response" if questions.blank?
 
     ActiveRecord::Base.transaction do
@@ -56,6 +55,48 @@ class GenerateQuizQuestionsJob < ApplicationJob
   end
 
   private
+
+  CHUNK_CHAR_LIMIT = 20_000  # ~5k tokens per chunk, safe margin for 8k output
+
+  # Split large content into chunks, run AI on each, merge all questions.
+  # If questions_count is set, distribute evenly across chunks then slice.
+  def extract_questions_chunked(svc, text, questions_count, custom_prompt)
+    chunks = split_into_chunks(text, CHUNK_CHAR_LIMIT)
+    all_questions = []
+
+    chunks.each_with_index do |chunk, idx|
+      # For fixed count: ask proportional share per chunk; for auto: extract all
+      chunk_count = if questions_count
+        per = (questions_count.to_f / chunks.size).ceil
+        idx == chunks.size - 1 ? questions_count - all_questions.size : per
+      end
+      next if chunk_count && chunk_count <= 0
+
+      user_prompt = "#{build_prompt(chunk_count, idx == 0 ? custom_prompt : nil)}\n\n---\n#{chunk}"
+      raw = svc.call(system_prompt: SYSTEM_PROMPT, user_prompt: user_prompt, max_tokens: 8000)
+      parsed = parse_ai_response(raw)
+      all_questions.concat(parsed) if parsed.present?
+    end
+
+    # If fixed count requested, trim to exact number
+    questions_count ? all_questions.first(questions_count) : all_questions
+  end
+
+  # Split on paragraph/section boundaries to avoid cutting mid-sentence
+  def split_into_chunks(text, max_chars)
+    return [text] if text.length <= max_chars
+
+    chunks = []
+    remaining = text
+    while remaining.length > max_chars
+      # Try to cut at a double newline (paragraph boundary) within the limit
+      cut = remaining[0, max_chars].rindex(/\n\n|\n---/) || max_chars
+      chunks << remaining[0, cut].strip
+      remaining = remaining[cut..].lstrip
+    end
+    chunks << remaining.strip unless remaining.blank?
+    chunks
+  end
 
   SYSTEM_PROMPT = "You are a quiz generator. Respond with ONLY valid JSON, no markdown, no code fences, no explanation."
 
