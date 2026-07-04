@@ -260,7 +260,7 @@ class Admin::QuizSetsController < Admin::BaseController
       uploads_dir = Rails.root.join("tmp", "uploads")
       FileUtils.mkdir_p(uploads_dir)
       tmp_path = uploads_dir.join("quiz_#{@quiz_set.id}_#{Time.now.to_i}.json")
-      File.write(tmp_path, image_payloads.first.to_json)
+      File.write(tmp_path, image_payloads.to_json)
       job_content = { "tmp_file" => tmp_path.to_s }
     else
       job_content = nil

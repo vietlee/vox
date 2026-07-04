@@ -14,7 +14,10 @@ class GenerateQuizQuestionsJob < ApplicationJob
 
     svc = ClaudeService.for_feature("quiz_generate", timeout: 180)
 
-    questions = if content.is_a?(Hash) && content[:image_base64]
+    questions = if content.is_a?(Array) && content.first&.dig(:image_base64)
+      # Multiple image files — call AI once per image, merge results
+      extract_questions_from_images(svc, content, questions_count, custom_prompt)
+    elsif content.is_a?(Hash) && content[:image_base64]
       messages = [{
         role: "user",
         content: [
@@ -55,6 +58,30 @@ class GenerateQuizQuestionsJob < ApplicationJob
   end
 
   private
+
+  def extract_questions_from_images(svc, images, questions_count, custom_prompt)
+    all_questions = []
+    images.each_with_index do |img, idx|
+      img_count = if questions_count
+        per = (questions_count.to_f / images.size).ceil
+        idx == images.size - 1 ? questions_count - all_questions.size : per
+      end
+      next if img_count && img_count <= 0
+
+      messages = [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: img[:mime_type], data: img[:image_base64] } },
+          { type: "text", text: build_prompt(img_count, idx == 0 ? custom_prompt : nil) }
+        ]
+      }]
+      raw = svc.call(system_prompt: SYSTEM_PROMPT, messages: messages, max_tokens: 8000)
+      parsed = parse_ai_response(raw)
+      Rails.logger.info "[GenerateQuizQuestionsJob] image #{idx}: got #{parsed&.size || 0} questions"
+      all_questions.concat(parsed) if parsed.present?
+    end
+    questions_count ? all_questions.first(questions_count) : all_questions
+  end
 
   CHUNK_CHAR_LIMIT = 20_000  # ~5k tokens per chunk, safe margin for 8k output
 
