@@ -2,19 +2,19 @@ class SuperAdmin::SubscriptionsController < SuperAdmin::BaseController
   before_action :set_subscription, only: [:show, :edit, :update]
 
   def index
-    # List per-user: each workspace owner with their primary subscription
-    @user_subs = User
+    # Load all users who own at least one workspace, with their workspaces eager-loaded
+    @owners = User
       .joins("INNER JOIN workspaces ON workspaces.owner_id = users.id")
-      .select("users.id, users.name, users.email,
-               MIN(workspaces.id) AS primary_workspace_id,
-               COUNT(DISTINCT workspaces.id) AS workspace_count")
-      .group("users.id, users.name, users.email")
+      .where.not(workspaces: { id: nil })
+      .distinct
       .order("users.id ASC")
+      .includes(:owned_workspaces)
 
-    primary_ws_ids = @user_subs.map(&:primary_workspace_id).compact
-    @primary_subs  = Subscription.where(workspace_id: primary_ws_ids, status: :active)
-                                  .order(created_at: :desc)
-                                  .index_by(&:workspace_id)
+    # For each owner, find their primary subscription using the same logic as User#primary_subscription
+    @primary_subs = {}
+    @owners.each do |user|
+      @primary_subs[user.id] = user.primary_subscription
+    end
   end
 
   def show
