@@ -34,7 +34,8 @@ class SuperAdmin::SubscriptionsController < SuperAdmin::BaseController
   private
 
   def set_subscription
-    @subscription = Subscription.includes(:workspace).find(params[:id])
+    @subscription = Subscription.includes(:workspace, :user).find(params[:id])
+    @subscription_user = @subscription.user || @subscription.workspace&.owner
   end
 
   def subscription_params

@@ -1,6 +1,9 @@
 <div class="flex items-center gap-3 mb-6">
   <%= link_to super_admin_subscriptions_path, class: "text-[13px] text-slate-500 hover:text-slate-700" do %><%= t("super_admin.subscriptions.back") %><% end %>
-  <h1 class="text-[21px] font-extrabold text-slate-900"><%= @subscription.workspace&.name %></h1>
+  <div>
+    <h1 class="text-[21px] font-extrabold text-slate-900"><%= @subscription_user&.name.presence || @subscription_user&.email %></h1>
+    <div class="text-[12px] text-slate-400"><%= @subscription_user&.email %></div>
+  </div>
   <%= link_to edit_super_admin_subscription_path(@subscription), class: "ml-auto px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700" do %><%= t("super_admin.subscriptions.show_edit_btn") %><% end %>
 </div>
 
@@ -22,7 +25,7 @@
 <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
   <h2 class="text-[13px] font-bold text-slate-700 mb-3">Thông tin</h2>
   <dl class="space-y-2 text-[13px]">
-    <div class="flex justify-between"><dt class="text-slate-500">Workspace</dt><dd class="font-semibold text-slate-900"><%= @subscription.workspace&.name %></dd></div>
+    <div class="flex justify-between"><dt class="text-slate-500">Workspaces sở hữu</dt><dd class="font-semibold text-slate-900"><%= @subscription_user&.owned_workspaces&.map(&:name)&.join(", ").presence || "—" %></dd></div>
     <div class="flex justify-between"><dt class="text-slate-500">Ngày tạo</dt><dd class="text-slate-700"><%= @subscription.starts_at&.strftime("%b %d, %Y") || "—" %></dd></div>
     <div class="flex justify-between"><dt class="text-slate-500">Tính năng</dt><dd class="text-emerald-600 font-semibold">Tất cả miễn phí</dd></div>
     <div class="flex justify-between"><dt class="text-slate-500">Giới hạn</dt><dd class="text-slate-700">Không giới hạn</dd></div>
