@@ -44,8 +44,8 @@ class Auth::SsoWorkspacesController < ApplicationController
         plan:           :free,
         status:         :active,
         starts_at:      Time.current,
-        credit_balance: Subscription.monthly_free_credits,
-        max_ai_credits: Subscription.monthly_free_credits
+        credit_balance: 0,
+        max_ai_credits: 0
       )
     end
 

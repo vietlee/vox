@@ -48,7 +48,7 @@ class AiModerationJob < ApplicationJob
       ai_analysis: result
     )
 
-    feedback.workspace.active_subscription&.deduct_credits!(1)
+    feedback.workspace.credit_subscription&.deduct_credits!(1)
   rescue => e
     Rails.logger.error "AI Moderation failed for feedback #{feedback_id}: #{e.message}"
   end

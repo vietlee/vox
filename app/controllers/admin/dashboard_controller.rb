@@ -2,7 +2,7 @@ class Admin::DashboardController < Admin::BaseController
   def index
     @workspace = current_workspace
     return redirect_to super_admin_root_path if @workspace.nil?
-    @subscription = @workspace.active_subscription
+    @subscription = @workspace.credit_subscription
 
     # Core stats
     @surveys_count        = @workspace.surveys.count
