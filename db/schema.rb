@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_02_005235) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_04_111611) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -324,6 +324,22 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_02_005235) do
     t.index ["workspace_id"], name: "index_feedbacks_on_workspace_id"
   end
 
+  create_table "flashcard_assignments", force: :cascade do |t|
+    t.bigint "flashcard_deck_id", null: false
+    t.bigint "learner_id", null: false
+    t.bigint "assigned_by_id", null: false
+    t.string "token", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "due_at"
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["flashcard_deck_id", "learner_id"], name: "idx_on_flashcard_deck_id_learner_id_acaee1ea5f", unique: true
+    t.index ["flashcard_deck_id"], name: "index_flashcard_assignments_on_flashcard_deck_id"
+    t.index ["learner_id"], name: "index_flashcard_assignments_on_learner_id"
+    t.index ["token"], name: "index_flashcard_assignments_on_token", unique: true
+  end
+
   create_table "flashcard_decks", force: :cascade do |t|
     t.bigint "workspace_id", null: false
     t.bigint "created_by_id", null: false
@@ -365,6 +381,34 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_02_005235) do
     t.index ["flashcard_deck_id"], name: "index_flashcards_on_flashcard_deck_id"
   end
 
+  create_table "learners", force: :cascade do |t|
+    t.string "email", default: "", null: false
+    t.string "name", default: "", null: false
+    t.string "encrypted_password", default: "", null: false
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
+    t.datetime "remember_created_at"
+    t.string "confirmation_token"
+    t.datetime "confirmed_at"
+    t.datetime "confirmation_sent_at"
+    t.string "unconfirmed_email"
+    t.integer "sign_in_count", default: 0, null: false
+    t.datetime "current_sign_in_at"
+    t.datetime "last_sign_in_at"
+    t.string "current_sign_in_ip"
+    t.string "last_sign_in_ip"
+    t.integer "credits", default: 50, null: false
+    t.string "invite_token"
+    t.datetime "invite_sent_at"
+    t.boolean "password_set", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["confirmation_token"], name: "index_learners_on_confirmation_token", unique: true
+    t.index ["email"], name: "index_learners_on_email", unique: true
+    t.index ["invite_token"], name: "index_learners_on_invite_token", unique: true
+    t.index ["reset_password_token"], name: "index_learners_on_reset_password_token", unique: true
+  end
+
   create_table "learning_item_progresses", force: :cascade do |t|
     t.bigint "learning_path_assignment_id", null: false
     t.bigint "learning_path_item_id", null: false
@@ -379,17 +423,22 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_02_005235) do
   create_table "learning_path_assignments", force: :cascade do |t|
     t.bigint "learning_path_id", null: false
     t.bigint "assigned_by_id", null: false
-    t.bigint "assignee_id", null: false
+    t.bigint "assignee_id"
     t.date "due_date"
     t.integer "status", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.text "ai_feedback"
     t.datetime "ai_feedback_at"
+    t.bigint "learner_id"
+    t.string "token"
+    t.datetime "completed_at"
     t.index ["assigned_by_id"], name: "index_learning_path_assignments_on_assigned_by_id"
     t.index ["assignee_id"], name: "index_learning_path_assignments_on_assignee_id"
+    t.index ["learner_id"], name: "index_learning_path_assignments_on_learner_id"
     t.index ["learning_path_id", "assignee_id"], name: "idx_on_learning_path_id_assignee_id_44b44d6f23", unique: true
     t.index ["learning_path_id"], name: "index_learning_path_assignments_on_learning_path_id"
+    t.index ["token"], name: "index_learning_path_assignments_on_token", unique: true
   end
 
   create_table "learning_path_items", force: :cascade do |t|
@@ -521,6 +570,23 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_02_005235) do
     t.datetime "updated_at", null: false
     t.index ["survey_id", "position"], name: "index_questions_on_survey_id_and_position"
     t.index ["survey_id"], name: "index_questions_on_survey_id"
+  end
+
+  create_table "quiz_assignments", force: :cascade do |t|
+    t.bigint "quiz_set_id", null: false
+    t.bigint "learner_id", null: false
+    t.bigint "assigned_by_id", null: false
+    t.string "token", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "due_at"
+    t.text "message"
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id"], name: "index_quiz_assignments_on_learner_id"
+    t.index ["quiz_set_id", "learner_id"], name: "index_quiz_assignments_on_quiz_set_id_and_learner_id", unique: true
+    t.index ["quiz_set_id"], name: "index_quiz_assignments_on_quiz_set_id"
+    t.index ["token"], name: "index_quiz_assignments_on_token", unique: true
   end
 
   create_table "quiz_attempt_answers", force: :cascade do |t|
@@ -685,8 +751,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_02_005235) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "max_dynamic_forms"
+    t.bigint "user_id"
     t.index ["plan"], name: "index_subscriptions_on_plan"
     t.index ["status"], name: "index_subscriptions_on_status"
+    t.index ["user_id"], name: "index_subscriptions_on_user_id"
     t.index ["workspace_id"], name: "index_subscriptions_on_workspace_id"
   end
 
@@ -905,6 +973,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_02_005235) do
   add_foreign_key "feedback_upvotes", "feedbacks"
   add_foreign_key "feedbacks", "feedback_boards"
   add_foreign_key "feedbacks", "workspaces"
+  add_foreign_key "flashcard_assignments", "flashcard_decks"
+  add_foreign_key "flashcard_assignments", "learners"
   add_foreign_key "flashcard_decks", "users", column: "created_by_id"
   add_foreign_key "flashcard_decks", "workspaces"
   add_foreign_key "flashcard_reviews", "flashcards"
@@ -925,6 +995,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_02_005235) do
   add_foreign_key "qr_codes", "workspaces"
   add_foreign_key "question_options", "questions"
   add_foreign_key "questions", "surveys"
+  add_foreign_key "quiz_assignments", "learners"
+  add_foreign_key "quiz_assignments", "quiz_sets"
   add_foreign_key "quiz_attempt_answers", "quiz_attempts"
   add_foreign_key "quiz_attempt_answers", "quiz_options"
   add_foreign_key "quiz_attempt_answers", "quiz_questions"

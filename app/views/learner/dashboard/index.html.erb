@@ -1,0 +1,126 @@
+<% content_for :title, "Trang chủ" %>
+
+<%# Hero greeting %>
+<div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:20px;padding:20px;margin-bottom:20px;color:white;">
+  <p style="font-size:13px;opacity:0.8;margin-bottom:4px;">Xin chào 👋</p>
+  <h1 style="font-size:22px;font-weight:800;"><%= current_learner.name %></h1>
+  <div style="display:flex;gap:16px;margin-top:14px;">
+    <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:10px 14px;flex:1;text-align:center;">
+      <p style="font-size:20px;font-weight:800;"><%= @quiz_assignments.count %></p>
+      <p style="font-size:11px;opacity:0.8;">Quiz</p>
+    </div>
+    <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:10px 14px;flex:1;text-align:center;">
+      <p style="font-size:20px;font-weight:800;"><%= @flashcard_assignments.count %></p>
+      <p style="font-size:11px;opacity:0.8;">Flashcard</p>
+    </div>
+    <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:10px 14px;flex:1;text-align:center;">
+      <p style="font-size:20px;font-weight:800;"><%= @path_assignments.count %></p>
+      <p style="font-size:11px;opacity:0.8;">Lộ trình</p>
+    </div>
+  </div>
+</div>
+
+<%# Quick AI Tutor CTA %>
+<%= link_to learner_ai_tutor_path, style: "display:block;text-decoration:none;margin-bottom:20px;" do %>
+  <div style="background:linear-gradient(135deg,#fdf4ff,#fae8ff);border:1.5px solid #e9d5ff;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+    <div style="width:44px;height:44px;background:linear-gradient(135deg,#9333ea,#7c3aed);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <svg width="22" height="22" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+    </div>
+    <div style="flex:1;">
+      <p style="font-weight:700;color:#6b21a8;font-size:14px;">AI Tutor</p>
+      <p style="font-size:12px;color:#9333ea;">Hỏi bất cứ điều gì · <%= current_learner.credits %> credits</p>
+    </div>
+    <svg width="18" height="18" fill="none" stroke="#9333ea" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+  </div>
+<% end %>
+
+<%# Quiz assignments %>
+<% if @quiz_assignments.any? %>
+  <p class="lp-section-title">Quiz được giao</p>
+  <% @quiz_assignments.each do |a| %>
+    <div class="lp-card">
+      <div class="lp-card-body" style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="22" height="22" fill="none" stroke="#1d4ed8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= a.quiz_set.title %></p>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+            <% if a.completed? %>
+              <span class="lp-badge lp-badge-done">✓ Hoàn thành</span>
+            <% elsif a.overdue? %>
+              <span class="lp-badge lp-badge-overdue">Quá hạn</span>
+            <% elsif a.in_progress? %>
+              <span class="lp-badge lp-badge-progress">Đang làm</span>
+            <% else %>
+              <span class="lp-badge lp-badge-pending">Chưa làm</span>
+            <% end %>
+            <% if a.due_at %>
+              <span style="font-size:11px;color:#9ca3af;">· <%= a.due_at.strftime("%d/%m/%Y") %></span>
+            <% end %>
+          </div>
+        </div>
+        <%= link_to a.completed? ? result_learner_quiz_assignment_path(a.token) : show_learner_quiz_assignment_path(a.token),
+              class: "lp-btn lp-btn-primary", style: "padding:8px 14px;font-size:13px;flex-shrink:0;" do %>
+          <%= a.completed? ? "Xem kết quả" : (a.in_progress? ? "Tiếp tục" : "Bắt đầu") %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<%# Flashcard assignments %>
+<% if @flashcard_assignments.any? %>
+  <p class="lp-section-title" style="margin-top:20px;">Flashcard được giao</p>
+  <% @flashcard_assignments.each do |a| %>
+    <div class="lp-card">
+      <div class="lp-card-body" style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="22" height="22" fill="none" stroke="#065f46" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= a.flashcard_deck.title %></p>
+          <p style="font-size:12px;color:#6b7280;margin-top:2px;"><%= a.flashcard_deck.flashcards.count %> thẻ</p>
+        </div>
+        <%= link_to a.completed? ? learner_flashcard_assignment_path(a.token) : study_learner_flashcard_assignment_path(a.token),
+              class: "lp-btn lp-btn-primary", style: "padding:8px 14px;font-size:13px;flex-shrink:0;" do %>
+          <%= a.completed? ? "Ôn lại" : "Học ngay" %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<%# Learning path assignments %>
+<% if @path_assignments.any? %>
+  <p class="lp-section-title" style="margin-top:20px;">Lộ trình học</p>
+  <% @path_assignments.each do |a| %>
+    <div class="lp-card">
+      <div class="lp-card-body">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+          <div style="width:44px;height:44px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="22" height="22" fill="none" stroke="#92400e" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <p style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= a.learning_path.title %></p>
+            <p style="font-size:12px;color:#6b7280;margin-top:2px;"><%= a.progress_pct %>% hoàn thành</p>
+          </div>
+          <%= link_to learner_learning_path_assignment_path(a.token), class: "lp-btn lp-btn-primary", style: "padding:8px 14px;font-size:13px;flex-shrink:0;" do %>
+            <%= a.completed? ? "Xem lại" : "Tiếp tục" %>
+          <% end %>
+        </div>
+        <div class="lp-progress-bar">
+          <div class="lp-progress-fill" style="width:<%= a.progress_pct %>%;"></div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<% if @quiz_assignments.empty? && @flashcard_assignments.empty? && @path_assignments.empty? %>
+  <div style="text-align:center;padding:60px 20px;">
+    <div style="font-size:48px;margin-bottom:12px;">📚</div>
+    <p style="font-weight:700;font-size:16px;color:#374151;">Chưa có nội dung nào</p>
+    <p style="font-size:14px;color:#9ca3af;margin-top:6px;">Bạn chưa được giao quiz, flashcard hay lộ trình học nào.</p>
+  </div>
+<% end %>

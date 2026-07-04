@@ -1,0 +1,23 @@
+<% content_for :title, @assignment.flashcard_deck.title %>
+
+<div style="text-align:center;padding:20px 0 30px;">
+  <div style="width:80px;height:80px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+    <svg width="40" height="40" fill="none" stroke="#065f46" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+  </div>
+  <h1 style="font-size:22px;font-weight:800;"><%= @assignment.flashcard_deck.title %></h1>
+  <% if @assignment.flashcard_deck.subject.present? %>
+    <p style="font-size:14px;color:#6b7280;margin-top:4px;"><%= @assignment.flashcard_deck.subject %></p>
+  <% end %>
+</div>
+
+<div class="lp-card">
+  <div class="lp-card-body" style="text-align:center;">
+    <p style="font-size:36px;font-weight:900;color:#10b981;"><%= @assignment.flashcard_deck.flashcards.count %></p>
+    <p style="color:#9ca3af;font-size:13px;">thẻ flashcard</p>
+    <div style="margin-top:20px;">
+      <%= link_to study_learner_flashcard_assignment_path(@assignment.token), class: "lp-btn lp-btn-primary lp-btn-full", style: "font-size:16px;padding:14px;" do %>
+        <%= @assignment.completed? ? "Ôn lại →" : "Bắt đầu học →" %>
+      <% end %>
+    </div>
+  </div>
+</div>

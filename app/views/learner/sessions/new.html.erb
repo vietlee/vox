@@ -1,0 +1,48 @@
+<% content_for :title, "Đăng nhập" %>
+<style>
+  body { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%) !important; }
+  .auth-card { background: white; border-radius: 24px; padding: 32px 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-width: 400px; margin: 40px auto 0; }
+  .auth-logo { text-align: center; margin-bottom: 28px; }
+  .auth-logo svg { margin-bottom: 12px; }
+  .auth-logo h1 { font-size: 24px; font-weight: 800; color: #4f46e5; }
+  .auth-logo p { font-size: 14px; color: #6b7280; margin-top: 4px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+  .form-input { width: 100%; padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 12px; font-size: 15px; outline: none; transition: border-color 0.2s; background: #fafafa; }
+  .form-input:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+  .auth-submit { width: 100%; padding: 13px; background: linear-gradient(135deg, #6366f1, #7c3aed); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
+  .auth-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
+  .auth-links { text-align: center; margin-top: 20px; font-size: 13px; color: #6b7280; }
+  .auth-links a { color: #6366f1; font-weight: 600; text-decoration: none; }
+  .auth-divider { text-align: center; color: #d1d5db; font-size: 13px; margin: 16px 0; position: relative; }
+  .auth-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #e5e7eb; }
+  .auth-divider span { background: white; padding: 0 12px; position: relative; }
+</style>
+
+<div class="auth-card">
+  <div class="auth-logo">
+    <svg width="52" height="52" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="9" fill="#6366f1"/><polygon points="10,24 6,31 16,24" fill="white"/><rect x="6" y="6" width="24" height="19" rx="5" fill="white" fill-opacity="0.9"/><rect x="10" y="11" width="4" height="7" rx="1" fill="#6366f1"/><rect x="16" y="8" width="4" height="13" rx="1" fill="#6366f1"/><rect x="23" y="10" width="4" height="9" rx="1" fill="#6366f1"/></svg>
+    <h1>VOX Learn</h1>
+    <p>Đăng nhập để tiếp tục học tập</p>
+  </div>
+
+  <%= form_with url: learner_session_path, method: :post do |f| %>
+    <div class="form-group">
+      <%= f.label :email, "Email", class: "form-label" %>
+      <%= f.email_field :email, class: "form-input", placeholder: "you@example.com", autofocus: true, autocomplete: "email" %>
+    </div>
+    <div class="form-group">
+      <%= f.label :password, "Mật khẩu", class: "form-label" %>
+      <%= f.password_field :password, class: "form-input", placeholder: "••••••••", autocomplete: "current-password" %>
+    </div>
+    <%= f.submit "Đăng nhập", class: "auth-submit" %>
+  <% end %>
+
+  <div class="auth-links" style="margin-top:14px;">
+    <%= link_to "Quên mật khẩu?", new_learner_password_path %>
+  </div>
+  <div class="auth-divider"><span>hoặc</span></div>
+  <div class="auth-links">
+    Chưa có tài khoản? <%= link_to "Đăng ký", new_learner_registration_path %>
+  </div>
+</div>

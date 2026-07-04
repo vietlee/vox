@@ -1,0 +1,42 @@
+<% content_for :title, "Hồ sơ" %>
+
+<div style="text-align:center;padding:20px 0 24px;">
+  <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+    <span style="font-size:32px;font-weight:800;color:white;"><%= current_learner.name.first.upcase %></span>
+  </div>
+  <h1 style="font-size:20px;font-weight:800;"><%= current_learner.name %></h1>
+  <p style="font-size:14px;color:#9ca3af;margin-top:4px;"><%= current_learner.email %></p>
+</div>
+
+<div class="lp-card" style="margin-bottom:20px;">
+  <div class="lp-card-body">
+    <%= form_with model: current_learner, url: learner_profile_path, method: :patch do |f| %>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Tên hiển thị</label>
+        <%= f.text_field :name, style: "width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:15px;outline:none;", onfocus: "this.style.borderColor='#6366f1'", onblur: "this.style.borderColor='#e5e7eb'" %>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Email</label>
+        <input type="email" value="<%= current_learner.email %>" disabled style="width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:15px;background:#f9fafb;color:#6b7280;">
+      </div>
+      <%= f.submit "Lưu thay đổi", class: "lp-btn lp-btn-primary lp-btn-full" %>
+    <% end %>
+  </div>
+</div>
+
+<div class="lp-card">
+  <div class="lp-card-body">
+    <p style="font-weight:700;font-size:14px;margin-bottom:12px;">Tài khoản</p>
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f3f4f6;">
+      <span style="font-size:14px;color:#6b7280;">Credits còn lại</span>
+      <span style="font-weight:700;color:#7c3aed;"><%= current_learner.credits %></span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f3f4f6;">
+      <span style="font-size:14px;color:#6b7280;">Tham gia từ</span>
+      <span style="font-weight:600;"><%= current_learner.created_at.strftime("%d/%m/%Y") %></span>
+    </div>
+    <div style="padding-top:14px;">
+      <%= link_to "Đăng xuất", destroy_learner_session_path, data: { turbo_method: :delete }, class: "lp-btn lp-btn-full", style: "background:#fee2e2;color:#991b1b;border:none;" %>
+    </div>
+  </div>
+</div>

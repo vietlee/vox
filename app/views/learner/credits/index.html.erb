@@ -1,0 +1,39 @@
+<% content_for :title, "Credits" %>
+
+<div style="text-align:center;padding:20px 0;">
+  <div style="width:80px;height:80px;background:linear-gradient(135deg,#fdf4ff,#fae8ff);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:2px solid #e9d5ff;">
+    <svg width="40" height="40" fill="none" stroke="#9333ea" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+  </div>
+  <p style="font-size:14px;color:#9ca3af;">Số dư hiện tại</p>
+  <p style="font-size:48px;font-weight:900;color:#7c3aed;line-height:1;"><%= current_learner.credits %></p>
+  <p style="font-size:14px;color:#9ca3af;margin-top:4px;">credits</p>
+</div>
+
+<div style="background:#f5f3ff;border-radius:14px;padding:12px 16px;margin-bottom:20px;display:flex;gap:10px;align-items:flex-start;">
+  <svg width="18" height="18" fill="none" stroke="#7c3aed" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div>
+    <p style="font-size:13px;font-weight:700;color:#6b21a8;">Cách dùng credit</p>
+    <p style="font-size:12px;color:#7c3aed;margin-top:2px;">1 credit / tin nhắn AI Tutor · Miễn phí 50 credit/tháng</p>
+  </div>
+</div>
+
+<p class="lp-section-title">Mua thêm credit</p>
+<% @packages.each do |pkg| %>
+  <div class="lp-card" style="margin-bottom:10px;">
+    <div class="lp-card-body" style="display:flex;align-items:center;gap:12px;">
+      <div style="flex:1;">
+        <p style="font-weight:700;font-size:15px;"><%= pkg[:label] %></p>
+        <p style="font-size:13px;color:#9ca3af;margin-top:2px;"><%= pkg[:credits] %> credits</p>
+      </div>
+      <div style="text-align:right;">
+        <p style="font-weight:800;font-size:16px;color:#6366f1;"><%= number_to_currency(pkg[:price], unit: "₫", delimiter: ".", separator: ",", format: "%n %u") %></p>
+        <p style="font-size:11px;color:#9ca3af;"><%= (pkg[:price].to_f / pkg[:credits]).round %>₫/credit</p>
+      </div>
+      <button onclick="alert('Tính năng đang triển khai!')" class="lp-btn lp-btn-primary" style="padding:9px 16px;font-size:13px;flex-shrink:0;">
+        Mua
+      </button>
+    </div>
+  </div>
+<% end %>
+
+<p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:16px;">50 credit miễn phí được cấp vào đầu mỗi tháng</p>

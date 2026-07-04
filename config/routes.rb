@@ -337,6 +337,61 @@ Rails.application.routes.draw do
     post "ai/suggest_meta", to: "ai#suggest_meta", as: :ai_suggest_meta
   end
 
+  # ── Learner Portal ──────────────────────────────────────────────────
+  devise_for :learners, path: "learn", controllers: {
+    sessions:      "learner/sessions",
+    passwords:     "learner/passwords",
+    registrations: "learner/registrations"
+  }
+
+  # Magic invite link (set password first time)
+  get   "learn/invite/:token", to: "learner/invitations#accept",  as: :learner_invitation
+  patch "learn/invite/:token", to: "learner/invitations#update"
+
+  namespace :learner do
+    root to: "dashboard#index"
+    get "dashboard", to: "dashboard#index", as: :dashboard
+
+    # Quiz assignments
+    resources :quiz_assignments, only: [:show], param: :token do
+      member do
+        get  :take
+        post :start
+        post :save_answer
+        post :submit
+        get  :result
+      end
+    end
+
+    # Flashcard assignments
+    resources :flashcard_assignments, only: [:show], param: :token do
+      member do
+        get  :study
+        post :review
+      end
+    end
+
+    # Learning path assignments
+    resources :learning_path_assignments, only: [:show], param: :token do
+      member do
+        post :complete_item
+      end
+    end
+
+    # AI Tutor
+    get  "tutor",       to: "ai_tutor#index",  as: :ai_tutor
+    post "tutor/chat",  to: "ai_tutor#chat",   as: :ai_tutor_chat
+    post "tutor/voice", to: "ai_tutor#voice",  as: :ai_tutor_voice
+
+    # Credits
+    get  "credits",          to: "credits#index",   as: :credits
+    post "credits/checkout", to: "credits#checkout", as: :credits_checkout
+    get  "credits/return",   to: "credits#return",   as: :credits_return
+
+    # Profile
+    resource :profile, only: [:show, :update]
+  end
+
   # Public quiz routes (học sinh làm bài)
   scope "/q" do
     get  ":token",            to: "quiz#show",   as: :quiz

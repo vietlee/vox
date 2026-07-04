@@ -1,0 +1,128 @@
+<% content_for :title, "Học: #{@deck.title}" %>
+<% content_for :head do %>
+<style>
+  .lp-main { padding-bottom: 0 !important; background: #1e1b4b; }
+  .lp-page { padding: 0 !important; max-width: 100% !important; height: calc(100dvh - 56px); display: flex; flex-direction: column; }
+  .fc-header { padding: 16px; color: white; }
+  .fc-progress { background: rgba(255,255,255,0.2); border-radius: 99px; height: 5px; }
+  .fc-progress-fill { height: 100%; border-radius: 99px; background: #a5b4fc; transition: width 0.4s; }
+  .fc-arena { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; perspective: 1000px; }
+  .fc-card-wrap { width: 100%; max-width: 420px; height: 260px; position: relative; cursor: pointer; }
+  .fc-card { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4,0,0.2,1); }
+  .fc-card.flipped { transform: rotateY(180deg); }
+  .fc-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 24px; display: flex; align-items: center; justify-content: center; padding: 28px; text-align: center; box-shadow: 0 16px 40px rgba(0,0,0,0.3); }
+  .fc-front { background: linear-gradient(135deg, #6366f1, #7c3aed); color: white; }
+  .fc-back  { background: white; transform: rotateY(180deg); }
+  .fc-face-label { position: absolute; top: 14px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; }
+  .fc-front .fc-face-label { color: rgba(255,255,255,0.7); }
+  .fc-back .fc-face-label  { color: #9ca3af; }
+  .fc-word { font-size: 26px; font-weight: 800; line-height: 1.3; }
+  .fc-front .fc-word { color: white; }
+  .fc-back .fc-word { color: #1e1b4b; }
+  .fc-image { max-width: 120px; max-height: 100px; object-fit: contain; border-radius: 10px; margin-bottom: 10px; }
+  .fc-tap-hint { color: rgba(255,255,255,0.5); font-size: 12px; text-align: center; padding: 8px 0 4px; }
+  .fc-actions { display: flex; gap: 12px; padding: 12px 16px calc(12px + var(--safe-bottom)); }
+  .fc-btn-rate { flex: 1; padding: 14px 0; border: none; border-radius: 16px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+  .fc-btn-again { background: #fee2e2; color: #991b1b; }
+  .fc-btn-hard  { background: #fef3c7; color: #92400e; }
+  .fc-btn-good  { background: #d1fae5; color: #065f46; }
+  .fc-btn-easy  { background: #dbeafe; color: #1e40af; }
+  .fc-btn-rate:active { transform: scale(0.96); }
+  .fc-done { text-align: center; color: white; padding: 40px 20px; }
+</style>
+<% end %>
+
+<div class="fc-header">
+  <div style="display:flex;justify-content:space-between;align-items:center;color:rgba(255,255,255,0.8);font-size:13px;margin-bottom:8px;">
+    <span><%= @deck.title.truncate(28) %></span>
+    <span id="fc-counter">1 / <%= @cards.count %></span>
+  </div>
+  <div class="fc-progress"><div class="fc-progress-fill" id="fc-bar" style="width:0%;"></div></div>
+</div>
+
+<div class="fc-arena" id="fc-arena">
+  <% if @cards.any? %>
+    <div class="fc-card-wrap" onclick="flipCard()">
+      <div class="fc-card" id="fc-card">
+        <div class="fc-face fc-front">
+          <span class="fc-face-label">Mặt trước</span>
+          <p class="fc-word" id="fc-front-text"></p>
+        </div>
+        <div class="fc-face fc-back">
+          <span class="fc-face-label">Mặt sau</span>
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <img id="fc-back-img" src="" alt="" class="fc-image" style="display:none;">
+            <p class="fc-word" id="fc-back-text" style="color:#1e1b4b;"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div class="fc-done"><p style="font-size:20px;">Không có thẻ nào</p></div>
+  <% end %>
+</div>
+
+<% if @cards.any? %>
+<p class="fc-tap-hint">Nhấn vào thẻ để lật</p>
+<div class="fc-actions" id="fc-actions" style="display:none;">
+  <button class="fc-btn-rate fc-btn-again" onclick="rate('again')">Lại</button>
+  <button class="fc-btn-rate fc-btn-hard"  onclick="rate('hard')">Khó</button>
+  <button class="fc-btn-rate fc-btn-good"  onclick="rate('good')">Tốt</button>
+  <button class="fc-btn-rate fc-btn-easy"  onclick="rate('easy')">Dễ</button>
+</div>
+<% end %>
+
+<script>
+var _cards = <%= raw @cards.map { |c| { id: c.id, front: c.front, back: c.back, image: c.image_data.present? ? c.image_data.to_s.truncate(200) : nil } }.to_json %>;
+var _idx = 0; var _flipped = false;
+var _csrf = '<%= form_authenticity_token %>';
+var _reviewUrl = '<%= review_learner_flashcard_assignment_path(@assignment.token) %>';
+var _doneUrl   = '<%= learner_root_path %>';
+
+function showCard(i) {
+  var c = _cards[i];
+  document.getElementById('fc-front-text').textContent = c.front;
+  document.getElementById('fc-back-text').textContent  = c.back;
+  var img = document.getElementById('fc-back-img');
+  if (c.image) { img.src = c.image; img.style.display = ''; }
+  else { img.style.display = 'none'; }
+  document.getElementById('fc-card').classList.remove('flipped');
+  document.getElementById('fc-actions').style.display = 'none';
+  document.querySelector('.fc-tap-hint').style.display = '';
+  _flipped = false;
+  var pct = (i / _cards.length * 100).toFixed(0);
+  document.getElementById('fc-bar').style.width = pct + '%';
+  document.getElementById('fc-counter').textContent = (i+1) + ' / ' + _cards.length;
+}
+
+function flipCard() {
+  if (_flipped) return;
+  document.getElementById('fc-card').classList.add('flipped');
+  document.getElementById('fc-actions').style.display = 'flex';
+  document.querySelector('.fc-tap-hint').style.display = 'none';
+  _flipped = true;
+}
+
+function rate(r) {
+  var card = _cards[_idx];
+  fetch(_reviewUrl, {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': _csrf, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ flashcard_id: card.id, rating: r })
+  }).then(function(res) { return res.json(); }).then(function(d) {
+    if (d.completed) { showDone(); return; }
+    _idx++;
+    if (_idx >= _cards.length) { showDone(); return; }
+    showCard(_idx);
+  });
+}
+
+function showDone() {
+  document.getElementById('fc-arena').innerHTML = '<div class="fc-done"><div style="font-size:64px;margin-bottom:16px;">🎉</div><h2 style="font-size:24px;font-weight:800;margin-bottom:8px;">Hoàn thành!</h2><p style="opacity:0.7;margin-bottom:24px;">Bạn đã học hết tất cả thẻ.</p><a href="' + _doneUrl + '" style="background:white;color:#4f46e5;padding:12px 28px;border-radius:14px;font-weight:700;font-size:15px;text-decoration:none;">← Về trang chủ</a></div>';
+  document.getElementById('fc-actions') && (document.getElementById('fc-actions').style.display = 'none');
+  document.querySelector('.fc-tap-hint') && (document.querySelector('.fc-tap-hint').style.display = 'none');
+  document.getElementById('fc-bar').style.width = '100%';
+}
+
+showCard(0);
+</script>

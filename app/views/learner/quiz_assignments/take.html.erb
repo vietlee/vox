@@ -1,0 +1,98 @@
+<% content_for :title, "Làm bài: #{@quiz_set.title}" %>
+<% content_for :head do %>
+<style>
+  .lp-main { padding-bottom: 80px !important; }
+  .qz-header { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: white; padding: 14px 16px; margin: -20px -16px 20px; border-radius: 0 0 20px 20px; }
+  .qz-progress { background: rgba(255,255,255,0.25); border-radius: 99px; height: 6px; margin-top: 10px; }
+  .qz-progress-fill { height: 100%; border-radius: 99px; background: white; transition: width 0.4s; }
+  .qz-question { margin-bottom: 28px; }
+  .qz-q-num { font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .qz-q-text { font-size: 17px; font-weight: 700; line-height: 1.5; margin-bottom: 14px; }
+  .qz-option { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 2px solid #e5e7eb; border-radius: 14px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; background: white; width: 100%; text-align: left; }
+  .qz-option:hover { border-color: #a5b4fc; background: #f5f3ff; }
+  .qz-option.selected { border-color: #6366f1; background: #eef2ff; }
+  .qz-option.selected .qz-opt-circle { background: #6366f1; border-color: #6366f1; }
+  .qz-option.selected .qz-opt-circle::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+  .qz-opt-circle { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #d1d5db; position: relative; flex-shrink: 0; transition: all 0.15s; }
+  .qz-opt-text { font-size: 15px; font-weight: 500; flex: 1; }
+  .qz-submit-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; padding: 12px 16px calc(12px + var(--safe-bottom)); }
+  .qz-submit-btn { width: 100%; padding: 14px; background: linear-gradient(135deg,#6366f1,#7c3aed); color: white; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .qz-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+<% end %>
+
+<div class="qz-header">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:13px;opacity:0.8;"><%= @quiz_set.title.truncate(30) %></span>
+    <span style="font-size:13px;font-weight:700;" id="qz-counter">0 / <%= @questions.count %></span>
+  </div>
+  <div class="qz-progress"><div class="qz-progress-fill" id="qz-bar" style="width:0%;"></div></div>
+</div>
+
+<%= form_with url: submit_learner_quiz_assignment_path(@assignment.token), method: :post, id: "qz-form" do |f| %>
+  <% @questions.each_with_index do |q, i| %>
+    <div class="qz-question">
+      <p class="qz-q-num">Câu <%= i + 1 %> / <%= @questions.count %></p>
+      <p class="qz-q-text"><%= q.question_text %></p>
+      <% q.quiz_options.each do |opt| %>
+        <label class="qz-option" data-qid="<%= q.id %>">
+          <input type="radio" name="answers[<%= q.id %>]" value="<%= opt.id %>"
+                 style="display:none;" onchange="selectOpt(this)"
+                 <%= @attempt&.quiz_attempt_answers&.find { |a| a.quiz_question_id == q.id }&.selected_option_id == opt.id ? 'checked' : '' %>>
+          <div class="qz-opt-circle"></div>
+          <span class="qz-opt-text"><%= opt.option_text %></span>
+        </label>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>
+
+<div class="qz-submit-bar">
+  <button class="qz-submit-btn" id="qz-submit" onclick="confirmSubmit()">
+    Nộp bài (<span id="qz-answered">0</span>/<%= @questions.count %> câu)
+  </button>
+</div>
+
+<script>
+var _totalQ = <%= @questions.count %>;
+var _answered = {};
+
+<% @attempt&.quiz_attempt_answers&.each do |ans| %>
+  _answered[<%= ans.quiz_question_id %>] = true;
+<% end %>
+
+function updateProgress() {
+  var n = Object.keys(_answered).length;
+  document.getElementById('qz-counter').textContent = n + ' / ' + _totalQ;
+  document.getElementById('qz-bar').style.width = (n / _totalQ * 100) + '%';
+  document.getElementById('qz-answered').textContent = n;
+}
+
+function selectOpt(radio) {
+  var label = radio.closest('.qz-option');
+  var qid   = label.dataset.qid;
+  label.closest('.qz-question').querySelectorAll('.qz-option').forEach(function(l) { l.classList.remove('selected'); });
+  label.classList.add('selected');
+  _answered[qid] = true;
+  updateProgress();
+  // auto-save
+  fetch('<%= save_answer_learner_quiz_assignment_path(@assignment.token) %>', {
+    method: 'POST', headers: { 'X-CSRF-Token': '<%= form_authenticity_token %>', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question_id: qid, option_id: radio.value })
+  });
+}
+
+function confirmSubmit() {
+  var n = Object.keys(_answered).length;
+  var msg = n < _totalQ
+    ? 'Bạn mới trả lời ' + n + '/' + _totalQ + ' câu. Vẫn muốn nộp bài?'
+    : 'Nộp bài ngay?';
+  if (confirm(msg)) document.getElementById('qz-form').submit();
+}
+
+// Init selected options from saved answers
+document.querySelectorAll('input[type=radio]:checked').forEach(function(r) {
+  r.closest('.qz-option').classList.add('selected');
+});
+updateProgress();
+</script>
