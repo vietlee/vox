@@ -15,17 +15,18 @@ class Admin::WorkspacesController < Admin::BaseController
     workspace = Workspace.new(name: name, status: :active, owner: current_user)
     ActiveRecord::Base.transaction do
       workspace.save!
-      # New workspaces do NOT get fresh credits — credits are per-user (primary workspace).
-      # credit_subscription always resolves to owner.primary_subscription for billing.
-      # Secondary workspaces get no credits — user has one shared budget via user_id subscription.
-      workspace.subscriptions.create!(
-        user_id:        current_user.id,
-        plan:           :free,
-        status:         :active,
-        starts_at:      Time.current,
-        credit_balance: 0,
-        max_ai_credits: 0
-      )
+      # Only create subscription if user has none yet (first workspace).
+      # Additional workspaces share the same user budget via credit_subscription → owner.subscription.
+      unless current_user.subscription.present?
+        workspace.subscriptions.create!(
+          user_id:        current_user.id,
+          plan:           :free,
+          status:         :active,
+          starts_at:      Time.current,
+          credit_balance: Subscription.monthly_free_credits,
+          max_ai_credits: Subscription.monthly_free_credits
+        )
+      end
     end
 
     session[:current_workspace_id] = workspace.id
