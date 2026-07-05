@@ -541,21 +541,40 @@ async function lpVcProcessAndReply() {
   if(txEl) txEl.textContent='🗣 '+userText;
   lpVcSetStatus('processing');
   const thinkEl=lpAppendMsg('assistant',null,true);
-  let reply='';
+  let reply='', data={};
   try {
     const res=await fetch(VOICE_URL,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF()},body:JSON.stringify({message:userText,history:chatHistory.slice(0,-1)})});
-    const data=await res.json();
-    reply=data.reply||data.response||'';
-    thinkEl.innerHTML=lpMd(reply);
-  } catch(e) { thinkEl.innerHTML='<span style="color:#ef4444;">Lỗi kết nối.</span>'; if(_vcActive) lpVcStartListening(); return; }
+    data=await res.json().catch(function(){return {};});
+    if (!res.ok || data.error) throw new Error(data.error || ('HTTP '+res.status));
+    reply=(data.reply||data.response||'').trim();
+    thinkEl.innerHTML=reply?lpMd(reply):'<span style="color:#94a3b8;">(không có phản hồi)</span>';
+  } catch(e) {
+    thinkEl.innerHTML='<span style="color:#ef4444;">⚠️ '+(e.message||'Lỗi kết nối')+'</span>';
+    if(txEl){txEl.textContent='';txEl.style.opacity='0';}
+    lpVcSetStatus('idle');
+    if(_vcActive) setTimeout(function(){if(_vcActive)lpVcStartListening();},1500);
+    return;
+  }
   if (reply) {
     chatHistory.push({role:'assistant',content:reply}); lpSaveHistory();
-    if (window.updateLpCredits && data.credits_remaining !== undefined) { updateLpCredits(data.credits_remaining); } else { const el=document.getElementById('lp-credits-count'); if(el) el.textContent=parseInt(el.textContent||0)-1; if(window.updateLpCredits) updateLpCredits(parseInt(el&&el.textContent||0)); }
+    if (window.updateLpCredits && data.credits_remaining !== undefined) updateLpCredits(data.credits_remaining);
     if(txEl) txEl.textContent='🤖 '+reply.slice(0,80)+(reply.length>80?'...':'');
     if (HAS_TTS) {
       lpVcSetStatus('speaking');
       const fd2=new FormData(); fd2.append('text',reply.replace(/\*\*(.+?)\*\*/g,'$1').replace(/`(.+?)`/g,'$1').slice(0,1000)); fd2.append('model','eleven_flash_v2_5'); fd2.append('speed',String(_vcSpeed)); if(_vcVoiceId) fd2.append('voice_id',_vcVoiceId); fd2.append('authenticity_token',CSRF());
-      try { const ar=await fetch(TTS_URL,{method:'POST',body:fd2}); if(ar.ok){const url=URL.createObjectURL(await ar.blob()); _currentAudio=new Audio(url); _currentAudio.onended=()=>{URL.revokeObjectURL(url);_currentAudio=null;if(_vcActive)lpVcStartListening();}; _currentAudio.play(); return; } } catch(e) {}
+      try {
+        const ar=await fetch(TTS_URL,{method:'POST',body:fd2});
+        const ad=await ar.json().catch(function(){return {};});
+        if(ar.ok && ad.audio_base64){
+          const bin=atob(ad.audio_base64); const arr=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+          const url=URL.createObjectURL(new Blob([arr],{type:'audio/mpeg'}));
+          if(ad.credits_remaining!==undefined && window.updateLpCredits) updateLpCredits(ad.credits_remaining);
+          _currentAudio=new Audio(url);
+          _currentAudio.onended=_currentAudio.onerror=()=>{URL.revokeObjectURL(url);_currentAudio=null;if(_vcActive)lpVcStartListening();};
+          _currentAudio.play().catch(()=>{if(_vcActive)lpVcStartListening();});
+          return;
+        }
+      } catch(e) {}
     }
   }
   if (_vcActive) lpVcStartListening();
