@@ -2,8 +2,9 @@
 class StudyPlanGenerator
   include Rails.application.routes.url_helpers
 
-  def initialize(learner)
+  def initialize(learner, extra: nil)
     @learner = learner
+    @extra   = extra.to_s.strip
   end
 
   def generate!
@@ -88,10 +89,14 @@ class StudyPlanGenerator
       }
     P
 
+    user_msg = "Dữ liệu học viên:\n#{context}"
+    user_msg += "\n\nMong muốn/yêu cầu riêng của học viên (ưu tiên bám sát): #{@extra.truncate(500)}" if @extra.present?
+    user_msg += "\n\nHãy tạo lộ trình bằng tiếng Việt."
+
     svc = ClaudeService.for_feature("ai_tutor", timeout: 45)
     svc.call(
       system_prompt: prompt,
-      messages: [{ role: "user", content: "Dữ liệu học viên:\n#{context}\n\nHãy tạo lộ trình bằng tiếng Việt." }],
+      messages: [{ role: "user", content: user_msg }],
       max_tokens: 1500
     )
   end

@@ -15,7 +15,7 @@ class Learner::StudyPlansController < Learner::BaseController
       return redirect_to learner_study_plans_path, alert: "Không đủ credit. Cần #{GENERATE_COST} credits để tạo lộ trình."
     end
 
-    plan = StudyPlanGenerator.new(current_learner).generate!
+    plan = StudyPlanGenerator.new(current_learner, extra: params[:focus]).generate!
     current_learner.deduct_credits!(GENERATE_COST)
     redirect_to learner_study_plan_path(plan)
   rescue => e
