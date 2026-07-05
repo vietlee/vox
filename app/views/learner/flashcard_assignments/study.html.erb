@@ -150,9 +150,13 @@ function fcPlayUrl(url, btn) {
 }
 
 var FC_VI_RE = /[àáảãạăắặằẳẵâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i;
-function fcDetectLang(t){ return FC_VI_RE.test(t) ? 'vi' : 'en'; }
-// High-quality multilingual voices per language
-var FC_VOICE = { en: '21m00Tcm4TlvDq8ikWAM', vi: 'EXAVITQu4vr4xnSDxMaL' }; // Rachel (EN) · Sarah (multilingual/VI)
+function fcDetectLang(t){
+  if (FC_VI_RE.test(t)) return 'vi';           // has Vietnamese diacritics
+  if (/^[\x00-\x7F\s]*$/.test(t)) return 'en'; // pure ASCII → English
+  return 'vi';                                 // other marked chars → default Vietnamese
+}
+// Language-matched voices
+var FC_VOICE = { en: '21m00Tcm4TlvDq8ikWAM', vi: 'EXAVITQu4vr4xnSDxMaL' }; // Rachel (EN) · Sarah (VI)
 
 function fcSpeakRaw(text, btn) {
   if (!text) return;
@@ -163,9 +167,10 @@ function fcSpeakRaw(text, btn) {
   var lang = fcDetectLang(text);
   var fd = new FormData();
   fd.append('text', text);
-  fd.append('model', 'eleven_multilingual_v2');   /* best quality for EN + VI */
+  fd.append('model', 'eleven_flash_v2_5');   /* Flash v2.5 — fast, supports language_code */
+  fd.append('language_code', lang);          /* lock pronunciation to detected language */
   fd.append('voice_id', FC_VOICE[lang]);
-  fd.append('stability', '0.5');
+  fd.append('stability', '0.4');
   fd.append('similarity', '0.85');
   fd.append('speed', '0.95');
   fd.append('authenticity_token', _csrf);

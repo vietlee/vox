@@ -76,11 +76,13 @@ class Learner::AiTutorController < Learner::BaseController
     stability  = (params[:stability].presence  || 0.5).to_f.clamp(0.0, 1.0)
     similarity = (params[:similarity].presence || 0.75).to_f.clamp(0.0, 1.0)
     style      = (params[:style].presence      || 0.0).to_f.clamp(0.0, 1.0)
+    lang_code  = params[:language_code].presence  # flash v2.5 uses this to lock pronunciation
 
     svc   = ElevenLabsService.new
     audio = svc.text_to_speech(text: text, voice_id: voice_id, model: model,
                                speed: speed, stability: stability,
-                               similarity: similarity, style: style)
+                               similarity: similarity, style: style,
+                               language_code: lang_code)
 
     current_learner.deduct_credits!(TTS_CREDIT_COST)
     remaining = current_learner.reload.credits
