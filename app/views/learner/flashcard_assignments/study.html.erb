@@ -142,15 +142,25 @@ function fcPlayUrl(url, btn) {
   var p = _fcAudio.play(); if (p && p.catch) p.catch(function(){});
 }
 
+var FC_VI_RE = /[àáảãạăắặằẳẵâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i;
+function fcDetectLang(t){ return FC_VI_RE.test(t) ? 'vi' : 'en'; }
+// High-quality multilingual voices per language
+var FC_VOICE = { en: '21m00Tcm4TlvDq8ikWAM', vi: 'EXAVITQu4vr4xnSDxMaL' }; // Rachel (EN) · Sarah (multilingual/VI)
+
 function fcSpeakRaw(text, btn) {
   if (!text) return;
   if (_ttsCache[text]) { fcPlayUrl(_ttsCache[text], btn); return; }  /* free replay */
   if (_ttsBusy) return;
   _ttsBusy = true;
   if (btn) btn.classList.add('speaking');
+  var lang = fcDetectLang(text);
   var fd = new FormData();
   fd.append('text', text);
-  fd.append('model', 'eleven_turbo_v2_5');
+  fd.append('model', 'eleven_multilingual_v2');   /* best quality for EN + VI */
+  fd.append('voice_id', FC_VOICE[lang]);
+  fd.append('stability', '0.5');
+  fd.append('similarity', '0.85');
+  fd.append('speed', '0.95');
   fd.append('authenticity_token', _csrf);
   fetch(TTS_URL, { method:'POST', body:fd })
     .then(function(r){ return r.json(); })
