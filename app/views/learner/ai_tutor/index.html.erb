@@ -296,6 +296,29 @@ function lpEsc(t) { return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 
 // ── TTS ──────────────────────────────────────────────────────────
 let _autoSpeak = false, _currentAudio = null;
+
+// Shared audio element — iOS Safari only allows playback on an element that was
+// "unlocked" during a real user gesture. We prime one element on first tap and
+// reuse it for every TTS clip so autoplay-after-fetch works on mobile.
+var _lpAudioEl = new Audio();
+_lpAudioEl.setAttribute('playsinline', '');
+var _lpAudioPrimed = false;
+function lpPrimeAudio() {
+  if (_lpAudioPrimed) return;
+  _lpAudioPrimed = true;
+  try { var p = _lpAudioEl.play(); if (p && p.then) p.then(function(){ _lpAudioEl.pause(); _lpAudioEl.currentTime = 0; }).catch(function(){}); } catch(e){}
+}
+document.addEventListener('touchend', lpPrimeAudio, { passive: true });
+document.addEventListener('click', lpPrimeAudio, true);
+function lpPlayShared(url, onended) {
+  try { _lpAudioEl.pause(); } catch(e){}
+  _lpAudioEl.onended = _lpAudioEl.onerror = function(){ if (onended) onended(); };
+  _lpAudioEl.src = url;
+  var p = _lpAudioEl.play();
+  if (p && p.catch) p.catch(function(){ if (onended) onended(); });
+  return _lpAudioEl;
+}
+function lpStopShared(){ try { _lpAudioEl.pause(); } catch(e){} }
 function lpToggleAutoSpeak() {
   _autoSpeak = !_autoSpeak;
   const btn = document.getElementById('lp-auto-speak-btn');
@@ -309,7 +332,7 @@ function lpToggleAutoSpeak() {
     btn.style.borderColor = '#e2e8f0'; btn.style.color = '#94a3b8'; btn.style.background = '#f8fafc';
     icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>';
     label.textContent = 'Tự đọc';
-    if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+    lpStopShared();
   }
 }
 window.lpToggleAutoSpeak = lpToggleAutoSpeak;
@@ -326,7 +349,8 @@ function lpAddSpeakBtn(bubble, text) {
 
 async function lpSpeakText(text, btn) {
   if (!HAS_TTS) return;
-  if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+  lpPrimeAudio();
+  lpStopShared();
   const plain = text.replace(/\*\*(.+?)\*\*/g,'$1').replace(/`(.+?)`/g,'$1').replace(/#+\s/g,'').trim().slice(0,1000);
   if (btn) { btn.innerHTML = '⏳ Đang tải...'; btn.disabled = true; }
   try {
@@ -338,9 +362,7 @@ async function lpSpeakText(text, btn) {
     const bin = atob(d.audio_base64), arr = new Uint8Array(bin.length);
     for (let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
     const url = URL.createObjectURL(new Blob([arr],{type:'audio/mpeg'}));
-    _currentAudio = new Audio(url);
-    _currentAudio.onended = _currentAudio.onerror = () => { URL.revokeObjectURL(url); _currentAudio = null; if (btn) { btn.innerHTML = '🔊 Nghe lại'; btn.disabled = false; } };
-    const pr = _currentAudio.play(); if (pr && pr.catch) pr.catch(function(){ if(btn){btn.innerHTML='🔊 Nghe lại';btn.disabled=false;} });
+    lpPlayShared(url, function(){ URL.revokeObjectURL(url); if (btn) { btn.innerHTML = '🔊 Nghe lại'; btn.disabled = false; } });
     if (btn) btn.innerHTML = '⏸ Đang phát';
   } catch(e) { if (btn) { btn.innerHTML = '⚠ Lỗi'; btn.disabled = false; } }
 }
@@ -442,7 +464,7 @@ function lpSelectVoice(id) {
 window.lpSelectVoice = lpSelectVoice;
 let _previewAudio=null;
 async function lpPreviewVoice(voiceId,btn) {
-  if (_previewAudio) { _previewAudio.pause(); _previewAudio=null; }
+  lpPrimeAudio(); lpStopShared();
   btn.textContent='⏳';
   try {
     const fd=new FormData(); fd.append('text','Xin chào, tôi là trợ lý AI của VOX!'); fd.append('voice_id',voiceId); fd.append('model','eleven_turbo_v2_5'); fd.append('authenticity_token',CSRF());
@@ -452,7 +474,7 @@ async function lpPreviewVoice(voiceId,btn) {
       if (d.credits_remaining!==undefined && window.updateLpCredits) updateLpCredits(d.credits_remaining);
       const bin=atob(d.audio_base64), arr=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
       const url=URL.createObjectURL(new Blob([arr],{type:'audio/mpeg'}));
-      _previewAudio=new Audio(url); _previewAudio.onended=()=>URL.revokeObjectURL(url); _previewAudio.play().catch(function(){});
+      lpPlayShared(url, function(){ URL.revokeObjectURL(url); });
     }
   } catch(e) {}
   btn.textContent='▶ Nghe thử';
@@ -472,7 +494,7 @@ function lpExitVoiceCall() {
   _vcActive=false; lpVcStopAll();
   document.getElementById('lp-vc-overlay').style.display='none';
   document.body.style.overflow='';
-  if (_currentAudio) { _currentAudio.pause(); _currentAudio=null; }
+  lpStopShared();
 }
 window.lpExitVoiceCall = lpExitVoiceCall;
 
@@ -536,7 +558,7 @@ function lpVcAnimateBars() {
 function lpVcStopListening() { _vcListening=false; clearTimeout(_vcSilTimer); if(_vcRecorder?.state==='recording') _vcRecorder.stop(); }
 function lpVcStopStream() { _vcStream?.getTracks().forEach(t=>t.stop()); _vcStream=null; _vcAudioCtx?.close().catch(()=>{}); _vcAudioCtx=null; if(_vcAnimFrame){cancelAnimationFrame(_vcAnimFrame);_vcAnimFrame=null;} }
 function lpVcStopAll() { _vcListening=false; clearTimeout(_vcSilTimer); if(_vcRecorder?.state!=='inactive'){try{_vcRecorder.stop();}catch(e){}} lpVcStopStream(); }
-function lpVcTapMic() { if(!_vcActive) return; if(_vcListening){lpVcStopListening();}else if(_vcAudioCtx){if(_currentAudio){_currentAudio.pause();_currentAudio=null;}setTimeout(()=>{if(_vcActive)lpVcStartListening();},200);}else{lpVcStartListening();} }
+function lpVcTapMic() { if(!_vcActive) return; if(_vcListening){lpVcStopListening();}else if(_vcAudioCtx){lpStopShared();setTimeout(()=>{if(_vcActive)lpVcStartListening();},200);}else{lpVcStartListening();} }
 window.lpVcTapMic = lpVcTapMic;
 
 async function lpVcProcessAndReply() {
@@ -579,9 +601,7 @@ async function lpVcProcessAndReply() {
           const bin=atob(ad.audio_base64); const arr=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
           const url=URL.createObjectURL(new Blob([arr],{type:'audio/mpeg'}));
           if(ad.credits_remaining!==undefined && window.updateLpCredits) updateLpCredits(ad.credits_remaining);
-          _currentAudio=new Audio(url);
-          _currentAudio.onended=_currentAudio.onerror=()=>{URL.revokeObjectURL(url);_currentAudio=null;if(_vcActive)lpVcStartListening();};
-          _currentAudio.play().catch(()=>{if(_vcActive)lpVcStartListening();});
+          lpPlayShared(url, function(){ URL.revokeObjectURL(url); if(_vcActive) lpVcStartListening(); });
           return;
         }
       } catch(e) {}

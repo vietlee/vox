@@ -126,20 +126,27 @@ function updateUI() {
 var _ttsOn    = localStorage.getItem('fc_lp_tts_on') === '1';
 var TTS_URL   = '<%= learner_ai_tutor_tts_path %>';
 var _ttsCache = {};      /* text -> object URL */
-var _fcAudio  = null;
 var _ttsBusy  = false;
 
+/* Shared audio element primed on first tap — required for iOS Safari playback */
+var _fcAudio = new Audio();
+_fcAudio.setAttribute('playsinline','');
+var _fcPrimed = false;
+function fcPrime(){ if(_fcPrimed) return; _fcPrimed=true; try{ var p=_fcAudio.play(); if(p&&p.then) p.then(function(){_fcAudio.pause();_fcAudio.currentTime=0;}).catch(function(){}); }catch(e){} }
+document.addEventListener('touchend', fcPrime, {passive:true});
+document.addEventListener('click', fcPrime, true);
+
 function fcStopAudio() {
-  if (_fcAudio) { _fcAudio.pause(); _fcAudio = null; }
+  try { _fcAudio.pause(); } catch(e){}
   document.querySelectorAll('.fc-speak-btn.speaking').forEach(function(b){ b.classList.remove('speaking'); });
 }
 
 function fcPlayUrl(url, btn) {
   fcStopAudio();
-  _fcAudio = new Audio(url);
   if (btn) btn.classList.add('speaking');
-  _fcAudio.onended = _fcAudio.onerror = function(){ if (btn) btn.classList.remove('speaking'); _fcAudio = null; };
-  var p = _fcAudio.play(); if (p && p.catch) p.catch(function(){});
+  _fcAudio.onended = _fcAudio.onerror = function(){ if (btn) btn.classList.remove('speaking'); };
+  _fcAudio.src = url;
+  var p = _fcAudio.play(); if (p && p.catch) p.catch(function(){ if(btn) btn.classList.remove('speaking'); });
 }
 
 var FC_VI_RE = /[àáảãạăắặằẳẵâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i;

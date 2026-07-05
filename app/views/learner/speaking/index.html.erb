@@ -200,7 +200,13 @@
     ja: 'EXAVITQu4vr4xnSDxMaL', ko: 'EXAVITQu4vr4xnSDxMaL',
     zh: 'EXAVITQu4vr4xnSDxMaL', fr: 'EXAVITQu4vr4xnSDxMaL'
   };
-  var _ttsCache = {}, _spAudio = null;
+  var _ttsCache = {};
+  /* Shared audio element primed on first tap — required for iOS Safari playback */
+  var _spAudio = new Audio(); _spAudio.setAttribute('playsinline','');
+  var _spPrimed = false;
+  function spPrime(){ if(_spPrimed) return; _spPrimed=true; try{ var p=_spAudio.play(); if(p&&p.then) p.then(function(){_spAudio.pause();_spAudio.currentTime=0;}).catch(function(){}); }catch(e){} }
+  document.addEventListener('touchend', spPrime, {passive:true});
+  document.addEventListener('click', spPrime, true);
 
   function speak(text) {
     if (!text) return;
@@ -224,7 +230,7 @@
         playUrl(url);
       }).catch(function(){});
   }
-  function playUrl(url){ if (_spAudio){ _spAudio.pause(); } _spAudio = new Audio(url); var p=_spAudio.play(); if(p&&p.catch)p.catch(function(){}); }
+  function playUrl(url){ try{_spAudio.pause();}catch(e){} _spAudio.src=url; var p=_spAudio.play(); if(p&&p.catch)p.catch(function(){}); }
 
   function aiReply(userText) {
     if (_busy) return;
