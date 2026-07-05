@@ -1,34 +1,36 @@
 class GenerateQuizQuestionsJob < ApplicationJob
   queue_as :default
 
-  def perform(quiz_set_id, job_content, questions_count, custom_prompt)
+  def perform(quiz_set_id, job_content, questions_count, custom_prompt, include_essay: false)
     quiz_set = QuizSet.find_by(id: quiz_set_id)
     return unless quiz_set
 
     content = resolve_content(job_content)
+    # No file/document — use custom_prompt as the content source
+    content = custom_prompt if content.blank? && custom_prompt.present?
+
     if content.blank?
       quiz_set.update(ai_generating: false, ai_failed: true)
-      Rails.logger.error "[GenerateQuizQuestionsJob] #{quiz_set_id}: file upload expired or unreadable"
+      Rails.logger.error "[GenerateQuizQuestionsJob] #{quiz_set_id}: no content or prompt provided"
       return
     end
 
     svc = ClaudeService.for_feature("quiz_generate", timeout: 180)
 
     questions = if content.is_a?(Array) && content.first&.dig(:image_base64)
-      # Multiple image files — call AI once per image, merge results
-      extract_questions_from_images(svc, content, questions_count, custom_prompt)
+      extract_questions_from_images(svc, content, questions_count, custom_prompt, include_essay: include_essay)
     elsif content.is_a?(Hash) && content[:image_base64]
       messages = [{
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: content[:mime_type], data: content[:image_base64] } },
-          { type: "text", text: build_prompt(questions_count, custom_prompt) }
+          { type: "text", text: build_prompt(questions_count, custom_prompt, 1, include_essay: include_essay) }
         ]
       }]
       raw = svc.call(system_prompt: SYSTEM_PROMPT, messages: messages, max_tokens: 8000)
       parse_ai_response(raw)
     else
-      extract_questions_chunked(svc, content.to_s, questions_count, custom_prompt)
+      extract_questions_chunked(svc, content.to_s, questions_count, custom_prompt, include_essay: include_essay)
     end
 
     raise "No questions found in AI response" if questions.blank?
@@ -37,16 +39,22 @@ class GenerateQuizQuestionsJob < ApplicationJob
       quiz_set.workspace.credit_subscription&.deduct_credits!(5)
       quiz_set.update!(source_type: :ai_generated, ai_generating: false, ai_failed: false)
       questions.each_with_index do |q, idx|
+        qtype = q[:question_type]&.to_sym == :essay ? :essay : :multiple_choice
         question = quiz_set.quiz_questions.create!(
           question_text: q[:question],
-          question_type: :multiple_choice,
+          question_type: qtype,
           explanation:   q[:explanation],
+          essay_rubric:  q[:rubric],
+          points:        q[:points] || 1,
           position:      quiz_set.quiz_questions.count + idx
         )
+        next if qtype == :essay
         (q[:options] || []).each_with_index do |opt, oi|
           question.quiz_options.create!(option_text: opt[:text], is_correct: opt[:correct], position: oi)
         end
       end
+      # Auto set result_later if any essay question exists
+      quiz_set.update_column(:result_mode, 1) if quiz_set.quiz_questions.where(question_type: :essay).exists?
     end
   rescue => e
     quiz_set&.update(ai_generating: false, ai_failed: true)
@@ -59,7 +67,7 @@ class GenerateQuizQuestionsJob < ApplicationJob
 
   private
 
-  def extract_questions_from_images(svc, images, questions_count, custom_prompt)
+  def extract_questions_from_images(svc, images, questions_count, custom_prompt, include_essay: false)
     all_questions = []
     first_image_count = nil  # used as count hint for subsequent images in auto_mode
 
@@ -77,7 +85,7 @@ class GenerateQuizQuestionsJob < ApplicationJob
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: img[:mime_type], data: img[:image_base64] } },
-          { type: "text", text: build_prompt(img_count, idx == 0 ? custom_prompt : nil) }
+          { type: "text", text: build_prompt(img_count, idx == 0 ? custom_prompt : nil, 1, include_essay: include_essay) }
         ]
       }]
       raw = svc.call(system_prompt: SYSTEM_PROMPT, messages: messages, max_tokens: 8000)
@@ -93,7 +101,7 @@ class GenerateQuizQuestionsJob < ApplicationJob
 
   # Split large content into chunks, run AI on each, merge all questions.
   # If questions_count is set, distribute evenly across chunks then slice.
-  def extract_questions_chunked(svc, text, questions_count, custom_prompt)
+  def extract_questions_chunked(svc, text, questions_count, custom_prompt, include_essay: false)
     # Split by document markers first — process each doc separately for reliability
     doc_sections = split_by_documents(text)
     doc_count = doc_sections.size
@@ -116,7 +124,7 @@ class GenerateQuizQuestionsJob < ApplicationJob
           chunk_count = nil if chunk_count && chunk_count <= 0
           next if chunk_count&.<=(0)
 
-          user_prompt = "#{build_prompt(chunk_count || doc_q_count, idx == 0 && cidx == 0 ? custom_prompt : nil, 1)}\n\n---\n#{chunk}"
+          user_prompt = "#{build_prompt(chunk_count || doc_q_count, idx == 0 && cidx == 0 ? custom_prompt : nil, 1, include_essay: include_essay)}\n\n---\n#{chunk}"
           raw = svc.call(system_prompt: SYSTEM_PROMPT, user_prompt: user_prompt, max_tokens: 8000)
           parsed = parse_ai_response(raw)
           Rails.logger.info "[GenerateQuizQuestionsJob] doc #{idx} chunk #{cidx}: got #{parsed&.size || 0} questions"
@@ -138,7 +146,7 @@ class GenerateQuizQuestionsJob < ApplicationJob
       end
       next if chunk_count && chunk_count <= 0
 
-      user_prompt = "#{build_prompt(chunk_count, idx == 0 ? custom_prompt : nil, 1)}\n\n---\n#{chunk}"
+      user_prompt = "#{build_prompt(chunk_count, idx == 0 ? custom_prompt : nil, 1, include_essay: include_essay)}\n\n---\n#{chunk}"
       raw = svc.call(system_prompt: SYSTEM_PROMPT, user_prompt: user_prompt, max_tokens: 8000)
       parsed = parse_ai_response(raw)
       Rails.logger.info "[GenerateQuizQuestionsJob] chunk #{idx}: got #{parsed&.size || 0} questions"
@@ -233,19 +241,34 @@ class GenerateQuizQuestionsJob < ApplicationJob
     str.gsub(/\\(?!["\\\/bfnrt]|u[0-9a-fA-F]{4})/, '\\\\')
   end
 
-  def build_prompt(count, custom_prompt, doc_count = 1)
+  def build_prompt(count, custom_prompt, doc_count = 1, include_essay: false)
     if count.nil?
       doc_hint = doc_count > 1 ? "There are #{doc_count} separate documents in the content below. " : ""
-      count_instruction = "#{doc_hint}Extract EVERY multiple-choice question from ALL documents/sections. Do not stop early. Do not invent new ones — only extract questions that already exist in the text."
+      count_instruction = "#{doc_hint}Extract EVERY question from ALL documents/sections. Do not stop early. Do not invent new ones — only extract questions that already exist in the text."
     else
-      count_instruction = "Generate exactly #{count} multiple-choice questions based on the content."
+      count_instruction = "Generate exactly #{count} questions based on the content."
     end
     user_instruction = custom_prompt.present? ? "\n\nAdditional instructions: #{custom_prompt}" : ""
-    <<~PROMPT
-      #{count_instruction}#{user_instruction}
 
-      Return ONLY this JSON (no other text, no markdown):
-      {"questions":[{"question":"...","options":[{"text":"...","correct":true},{"text":"...","correct":false},{"text":"...","correct":false},{"text":"...","correct":false}],"explanation":"..."}]}
-    PROMPT
+    if include_essay
+      <<~PROMPT
+        #{count_instruction}#{user_instruction}
+
+        Mix multiple-choice and essay questions as appropriate. For essay questions, omit options and provide a grading rubric.
+
+        Return ONLY this JSON (no other text, no markdown):
+        {"questions":[
+          {"question_type":"multiple_choice","question":"...","options":[{"text":"...","correct":true},{"text":"...","correct":false}],"explanation":"...","points":1},
+          {"question_type":"essay","question":"...","rubric":"Tiêu chí chấm điểm...","explanation":"...","points":5}
+        ]}
+      PROMPT
+    else
+      <<~PROMPT
+        #{count_instruction}#{user_instruction}
+
+        Return ONLY this JSON (no other text, no markdown):
+        {"questions":[{"question":"...","options":[{"text":"...","correct":true},{"text":"...","correct":false},{"text":"...","correct":false},{"text":"...","correct":false}],"explanation":"..."}]}
+      PROMPT
+    end
   end
 end

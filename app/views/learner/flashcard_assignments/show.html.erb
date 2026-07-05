@@ -1,4 +1,13 @@
 <% content_for :title, @assignment.flashcard_deck.title %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <%= link_to t('learner_dashboard.library'), learner_library_path, class: "lp-bc-link" %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current"><%= @assignment.flashcard_deck.title %></span>
+<% end %>
+<style>
+  @media (min-width: 1024px) { .lp-page { max-width: 60%; } }
+</style>
 
 <div style="text-align:center;padding:20px 0 30px;">
   <div style="width:80px;height:80px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
@@ -19,5 +28,47 @@
         <%= @assignment.completed? ? "Ôn lại →" : "Bắt đầu học →" %>
       <% end %>
     </div>
+
+    <% deck = @assignment.flashcard_deck %>
+    <% if deck.learner_id == current_learner.id %>
+      <% has_images = deck.flashcards.where.not(image_data: [nil, ""]).exists? %>
+      <button id="fc-img-btn" onclick="fcGenImages()"
+              style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1px solid #c4b5fd;background:#f5f3ff;color:#6d28d9;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 15l-5-5L5 21"/></svg>
+        <span id="fc-img-label"><%= has_images ? "Tạo lại ảnh minh hoạ" : "Tạo ảnh minh hoạ bằng AI" %> (5 credits)</span>
+      </button>
+      <p style="font-size:11px;color:#94a3b8;margin:6px 0 0;">AI vẽ ảnh cho từng thẻ · hiện khi học</p>
+    <% end %>
   </div>
 </div>
+
+<% if @assignment.flashcard_deck.learner_id == current_learner.id %>
+<script>
+(function(){
+  var CSRF = document.querySelector('meta[name="csrf-token"]').content;
+  var GEN_URL  = '<%= learner_generate_images_my_flashcard_path(@assignment.flashcard_deck) %>';
+  var POLL_URL = '<%= learner_image_status_my_flashcard_path(@assignment.flashcard_deck) %>';
+  var btn = document.getElementById('fc-img-btn'), label = document.getElementById('fc-img-label');
+  var _gen = <%= @assignment.flashcard_deck.image_generating? ? 'true' : 'false' %>;
+  function busy(t){ btn.disabled=true; btn.style.opacity='.7'; btn.style.cursor='wait'; label.textContent=t; }
+  function poll(){
+    fetch(POLL_URL,{headers:{'Accept':'application/json'}}).then(function(r){return r.json();}).then(function(d){
+      if (d.pending){ setTimeout(poll,3000); return; }
+      if (window.updateLpCredits) updateLpCredits(d.credits_remaining);
+      label.textContent='✓ Đã tạo ảnh! Đang tải lại...'; setTimeout(function(){location.reload();},800);
+    }).catch(function(){ setTimeout(poll,4000); });
+  }
+  if (_gen){ busy('⏳ AI đang vẽ ảnh...'); poll(); }
+  window.fcGenImages = function(){
+    lpConfirm('<%= j t('learner_fc.img_confirm') %>', function(){
+      busy('⏳ <%= j t('learner_fc.img_drawing') %>');
+      var fd = new FormData(); fd.append('authenticity_token', CSRF);
+      fetch(GEN_URL,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+        if (d.error){ showLpToast(d.error, 'error'); btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer'; label.textContent='<%= j (t('learner_fc.img_make') + " " + t('learner_fc.img_cost_suffix', n: 5)) %>'; return; }
+        busy('⏳ <%= j t('learner_fc.img_drawing') %>'); poll();
+      }).catch(function(){ showLpToast('<%= j t('learner_fc.err_conn') %>', 'error'); btn.disabled=false; btn.style.opacity='1'; });
+    });
+  };
+})();
+</script>
+<% end %>

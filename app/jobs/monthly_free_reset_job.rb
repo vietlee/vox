@@ -34,5 +34,13 @@ class MonthlyFreeResetJob < ApplicationJob
     end
 
     Rails.logger.info("[MonthlyCreditsReset] Granted #{monthly_credits} AI credits to #{count} primary subscriptions (shared per owner)")
+
+    # Reset learner credits to monthly free allocation
+    learner_count = Learner.count
+    Learner.update_all(
+      credits:     Learner::MONTHLY_FREE_CREDITS,
+      max_credits: Learner::MONTHLY_FREE_CREDITS
+    )
+    Rails.logger.info("[MonthlyCreditsReset] Reset #{learner_count} learners to #{Learner::MONTHLY_FREE_CREDITS} credits")
   end
 end

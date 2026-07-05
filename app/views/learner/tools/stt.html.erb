@@ -1,0 +1,387 @@
+<% content_for :title, "Speech to Text" %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current">Speech to Text</span>
+<% end %>
+
+<!-- Header -->
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+  <%= link_to learner_root_path, style:"display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;background:#f1f5f9;color:#64748b;text-decoration:none;flex-shrink:0;" do %>
+    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+  <% end %>
+  <div style="width:36px;height:36px;border-radius:10px;background:#fdf4ff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🎙️</div>
+  <div>
+    <h1 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">Speech to Text</h1>
+    <p style="font-size:12px;color:#64748b;margin:0;"><%= t('learner_stt.subtitle_full') %></p>
+  </div>
+</div>
+
+<% if @has_stt %>
+
+<!-- ===== Mode toggle: Transcription vs Translation ===== -->
+<div style="background:#f1f5f9;border-radius:12px;padding:4px;display:flex;gap:4px;margin-bottom:14px;">
+  <button id="stt-mode-transcribe" onclick="setSttMode('transcribe')"
+          style="flex:1;padding:8px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:#1e3a5f;color:#fff;transition:all .2s;">
+    📝 <%= t('learner_stt.mode_transcribe') %>
+  </button>
+  <button id="stt-mode-translate" onclick="setSttMode('translate')"
+          style="flex:1;padding:8px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;transition:all .2s;">
+    🌐 <%= t('learner_stt.mode_translate') %>
+  </button>
+</div>
+
+<!-- Translation target (hidden in transcription mode) -->
+<div id="stt-translate-opts" style="display:none;margin-bottom:14px;">
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;">
+    <p style="font-size:12px;font-weight:700;color:#374151;margin:0 0 8px;"><%= t('learner_stt.translate_to') %></p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;" id="stt-lang-btns">
+      <% [
+        ['vi','🇻🇳 Tiếng Việt','Vietnamese'],
+        ['en','🇬🇧 English','English'],
+        ['ja','🇯🇵 日本語','Japanese'],
+        ['ko','🇰🇷 한국어','Korean'],
+        ['zh','🇨🇳 中文','Chinese'],
+        ['fr','🇫🇷 Français','French'],
+        ['es','🇪🇸 Español','Spanish'],
+      ].each do |code, label, name| %>
+        <button onclick="setTranslateLang('<%= code %>','<%= name %>')"
+                data-lang="<%= code %>" data-name="<%= name %>"
+                style="padding:6px 12px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;color:#475569;cursor:pointer;transition:all .15s;">
+          <%= label %>
+        </button>
+      <% end %>
+    </div>
+    <p style="font-size:11px;color:#94a3b8;margin:8px 0 0;"><%= t('learner_stt.translate_cost') %></p>
+  </div>
+</div>
+
+<!-- ===== Input tabs: Mic / File ===== -->
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:12px;">
+  <div style="display:flex;border-bottom:1px solid #f0f4f8;">
+    <button id="stt-tab-mic" onclick="setSttTab('mic')"
+            style="flex:1;padding:10px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:#fff;color:#1e3a5f;border-bottom:2px solid #1e3a5f;transition:all .15s;">
+      🎤 <%= t('learner_stt.tab_mic') %>
+    </button>
+    <button id="stt-tab-file" onclick="setSttTab('file')"
+            style="flex:1;padding:10px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:#fff;color:#94a3b8;border-bottom:2px solid transparent;transition:all .15s;">
+      📁 <%= t('learner_stt.tab_file') %>
+    </button>
+  </div>
+
+  <!-- ── Mic panel ── -->
+  <div id="stt-panel-mic" style="padding:20px;text-align:center;">
+
+    <!-- Source language hint for mic -->
+    <div style="display:flex;justify-content:center;margin-bottom:16px;">
+      <select id="stt-src-lang" style="padding:6px 12px;border:1.5px solid #e2e8f0;border-radius:20px;font-size:12px;font-weight:600;color:#475569;background:#f8fafc;outline:none;cursor:pointer;">
+        <option value="">🌍 <%= t('learner_stt.auto_detect') %></option>
+        <option value="vi-VN">🇻🇳 Tiếng Việt</option>
+        <option value="en-US">🇬🇧 English</option>
+        <option value="ja-JP">🇯🇵 日本語</option>
+        <option value="ko-KR">🇰🇷 한국어</option>
+        <option value="zh-CN">🇨🇳 中文</option>
+        <option value="fr-FR">🇫🇷 Français</option>
+      </select>
+    </div>
+
+    <!-- Orb -->
+    <div id="stt-orb" onclick="sttToggleMic()"
+         style="width:80px;height:80px;border-radius:50%;background:#f1f5f9;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;cursor:pointer;transition:all .25s;user-select:none;">
+      <svg id="stt-orb-icon" width="32" height="32" fill="none" stroke="#64748b" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+      </svg>
+    </div>
+    <p id="stt-orb-status" style="font-size:13px;font-weight:700;color:#64748b;margin:0 0 3px;"><%= t('learner_stt.mic_hint') %></p>
+    <p style="font-size:11px;color:#94a3b8;margin:0;"><%= t('learner_stt.realtime_free') %></p>
+
+    <!-- Waveform bars -->
+    <div id="stt-wave" style="display:none;justify-content:center;gap:2px;align-items:flex-end;height:28px;margin:12px 0 0;">
+      <% 14.times do |i| %>
+        <div style="width:3px;background:#ef4444;border-radius:99px;height:8px;animation:lp-wave <%= 0.7+(i%4)*0.15 %>s ease-in-out infinite alternate <%= (i*0.06).round(2) %>s;"></div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- ── File panel ── -->
+  <div id="stt-panel-file" style="display:none;padding:20px;">
+    <label for="stt-file-input" id="stt-file-drop"
+           style="display:block;border:2px dashed #e2e8f0;border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:border-color .15s;"
+           onmouseover="this.style.borderColor='#1e3a5f'" onmouseout="this.style.borderColor='#e2e8f0'">
+      <div style="font-size:32px;margin-bottom:8px;">📁</div>
+      <p style="font-size:13px;font-weight:700;color:#1e293b;margin:0 0 4px;"><%= t('learner_stt.file_choose_v') %></p>
+      <p style="font-size:11px;color:#94a3b8;margin:0;"><%= t('learner_stt.file_note') %></p>
+      <input id="stt-file-input" type="file" accept="audio/*,video/*" style="display:none;" onchange="sttHandleFile(this)">
+    </label>
+    <div id="stt-file-name" style="display:none;margin-top:8px;padding:8px 12px;background:#f1f5f9;border-radius:8px;font-size:12px;color:#475569;"></div>
+    <button id="stt-file-btn" onclick="sttTranscribeFile()" style="display:none;width:100%;margin-top:10px;padding:11px;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;border:none;border-radius:10px;cursor:pointer;">
+      ✍️ <%= t('learner_stt.convert_credit') %>
+    </button>
+  </div>
+</div>
+
+<!-- ===== Live transcript / result ===== -->
+<div id="stt-result-area" style="display:grid;gap:10px;">
+
+  <!-- Transcript box -->
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0;" id="stt-box1-label"><%= t('learner_stt.orig_text') %></p>
+      <div style="display:flex;gap:6px;">
+        <button onclick="sttCopy('stt-transcript-final')" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#475569;cursor:pointer;">📋 <%= t('learner_stt.copy') %></button>
+        <button onclick="sttClear()" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;"><%= t('learner_stt.clear') %></button>
+      </div>
+    </div>
+    <div style="min-height:80px;padding:10px;background:#f8fafc;border-radius:8px;position:relative;">
+      <span id="stt-transcript-final" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span><span id="stt-transcript-interim" style="font-size:14px;color:#94a3b8;line-height:1.8;font-style:italic;"></span>
+      <p id="stt-placeholder" style="font-size:13px;color:#cbd5e1;margin:0;position:absolute;top:10px;left:10px;"><%= t('learner_stt.placeholder_live') %></p>
+    </div>
+  </div>
+
+  <!-- Translation box (hidden in transcribe mode) -->
+  <div id="stt-translation-box" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0;" id="stt-box2-label"><%= t('learner_stt.translation') %></p>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span id="stt-translate-spinner" style="display:none;">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" style="animation:lp-spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="#1e3a5f" stroke-width="3" opacity=".25"/><path fill="#1e3a5f" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        </span>
+        <button onclick="sttCopy('stt-translation-text')" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#475569;cursor:pointer;">📋 <%= t('learner_stt.copy') %></button>
+      </div>
+    </div>
+    <div style="min-height:80px;padding:10px;background:#f5f3ff;border-radius:8px;">
+      <span id="stt-translation-text" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span>
+    </div>
+  </div>
+
+  <!-- Processing for file -->
+  <div id="stt-processing" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 16px;align-items:center;gap:10px;">
+    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="animation:lp-spin 1s linear infinite;flex-shrink:0;"><circle cx="12" cy="12" r="10" stroke="#3b82f6" stroke-width="3" opacity=".25"/><path fill="#3b82f6" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+    <span style="font-size:13px;color:#1d4ed8;font-weight:500;"><%= t('learner_stt.processing') %></span>
+  </div>
+
+  <div id="stt-error" style="display:none;padding:12px;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;font-size:13px;color:#be123c;"></div>
+</div>
+
+<style>
+  @keyframes lp-spin  { to { transform: rotate(360deg); } }
+  @keyframes lp-wave  { 0% { transform: scaleY(.3); } 100% { transform: scaleY(1); } }
+</style>
+
+<script>
+(function(){
+  const CSRF        = () => document.querySelector('meta[name="csrf-token"]').content;
+  const STT_URL     = '<%= learner_ai_tutor_stt_path %>';
+  const TRANS_URL   = '<%= learner_tools_translate_path %>';
+
+  // ── State ──
+  let _mode       = 'transcribe';   // 'transcribe' | 'translate'
+  let _tab        = 'mic';          // 'mic' | 'file'
+  let _targetLang = 'Vietnamese';
+  let _targetCode = 'vi';
+  let _recognition = null;
+  let _listening   = false;
+  let _pendingFile = null;
+  let _finalText   = '';
+  let _pendingTranslation = '';
+  let _transTimer  = null;
+
+  // ── Mode toggle ──
+  window.setSttMode = function(m) {
+    _mode = m;
+    const isTrans = m === 'translate';
+    document.getElementById('stt-mode-transcribe').style.background = isTrans ? 'transparent' : '#1e3a5f';
+    document.getElementById('stt-mode-transcribe').style.color      = isTrans ? '#64748b' : '#fff';
+    document.getElementById('stt-mode-translate').style.background  = isTrans ? '#1e3a5f' : 'transparent';
+    document.getElementById('stt-mode-translate').style.color       = isTrans ? '#fff' : '#64748b';
+    document.getElementById('stt-translate-opts').style.display     = isTrans ? 'block' : 'none';
+    document.getElementById('stt-translation-box').style.display    = isTrans ? 'block' : 'none';
+    document.getElementById('stt-box1-label').textContent           = isTrans ? '<%= j t('learner_stt.orig_text') %>' : '<%= j t('learner_stt.result') %>';
+    if (_listening) { stopRecognition(); startRecognition(); }
+  };
+
+  // ── Target language ──
+  window.setTranslateLang = function(code, name) {
+    _targetCode = code; _targetLang = name;
+    document.querySelectorAll('#stt-lang-btns button').forEach(function(b) {
+      var active = b.dataset.lang === code;
+      b.style.background   = active ? '#1e3a5f' : '#f8fafc';
+      b.style.color        = active ? '#fff' : '#475569';
+      b.style.borderColor  = active ? '#1e3a5f' : '#e2e8f0';
+    });
+    document.getElementById('stt-box2-label').textContent = '<%= j t('learner_stt.translation') %> (' + name + ')';
+  };
+  // Select Vietnamese by default
+  setTranslateLang('vi', 'Vietnamese');
+
+  // ── Tab toggle ──
+  window.setSttTab = function(tab) {
+    _tab = tab;
+    const isMic = tab === 'mic';
+    document.getElementById('stt-panel-mic').style.display  = isMic ? 'block' : 'none';
+    document.getElementById('stt-panel-file').style.display = isMic ? 'none'  : 'block';
+    document.getElementById('stt-tab-mic').style.color      = isMic ? '#1e3a5f' : '#94a3b8';
+    document.getElementById('stt-tab-mic').style.borderBottomColor  = isMic ? '#1e3a5f' : 'transparent';
+    document.getElementById('stt-tab-file').style.color     = isMic ? '#94a3b8' : '#1e3a5f';
+    document.getElementById('stt-tab-file').style.borderBottomColor = isMic ? 'transparent' : '#1e3a5f';
+    if (!isMic && _listening) { stopRecognition(); }
+  };
+
+  // ── Web Speech API ──
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  window.sttToggleMic = function() { _listening ? stopRecognition() : startRecognition(); };
+
+  function startRecognition() {
+    if (!SpeechRecognition) {
+      showError('<%= j t('learner_stt.err_realtime') %>');
+      return;
+    }
+    _recognition = new SpeechRecognition();
+    _recognition.continuous      = true;
+    _recognition.interimResults  = true;
+    var langSel = document.getElementById('stt-src-lang').value;
+    _recognition.lang = langSel || 'vi-VN';
+
+    _recognition.onstart = function() {
+      _listening = true; setOrbUI(true);
+    };
+
+    _recognition.onresult = function(e) {
+      var interim = '', finalChunk = '';
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        var t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalChunk += t;
+        else interim += t;
+      }
+      if (finalChunk) {
+        var chunk = finalChunk.trim();
+        _finalText += (_finalText && !/\s$/.test(_finalText) ? ' ' : '') + chunk + ' ';
+      }
+      updateTranscript(_finalText, interim);
+      // realtime translation of everything captured so far (final + interim)
+      if (_mode === 'translate') scheduleTranslation((_finalText + interim).trim());
+    };
+
+    _recognition.onerror = function(e) {
+      if (e.error === 'not-allowed') showError('<%= j t('learner_stt.mic_denied') %>');
+      else if (e.error !== 'aborted') showError('<%= j t('learner_stt.rec_err') %>' + e.error);
+      stopRecognition();
+    };
+
+    _recognition.onend = function() {
+      if (_listening) { _recognition.start(); } // auto-restart for continuous
+    };
+
+    try { _recognition.start(); } catch(ex) { showError(ex.message); }
+  }
+
+  function stopRecognition() {
+    _listening = false;
+    setOrbUI(false);
+    if (_recognition) { _recognition.onend = null; _recognition.stop(); _recognition = null; }
+  }
+
+  function setOrbUI(on) {
+    var orb    = document.getElementById('stt-orb');
+    var icon   = document.getElementById('stt-orb-icon');
+    var status = document.getElementById('stt-orb-status');
+    var wave   = document.getElementById('stt-wave');
+    orb.style.background  = on ? '#fee2e2' : '#f1f5f9';
+    orb.style.borderColor = on ? '#fca5a5' : '#e2e8f0';
+    icon.setAttribute('stroke', on ? '#ef4444' : '#64748b');
+    status.textContent = on ? '<%= j t('learner_stt.listening') %>' : '<%= j t('learner_stt.mic_hint') %>';
+    status.style.color = on ? '#ef4444' : '#64748b';
+    wave.style.display = on ? 'flex' : 'none';
+  }
+
+  function updateTranscript(final, interim) {
+    document.getElementById('stt-transcript-final').textContent  = final;
+    document.getElementById('stt-transcript-interim').textContent = interim;
+    document.getElementById('stt-placeholder').style.display = (final || interim) ? 'none' : 'block';
+  }
+
+  // ── Realtime translation (debounced; re-translates the full text each time) ──
+  var _lastTranslated = '';
+  function scheduleTranslation(fullText) {
+    clearTimeout(_transTimer);
+    _transTimer = setTimeout(function() {
+      if (fullText && fullText !== _lastTranslated) { _lastTranslated = fullText; doTranslate(fullText); }
+    }, 700);
+  }
+
+  function doTranslate(text) {
+    if (!text.trim()) return;
+    document.getElementById('stt-translate-spinner').style.display = 'inline';
+    var fd = new FormData();
+    fd.append('text', text);
+    fd.append('target_lang', _targetLang);
+    fd.append('authenticity_token', CSRF());
+    fetch(TRANS_URL, { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        document.getElementById('stt-translate-spinner').style.display = 'none';
+        if (d.error) { showError(d.error); return; }
+        // replace (not append) — keeps translation in sync with the full transcript
+        document.getElementById('stt-translation-text').textContent = d.translated;
+        if (window.updateLpCredits) updateLpCredits(d.credits_remaining);
+      })
+      .catch(function() { document.getElementById('stt-translate-spinner').style.display = 'none'; });
+  }
+
+  // ── File upload (ElevenLabs) ──
+  window.sttHandleFile = function(input) {
+    var file = input.files[0]; if (!file) return;
+    _pendingFile = file;
+    var nameEl = document.getElementById('stt-file-name');
+    nameEl.style.display = 'flex';
+    nameEl.style.alignItems = 'center';
+    nameEl.style.gap = '5px';
+    nameEl.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8" style="flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18V5l12-2v13M9 13l12-2M6 21a3 3 0 100-6 3 3 0 000 6zM18 19a3 3 0 100-6 3 3 0 000 6z"/></svg><span>' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)</span>';
+    document.getElementById('stt-file-btn').style.display = 'block';
+  };
+
+  window.sttTranscribeFile = async function() {
+    if (!_pendingFile) return;
+    document.getElementById('stt-processing').style.display = 'flex';
+    document.getElementById('stt-error').style.display = 'none';
+    try {
+      var fd = new FormData();
+      fd.append('chunk', _pendingFile, _pendingFile.name);
+      fd.append('authenticity_token', CSRF());
+      var res  = await fetch(STT_URL, { method: 'POST', body: fd });
+      var data = await res.json();
+      if (data.error) throw new Error(data.error);
+      _finalText = data.text || '<%= j t('learner_stt.no_text') %>';
+      updateTranscript(_finalText, '');
+      if (window.updateLpCredits) updateLpCredits(data.credits_remaining);
+      if (_mode === 'translate' && data.text) doTranslate(data.text);
+    } catch(e) { showError(e.message); }
+    finally { document.getElementById('stt-processing').style.display = 'none'; }
+  };
+
+  // ── Utils ──
+  window.sttCopy = function(elId) {
+    var text = document.getElementById(elId).textContent;
+    navigator.clipboard.writeText(text).then(function() {
+      var btn = event.target;
+      btn.textContent = '✅ <%= j t('learner_stt.copied') %>';
+      setTimeout(function() { btn.textContent = '📋 <%= j t('learner_stt.copy') %>'; }, 1500);
+    });
+  };
+
+  window.sttClear = function() {
+    _finalText = ''; _pendingTranslation = ''; _lastTranslated = '';
+    updateTranscript('', '');
+    document.getElementById('stt-translation-text').textContent = '';
+  };
+
+  function showError(msg) {
+    var el = document.getElementById('stt-error');
+    el.style.display = 'block'; el.textContent = '⚠️ ' + msg;
+  }
+})();
+</script>
+
+<% else %>
+<div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px;"><%= t('learner_stt.disabled') %></div>
+<% end %>

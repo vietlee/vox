@@ -1,0 +1,324 @@
+<% content_for :title, @learner.name %>
+
+<%# ── Header ──────────────────────────────────────────────────────── %>
+<div class="flex items-start gap-4 mb-6">
+  <%= render "admin/shared/back_btn" %>
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center gap-3 flex-wrap">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1e3a5f] to-[#4a7fa8] flex items-center justify-center shrink-0 shadow">
+        <span class="text-white text-[20px] font-black"><%= @learner.name.first.upcase %></span>
+      </div>
+      <div>
+        <h1 class="text-[20px] font-extrabold text-slate-900 leading-tight"><%= @learner.name %></h1>
+        <p class="text-[13px] text-slate-400 mt-0.5"><%= @learner.email %></p>
+      </div>
+      <div class="flex items-center gap-2 ml-1">
+        <% if @learner.invite_token.present? && !@learner.password_set? %>
+          <span class="text-[11px] px-2.5 py-1 rounded-full font-bold bg-amber-100 text-amber-700"><%= t("learner_folders.learner_detail.status_pending") %></span>
+        <% else %>
+          <span class="text-[11px] px-2.5 py-1 rounded-full font-bold bg-emerald-100 text-emerald-700"><%= t("learner_folders.learner_detail.status_active") %></span>
+        <% end %>
+        <% @folders.each do |f| %>
+          <%= link_to learner_folder_path(f), class: "text-[11px] px-2.5 py-1 rounded-full font-bold bg-[#eef3f9] text-[#1e3a5f] hover:bg-[#1e3a5f] hover:text-white transition-colors" do %>
+            📁 <%= f.name %>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# ── Stat cards ────────────────────────────────────────────────────── %>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+  <% [
+    ["📚", t("learner_folders.learner_detail.stat_assigned"), @total_assigned, nil, "bg-[#eef3f9] text-[#1e3a5f]"],
+    ["✅", t("learner_folders.learner_detail.stat_completed"), @total_completed, @total_assigned > 0 ? "#{(@total_completed*100.0/@total_assigned).round}%" : nil, "bg-emerald-50 text-emerald-700"],
+    ["🎯", t("learner_folders.learner_detail.stat_avg_score"), @avg_quiz_score ? "#{@avg_quiz_score}%" : "—", @quiz_attempts.size > 0 ? t("learner_folders.learner_detail.stat_attempts", n: @quiz_attempts.size) : nil, "bg-blue-50 text-blue-700"],
+    ["🏆", t("learner_folders.learner_detail.stat_pass_rate"), @quiz_pass_rate ? "#{@quiz_pass_rate}%" : "—", nil, "bg-violet-50 text-violet-700"],
+  ].each do |icon, label, val, sub, cls| %>
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-[18px]"><%= icon %></span>
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide"><%= label %></span>
+      </div>
+      <div class="text-[26px] font-extrabold text-slate-900 leading-none"><%= val %></div>
+      <% if sub %>
+        <div class="text-[11px] text-slate-400 mt-1"><%= sub %></div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<%# ── 2-column layout: Left = assignments, Right = AI + history + info ── %>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+  <%# ── LEFT col: Assignments ── %>
+  <div class="space-y-4">
+
+    <% if @quiz_assignments.any? %>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+        <span class="text-[16px]">📝</span>
+        <h3 class="text-[13px] font-bold text-slate-700"><%= t("learner_folders.learner_detail.section_quiz") %> (<%= @quiz_assignments.size %>)</h3>
+      </div>
+      <div class="divide-y divide-slate-100">
+        <% @quiz_assignments.each do |qa| %>
+          <% attempts = @quiz_attempts.select { |a| a.quiz_set_id == qa.quiz_set_id } %>
+          <% best = attempts.max_by(&:score_pct) %>
+          <div class="px-5 py-3.5 flex items-center gap-3">
+            <div class="flex-1 min-w-0">
+              <%= link_to qa.quiz_set.title, quiz_set_path(qa.quiz_set), class: "text-[13px] font-semibold text-slate-800 hover:text-[#1e3a5f] truncate block transition-colors" %>
+              <p class="text-[11px] text-slate-400 mt-0.5">
+                <%= t("learner_folders.learner_detail.assigned_on", date: qa.created_at.strftime("%d/%m/%Y")) %>
+                <% if qa.due_at %> · <%= t("learner_folders.learner_detail.due_on", date: qa.due_at.strftime("%d/%m/%Y")) %><% end %>
+                · <%= t("learner_folders.learner_detail.attempts", n: attempts.size) %>
+              </p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <% if best %>
+                <div class="text-right">
+                  <div class="text-[15px] font-extrabold <%= best.passed? ? 'text-emerald-600' : 'text-red-500' %>"><%= best.score_pct %>%</div>
+                  <div class="text-[10px] <%= best.passed? ? 'text-emerald-500' : 'text-red-400' %> font-bold"><%= best.passed? ? t("learner_folders.learner_detail.passed") : t("learner_folders.learner_detail.failed") %></div>
+                </div>
+              <% end %>
+              <% status_cfg = {
+                "pending"     => ["bg-slate-100 text-slate-500",    "Chưa làm"],
+                "in_progress" => ["bg-blue-100 text-blue-700",      "Đang làm"],
+                "completed"   => ["bg-emerald-100 text-emerald-700", "Hoàn thành"]
+              } %>
+              <% cfg = status_cfg[qa.status] || ["bg-slate-100 text-slate-500", qa.status] %>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full <%= cfg[0] %>"><%= cfg[1] %></span>
+            </div>
+          </div>
+          <% if attempts.size > 1 %>
+            <div class="px-5 pb-3 -mt-1">
+              <div class="flex gap-1.5 flex-wrap">
+                <% attempts.each_with_index do |att, i| %>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold <%= att.passed? ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500' %>">
+                    #<%= i+1 %>: <%= att.score_pct %>%
+                  </span>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+    <% end %>
+
+    <% if @lp_assignments.any? %>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+        <span class="text-[16px]">🗺️</span>
+        <h3 class="text-[13px] font-bold text-slate-700"><%= t("learner_folders.learner_detail.section_lp") %> (<%= @lp_assignments.size %>)</h3>
+      </div>
+      <div class="divide-y divide-slate-100">
+        <% @lp_assignments.each do |lpa| %>
+          <% pct = lpa.progress_pct rescue 0 %>
+          <div class="px-5 py-3.5">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="flex-1 min-w-0">
+                <%= link_to lpa.learning_path.title, learning_path_path(lpa.learning_path), class: "text-[13px] font-semibold text-slate-800 hover:text-[#1e3a5f] truncate block transition-colors" %>
+                <p class="text-[11px] text-slate-400 mt-0.5"><%= t("learner_folders.learner_detail.assigned_on", date: lpa.created_at.strftime("%d/%m/%Y")) %><% if lpa.due_date %> · <%= t("learner_folders.learner_detail.due_on", date: lpa.due_date.strftime("%d/%m/%Y")) %><% end %></p>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="text-[15px] font-extrabold text-[#1e3a5f]"><%= pct %>%</div>
+                <div class="text-[10px] text-slate-400"><%= t("learner_folders.learner_detail.progress_label") %></div>
+              </div>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-1.5">
+              <div class="h-1.5 rounded-full transition-all <%= pct >= 100 ? 'bg-emerald-500' : 'bg-[#1e3a5f]' %>" style="width:<%= [pct, 100].min %>%"></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    <% end %>
+
+    <% if @flashcard_assignments.any? %>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+        <span class="text-[16px]">🃏</span>
+        <h3 class="text-[13px] font-bold text-slate-700"><%= t("learner_folders.learner_detail.section_flashcard") %> (<%= @flashcard_assignments.size %>)</h3>
+      </div>
+      <div class="divide-y divide-slate-100">
+        <% @flashcard_assignments.each do |fa| %>
+          <div class="px-5 py-3.5 flex items-center gap-3">
+            <div class="flex-1 min-w-0">
+              <%= link_to fa.flashcard_deck.title, flashcard_deck_path(fa.flashcard_deck), class: "text-[13px] font-semibold text-slate-800 hover:text-[#1e3a5f] truncate block transition-colors" %>
+              <p class="text-[11px] text-slate-400 mt-0.5"><%= t("learner_folders.learner_detail.assigned_on", date: fa.created_at.strftime("%d/%m/%Y")) %><% if fa.due_at %> · <%= t("learner_folders.learner_detail.due_on", date: fa.due_at.strftime("%d/%m/%Y")) %><% end %></p>
+            </div>
+            <% fc_status = {
+              "pending"     => ["bg-slate-100 text-slate-500",    "Chưa học"],
+              "in_progress" => ["bg-blue-100 text-blue-700",      "Đang học"],
+              "completed"   => ["bg-emerald-100 text-emerald-700", "Hoàn thành"]
+            } %>
+            <% cfg = fc_status[fa.status] || ["bg-slate-100 text-slate-500", fa.status] %>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 <%= cfg[0] %>"><%= cfg[1] %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    <% end %>
+
+    <% if @quiz_assignments.empty? && @lp_assignments.empty? && @flashcard_assignments.empty? %>
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm py-12 text-center">
+        <div class="text-4xl mb-3">📭</div>
+        <p class="text-[14px] font-bold text-slate-500"><%= t("learner_folders.learner_detail.empty_title") %></p>
+        <p class="text-[12px] text-slate-400 mt-1"><%= t("learner_folders.learner_detail.empty_desc") %></p>
+      </div>
+    <% end %>
+
+  </div>
+
+  <%# ── RIGHT col: AI analysis + history + info ── %>
+  <div class="space-y-4">
+
+    <%# AI Analysis %>
+    <div class="bg-white rounded-2xl border border-[#d9e5f1] shadow-sm overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-[#eef3f9] to-white">
+        <div class="flex items-center gap-2">
+          <span class="text-[18px]">✨</span>
+          <div>
+            <h2 class="text-[14px] font-extrabold text-[#1e3a5f]"><%= t("learner_folders.learner_detail.ai_title") %></h2>
+            <% if @learner.ai_analyzed_at %>
+              <p class="text-[11px] text-slate-400">Phân tích lần cuối: <%= @learner.ai_analyzed_at.strftime("%d/%m/%Y %H:%M") %></p>
+            <% else %>
+              <p class="text-[11px] text-slate-400"><%= t("learner_folders.learner_detail.ai_desc") %></p>
+            <% end %>
+          </div>
+        </div>
+        <button id="ai-analyze-btn"
+                onclick="runAiAnalysis()"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1e3a5f] hover:bg-[#16304f] text-white text-[12px] font-bold rounded-xl transition-colors shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span id="ai-btn-text"><%= @learner.ai_analysis_html.present? ? "Phân tích lại" : t("learner_folders.learner_detail.ai_btn") %></span>
+        </button>
+      </div>
+      <div id="ai-result" class="px-5 py-4">
+        <% if @learner.ai_analysis_html.present? %>
+          <div class="ai-analysis-content"><%= @learner.ai_analysis_html.html_safe %></div>
+        <% else %>
+          <div class="flex items-center gap-3 text-slate-400 py-2">
+            <svg class="w-8 h-8 opacity-30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            <p class="text-[12px]"><%= t("learner_folders.learner_detail.ai_prompt_hint") %></p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Quiz attempt history %>
+    <% if @quiz_attempts.any? %>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
+        <h3 class="text-[13px] font-bold text-slate-700">📊 <%= t("learner_folders.learner_detail.section_history") %> (<%= @quiz_attempts.size %>)</h3>
+      </div>
+      <div class="divide-y divide-slate-100 max-h-[320px] overflow-y-auto">
+        <% @quiz_attempts.first(20).each do |att| %>
+          <div class="px-4 py-3 flex items-center gap-2">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white text-[12px] font-extrabold shrink-0 <%= att.passed? ? 'bg-emerald-500' : 'bg-red-400' %>">
+              <%= att.score_pct %>%
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[12px] font-semibold text-slate-700 truncate"><%= att.quiz_set.title %></p>
+              <p class="text-[10px] text-slate-400"><%= att.submitted_at&.strftime("%d/%m/%Y %H:%M") || "—" %></p>
+            </div>
+            <% if att.result_token %>
+              <%= link_to "↗", quiz_public_result_url(att.result_token), target: "_blank", class: "text-[11px] text-[#1e3a5f] hover:text-[#4a80a8] font-bold" %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    <% end %>
+
+  </div>
+</div>
+
+<script>
+function runAiAnalysis() {
+  var btn     = document.getElementById('ai-analyze-btn');
+  var btnText = document.getElementById('ai-btn-text');
+  var result  = document.getElementById('ai-result');
+
+  btnText.textContent = 'Đang phân tích...';
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+
+  result.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;padding:12px 0;">' +
+    '<svg style="width:18px;height:18px;animation:spin .8s linear infinite;flex-shrink:0;" viewBox="0 0 24 24" fill="none">' +
+    '<circle cx="12" cy="12" r="10" stroke="#d9e5f1" stroke-width="3"/>' +
+    '<path d="M12 2a10 10 0 0 1 10 10" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round"/>' +
+    '</svg>' +
+    '<span style="font-size:12px;color:#64748b;">AI đang tổng hợp dữ liệu học tập...</span></div>';
+
+  fetch('<%= ai_analyze_learner_path(learner_id: @learner.id) %>', {
+    method: 'POST',
+    headers: {
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+      'Accept': 'application/json'
+    }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      result.innerHTML = '<div class="ai-analysis-content">' + data.html + '</div>';
+      btnText.textContent = 'Phân tích lại';
+    } else {
+      result.innerHTML = '<p class="ai-error">Lỗi: ' + (data.error || 'Không thể phân tích.') + '</p>';
+      btnText.textContent = '<%= j t("learner_folders.learner_detail.ai_btn") %>';
+    }
+  })
+  .catch(function() {
+    result.innerHTML = '<p class="ai-error">Lỗi kết nối. Vui lòng thử lại.</p>';
+    btnText.textContent = '<%= j t("learner_folders.learner_detail.ai_btn") %>';
+  })
+  .finally(function() {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  });
+}
+</script>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ai-analysis-content {
+  font-size: 13px;
+  line-height: 1.75;
+  color: #334155;
+}
+.ai-analysis-content p {
+  margin: 0 0 10px;
+}
+.ai-analysis-content ul, .ai-analysis-content ol {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+.ai-analysis-content li {
+  margin-bottom: 5px;
+}
+.ai-analysis-content strong {
+  color: #1e3a5f;
+  font-weight: 700;
+}
+.ai-analysis-content em {
+  color: #475569;
+  font-style: italic;
+}
+.ai-analysis-content h3, .ai-analysis-content h4 {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e3a5f;
+  margin: 14px 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e8eef5;
+}
+.ai-analysis-content h3:first-child, .ai-analysis-content h4:first-child { margin-top: 0; }
+.ai-error {
+  color: #ef4444;
+  font-size: 13px;
+  margin: 0;
+}
+</style>

@@ -33,7 +33,11 @@ class GenerateFlashcardImagesJob < ApplicationJob
       threads.each(&:join)
     end
 
-    deck.workspace.credit_subscription&.deduct_credits!(5)
+    if deck.learner_id.present?
+      deck.learner&.deduct_credits!(5)
+    else
+      deck.workspace&.credit_subscription&.deduct_credits!(5)
+    end
     deck.update_column(:image_generating, false)
     Rails.logger.info "[GenerateFlashcardImagesJob] Done for deck #{deck_id}"
 

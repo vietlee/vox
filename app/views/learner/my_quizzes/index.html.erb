@@ -1,0 +1,56 @@
+<% content_for :title, t('learner_qz.mine_title') %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <%= link_to t('learner_dashboard.library'), learner_library_path, class: "lp-bc-link" %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current"><%= t('learner_qz.mine_title') %></span>
+<% end %>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+  <div>
+    <h1 style="font-size:18px;font-weight:800;color:#0f172a;margin:0 0 2px;"><%= t('learner_qz.mine_title') %></h1>
+    <p style="font-size:12px;color:#64748b;margin:0;"><%= t('learner_qz.mine_subtitle') %></p>
+  </div>
+  <%= link_to learner_new_my_quiz_path, class:"lp-btn lp-btn-primary", style:"font-size:13px;padding:8px 14px;white-space:nowrap;" do %>✨ <%= t('learner_qz.create_new') %><% end %>
+</div>
+
+<% if @quizzes.empty? %>
+  <div style="text-align:center;padding:48px 24px;background:#fff;border-radius:16px;border:1px dashed #e2e8f0;">
+    <div style="font-size:40px;margin-bottom:12px;">📝</div>
+    <p style="font-size:15px;font-weight:700;color:#1e293b;margin:0 0 6px;"><%= t('learner_qz.empty_title') %></p>
+    <p style="font-size:13px;color:#64748b;margin:0 0 20px;"><%= t('learner_qz.empty_desc') %></p>
+    <%= link_to "✨ #{t('learner_qz.create_now')}", learner_new_my_quiz_path, class:"lp-btn lp-btn-primary" %>
+  </div>
+<% else %>
+  <div style="display:grid;gap:12px;">
+    <% @quizzes.each do |quiz| %>
+      <% asg = @assignments[quiz.id] %>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+        <div style="width:44px;height:44px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="22" height="22" fill="none" stroke="#1d4ed8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= quiz.title %></p>
+          <p style="font-size:12px;color:#64748b;margin:0;">
+            <%= quiz.question_count %> <%= t('learner_qz.q_unit') %><% if quiz.has_essay? %> · <%= t('learner_qz.has_essay') %><% end %><% if quiz.time_limit_minutes %> · <%= quiz.time_limit_minutes %> <%= t('learner_qz.minutes') %><% end %> · <%= quiz.created_at.strftime("%d/%m/%Y") %>
+          </p>
+        </div>
+        <% if asg %>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <% if asg.completed? %>
+              <%= link_to t('learner_dashboard.btn_view_result'), result_learner_quiz_assignment_path(asg.token),
+                    class:"lp-btn lp-btn-primary", style:"padding:8px 14px;font-size:13px;" %>
+              <% if quiz.allow_retake %>
+                <%= link_to t('learner_qz.redo_quiz'), take_learner_quiz_assignment_path(asg.token),
+                      class:"lp-btn lp-btn-outline", style:"padding:8px 14px;font-size:13px;" %>
+              <% end %>
+            <% else %>
+              <%= link_to (asg.in_progress? ? t('learner_dashboard.btn_continue') : t('learner_qz.do_quiz')), take_learner_quiz_assignment_path(asg.token),
+                    class:"lp-btn lp-btn-primary", style:"padding:8px 14px;font-size:13px;" %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

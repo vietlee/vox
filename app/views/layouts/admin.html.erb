@@ -222,6 +222,11 @@
       <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_overview") %></div>
       <%= render "shared/nav_item", icon: "📊", label: t("nav.dashboard"), path: dashboard_path %>
 
+      <% if current_workspace_admin? %>
+        <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Learner</div>
+        <%= render "shared/nav_item", icon: "👤", label: "Learner", path: learner_folders_path %>
+      <% end %>
+
       <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_learning") %></div>
       <%= render "shared/nav_item", icon: "🎓", label: t("quiz.nav"), path: quiz_sets_path %>
       <%= render "shared/nav_item", icon: "🃏", label: t("flashcard.nav"), path: flashcard_decks_path %>
@@ -247,7 +252,6 @@
 
       <% if current_workspace_admin? %>
         <div class="sb-section px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest"><%= t("nav.section_manage") %></div>
-        <%= render "shared/nav_item", icon: "🎓", label: t("nav.learner_management"), path: learner_folders_path %>
         <%= render "shared/nav_item", icon: "💳", label: t("nav.subscription"), path: subscription_path %>
         <%= render "shared/nav_item", icon: "📜", label: t("nav.audit_log"), path: audit_log_path %>
         <% if workspace_owner? %>
@@ -364,9 +368,51 @@
     <% end %>
 
     <!-- Page content -->
-    <main class="<%= content_for?(:main_class) ? yield(:main_class) : 'flex-1 overflow-y-auto p-6' %>">
+    <main id="admin-main" class="<%= content_for?(:main_class) ? yield(:main_class) : 'flex-1 overflow-y-auto p-6' %>">
       <%= yield %>
     </main>
+
+    <script>
+    (function() {
+      function applyPageHeaderSticky() {
+        var anchor = document.querySelector('[data-page-header-anchor]');
+        if (!anchor) return;
+        var main = document.getElementById('admin-main');
+        if (!main) return;
+
+        // Only apply sticky when main itself is the scroll container
+        // (flex-col overflow-hidden pages pin header via flex layout already)
+        var mainOverflow = window.getComputedStyle(main).overflowY;
+        if (mainOverflow !== 'auto' && mainOverflow !== 'scroll') return;
+
+        // Walk up from anchor to find the direct child of main
+        var el = anchor;
+        while (el && el.parentElement !== main) { el = el.parentElement; }
+        if (!el || el === main) return;
+
+        // Extend full width (main has p-6 = 24px padding)
+        var pad = parseInt(window.getComputedStyle(main).paddingLeft) || 24;
+        el.style.position = 'sticky';
+        el.style.top      = '-' + pad + 'px';
+        el.style.zIndex   = '30';
+        el.style.marginLeft  = '-' + pad + 'px';
+        el.style.marginRight = '-' + pad + 'px';
+        el.style.paddingLeft  = pad + 'px';
+        el.style.paddingRight = pad + 'px';
+        el.style.paddingTop    = pad + 'px';
+        el.style.paddingBottom = '12px';
+        el.style.background = 'rgba(241,245,249,0.97)';
+        el.style.backdropFilter = 'blur(6px)';
+        el.style.webkitBackdropFilter = 'blur(6px)';
+        el.style.boxShadow = '0 1px 0 0 #e2e8f0';
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyPageHeaderSticky);
+      } else {
+        applyPageHeaderSticky();
+      }
+    })();
+    </script>
   </div>
 </div>
 

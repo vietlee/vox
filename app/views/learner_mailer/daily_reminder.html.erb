@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @media only screen and (max-width:600px) {
+      .em-wrap  { width: 100% !important; max-width: 100% !important; margin: 0 !important; border-radius: 0 !important; }
+      .em-hd    { padding: 26px 16px !important; }
+      .em-body  { padding: 24px 16px !important; }
+      .em-ft    { padding: 14px 16px !important; }
+      .em-btn   { display: block !important; padding: 15px !important; font-size: 15px !important; }
+    }
+  </style>
+</head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:#eef3f9;padding:0;margin:0;">
+
+<div class="em-wrap" style="max-width:540px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(30,58,95,0.10);">
+
+  <!-- Header -->
+  <div class="em-hd" style="background:#1e3a5f;padding:28px 32px;text-align:center;">
+    <div style="margin-bottom:12px;">
+      <span style="color:rgba(255,255,255,0.85);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">VOX Learn</span>
+    </div>
+    <% if @streak >= 1 %>
+      <div style="font-size:40px;line-height:1;margin-bottom:8px;">🔥</div>
+      <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0;line-height:1.3;">Đừng để mất chuỗi <%= @streak %> ngày!</h1>
+    <% else %>
+      <div style="font-size:40px;line-height:1;margin-bottom:8px;">📚</div>
+      <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0;line-height:1.3;">Dành vài phút học hôm nay nhé!</h1>
+    <% end %>
+  </div>
+
+  <div style="height:4px;background:linear-gradient(90deg,#1e3a5f,#4a80a8,#1e3a5f);"></div>
+
+  <!-- Body -->
+  <div class="em-body" style="padding:28px 32px;">
+    <p style="font-size:16px;color:#1e293b;margin:0 0 8px;">Xin chào <strong style="color:#1e3a5f;"><%= @learner.name %></strong>,</p>
+
+    <% if @streak >= 1 %>
+      <p style="font-size:14px;color:#64748b;line-height:1.7;margin:0 0 20px;">
+        Bạn đang có chuỗi học <strong style="color:#ea580c;"><%= @streak %> ngày</strong> 🔥 — hôm nay bạn chưa học.
+        Chỉ cần hoàn thành 1 hoạt động là giữ được chuỗi!
+      </p>
+    <% else %>
+      <p style="font-size:14px;color:#64748b;line-height:1.7;margin:0 0 20px;">
+        Học đều mỗi ngày giúp bạn nhớ lâu hơn. Bắt đầu một chuỗi học mới hôm nay nhé!
+      </p>
+    <% end %>
+
+    <% if @tasks.any? %>
+      <p style="font-size:12px;font-weight:700;color:#4a80a8;text-transform:uppercase;letter-spacing:.6px;margin:0 0 10px;">Việc cần làm</p>
+      <div style="margin-bottom:24px;">
+        <% @tasks.each do |t| %>
+          <div style="background:#eef3f9;border:1px solid #d9e5f1;border-radius:10px;padding:12px 16px;margin-bottom:8px;">
+            <p style="font-size:14px;font-weight:700;color:#1e3a5f;margin:0;"><%= t[:label] %></p>
+            <% if t[:overdue] %>
+              <p style="font-size:12px;color:#dc2626;font-weight:700;margin:3px 0 0;">⚠ Quá hạn<%= t[:meta] ? " · #{t[:meta]}" : "" %></p>
+            <% elsif t[:meta] %>
+              <p style="font-size:12px;color:#94a3b8;margin:3px 0 0;"><%= t[:meta] %></p>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- CTA -->
+    <div style="text-align:center;margin:8px 0 4px;">
+      <a href="<%= @dashboard_url %>" class="em-btn" style="display:inline-block;background:#1e3a5f;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:12px;">
+        Học ngay →
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="em-ft" style="padding:16px 32px;background:#f8fafc;border-top:1px solid #eef3f9;text-align:center;">
+    <p style="font-size:11px;color:#94a3b8;margin:0;line-height:1.6;">
+      Email nhắc học hằng ngày từ VOX Learn.<br>
+      Bạn có thể tắt nhắc nhở trong phần cài đặt tài khoản.
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

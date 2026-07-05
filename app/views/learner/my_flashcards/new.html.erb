@@ -1,0 +1,139 @@
+<% content_for :title, t('learner_fc.new_title') %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <%= link_to t('learner_dashboard.library'), learner_library_path, class: "lp-bc-link" %>
+  <span class="lp-bc-sep">›</span>
+  <%= link_to t('learner_fc.mine_title'), learner_my_flashcards_path, class: "lp-bc-link" %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current"><%= t('learner_fc.create_new') %></span>
+<% end %>
+
+<!-- Header -->
+<div style="text-align:center;padding:20px 0 24px;">
+  <div style="width:72px;height:72px;background:linear-gradient(135deg,#e0f2fe,#bae6fd);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;border:2px solid #7dd3fc;">
+    <svg width="36" height="36" fill="none" stroke="#0369a1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+  </div>
+  <h1 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 6px;"><%= t('learner_fc.new_title') %></h1>
+  <p style="font-size:13px;color:#64748b;margin:0;"><%= t('learner_fc.new_subtitle') %></p>
+</div>
+
+<!-- Credit notice -->
+<div style="background:#fef9c3;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+  <span style="font-size:18px;">⚡</span>
+  <div>
+    <p style="font-size:13px;font-weight:700;color:#92400e;margin:0;"><%= t('learner_fc.cost_line', n: @cost) %></p>
+    <p style="font-size:12px;color:#b45309;margin:0;"><%= t('learner_fc.credits_left', n: current_learner.credits) %></p>
+  </div>
+</div>
+
+<!-- Form -->
+<div class="lp-card">
+  <div class="lp-card-body" style="display:grid;gap:16px;">
+
+    <!-- Topic -->
+    <div>
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;"><%= t('learner_fc.topic_label') %> <span style="color:#ef4444;">*</span></label>
+      <textarea id="fc-topic" rows="3" maxlength="500" placeholder="<%= t('learner_fc.topic_ph').html_safe %>"
+        style="width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:14px;color:#1e293b;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;line-height:1.5;"
+        onfocus="this.style.borderColor='#1e3a5f'" onblur="this.style.borderColor='#e5e7eb'"><%= params[:topic] %></textarea>
+      <p style="font-size:11px;color:#9ca3af;margin-top:4px;"><%= t('learner_fc.topic_hint') %></p>
+    </div>
+
+    <!-- Card count -->
+    <div>
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:8px;"><%= t('learner_fc.count_label') %>: <span id="fc-count-label" style="color:#1e3a5f;">10</span></label>
+      <input type="range" id="fc-count" min="5" max="30" value="10" step="1"
+             oninput="document.getElementById('fc-count-label').textContent=this.value"
+             style="width:100%;accent-color:#1e3a5f;cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:2px;">
+        <span>5</span><span>30</span>
+      </div>
+    </div>
+
+    <!-- Language -->
+    <div>
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:8px;"><%= t('learner_fc.lang_label') %></label>
+      <div style="display:flex;gap:8px;">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid #1e3a5f;border-radius:10px;cursor:pointer;background:#f0f6ff;">
+          <input type="radio" name="fc-lang" value="vi" checked style="accent-color:#1e3a5f;"> <span style="font-size:13px;font-weight:600;color:#1e3a5f;">🇻🇳 <%= t('learner_fc.lang_vi') %></span>
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;cursor:pointer;"
+               onclick="this.style.borderColor='#1e3a5f';this.style.background='#f0f6ff';document.querySelectorAll('[name=fc-lang]')[0].closest('label').style.borderColor='#e5e7eb';document.querySelectorAll('[name=fc-lang]')[0].closest('label').style.background='#fff'">
+          <input type="radio" name="fc-lang" value="en" style="accent-color:#1e3a5f;"> <span style="font-size:13px;font-weight:600;color:#374151;">🇬🇧 <%= t('learner_fc.lang_en') %></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Generate button -->
+    <button id="fc-generate-btn" onclick="fcGenerate()"
+            class="lp-btn lp-btn-primary lp-btn-full" style="font-size:15px;padding:14px;margin-top:4px;">
+      ✨ <%= t('learner_fc.generate_btn', n: @cost) %>
+    </button>
+  </div>
+</div>
+
+<!-- Progress overlay -->
+<div id="fc-progress" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:36px 40px;text-align:center;max-width:300px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="width:56px;height:56px;margin:0 auto 16px;">
+      <svg viewBox="0 0 56 56" fill="none" style="animation:lp-spin 1s linear infinite;">
+        <circle cx="28" cy="28" r="22" stroke="#e2e8f0" stroke-width="4"/>
+        <path fill="#1e3a5f" d="M6 28a22 22 0 0122-22V0C12.536 0 0 12.536 0 28h6z"/>
+      </svg>
+    </div>
+    <p style="font-size:16px;font-weight:800;color:#0f172a;margin:0 0 8px;"><%= t('learner_fc.generating') %></p>
+    <p id="fc-progress-msg" style="font-size:13px;color:#64748b;margin:0;"><%= t('learner_fc.gen_1') %></p>
+  </div>
+</div>
+
+<style>@keyframes lp-spin { to { transform: rotate(360deg); } }</style>
+<script>
+(function(){
+  const MSGS = ['<%= j t('learner_fc.gen_1') %>', '<%= j t('learner_fc.gen_2') %>', '<%= j t('learner_fc.gen_3') %>', '<%= j t('learner_fc.gen_4') %>'];
+  let _msgIdx = 0, _msgInt;
+
+  function showProgress(on) {
+    const el = document.getElementById('fc-progress');
+    el.style.display = on ? 'flex' : 'none';
+    if (on) { _msgIdx = 0; _msgInt = setInterval(() => {
+      document.getElementById('fc-progress-msg').textContent = MSGS[_msgIdx++ % MSGS.length];
+    }, 2000); }
+    else { clearInterval(_msgInt); }
+  }
+
+  window.fcGenerate = function() {
+    const topic = document.getElementById('fc-topic').value.trim();
+    if (!topic) { document.getElementById('fc-topic').focus(); return; }
+
+    const count = document.getElementById('fc-count').value;
+    const lang  = document.querySelector('input[name="fc-lang"]:checked').value;
+    const btn   = document.getElementById('fc-generate-btn');
+
+    btn.disabled = true;
+    showProgress(true);
+
+    const fd = new FormData();
+    fd.append('topic',      topic);
+    fd.append('card_count', count);
+    fd.append('language',   lang);
+    fd.append('authenticity_token', document.querySelector('meta[name="csrf-token"]').content);
+
+    fetch('<%= learner_generate_my_flashcard_path %>', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(function(d) {
+        showProgress(false);
+        if (d.redirect_url) {
+          window.location = d.redirect_url;
+        } else {
+          alert(d.error || '<%= j t('learner_fc.err_generic') %>');
+          btn.disabled = false;
+        }
+      })
+      .catch(function() {
+        showProgress(false);
+        alert('<%= j t('learner_fc.err_conn') %>');
+        btn.disabled = false;
+      });
+  };
+})();
+</script>

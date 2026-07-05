@@ -15,17 +15,17 @@ class LearningPathAssignment < ApplicationRecord
     due_date.present? && due_date < Date.current && status != "completed"
   end
 
-  private
-
-  def generate_token
-    self.token ||= SecureRandom.urlsafe_base64(20) if learner_id.present?
-  end
-
   def progress_pct
     items = learning_path.learning_path_items
     total = items.loaded? ? items.size : items.count
     return 0 if total == 0
     done = learning_item_progresses.loaded? ? learning_item_progresses.count(&:completed?) : learning_item_progresses.completed.count
     (done * 100.0 / total).round
+  end
+
+  private
+
+  def generate_token
+    self.token ||= SecureRandom.urlsafe_base64(20) if learner_id.present?
   end
 end

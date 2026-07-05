@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<html lang="vi" class="h-full">
+<html lang="<%= I18n.locale %>" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="theme-color" content="#1e3a5f">
   <title><%= content_for?(:title) ? "#{yield :title} · VOX Learn" : "VOX Learn" %></title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="/icon.png" type="image/png">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
   <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-  <%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>
+  <%= javascript_importmap_tags %>
   <style>
     :root {
-      --lp-purple: #6366f1;
-      --lp-purple-dark: #4f46e5;
-      --lp-purple-light: #a5b4fc;
-      --lp-bg: #f8f7ff;
+      --lp-purple: #1e3a5f;
+      --lp-purple-dark: #16304f;
+      --lp-purple-light: #4a7fa8;
+      --lp-bg: #f0f4f8;
       --lp-card: #ffffff;
-      --lp-text: #1e1b4b;
+      --lp-text: #1e293b;
       --lp-muted: #6b7280;
       --lp-border: #e5e7eb;
       --lp-success: #10b981;
@@ -29,16 +31,20 @@
     body { display: flex; flex-direction: column; min-height: 100dvh; }
     .lp-topbar {
       position: sticky; top: 0; z-index: 50;
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      background: linear-gradient(135deg, #1e3a5f 0%, #16304f 100%);
       color: white; padding: 0 16px;
       height: 56px; display: flex; align-items: center; justify-content: space-between;
-      box-shadow: 0 2px 12px rgba(79,70,229,0.25);
+      box-shadow: 0 2px 12px rgba(30,58,95,0.25);
     }
     .lp-topbar-logo { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; text-decoration: none; color: white; }
-    .lp-topbar-logo span { background: rgba(255,255,255,0.2); border-radius: 8px; padding: 3px 8px; font-size: 13px; }
-    .lp-credits-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+    .lp-credits-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 4px; color: white; text-decoration: none; }
     .lp-main { flex: 1; padding-bottom: calc(68px + var(--safe-bottom)); overflow-y: auto; }
-    .lp-page { max-width: 680px; margin: 0 auto; padding: 20px 16px; }
+    .lp-page { margin: 0 auto; padding: 20px 16px; max-width: 100%; }
+    @media (min-width: 1024px) {
+      .lp-page          { max-width: 58.33%; }
+      .lp-page-profile  { max-width: 50%; }
+      .lp-page-fullwidth{ max-width: 100%; padding: 0; }
+    }
     .lp-bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
       background: white; border-top: 1px solid var(--lp-border);
@@ -46,10 +52,19 @@
       padding-bottom: var(--safe-bottom);
       box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
     }
-    .lp-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none; color: var(--lp-muted); font-size: 11px; font-weight: 500; transition: color 0.2s; padding-top: 8px; }
-    .lp-nav-item svg { width: 22px; height: 22px; }
-    .lp-nav-item.active, .lp-nav-item:hover { color: var(--lp-purple); }
+    @media (min-width: 1024px) {
+      .lp-bottom-nav { left: 20.835%; right: 20.835%; border-radius: 16px 16px 0 0; border-left: 1px solid var(--lp-border); border-right: 1px solid var(--lp-border); }
+      .lp-tools-sheet-inner { max-width: 58.33%; }
+    }
+    .lp-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none; color: var(--lp-muted); font-size: 11px; font-weight: 500; transition: color 0.2s, background 0.15s, transform 0.1s; padding: 6px 4px; border-radius: 12px; margin: 4px; background: transparent; }
+    .lp-nav-item svg { width: 22px; height: 22px; transition: transform 0.15s; }
+    .lp-nav-item:hover { color: var(--lp-purple); background: rgba(30,58,95,0.06); }
+    .lp-nav-item:hover svg { transform: translateY(-2px); }
+    .lp-nav-item:active { transform: scale(0.93); }
+    .lp-nav-item.active { color: #1e3a5f; font-weight: 700; }
     .lp-nav-item.active svg { stroke-width: 2.5; }
+    .lp-nav-item.active .lp-nav-icon { background: rgba(30,58,95,0.1); border-radius: 10px; padding: 4px 14px; margin-bottom: 1px; }
+    .lp-nav-icon { padding: 4px 14px; margin-bottom: 1px; transition: background 0.15s; }
     .lp-card { background: white; border-radius: 16px; box-shadow: 0 1px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04); margin-bottom: 12px; overflow: hidden; }
     .lp-card-header { padding: 16px 16px 12px; border-bottom: 1px solid #f3f4f6; }
     .lp-card-body { padding: 16px; }
@@ -59,70 +74,270 @@
     .lp-badge-done      { background: #d1fae5; color: #065f46; }
     .lp-badge-overdue   { background: #fee2e2; color: #991b1b; }
     .lp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; text-decoration: none; transition: all 0.15s; }
-    .lp-btn-primary { background: linear-gradient(135deg, #6366f1, #7c3aed); color: white; }
-    .lp-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.35); }
+    .lp-btn-primary { background: #1e3a5f; color: white; }
+    .lp-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30,58,95,0.35); background: #16304f; }
     .lp-btn-outline { background: white; color: var(--lp-purple); border: 1.5px solid var(--lp-purple); }
     .lp-btn-full { width: 100%; }
+    /* Compact buttons on mobile (overrides inline padding/font on card action buttons) */
+    @media (max-width: 640px) {
+      .lp-btn { padding: 8px 12px !important; font-size: 12.5px !important; border-radius: 10px !important; gap: 4px; }
+      .lp-btn-full { padding: 12px 14px !important; font-size: 14px !important; }
+    }
     .lp-progress-bar { background: #e5e7eb; border-radius: 99px; height: 8px; overflow: hidden; }
-    .lp-progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #6366f1, #8b5cf6); transition: width 0.4s ease; }
+    .lp-progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #1e3a5f, #4a7fa8); transition: width 0.4s ease; }
     .lp-section-title { font-size: 13px; font-weight: 700; color: var(--lp-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
-    .lp-alert { padding: 12px 16px; border-radius: 12px; font-size: 14px; margin-bottom: 12px; }
-    .lp-alert-success { background: #d1fae5; color: #065f46; }
-    .lp-alert-error   { background: #fee2e2; color: #991b1b; }
-    .lp-alert-info    { background: #dbeafe; color: #1e40af; }
-    @media (min-width: 640px) {
+    /* Hide scrollbars globally while keeping scroll functionality */
+    *::-webkit-scrollbar { display: none; }
+    * { -ms-overflow-style: none; scrollbar-width: none; }
+    /* Breadcrumb */
+    .lp-breadcrumb { display:flex;align-items:center;gap:2px;margin-bottom:16px;font-size:13px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;flex-wrap:nowrap; }
+    .lp-breadcrumb::-webkit-scrollbar { display:none; }
+    .lp-bc-link { color:var(--lp-muted);text-decoration:none;white-space:nowrap;padding:5px 8px;border-radius:8px;transition:color .15s,background .15s;display:flex;align-items:center;gap:4px;font-weight:500;flex-shrink:0; }
+    .lp-bc-link:hover { color:var(--lp-purple);background:rgba(30,58,95,.06); }
+    .lp-bc-sep { color:#d1d5db;font-size:15px;flex-shrink:0;padding:0 1px;user-select:none; }
+    .lp-bc-current { color:var(--lp-text);font-weight:600;white-space:nowrap;padding:5px 8px;overflow:hidden;text-overflow:ellipsis;max-width:160px;flex-shrink:1; }
+    @media (min-width:640px) { .lp-bc-current { max-width:280px; } }
+    @media (min-width:640px) {
       .lp-page { padding: 28px 24px; }
       .lp-card { border-radius: 20px; margin-bottom: 16px; }
     }
   </style>
   <%= yield :head %>
 </head>
-<body>
+<body data-page="<%= controller_path.gsub('/', '-') %>">
   <%# Top bar — hidden on auth pages %>
   <% if learner_signed_in? %>
   <header class="lp-topbar">
     <%= link_to learner_root_path, class: "lp-topbar-logo" do %>
-      <svg width="24" height="24" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="9" fill="white" fill-opacity="0.2"/><polygon points="10,24 6,31 16,24" fill="white"/><rect x="6" y="6" width="24" height="19" rx="5" fill="white" fill-opacity="0.9"/><rect x="10" y="11" width="4" height="7" rx="1" fill="#6366f1"/><rect x="16" y="8" width="4" height="13" rx="1" fill="#6366f1"/><rect x="23" y="10" width="4" height="9" rx="1" fill="#6366f1"/></svg>
-      VOX <span>Learn</span>
+      <svg width="28" height="28" viewBox="295 27 90 90" xmlns="http://www.w3.org/2000/svg">
+        <rect x="305" y="38" width="70" height="70" rx="18" fill="#1A6BFF"/>
+        <polygon points="325,84 318,98 338,84" fill="white"/>
+        <rect x="317" y="49" width="46" height="37" rx="9" fill="white"/>
+        <rect x="326" y="59" width="7" height="14" rx="2" fill="#1A6BFF"/>
+        <rect x="338" y="53" width="7" height="26" rx="2" fill="#1A6BFF"/>
+        <rect x="350" y="57" width="7" height="18" rx="2" fill="#1A6BFF"/>
+      </svg>
+      <span style="font-size:17px;font-weight:800;color:#1A6BFF;letter-spacing:2.5px;line-height:1;">VOX</span>
     <% end %>
-    <%= link_to learner_credits_path, class: "lp-credits-badge" do %>
-      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-      <%= current_learner.credits %> credits
-    <% end %>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <!-- Language switcher -->
+      <div style="display:flex;align-items:center;background:rgba(255,255,255,0.12);border-radius:20px;padding:3px;">
+        <%= link_to request.path + "?locale=vi", style: "padding:3px 10px;border-radius:16px;font-size:11px;font-weight:700;text-decoration:none;transition:all .15s;#{I18n.locale == :vi ? 'background:white;color:#1e3a5f;' : 'color:rgba(255,255,255,0.7);'}" do %>🇻🇳 VI<% end %>
+        <%= link_to request.path + "?locale=en", style: "padding:3px 10px;border-radius:16px;font-size:11px;font-weight:700;text-decoration:none;transition:all .15s;#{I18n.locale == :en ? 'background:white;color:#1e3a5f;' : 'color:rgba(255,255,255,0.7);'}" do %>🇬🇧 EN<% end %>
+      </div>
+      <%= link_to learner_credits_path, class: "lp-credits-badge" do %>
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <span id="lp-credits-val"><%= current_learner.credits %></span><span style="opacity:0.55;font-weight:500;">/</span><span style="opacity:0.55;font-weight:500;"><%= current_learner.max_credits %></span>
+      <% end %>
+    </div>
   </header>
   <% end %>
 
+  <!-- Toast container -->
+  <div id="lp-toast-container" style="position:fixed;top:68px;right:0;z-index:9999;padding:0 12px;display:flex;flex-direction:column;gap:8px;width:min(340px,100vw);box-sizing:border-box;pointer-events:none;"></div>
+
+  <% if notice.present? || alert.present? %>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      <% if notice.present? %> showLpToast(<%= notice.to_json %>, 'success'); <% end %>
+      <% if alert.present? %>  showLpToast(<%= alert.to_json %>,  'error');   <% end %>
+    });
+  </script>
+  <% end %>
+
   <main class="lp-main">
-    <div class="lp-page">
-      <% if notice.present? %>
-        <div class="lp-alert lp-alert-success"><%= notice %></div>
-      <% end %>
-      <% if alert.present? %>
-        <div class="lp-alert lp-alert-error"><%= alert %></div>
+    <% _lp_auth    = %w[sessions registrations passwords].include?(controller_name) %>
+    <% _lp_profile = controller_name == 'profile' %>
+    <% _lp_extra_class = _lp_auth ? 'lp-page-fullwidth' : (_lp_profile ? 'lp-page-profile' : '') %>
+    <% _lp_inline  = _lp_auth ? 'max-width:none;padding:0' : '' %>
+    <% _lp_inline += content_for?(:lp_style) ? ';' + yield(:lp_style) : '' %>
+    <div class="lp-page <%= _lp_extra_class %>" style="<%= _lp_inline.delete_prefix(';') %>">
+      <% if content_for?(:breadcrumb) %>
+        <nav class="lp-breadcrumb" aria-label="breadcrumb">
+          <%= link_to learner_root_path, class: "lp-bc-link" do %>
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            Trang chủ
+          <% end %>
+          <%= yield :breadcrumb %>
+        </nav>
       <% end %>
       <%= yield %>
     </div>
   </main>
 
   <% if learner_signed_in? %>
+  <!-- Tools bottom sheet -->
+  <div id="lp-tools-sheet"
+       style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(15,23,42,0.45);opacity:0;transition:opacity .25s;"
+       onclick="if(event.target===this)closeLpTools()">
+    <div id="lp-tools-sheet-inner"
+         class="lp-tools-sheet-inner"
+         style="position:absolute;bottom:60px;left:50%;transform:translateX(-50%) translateY(110%);width:100%;background:#fff;border-radius:18px 18px 0 0;padding:8px 0 16px;transition:transform .3s cubic-bezier(.32,1,.23,1);box-shadow:0 -4px 32px rgba(0,0,0,.12);">
+
+      <!-- drag handle — click to close -->
+      <div onclick="closeLpTools()" style="padding:6px 0 2px;cursor:pointer;display:flex;justify-content:center;">
+        <div style="width:32px;height:3px;background:#e2e8f0;border-radius:2px;"></div>
+      </div>
+
+      <!-- header row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 12px 6px;">
+        <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin:0;"><%= t('learner_portal.tools_title') %></p>
+        <button onclick="closeLpTools()" style="width:26px;height:26px;border-radius:50%;border:none;background:#f1f5f9;color:#94a3b8;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;line-height:1;">×</button>
+      </div>
+
+      <style>
+        .lp-tool-grouplabel { font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;padding:8px 16px 4px;margin:0; }
+        .lp-tools-grid { display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 2px; }
+        .lp-tool-tile { display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:12px;background:#f8fafc;border:1px solid #eef2f7;text-decoration:none;transition:background .15s,transform .1s; }
+        .lp-tool-tile:hover { background:#f1f5f9; }
+        .lp-tool-tile:active { transform:scale(.97); }
+        .lp-tool-tile span { font-size:12.5px;font-weight:600;color:#1e293b;line-height:1.25; }
+        .lp-tool-tile .ic { width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px; }
+      </style>
+
+      <p class="lp-tool-grouplabel"><%= t('learner_portal.tools_group_learn') %></p>
+      <div class="lp-tools-grid">
+        <% [
+             [learner_study_plans_path, "🧠", "#f3e8ff", t('learner_portal.tool_study_plan')],
+             [learner_speaking_path,    "🗣️", "#fef3c7", t('learner_portal.tool_speaking')],
+             [learner_my_quizzes_path,  "📝", "#eff6ff", t('learner_portal.tool_quiz')],
+             [learner_my_flashcards_path, "🃏", "#ecfdf5", t('learner_portal.tool_flashcard')]
+           ].each do |url, ic, bg, label| %>
+          <a href="<%= url %>" class="lp-tool-tile" onclick="closeLpTools()">
+            <div class="ic" style="background:<%= bg %>;"><%= ic %></div><span><%= label %></span>
+          </a>
+        <% end %>
+      </div>
+
+      <p class="lp-tool-grouplabel"><%= t('learner_portal.tools_group_utility') %></p>
+      <div class="lp-tools-grid">
+        <% [
+             [learner_progress_path,        "📊", "#fff7ed", t('learner_portal.tool_progress')],
+             [learner_tools_summarize_path, "📄", "#eef3fa", t('learner_portal.tool_summarize')],
+             [learner_tools_tts_path,       "🔊", "#f0fdf4", t('learner_portal.tool_tts')],
+             [learner_tools_stt_path,       "🎤", "#fdf4ff", t('learner_portal.tool_stt')]
+           ].each do |url, ic, bg, label| %>
+          <a href="<%= url %>" class="lp-tool-tile" onclick="closeLpTools()">
+            <div class="ic" style="background:<%= bg %>;"><%= ic %></div><span><%= label %></span>
+          </a>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
   <nav class="lp-bottom-nav">
     <%= link_to learner_root_path, class: "lp-nav-item #{controller_name == 'dashboard' ? 'active' : ''}" do %>
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-      Trang chủ
+      <div class="lp-nav-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg></div>
+      <span><%= t('learner_portal.nav_home') %></span>
     <% end %>
     <%= link_to learner_ai_tutor_path, class: "lp-nav-item #{controller_name == 'ai_tutor' ? 'active' : ''}" do %>
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-      AI Tutor
+      <div class="lp-nav-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div>
+      <span><%= t('learner_portal.nav_ai_tutor') %></span>
     <% end %>
+    <% _lp_tool_controllers = %w[study_plans speaking progress my_flashcards my_quizzes tools] %>
+    <button type="button" onclick="openLpTools()" class="lp-nav-item <%= _lp_tool_controllers.include?(controller_name) ? 'active' : '' %>" style="border:none;cursor:pointer;font-family:inherit;">
+      <div class="lp-nav-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+      <span><%= t('learner_portal.nav_tools') %></span>
+    </button>
     <%= link_to learner_credits_path, class: "lp-nav-item #{controller_name == 'credits' ? 'active' : ''}" do %>
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-      Credits
+      <div class="lp-nav-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
+      <span><%= t('learner_portal.nav_credits') %></span>
     <% end %>
     <%= link_to learner_profile_path, class: "lp-nav-item #{controller_name == 'profile' ? 'active' : ''}" do %>
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-      Tôi
+      <div class="lp-nav-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></div>
+      <span><%= t('learner_portal.nav_profile') %></span>
     <% end %>
   </nav>
+
+  <script>
+    function openLpTools() {
+      var sheet = document.getElementById('lp-tools-sheet');
+      var inner = document.getElementById('lp-tools-sheet-inner');
+      sheet.style.display = 'block';
+      requestAnimationFrame(function() { requestAnimationFrame(function() {
+        sheet.style.opacity = '1';
+        inner.style.transform = 'translateX(-50%) translateY(0)';
+      }); });
+    }
+    function closeLpTools() {
+      var sheet = document.getElementById('lp-tools-sheet');
+      var inner = document.getElementById('lp-tools-sheet-inner');
+      sheet.style.opacity = '0';
+      inner.style.transform = 'translateX(-50%) translateY(100%)';
+      setTimeout(function() { sheet.style.display = 'none'; }, 300);
+    }
+
+    function showLpToast(message, type) {
+      var container = document.getElementById('lp-toast-container');
+      if (!container) return;
+      var cfg = {
+        success: { bg:'#f0fdf4', border:'#bbf7d0', color:'#065f46', iconBg:'#10b981', icon:'✓' },
+        error:   { bg:'#fff1f2', border:'#fecdd3', color:'#9f1239', iconBg:'#f43f5e', icon:'!' },
+        info:    { bg:'#eff6ff', border:'#bfdbfe', color:'#1e40af', iconBg:'#3b82f6', icon:'i' }
+      }[type] || { bg:'#f8fafc', border:'#e2e8f0', color:'#1e293b', iconBg:'#64748b', icon:'·' };
+
+      var el = document.createElement('div');
+      el.style.cssText = 'background:'+cfg.bg+';border:1px solid '+cfg.border+';border-radius:14px;padding:12px 12px 15px 14px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 4px 24px rgba(0,0,0,0.10),0 1px 4px rgba(0,0,0,0.06);pointer-events:all;transform:translateX(120%);transition:transform 0.35s cubic-bezier(.34,1.56,.64,1),opacity 0.25s;opacity:0;position:relative;overflow:hidden;width:100%;box-sizing:border-box;';
+      el.innerHTML =
+        '<div style="width:22px;height:22px;border-radius:50%;background:'+cfg.iconBg+';display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white;font-size:12px;font-weight:900;margin-top:1px;">'+cfg.icon+'</div>'
+        +'<p style="flex:1;font-size:13px;line-height:1.5;color:'+cfg.color+';margin:0;font-weight:500;word-break:break-word;">'+message+'</p>'
+        +'<button onclick="closeLpToast(this.closest(\'[data-toast]\'))" data-close style="width:22px;height:22px;border:none;background:transparent;cursor:pointer;color:'+cfg.color+';opacity:0.55;padding:0;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:6px;transition:opacity .15s,background .15s;font-size:15px;line-height:1;" onmouseover="this.style.opacity=1;this.style.background=\'rgba(0,0,0,.07)\'" onmouseout="this.style.opacity=.55;this.style.background=\'transparent\'">✕</button>'
+        +'<div class="lp-toast-bar" style="position:absolute;bottom:0;left:0;height:3px;background:'+cfg.iconBg+';opacity:0.35;width:100%;border-radius:0 0 14px 14px;transition:width 5s linear;"></div>';
+      el.setAttribute('data-toast', '');
+      container.appendChild(el);
+
+      requestAnimationFrame(function() { requestAnimationFrame(function() {
+        el.style.transform = 'translateX(0)'; el.style.opacity = '1';
+        el.querySelector('.lp-toast-bar').style.width = '0';
+      }); });
+
+      el._lpTimer = setTimeout(function() { closeLpToast(el); }, 5000);
+    }
+
+    function closeLpToast(el) {
+      if (!el) return;
+      clearTimeout(el._lpTimer);
+      el.style.transform = 'translateX(120%)'; el.style.opacity = '0';
+      setTimeout(function() { if (el && el.parentNode) el.parentNode.removeChild(el); }, 320);
+    }
+  </script>
   <% end %>
+  <script>
+    // Global helper — call after any AI action that returns credits_remaining
+    window.updateLpCredits = function(n) {
+      var el = document.getElementById('lp-credits-val');
+      if (el && n !== undefined && n !== null) el.textContent = n;
+    };
+  </script>
+
+  <!-- Reusable confirm modal -->
+  <div id="lp-confirm" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(15,23,42,.55);align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#fff;border-radius:18px;padding:24px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
+      <div id="lp-confirm-icon" style="width:52px;height:52px;border-radius:50%;background:#f0f6ff;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px;">⚡</div>
+      <p id="lp-confirm-msg" style="font-size:14px;color:#1e293b;line-height:1.6;margin:0 0 20px;"></p>
+      <div style="display:flex;gap:10px;">
+        <button id="lp-confirm-cancel" style="flex:1;padding:11px;border-radius:11px;border:1px solid #e2e8f0;background:#fff;font-size:14px;font-weight:600;color:#64748b;cursor:pointer;font-family:inherit;">Huỷ</button>
+        <button id="lp-confirm-ok" style="flex:1;padding:11px;border-radius:11px;border:none;background:#1e3a5f;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Đồng ý</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    // window.lpConfirm(message, onOk, opts?) — styled replacement for confirm()
+    window.lpConfirm = function(message, onOk, opts) {
+      opts = opts || {};
+      var m = document.getElementById('lp-confirm');
+      document.getElementById('lp-confirm-msg').textContent = message;
+      document.getElementById('lp-confirm-icon').textContent = opts.icon || '⚡';
+      var okBtn = document.getElementById('lp-confirm-ok');
+      var cancelBtn = document.getElementById('lp-confirm-cancel');
+      okBtn.textContent = opts.okLabel || 'Đồng ý';
+      cancelBtn.textContent = opts.cancelLabel || 'Huỷ';
+      m.style.display = 'flex';
+      function close(){ m.style.display = 'none'; okBtn.onclick = null; cancelBtn.onclick = null; m.onclick = null; }
+      okBtn.onclick = function(){ close(); if (onOk) onOk(); };
+      cancelBtn.onclick = close;
+      m.onclick = function(e){ if (e.target === m) close(); };
+    };
+  </script>
 </body>
 </html>

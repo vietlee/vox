@@ -9,14 +9,14 @@
   <div class="flex items-center gap-2">
     <!-- Import Excel -->
     <button onclick="document.getElementById('import-modal').style.display='flex'"
-            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl transition-colors">
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold border border-slate-200 bg-white hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-slate-600 rounded-xl transition-colors">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-      Import Excel/CSV
+      <%= t("learner_folders.show.import_btn") %>
     </button>
     <!-- Add learner -->
     <button onclick="document.getElementById('add-learner-modal').style.display='flex'"
-            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors">
-      + Thêm Learner
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold bg-[#1e3a5f] hover:bg-[#16304f] text-white rounded-xl transition-colors">
+      <%= t("learner_folders.show.add_learner_btn") %>
     </button>
   </div>
 </div>
@@ -30,23 +30,40 @@
 
 <!-- Learner table -->
 <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-  <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100" style="background:rgba(248,250,252,0.8)">
-    <span class="text-[12px] font-bold text-slate-500 uppercase tracking-wide"><%= @members.count %> Learners trong folder</span>
+  <!-- Search bar — nằm NGOÀI vùng replace để giữ focus -->
+  <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100" style="background:rgba(248,250,252,0.8)">
+    <div class="relative flex-1 max-w-xs">
+      <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/></svg>
+      <input id="learner-search-input" type="text" value="<%= @search_query %>"
+             placeholder="Tìm tên hoặc email..."
+             data-url="<%= learner_folder_path(@folder) %>"
+             autocomplete="off"
+             class="w-full pl-8 pr-3 py-1.5 text-[12px] border border-slate-200 rounded-lg outline-none focus:border-[#1e3a5f] bg-white">
+    </div>
     <a href="<%= template_learner_folder_path(@folder) %>"
-       class="inline-flex items-center gap-1 text-[12px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
+       class="inline-flex items-center gap-1 text-[12px] font-semibold text-[#1e3a5f] hover:text-[#16304f] transition-colors ml-auto whitespace-nowrap shrink-0">
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-      Tải template Excel
+      <%= t("learner_folders.show.template_download") %>
     </a>
   </div>
 
+  <!-- Vùng kết quả — chỉ phần này được replace khi search -->
+  <div id="learner-table-wrapper">
+
+  <% if @members.any? || @search_query.present? %>
+  <% if @members.empty? %>
+    <div class="py-12 text-center text-slate-400">
+      <p class="text-[14px] font-semibold">Không tìm thấy learner nào khớp với "<%= @search_query %>"</p>
+    </div>
+  <% end %>
   <% if @members.any? %>
     <table class="w-full border-collapse">
       <thead>
         <tr class="border-b border-slate-100" style="background:#f8fafc;">
-          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3">Learner</th>
-          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3">Email</th>
-          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3">Trạng thái tài khoản</th>
-          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3">Thêm vào</th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3"><%= t("learner_folders.show.th_learner") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3"><%= t("learner_folders.show.th_email") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3"><%= t("learner_folders.show.th_status") %></th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3"><%= t("learner_folders.show.th_added") %></th>
           <th class="px-5 py-3"></th>
         </tr>
       </thead>
@@ -55,66 +72,95 @@
           <% l = m.learner %>
           <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
             <td class="px-5 py-3">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shrink-0">
+              <%= link_to workspace_learner_detail_path(learner_id: l.id), class: "flex items-center gap-3 group" do %>
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#1e3a5f] to-[#4a7fa8] flex items-center justify-center shrink-0">
                   <span class="text-white text-[13px] font-black"><%= l.name.first.upcase %></span>
                 </div>
-                <span class="text-[13px] font-semibold text-slate-800"><%= l.name %></span>
-              </div>
+                <span class="text-[13px] font-semibold text-slate-800 group-hover:text-[#1e3a5f] group-hover:underline transition-colors"><%= l.name %></span>
+              <% end %>
             </td>
-            <td class="px-5 py-3 text-[13px] text-slate-500"><%= l.email %></td>
+            <td class="px-5 py-3 text-[13px] text-slate-500">
+              <%= link_to l.email, workspace_learner_detail_path(learner_id: l.id), class: "hover:text-[#1e3a5f] hover:underline transition-colors" %>
+            </td>
             <td class="px-5 py-3">
               <% if l.invite_token.present? && !l.password_set? %>
-                <span class="text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700">⏳ Chờ thiết lập</span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700"><%= t("learner_folders.show.status_pending") %></span>
               <% else %>
-                <span class="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700">✅ Đã kích hoạt</span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700"><%= t("learner_folders.show.status_active") %></span>
               <% end %>
             </td>
             <td class="px-5 py-3 text-[12px] text-slate-400"><%= m.created_at.strftime("%d/%m/%Y") %></td>
             <td class="px-5 py-3 text-right">
-              <%= button_to remove_learner_learner_folder_path(@folder, learner_id: l.id), method: :delete,
-                  data: { confirm: "Xoá #{l.email} khỏi folder này?" },
-                  class: "inline-flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-semibold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border-0 cursor-pointer transition-colors" do %>
+              <button type="button"
+                      onclick="confirmRemoveLearner('<%= remove_learner_learner_folder_path(@folder, learner_id: l.id) %>', '<%= j(l.email) %>')"
+                      class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-semibold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border-0 cursor-pointer transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/></svg>
-                Xoá
-              <% end %>
+                <%= t("learner_folders.show.remove_btn") %>
+              </button>
             </td>
           </tr>
         <% end %>
       </tbody>
     </table>
+
+    <%# Pagination %>
+    <% if @pagy.pages > 1 %>
+      <div class="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/60">
+        <p class="text-[11px] text-slate-500"><%= @pagy.from %>–<%= @pagy.to %> / <%= @pagy.count %> learners</p>
+        <div class="flex items-center gap-1">
+          <%= link_to learner_folder_path(@folder, page: @pagy.prev, q: @search_query),
+              class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md transition-colors #{@pagy.prev ? 'text-slate-600 hover:bg-white bg-white/60' : 'text-slate-300 pointer-events-none bg-white/30'}" do %>←<% end %>
+          <% ([ [@pagy.page-2, 1].max, [@pagy.pages-4, 1].max ].min .. [ [@pagy.page-2, 1].max + 4, @pagy.pages ].min).each do |p| %>
+            <%= link_to p, learner_folder_path(@folder, page: p, q: @search_query),
+                class: "w-7 h-7 flex items-center justify-center text-[11px] font-semibold rounded-md border transition-colors #{p == @pagy.page ? 'bg-[#1e3a5f] border-[#1e3a5f] text-white' : 'border-slate-200 text-slate-600 hover:bg-white bg-white/60'}" %>
+          <% end %>
+          <%= link_to learner_folder_path(@folder, page: @pagy.next, q: @search_query),
+              class: "px-2.5 py-1 text-[11px] border border-slate-200 rounded-md transition-colors #{@pagy.next ? 'text-slate-600 hover:bg-white bg-white/60' : 'text-slate-300 pointer-events-none bg-white/30'}" do %>→<% end %>
+        </div>
+      </div>
+    <% end %>
+
+  <% end %><%# end @members.any? %>
   <% else %>
     <div class="py-16 text-center">
       <div class="text-5xl mb-3">👤</div>
-      <p class="text-[14px] font-bold text-slate-600 mb-1">Folder trống</p>
-      <p class="text-[13px] text-slate-400">Thêm learner bằng email hoặc import file Excel/CSV</p>
+      <p class="text-[14px] font-bold text-slate-600 mb-1"><%= t("learner_folders.show.empty_title") %></p>
+      <p class="text-[13px] text-slate-400"><%= t("learner_folders.show.empty_desc") %></p>
     </div>
-  <% end %>
-</div>
+  <% end %><%# end @members.any? || @search_query %>
+  </div><%# end learner-table-wrapper %>
+</div><%# end outer card %>
 
 <!-- Add learner modal -->
 <div id="add-learner-modal" style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);"
      onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);width:100%;max-width:400px;padding:28px 24px;">
-    <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 4px;">Thêm Learner</h3>
-    <p style="font-size:12px;color:#9ca3af;margin:0 0 20px;">Nếu chưa có tài khoản, hệ thống sẽ tự tạo và gửi email mời.</p>
+    <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 4px;"><%= t("learner_folders.show.add_modal_title") %></h3>
+    <p style="font-size:12px;color:#9ca3af;margin:0 0 20px;"><%= t("learner_folders.show.add_modal_desc") %></p>
     <%= form_with url: add_learner_learner_folder_path(@folder), method: :post do |f| %>
       <div style="margin-bottom:14px;">
-        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">Email <span style="color:#ef4444">*</span></label>
+        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;"><%= t("learner_folders.show.email_label") %> <span style="color:#ef4444">*</span></label>
         <%= f.email_field :email, required: true, placeholder: "learner@example.com",
             style: "width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;font-family:inherit;",
-            onfocus: "this.style.borderColor='#6366f1'", onblur: "this.style.borderColor='#e5e7eb'" %>
+            onfocus: "this.style.borderColor='#1e3a5f'", onblur: "this.style.borderColor='#e5e7eb'" %>
       </div>
       <div style="margin-bottom:20px;">
-        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">Tên (tuỳ chọn)</label>
+        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;"><%= t("learner_folders.show.name_label") %></label>
         <%= f.text_field :name, placeholder: "Nguyễn Văn A",
             style: "width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;font-family:inherit;",
-            onfocus: "this.style.borderColor='#6366f1'", onblur: "this.style.borderColor='#e5e7eb'" %>
+            onfocus: "this.style.borderColor='#1e3a5f'", onblur: "this.style.borderColor='#e5e7eb'" %>
       </div>
       <div style="display:flex;gap:8px;">
-        <%= f.submit "Thêm vào Folder", style: "flex:1;padding:11px;background:#4f46e5;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;" %>
+        <button id="add-learner-btn" type="submit"
+                style="flex:1;padding:11px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <span id="add-learner-btn-text"><%= t("learner_folders.show.add_to_folder_btn") %></span>
+          <svg id="add-learner-spinner" style="display:none;width:15px;height:15px;animation:spin .8s linear infinite;" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
+            <path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </button>
         <button type="button" onclick="document.getElementById('add-learner-modal').style.display='none'"
-                style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">Huỷ</button>
+                style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;"><%= t("learner_folders.show.cancel") %></button>
       </div>
     <% end %>
   </div>
@@ -124,46 +170,53 @@
 <div id="import-modal" style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);"
      onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);width:100%;max-width:440px;padding:28px 24px;">
-    <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 4px;">Import Learner từ File</h3>
-    <p style="font-size:12px;color:#9ca3af;margin:0 0 16px;">Hỗ trợ file <strong>.xlsx</strong> hoặc <strong>.csv</strong> với cột Email và Tên.</p>
+    <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 4px;"><%= t("learner_folders.show.import_modal_title") %></h3>
+    <p style="font-size:12px;color:#9ca3af;margin:0 0 16px;"><%= t("learner_folders.show.import_modal_desc").html_safe %></p>
 
     <!-- Template download -->
-    <div style="background:#f0fdf4;border:1.5px dashed #86efac;border-radius:12px;padding:12px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
-      <svg width="20" height="20" fill="none" stroke="#16a34a" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+    <div style="background:#f0f4ff;border:1.5px dashed #a5b4fc;border-radius:12px;padding:12px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+      <svg width="20" height="20" fill="none" stroke="#1e3a5f" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
       <div style="flex:1;">
-        <p style="font-size:13px;font-weight:700;color:#166534;margin:0;">Chưa có template?</p>
-        <p style="font-size:11px;color:#16a34a;margin:2px 0 0;">Tải về file mẫu Excel để điền thông tin learner</p>
+        <p style="font-size:13px;font-weight:700;color:#1e3a5f;margin:0;"><%= t("learner_folders.show.template_hint_title") %></p>
+        <p style="font-size:11px;color:#4f6a8f;margin:2px 0 0;"><%= t("learner_folders.show.template_hint_desc") %></p>
       </div>
       <a href="<%= template_learner_folder_path(@folder) %>"
-         style="padding:7px 14px;background:#16a34a;color:#fff;font-size:12px;font-weight:700;border-radius:9px;text-decoration:none;white-space:nowrap;">
-        Tải mẫu
+         style="padding:7px 14px;background:#1e3a5f;color:#fff;font-size:12px;font-weight:700;border-radius:9px;text-decoration:none;white-space:nowrap;">
+        <%= t("learner_folders.show.template_btn") %>
       </a>
     </div>
 
     <%= form_with url: import_learner_folder_path(@folder), method: :post, multipart: true do |f| %>
       <div style="margin-bottom:20px;">
-        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;">Chọn file <span style="color:#ef4444">*</span></label>
+        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;"><%= t("learner_folders.show.file_label") %> <span style="color:#ef4444">*</span></label>
         <div style="border:2px dashed #e5e7eb;border-radius:12px;padding:20px;text-align:center;cursor:pointer;"
              onclick="document.getElementById('import-file-input').click()"
-             ondragover="event.preventDefault();this.style.borderColor='#6366f1'"
+             ondragover="event.preventDefault();this.style.borderColor='#1e3a5f'"
              ondragleave="this.style.borderColor='#e5e7eb'"
              ondrop="event.preventDefault();handleDrop(event)">
           <div id="file-placeholder">
             <svg width="32" height="32" fill="none" stroke="#9ca3af" viewBox="0 0 24 24" style="margin:0 auto 8px;display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-            <p style="font-size:13px;color:#6b7280;font-weight:600;">Kéo thả hoặc click để chọn</p>
-            <p style="font-size:11px;color:#9ca3af;margin-top:4px;">.xlsx hoặc .csv</p>
+            <p style="font-size:13px;color:#6b7280;font-weight:600;"><%= t("learner_folders.show.drag_drop_hint") %></p>
+            <p style="font-size:11px;color:#9ca3af;margin-top:4px;"><%= t("learner_folders.show.file_type_hint") %></p>
           </div>
           <div id="file-selected" style="display:none;">
-            <p id="file-name" style="font-size:13px;color:#4f46e5;font-weight:700;"></p>
+            <p id="file-name" style="font-size:13px;color:#1e3a5f;font-weight:700;"></p>
           </div>
           <%= f.file_field :file, id: "import-file-input", accept: ".xlsx,.csv",
               style: "display:none;", onchange: "showFileName(this)" %>
         </div>
       </div>
       <div style="display:flex;gap:8px;">
-        <%= f.submit "Import ngay", style: "flex:1;padding:11px;background:#059669;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;" %>
+        <button id="import-submit-btn" type="submit"
+                style="flex:1;padding:11px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <span id="import-btn-text"><%= t("learner_folders.show.import_submit_btn") %></span>
+          <svg id="import-spinner" style="display:none;width:16px;height:16px;animation:spin .8s linear infinite;" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
+            <path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </button>
         <button type="button" onclick="document.getElementById('import-modal').style.display='none'"
-                style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">Huỷ</button>
+                style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;"><%= t("learner_folders.show.cancel") %></button>
       </div>
     <% end %>
   </div>
@@ -186,4 +239,86 @@ function handleDrop(e) {
   input.files = dt.files;
   showFileName(input);
 }
+
+document.querySelector('form[action*="add_learner"]').addEventListener('submit', function() {
+  var btn  = document.getElementById('add-learner-btn');
+  var text = document.getElementById('add-learner-btn-text');
+  var spin = document.getElementById('add-learner-spinner');
+  text.textContent = 'Đang thêm...';
+  spin.style.display = 'block';
+  btn.disabled = true;
+  btn.style.opacity = '0.8';
+  btn.style.cursor = 'not-allowed';
+});
+
+document.querySelector('form[action*="import"]').addEventListener('submit', function() {
+  var btn  = document.getElementById('import-submit-btn');
+  var text = document.getElementById('import-btn-text');
+  var spin = document.getElementById('import-spinner');
+  text.textContent = 'Đang import...';
+  spin.style.display = 'block';
+  btn.disabled = true;
+  btn.style.opacity = '0.8';
+  btn.style.cursor = 'not-allowed';
+});
+</script>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<!-- Remove learner confirm modal -->
+<div id="remove-learner-modal" style="display:none;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);">
+  <div style="background:#fff;border-radius:18px;box-shadow:0 8px 40px rgba(0,0,0,0.18);width:100%;max-width:360px;padding:28px 24px;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="width:52px;height:52px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+        <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/></svg>
+      </div>
+      <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 6px;"><%= t("learner_folders.show.remove_confirm_title") %></h3>
+      <p style="font-size:13px;color:#64748b;margin:0;">Learner <strong id="remove-learner-email" style="color:#1e293b;"></strong> sẽ bị xoá khỏi folder này.<br><%= t("learner_folders.show.remove_confirm_desc") %></p>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="submitRemoveLearner()"
+              style="flex:1;padding:11px;background:#ef4444;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">
+        <%= t("learner_folders.show.remove_confirm_btn") %>
+      </button>
+      <button onclick="document.getElementById('remove-learner-modal').style.display='none'"
+              style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;"><%= t("learner_folders.show.cancel") %></button>
+    </div>
+  </div>
+</div>
+<form id="remove-learner-form" method="post" style="display:none;">
+  <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+  <input type="hidden" name="_method" value="delete">
+</form>
+<script>
+function confirmRemoveLearner(url, email) {
+  document.getElementById('remove-learner-email').textContent = email;
+  document.getElementById('remove-learner-form').action = url;
+  document.getElementById('remove-learner-modal').style.display = 'flex';
+}
+function submitRemoveLearner() {
+  document.getElementById('remove-learner-form').submit();
+}
+
+(function() {
+  var input = document.getElementById('learner-search-input');
+  if (!input) return;
+  var timer;
+  input.addEventListener('input', function() {
+    clearTimeout(timer);
+    var q = input.value;
+    timer = setTimeout(function() {
+      var base = input.dataset.url;
+      var url  = q.trim() ? base + '?q=' + encodeURIComponent(q.trim()) : base;
+      fetch(url, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+          var parser = new DOMParser();
+          var doc    = parser.parseFromString(html, 'text/html');
+          var fresh  = doc.getElementById('learner-table-wrapper');
+          var target = document.getElementById('learner-table-wrapper');
+          if (fresh && target) target.innerHTML = fresh.innerHTML;
+          history.replaceState(null, '', url);
+        });
+    }, 350);
+  });
+})();
 </script>

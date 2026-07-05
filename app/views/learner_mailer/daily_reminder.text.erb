@@ -1,0 +1,19 @@
+Xin chào <%= @learner.name %>,
+
+<% if @streak >= 1 -%>
+Bạn đang có chuỗi học <%= @streak %> ngày — hôm nay bạn chưa học. Chỉ cần hoàn thành 1 hoạt động là giữ được chuỗi!
+<% else -%>
+Học đều mỗi ngày giúp bạn nhớ lâu hơn. Bắt đầu một chuỗi học mới hôm nay nhé!
+<% end -%>
+
+<% if @tasks.any? -%>
+VIỆC CẦN LÀM:
+<% @tasks.each do |t| -%>
+- <%= t[:label] %><%= t[:overdue] ? " (QUÁ HẠN)" : (t[:meta] ? " (#{t[:meta]})" : "") %>
+<% end -%>
+<% end -%>
+
+Học ngay: <%= @dashboard_url %>
+
+--
+VOX Learn · Email nhắc học hằng ngày

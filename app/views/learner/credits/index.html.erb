@@ -1,22 +1,24 @@
 <% content_for :title, "Credits" %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current">Credits</span>
+<% end %>
 
 <!-- Balance card -->
 <div style="text-align:center;padding:24px 0 20px;">
   <div style="width:80px;height:80px;background:linear-gradient(135deg,#fdf4ff,#fae8ff);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;border:2px solid #e9d5ff;">
-    <svg width="40" height="40" fill="none" stroke="#9333ea" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    <svg width="40" height="40" fill="none" stroke="#1e3a5f" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
   </div>
-  <p style="font-size:13px;color:#9ca3af;margin-bottom:4px;">Số dư hiện tại</p>
-  <p style="font-size:52px;font-weight:900;color:#7c3aed;line-height:1;"><%= current_learner.credits %></p>
-  <p style="font-size:14px;color:#9ca3af;margin-top:6px;">credits</p>
-</div>
-
-<!-- Info box -->
-<div style="background:#f5f3ff;border-radius:14px;padding:12px 16px;margin-bottom:24px;display:flex;gap:10px;align-items:flex-start;">
-  <svg width="18" height="18" fill="none" stroke="#7c3aed" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-  <div>
-    <p style="font-size:13px;font-weight:700;color:#6b21a8;">Cách dùng credit</p>
-    <p style="font-size:12px;color:#7c3aed;margin-top:2px;">1 credit / tin nhắn AI Tutor · <%= number_to_currency(@price_per_credit, unit: "₫", delimiter: ".", separator: ",", format: "%n %u") %>/credit</p>
+  <p style="font-size:13px;color:#9ca3af;margin-bottom:4px;">Credits còn lại</p>
+  <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;line-height:1;">
+    <p style="font-size:52px;font-weight:900;color:#1e3a5f;"><%= current_learner.credits %></p>
+    <p style="font-size:22px;font-weight:500;color:#d1d5db;">/</p>
+    <p style="font-size:22px;font-weight:700;color:#9ca3af;"><%= current_learner.max_credits %></p>
   </div>
+  <div style="margin-top:10px;background:#e5e7eb;border-radius:99px;height:6px;width:140px;margin-left:auto;margin-right:auto;overflow:hidden;">
+    <div style="height:100%;border-radius:99px;background:linear-gradient(90deg,#1e3a5f,#4a7fa8);width:<%= [(current_learner.credits.to_f / current_learner.max_credits * 100).round, 100].min %>%;transition:width .4s;"></div>
+  </div>
+  <p style="font-size:12px;color:#9ca3af;margin-top:8px;"><%= @monthly_free %> credits miễn phí mỗi tháng · Reset ngày 1 hằng tháng</p>
 </div>
 
 <!-- Buy credits -->
@@ -28,7 +30,7 @@
       <div style="display:flex;align-items:center;border:1.5px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fff;">
         <input id="credit-amount" type="number" min="10" max="10000" step="10" value="50"
                oninput="updateTotal()"
-               style="flex:1;padding:12px 14px;border:none;outline:none;font-size:18px;font-weight:800;color:#4f46e5;font-family:inherit;background:transparent;">
+               style="flex:1;padding:12px 14px;border:none;outline:none;font-size:18px;font-weight:800;color:#1e3a5f;font-family:inherit;background:transparent;">
         <span style="padding:12px 14px;font-size:14px;color:#9ca3af;font-weight:600;background:#f9fafb;border-left:1.5px solid #e5e7eb;">credits</span>
       </div>
       <p style="font-size:11px;color:#9ca3af;margin-top:6px;">Tối thiểu 10 credits</p>
@@ -39,7 +41,7 @@
       <% [50, 100, 200, 500].each do |q| %>
         <button onclick="setAmount(<%= q %>)"
                 style="padding:6px 14px;border:1.5px solid #e5e7eb;border-radius:20px;font-size:12px;font-weight:700;color:#6b7280;background:#fff;cursor:pointer;"
-                onmouseover="this.style.borderColor='#6366f1';this.style.color='#4f46e5';"
+                onmouseover="this.style.borderColor='#1e3a5f';this.style.color='#1e3a5f';"
                 onmouseout="this.style.borderColor='#e5e7eb';this.style.color='#6b7280';">
           +<%= q %>
         </button>
@@ -49,7 +51,7 @@
     <!-- Total -->
     <div style="background:#f5f3ff;border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:14px;color:#6b7280;">Thành tiền</span>
-      <span id="total-price" style="font-size:22px;font-weight:900;color:#7c3aed;">50.000 ₫</span>
+      <span id="total-price" style="font-size:22px;font-weight:900;color:#1e3a5f;">50.000 ₫</span>
     </div>
 
     <button onclick="buyCredits()" class="lp-btn lp-btn-primary lp-btn-full" style="font-size:15px;padding:14px;">
@@ -58,6 +60,55 @@
     <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:10px;">Thanh toán qua PayOS · An toàn &amp; bảo mật</p>
   </div>
 </div>
+
+<!-- Info box: cách dùng credit -->
+<div style="background:#f5f3ff;border-radius:14px;padding:14px 16px;margin-top:20px;">
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
+    <svg width="18" height="18" fill="none" stroke="#1e3a5f" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <p style="font-size:13px;font-weight:700;color:#6b21a8;">Cách dùng credit · <%= number_to_currency(@price_per_credit, unit: "₫", delimiter: ".", separator: ",", format: "%n %u") %>/credit</p>
+  </div>
+  <div style="display:grid;gap:6px;">
+    <% [
+      ["💬", "AI Tutor — nhắn tin", "1 credit / tin nhắn"],
+      ["🎙️", "AI Tutor — gọi thoại", "1 credit / lượt trả lời"],
+      ["🃏", "Tạo Flashcard AI", "3 credits / bộ"],
+      ["🧠", "Lộ trình AI cá nhân hoá", "3 credits / lộ trình"],
+      ["🗣️", "Luyện nói với AI", "1 credit / lượt trả lời"],
+      ["📄", "Tóm tắt tài liệu", "2 credits / lần"],
+      ["🔊", "Chuyển văn bản → giọng nói", "1 credit / lần"],
+      ["📝", "Chuyển giọng nói → văn bản (file)", "1 credit / lần"],
+    ].each do |icon, name, cost| %>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <span style="font-size:12px;color:#1e3a5f;"><%= icon %> <%= name %></span>
+        <span style="font-size:12px;font-weight:700;color:#6b21a8;white-space:nowrap;"><%= cost %></span>
+      </div>
+    <% end %>
+  </div>
+  <p style="font-size:11px;color:#8b5cf6;margin-top:10px;padding-top:8px;border-top:1px solid #ede9fe;">✓ Miễn phí: làm quiz, học flashcard, đọc/ghi âm bằng giọng trình duyệt, xem tiến bộ &amp; gợi ý hằng ngày.</p>
+</div>
+
+<% if @payments.any? %>
+<p class="lp-section-title" style="margin-top:24px;">Lịch sử mua</p>
+<div class="lp-card">
+  <div class="lp-card-body" style="padding:0;">
+    <% @payments.each_with_index do |p, i| %>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;<%= i < @payments.size-1 ? 'border-bottom:1px solid #f0f4f8;' : '' %>">
+        <div>
+          <p style="font-size:13px;font-weight:700;color:#1e293b;margin:0;">+<%= p.credits_amount %> credits</p>
+          <p style="font-size:11px;color:#94a3b8;margin:0;"><%= p.created_at.strftime("%d/%m/%Y %H:%M") %></p>
+        </div>
+        <div style="text-align:right;">
+          <p style="font-size:13px;font-weight:700;color:#1e293b;margin:0;"><%= p.amount_formatted %></p>
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;
+            <%= p.completed? ? 'background:#dcfce7;color:#166534' : p.failed? ? 'background:#fee2e2;color:#991b1b' : 'background:#fef9c3;color:#92400e' %>">
+            <%= p.completed? ? 'Hoàn thành' : p.failed? ? 'Thất bại' : 'Đang xử lý' %>
+          </span>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+<% end %>
 
 <script>
 var PRICE_PER_CREDIT = <%= @price_per_credit %>;
@@ -72,7 +123,28 @@ function setAmount(n) {
 function buyCredits() {
   var amt = parseInt(document.getElementById('credit-amount').value) || 0;
   if (amt < 10) { alert('Vui lòng nhập ít nhất 10 credits.'); return; }
-  alert('Tính năng thanh toán đang được triển khai. Vui lòng thử lại sau!');
+  var btn = document.querySelector('[onclick="buyCredits()"]');
+  btn.disabled = true;
+  btn.textContent = 'Đang xử lý...';
+  var fd = new FormData();
+  fd.append('amount', amt);
+  fd.append('authenticity_token', document.querySelector('meta[name="csrf-token"]').content);
+  fetch('<%= learner_credits_checkout_path %>', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(function(d) {
+      if (d.checkout_url) {
+        window.location = d.checkout_url;
+      } else {
+        alert(d.error || 'Có lỗi xảy ra, vui lòng thử lại.');
+        btn.disabled = false;
+        btn.textContent = 'Thanh toán ngay →';
+      }
+    })
+    .catch(function() {
+      alert('Không thể kết nối máy chủ.');
+      btn.disabled = false;
+      btn.textContent = 'Thanh toán ngay →';
+    });
 }
 updateTotal();
 </script>

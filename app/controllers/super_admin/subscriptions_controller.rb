@@ -15,6 +15,9 @@ class SuperAdmin::SubscriptionsController < SuperAdmin::BaseController
     @owners.each do |user|
       @primary_subs[user.id] = user.subscription
     end
+
+    # Learners (separate credit budget stored on the learner record)
+    @learners = Learner.order(:id)
   end
 
   def show

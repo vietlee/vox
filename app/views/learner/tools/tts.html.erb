@@ -1,0 +1,154 @@
+<% content_for :title, "Text to Speech" %>
+
+<div style="padding:16px;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+    <%= link_to learner_root_path, style:"display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;background:#f1f5f9;color:#64748b;text-decoration:none;" do %>
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    <% end %>
+    <div style="width:36px;height:36px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:18px;">🔊</div>
+    <div>
+      <h1 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">Text to Speech</h1>
+      <p style="font-size:12px;color:#64748b;margin:0;"><%= t('learner_tts.subtitle') %></p>
+    </div>
+  </div>
+
+  <% if @has_tts %>
+  <div style="display:grid;grid-template-columns:1fr;gap:12px;">
+
+    <!-- Voice + Model row -->
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div>
+        <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;"><%= t('learner_tts.voice') %></label>
+        <select id="lp-tts-voice" style="width:100%;padding:7px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#1e293b;outline:none;">
+          <option value=""><%= t('learner_tts.loading') %></option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Model</label>
+        <select id="lp-tts-model" style="width:100%;padding:7px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#1e293b;outline:none;">
+          <option value="eleven_turbo_v2_5" selected><%= t('learner_tts.m_flash') %></option>
+          <option value="eleven_v3"><%= t('learner_tts.m_v3') %></option>
+          <option value="eleven_multilingual_v2"><%= t('learner_tts.m_multi') %></option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Sliders -->
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <% [['lp-tts-speed',t('learner_tts.speed'),'0.7','1.2','0.05','1.0',t('learner_tts.slow'),t('learner_tts.fast')],['lp-tts-stability',t('learner_tts.stability'),'0','1','0.05','0.5',t('learner_tts.low'),t('learner_tts.high')]].each do |id,label,min,max,step,val,lo,hi| %>
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:12px;font-weight:600;color:#475569;"><%= label %></span>
+          <span id="<%= id %>-val" style="font-size:11px;font-family:monospace;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:4px;"><%= val %></span>
+        </div>
+        <input type="range" id="<%= id %>" min="<%= min %>" max="<%= max %>" step="<%= step %>" value="<%= val %>"
+               style="width:100%;accent-color:#1e3a5f;height:4px;cursor:pointer;"
+               oninput="document.getElementById('<%= id %>-val').textContent=parseFloat(this.value).toFixed(2)">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;"><span><%= lo %></span><span><%= hi %></span></div>
+      </div>
+      <% end %>
+    </div>
+
+    <!-- Textarea -->
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;"><%= t('learner_tts.text') %></label>
+        <span id="lp-tts-chars" style="font-size:11px;color:#94a3b8;">0 / 5,000</span>
+      </div>
+      <textarea id="lp-tts-text" rows="8" maxlength="5000" placeholder="<%= t('learner_tts.text_ph') %>"
+                style="width:100%;padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;color:#1e293b;resize:vertical;outline:none;font-family:inherit;line-height:1.6;box-sizing:border-box;"
+                oninput="document.getElementById('lp-tts-chars').textContent=this.value.length+' / 5,000';lpTtsToggleBtn()"></textarea>
+    </div>
+
+    <!-- Generate button -->
+    <button id="lp-tts-btn" onclick="lpTtsGenerate()" disabled
+            style="width:100%;padding:12px;background:#1e3a5f;color:#fff;font-size:14px;font-weight:700;border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;opacity:.4;transition:opacity .15s;">
+      <svg id="lp-tts-spinner" width="16" height="16" fill="none" viewBox="0 0 24 24" style="display:none;animation:lp-spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="3" opacity=".25"/><path fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+      <span id="lp-tts-btn-label">🎙️ <%= t('learner_tts.generate') %></span>
+    </button>
+
+    <!-- Result -->
+    <div id="lp-tts-result" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
+      <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;"><%= t('learner_tts.result') %></p>
+      <audio id="lp-tts-player" controls style="width:100%;height:44px;border-radius:8px;"></audio>
+      <div style="margin-top:8px;">
+        <a id="lp-tts-download" href="#" download="tts-audio.mp3"
+           style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:#f1f5f9;border-radius:8px;font-size:12px;font-weight:600;color:#475569;text-decoration:none;">
+          ⬇️ <%= t('learner_tts.download') %>
+        </a>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="lp-tts-error" style="display:none;padding:12px;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;font-size:13px;color:#be123c;"></div>
+  </div>
+
+  <style>@keyframes lp-spin{to{transform:rotate(360deg)}}</style>
+  <script>
+  (function(){
+    const CSRF     = () => document.querySelector('meta[name="csrf-token"]').content;
+    const TTS_URL  = '<%= learner_ai_tutor_tts_path %>';
+    const TTS_V_URL= '<%= learner_ai_tutor_tts_voices_path %>';
+
+    // Load voices
+    fetch(TTS_V_URL, {headers:{'X-CSRF-Token':CSRF()}})
+      .then(r=>r.json()).then(data=>{
+        const voices = Array.isArray(data) ? data : (data.voices||[]);
+        const sel = document.getElementById('lp-tts-voice');
+        sel.innerHTML = voices.map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
+      }).catch(()=>{
+        document.getElementById('lp-tts-voice').innerHTML = '<option value=""><%= j t('learner_tts.voice_err') %></option>';
+      });
+
+    window.lpTtsToggleBtn = function() {
+      const btn = document.getElementById('lp-tts-btn');
+      const ok = document.getElementById('lp-tts-text').value.trim().length > 0;
+      btn.disabled = !ok; btn.style.opacity = ok ? '1' : '0.4'; btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+    };
+
+    window.lpTtsGenerate = async function() {
+      const text = document.getElementById('lp-tts-text').value.trim();
+      if (!text) return;
+      const btn = document.getElementById('lp-tts-btn');
+      const spinner = document.getElementById('lp-tts-spinner');
+      const label   = document.getElementById('lp-tts-btn-label');
+      btn.disabled = true; spinner.style.display = 'block'; label.textContent = '<%= j t('learner_tts.generating') %>';
+      document.getElementById('lp-tts-result').style.display = 'none';
+      document.getElementById('lp-tts-error').style.display = 'none';
+      try {
+        const fd = new FormData();
+        fd.append('text', text);
+        fd.append('voice_id', document.getElementById('lp-tts-voice').value);
+        fd.append('model', document.getElementById('lp-tts-model').value);
+        fd.append('speed', document.getElementById('lp-tts-speed').value);
+        fd.append('stability', document.getElementById('lp-tts-stability').value);
+        fd.append('authenticity_token', CSRF());
+        const res  = await fetch(TTS_URL, {method:'POST', body:fd});
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || '<%= j t('learner_tts.gen_err') %>');
+        // decode base64 → blob → object URL
+        const bytes  = atob(data.audio_base64);
+        const arr    = new Uint8Array(bytes.length);
+        for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+        const url    = URL.createObjectURL(new Blob([arr], {type:'audio/mpeg'}));
+        const player = document.getElementById('lp-tts-player');
+        const dlLink = document.getElementById('lp-tts-download');
+        player.src = url; dlLink.href = url;
+        document.getElementById('lp-tts-result').style.display = 'block';
+        player.play();
+        if (window.updateLpCredits) updateLpCredits(data.credits_remaining);
+      } catch(e) {
+        const el = document.getElementById('lp-tts-error');
+        el.style.display = 'block'; el.textContent = '⚠️ ' + e.message;
+      } finally {
+        btn.disabled = false; spinner.style.display = 'none'; label.textContent = '🎙️ <%= j t('learner_tts.generate') %>';
+        lpTtsToggleBtn();
+      }
+    };
+  })();
+  </script>
+
+  <% else %>
+  <div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px;"><%= t('learner_tts.disabled') %></div>
+  <% end %>
+</div>

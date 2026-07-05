@@ -1,4 +1,10 @@
 <% content_for :title, @assignment.quiz_set.title %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <%= link_to t('learner_dashboard.library'), learner_library_path, class: "lp-bc-link" %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current"><%= @assignment.quiz_set.title %></span>
+<% end %>
 
 <div style="text-align:center;padding:20px 0 30px;">
   <div style="width:80px;height:80px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
@@ -12,32 +18,49 @@
 
 <div class="lp-card">
   <div class="lp-card-body">
-    <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+    <% qs = @assignment.quiz_set %>
+    <% own = qs.learner_id.present? && qs.learner_id == current_learner.id %>
+    <div style="display:flex;justify-content:center;margin-bottom:14px;">
       <div style="text-align:center;flex:1;">
-        <p style="font-size:22px;font-weight:800;color:#6366f1;"><%= @assignment.quiz_set.quiz_questions.count %></p>
+        <p style="font-size:22px;font-weight:800;color:#1e3a5f;"><%= qs.quiz_questions.count %></p>
         <p style="font-size:12px;color:#9ca3af;">Câu hỏi</p>
       </div>
-      <div style="width:1px;background:#f3f4f6;"></div>
-      <div style="text-align:center;flex:1;">
-        <p style="font-size:22px;font-weight:800;color:#6366f1;"><%= @assignment.quiz_set.passing_score || 50 %>%</p>
-        <p style="font-size:12px;color:#9ca3af;">Điểm đạt</p>
-      </div>
-      <% if @assignment.due_at %>
+      <% if qs.time_limit_minutes.present? %>
         <div style="width:1px;background:#f3f4f6;"></div>
         <div style="text-align:center;flex:1;">
-          <p style="font-size:16px;font-weight:800;color:<%= @assignment.overdue? ? '#ef4444' : '#6366f1' %>;"><%= @assignment.due_at.strftime("%d/%m") %></p>
-          <p style="font-size:12px;color:#9ca3af;">Hạn nộp</p>
+          <p style="font-size:22px;font-weight:800;color:#1e3a5f;"><%= qs.time_limit_minutes %>′</p>
+          <p style="font-size:12px;color:#9ca3af;">Thời gian</p>
         </div>
       <% end %>
+      <% unless own %>
+        <div style="width:1px;background:#f3f4f6;"></div>
+        <div style="text-align:center;flex:1;">
+          <% if qs.passing_score_type == 'points' %>
+            <p style="font-size:22px;font-weight:800;color:#1e3a5f;"><%= qs.passing_score %>đ</p>
+          <% else %>
+            <p style="font-size:22px;font-weight:800;color:#1e3a5f;"><%= qs.passing_score %>%</p>
+          <% end %>
+          <p style="font-size:12px;color:#9ca3af;">Cần đạt để qua</p>
+        </div>
+        <% if @assignment.due_at %>
+          <div style="width:1px;background:#f3f4f6;"></div>
+          <div style="text-align:center;flex:1;">
+            <p style="font-size:16px;font-weight:800;color:<%= @assignment.overdue? ? '#ef4444' : '#1e3a5f' %>;"><%= @assignment.due_at.strftime("%d/%m") %></p>
+            <p style="font-size:12px;color:#9ca3af;">Hạn nộp</p>
+          </div>
+        <% end %>
+      <% end %>
     </div>
+    <div style="text-align:center;">
     <% if @assignment.completed? %>
-      <%= link_to result_learner_quiz_assignment_path(@assignment.token), class: "lp-btn lp-btn-outline lp-btn-full" do %>
+      <%= link_to result_learner_quiz_assignment_path(@assignment.token), class: "lp-btn lp-btn-outline", style: "display:inline-flex;padding:13px 40px;font-size:15px;" do %>
         Xem kết quả đã làm
       <% end %>
     <% else %>
-      <%= button_to start_learner_quiz_assignment_path(@assignment.token), method: :post, class: "lp-btn lp-btn-primary lp-btn-full", style: "font-size:16px;padding:14px;" do %>
+      <%= button_to start_learner_quiz_assignment_path(@assignment.token), method: :post, class: "lp-btn lp-btn-primary", style: "display:inline-flex;font-size:15px;padding:13px 48px;" do %>
         <%= @assignment.in_progress? ? "Tiếp tục làm bài →" : "Bắt đầu làm bài →" %>
       <% end %>
     <% end %>
+    </div>
   </div>
 </div>

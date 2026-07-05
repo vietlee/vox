@@ -17,6 +17,16 @@ class Learner::InvitationsController < ApplicationController
     @learner = Learner.find_by(invite_token: params[:token])
     return redirect_to new_learner_session_path, alert: "Link không hợp lệ." unless @learner
 
+    if params[:password].blank? || params[:password].length < 8
+      flash.now[:alert] = "Mật khẩu phải có ít nhất 8 ký tự."
+      return render :accept, status: :unprocessable_entity
+    end
+
+    if params[:password] != params[:password_confirmation]
+      flash.now[:alert] = "Xác nhận mật khẩu không khớp."
+      return render :accept, status: :unprocessable_entity
+    end
+
     if @learner.update(password: params[:password], password_confirmation: params[:password_confirmation], password_set: true, invite_token: nil)
       @learner.confirm unless @learner.confirmed?
       sign_in(:learner, @learner)

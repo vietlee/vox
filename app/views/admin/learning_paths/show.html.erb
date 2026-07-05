@@ -146,7 +146,9 @@
                resource_type: "learning_path",
                assign_url: assign_learner_learning_path_path(@learning_path),
                assignments_url: learner_assignments_learning_path_path(@learning_path),
-               resource_title: @learning_path.title %>
+               remove_assignment_url: remove_assignment_learning_path_path(@learning_path),
+               resource_title: @learning_path.title,
+               published: @learning_path.published? %>
   </div>
 </div>
 
@@ -160,6 +162,11 @@
     <div class="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white text-[12px] font-bold rounded-full">
       <span class="w-4 h-4 bg-white text-indigo-600 rounded-full flex items-center justify-center text-[10px] font-black">2</span>
       Thêm bài học
+    </div>
+    <div class="flex-1 h-px bg-slate-200"></div>
+    <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-400 text-[12px] font-bold rounded-full">
+      <span class="w-4 h-4 bg-slate-300 text-white rounded-full flex items-center justify-center text-[10px] font-black">3</span>
+      Giao cho Learner
     </div>
   </div>
 <% end %>
@@ -186,7 +193,7 @@
                  class="flex-1 px-3 py-2 border border-violet-200 rounded-xl text-[13px] bg-white focus:border-violet-400 outline-none">
           <button type="submit" id="ai-lp-btn" disabled
                   class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl border-0 transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-violet-600">
-            ✦ <%= t("learning_path.ai_generate_btn") %>
+            ✨ <%= t("learning_path.ai_generate_btn") %>
           </button>
         </div>
       <% end %>
@@ -321,7 +328,7 @@
                                 id="ai-quiz-btn-<%= item.id %>"
                                 class="flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold text-white rounded-xl border-0 cursor-pointer whitespace-nowrap shrink-0 transition-all"
                                 style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
-                          ✦ AI tạo mới · 5 credits
+                          ✨ AI tạo mới · 5 credits
                         </button>
                       </div>
                     </div>
@@ -375,7 +382,7 @@
                                 id="ai-fc-btn-<%= item.id %>"
                                 class="flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold text-white rounded-xl border-0 cursor-pointer whitespace-nowrap shrink-0 transition-all"
                                 style="background:linear-gradient(135deg,#d97706,#b45309)">
-                          ✦ AI tạo mới · 3 credits
+                          ✨ AI tạo mới · 3 credits
                         </button>
                       </div>
                     </div>
@@ -387,7 +394,7 @@
                                 id="ai-content-btn-<%= item.id %>"
                                 class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-white rounded-lg border-0 cursor-pointer transition-colors"
                                 style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
-                          ✦ AI viết nội dung · 2 credits
+                          ✨ AI viết nội dung · 2 credits
                         </button>
                       </div>
                       <!-- AI generating overlay -->
@@ -430,7 +437,8 @@
 
   <!-- Right -->
   <div class="space-y-4">
-    <!-- Assign -->
+    <%# Removed: old member-assign widget replaced by Learner assignment modal %>
+    <% if false # kept for reference %>
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="px-5 py-4 border-b border-slate-100">
         <h3 class="text-[14px] font-bold text-slate-900">👤 <%= t("learning_path.assign_title") %></h3>
@@ -597,6 +605,7 @@
         })();
       </script>
     </div>
+    <% end %>
 
     <!-- Progress -->
     <% if @assignments.any? %>
@@ -613,11 +622,11 @@
               <%= link_to learning_path_assignment_path(asgn), class: "flex-1 min-w-0" do %>
                 <div class="flex items-center gap-3 mb-2">
                   <div class="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
-                    <%= (asgn.assignee.name rescue "?")[0].upcase %>
+                    <%= (asgn.learner&.name.presence || asgn.learner&.email || "?")[0].upcase %>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <div class="text-[12px] font-semibold text-slate-800 truncate"><%= asgn.assignee.name rescue "?" %></div>
-                    <div class="text-[10px] text-slate-400 truncate"><%= asgn.assignee.email rescue "" %></div>
+                    <div class="text-[12px] font-semibold text-slate-800 truncate"><%= asgn.learner&.name.presence || asgn.learner&.email || "?" %></div>
+                    <div class="text-[10px] text-slate-400 truncate"><%= asgn.learner&.email %></div>
                   </div>
                   <div class="shrink-0 text-right">
                     <% if is_completed %>
@@ -754,10 +763,10 @@ function aiGenerateContent(id) {
       if (editor) editor.style.display = '';
       if (data.html && quillEditors[id]) {
         quillEditors[id].clipboard.dangerouslyPasteHTML(data.html);
-        btn.innerHTML = '✦ AI viết lại · 2 credits';
+        btn.innerHTML = '✨ AI viết lại · 2 credits';
       } else if (data.error) {
         alert(data.error);
-        btn.innerHTML = '✦ AI viết nội dung · 2 credits';
+        btn.innerHTML = '✨ AI viết nội dung · 2 credits';
       }
       btn.disabled = false;
     }, 500);
@@ -766,7 +775,7 @@ function aiGenerateContent(id) {
     overlay.classList.add('hidden');
     if (editor) editor.style.display = '';
     btn.disabled = false;
-    btn.innerHTML = '✦ AI viết nội dung · 2 credits';
+    btn.innerHTML = '✨ AI viết nội dung · 2 credits';
   });
 }
 
@@ -869,7 +878,7 @@ function aiCreateQuiz(id) {
   .then(data => {
     if (data.error) {
       overlay.classList.add('hidden');
-      alert(data.error); btn.disabled = false; btn.innerHTML = '✦ AI tạo mới · 5 credits'; return;
+      alert(data.error); btn.disabled = false; btn.innerHTML = '✨ AI tạo mới · 5 credits'; return;
     }
     if (bar) bar.style.width = '100%';
     if (label) label.textContent = 'Đã tạo quiz thành công!';
@@ -886,7 +895,7 @@ function aiCreateQuiz(id) {
       btn.innerHTML = '✓ Đã tạo'; btn.style.background = '#10b981';
     }, 600);
   })
-  .catch(e => { overlay.classList.add('hidden'); alert('Lỗi: ' + e.message); btn.disabled = false; btn.innerHTML = '✦ AI tạo mới · 5 credits'; });
+  .catch(e => { overlay.classList.add('hidden'); alert('Lỗi: ' + e.message); btn.disabled = false; btn.innerHTML = '✨ AI tạo mới · 5 credits'; });
 }
 
 function aiCreateFlashcard(id) {
@@ -912,7 +921,7 @@ function aiCreateFlashcard(id) {
   .then(data => {
     if (data.error) {
       overlay.classList.add('hidden');
-      alert(data.error); btn.disabled = false; btn.innerHTML = '✦ AI tạo mới · 3 credits'; return;
+      alert(data.error); btn.disabled = false; btn.innerHTML = '✨ AI tạo mới · 3 credits'; return;
     }
     if (bar) bar.style.width = '100%';
     if (label) label.textContent = 'Đã tạo bộ thẻ thành công!';
@@ -929,7 +938,7 @@ function aiCreateFlashcard(id) {
       btn.innerHTML = '✓ Đã tạo'; btn.style.background = '#10b981';
     }, 600);
   })
-  .catch(e => { overlay.classList.add('hidden'); alert('Lỗi: ' + e.message); btn.disabled = false; btn.innerHTML = '✦ AI tạo mới · 3 credits'; });
+  .catch(e => { overlay.classList.add('hidden'); alert('Lỗi: ' + e.message); btn.disabled = false; btn.innerHTML = '✨ AI tạo mới · 3 credits'; });
 }
 
 document.getElementById('ai-lp-form').addEventListener('submit', function() {

@@ -1,444 +1,256 @@
-<%
-  vi = I18n.locale.to_s == "vi"
-%>
+<% t = ->(k) { t("landing.#{k}") } %>
 
 <style>
 * { box-sizing: border-box; }
-
-/* ── Brand colors ── */
-:root {
-  --navy:    #1e3a5f;
-  --navy-md: #2d5f8a;
-  --navy-lt: #4a80a8;
-  --navy-xl: #d9e5f1;
-}
-
-/* ── Gradient text ── */
-.gtext { background: linear-gradient(135deg, #4a80a8 0%, #7aaac9 60%, #b3cbe3 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.gtext-gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-
-/* ── Hero dark bg ── */
-.hero-dark { background: #06101f; position: relative; overflow: hidden; }
-.aurora { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.3; }
-.aurora-1 { width: 600px; height: 600px; background: radial-gradient(circle, #1e3a5f, transparent 70%); top: -200px; left: -100px; animation: drift1 18s ease-in-out infinite alternate; }
-.aurora-2 { width: 500px; height: 500px; background: radial-gradient(circle, #2d5f8a, transparent 70%); top: 0; right: -150px; animation: drift2 14s ease-in-out infinite alternate; }
-.aurora-3 { width: 400px; height: 400px; background: radial-gradient(circle, #0ea5e9, transparent 70%); bottom: -100px; left: 30%; animation: drift3 20s ease-in-out infinite alternate; opacity: 0.15; }
-
-@keyframes drift1 { from { transform: translate(0,0) scale(1); } to { transform: translate(60px,40px) scale(1.15); } }
-@keyframes drift2 { from { transform: translate(0,0) scale(1); } to { transform: translate(-40px,60px) scale(1.1); } }
-@keyframes drift3 { from { transform: translate(0,0); } to { transform: translate(30px,-30px); } }
-
-.grid-overlay {
-  position: absolute; inset: 0; z-index: 0;
-  background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-  background-size: 60px 60px;
-}
-
-/* ── Feature cards ── */
-.feat-card { transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; border: 1px solid #f1f5f9; background: #fff; }
-.feat-card:hover { transform: translateY(-6px); box-shadow: 0 24px 48px rgba(30,58,95,0.12); border-color: rgba(30,58,95,0.2); }
-
-/* ── Pricing ── */
-.price-pro { background: linear-gradient(160deg, #0e1e30 0%, #162c47 100%); border: 1px solid rgba(74,128,168,0.3); box-shadow: 0 32px 64px rgba(30,58,95,0.4), inset 0 1px 0 rgba(255,255,255,0.08); }
-
-/* ── Animations ── */
-@keyframes fadeUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
-.fade-up   { animation: fadeUp 0.7s ease forwards; }
-.fade-up-2 { animation: fadeUp 0.7s 0.15s ease forwards; opacity:0; }
-.fade-up-3 { animation: fadeUp 0.7s 0.28s ease forwards; opacity:0; }
-.fade-up-4 { animation: fadeUp 0.7s 0.42s ease forwards; opacity:0; }
-
-@keyframes pulse-ring { 0%,100% { opacity:0.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.04); } }
-.live-ring { animation: pulse-ring 2s ease-in-out infinite; }
-
-@keyframes barGrow { from { width: 0%; } to { width: var(--w); } }
-.bar-animate { animation: barGrow 1.4s 0.8s cubic-bezier(.16,1,.3,1) forwards; width: 0%; }
-
-/* ── Badge pill ── */
-.badge-live {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.01em;
-  background: rgba(74,128,168,0.15); border: 1px solid rgba(74,128,168,0.35); color: #7aaac9;
-}
-
-/* ── Stats grid ── */
-.stats-bar-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; text-align:center; }
-@media(min-width:640px) { .stats-bar-grid { grid-template-columns:repeat(8,1fr); gap:20px; } }
+:root { --navy:#1e3a5f; --navy-md:#2d5f8a; --navy-lt:#4a80a8; }
+.gtext { background: linear-gradient(135deg,#4a80a8 0%,#7aaac9 60%,#b3cbe3 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.hero-dark { background:#06101f; position:relative; overflow:hidden; }
+.aurora { position:absolute; border-radius:50%; filter:blur(80px); opacity:.3; }
+.aurora-1 { width:600px; height:600px; background:radial-gradient(circle,#1e3a5f,transparent 70%); top:-200px; left:-100px; animation:drift1 18s ease-in-out infinite alternate; }
+.aurora-2 { width:500px; height:500px; background:radial-gradient(circle,#2d5f8a,transparent 70%); top:0; right:-150px; animation:drift2 14s ease-in-out infinite alternate; }
+.aurora-3 { width:400px; height:400px; background:radial-gradient(circle,#0ea5e9,transparent 70%); bottom:-100px; left:30%; animation:drift3 20s ease-in-out infinite alternate; opacity:.15; }
+@keyframes drift1 { from{transform:translate(0,0) scale(1);} to{transform:translate(60px,40px) scale(1.15);} }
+@keyframes drift2 { from{transform:translate(0,0) scale(1);} to{transform:translate(-40px,60px) scale(1.1);} }
+@keyframes drift3 { from{transform:translate(0,0);} to{transform:translate(30px,-30px);} }
+.grid-overlay { position:absolute; inset:0; z-index:0; background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px); background-size:60px 60px; }
+.feat-card { transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease; border:1px solid #eef2f7; background:#fff; }
+.feat-card:hover { transform:translateY(-6px); box-shadow:0 24px 48px rgba(30,58,95,.12); border-color:rgba(30,58,95,.18); }
+.aud-card { transition:transform .25s ease, box-shadow .25s ease; }
+.aud-card:hover { transform:translateY(-4px); box-shadow:0 30px 60px rgba(30,58,95,.14); }
+@keyframes fadeUp { from{opacity:0;transform:translateY(28px);} to{opacity:1;transform:translateY(0);} }
+.fade-up{ animation:fadeUp .7s ease forwards; } .fade-up-2{ animation:fadeUp .7s .12s ease forwards; opacity:0; } .fade-up-3{ animation:fadeUp .7s .24s ease forwards; opacity:0; } .fade-up-4{ animation:fadeUp .7s .38s ease forwards; opacity:0; }
+@keyframes pulse-ring { 0%,100%{opacity:.6;transform:scale(1);} 50%{opacity:1;transform:scale(1.04);} }
+@keyframes barGrow { from{width:0;} to{width:var(--w);} }
+.bar-animate { animation:barGrow 1.4s .8s cubic-bezier(.16,1,.3,1) forwards; width:0; }
+.badge-live { display:inline-flex; align-items:center; gap:6px; padding:5px 14px; border-radius:999px; font-size:12px; font-weight:700; background:rgba(74,128,168,.15); border:1px solid rgba(74,128,168,.35); color:#7aaac9; }
 </style>
 
-<!-- ══════════════════════════════════════════════
-     NAV
-══════════════════════════════════════════════ -->
-<nav style="position:sticky; top:0; z-index:100; background:rgba(6,16,31,0.88); border-bottom:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);">
+<!-- ═══ NAV ═══ -->
+<nav style="position:sticky; top:0; z-index:100; background:rgba(6,16,31,.88); border-bottom:1px solid rgba(255,255,255,.07); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);">
   <div class="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between" style="height:64px;">
     <img src="/vox_logo.svg" alt="VOX" style="height:22px;">
-
-    <div class="hidden sm:flex items-center gap-7" style="font-size:14px; font-weight:500; color:rgba(255,255,255,0.6);">
-      <a href="#features"     style="transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'"><%= vi ? "Tính năng" : "Features" %></a>
-      <a href="#how-it-works" style="transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'"><%= vi ? "Cách dùng" : "How it works" %></a>
-      <a href="#pricing"      style="transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'"><%= vi ? "Giá" : "Pricing" %></a>
+    <div class="hidden sm:flex items-center gap-7" style="font-size:14px; font-weight:500; color:rgba(255,255,255,.6);">
+      <a href="#features"      onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.6)'"><%= t.("nav.features") %></a>
+      <a href="#for-trainers"  onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.6)'"><%= t.("nav.for_trainers") %></a>
+      <a href="#for-learners"  onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.6)'"><%= t.("nav.for_learners") %></a>
+      <a href="#pricing"       onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.6)'"><%= t.("nav.pricing") %></a>
     </div>
-
     <div class="flex items-center gap-2">
-      <div style="display:flex; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,0.15); font-size:11px; font-weight:700;">
-        <a href="?locale=vi" style="padding:5px 12px; transition:all 0.15s; <%= I18n.locale.to_s == 'vi' ? 'background:#1e3a5f; color:#fff;' : 'color:rgba(255,255,255,0.5);' %>">VI</a>
-        <a href="?locale=en" style="padding:5px 12px; transition:all 0.15s; <%= I18n.locale.to_s == 'en' ? 'background:#1e3a5f; color:#fff;' : 'color:rgba(255,255,255,0.5);' %>">EN</a>
+      <div style="display:flex; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,.15); font-size:11px; font-weight:700;">
+        <a href="?locale=vi" style="padding:5px 12px; <%= I18n.locale.to_s == 'vi' ? 'background:#1e3a5f; color:#fff;' : 'color:rgba(255,255,255,.5);' %>">VI</a>
+        <a href="?locale=en" style="padding:5px 12px; <%= I18n.locale.to_s == 'en' ? 'background:#1e3a5f; color:#fff;' : 'color:rgba(255,255,255,.5);' %>">EN</a>
       </div>
-      <%= link_to new_user_session_path, class: "hidden sm:inline", style: "font-size:13px; font-weight:600; color:rgba(255,255,255,0.65); padding:8px 14px; transition:color 0.15s;", onmouseover: "this.style.color='#fff'", onmouseout: "this.style.color='rgba(255,255,255,0.65)'" do %>
-        <%= vi ? "Đăng nhập" : "Sign in" %>
-      <% end %>
-      <%= link_to new_user_registration_path, style: "font-size:13px; font-weight:700; color:#fff; padding:9px 18px; border-radius:8px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); transition:opacity 0.15s; box-shadow:0 0 20px rgba(30,58,95,0.5);", onmouseover: "this.style.opacity='0.88'", onmouseout: "this.style.opacity='1'" do %>
-        <%= vi ? "Dùng thử" : "Try for free" %>
-      <% end %>
+      <%= link_to t.("nav.sign_in_learner"), new_learner_session_path, class: "hidden sm:inline", style: "font-size:13px; font-weight:600; color:rgba(255,255,255,.65); padding:8px 12px;", onmouseover: "this.style.color='#fff'", onmouseout: "this.style.color='rgba(255,255,255,.65)'" %>
+      <%= link_to t.("nav.sign_in_trainer"), new_user_session_path, class: "hidden sm:inline", style: "font-size:13px; font-weight:600; color:rgba(255,255,255,.65); padding:8px 12px;", onmouseover: "this.style.color='#fff'", onmouseout: "this.style.color='rgba(255,255,255,.65)'" %>
+      <%= link_to t.("nav.get_started"), new_user_registration_path, style: "font-size:13px; font-weight:700; color:#fff; padding:9px 18px; border-radius:8px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); box-shadow:0 0 20px rgba(30,58,95,.5);", onmouseover: "this.style.opacity='.88'", onmouseout: "this.style.opacity='1'" %>
     </div>
   </div>
 </nav>
 
-<!-- ══════════════════════════════════════════════
-     HERO
-══════════════════════════════════════════════ -->
-<section class="hero-dark" style="min-height:92vh; display:flex; align-items:center;">
-  <div class="aurora aurora-1"></div>
-  <div class="aurora aurora-2"></div>
-  <div class="aurora aurora-3"></div>
+<!-- ═══ HERO ═══ -->
+<section class="hero-dark" style="display:flex; align-items:center;">
+  <div class="aurora aurora-1"></div><div class="aurora aurora-2"></div><div class="aurora aurora-3"></div>
   <div class="grid-overlay"></div>
-
-  <div class="max-w-5xl mx-auto px-4 sm:px-6 text-center relative" style="z-index:1; padding-top:80px; padding-bottom:80px; width:100%;">
-
-    <div class="badge-live fade-up" style="margin-bottom:28px; display:inline-flex;">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 text-center relative" style="z-index:1; padding-top:76px; padding-bottom:76px; width:100%;">
+    <div class="badge-live fade-up" style="margin-bottom:26px;">
       <span style="width:7px; height:7px; border-radius:50%; background:#22d3ee; animation:pulse-ring 2s infinite;"></span>
-      <%= vi ? "Nền tảng AI cho dạy học & thu thập ý kiến" : "AI-powered platform for learning & engagement" %>
+      <%= t.("hero.badge") %>
     </div>
-
-    <h1 style="font-size:clamp(36px,7vw,76px); font-weight:900; line-height:1.06; letter-spacing:-0.03em; color:#fff; margin-bottom:24px;" class="fade-up-2">
-      <%= vi ? "Tạo nội dung &" : "Create content &" %><br>
-      <span class="gtext"><%= vi ? "tương tác thông minh" : "engage intelligently" %></span>
+    <h1 style="font-size:clamp(36px,7vw,74px); font-weight:900; line-height:1.06; letter-spacing:-0.03em; color:#fff; margin-bottom:22px;" class="fade-up-2">
+      <%= t.("hero.title_1") %><br><span class="gtext"><%= t.("hero.title_2") %></span>
     </h1>
-
-    <p style="font-size:clamp(15px,2.5vw,20px); color:rgba(255,255,255,0.55); max-width:620px; margin:0 auto 40px; line-height:1.7;" class="fade-up-3">
-      <%= vi ? "VOX tích hợp AI để tạo Quiz, Slide, Flashcards, tóm tắt tài liệu — cùng khảo sát, bình chọn và thu thập phản hồi theo thời gian thực." : "VOX brings AI to create Quizzes, Slides, Flashcards, document summaries — plus surveys, live polls, and real-time feedback." %>
+    <p style="font-size:clamp(15px,2.5vw,20px); color:rgba(255,255,255,.55); max-width:640px; margin:0 auto 38px; line-height:1.7;" class="fade-up-3">
+      <%= t.("hero.subtitle") %>
     </p>
-
-    <div class="fade-up-3" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:48px;">
-      <%= link_to new_user_registration_path, style: "display:inline-flex; align-items:center; gap:8px; padding:14px 28px; font-size:15px; font-weight:700; color:#fff; border-radius:12px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); box-shadow:0 0 40px rgba(30,58,95,0.6); transition:all 0.2s; text-decoration:none;", onmouseover: "this.style.transform='scale(1.04)'; this.style.boxShadow='0 0 60px rgba(30,58,95,0.8)'" , onmouseout: "this.style.transform='scale(1)'; this.style.boxShadow='0 0 40px rgba(30,58,95,0.6)'" do %>
-        <%= vi ? "Bắt đầu miễn phí" : "Get started free" %>
+    <div class="fade-up-3" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:20px;">
+      <%= link_to new_user_registration_path, style: "display:inline-flex; align-items:center; gap:8px; padding:14px 28px; font-size:15px; font-weight:700; color:#fff; border-radius:12px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); box-shadow:0 0 40px rgba(30,58,95,.6); text-decoration:none;", onmouseover: "this.style.transform='scale(1.04)'", onmouseout: "this.style.transform='scale(1)'" do %>
+        <%= t.("hero.cta_primary") %>
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
       <% end %>
-      <a href="#features" style="display:inline-flex; align-items:center; gap:8px; padding:14px 28px; font-size:15px; font-weight:600; color:rgba(255,255,255,0.8); border-radius:12px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.13); transition:all 0.2s; text-decoration:none;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.07)'">
-        <%= vi ? "Xem tính năng" : "Explore features" %>
+      <a href="#features" style="display:inline-flex; align-items:center; gap:8px; padding:14px 28px; font-size:15px; font-weight:600; color:rgba(255,255,255,.8); border-radius:12px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.13); text-decoration:none;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">
+        <%= t.("hero.cta_secondary") %>
       </a>
     </div>
+    <p class="fade-up-4" style="font-size:13px; color:rgba(255,255,255,.32);">✓ <%= t.("hero.note") %></p>
 
-    <p class="fade-up-4" style="font-size:13px; color:rgba(255,255,255,0.3); letter-spacing:0.01em;">
-      ✓ <%= vi ? "Miễn phí · 100 AI Credits/tháng · Không cần thẻ tín dụng" : "Free plan · 100 AI Credits/month · No credit card" %>
-    </p>
-
-    <!-- Product mockup: AI Quiz -->
-    <div class="fade-up-4" style="margin-top:64px; position:relative;">
-      <div style="position:absolute; bottom:-40px; left:50%; transform:translateX(-50%); width:70%; height:60px; background:radial-gradient(ellipse,rgba(30,58,95,0.5),transparent 70%); filter:blur(20px);"></div>
-      <div style="border-radius:16px; overflow:hidden; box-shadow:0 40px 120px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08); max-width:780px; margin:0 auto;">
-        <!-- Browser bar -->
-        <div style="background:#111827; padding:12px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,0.07);">
-          <div style="display:flex; gap:6px;">
-            <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
-            <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
-            <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
+    <!-- Dual mockup: trainer creates · learner studies -->
+    <div class="fade-up-4" style="margin-top:60px; position:relative;">
+      <div style="position:absolute; bottom:-40px; left:50%; transform:translateX(-50%); width:70%; height:60px; background:radial-gradient(ellipse,rgba(30,58,95,.5),transparent 70%); filter:blur(20px);"></div>
+      <div style="border-radius:16px; overflow:hidden; box-shadow:0 40px 120px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08); max-width:820px; margin:0 auto;">
+        <div style="background:#111827; padding:12px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,.07);">
+          <div style="display:flex; gap:6px;"><div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div><div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div><div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div></div>
+          <div style="flex:1; background:rgba(255,255,255,.06); border-radius:6px; padding:5px 12px; font-size:12px; color:rgba(255,255,255,.3); text-align:center;">vox.czin.net</div>
+          <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:#4ade80;"><span style="width:6px;height:6px;border-radius:50%;background:#4ade80;animation:pulse-ring 2s infinite;"></span> AI</div>
+        </div>
+        <div style="background:#0f172a; padding:22px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <!-- Trainer: AI generation -->
+          <div style="background:linear-gradient(135deg,#1e3a5f,#162c47); border-radius:14px; padding:18px; border:1px solid rgba(74,128,168,.3); text-align:left;">
+            <div style="font-size:11px; font-weight:700; color:#7aaac9; letter-spacing:.08em; margin-bottom:8px;">✨ <%= t.("trainer.label") %></div>
+            <div style="font-size:14px; font-weight:700; color:#fff; margin-bottom:12px; line-height:1.4;"><%= t.("features.ai_create_t") %></div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:11px; padding:3px 10px; border-radius:99px; background:rgba(255,255,255,.1); color:rgba(255,255,255,.75);">📋 Quiz</span>
+              <span style="font-size:11px; padding:3px 10px; border-radius:99px; background:rgba(255,255,255,.1); color:rgba(255,255,255,.75);">🎴 Flashcard</span>
+              <span style="font-size:11px; padding:3px 10px; border-radius:99px; background:rgba(255,255,255,.1); color:rgba(255,255,255,.75);">🗺️ Path</span>
+            </div>
+            <div style="margin-top:14px; height:6px; background:rgba(255,255,255,.1); border-radius:99px; overflow:hidden;"><div class="bar-animate" style="--w:88%; height:100%; background:linear-gradient(90deg,#4a80a8,#7aaac9); border-radius:99px;"></div></div>
+            <div style="font-size:11px; color:rgba(255,255,255,.4); margin-top:6px;">AI · 20 <%= I18n.locale.to_s=='vi' ? 'câu tạo trong 8 giây' : 'questions in 8s' %></div>
           </div>
-          <div style="flex:1; background:rgba(255,255,255,0.06); border-radius:6px; padding:5px 12px; font-size:12px; color:rgba(255,255,255,0.3); text-align:center;">app.vox.czin.net/dashboard</div>
-          <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:#4ade80;">
-            <span style="width:6px;height:6px;border-radius:50%;background:#4ade80;animation:pulse-ring 2s infinite;"></span>
-            AI
+          <!-- Learner: gamification -->
+          <div style="background:rgba(255,255,255,.03); border-radius:14px; padding:18px; border:1px solid rgba(255,255,255,.07); text-align:left;">
+            <div style="font-size:11px; font-weight:700; color:#f59e0b; letter-spacing:.08em; margin-bottom:8px;">🎓 <%= t.("learner.label") %></div>
+            <div style="display:flex; gap:10px; margin-bottom:12px;">
+              <div style="flex:1; background:rgba(249,115,22,.12); border:1px solid rgba(249,115,22,.25); border-radius:10px; padding:10px; text-align:center;"><div style="font-size:18px; font-weight:900; color:#fb923c;">🔥 12</div><div style="font-size:10px; color:rgba(255,255,255,.5);">streak</div></div>
+              <div style="flex:1; background:rgba(74,128,168,.12); border:1px solid rgba(74,128,168,.25); border-radius:10px; padding:10px; text-align:center;"><div style="font-size:18px; font-weight:900; color:#7aaac9;">⚡ 840</div><div style="font-size:10px; color:rgba(255,255,255,.5);">XP</div></div>
+            </div>
+            <div style="font-size:12px; color:rgba(255,255,255,.7); margin-bottom:6px;"><%= I18n.locale.to_s=='vi' ? 'Mục tiêu hôm nay' : "Today's goal" %> · 3/3</div>
+            <div style="height:6px; background:rgba(255,255,255,.1); border-radius:99px; overflow:hidden;"><div class="bar-animate" style="--w:100%; height:100%; background:linear-gradient(90deg,#f59e0b,#fbbf24); border-radius:99px;"></div></div>
           </div>
         </div>
-        <!-- Dashboard mockup -->
-        <div style="background:#0f172a; padding:24px 28px 28px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-          <!-- AI Quiz card -->
-          <div style="background:linear-gradient(135deg,#1e3a5f,#162c47); border-radius:14px; padding:20px; border:1px solid rgba(74,128,168,0.3);">
-            <div style="font-size:11px; font-weight:700; color:#7aaac9; letter-spacing:0.08em; margin-bottom:8px;">✨ AI QUIZ & ÔN LUYỆN</div>
-            <div style="font-size:15px; font-weight:700; color:#fff; margin-bottom:12px; line-height:1.4;"><%= vi ? "Kiểm tra Toán lớp 10 — Hàm số bậc hai" : "Math Quiz — Quadratic Functions" %></div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <span style="font-size:11px; padding:3px 10px; border-radius:99px; background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.7);">📋 20 <%= vi ? "câu" : "questions" %></span>
-              <span style="font-size:11px; padding:3px 10px; border-radius:99px; background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.7);">⏱ 30 <%= vi ? "phút" : "min" %></span>
-            </div>
-            <div style="margin-top:14px; height:6px; background:rgba(255,255,255,0.1); border-radius:99px; overflow:hidden;">
-              <div class="bar-animate" style="--w:72%; height:100%; background:linear-gradient(90deg,#4a80a8,#7aaac9); border-radius:99px;"></div>
-            </div>
-            <div style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:6px;">72% <%= vi ? "hoàn thành" : "completed" %></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ AUDIENCES ═══ -->
+<section style="background:#f7fafc; padding:88px 0;">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6">
+    <div style="text-align:center; max-width:620px; margin:0 auto 48px;">
+      <h2 style="font-size:clamp(26px,4vw,40px); font-weight:900; color:#0f172a; letter-spacing:-0.02em; margin-bottom:12px;"><%= t.("audiences.title") %></h2>
+      <p style="font-size:16px; color:#64748b; line-height:1.7;"><%= t.("audiences.subtitle") %></p>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr; gap:20px;" class="aud-grid">
+      <% [
+        { id:"for-trainers", key:"trainer", accent:"#1e3a5f", bg:"linear-gradient(160deg,#0e1e30,#182f4a)", dark:true, url:new_user_registration_path, icon:'M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z' },
+        { id:"for-learners", key:"learner", accent:"#f59e0b", bg:"#ffffff", dark:false, url:new_learner_session_path, icon:'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' }
+      ].each do |a| %>
+        <div id="<%= a[:id] %>" class="aud-card" style="border-radius:22px; padding:34px; background:<%= a[:bg] %>; <%= a[:dark] ? 'border:1px solid rgba(74,128,168,.3);' : 'border:1px solid #e6edf5;' %>">
+          <div style="width:52px; height:52px; border-radius:14px; background:<%= a[:dark] ? 'rgba(74,128,168,.2)' : '#f0f6ff' %>; display:flex; align-items:center; justify-content:center; margin-bottom:18px;">
+            <svg width="26" height="26" fill="none" stroke="<%= a[:dark] ? '#7aaac9' : a[:accent] %>" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="<%= a[:icon] %>"/></svg>
           </div>
-          <!-- AI Slide card -->
-          <div style="background:linear-gradient(135deg,#0c1f35,#0e2240); border-radius:14px; padding:20px; border:1px solid rgba(74,128,168,0.2);">
-            <div style="font-size:11px; font-weight:700; color:#7aaac9; letter-spacing:0.08em; margin-bottom:8px;">🖥️ AI SLIDE</div>
-            <div style="font-size:15px; font-weight:700; color:#fff; margin-bottom:12px; line-height:1.4;"><%= vi ? "Chiến lược Marketing Q3 2025" : "Marketing Strategy Q3 2025" %></div>
-            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
-              <% ["#1e3a5f","#2d5f8a","#162c47"].each do |c| %>
-                <div style="height:36px; border-radius:6px; background:<%= c %>; border:1px solid rgba(255,255,255,0.08);"></div>
-              <% end %>
-            </div>
-            <div style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:10px;">✅ <%= vi ? "10 slide đã tạo xong" : "10 slides generated" %></div>
-          </div>
-          <!-- Survey live card -->
-          <div style="background:rgba(255,255,255,0.03); border-radius:14px; padding:20px; border:1px solid rgba(255,255,255,0.07);">
-            <div style="font-size:11px; font-weight:700; color:#4ade80; letter-spacing:0.08em; margin-bottom:8px; display:flex; align-items:center; gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse-ring 2s infinite;"></span> LIVE <%= vi ? "KHẢO SÁT" : "SURVEY" %></div>
-            <div style="font-size:13px; color:rgba(255,255,255,0.8); margin-bottom:10px;"><%= vi ? "Đánh giá sự hài lòng nhân viên Q2" : "Employee Satisfaction Q2" %></div>
-            <% [[vi ? "Rất hài lòng" : "Very satisfied", 52, "#4ade80"], [vi ? "Hài lòng" : "Satisfied", 31, "#7aaac9"], [vi ? "Bình thường" : "Neutral", 17, "#94a3b8"]].each do |label, pct, color| %>
-              <div style="margin-bottom:8px;">
-                <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px; color:rgba(255,255,255,0.6);"><span><%= label %></span><span><%= pct %>%</span></div>
-                <div style="height:5px; background:rgba(255,255,255,0.07); border-radius:99px; overflow:hidden;"><div class="bar-animate" style="--w:<%= pct %>%; height:100%; background:<%= color %>; border-radius:99px;"></div></div>
+          <p style="font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:<%= a[:dark] ? '#7aaac9' : a[:accent] %>; margin-bottom:8px;"><%= t.("#{a[:key]}.label") %></p>
+          <h3 style="font-size:24px; font-weight:800; letter-spacing:-0.01em; margin-bottom:10px; color:<%= a[:dark] ? '#fff' : '#0f172a' %>;"><%= t.("#{a[:key]}.title") %></h3>
+          <p style="font-size:15px; line-height:1.7; margin-bottom:20px; color:<%= a[:dark] ? 'rgba(255,255,255,.6)' : '#64748b' %>;"><%= t.("#{a[:key]}.desc") %></p>
+          <div style="display:grid; gap:11px; margin-bottom:26px;">
+            <% ["f1","f2","f3","f4"].each do |f| %>
+              <div style="display:flex; gap:10px; align-items:flex-start;">
+                <svg width="18" height="18" fill="none" stroke="<%= a[:dark] ? '#4ade80' : '#16a34a' %>" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0; margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span style="font-size:14px; line-height:1.5; color:<%= a[:dark] ? 'rgba(255,255,255,.82)' : '#334155' %>;"><%= t.("#{a[:key]}.#{f}") %></span>
               </div>
             <% end %>
           </div>
-          <!-- Flashcard card -->
-          <div style="background:rgba(255,255,255,0.03); border-radius:14px; padding:20px; border:1px solid rgba(255,255,255,0.07);">
-            <div style="font-size:11px; font-weight:700; color:#f59e0b; letter-spacing:0.08em; margin-bottom:8px;">🎴 FLASHCARDS</div>
-            <div style="font-size:13px; color:rgba(255,255,255,0.8); margin-bottom:12px;"><%= vi ? "Từ vựng IELTS — Band 7.0" : "IELTS Vocabulary — Band 7.0" %></div>
-            <div style="display:flex; gap:8px; justify-content:center;">
-              <div style="background:#1e3a5f; border-radius:10px; padding:12px 16px; text-align:center; flex:1; border:1px solid rgba(74,128,168,0.3);">
-                <div style="font-size:15px; font-weight:800; color:#fff;">Ubiquitous</div>
-                <div style="font-size:11px; color:#7aaac9; margin-top:4px;"><%= vi ? "Phổ biến khắp nơi" : "Present everywhere" %></div>
-              </div>
-            </div>
-            <div style="font-size:11px; color:rgba(255,255,255,0.35); margin-top:10px; text-align:center;">248 <%= vi ? "thẻ · 83% đã thuộc" : "cards · 83% mastered" %></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════
-     STATS BAR
-══════════════════════════════════════════════ -->
-<div style="background:#fff; border-bottom:1px solid #f1f5f9;">
-  <div class="max-w-5xl mx-auto px-4 sm:px-6" style="padding-top:40px; padding-bottom:40px;">
-    <div class="stats-bar-grid">
-      <% [
-        { val: "AI",    label: vi ? "Quiz & Ôn luyện" : "Quiz & Practice",       icon: "🎯", color: "#1e3a5f" },
-        { val: "AI",    label: vi ? "Tạo slide" : "Slide Creator",               icon: "🖥️", color: "#2d5f8a" },
-        { val: "AI",    label: vi ? "Phân tích" : "Analysis",                    icon: "✨", color: "#4a80a8" },
-        { val: "Live",  label: vi ? "Khảo sát & Bình chọn" : "Survey & Poll",   icon: "📊", color: "#0ea5e9" },
-        { val: "TTS",   label: vi ? "Text → Giọng nói" : "Text to speech",      icon: "🔊", color: "#059669" },
-        { val: "STT",   label: vi ? "Giọng nói → Text" : "Speech to text",      icon: "🎙️", color: "#d97706" },
-        { val: "SSO",   label: vi ? "Google & Microsoft" : "Google & Microsoft", icon: "🔒", color: "#dc2626" },
-        { val: "CSV",   label: vi ? "Xuất dữ liệu" : "Data export",             icon: "📥", color: "#7c3aed" },
-      ].each do |s| %>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-          <div style="width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; background:linear-gradient(135deg,<%= s[:color] %>22,<%= s[:color] %>11);">
-            <%= s[:icon] %>
-          </div>
-          <div style="font-size:20px; font-weight:900; color:<%= s[:color] %>; line-height:1; letter-spacing:-0.02em;"><%= s[:val] %></div>
-          <div style="font-size:11px; color:#94a3b8; font-weight:500; line-height:1.4; text-align:center;"><%= s[:label] %></div>
+          <%= link_to t.("#{a[:key]}.cta"), a[:url], style: "display:inline-flex; align-items:center; gap:7px; font-size:14px; font-weight:700; padding:12px 22px; border-radius:11px; text-decoration:none; #{a[:dark] ? 'background:#fff; color:#1e3a5f;' : "background:#{a[:accent]}; color:#fff;"}" %>
         </div>
       <% end %>
     </div>
   </div>
-</div>
+</section>
 
-<!-- ══════════════════════════════════════════════
-     FEATURES
-══════════════════════════════════════════════ -->
-<section id="features" style="padding:96px 0; background:#fafbff;">
+<!-- ═══ FEATURES ═══ -->
+<section id="features" style="background:#fff; padding:88px 0;">
   <div class="max-w-6xl mx-auto px-4 sm:px-6">
-    <div style="text-align:center; margin-bottom:56px;">
-      <div style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.1em; color:#1e3a5f; text-transform:uppercase; margin-bottom:12px;"><%= vi ? "Tính năng" : "Features" %></div>
-      <h2 style="font-size:clamp(28px,5vw,44px); font-weight:900; color:#0f172a; letter-spacing:-0.02em; margin-bottom:14px; line-height:1.15;">
-        <%= vi ? "Tất cả công cụ bạn cần" : "Everything you need" %>
-      </h2>
-      <p style="font-size:16px; color:#64748b; max-width:540px; margin:0 auto; line-height:1.7;">
-        <%= vi ? "Từ tạo nội dung AI đến thu thập ý kiến theo thời gian thực — trong một nền tảng duy nhất." : "From AI content creation to real-time feedback collection — all in one platform." %>
-      </p>
+    <div style="text-align:center; max-width:640px; margin:0 auto 52px;">
+      <h2 style="font-size:clamp(26px,4vw,40px); font-weight:900; color:#0f172a; letter-spacing:-0.02em; margin-bottom:12px;"><%= t.("features.title") %></h2>
+      <p style="font-size:16px; color:#64748b; line-height:1.7;"><%= t.("features.subtitle") %></p>
     </div>
-
-    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px;">
       <% [
-        { icon: "🎯", grad: "linear-gradient(135deg,#1e3a5f,#2d5f8a)",
-          title: vi ? "AI Quiz & Ôn luyện" : "AI Quiz & Practice",
-          desc:  vi ? "Tạo bộ đề trắc nghiệm từ tài liệu hoặc mô tả chủ đề. AI tự động tạo câu hỏi, đáp án và giải thích chi tiết." : "Generate quizzes from documents or topic descriptions. AI auto-creates questions, answers, and detailed explanations." },
-        { icon: "🖥️", grad: "linear-gradient(135deg,#1e3a5f,#4a80a8)",
-          title: vi ? "Tạo Slide với AI" : "AI Slide Creator",
-          desc:  vi ? "Tải tài liệu lên hoặc mô tả chủ đề — AI tạo bộ slide chuyên nghiệp, xuất PPTX ngay lập tức." : "Upload a document or describe your topic — AI builds a professional deck, export to PPTX instantly." },
-        { icon: "🎴", grad: "linear-gradient(135deg,#0e7490,#0ea5e9)",
-          title: vi ? "Flashcards & Lộ trình" : "Flashcards & Learning Path",
-          desc:  vi ? "Tạo bộ flashcard thông minh, ôn luyện theo thuật toán spaced repetition và theo dõi tiến độ học tập." : "Create smart flashcard decks, study with spaced repetition algorithm, and track learning progress." },
-        { icon: "📄", grad: "linear-gradient(135deg,#d97706,#f59e0b)",
-          title: vi ? "Tóm tắt tài liệu AI" : "AI Document Summary",
-          desc:  vi ? "Upload PDF, DOCX, hình ảnh — AI tóm tắt nội dung, trích xuất điểm chính và tạo ghi chú nhanh." : "Upload PDF, DOCX, images — AI summarizes content, extracts key points, and creates quick notes." },
-        { icon: "📊", grad: "linear-gradient(135deg,#1e3a5f,#2d5f8a)",
-          title: vi ? "Khảo sát & Bình chọn Live" : "Live Surveys & Polls",
-          desc:  vi ? "10+ loại câu hỏi, kết quả cập nhật tức thì qua WebSocket, màn hình presenter đẹp cho sự kiện lớn." : "10+ question types, instant results via WebSocket, beautiful presenter screen for large events." },
-        { icon: "💬", grad: "linear-gradient(135deg,#059669,#10b981)",
-          title: vi ? "Thu thập phản hồi" : "Feedback Boards",
-          desc:  vi ? "Bảng phản hồi công khai — đề xuất, upvote, bình luận và phân tích AI tự động theo thời gian thực." : "Public boards — suggestions, upvotes, comments, and AI analysis in real-time." },
-        { icon: "🔊", grad: "linear-gradient(135deg,#7c3aed,#a855f7)",
-          title: vi ? "Text-to-Speech & STT" : "Text-to-Speech & STT",
-          desc:  vi ? "Chuyển văn bản thành giọng nói tự nhiên với nhiều giọng đọc. Phiên âm ghi âm sang văn bản chính xác." : "Convert text to natural speech with multiple voices. Accurately transcribe recordings to text." },
-        { icon: "🤖", grad: "linear-gradient(135deg,#0c4a6e,#0ea5e9)",
-          title: vi ? "AI Tutor & AI Chat" : "AI Tutor & AI Chat",
-          desc:  vi ? "Chat trực tiếp với AI về tài liệu, dữ liệu khảo sát hay bất kỳ chủ đề nào. Hỏi đáp thông minh 24/7." : "Chat directly with AI about documents, survey data, or any topic. Smart Q&A available 24/7." },
+        { k:"ai_create",    c:"#1e3a5f", bg:"#eef3fb", icon:'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z' },
+        { k:"ai_tutor",     c:"#7c3aed", bg:"#f3ebfd", icon:'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
+        { k:"speaking",     c:"#0ea5e9", bg:"#e6f5fd", icon:'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z' },
+        { k:"gamification", c:"#f59e0b", bg:"#fef6e7", icon:'M13 10V3L4 14h7v7l9-11h-7z' },
+        { k:"study_plan",   c:"#16a34a", bg:"#e9f7ee", icon:'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+        { k:"analytics",    c:"#e11d48", bg:"#fdeaef", icon:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' }
       ].each do |f| %>
-        <div class="feat-card" style="border-radius:20px; padding:28px;">
-          <div style="width:48px; height:48px; border-radius:14px; background:<%= f[:grad] %>; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:18px; box-shadow:0 8px 20px rgba(0,0,0,0.12);">
-            <%= f[:icon] %>
+        <div class="feat-card" style="border-radius:18px; padding:26px;">
+          <div style="width:48px; height:48px; border-radius:13px; background:<%= f[:bg] %>; display:flex; align-items:center; justify-content:center; margin-bottom:16px;">
+            <svg width="24" height="24" fill="none" stroke="<%= f[:c] %>" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="<%= f[:icon] %>"/></svg>
           </div>
-          <h3 style="font-size:16px; font-weight:700; color:#0f172a; margin-bottom:8px;"><%= f[:title] %></h3>
-          <p style="font-size:13px; color:#64748b; line-height:1.7; margin:0;"><%= f[:desc] %></p>
+          <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin-bottom:7px;"><%= t.("features.#{f[:k]}_t") %></h3>
+          <p style="font-size:14px; color:#64748b; line-height:1.65;"><%= t.("features.#{f[:k]}_d") %></p>
         </div>
       <% end %>
     </div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════
-     HOW IT WORKS
-══════════════════════════════════════════════ -->
-<section id="how-it-works" style="padding:96px 0; background:#06101f; position:relative; overflow:hidden;">
-  <div class="aurora" style="width:400px; height:400px; background:radial-gradient(circle,#1e3a5f,transparent 70%); top:-100px; right:5%; opacity:0.3;"></div>
-  <div class="grid-overlay"></div>
-  <div class="max-w-5xl mx-auto px-4 sm:px-6" style="position:relative; z-index:1;">
-    <div style="text-align:center; margin-bottom:64px;">
-      <div style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.1em; color:#7aaac9; text-transform:uppercase; margin-bottom:12px;"><%= vi ? "Cách dùng" : "How it works" %></div>
-      <h2 style="font-size:clamp(28px,5vw,48px); font-weight:900; color:#fff; letter-spacing:-0.02em; line-height:1.15; margin:0;">
-        <%= vi ? "Bắt đầu trong 3 bước" : "Up and running in 3 steps" %>
-      </h2>
+<!-- ═══ HOW IT WORKS ═══ -->
+<section id="how-it-works" style="background:#06101f; padding:88px 0; position:relative; overflow:hidden;">
+  <div class="aurora aurora-2" style="opacity:.18;"></div>
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 relative" style="z-index:1;">
+    <div style="text-align:center; max-width:600px; margin:0 auto 52px;">
+      <h2 style="font-size:clamp(26px,4vw,40px); font-weight:900; color:#fff; letter-spacing:-0.02em; margin-bottom:12px;"><%= t.("how.title") %></h2>
+      <p style="font-size:16px; color:rgba(255,255,255,.55); line-height:1.7;"><%= t.("how.subtitle") %></p>
     </div>
-
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:24px;">
-      <% [
-        { n: "01", grad: "linear-gradient(135deg,#1e3a5f,#2d5f8a)",
-          title: vi ? "Tạo tài khoản" : "Create account",
-          desc:  vi ? "Đăng ký miễn phí trong 30 giây với email, Google hoặc Microsoft. Không cần thẻ tín dụng." : "Sign up free in 30 seconds with email, Google, or Microsoft. No credit card needed.",
-          detail: vi ? "✓ Miễn phí mãi mãi  ✓ SSO Google & Microsoft" : "✓ Free forever  ✓ SSO Google & Microsoft" },
-        { n: "02", grad: "linear-gradient(135deg,#1e3a5f,#4a80a8)",
-          title: vi ? "Tạo nội dung với AI" : "Create content with AI",
-          desc:  vi ? "Mô tả chủ đề hoặc upload tài liệu — AI tự động tạo Quiz, Slide, Flashcards hay khảo sát trong vài giây." : "Describe a topic or upload a document — AI instantly creates Quizzes, Slides, Flashcards, or surveys.",
-          detail: vi ? "✓ Upload PDF/DOCX  ✓ AI tạo tự động" : "✓ Upload PDF/DOCX  ✓ AI generation" },
-        { n: "03", grad: "linear-gradient(135deg,#0c4a6e,#0ea5e9)",
-          title: vi ? "Chia sẻ & thu thập" : "Share & collect",
-          desc:  vi ? "Gửi link hoặc để người tham gia quét QR. Kết quả & phân tích AI hiển thị ngay theo thời gian thực." : "Share a link or let participants scan QR. Results and AI analysis appear in real-time.",
-          detail: vi ? "✓ QR code  ✓ AI phân tích tức thì" : "✓ QR code  ✓ Instant AI analysis" },
-      ].each do |s| %>
-        <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:32px; position:relative; overflow:hidden; transition:border-color 0.2s, background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.07)'; this.style.borderColor='rgba(74,128,168,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.08)'">
-          <div style="position:absolute; top:-10px; right:20px; font-size:80px; font-weight:900; color:rgba(255,255,255,0.025); line-height:1; pointer-events:none; user-select:none;"><%= s[:n] %></div>
-          <div style="display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:12px; background:<%= s[:grad] %>; font-size:14px; font-weight:900; color:#fff; margin-bottom:20px; box-shadow:0 6px 20px rgba(0,0,0,0.3);"><%= s[:n] %></div>
-          <h3 style="font-size:20px; font-weight:800; color:#fff; margin-bottom:10px; letter-spacing:-0.01em;"><%= s[:title] %></h3>
-          <p style="font-size:14px; color:rgba(255,255,255,0.55); line-height:1.75; margin-bottom:16px;"><%= s[:desc] %></p>
-          <div style="font-size:12px; color:rgba(122,170,201,0.85); font-weight:600;"><%= s[:detail] %></div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:20px;">
+      <% ["s1","s2","s3"].each_with_index do |s,i| %>
+        <div style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); border-radius:18px; padding:28px;">
+          <div style="width:40px; height:40px; border-radius:11px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:900; color:#fff; margin-bottom:16px;"><%= i+1 %></div>
+          <h3 style="font-size:18px; font-weight:800; color:#fff; margin-bottom:8px;"><%= t.("how.#{s}_t") %></h3>
+          <p style="font-size:14px; color:rgba(255,255,255,.55); line-height:1.65;"><%= t.("how.#{s}_d") %></p>
         </div>
-      <% end %>
-    </div>
-
-    <div style="text-align:center; margin-top:52px;">
-      <%= link_to new_user_registration_path, style: "display:inline-flex; align-items:center; gap:8px; padding:13px 28px; font-size:14px; font-weight:700; color:#fff; border-radius:10px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); text-decoration:none; transition:all 0.2s;", onmouseover: "this.style.background='rgba(255,255,255,0.16)'" , onmouseout: "this.style.background='rgba(255,255,255,0.1)'" do %>
-        <%= vi ? "Bắt đầu ngay — miễn phí" : "Get started — it's free" %>
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
       <% end %>
     </div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════
-     PRICING
-══════════════════════════════════════════════ -->
-<section id="pricing" style="padding:96px 0; background:#f8faff;">
+<!-- ═══ PRICING ═══ -->
+<section id="pricing" style="background:#f7fafc; padding:88px 0;">
   <div class="max-w-4xl mx-auto px-4 sm:px-6">
-    <div style="text-align:center; margin-bottom:56px;">
-      <div style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:0.1em; color:#1e3a5f; text-transform:uppercase; margin-bottom:12px;"><%= vi ? "Giá cả" : "Pricing" %></div>
-      <h2 style="font-size:clamp(28px,5vw,44px); font-weight:900; color:#0f172a; letter-spacing:-0.02em; margin-bottom:14px; line-height:1.15;">
-        <%= vi ? "Miễn phí. Đầy đủ tính năng." : "Free. Full features." %>
-      </h2>
-      <p style="font-size:16px; color:#64748b; max-width:520px; margin:0 auto; line-height:1.7;">
-        <%= vi ? "Tất cả tính năng mở khóa ngay từ đầu. Mỗi tháng được tặng 100 AI Credits — mua thêm khi cần." : "Every feature unlocked from day one. Get 100 free AI Credits each month — buy more when needed." %>
-      </p>
+    <div style="text-align:center; max-width:600px; margin:0 auto 48px;">
+      <h2 style="font-size:clamp(26px,4vw,40px); font-weight:900; color:#0f172a; letter-spacing:-0.02em; margin-bottom:12px;"><%= t.("pricing.title") %></h2>
+      <p style="font-size:16px; color:#64748b; line-height:1.7;"><%= t.("pricing.subtitle") %></p>
     </div>
-
-    <div style="max-width:520px; margin:0 auto;">
-      <div class="price-pro" style="border-radius:24px; padding:36px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
-          <span style="font-size:12px; font-weight:800; letter-spacing:0.1em; padding:5px 12px; border-radius:6px; background:rgba(74,128,168,0.2); color:#b3cbe3;">VOX</span>
-          <span style="font-size:12px; font-weight:700; color:#4ade80; background:rgba(74,222,128,0.15); padding:4px 12px; border-radius:999px;"><%= vi ? "Miễn phí mãi mãi" : "Free forever" %></span>
-        </div>
-
-        <div style="font-size:48px; font-weight:900; color:#fff; line-height:1; margin-bottom:4px;">0 ₫</div>
-        <div style="font-size:13px; color:rgba(179,203,227,0.6); margin-bottom:28px;"><%= vi ? "Tất cả tính năng, không giới hạn" : "All features, no limits" %></div>
-
-        <div style="height:1px; background:rgba(255,255,255,0.08); margin-bottom:24px;"></div>
-
-        <div style="margin-bottom:28px;">
-          <% [
-            [vi ? "AI Quiz, Slide, Flashcards, Tóm tắt" : "AI Quiz, Slides, Flashcards, Summary", "∞"],
-            [vi ? "Khảo sát, Bình chọn, Phản hồi, Form" : "Surveys, Votes, Feedback, Forms", "∞"],
-            [vi ? "Thành viên & Supporter" : "Members & Supporters", "∞"],
-            [vi ? "AI Credits miễn phí / tháng" : "Free AI Credits / month", "100"],
-          ].each do |label, val| %>
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
-              <span style="color:rgba(179,203,227,0.75);"><%= label %></span>
-              <span style="font-weight:700; color:#b3cbe3;"><%= val %></span>
-            </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; align-items:stretch;">
+      <!-- Free -->
+      <div style="background:#fff; border:1px solid #e6edf5; border-radius:20px; padding:32px; display:flex; flex-direction:column;">
+        <p style="font-size:13px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#64748b;"><%= t.("pricing.free_label") %></p>
+        <div style="display:flex; align-items:baseline; gap:4px; margin:10px 0 4px;"><span style="font-size:40px; font-weight:900; color:#0f172a;"><%= t.("pricing.free_price") %></span></div>
+        <p style="font-size:14px; color:#94a3b8; margin-bottom:22px;"><%= t.("pricing.free_desc") %></p>
+        <div style="display:grid; gap:12px; margin-bottom:26px; flex:1;">
+          <% ["free_f1","free_f2","free_f3"].each do |f| %>
+            <div style="display:flex; gap:10px; align-items:flex-start;"><svg width="18" height="18" fill="none" stroke="#16a34a" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><span style="font-size:14px; color:#334155; line-height:1.5;"><%= t.("pricing.#{f}") %></span></div>
           <% end %>
         </div>
-
-        <div style="font-size:10px; font-weight:800; letter-spacing:0.12em; margin-bottom:12px; color:rgba(179,203,227,0.45);"><%= vi ? "BAO GỒM TẤT CẢ" : "ALL INCLUDED" %></div>
-        <div style="margin-bottom:28px; display:grid; grid-template-columns:1fr 1fr; gap:4px;">
-          <% [
-            vi ? "✨ AI Quiz & Ôn luyện" : "✨ AI Quiz & Practice",
-            vi ? "🖥️ AI Tạo Slide (PPTX)" : "🖥️ AI Slide Creator (PPTX)",
-            vi ? "🎴 Flashcards" : "🎴 Flashcards",
-            vi ? "📄 Tóm tắt tài liệu AI" : "📄 AI Document Summary",
-            vi ? "🔊 Text-to-Speech" : "🔊 Text-to-Speech",
-            vi ? "🎙️ Speech-to-Text" : "🎙️ Speech-to-Text",
-            vi ? "📊 Khảo sát & Bình chọn Live" : "📊 Live Surveys & Polls",
-            vi ? "🔒 SSO Google & Microsoft" : "🔒 SSO Google & Microsoft",
-          ].each do |label| %>
-            <div style="font-size:12px; padding:3px 0; color:rgba(179,203,227,0.8);"><%= label %></div>
+        <%= link_to t.("pricing.free_cta"), new_user_registration_path, style: "text-align:center; font-size:14px; font-weight:700; padding:13px; border-radius:11px; background:#eef3fb; color:#1e3a5f; text-decoration:none;" %>
+      </div>
+      <!-- Credits (highlighted) -->
+      <div style="background:linear-gradient(160deg,#0e1e30,#182f4a); border:1px solid rgba(74,128,168,.35); border-radius:20px; padding:32px; display:flex; flex-direction:column; box-shadow:0 32px 64px rgba(30,58,95,.35);">
+        <p style="font-size:13px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#7aaac9;"><%= t.("pricing.credit_label") %></p>
+        <div style="display:flex; align-items:baseline; gap:4px; margin:10px 0 4px;"><span style="font-size:40px; font-weight:900; color:#fff;"><%= t.("pricing.credit_price") %></span><span style="font-size:15px; color:rgba(255,255,255,.5);"><%= t.("pricing.credit_unit") %></span></div>
+        <p style="font-size:14px; color:rgba(255,255,255,.5); margin-bottom:22px;"><%= t.("pricing.credit_desc") %></p>
+        <div style="display:grid; gap:12px; margin-bottom:26px; flex:1;">
+          <% ["credit_f1","credit_f2","credit_f3"].each do |f| %>
+            <div style="display:flex; gap:10px; align-items:flex-start;"><svg width="18" height="18" fill="none" stroke="#4ade80" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><span style="font-size:14px; color:rgba(255,255,255,.82); line-height:1.5;"><%= t.("pricing.#{f}") %></span></div>
           <% end %>
         </div>
-
-        <%= link_to new_user_registration_path,
-              style: "display:block; text-align:center; padding:14px 20px; border-radius:12px; font-size:15px; font-weight:700; text-decoration:none; transition:all 0.2s; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); color:#fff; box-shadow:0 8px 24px rgba(30,58,95,0.4);",
-              onmouseover: "this.style.opacity='0.9'",
-              onmouseout: "this.style.opacity='1'" do %>
-          <%= vi ? "Bắt đầu miễn phí" : "Get started free" %>
-        <% end %>
-
-        <div style="text-align:center; margin-top:12px; font-size:11px; color:rgba(179,203,227,0.35);">
-          <%= vi ? "Cần thêm AI Credits? Mua gói bổ sung bất cứ lúc nào." : "Need more AI Credits? Buy add-on packs anytime." %>
-        </div>
+        <%= link_to t.("pricing.credit_cta"), new_user_registration_path, style: "text-align:center; font-size:14px; font-weight:700; padding:13px; border-radius:11px; background:#fff; color:#1e3a5f; text-decoration:none;" %>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════
-     CTA
-══════════════════════════════════════════════ -->
-<section style="padding:96px 0; background:#06101f; position:relative; overflow:hidden; text-align:center;">
-  <div class="aurora" style="width:500px; height:500px; background:radial-gradient(circle,#1e3a5f,transparent 70%); top:-150px; left:50%; transform:translateX(-50%); opacity:0.45;"></div>
-  <div class="grid-overlay"></div>
-  <div style="position:relative; z-index:1; max-width:640px; margin:0 auto; padding:0 24px;">
-    <h2 style="font-size:clamp(28px,6vw,52px); font-weight:900; color:#fff; letter-spacing:-0.025em; line-height:1.1; margin-bottom:16px;">
-      <%= vi ? "Sẵn sàng tạo nội dung\nthông minh hơn?" : "Ready to create\nsmarter content?" %>
-    </h2>
-    <p style="font-size:16px; color:rgba(255,255,255,0.5); margin-bottom:36px; line-height:1.7;">
-      <%= vi ? "Tham gia cùng các nhóm đang dùng VOX để tạo quiz, slide, flashcards và thu thập ý kiến theo thời gian thực." : "Join teams already using VOX to create quizzes, slides, flashcards and gather real-time feedback." %>
-    </p>
-    <%= link_to new_user_registration_path,
-          style: "display:inline-flex; align-items:center; gap:10px; padding:16px 36px; font-size:16px; font-weight:700; color:#fff; border-radius:14px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); box-shadow:0 0 60px rgba(30,58,95,0.6); text-decoration:none; transition:all 0.2s;",
-          onmouseover: "this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 80px rgba(30,58,95,0.8)'",
-          onmouseout:  "this.style.transform='scale(1)'; this.style.boxShadow='0 0 60px rgba(30,58,95,0.6)'" do %>
-      <%= vi ? "Bắt đầu miễn phí ngay" : "Start for free today" %>
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-    <% end %>
-    <p style="font-size:12px; color:rgba(255,255,255,0.25); margin-top:16px;">
-      <%= vi ? "Miễn phí · Không cần thẻ tín dụng · Huỷ bất cứ lúc nào" : "Free plan · No credit card · Cancel anytime" %>
-    </p>
+<!-- ═══ FINAL CTA ═══ -->
+<section class="hero-dark" style="padding:96px 0;">
+  <div class="aurora aurora-1" style="opacity:.22;"></div><div class="aurora aurora-3"></div>
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center relative" style="z-index:1;">
+    <h2 style="font-size:clamp(28px,4.5vw,46px); font-weight:900; color:#fff; letter-spacing:-0.02em; line-height:1.15; margin-bottom:16px;"><%= t.("cta.title") %></h2>
+    <p style="font-size:17px; color:rgba(255,255,255,.6); margin-bottom:34px; line-height:1.6;"><%= t.("cta.subtitle") %></p>
+    <div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center;">
+      <%= link_to t.("cta.button"), new_user_registration_path, style: "display:inline-flex; align-items:center; gap:8px; padding:15px 34px; font-size:16px; font-weight:700; color:#fff; border-radius:12px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); box-shadow:0 0 50px rgba(30,58,95,.6); text-decoration:none;", onmouseover: "this.style.transform='scale(1.04)'", onmouseout: "this.style.transform='scale(1)'" %>
+      <%= link_to t.("learner.cta"), new_learner_session_path, style: "display:inline-flex; align-items:center; gap:8px; padding:15px 34px; font-size:16px; font-weight:600; color:rgba(255,255,255,.85); border-radius:12px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); text-decoration:none;" %>
+    </div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════
-     FOOTER
-══════════════════════════════════════════════ -->
-<footer style="padding:28px 24px; border-top:1px solid #f1f5f9; background:#fff; text-align:center;">
-  <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
-    <img src="/vox_logo.svg" alt="VOX" style="height:18px; opacity:0.55;">
-    <span style="font-size:12px; color:#94a3b8;">© <%= Date.today.year %> VOX · <%= vi ? "Nền tảng AI cho học tập & tương tác" : "AI Platform for Learning & Engagement" %></span>
+<!-- ═══ FOOTER ═══ -->
+<footer style="background:#06101f; border-top:1px solid rgba(255,255,255,.07); padding:40px 0;">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px;">
+    <div>
+      <img src="/vox_logo.svg" alt="VOX" style="height:20px; margin-bottom:8px;">
+      <p style="font-size:13px; color:rgba(255,255,255,.4); max-width:360px; line-height:1.6;"><%= t.("footer.tagline") %></p>
+    </div>
+    <p style="font-size:12px; color:rgba(255,255,255,.3);">© <%= Date.current.year %> · <%= t.("footer.rights") %></p>
   </div>
 </footer>
+
+<style>@media(min-width:860px){ .aud-grid{ grid-template-columns:1fr 1fr !important; } }</style>

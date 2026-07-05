@@ -1,0 +1,77 @@
+<% content_for :title, @plan.title %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <%= link_to t('learner_dashboard.library'), learner_library_path, class: "lp-bc-link" %>
+  <span class="lp-bc-sep">›</span>
+  <%= link_to t('learner_plan.title'), learner_study_plans_path, class: "lp-bc-link" %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current"><%= @plan.title.truncate(24) %></span>
+<% end %>
+
+<div style="background:linear-gradient(135deg,#1e3a5f,#16304f);border-radius:18px;padding:18px;margin-bottom:18px;color:#fff;">
+  <h1 style="font-size:18px;font-weight:800;margin:0 0 6px;">🧠 <%= @plan.title %></h1>
+  <% if @plan.focus.present? %>
+    <p style="font-size:13px;opacity:.85;line-height:1.5;margin:0 0 12px;"><%= @plan.focus %></p>
+  <% end %>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="flex:1;background:rgba(255,255,255,.2);border-radius:99px;height:8px;overflow:hidden;">
+      <div id="plan-bar" style="height:100%;border-radius:99px;background:#fbbf24;width:<%= @plan.progress_pct %>%;transition:width .4s;"></div>
+    </div>
+    <span id="plan-pct" style="font-size:13px;font-weight:800;"><%= @plan.progress_pct %>%</span>
+  </div>
+</div>
+
+<div style="display:grid;gap:10px;">
+  <% @plan.items.each_with_index do |item, i| %>
+    <div class="plan-item" data-item="<%= item.id %>"
+         style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;display:flex;gap:12px;align-items:flex-start;<%= item.done ? 'opacity:.6;' : '' %>">
+      <button onclick="toggleItem(<%= item.id %>, this)" class="plan-check"
+              style="flex-shrink:0;width:26px;height:26px;border-radius:8px;border:2px solid <%= item.done ? '#16a34a' : '#cbd5e1' %>;background:<%= item.done ? '#16a34a' : '#fff' %>;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;margin-top:1px;">
+        <%= item.done ? "✓" : "" %>
+      </button>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <span style="font-size:15px;"><%= item.icon %></span>
+          <p class="plan-title" style="font-size:14px;font-weight:700;color:#0f172a;margin:0;<%= item.done ? 'text-decoration:line-through;' : '' %>"><%= item.title %></p>
+        </div>
+        <% if item.description.present? %>
+          <p style="font-size:12px;color:#64748b;line-height:1.5;margin:0 0 8px;"><%= item.description %></p>
+        <% end %>
+        <% if item.action_url.present? %>
+          <a href="<%= item.action_url %>" style="display:inline-block;font-size:12px;font-weight:700;color:#1e3a5f;background:#eef3fa;padding:5px 12px;border-radius:8px;text-decoration:none;"><%= t('learner_plan.start_step') %></a>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<div id="plan-done-banner" style="display:<%= @plan.completed? ? 'block' : 'none' %>;margin-top:16px;text-align:center;background:#dcfce7;border:1px solid #86efac;border-radius:14px;padding:16px;">
+  <div style="font-size:32px;">🎉</div>
+  <p style="font-size:14px;font-weight:800;color:#166534;margin:4px 0 0;"><%= t('learner_plan.done_banner') %></p>
+</div>
+
+<script>
+(function(){
+  var CSRF = document.querySelector('meta[name="csrf-token"]').content;
+  window.toggleItem = function(itemId, btn) {
+    var url = '<%= toggle_item_learner_study_plan_path(@plan, item_id: "__id__") %>'.replace('__id__', itemId);
+    fetch(url, { method:'POST', headers:{'X-CSRF-Token':CSRF,'Content-Type':'application/json'} })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var row = document.querySelector('.plan-item[data-item="'+itemId+'"]');
+        var title = row.querySelector('.plan-title');
+        if (d.done) {
+          btn.style.background='#16a34a'; btn.style.borderColor='#16a34a'; btn.textContent='✓';
+          row.style.opacity='.6'; title.style.textDecoration='line-through';
+        } else {
+          btn.style.background='#fff'; btn.style.borderColor='#cbd5e1'; btn.textContent='';
+          row.style.opacity='1'; title.style.textDecoration='none';
+        }
+        document.getElementById('plan-bar').style.width = d.progress + '%';
+        document.getElementById('plan-pct').textContent = d.progress + '%';
+        document.getElementById('plan-done-banner').style.display = d.plan_completed ? 'block' : 'none';
+        if (window.updateLpCredits) {} // no-op; XP handled server-side
+      });
+  };
+})();
+</script>

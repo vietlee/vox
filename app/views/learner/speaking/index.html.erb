@@ -1,0 +1,343 @@
+<% content_for :title, t('learner_sp.title') %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current"><%= t('learner_sp.title') %></span>
+<% end %>
+<% content_for :lp_style, "padding:12px;background:#f0f4f8;height:calc(100dvh - 56px - 60px);display:flex;flex-direction:column;overflow:hidden;" %>
+
+<style>
+@keyframes sp-fade-in { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes sp-spin { to { transform: rotate(360deg); } }
+@keyframes sp-ring { 0%,100%{transform:scale(1);opacity:.5} 50%{transform:scale(1.25);opacity:0} }
+.sp-msg-row { animation: sp-fade-in .22s ease both; display:flex; gap:10px; max-width:100%; }
+.sp-bubble-ai   { background:#fff; border:1px solid #e8ecf0; border-radius:4px 18px 18px 18px; box-shadow:0 1px 4px rgba(0,0,0,.05); padding:12px 15px; max-width:80%; font-size:14px; color:#1e293b; line-height:1.6; }
+.sp-bubble-user { background:linear-gradient(135deg,#1e3a5f,#2d5282); color:#fff; border-radius:18px 4px 18px 18px; padding:12px 15px; max-width:80%; font-size:14px; line-height:1.6; margin-left:auto; }
+.sp-avatar-ai   { width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#1e3a5f,#2d5282);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px; }
+</style>
+
+<!-- ===== Setup panel ===== -->
+<div id="sp-setup" style="flex:1;overflow-y:auto;padding:8px 4px;">
+  <div style="text-align:center;padding:12px 0 18px;">
+    <div style="width:64px;height:64px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:2px solid #fcd34d;">
+      <span style="font-size:30px;">🎙️</span>
+    </div>
+    <h1 style="font-size:19px;font-weight:800;color:#0f172a;margin:0 0 4px;"><%= t('learner_sp.setup_title') %></h1>
+    <p style="font-size:13px;color:#64748b;margin:0;"><%= t('learner_sp.setup_desc') %></p>
+  </div>
+
+  <div class="lp-card"><div class="lp-card-body" style="display:grid;gap:16px;">
+    <div>
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:8px;"><%= t('learner_sp.lang_label') %></label>
+      <select id="sp-lang" style="width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:14px;font-weight:600;color:#1e293b;outline:none;background:#fff;">
+        <% { "en"=>"🇬🇧 English","ja"=>"🇯🇵 日本語","ko"=>"🇰🇷 한국어","zh"=>"🇨🇳 中文","fr"=>"🇫🇷 Français","vi"=>"🇻🇳 Tiếng Việt" }.each do |c,l| %>
+          <option value="<%= c %>"><%= l %></option>
+        <% end %>
+      </select>
+    </div>
+    <div>
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:8px;"><%= t('learner_sp.scenario_label') %></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="sp-scenarios">
+        <% { "free"=>"💬 #{t('learner_sp.sc_free')}","smalltalk"=>"🗣️ #{t('learner_sp.sc_smalltalk')}","restaurant"=>"🍽️ #{t('learner_sp.sc_restaurant')}","travel"=>"✈️ #{t('learner_sp.sc_travel')}","shopping"=>"🛍️ #{t('learner_sp.sc_shopping')}","interview"=>"💼 #{t('learner_sp.sc_interview')}" }.each_with_index do |(c,l),i| %>
+          <button type="button" onclick="spPickScenario('<%= c %>', this)" data-sc="<%= c %>"
+                  style="padding:11px;border-radius:10px;border:1.5px solid <%= i==0 ? '#1e3a5f' : '#e5e7eb' %>;background:<%= i==0 ? '#f0f6ff' : '#fff' %>;font-size:13px;font-weight:600;color:<%= i==0 ? '#1e3a5f' : '#475569' %>;cursor:pointer;text-align:left;"><%= l %></button>
+        <% end %>
+      </div>
+    </div>
+    <p style="font-size:11px;color:#94a3b8;margin:0;"><%= t('learner_sp.note') %></p>
+    <button onclick="spStart()" class="lp-btn lp-btn-primary lp-btn-full" style="font-size:15px;padding:14px;"><%= t('learner_sp.start') %></button>
+  </div></div>
+
+  <% if @recent.any? %>
+    <p class="lp-section-title" style="margin-top:18px;"><%= t('learner_sp.recent') %></p>
+    <div style="display:grid;gap:8px;">
+      <% @recent.each do |s| %>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <p style="font-size:13px;font-weight:700;color:#0f172a;margin:0;"><%= @langs[s.language] || s.language %> · <%= @scenarios[s.scenario] || s.scenario %></p>
+            <p style="font-size:11px;color:#94a3b8;margin:0;"><%= s.turns %> <%= t('learner_sp.turns') %> · <%= s.created_at.strftime("%d/%m %H:%M") %></p>
+          </div>
+          <% if s.score %>
+            <% col = s.score >= 80 ? '#16a34a' : (s.score >= 50 ? '#f59e0b' : '#ef4444') %>
+            <div style="flex-shrink:0;"><span style="font-size:18px;font-weight:900;color:<%= col %>;"><%= s.score %></span><span style="font-size:12px;font-weight:700;color:#cbd5e1;">/100</span></div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<!-- ===== Conversation panel (chat card, matches AI Tutor) ===== -->
+<div id="sp-convo" style="display:none;flex:1;flex-direction:column;overflow:hidden;background:#fff;border-radius:16px;border:1px solid #e2e8f0;box-shadow:0 2px 16px rgba(0,0,0,.07);">
+
+  <!-- Top bar -->
+  <div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #f0f4f8;background:#fff;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#1e3a5f,#2d5282);display:flex;align-items:center;justify-content:center;">
+        <svg width="16" height="16" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+      </div>
+      <div>
+        <p id="sp-convo-title" style="font-size:13px;font-weight:700;color:#0f172a;margin:0;line-height:1.2;"></p>
+        <p id="sp-turn-count" style="font-size:11px;color:#64748b;margin:0;">0 <%= t('learner_sp.turns') %></p>
+      </div>
+    </div>
+    <button onclick="spFinish()" style="height:34px;padding:0 14px;background:#1e3a5f;color:#fff;border:none;font-size:12px;font-weight:700;border-radius:10px;cursor:pointer;transition:all .15s;"
+            onmouseover="this.style.background='#16304f'" onmouseout="this.style.background='#1e3a5f'"><%= t('learner_sp.finish') %></button>
+  </div>
+
+  <!-- Messages -->
+  <div id="sp-messages" style="flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:16px;"></div>
+
+  <!-- Mic control -->
+  <div style="flex-shrink:0;border-top:1px solid #f0f4f8;background:#fff;padding:14px 16px 16px;text-align:center;">
+    <!-- recorder (orb) -->
+    <div id="sp-recorder">
+      <div style="position:relative;width:64px;height:64px;margin:0 auto 8px;">
+        <div id="sp-orb-ring" style="display:none;position:absolute;inset:0;border-radius:50%;background:#fecaca;"></div>
+        <div id="sp-orb" onclick="spToggleMic()" onmouseover="if(this.style.borderColor!=='rgb(252, 165, 165)'){this.style.background='#e2e8f0';this.style.transform='scale(1.05)'}" onmouseout="if(this.style.borderColor!=='rgb(252, 165, 165)'){this.style.background='#f1f5f9';this.style.transform='scale(1)'}" style="position:relative;width:64px;height:64px;border-radius:50%;background:#f1f5f9;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s;">
+          <svg id="sp-orb-icon" width="26" height="26" fill="none" stroke="#64748b" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+        </div>
+      </div>
+      <p id="sp-mic-status" style="font-size:13px;font-weight:700;color:#64748b;margin:0;"><%= t('learner_sp.mic_idle') %></p>
+      <p id="sp-interim" style="font-size:12px;color:#94a3b8;font-style:italic;margin:4px 0 0;min-height:16px;"></p>
+    </div>
+
+    <!-- draft review (after stop) — send only on tap -->
+    <div id="sp-draft" style="display:none;text-align:left;">
+      <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0 0 6px;"><%= t('learner_sp.review_before_send') %></p>
+      <textarea id="sp-draft-text" rows="2" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:14px;color:#1e293b;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;line-height:1.5;" onfocus="this.style.borderColor='#1e3a5f'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button onclick="spResetDraft()" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">🎤 <%= t('learner_sp.speak_again') %></button>
+        <button id="sp-send-btn" onclick="spSendDraft()" style="flex:2;padding:10px;border-radius:10px;border:none;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;cursor:pointer;"><%= t('learner_sp.send') %></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Score modal ===== -->
+<div id="sp-score-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:20px;padding:28px 26px;max-width:520px;width:100%;text-align:center;position:relative;">
+    <button onclick="document.getElementById('sp-score-modal').style.display='none'" aria-label="Đóng"
+            style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:#f1f5f9;color:#64748b;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;"
+            onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">✕</button>
+    <div style="font-size:40px;margin-bottom:8px;">🎯</div>
+    <p style="font-size:14px;color:#64748b;margin:0 0 4px;"><%= t('learner_sp.score_title') %></p>
+    <div style="line-height:1;margin-bottom:14px;">
+      <span id="sp-score-num" style="font-size:48px;font-weight:900;color:#1e3a5f;">–</span><span style="font-size:22px;font-weight:700;color:#cbd5e1;">/100</span>
+    </div>
+    <p id="sp-score-feedback" style="font-size:13px;color:#334155;line-height:1.7;text-align:left;background:#f8fafc;border-radius:12px;padding:14px 16px;margin-bottom:16px;"></p>
+    <button onclick="location.reload()" class="lp-btn lp-btn-primary lp-btn-full"><%= t('learner_sp.new_session') %></button>
+  </div>
+</div>
+
+<style>@keyframes sp-spin { to { transform: rotate(360deg); } }</style>
+<script>
+(function(){
+  var CSRF = document.querySelector('meta[name="csrf-token"]').content;
+  var REPLY_URL  = '<%= learner_speaking_reply_path %>';
+  var FINISH_URL = '<%= learner_speaking_finish_path %>';
+  var LANG_NAMES = { en:'🇬🇧 English', ja:'🇯🇵 日本語', ko:'🇰🇷 한국어', zh:'🇨🇳 中文', fr:'🇫🇷 Français', vi:'🇻🇳 Tiếng Việt' };
+  var SPEECH_LANG = { en:'en-US', ja:'ja-JP', ko:'ko-KR', zh:'zh-CN', fr:'fr-FR', vi:'vi-VN' };
+
+  var _scenario = 'free', _lang = 'en';
+  var _history = [], _recog = null, _listening = false, _busy = false;
+  var _synth = window.speechSynthesis || null;
+
+  window.spPickScenario = function(sc, btn) {
+    _scenario = sc;
+    document.querySelectorAll('#sp-scenarios button').forEach(function(b){
+      var on = b.dataset.sc === sc;
+      b.style.borderColor = on ? '#1e3a5f' : '#e5e7eb';
+      b.style.background  = on ? '#f0f6ff' : '#fff';
+      b.style.color       = on ? '#1e3a5f' : '#475569';
+    });
+  };
+
+  window.spStart = function() {
+    _lang = document.getElementById('sp-lang').value;
+    document.getElementById('sp-setup').style.display = 'none';
+    document.getElementById('sp-convo').style.display = 'flex';
+    document.getElementById('sp-convo-title').textContent = (LANG_NAMES[_lang]||_lang);
+    // AI greets first
+    aiReply('__START__');
+  };
+
+  var AI_AVATAR = '<svg width="15" height="15" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>';
+
+  function addMsg(role, text) {
+    var wrap = document.getElementById('sp-messages');
+    var isUser = role === 'user';
+    var row = document.createElement('div');
+    row.className = 'sp-msg-row';
+    if (isUser) {
+      var ub = document.createElement('div');
+      ub.className = 'sp-bubble-user';
+      ub.textContent = text;
+      row.appendChild(ub);
+    } else {
+      var av = document.createElement('div');
+      av.className = 'sp-avatar-ai';
+      av.innerHTML = AI_AVATAR;
+      var ab = document.createElement('div');
+      ab.className = 'sp-bubble-ai';
+      ab.textContent = text;
+      row.appendChild(av);
+      row.appendChild(ab);
+    }
+    wrap.appendChild(row);
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function updateTurns() {
+    var n = _history.filter(function(m){ return m.role === 'user'; }).length;
+    document.getElementById('sp-turn-count').textContent = n + ' <%= j t('learner_sp.turns') %>';
+  }
+
+  // High-quality ElevenLabs voices per language (falls back to a multilingual voice)
+  var TTS_URL = '<%= learner_ai_tutor_tts_path %>';
+  var VOICE_BY_LANG = {
+    en: 'EXAVITQu4vr4xnSDxMaL', // Sarah — natural, clear US English
+    vi: 'EXAVITQu4vr4xnSDxMaL',
+    ja: 'EXAVITQu4vr4xnSDxMaL', ko: 'EXAVITQu4vr4xnSDxMaL',
+    zh: 'EXAVITQu4vr4xnSDxMaL', fr: 'EXAVITQu4vr4xnSDxMaL'
+  };
+  var _ttsCache = {}, _spAudio = null;
+
+  function speak(text) {
+    if (!text) return;
+    if (_ttsCache[text]) { playUrl(_ttsCache[text]); return; }
+    var fd = new FormData();
+    fd.append('text', text);
+    fd.append('voice_id', VOICE_BY_LANG[_lang] || 'EXAVITQu4vr4xnSDxMaL');
+    fd.append('model', 'eleven_multilingual_v2');   // best quality for language practice
+    fd.append('stability', '0.4');
+    fd.append('similarity', '0.85');
+    fd.append('authenticity_token', CSRF);
+    fetch(TTS_URL, { method:'POST', body:fd })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.error || !d.audio_base64) return;
+        var bin = atob(d.audio_base64), arr = new Uint8Array(bin.length);
+        for (var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+        var url = URL.createObjectURL(new Blob([arr],{type:'audio/mpeg'}));
+        _ttsCache[text] = url;
+        if (window.updateLpCredits) updateLpCredits(d.credits_remaining);
+        playUrl(url);
+      }).catch(function(){});
+  }
+  function playUrl(url){ if (_spAudio){ _spAudio.pause(); } _spAudio = new Audio(url); var p=_spAudio.play(); if(p&&p.catch)p.catch(function(){}); }
+
+  function aiReply(userText) {
+    if (_busy) return;
+    _busy = true;
+    setMicStatus('⏳ <%= j t('learner_sp.ai_replying') %>');
+    fetch(REPLY_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'X-CSRF-Token':CSRF },
+      body: JSON.stringify({
+        language: _lang,
+        scenario: _scenario,
+        message:  userText === '__START__' ? '<%= j t('learner_sp.ai_start_prompt') %>' : userText,
+        history:  _history
+      })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        _busy = false;
+        setMicStatus('<%= j t('learner_sp.mic_idle') %>');
+        if (d.error) { addMsg('ai', '⚠️ ' + d.error); return; }
+        if (userText !== '__START__') _history.push({ role:'user', content:userText });
+        _history.push({ role:'assistant', content:d.reply });
+        addMsg('ai', d.reply);
+        updateTurns();
+        speak(d.reply);
+        if (window.updateLpCredits) updateLpCredits(d.credits_remaining);
+      })
+      .catch(function(){ _busy = false; setMicStatus('<%= j t('learner_sp.mic_idle') %>'); });
+  }
+
+  // ── Web Speech recognition (manual send) ──
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var _finalText = '';
+  window.spToggleMic = function() { _listening ? stopRec() : startRec(); };
+
+  function startRec() {
+    if (!SR) { alert('<%= j t('learner_sp.err_mic') %>'); return; }
+    if (_busy) return;
+    _finalText = '';
+    _recog = new SR();
+    _recog.lang = SPEECH_LANG[_lang] || 'en-US';
+    _recog.interimResults = true;
+    _recog.continuous = true;   // keep listening across pauses; stop only when user taps
+    _recog.onstart = function(){ _listening = true; setMicUI(true); };
+    _recog.onresult = function(e){
+      var interim = '';
+      for (var i=e.resultIndex;i<e.results.length;i++){
+        if (e.results[i].isFinal) _finalText += e.results[i][0].transcript + ' ';
+        else interim += e.results[i][0].transcript;
+      }
+      document.getElementById('sp-interim').textContent = (_finalText + interim).trim();
+    };
+    _recog.onerror = function(e){ if (e.error==='not-allowed') alert('<%= j t('learner_sp.err_mic_perm') %>'); stopRec(); };
+    _recog.onend = function(){
+      _listening = false; setMicUI(false);
+      showDraft(_finalText.trim());   // review — do NOT auto-send
+    };
+    try { _recog.start(); } catch(ex){}
+  }
+  function stopRec(){ _listening=false; if(_recog){ try{ _recog.stop(); }catch(ex){} } }
+
+  function showDraft(text) {
+    document.getElementById('sp-interim').textContent = '';
+    if (!text) return;   // nothing captured, stay on recorder
+    document.getElementById('sp-recorder').style.display = 'none';
+    var d = document.getElementById('sp-draft');
+    d.style.display = 'block';
+    document.getElementById('sp-draft-text').value = text;
+  }
+  window.spResetDraft = function() {
+    document.getElementById('sp-draft').style.display = 'none';
+    document.getElementById('sp-recorder').style.display = 'block';
+    setMicStatus('<%= j t('learner_sp.mic_idle') %>');
+  };
+  window.spSendDraft = function() {
+    var t = document.getElementById('sp-draft-text').value.trim();
+    if (!t) return;
+    document.getElementById('sp-draft').style.display = 'none';
+    document.getElementById('sp-recorder').style.display = 'block';
+    setMicStatus('<%= j t('learner_sp.mic_idle') %>');
+    addMsg('user', t);
+    aiReply(t);
+  };
+
+  function setMicUI(on){
+    var orb=document.getElementById('sp-orb'), icon=document.getElementById('sp-orb-icon');
+    var ring=document.getElementById('sp-orb-ring');
+    orb.style.background = on?'#fee2e2':'#f1f5f9';
+    orb.style.borderColor = on?'#fca5a5':'#e2e8f0';
+    icon.setAttribute('stroke', on?'#ef4444':'#64748b');
+    if (ring) { ring.style.display = on ? 'block' : 'none'; ring.style.animation = on ? 'sp-ring 1.4s ease-out infinite' : 'none'; }
+    setMicStatus(on ? '<%= j t('learner_sp.mic_listening') %>' : '<%= j t('learner_sp.mic_idle') %>');
+  }
+  function setMicStatus(t){ document.getElementById('sp-mic-status').textContent = t; }
+
+  window.spFinish = function() {
+    if (_spAudio) { _spAudio.pause(); }
+    if (_listening) stopRec();
+    document.getElementById('sp-score-modal').style.display = 'flex';
+    document.getElementById('sp-score-num').textContent = '…';
+    document.getElementById('sp-score-feedback').textContent = '<%= j t('learner_sp.scoring') %>';
+    fetch(FINISH_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'X-CSRF-Token':CSRF },
+      body: JSON.stringify({ language:_lang, scenario:_scenario, history:_history })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.error) { document.getElementById('sp-score-num').textContent='–'; document.getElementById('sp-score-feedback').textContent=d.error; return; }
+        document.getElementById('sp-score-num').textContent = (d.score != null ? d.score : '–');
+        document.getElementById('sp-score-feedback').textContent = d.feedback || '';
+      })
+      .catch(function(){ document.getElementById('sp-score-feedback').textContent='<%= j t('learner_sp.score_err') %>'; });
+  };
+})();
+</script>

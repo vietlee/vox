@@ -1,8 +1,19 @@
 <% content_for :title, "Làm bài: #{@quiz_set.title}" %>
 <% content_for :head do %>
+<link href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" rel="stylesheet">
+<% end %>
 <style>
-  .lp-main { padding-bottom: 80px !important; }
-  .qz-header { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: white; padding: 14px 16px; margin: -20px -16px 20px; border-radius: 0 0 20px 20px; }
+  .lp-page { padding-top: calc(56px + 60px) !important; padding-bottom: calc(60px + 72px + var(--safe-bottom)) !important; }
+
+  .qz-header {
+    position: fixed; top: 56px; left: 0; right: 0; z-index: 40;
+    background: linear-gradient(135deg,#1e3a5f,#16304f); color: white;
+    padding: 12px 16px; border-radius: 0 0 16px 16px;
+  }
+  @media (min-width: 1024px) {
+    .qz-header { left: 20.835%; right: 20.835%; border-radius: 0 0 16px 16px; }
+    .qz-submit-bar { left: 20.835%; right: 20.835%; background: transparent; border-top: none; }
+  }
   .qz-progress { background: rgba(255,255,255,0.25); border-radius: 99px; height: 6px; margin-top: 10px; }
   .qz-progress-fill { height: 100%; border-radius: 99px; background: white; transition: width 0.4s; }
   .qz-question { margin-bottom: 28px; }
@@ -10,20 +21,53 @@
   .qz-q-text { font-size: 17px; font-weight: 700; line-height: 1.5; margin-bottom: 14px; }
   .qz-option { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 2px solid #e5e7eb; border-radius: 14px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; background: white; width: 100%; text-align: left; }
   .qz-option:hover { border-color: #a5b4fc; background: #f5f3ff; }
-  .qz-option.selected { border-color: #6366f1; background: #eef2ff; }
-  .qz-option.selected .qz-opt-circle { background: #6366f1; border-color: #6366f1; }
+  .qz-option.selected { border-color: #1e3a5f; background: #eef3fa; }
+  .qz-option.selected .qz-opt-circle { background: #1e3a5f; border-color: #1e3a5f; }
   .qz-option.selected .qz-opt-circle::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
   .qz-opt-circle { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #d1d5db; position: relative; flex-shrink: 0; transition: all 0.15s; }
   .qz-opt-text { font-size: 15px; font-weight: 500; flex: 1; }
-  .qz-submit-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; padding: 12px 16px calc(12px + var(--safe-bottom)); }
-  .qz-submit-btn { width: 100%; padding: 14px; background: linear-gradient(135deg,#6366f1,#7c3aed); color: white; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .qz-submit-bar {
+    position: fixed; bottom: calc(68px + var(--safe-bottom)); left: 0; right: 0; z-index: 40;
+    display: flex; justify-content: center; pointer-events: none;
+  }
+  .qz-submit-btn {
+    pointer-events: all;
+    padding: 14px 40px; background: linear-gradient(135deg,#1e3a5f,#16304f);
+    color: white; border: none; border-radius: 14px; font-size: 15px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 4px 20px rgba(30,58,95,0.4);
+  }
   .qz-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-</style>
-<% end %>
 
-<div class="qz-header">
+  /* Short answer textarea */
+  .qz-short-textarea {
+    width: 100%; padding: 13px 16px; border: 2px solid #e5e7eb; border-radius: 14px;
+    font-size: 15px; font-family: inherit; resize: vertical; min-height: 80px;
+    outline: none; transition: border-color 0.15s; box-sizing: border-box;
+  }
+  .qz-short-textarea:focus { border-color: #1e3a5f; }
+
+  /* Quill essay editor */
+  .qz-essay-editor .ql-toolbar {
+    border-radius: 14px 14px 0 0; border-color: #e5e7eb;
+    background: white;
+  }
+  .qz-essay-editor .ql-container {
+    border-radius: 0 0 14px 14px; border-color: #e5e7eb;
+    min-height: 140px; font-size: 15px; font-family: inherit;
+    background: white;
+  }
+  .qz-essay-editor .ql-container.ql-snow { border-color: #e5e7eb; }
+  .qz-essay-editor:focus-within .ql-toolbar,
+  .qz-essay-editor:focus-within .ql-container { border-color: #1e3a5f; }
+  .qz-essay-label {
+    font-size: 12px; color: #9ca3af; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+</style>
+
+<div class="qz-header" id="qz-header-bar">
   <div style="display:flex;justify-content:space-between;align-items:center;">
-    <span style="font-size:13px;opacity:0.8;"><%= @quiz_set.title.truncate(30) %></span>
+    <span style="font-size:13px;opacity:0.8;"><%= @quiz_set.title.truncate(40) %></span>
     <span style="font-size:13px;font-weight:700;" id="qz-counter">0 / <%= @questions.count %></span>
   </div>
   <div class="qz-progress"><div class="qz-progress-fill" id="qz-bar" style="width:0%;"></div></div>
@@ -31,17 +75,41 @@
 
 <%= form_with url: submit_learner_quiz_assignment_path(@assignment.token), method: :post, id: "qz-form" do |f| %>
   <% @questions.each_with_index do |q, i| %>
+    <% saved_answer = @attempt&.quiz_attempt_answers&.find { |a| a.quiz_question_id == q.id } %>
     <div class="qz-question">
       <p class="qz-q-num">Câu <%= i + 1 %> / <%= @questions.count %></p>
       <p class="qz-q-text"><%= q.question_text %></p>
-      <% q.quiz_options.each do |opt| %>
-        <label class="qz-option" data-qid="<%= q.id %>">
-          <input type="radio" name="answers[<%= q.id %>]" value="<%= opt.id %>"
-                 style="display:none;" onchange="selectOpt(this)"
-                 <%= @attempt&.quiz_attempt_answers&.find { |a| a.quiz_question_id == q.id }&.selected_option_id == opt.id ? 'checked' : '' %>>
-          <div class="qz-opt-circle"></div>
-          <span class="qz-opt-text"><%= opt.option_text %></span>
-        </label>
+
+      <% if q.short_answer? %>
+        <textarea class="qz-short-textarea"
+                  name="answers[<%= q.id %>]"
+                  data-qid="<%= q.id %>"
+                  data-type="short_answer"
+                  placeholder="Nhập câu trả lời của bạn…"
+                  oninput="onTextAnswer(this)"><%= saved_answer&.text_answer %></textarea>
+
+      <% elsif q.essay? %>
+        <div class="qz-essay-label">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          Câu tự luận — trình bày đầy đủ ý kiến của bạn
+        </div>
+        <div class="qz-essay-editor" id="essay-wrap-<%= q.id %>">
+          <div id="essay-editor-<%= q.id %>"></div>
+        </div>
+        <input type="hidden" name="answers[<%= q.id %>]" id="essay-hidden-<%= q.id %>"
+               data-qid="<%= q.id %>" data-type="essay"
+               value="<%= saved_answer&.text_answer %>">
+
+      <% else %>
+        <% q.quiz_options.each do |opt| %>
+          <label class="qz-option" data-qid="<%= q.id %>">
+            <input type="radio" name="answers[<%= q.id %>]" value="<%= opt.id %>"
+                   style="display:none;" onchange="selectOpt(this)"
+                   <%= saved_answer&.quiz_option_id == opt.id ? 'checked' : '' %>>
+            <div class="qz-opt-circle"></div>
+            <span class="qz-opt-text"><%= opt.option_text %></span>
+          </label>
+        <% end %>
       <% end %>
     </div>
   <% end %>
@@ -53,12 +121,39 @@
   </button>
 </div>
 
+<!-- Submit confirm popup -->
+<div id="qz-confirm" onclick="if(event.target===this)closeConfirm()"
+     style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.5);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:340px;margin:16px;box-shadow:0 8px 40px rgba(0,0,0,0.18);text-align:center;">
+    <div style="width:52px;height:52px;border-radius:50%;background:#eef3fa;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+      <svg width="26" height="26" fill="none" stroke="#1e3a5f" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    </div>
+    <p id="qz-confirm-title" style="font-size:17px;font-weight:800;color:#1e293b;margin:0 0 8px;">Nộp bài?</p>
+    <p id="qz-confirm-desc" style="font-size:13px;color:#94a3b8;margin:0 0 22px;line-height:1.5;"></p>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeConfirm()"
+              style="flex:1;padding:12px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:14px;font-weight:600;color:#475569;background:#fff;cursor:pointer;font-family:inherit;">
+        Làm tiếp
+      </button>
+      <button onclick="doSubmit()"
+              style="flex:1;padding:12px;border:none;border-radius:12px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#1e3a5f,#16304f);cursor:pointer;font-family:inherit;">
+        Nộp bài
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
 <script>
 var _totalQ = <%= @questions.count %>;
 var _answered = {};
+var _saveUrl = '<%= save_answer_learner_quiz_assignment_path(@assignment.token) %>';
+var _csrf    = '<%= form_authenticity_token %>';
 
 <% @attempt&.quiz_attempt_answers&.each do |ans| %>
-  _answered[<%= ans.quiz_question_id %>] = true;
+  <% if ans.quiz_option_id.present? || ans.text_answer.present? %>
+    _answered[<%= ans.quiz_question_id %>] = true;
+  <% end %>
 <% end %>
 
 function updateProgress() {
@@ -68,6 +163,14 @@ function updateProgress() {
   document.getElementById('qz-answered').textContent = n;
 }
 
+function saveAnswerRemote(qid, optionId, textAnswer) {
+  fetch(_saveUrl, {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': _csrf, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question_id: qid, option_id: optionId, text_answer: textAnswer })
+  });
+}
+
 function selectOpt(radio) {
   var label = radio.closest('.qz-option');
   var qid   = label.dataset.qid;
@@ -75,24 +178,100 @@ function selectOpt(radio) {
   label.classList.add('selected');
   _answered[qid] = true;
   updateProgress();
-  // auto-save
-  fetch('<%= save_answer_learner_quiz_assignment_path(@assignment.token) %>', {
-    method: 'POST', headers: { 'X-CSRF-Token': '<%= form_authenticity_token %>', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question_id: qid, option_id: radio.value })
-  });
+  saveAnswerRemote(qid, radio.value, null);
+}
+
+var _textTimers = {};
+function onTextAnswer(el) {
+  var qid = el.dataset.qid;
+  if (el.value.trim()) {
+    _answered[qid] = true;
+  } else {
+    delete _answered[qid];
+  }
+  updateProgress();
+  clearTimeout(_textTimers[qid]);
+  _textTimers[qid] = setTimeout(function() {
+    saveAnswerRemote(qid, null, el.value);
+  }, 800);
 }
 
 function confirmSubmit() {
   var n = Object.keys(_answered).length;
-  var msg = n < _totalQ
-    ? 'Bạn mới trả lời ' + n + '/' + _totalQ + ' câu. Vẫn muốn nộp bài?'
-    : 'Nộp bài ngay?';
-  if (confirm(msg)) document.getElementById('qz-form').submit();
+  var popup = document.getElementById('qz-confirm');
+  if (n < _totalQ) {
+    document.getElementById('qz-confirm-title').textContent = 'Chưa làm hết bài?';
+    document.getElementById('qz-confirm-desc').textContent = 'Bạn mới trả lời ' + n + '/' + _totalQ + ' câu. Các câu chưa trả lời sẽ bị tính sai.';
+  } else {
+    document.getElementById('qz-confirm-title').textContent = 'Nộp bài ngay?';
+    document.getElementById('qz-confirm-desc').textContent = 'Bạn đã trả lời đủ ' + _totalQ + '/' + _totalQ + ' câu. Sau khi nộp sẽ không thể chỉnh sửa.';
+  }
+  popup.style.display = 'flex';
 }
 
-// Init selected options from saved answers
+function closeConfirm() {
+  document.getElementById('qz-confirm').style.display = 'none';
+}
+
+function doSubmit() {
+  document.getElementById('qz-form').submit();
+}
+
+// Restore selected state for radio questions
 document.querySelectorAll('input[type=radio]:checked').forEach(function(r) {
   r.closest('.qz-option').classList.add('selected');
 });
+
+// Initialize Quill for essay questions — wait until the Quill CDN script has loaded
+// (on Turbo navigations this script may still be loading when this runs)
+function initEssayEditors() {
+<% @questions.select(&:essay?).each do |q| %>
+(function() {
+  var qid = '<%= q.id %>';
+  var editorEl = document.getElementById('essay-editor-' + qid);
+  if (!editorEl || editorEl.classList.contains('ql-container') || editorEl.querySelector('.ql-editor')) return; // already initialized
+  var hiddenInput = document.getElementById('essay-hidden-' + qid);
+  var quill = new Quill('#essay-editor-' + qid, {
+    theme: 'snow',
+    placeholder: 'Trình bày câu trả lời của bạn…',
+    modules: {
+      toolbar: [
+        ['bold', 'italic', 'underline'],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        ['clean']
+      ]
+    }
+  });
+  // Restore saved content
+  if (hiddenInput.value) {
+    quill.root.innerHTML = hiddenInput.value;
+    _answered[qid] = true;
+  }
+  var saveTimer;
+  quill.on('text-change', function() {
+    var html = quill.getText().trim() ? quill.root.innerHTML : '';
+    hiddenInput.value = html;
+    if (html) {
+      _answered[qid] = true;
+    } else {
+      delete _answered[qid];
+    }
+    updateProgress();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function() {
+      saveAnswerRemote(qid, null, html);
+    }, 800);
+  });
+})();
+<% end %>
+}
+
+(function waitForQuill(tries) {
+  tries = tries || 0;
+  if (window.Quill) { initEssayEditors(); return; }
+  if (tries > 100) return;            // ~5s max
+  setTimeout(function(){ waitForQuill(tries + 1); }, 50);
+})();
+
 updateProgress();
 </script>

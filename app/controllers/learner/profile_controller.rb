@@ -12,6 +12,8 @@ class Learner::ProfileController < Learner::BaseController
   private
 
   def profile_params
-    params.require(:learner).permit(:name)
+    params.require(:learner).permit(:name, :daily_goal).tap do |p|
+      p[:daily_goal] = p[:daily_goal].to_i.clamp(1, 20) if p[:daily_goal].present?
+    end
   end
 end

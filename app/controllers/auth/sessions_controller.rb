@@ -1,13 +1,33 @@
 class Auth::SessionsController < Devise::SessionsController
+  # Preserve the learner warden session across admin sign-in/out.
   def create
-    super do |user|
-      if user.must_change_password?
-        session[:must_change_password] = true
+    with_preserved_scope(:learner) do
+      super do |user|
+        session[:must_change_password] = true if user.must_change_password?
       end
     end
   end
 
+  def destroy
+    with_preserved_scope(:learner) { super }
+  end
+
   private
+
+  def with_preserved_scope(scope)
+    warden_key    = "warden.user.#{scope}.key"
+    return_to_key = "#{scope}_return_to"
+
+    saved_warden    = session[warden_key]
+    saved_return_to = session[return_to_key]
+
+    yield
+
+    session[warden_key] = saved_warden if saved_warden.present?
+    if saved_return_to.present? && session[return_to_key].blank?
+      session[return_to_key] = saved_return_to
+    end
+  end
 
   def after_sign_in_path_for(resource)
     # Auto-use template if user recently clicked "Dùng mẫu này" before logging in

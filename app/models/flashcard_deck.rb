@@ -1,7 +1,9 @@
 class FlashcardDeck < ApplicationRecord
-  belongs_to :workspace
-  belongs_to :created_by, class_name: "User"
-  has_many :flashcards, -> { order(:position) }, dependent: :destroy
+  belongs_to :workspace,   optional: true
+  belongs_to :created_by,  class_name: "User", optional: true
+  belongs_to :learner,     optional: true
+  has_many :flashcards,            -> { order(:position) }, dependent: :destroy
+  has_many :flashcard_assignments, dependent: :destroy
 
   validates :title, presence: true, length: { maximum: 150 }
 

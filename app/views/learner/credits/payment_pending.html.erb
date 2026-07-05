@@ -1,0 +1,39 @@
+<% content_for :title, "Đang xử lý thanh toán" %>
+
+<div style="text-align:center;padding:48px 24px;">
+  <div style="width:72px;height:72px;background:#fef9c3;border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:36px;">⏳</div>
+  <h2 style="font-size:20px;font-weight:800;color:#1e3a5f;margin-bottom:8px;">Đang xử lý thanh toán</h2>
+  <p style="font-size:14px;color:#64748b;margin-bottom:24px;">Vui lòng chờ trong giây lát, chúng tôi đang xác nhận thanh toán của bạn.</p>
+
+  <div id="pending-spinner" style="margin:0 auto 20px;width:36px;height:36px;">
+    <svg viewBox="0 0 36 36" fill="none" style="animation:lp-spin 1s linear infinite;">
+      <circle cx="18" cy="18" r="14" stroke="#e2e8f0" stroke-width="3"/>
+      <path fill="#1e3a5f" d="M4 18a14 14 0 0114-14V0C7.163 0 0 8.059 0 18h4z"/>
+    </svg>
+  </div>
+
+  <p style="font-size:12px;color:#94a3b8;">Tự động chuyển hướng sau khi xác nhận...</p>
+</div>
+
+<style>@keyframes lp-spin { to{transform:rotate(360deg)} }</style>
+<script>
+(function(){
+  var paymentId = '<%= params[:payment_id] %>';
+  var statusUrl = '<%= learner_credits_payment_status_path(id: "__id__") %>'.replace('__id__', paymentId);
+  var attempts  = 0;
+  function poll() {
+    if (attempts++ > 20) return;
+    fetch(statusUrl).then(r => r.json()).then(function(d) {
+      if (d.status === 'completed') {
+        window.location = '<%= learner_credits_path %>';
+      } else if (d.status === 'failed') {
+        document.querySelector('h2').textContent = 'Thanh toán thất bại';
+        document.getElementById('pending-spinner').style.display = 'none';
+      } else {
+        setTimeout(poll, 3000);
+      }
+    });
+  }
+  setTimeout(poll, 3000);
+})();
+</script>

@@ -1,6 +1,12 @@
 <% content_for :title, @path.title %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <%= link_to t('learner_dashboard.library'), learner_library_path, class: "lp-bc-link" %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current"><%= @path.title %></span>
+<% end %>
 
-<div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:20px;padding:20px;margin-bottom:20px;color:white;">
+<div style="background:linear-gradient(135deg,#1e3a5f,#16304f);border-radius:20px;padding:20px;margin-bottom:20px;color:white;">
   <p style="font-size:12px;opacity:0.7;margin-bottom:4px;">Lộ trình học</p>
   <h1 style="font-size:20px;font-weight:800;"><%= @path.title %></h1>
   <% if @path.description.present? %>
@@ -45,7 +51,7 @@
           <span class="lp-badge lp-badge-done" style="flex-shrink:0;">Xong</span>
         <% else %>
           <button onclick="completeItem(<%= item.id %>, this)"
-                  style="background:linear-gradient(135deg,#6366f1,#7c3aed);color:white;border:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">
+                  style="background:linear-gradient(135deg,#1e3a5f,#16304f);color:white;border:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">
             Hoàn thành
           </button>
         <% end %>
@@ -53,7 +59,7 @@
         <%# Find learner's quiz assignment for this quiz %>
         <% qa = current_learner.quiz_assignments.find_by(quiz_set_id: item.quiz_set_id) %>
         <% if qa %>
-          <%= link_to qa.completed? ? result_learner_quiz_assignment_path(qa.token) : show_learner_quiz_assignment_path(qa.token),
+          <%= link_to qa.completed? ? result_learner_quiz_assignment_path(qa.token) : learner_quiz_assignment_path(qa.token),
                 class: "lp-badge", style: "flex-shrink:0;background:#{done ? '#d1fae5' : '#dbeafe'};color:#{done ? '#065f46' : '#1e40af'};text-decoration:none;" do %>
             <%= done ? "✓ Xong" : "Làm bài" %>
           <% end %>

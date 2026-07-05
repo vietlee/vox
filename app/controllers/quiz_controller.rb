@@ -5,21 +5,20 @@ class QuizController < ApplicationController
   before_action :set_quiz_set, except: [:public_result]
 
   def show
-    if params[:attempt_id]
-      @attempt = @quiz_set.quiz_attempts.find_by(id: params[:attempt_id])
-      return redirect_to quiz_path(@quiz_set.share_token) if @attempt.nil? || !@attempt.submitted?
-      if params[:thankyou] == "1"
-        @already_done = params[:already_done] == "1"
-        return render :thankyou
+    # If a learner is logged in, route them through the learner assignment flow
+    learner = warden.authenticate(scope: :learner)
+    if learner
+      assignment = QuizAssignment.find_or_initialize_by(quiz_set: @quiz_set, learner: learner)
+      unless assignment.persisted?
+        assignment.status = :pending
+        assignment.save!
       end
-      return render :result
+      return redirect_to learner_quiz_assignment_path(assignment.token)
     end
-    # Landing page: check if already submitted + retake blocked
-    if params[:email].present?
-      submitted = @quiz_set.quiz_attempts.where(participant_email: params[:email].downcase).where.not(submitted_at: nil).first
-      @already_submitted = submitted && !@quiz_set.allow_retake?
-      @submitted_attempt = submitted if @already_submitted
-    end
+
+    # Not logged in as learner → require login (Devise stores return path and redirects back after)
+    store_location_for(:learner, request.fullpath)
+    redirect_to new_learner_session_path, notice: "Vui lòng đăng nhập để làm bài."
   end
 
   def start
@@ -161,7 +160,9 @@ class QuizController < ApplicationController
 
   def set_quiz_set
     @quiz_set = QuizSet.find_by!(share_token: params[:token])
-    unless @quiz_set.published?
+    # Skip the published check for `show` — learners are always redirected to login,
+    # and the learner controller's ensure_published handles the unpublished case after auth.
+    unless action_name == "show" || @quiz_set.published?
       render "not_published", status: :not_found
     end
   end

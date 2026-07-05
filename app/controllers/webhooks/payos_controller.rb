@@ -9,29 +9,36 @@ class Webhooks::PayosController < ActionController::Base
       render json: { error: "Invalid signature" }, status: :unauthorized and return
     end
 
-    order_code = payload.dig("data", "orderCode").to_i
-    payment    = Payment.find_by(payos_order_code: order_code)
+    order_code      = payload.dig("data", "orderCode").to_i
+    payment         = Payment.find_by(payos_order_code: order_code)
+    learner_payment = LearnerPayment.find_by(payos_order_code: order_code)
 
-    if payment.nil?
+    if payment.nil? && learner_payment.nil?
       render json: { success: true } and return
     end
 
     case payload["code"]
     when "00"
-      ActiveRecord::Base.transaction do
-        payment.update_columns(
-          status:                 Payment.statuses[:completed],
-          gateway_transaction_id: payload.dig("data", "reference").to_s,
-          gateway_response:       payload,
-          paid_at:                Time.current
-        )
-        activate_addon!(payment) if payment.addon_config_id?
+      if payment
+        ActiveRecord::Base.transaction do
+          payment.update_columns(
+            status:                 Payment.statuses[:completed],
+            gateway_transaction_id: payload.dig("data", "reference").to_s,
+            gateway_response:       payload,
+            paid_at:                Time.current
+          )
+          activate_addon!(payment) if payment.addon_config_id?
+        end
+      end
+      if learner_payment && !learner_payment.completed?
+        ActiveRecord::Base.transaction do
+          learner_payment.update_column(:status, LearnerPayment.statuses[:completed])
+          learner_payment.learner.add_credits!(learner_payment.credits_amount)
+        end
       end
     when "01", "02"
-      payment.update_columns(
-        status:           Payment.statuses[:failed],
-        gateway_response: payload
-      )
+      payment&.update_columns(status: Payment.statuses[:failed], gateway_response: payload)
+      learner_payment&.update_column(:status, LearnerPayment.statuses[:failed])
     end
 
     render json: { success: true }

@@ -83,6 +83,7 @@ Rails.application.routes.draw do
       end
     end
     resources :subscriptions, only: [:index, :show, :edit, :update]
+    resources :learner_credits, only: [:edit, :update]
     resources :plan_configs, only: [:index, :edit, :update]
     resources :addon_configs
     resources :broadcasts, only: [:index, :new, :create]
@@ -260,8 +261,10 @@ Rails.application.routes.draw do
         patch :update_ai_evaluation
         post  :send_ai_evaluation_email
         post  :ai_grade_essay
-        post  :assign_learner
-        get   :learner_assignments
+        post  :distribute_points
+        post   :assign_learner
+        get    :learner_assignments
+        delete :remove_assignment
       end
       resources :quiz_questions, only: [:create, :update, :destroy] do
         collection { post :reorder }
@@ -293,9 +296,10 @@ Rails.application.routes.draw do
         post  :ai_generate
         get   :ai_status
         post  :assign
-        post  :assign_learner
-        get   :learner_assignments
-        get   :progress
+        post   :assign_learner
+        get    :learner_assignments
+        delete :remove_assignment
+        get    :progress
         post  :ai_evaluate_progress
       end
       resources :learning_path_items, only: [:create, :update, :destroy] do
@@ -308,7 +312,7 @@ Rails.application.routes.draw do
       end
     end
     # Learner Management (folders)
-    resources :learner_folders do
+    resources :learner_folders, path: "learners" do
       member do
         post   :add_learner
         delete :remove_learner
@@ -316,6 +320,9 @@ Rails.application.routes.draw do
         post   :import
       end
     end
+    get  'workspace_learners', to: 'learner_folders#workspace_learners_json', as: :workspace_learners
+    get  'learners/:learner_id/detail', to: 'learner_folders#learner_detail', as: :workspace_learner_detail
+    post 'learners/:learner_id/ai_analyze', to: 'learner_folders#ai_analyze_learner', as: :ai_analyze_learner
 
     resources :learning_path_assignments, only: [:show, :destroy] do
       member do
@@ -334,8 +341,9 @@ Rails.application.routes.draw do
         get  :study
         post :review
         get  :analytics
-        post :assign_learner
-        get  :learner_assignments
+        post   :assign_learner
+        get    :learner_assignments
+        delete :remove_assignment
       end
       resources :flashcards, only: [:update]
     end
@@ -366,7 +374,23 @@ Rails.application.routes.draw do
 
   namespace :learner do
     root to: "dashboard#index"
-    get "dashboard", to: "dashboard#index", as: :dashboard
+    get  "dashboard",              to: "dashboard#index",              as: :dashboard
+    get  "library",                to: "dashboard#library",            as: :library
+    get  "suggestion/fetch",        to: "dashboard#fetch_suggestion",  as: :fetch_suggestion
+    post "suggestion/:id/dismiss", to: "dashboard#dismiss_suggestion", as: :dismiss_suggestion
+
+    # Progress / stats
+    get  "progress", to: "progress#index", as: :progress
+
+    # AI personalized study plan
+    resources :study_plans, only: [:index, :show, :create], path: "study-plans" do
+      member { post "items/:item_id/toggle", to: "study_plans#toggle_item", as: :toggle_item }
+    end
+
+    # AI speaking practice
+    get  "speaking",        to: "speaking#index",  as: :speaking
+    post "speaking/reply",  to: "speaking#reply",  as: :speaking_reply
+    post "speaking/finish", to: "speaking#finish", as: :speaking_finish
 
     # Quiz assignments
     resources :quiz_assignments, only: [:show], param: :token do
@@ -387,6 +411,19 @@ Rails.application.routes.draw do
       end
     end
 
+    # Learner self-generate flashcard decks
+    get  "my_flashcards",          to: "my_flashcards#index",    as: :my_flashcards
+    get  "my_flashcards/new",      to: "my_flashcards#new",      as: :new_my_flashcard
+    post "my_flashcards/generate", to: "my_flashcards#generate", as: :generate_my_flashcard
+    get  "my_flashcards/:id",             to: "my_flashcards#show",            as: :my_flashcard
+
+    # Learner self-generated quizzes
+    get  "my_quizzes",          to: "my_quizzes#index",    as: :my_quizzes
+    get  "my_quizzes/new",      to: "my_quizzes#new",      as: :new_my_quiz
+    post "my_quizzes/generate", to: "my_quizzes#generate", as: :generate_my_quiz
+    post "my_flashcards/:id/images",      to: "my_flashcards#generate_images", as: :generate_images_my_flashcard
+    get  "my_flashcards/:id/image_status",to: "my_flashcards#image_status",    as: :image_status_my_flashcard
+
     # Learning path assignments
     resources :learning_path_assignments, only: [:show], param: :token do
       member do
@@ -395,17 +432,29 @@ Rails.application.routes.draw do
     end
 
     # AI Tutor
-    get  "tutor",       to: "ai_tutor#index",  as: :ai_tutor
-    post "tutor/chat",  to: "ai_tutor#chat",   as: :ai_tutor_chat
-    post "tutor/voice", to: "ai_tutor#voice",  as: :ai_tutor_voice
+    get  "tutor",             to: "ai_tutor#index",         as: :ai_tutor
+    post "tutor/chat",        to: "ai_tutor#chat",          as: :ai_tutor_chat
+    post "tutor/voice",       to: "ai_tutor#voice",         as: :ai_tutor_voice
+    post "tutor/tts",         to: "ai_tutor#tts_generate",  as: :ai_tutor_tts
+    get  "tutor/tts/voices",  to: "ai_tutor#tts_voices",    as: :ai_tutor_tts_voices
+    post "tutor/stt",         to: "ai_tutor#stt_chunk",     as: :ai_tutor_stt
+
+    # Standalone tool pages
+    get  "tools/tts",        to: "tools#tts",          as: :tools_tts
+    get  "tools/stt",        to: "tools#stt",          as: :tools_stt
+    get  "tools/summarize",  to: "tools#summarize",    as: :tools_summarize
+    post "tools/summarize",  to: "tools#do_summarize"
+    post "tools/translate",  to: "tools#translate",    as: :tools_translate
 
     # Credits
-    get  "credits",          to: "credits#index",   as: :credits
-    post "credits/checkout", to: "credits#checkout", as: :credits_checkout
-    get  "credits/return",   to: "credits#return",   as: :credits_return
+    get  "credits",                to: "credits#index",          as: :credits
+    post "credits/checkout",       to: "credits#checkout",       as: :credits_checkout
+    get  "credits/return",         to: "credits#payment_return", as: :credits_return
+    get  "credits/cancel",         to: "credits#payment_cancel", as: :credits_cancel
+    get  "credits/status/:id",     to: "credits#payment_status", as: :credits_payment_status
 
     # Profile
-    resource :profile, only: [:show, :update]
+    resource :profile, only: [:show, :update], controller: "profile"
   end
 
   # Public quiz routes (học sinh làm bài)

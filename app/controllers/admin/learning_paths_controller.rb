@@ -1,5 +1,5 @@
 class Admin::LearningPathsController < Admin::BaseController
-  before_action :set_path, only: [:show, :edit, :update, :destroy, :publish, :ai_generate, :ai_status, :assign, :assign_learner, :learner_assignments, :progress, :ai_evaluate_progress]
+  before_action :set_path, only: [:show, :edit, :update, :destroy, :publish, :ai_generate, :ai_status, :assign, :assign_learner, :learner_assignments, :remove_assignment, :progress, :ai_evaluate_progress]
 
   def index
     @learning_paths = current_workspace.learning_paths.includes(:created_by, :learning_path_items, :learning_path_assignments).order(created_at: :desc)
@@ -20,8 +20,8 @@ class Admin::LearningPathsController < Admin::BaseController
 
   def show
     @items = @learning_path.learning_path_items.includes(:quiz_set, :flashcard_deck).order(:position)
-    @assignments = @learning_path.learning_path_assignments.includes(:assignee, :learning_item_progresses, learning_path: :learning_path_items)
-    @my_assignment = @assignments.find_by(assignee: current_user)
+    @assignments = @learning_path.learning_path_assignments.where.not(learner_id: nil).includes(:learner, :learning_item_progresses, learning_path: :learning_path_items)
+    @my_assignment = nil
     @workspace_members = accessible_workspace_members
     @quiz_sets = current_workspace.quiz_sets.published.order(:title)
     @flashcard_decks = current_workspace.flashcard_decks.order(:title)
@@ -70,7 +70,8 @@ class Admin::LearningPathsController < Admin::BaseController
   def progress
     @items = @learning_path.learning_path_items.order(:position)
     @assignments = @learning_path.learning_path_assignments
-                     .includes(:assignee, :learning_item_progresses, learning_path: :learning_path_items)
+                     .where.not(learner_id: nil)
+                     .includes(:learner, :learning_item_progresses, learning_path: :learning_path_items)
                      .order(created_at: :desc)
   end
 
@@ -166,37 +167,55 @@ class Admin::LearningPathsController < Admin::BaseController
   end
 
   def assign_learner
-    email  = params[:email].to_s.strip.downcase
-    name   = params[:name].to_s.strip
-    due_date = params[:due_date].presence
-
-    unless email.match?(URI::MailTo::EMAIL_REGEXP)
-      redirect_to learning_path_path(@learning_path), alert: "Email không hợp lệ."; return
+    unless @learning_path.published?
+      redirect_to learning_path_path(@learning_path), alert: "Lộ trình học phải được công khai trước khi giao cho learner."; return
     end
 
-    learner  = Learner.find_or_invite!(email: email, name: name, assigned_by: current_user)
-    existing = LearningPathAssignment.find_by(learning_path: @learning_path, learner: learner)
-    if existing
-      redirect_to learning_path_path(@learning_path), alert: "#{email} đã được giao lộ trình này rồi."; return
+    learner_ids = Array(params[:learner_ids]).map(&:to_i).uniq
+    due_date    = params[:due_date].presence
+
+    if learner_ids.empty?
+      redirect_to learning_path_path(@learning_path), alert: "Vui lòng chọn ít nhất một learner."; return
     end
 
-    LearningPathAssignment.create!(
-      learning_path: @learning_path,
-      learner:       learner,
-      assigned_by:   current_user,
-      due_date:      due_date,
-      status:        :active
-    )
-    redirect_to learning_path_path(@learning_path), notice: "Đã giao lộ trình cho #{email}."
-  rescue => e
-    redirect_to learning_path_path(@learning_path), alert: "Lỗi: #{e.message}"
+    learners = current_workspace.learner_folders.joins(:learner_folder_members).includes(learner_folder_members: :learner)
+                 .flat_map(&:learners).uniq.select { |l| learner_ids.include?(l.id) }
+    assigned = 0; skipped = 0
+
+    learners.each do |learner|
+      next if LearningPathAssignment.exists?(learning_path: @learning_path, learner: learner)
+      assignment = LearningPathAssignment.create!(
+        learning_path: @learning_path, learner: learner,
+        assigned_by: current_user, due_date: due_date, status: :active
+      )
+      url = Rails.application.routes.url_helpers.learner_learning_path_assignment_url(
+        assignment, token: assignment.token,
+        host: Rails.application.config.action_mailer.default_url_options[:host]
+      )
+      LearnerMailer.assignment_notification(learner, "Lộ trình học", @learning_path.title, url).deliver_later
+      assigned += 1
+    rescue => e
+      skipped += 1
+    end
+
+    msg = "Đã giao cho #{assigned} learner."
+    msg += " Bỏ qua #{skipped} lỗi." if skipped > 0
+    redirect_to learning_path_path(@learning_path), notice: msg
   end
 
   def learner_assignments
     @assignments = @learning_path.learning_path_assignments.where.not(learner_id: nil).includes(:learner).order(created_at: :desc)
     render json: @assignments.map { |a|
-      { id: a.id, email: a.learner.email, name: a.learner.name, status: a.status }
+      { id: a.id, learner_id: a.learner_id, email: a.learner.email, name: a.learner.name, status: a.status }
     }
+  end
+
+  def remove_assignment
+    assignment = @learning_path.learning_path_assignments.find(params[:assignment_id])
+    assignment.destroy!
+    render json: { ok: true }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   private

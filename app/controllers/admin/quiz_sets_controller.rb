@@ -1,5 +1,5 @@
 class Admin::QuizSetsController < Admin::BaseController
-  before_action :set_quiz_set, only: [:show, :edit, :update, :destroy, :publish, :unpublish, :results, :attempt_detail, :send_result_email, :ai_evaluate_attempt, :ai_evaluate_results, :update_ai_evaluation, :send_ai_evaluation_email, :ai_grade_essay, :assign_learner, :learner_assignments]
+  before_action :set_quiz_set, only: [:show, :edit, :update, :destroy, :publish, :unpublish, :results, :attempt_detail, :send_result_email, :ai_evaluate_attempt, :ai_evaluate_results, :update_ai_evaluation, :send_ai_evaluation_email, :ai_grade_essay, :assign_learner, :learner_assignments, :remove_assignment, :distribute_points]
 
   def index
     @quiz_sets = current_workspace.quiz_sets.order(created_at: :desc)
@@ -270,8 +270,9 @@ class Admin::QuizSetsController < Admin::BaseController
       return render json: { error: t("quiz.extract_failed") }, status: :unprocessable_entity
     end
 
+    include_essay = params[:include_essay] == 'true'
     @quiz_set.update!(ai_generating: true)
-    GenerateQuizQuestionsJob.perform_later(@quiz_set.id, job_content, auto_mode ? nil : questions_count, custom_prompt)
+    GenerateQuizQuestionsJob.perform_later(@quiz_set.id, job_content, auto_mode ? nil : questions_count, custom_prompt, include_essay: include_essay)
 
     render json: { pending: true, poll_url: ai_generate_status_quiz_set_path(@quiz_set) }
   rescue => e
@@ -365,31 +366,94 @@ class Admin::QuizSetsController < Admin::BaseController
   end
 
   def assign_learner
-    email  = params[:email].to_s.strip.downcase
-    name   = params[:name].to_s.strip
-    due_at = params[:due_at].presence
-
-    unless email.match?(URI::MailTo::EMAIL_REGEXP)
-      redirect_to edit_quiz_set_path(@quiz_set), alert: "Email không hợp lệ."; return
+    unless @quiz_set.published?
+      redirect_to edit_quiz_set_path(@quiz_set), alert: "Bộ đề phải được công khai trước khi giao cho learner."; return
     end
 
-    learner  = Learner.find_or_invite!(email: email, name: name, assigned_by: current_user)
-    existing = QuizAssignment.find_by(quiz_set: @quiz_set, learner: learner)
-    if existing
-      redirect_to edit_quiz_set_path(@quiz_set), alert: "#{email} đã được giao quiz này rồi."; return
+    learner_ids = Array(params[:learner_ids]).map(&:to_i).uniq
+    due_at      = params[:due_at].presence
+
+    if learner_ids.empty?
+      redirect_to edit_quiz_set_path(@quiz_set), alert: "Vui lòng chọn ít nhất một learner."; return
     end
 
-    QuizAssignment.create!(quiz_set: @quiz_set, learner: learner, assigned_by: current_user, due_at: due_at)
-    redirect_to edit_quiz_set_path(@quiz_set), notice: "Đã giao quiz cho #{email}."
-  rescue => e
-    redirect_to edit_quiz_set_path(@quiz_set), alert: "Lỗi: #{e.message}"
+    learners   = current_workspace.learner_folders.joins(:learner_folder_members).includes(learner_folder_members: :learner)
+                   .flat_map(&:learners).uniq.select { |l| learner_ids.include?(l.id) }
+    assigned   = 0
+    skipped    = 0
+
+    learners.each do |learner|
+      next if QuizAssignment.exists?(quiz_set: @quiz_set, learner: learner)
+      assignment = QuizAssignment.create!(quiz_set: @quiz_set, learner: learner, assigned_by: current_user, due_at: due_at)
+      url = Rails.application.routes.url_helpers.learner_quiz_assignment_url(
+        assignment, token: assignment.token,
+        host: Rails.application.config.action_mailer.default_url_options[:host]
+      )
+      LearnerMailer.assignment_notification(learner, "Quiz", @quiz_set.title, url).deliver_later
+      assigned += 1
+    rescue => e
+      skipped += 1
+    end
+
+    msg = "Đã giao cho #{assigned} learner."
+    msg += " Bỏ qua #{skipped} lỗi." if skipped > 0
+    redirect_to edit_quiz_set_path(@quiz_set), notice: msg
   end
 
   def learner_assignments
     @assignments = @quiz_set.quiz_assignments.includes(:learner).order(created_at: :desc)
     render json: @assignments.map { |a|
-      { id: a.id, email: a.learner.email, name: a.learner.name, status: a.status, due_at: a.due_at }
+      { id: a.id, learner_id: a.learner_id, email: a.learner.email, name: a.learner.name, status: a.status, due_at: a.due_at }
     }
+  end
+
+  def remove_assignment
+    assignment = @quiz_set.quiz_assignments.find(params[:assignment_id])
+    assignment.destroy!
+    render json: { ok: true }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def distribute_points
+    total = params[:total_score].to_i
+    return render json: { error: 'Tổng điểm không hợp lệ' }, status: :bad_request if total <= 0
+
+    questions = @quiz_set.quiz_questions.order(:position).to_a
+    return render json: { error: 'Chưa có câu hỏi' }, status: :bad_request if questions.empty?
+    min_per_q = total >= questions.size ? 1.0 : 0.5
+
+    svc = ClaudeService.for_feature("quiz_generate", timeout: 60)
+    prompt = questions.map.with_index(1) do |q, i|
+      "#{i}. [#{q.question_type}] #{q.question_text.truncate(120)}"
+    end.join("\n")
+
+    raw = svc.call(
+      system_prompt: "You are a quiz scoring assistant. Respond ONLY with valid JSON.",
+      user_prompt: <<~P
+        Phân bổ tổng #{total} điểm cho #{questions.size} câu hỏi sau dựa trên độ khó (câu tự luận/essay thường nặng điểm hơn, câu đúng/sai ít nhất).
+        Điểm mỗi câu là bội số của 0.5 (ví dụ: 0.5, 1, 1.5, 2...), tối thiểu #{min_per_q} điểm/câu.
+        Tổng điểm PHẢI BẰNG ĐÚNG #{total}. Trả về JSON: {"points":[số_điểm_câu_1, số_điểm_câu_2, ...]}
+
+        #{prompt}
+      P
+    )
+
+    parsed = JSON.parse(raw.gsub(/```[a-z]*\n?/, '').strip, symbolize_names: true) rescue nil
+    pts = parsed&.dig(:points)
+    return render json: { error: 'AI không trả về kết quả hợp lệ' }, status: :unprocessable_entity unless pts.is_a?(Array) && pts.size == questions.size
+
+    # Round to nearest 0.5, clamp to minimum
+    pts = pts.map { |p| [(p.to_f * 2).round / 2.0, min_per_q].max }
+    # Adjust last question so sum == total exactly
+    diff = total - pts.sum
+    pts[-1] = [pts[-1] + diff, min_per_q].max
+
+    ActiveRecord::Base.transaction do
+      questions.each_with_index { |q, i| q.update_column(:points, pts[i]) }
+    end
+
+    render json: { ok: true, points: questions.map { |q| { id: q.id, points: q.reload.points } } }
   end
 
   private
@@ -440,7 +504,7 @@ class Admin::QuizSetsController < Admin::BaseController
   end
 
   def quiz_set_params
-    params.require(:quiz_set).permit(:title, :description, :allow_retake, :show_answers, :time_limit_minutes, :result_mode, :passing_score)
+    params.require(:quiz_set).permit(:title, :description, :allow_retake, :show_answers, :time_limit_minutes, :result_mode, :passing_score, :passing_score_type, :total_score)
   end
 
   def extract_text_from_upload(file)

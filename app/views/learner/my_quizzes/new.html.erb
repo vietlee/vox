@@ -1,0 +1,138 @@
+<% content_for :title, t('learner_qz.new_title') %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <%= link_to t('learner_dashboard.library'), learner_library_path, class: "lp-bc-link" %>
+  <span class="lp-bc-sep">›</span>
+  <%= link_to t('learner_qz.mine_title'), learner_my_quizzes_path, class: "lp-bc-link" %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current"><%= t('learner_qz.create_new') %></span>
+<% end %>
+
+<div style="text-align:center;padding:16px 0 20px;">
+  <div style="width:64px;height:64px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:2px solid #93c5fd;">
+    <svg width="30" height="30" fill="none" stroke="#1d4ed8" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+  </div>
+  <h1 style="font-size:19px;font-weight:800;color:#0f172a;margin:0 0 4px;"><%= t('learner_qz.new_title') %></h1>
+  <p style="font-size:13px;color:#64748b;margin:0;"><%= t('learner_qz.new_subtitle') %></p>
+</div>
+
+<div style="background:#fef9c3;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+  <span style="font-size:18px;">⚡</span>
+  <div>
+    <p style="font-size:13px;font-weight:700;color:#92400e;margin:0;"><%= t('learner_qz.cost_line', n: @cost) %></p>
+    <p style="font-size:12px;color:#b45309;margin:0;"><%= t('learner_qz.credits_left', n: current_learner.credits) %></p>
+  </div>
+</div>
+
+<div class="lp-card"><div class="lp-card-body" style="display:grid;gap:16px;">
+  <div>
+    <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;"><%= t('learner_qz.title_label') %> <span style="color:#ef4444;">*</span></label>
+    <input id="qz-title" type="text" maxlength="150" placeholder="<%= t('learner_qz.title_ph') %>"
+      style="width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:14px;color:#1e293b;outline:none;box-sizing:border-box;"
+      onfocus="this.style.borderColor='#1e3a5f'" onblur="this.style.borderColor='#e5e7eb'">
+  </div>
+
+  <div>
+    <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;"><%= t('learner_qz.prompt_label') %></label>
+    <textarea id="qz-prompt" rows="3" maxlength="1000" placeholder="<%= t('learner_qz.prompt_ph') %>"
+      style="width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:14px;color:#1e293b;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;line-height:1.5;"
+      onfocus="this.style.borderColor='#1e3a5f'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+  </div>
+
+  <div>
+    <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;"><%= t('learner_qz.files_label') %> <span style="font-weight:400;color:#94a3b8;"><%= t('learner_qz.files_optional') %></span></label>
+    <input id="qz-files" type="file" multiple accept="image/*,.txt,.md,.csv,.pdf" style="display:none;" onchange="qzFilesChanged(this)">
+    <label for="qz-files" id="qz-files-drop"
+      style="display:flex;align-items:center;gap:10px;padding:14px 16px;border:1.5px dashed #cbd5e1;border-radius:12px;background:#f8fafc;cursor:pointer;transition:all .15s;"
+      onmouseover="this.style.borderColor='#1e3a5f';this.style.background='#f0f6ff'"
+      onmouseout="this.style.borderColor='#cbd5e1';this.style.background='#f8fafc'">
+      <div style="width:34px;height:34px;border-radius:10px;background:#eef3fb;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="17" height="17" fill="none" stroke="#1e3a5f" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L8 8m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      </div>
+      <div style="min-width:0;">
+        <p id="qz-files-label" style="font-size:13px;font-weight:600;color:#1e3a5f;margin:0;">Chọn tệp để tải lên</p>
+        <p style="font-size:11px;color:#94a3b8;margin:0;"><%= t('learner_qz.files_hint') %></p>
+      </div>
+    </label>
+  </div>
+
+  <div>
+    <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:8px;"><%= t('learner_qz.count_label') %>: <span id="qz-count-label" style="color:#1e3a5f;">10</span></label>
+    <input type="range" id="qz-count" min="3" max="30" value="10" step="1"
+      oninput="document.getElementById('qz-count-label').textContent=this.value"
+      style="width:100%;accent-color:#1e3a5f;cursor:pointer;">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:2px;"><span>3</span><span>30</span></div>
+  </div>
+
+  <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+    <input type="checkbox" id="qz-essay" style="width:18px;height:18px;accent-color:#1e3a5f;">
+    <span style="font-size:14px;font-weight:600;color:#374151;"><%= t('learner_qz.essay_label') %> <span style="font-weight:400;color:#94a3b8;"><%= t('learner_qz.essay_note') %></span></span>
+  </label>
+
+  <div>
+    <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:8px;"><%= t('learner_qz.time_label') %></label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="qz-time-picker">
+      <% [[0, t('learner_qz.time_none')],[10, t('learner_qz.time_min', n: 10)],[15, t('learner_qz.time_min', n: 15)],[30, t('learner_qz.time_min', n: 30)],[60, t('learner_qz.time_min', n: 60)]].each_with_index do |(v,l),i| %>
+        <label style="cursor:pointer;">
+          <input type="radio" name="qz-time" value="<%= v %>" <%= "checked" if i==0 %> style="display:none;" onchange="qzPickTime(this)">
+          <span class="qz-time-opt" style="display:block;padding:8px 14px;border-radius:10px;border:1.5px solid <%= i==0 ? '#1e3a5f' : '#e5e7eb' %>;background:<%= i==0 ? '#f0f6ff' : '#fff' %>;color:<%= i==0 ? '#1e3a5f' : '#64748b' %>;font-size:13px;font-weight:600;"><%= l %></span>
+        </label>
+      <% end %>
+    </div>
+  </div>
+
+  <button id="qz-gen-btn" onclick="qzGenerate()" class="lp-btn lp-btn-primary lp-btn-full" style="font-size:15px;padding:14px;margin-top:4px;">
+    ✨ <%= t('learner_qz.generate_btn', n: @cost) %>
+  </button>
+</div></div>
+
+<div id="qz-progress" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:36px 40px;text-align:center;max-width:300px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="width:56px;height:56px;margin:0 auto 16px;"><svg viewBox="0 0 56 56" fill="none" style="animation:qz-spin 1s linear infinite;"><circle cx="28" cy="28" r="22" stroke="#e2e8f0" stroke-width="4"/><path fill="#1e3a5f" d="M6 28a22 22 0 0122-22V0C12.536 0 0 12.536 0 28h6z"/></svg></div>
+    <p style="font-size:16px;font-weight:800;color:#0f172a;margin:0 0 8px;"><%= t('learner_qz.generating') %></p>
+    <p id="qz-progress-msg" style="font-size:13px;color:#64748b;margin:0;"><%= t('learner_qz.gen_1') %></p>
+  </div>
+</div>
+
+<style>@keyframes qz-spin { to { transform: rotate(360deg); } }</style>
+<script>
+(function(){
+  var CSRF = document.querySelector('meta[name="csrf-token"]').content;
+  var MSGS = ['<%= raw j t('learner_qz.gen_1') %>','<%= raw j t('learner_qz.gen_2') %>','<%= raw j t('learner_qz.gen_3') %>','<%= raw j t('learner_qz.gen_4') %>'];
+  var _i=0, _int;
+  window.qzFilesChanged = function(input){
+    var lbl = document.getElementById('qz-files-label');
+    var n = input.files.length;
+    if (!n) { lbl.textContent = 'Chọn tệp để tải lên'; return; }
+    lbl.textContent = n === 1 ? input.files[0].name : (n + ' tệp đã chọn');
+  };
+  window.qzPickTime = function(input){
+    document.querySelectorAll('#qz-time-picker .qz-time-opt').forEach(function(s){ s.style.borderColor='#e5e7eb'; s.style.background='#fff'; s.style.color='#64748b'; });
+    var s=input.nextElementSibling; s.style.borderColor='#1e3a5f'; s.style.background='#f0f6ff'; s.style.color='#1e3a5f';
+  };
+  function progress(on){ var el=document.getElementById('qz-progress'); el.style.display=on?'flex':'none'; if(on){_i=0;_int=setInterval(function(){document.getElementById('qz-progress-msg').textContent=MSGS[_i++%MSGS.length];},2200);} else {clearInterval(_int);} }
+
+  window.qzGenerate = function(){
+    var title = document.getElementById('qz-title').value.trim();
+    if (!title){ document.getElementById('qz-title').focus(); return; }
+    var btn = document.getElementById('qz-gen-btn'); btn.disabled = true; progress(true);
+    var fd = new FormData();
+    fd.append('title', title);
+    fd.append('prompt', document.getElementById('qz-prompt').value.trim());
+    fd.append('count', document.getElementById('qz-count').value);
+    fd.append('include_essay', document.getElementById('qz-essay').checked ? '1' : '0');
+    fd.append('time_limit', document.querySelector('input[name="qz-time"]:checked').value);
+    var files = document.getElementById('qz-files').files;
+    for (var i=0;i<files.length;i++) fd.append('files[]', files[i], files[i].name);
+    fd.append('authenticity_token', CSRF);
+    fetch('<%= learner_generate_my_quiz_path %>', { method:'POST', body:fd })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        progress(false);
+        if (d.redirect_url){ window.location = d.redirect_url; }
+        else { alert(d.error || '<%= j t('learner_qz.err_generic') %>'); btn.disabled=false; }
+      })
+      .catch(function(){ progress(false); alert('<%= j t('learner_qz.err_conn') %>'); btn.disabled=false; });
+  };
+})();
+</script>

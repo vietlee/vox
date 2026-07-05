@@ -33,7 +33,7 @@ class Admin::LearningPathAssignmentsController < Admin::BaseController
     prompt = <<~PROMPT
       Bạn là chuyên gia đánh giá học tập cá nhân.
 
-      **Học viên:** #{@assignment.assignee.name.presence || @assignment.assignee.email}
+      **Học viên:** #{(@assignment.learner || @assignment.assignee)&.then { |p| p.name.presence || p.email }}
       **Lộ trình:** #{@assignment.learning_path.title}
       **Tiến độ:** #{done}/#{items.count} bài (#{pct}%)
       **Hạn nộp:** #{@assignment.due_date&.strftime("%d/%m/%Y") || "Không có"}
@@ -79,7 +79,7 @@ class Admin::LearningPathAssignmentsController < Admin::BaseController
   end
 
   def authorize_assignment!
-    return if current_workspace_admin? || @assignment.assignee == current_user
+    return if current_workspace_admin?
     redirect_to dashboard_path, alert: "Không có quyền."
   end
 end

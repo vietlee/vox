@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_05_123941) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -327,13 +327,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
   create_table "flashcard_assignments", force: :cascade do |t|
     t.bigint "flashcard_deck_id", null: false
     t.bigint "learner_id", null: false
-    t.bigint "assigned_by_id", null: false
+    t.bigint "assigned_by_id"
     t.string "token", null: false
     t.integer "status", default: 0, null: false
     t.datetime "due_at"
     t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "cards_reviewed", default: 0, null: false
     t.index ["flashcard_deck_id", "learner_id"], name: "idx_on_flashcard_deck_id_learner_id_acaee1ea5f", unique: true
     t.index ["flashcard_deck_id"], name: "index_flashcard_assignments_on_flashcard_deck_id"
     t.index ["learner_id"], name: "index_flashcard_assignments_on_learner_id"
@@ -341,8 +342,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
   end
 
   create_table "flashcard_decks", force: :cascade do |t|
-    t.bigint "workspace_id", null: false
-    t.bigint "created_by_id", null: false
+    t.bigint "workspace_id"
+    t.bigint "created_by_id"
     t.string "title", null: false
     t.string "subject"
     t.boolean "ai_generated", default: false
@@ -351,7 +352,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
     t.datetime "updated_at", null: false
     t.boolean "ai_generating", default: false
     t.boolean "image_generating", default: false
+    t.bigint "learner_id"
     t.index ["created_by_id"], name: "index_flashcard_decks_on_created_by_id"
+    t.index ["learner_id"], name: "index_flashcard_decks_on_learner_id"
     t.index ["workspace_id"], name: "index_flashcard_decks_on_workspace_id"
   end
 
@@ -381,6 +384,16 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
     t.index ["flashcard_deck_id"], name: "index_flashcards_on_flashcard_deck_id"
   end
 
+  create_table "learner_daily_stats", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.date "day", null: false
+    t.integer "xp", default: 0, null: false
+    t.integer "activities", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id", "day"], name: "index_learner_daily_stats_on_learner_id_and_day", unique: true
+  end
+
   create_table "learner_folder_members", force: :cascade do |t|
     t.bigint "learner_folder_id", null: false
     t.bigint "learner_id", null: false
@@ -399,6 +412,73 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
     t.datetime "updated_at", null: false
     t.index ["created_by_id"], name: "index_learner_folders_on_created_by_id"
     t.index ["workspace_id"], name: "index_learner_folders_on_workspace_id"
+  end
+
+  create_table "learner_payments", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.integer "amount_cents"
+    t.string "currency"
+    t.integer "status"
+    t.string "gateway"
+    t.bigint "payos_order_code"
+    t.string "payment_link_id"
+    t.string "invoice_number"
+    t.integer "credits_amount"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id"], name: "index_learner_payments_on_learner_id"
+  end
+
+  create_table "learner_speaking_sessions", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.string "language", default: "en"
+    t.string "scenario"
+    t.integer "turns", default: 0, null: false
+    t.integer "score"
+    t.text "feedback"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id"], name: "index_learner_speaking_sessions_on_learner_id"
+  end
+
+  create_table "learner_study_plan_items", force: :cascade do |t|
+    t.bigint "learner_study_plan_id", null: false
+    t.integer "position", default: 0
+    t.string "kind"
+    t.string "title", null: false
+    t.text "description"
+    t.string "topic"
+    t.string "action_url"
+    t.boolean "done", default: false, null: false
+    t.datetime "done_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_study_plan_id"], name: "index_learner_study_plan_items_on_learner_study_plan_id"
+  end
+
+  create_table "learner_study_plans", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.string "title", null: false
+    t.text "focus"
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id"], name: "index_learner_study_plans_on_learner_id"
+  end
+
+  create_table "learner_suggestions", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.string "kind"
+    t.string "title", null: false
+    t.text "body", null: false
+    t.string "action_label"
+    t.string "action_url"
+    t.string "prefill_topic"
+    t.datetime "dismissed_at"
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id"], name: "index_learner_suggestions_on_learner_id"
   end
 
   create_table "learners", force: :cascade do |t|
@@ -423,6 +503,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
     t.boolean "password_set", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "ai_analysis_html"
+    t.datetime "ai_analyzed_at"
+    t.integer "max_credits", default: 50, null: false
+    t.integer "xp", default: 0, null: false
+    t.integer "current_streak", default: 0, null: false
+    t.integer "longest_streak", default: 0, null: false
+    t.date "last_active_on"
+    t.integer "daily_goal", default: 3, null: false
     t.index ["confirmation_token"], name: "index_learners_on_confirmation_token", unique: true
     t.index ["email"], name: "index_learners_on_email", unique: true
     t.index ["invite_token"], name: "index_learners_on_invite_token", unique: true
@@ -595,7 +683,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
   create_table "quiz_assignments", force: :cascade do |t|
     t.bigint "quiz_set_id", null: false
     t.bigint "learner_id", null: false
-    t.bigint "assigned_by_id", null: false
+    t.bigint "assigned_by_id"
     t.string "token", null: false
     t.integer "status", default: 0, null: false
     t.datetime "due_at"
@@ -663,7 +751,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
     t.integer "question_type", default: 0, null: false
     t.text "explanation"
     t.integer "position", default: 0, null: false
-    t.integer "points", default: 1, null: false
+    t.decimal "points", precision: 5, scale: 1, default: "1.0", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "allow_multiple", default: false, null: false
@@ -673,8 +761,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
   end
 
   create_table "quiz_sets", force: :cascade do |t|
-    t.bigint "workspace_id", null: false
-    t.bigint "user_id", null: false
+    t.bigint "workspace_id"
+    t.bigint "user_id"
     t.string "title", null: false
     t.text "description"
     t.integer "status", default: 0, null: false
@@ -686,11 +774,15 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "result_mode", default: 0, null: false
-    t.integer "passing_score", default: 50, null: false
+    t.integer "passing_score", default: 80, null: false
     t.text "ai_class_evaluation"
     t.datetime "ai_class_evaluated_at"
     t.boolean "ai_generating", default: false
     t.boolean "ai_failed", default: false, null: false
+    t.integer "total_score"
+    t.string "passing_score_type", default: "percent", null: false
+    t.bigint "learner_id"
+    t.index ["learner_id"], name: "index_quiz_sets_on_learner_id"
     t.index ["share_token"], name: "index_quiz_sets_on_share_token", unique: true
     t.index ["user_id"], name: "index_quiz_sets_on_user_id"
     t.index ["workspace_id", "status"], name: "index_quiz_sets_on_workspace_id_and_status"
@@ -1004,6 +1096,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_114410) do
   add_foreign_key "learner_folder_members", "learners"
   add_foreign_key "learner_folders", "users", column: "created_by_id"
   add_foreign_key "learner_folders", "workspaces"
+  add_foreign_key "learner_payments", "learners"
   add_foreign_key "learning_item_progresses", "learning_path_assignments"
   add_foreign_key "learning_item_progresses", "learning_path_items"
   add_foreign_key "learning_path_assignments", "learning_paths"

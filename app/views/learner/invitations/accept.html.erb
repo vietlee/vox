@@ -1,44 +1,74 @@
 <% content_for :title, "Thiết lập tài khoản" %>
+<% content_for :head do %>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  body { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%) !important; }
-  .auth-card { background: white; border-radius: 24px; padding: 32px 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-width: 400px; margin: 40px auto 0; }
-  .auth-logo { text-align: center; margin-bottom: 24px; }
-  .invite-hello { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-radius: 14px; padding: 14px 16px; margin-bottom: 20px; }
-  .invite-hello h2 { font-size: 16px; font-weight: 700; color: #065f46; }
-  .invite-hello p { font-size: 13px; color: #047857; margin-top: 4px; }
-  .form-group { margin-bottom: 16px; }
-  .form-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
-  .form-input { width: 100%; padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 12px; font-size: 15px; outline: none; transition: border-color 0.2s; background: #fafafa; }
-  .form-input:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
-  .auth-submit { width: 100%; padding: 13px; background: linear-gradient(135deg, #6366f1, #7c3aed); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 4px; transition: all 0.2s; }
-  .auth-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
-  .req-hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+  html, body { background: #0F172A !important; overflow: hidden !important; height: 100% !important; }
+  .lp-main { background: #0F172A !important; overflow: hidden !important; height: 100% !important; }
+  .lp-page { padding: 0 !important; max-width: none !important; height: 100% !important; }
+  .lp-alert-success, .lp-alert-error, .lp-alert { display: none !important; }
+  .inv-input { display:block;width:100%;padding:11px 14px;background:#0F172A;border:1.5px solid rgba(255,255,255,0.08);border-radius:10px;font-size:15px;color:#f1f5f9;font-family:'Inter',sans-serif;box-sizing:border-box;outline:none;transition:border-color .2s; }
+  .inv-input:focus { border-color:rgba(99,102,241,0.6); }
+  .inv-label { display:block;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px; }
 </style>
+<% end %>
 
-<div class="auth-card">
-  <div class="auth-logo">
-    <svg width="52" height="52" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="9" fill="#6366f1"/><polygon points="10,24 6,31 16,24" fill="white"/><rect x="6" y="6" width="24" height="19" rx="5" fill="white" fill-opacity="0.9"/><rect x="10" y="11" width="4" height="7" rx="1" fill="#6366f1"/><rect x="16" y="8" width="4" height="13" rx="1" fill="#6366f1"/><rect x="23" y="10" width="4" height="9" rx="1" fill="#6366f1"/></svg>
+<div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 16px;font-family:'Inter',sans-serif;overflow:hidden;">
+
+  <div style="width:100%;max-width:420px;">
+
+    <!-- Logo compact -->
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="display:inline-flex;align-items:center;gap:10px;">
+        <svg width="40" height="40" viewBox="295 27 90 90" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 4px 12px rgba(26,107,255,0.5));">
+          <rect x="305" y="38" width="70" height="70" rx="18" fill="#1A6BFF"/>
+          <polygon points="325,84 318,98 338,84" fill="white"/>
+          <rect x="317" y="49" width="46" height="37" rx="9" fill="white"/>
+          <rect x="326" y="59" width="7" height="14" rx="2" fill="#1A6BFF"/>
+          <rect x="338" y="53" width="7" height="26" rx="2" fill="#1A6BFF"/>
+          <rect x="350" y="57" width="7" height="18" rx="2" fill="#1A6BFF"/>
+        </svg>
+        <span style="font-size:28px;font-weight:800;letter-spacing:8px;color:#1A6BFF;">VOX</span>
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div style="background:#1E293B;border-radius:20px;border:1px solid rgba(255,255,255,0.07);box-shadow:0 24px 60px rgba(0,0,0,0.5);padding:24px 24px 20px;">
+
+      <!-- Welcome line -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <span style="font-size:22px;">👋</span>
+        <div>
+          <p style="margin:0;font-size:15px;font-weight:800;color:#f1f5f9;">Chào mừng, <%= @learner.name %>!</p>
+          <p style="margin:0;font-size:12px;color:#64748b;">Thiết lập mật khẩu để bắt đầu học tập.</p>
+        </div>
+      </div>
+
+      <% if flash[:alert] %>
+        <div style="margin-bottom:14px;padding:10px 14px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:10px;font-size:13px;color:#f87171;">
+          ⚠ <%= flash[:alert] %>
+        </div>
+      <% end %>
+
+      <%= form_with url: learner_invitation_path(token: @learner.invite_token), method: :patch, local: true, data: { turbo: false } do |f| %>
+        <div style="margin-bottom:12px;">
+          <label class="inv-label">Email</label>
+          <input type="email" value="<%= @learner.email %>" class="inv-input" readonly style="color:#475569;">
+        </div>
+        <div style="margin-bottom:12px;">
+          <label class="inv-label">Mật khẩu mới</label>
+          <input type="password" name="password" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" class="inv-input">
+        </div>
+        <div style="margin-bottom:20px;">
+          <label class="inv-label">Xác nhận mật khẩu</label>
+          <input type="password" name="password_confirmation" autocomplete="new-password" placeholder="Nhập lại mật khẩu" class="inv-input">
+        </div>
+        <button type="submit"
+                style="display:block;width:100%;padding:13px;background:#4F46E5;color:#fff;font-size:15px;font-weight:700;border:none;border-radius:12px;cursor:pointer;font-family:'Inter',sans-serif;">
+          Bắt đầu học ngay →
+        </button>
+      <% end %>
+    </div>
+
+    <p style="text-align:center;font-size:11px;color:#334155;margin-top:14px;">© <%= Date.current.year %> VOX Platform</p>
   </div>
-
-  <div class="invite-hello">
-    <h2>Chào mừng, <%= @learner.name %>! 👋</h2>
-    <p>Bạn được mời tham gia VOX Learn. Thiết lập mật khẩu để bắt đầu.</p>
-  </div>
-
-  <%= form_with url: learner_invitation_path(token: @learner.invite_token), method: :patch do |f| %>
-    <div class="form-group">
-      <label class="form-label">Email</label>
-      <input type="email" value="<%= @learner.email %>" class="form-input" readonly style="background:#f3f4f6;color:#6b7280;">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Mật khẩu mới</label>
-      <input type="password" name="password" class="form-input" placeholder="Tối thiểu 8 ký tự" autocomplete="new-password">
-      <p class="req-hint">Ít nhất 8 ký tự</p>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Xác nhận mật khẩu</label>
-      <input type="password" name="password_confirmation" class="form-input" placeholder="Nhập lại mật khẩu" autocomplete="new-password">
-    </div>
-    <button type="submit" class="auth-submit">Bắt đầu học ngay →</button>
-  <% end %>
 </div>

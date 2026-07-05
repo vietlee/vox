@@ -4,29 +4,35 @@ class Learner::FlashcardAssignmentsController < Learner::BaseController
   def show; end
 
   def study
-    @assignment.in_progress! if @assignment.pending?
+    if @assignment.completed?
+      @assignment.update_columns(cards_reviewed: 0, status: FlashcardAssignment.statuses[:in_progress], completed_at: nil)
+    else
+      @assignment.in_progress! if @assignment.pending?
+    end
     @deck  = @assignment.flashcard_deck
     @cards = @deck.flashcards.order(:position)
   end
 
   def review
-    card = Flashcard.find(params[:flashcard_id])
-    FlashcardReview.create!(
-      flashcard: card,
-      user_id:   0, # placeholder; learner reviews stored separately
-      rating:    params[:rating]
-    )
+    total     = @assignment.flashcard_deck.flashcards.count
+    mastered  = params[:mastered].in?([true, "true", 1, "1"])
 
-    remaining = @assignment.flashcard_deck.flashcards
-                  .where.not(id: FlashcardReview.where(user_id: 0, flashcard: @assignment.flashcard_deck.flashcards).select(:flashcard_id))
-                  .count
-
-    if remaining == 0
-      @assignment.completed!
-      @assignment.update!(completed_at: Time.current)
+    if mastered
+      was_completed = @assignment.completed?
+      new_count = [@assignment.cards_reviewed + 1, total].min
+      if new_count >= total
+        @assignment.update!(cards_reviewed: new_count, status: :completed, completed_at: Time.current)
+        # Bonus XP for finishing a whole deck (only first time)
+        LearnerGamification.record!(current_learner, :flashcard_session, count_activity: !was_completed) unless was_completed
+      else
+        @assignment.update_columns(cards_reviewed: new_count)
+        # Per-card XP; only counts as a daily activity on the first card of the session
+        LearnerGamification.record!(current_learner, :flashcard_card, count_activity: new_count == 1)
+      end
     end
 
-    render json: { ok: true, completed: @assignment.completed? }
+    render json: { ok: true, completed: @assignment.completed?,
+                   progress: @assignment.cards_reviewed, total: total }
   end
 
   private

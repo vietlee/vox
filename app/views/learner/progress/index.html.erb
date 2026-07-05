@@ -1,0 +1,102 @@
+<% content_for :title, t('learner_prog.title') %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current"><%= t('learner_prog.title') %></span>
+<% end %>
+
+<!-- Level + XP hero -->
+<div style="background:linear-gradient(135deg,#1e3a5f,#16304f);border-radius:20px;padding:20px;margin-bottom:16px;color:#fff;">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div style="width:60px;height:60px;border-radius:16px;background:rgba(255,255,255,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
+      <span style="font-size:9px;opacity:.7;font-weight:700;letter-spacing:.5px;"><%= t('learner_prog.level') %></span>
+      <span style="font-size:24px;font-weight:900;line-height:1;"><%= @level %></span>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+        <span style="font-size:14px;font-weight:700;">⚡ <%= number_with_delimiter(@total_xp) %> XP</span>
+        <span style="font-size:11px;opacity:.7;"><%= t('learner_prog.to_next', cur: @xp_into_level, max: @xp_for_next, lvl: @level + 1) %></span>
+      </div>
+      <div style="background:rgba(255,255,255,.2);border-radius:99px;height:8px;overflow:hidden;">
+        <div style="height:100%;border-radius:99px;background:linear-gradient(90deg,#fbbf24,#f59e0b);width:<%= (@xp_into_level * 100.0 / [@xp_for_next,1].max).round %>%;transition:width .5s;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Streak + counts -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;">
+  <div class="lp-stat-tile" style="background:#fff7ed;border:1px solid #fed7aa;">
+    <div style="font-size:22px;">🔥</div>
+    <div style="font-size:22px;font-weight:900;color:#ea580c;line-height:1;"><%= @current_streak %></div>
+    <div style="font-size:10px;color:#9a3412;font-weight:600;"><%= t('learner_prog.streak_days') %></div>
+  </div>
+  <div class="lp-stat-tile" style="background:#eff6ff;border:1px solid #bfdbfe;">
+    <div style="font-size:22px;">📝</div>
+    <div style="font-size:22px;font-weight:900;color:#2563eb;line-height:1;"><%= @quizzes_done %></div>
+    <div style="font-size:10px;color:#1e40af;font-weight:600;"><%= t('learner_prog.quiz_done') %></div>
+  </div>
+  <div class="lp-stat-tile" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+    <div style="font-size:22px;">🃏</div>
+    <div style="font-size:22px;font-weight:900;color:#16a34a;line-height:1;"><%= @cards_reviewed %></div>
+    <div style="font-size:10px;color:#166534;font-weight:600;"><%= t('learner_prog.cards_reviewed') %></div>
+  </div>
+</div>
+
+<!-- Daily XP chart (last 14 days) -->
+<p class="lp-section-title"><%= t('learner_prog.activity_14d') %></p>
+<div class="lp-card"><div class="lp-card-body">
+  <div style="display:flex;align-items:flex-end;gap:4px;height:120px;">
+    <% @daily.each do |d| %>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;" title="<%= d[:date].strftime('%d/%m') %>: <%= d[:xp] %> XP">
+        <div style="width:100%;border-radius:5px 5px 0 0;background:<%= d[:xp] > 0 ? 'linear-gradient(180deg,#4a7fa8,#1e3a5f)' : '#f1f5f9' %>;height:<%= [(d[:xp] * 100.0 / @max_daily_xp).round, d[:xp] > 0 ? 6 : 3].max %>%;min-height:3px;transition:height .4s;"></div>
+        <span style="font-size:8px;color:#94a3b8;"><%= d[:date].strftime('%-d') %></span>
+      </div>
+    <% end %>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:10px;"><%= t('learner_prog.longest_streak', n: @longest_streak).html_safe %></p>
+</div></div>
+
+<!-- Quiz score trend -->
+<% if @quiz_scores.any? %>
+  <p class="lp-section-title" style="margin-top:18px;"><%= t('learner_prog.recent_scores') %></p>
+  <div class="lp-card"><div class="lp-card-body" style="display:grid;gap:10px;">
+    <% @quiz_scores.each do |q| %>
+      <% col = q[:score] >= 80 ? '#16a34a' : (q[:score] >= 50 ? '#f59e0b' : '#ef4444') %>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+          <span style="color:#475569;font-weight:600;"><%= q[:title] %></span>
+          <span style="font-weight:800;color:<%= col %>;"><%= q[:score] %>%</span>
+        </div>
+        <div style="background:#f1f5f9;border-radius:99px;height:6px;overflow:hidden;">
+          <div style="height:100%;border-radius:99px;background:<%= col %>;width:<%= q[:score] %>%;"></div>
+        </div>
+      </div>
+    <% end %>
+  </div></div>
+<% end %>
+
+<!-- Weak areas → improve CTA -->
+<% if @weak.any? %>
+  <p class="lp-section-title" style="margin-top:18px;"><%= t('learner_prog.need_improve') %></p>
+  <div style="display:grid;gap:10px;">
+    <% @weak.each do |qa| %>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:13px;font-weight:700;color:#991b1b;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= qa.quiz_set.title %></p>
+          <p style="font-size:11px;color:#b91c1c;margin:0;"><%= t('learner_prog.score_need', score: qa.score_pct, pass: qa.quiz_set.passing_score) %></p>
+        </div>
+        <%= link_to t("learner_prog.review"), learner_new_my_flashcard_path(topic: qa.quiz_set.title),
+              style:"flex-shrink:0;background:#dc2626;color:#fff;font-size:12px;font-weight:700;padding:7px 14px;border-radius:10px;text-decoration:none;" %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<div style="margin-top:20px;text-align:center;">
+  <%= link_to "🧠 #{t('learner_prog.create_plan_cta')}", learner_study_plans_path,
+        style:"display:inline-block;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;padding:11px 20px;border-radius:12px;text-decoration:none;" %>
+</div>
+
+<style>
+  .lp-stat-tile { border-radius:14px;padding:12px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px; }
+</style>

@@ -1,3 +1,6 @@
+require "axlsx"
+require "roo"
+
 class Admin::LearnerFoldersController < Admin::BaseController
   before_action :set_folder, only: [:show, :edit, :update, :destroy, :add_learner, :remove_learner, :template, :import]
 
@@ -11,7 +14,14 @@ class Admin::LearnerFoldersController < Admin::BaseController
   end
 
   def show
-    @members = @folder.learner_folder_members.includes(:learner).order("learners.email")
+    scope = @folder.learner_folder_members.includes(:learner)
+    if params[:q].present?
+      q = "%#{params[:q].strip.downcase}%"
+      scope = scope.joins(:learner).where("LOWER(learners.name) LIKE :q OR LOWER(learners.email) LIKE :q", q: q)
+    end
+    scope = scope.order("learners.email")
+    @search_query = params[:q]
+    @pagy, @members = pagy(scope, items: 20)
   end
 
   def new
@@ -58,7 +68,7 @@ class Admin::LearnerFoldersController < Admin::BaseController
     end
 
     @folder.learner_folder_members.create!(learner: learner)
-    redirect_to learner_folder_path(@folder), notice: "Đã thêm #{learner.email} vào folder."
+    redirect_to learner_folder_path(@folder), notice: "Đã thêm #{learner.email}."
   rescue => e
     redirect_to learner_folder_path(@folder), alert: "Lỗi: #{e.message}"
   end
@@ -114,7 +124,141 @@ class Admin::LearnerFoldersController < Admin::BaseController
     redirect_to learner_folder_path(@folder), notice: msg
   end
 
+  # GET /learners/:learner_id
+  def learner_detail
+    @learner = find_workspace_learner(params[:learner_id])
+    @folders = current_workspace.learner_folders.joins(:learner_folder_members)
+                 .where(learner_folder_members: { learner_id: @learner.id })
+
+    @quiz_assignments = @learner.quiz_assignments
+                          .joins(:quiz_set)
+                          .where(quiz_sets: { workspace_id: current_workspace.id })
+                          .includes(:quiz_set)
+                          .order(created_at: :desc)
+
+    @flashcard_assignments = @learner.flashcard_assignments
+                               .joins(:flashcard_deck)
+                               .where(flashcard_decks: { workspace_id: current_workspace.id })
+                               .includes(:flashcard_deck)
+                               .order(created_at: :desc)
+
+    @lp_assignments = @learner.learning_path_assignments
+                        .joins(:learning_path)
+                        .where(learning_paths: { workspace_id: current_workspace.id })
+                        .includes(:learning_path, :learning_item_progresses)
+                        .order(created_at: :desc)
+
+    # Quiz attempts for this learner in this workspace
+    @quiz_attempts = QuizAttempt.joins(:quiz_set)
+                       .where(quiz_sets: { workspace_id: current_workspace.id })
+                       .where(participant_email: @learner.email)
+                       .includes(:quiz_set)
+                       .order(submitted_at: :desc)
+
+    # Stats
+    completed_quiz = @quiz_assignments.count { |a| a.status == "completed" }
+    completed_fc   = @flashcard_assignments.count { |a| a.status == "completed" }
+    completed_lp   = @lp_assignments.count { |a| a.status == "completed" }
+    @total_assigned   = @quiz_assignments.size + @flashcard_assignments.size + @lp_assignments.size
+    @total_completed  = completed_quiz + completed_fc + completed_lp
+    @avg_quiz_score   = @quiz_attempts.any? ? (@quiz_attempts.sum(&:score_pct) / @quiz_attempts.size).round : nil
+    @quiz_pass_rate   = @quiz_attempts.any? ? (@quiz_attempts.count(&:passed?) * 100.0 / @quiz_attempts.size).round : nil
+  end
+
+  # POST /learners/:learner_id/ai_analyze
+  def ai_analyze_learner
+    @learner = find_workspace_learner(params[:learner_id])
+
+    quiz_assignments = @learner.quiz_assignments
+                        .joins(:quiz_set).where(quiz_sets: { workspace_id: current_workspace.id })
+                        .includes(:quiz_set)
+    flashcard_assignments = @learner.flashcard_assignments
+                              .joins(:flashcard_deck).where(flashcard_decks: { workspace_id: current_workspace.id })
+                              .includes(:flashcard_deck)
+    lp_assignments = @learner.learning_path_assignments
+                       .joins(:learning_path).where(learning_paths: { workspace_id: current_workspace.id })
+                       .includes(:learning_path, :learning_item_progresses)
+    quiz_attempts = QuizAttempt.joins(:quiz_set)
+                      .where(quiz_sets: { workspace_id: current_workspace.id })
+                      .where(participant_email: @learner.email)
+                      .includes(:quiz_set)
+                      .order(submitted_at: :desc)
+
+    # Build context for AI
+    quiz_lines = quiz_attempts.map do |a|
+      "  • #{a.quiz_set.title}: #{a.score_pct}% (#{a.passed? ? 'ĐẠT' : 'CHƯA ĐẠT'}), #{a.earned_points}/#{a.total_points} điểm, #{a.time_spent_seconds ? "#{(a.time_spent_seconds/60.0).round(1)} phút" : 'N/A'}"
+    end.join("\n")
+
+    fc_lines = flashcard_assignments.map do |a|
+      "  • #{a.flashcard_deck.title}: #{a.status}"
+    end.join("\n")
+
+    lp_lines = lp_assignments.map do |a|
+      pct = a.progress_pct rescue 0
+      "  • #{a.learning_path.title}: #{a.status}, tiến độ #{pct}%"
+    end.join("\n")
+
+    prompt = <<~PROMPT
+      Bạn là chuyên gia phân tích học tập. Hãy phân tích toàn diện về học viên dưới đây và đưa ra nhận xét cụ thể, có giá trị.
+
+      **Học viên:** #{@learner.name} (#{@learner.email})
+
+      **KẾT QUẢ QUIZ (#{quiz_attempts.size} lần làm bài):**
+      #{quiz_lines.presence || "  Chưa có dữ liệu"}
+
+      **FLASHCARD (#{flashcard_assignments.size} bộ được giao):**
+      #{fc_lines.presence || "  Chưa có dữ liệu"}
+
+      **LỘ TRÌNH HỌC (#{lp_assignments.size} lộ trình được giao):**
+      #{lp_lines.presence || "  Chưa có dữ liệu"}
+
+      Hãy trả lời bằng tiếng Việt với cấu trúc HTML (dùng thẻ <p>, <ul>, <li>, <strong>, <em>). Bao gồm:
+      1. **Tổng quan** (2-3 câu nhận xét tổng quát về học viên này)
+      2. **Điểm mạnh** (cụ thể, dựa vào dữ liệu thực)
+      3. **Điểm cần cải thiện** (cụ thể, không chung chung)
+      4. **Hướng hỗ trợ** (3-5 gợi ý hành động cụ thể mà giáo viên/admin có thể làm để giúp học viên này)
+
+      Nếu dữ liệu ít, hãy nêu điều đó và đưa ra nhận xét dựa trên những gì có.
+    PROMPT
+
+    svc = ClaudeService.for_feature("learner_analysis", timeout: 60)
+    analysis = svc.call(
+      system_prompt: "Bạn là chuyên gia phân tích học tập. Trả lời bằng tiếng Việt với HTML (dùng <p>, <ul>, <li>, <strong>).",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1200
+    )
+
+    @learner.update_columns(ai_analysis_html: analysis, ai_analyzed_at: Time.current)
+    render json: { ok: true, html: analysis }
+  rescue => e
+    render json: { ok: false, error: e.message }, status: :unprocessable_entity
+  end
+
+  # GET /workspace_learners.json
+  def workspace_learners_json
+    folders = current_workspace.learner_folders.includes(learner_folder_members: :learner).order(:name)
+    render json: {
+      folders: folders.map { |f|
+        {
+          id:   f.id,
+          name: f.name,
+          learner_ids: f.learners.map(&:id)
+        }
+      },
+      learners: folders.flat_map(&:learners).uniq.map { |l|
+        { id: l.id, name: l.name, email: l.email }
+      }
+    }
+  end
+
   private
+
+  def find_workspace_learner(learner_id)
+    Learner.joins("INNER JOIN learner_folder_members ON learner_folder_members.learner_id = learners.id")
+           .joins("INNER JOIN learner_folders ON learner_folders.id = learner_folder_members.learner_folder_id")
+           .where(learner_folders: { workspace_id: current_workspace.id })
+           .find(learner_id)
+  end
 
   def set_folder
     @folder = current_workspace.learner_folders.find(params[:id])
@@ -131,7 +275,7 @@ class Admin::LearnerFoldersController < Admin::BaseController
         { email: row["email"] || row["Email"], name: row["name"] || row["Name"] || row["Tên"] }
       end
     else
-      spreadsheet = Roo::Xlsx.new(file.path)
+      spreadsheet = Roo::Excelx.new(file.path)
       sheet = spreadsheet.sheet(0)
       headers = sheet.row(1).map { |h| h.to_s.downcase.strip }
       email_col = headers.index { |h| h.include?("email") }

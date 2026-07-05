@@ -1,5 +1,5 @@
 class Admin::FlashcardDecksController < Admin::BaseController
-  before_action :set_deck, only: [:show, :edit, :update, :destroy, :ai_generate, :ai_status, :generate_images, :image_status, :study, :review, :analytics, :assign_learner, :learner_assignments]
+  before_action :set_deck, only: [:show, :edit, :update, :destroy, :ai_generate, :ai_status, :generate_images, :image_status, :study, :review, :analytics, :assign_learner, :learner_assignments, :remove_assignment]
 
   def index
     @decks = current_workspace.flashcard_decks.includes(:created_by).order(created_at: :desc)
@@ -186,31 +186,48 @@ class Admin::FlashcardDecksController < Admin::BaseController
   end
 
   def assign_learner
-    email  = params[:email].to_s.strip.downcase
-    name   = params[:name].to_s.strip
-    due_at = params[:due_at].presence
+    learner_ids = Array(params[:learner_ids]).map(&:to_i).uniq
+    due_at      = params[:due_at].presence
 
-    unless email.match?(URI::MailTo::EMAIL_REGEXP)
-      redirect_to flashcard_deck_path(@deck), alert: "Email không hợp lệ."; return
+    if learner_ids.empty?
+      redirect_to flashcard_deck_path(@deck), alert: "Vui lòng chọn ít nhất một learner."; return
     end
 
-    learner  = Learner.find_or_invite!(email: email, name: name, assigned_by: current_user)
-    existing = FlashcardAssignment.find_by(flashcard_deck: @deck, learner: learner)
-    if existing
-      redirect_to flashcard_deck_path(@deck), alert: "#{email} đã được giao bộ flashcard này rồi."; return
+    learners = current_workspace.learner_folders.joins(:learner_folder_members).includes(learner_folder_members: :learner)
+                 .flat_map(&:learners).uniq.select { |l| learner_ids.include?(l.id) }
+    assigned = 0; skipped = 0
+
+    learners.each do |learner|
+      next if FlashcardAssignment.exists?(flashcard_deck: @deck, learner: learner)
+      assignment = FlashcardAssignment.create!(flashcard_deck: @deck, learner: learner, assigned_by: current_user, due_at: due_at)
+      url = Rails.application.routes.url_helpers.learner_flashcard_assignment_url(
+        assignment, token: assignment.token,
+        host: Rails.application.config.action_mailer.default_url_options[:host]
+      )
+      LearnerMailer.assignment_notification(learner, "Flashcard", @deck.title, url).deliver_later
+      assigned += 1
+    rescue => e
+      skipped += 1
     end
 
-    FlashcardAssignment.create!(flashcard_deck: @deck, learner: learner, assigned_by: current_user, due_at: due_at)
-    redirect_to flashcard_deck_path(@deck), notice: "Đã giao flashcard cho #{email}."
-  rescue => e
-    redirect_to flashcard_deck_path(@deck), alert: "Lỗi: #{e.message}"
+    msg = "Đã giao cho #{assigned} learner."
+    msg += " Bỏ qua #{skipped} lỗi." if skipped > 0
+    redirect_to flashcard_deck_path(@deck), notice: msg
   end
 
   def learner_assignments
     @assignments = @deck.flashcard_assignments.includes(:learner).order(created_at: :desc)
     render json: @assignments.map { |a|
-      { id: a.id, email: a.learner.email, name: a.learner.name, status: a.status, due_at: a.due_at }
+      { id: a.id, learner_id: a.learner_id, email: a.learner.email, name: a.learner.name, status: a.status, due_at: a.due_at }
     }
+  end
+
+  def remove_assignment
+    assignment = @deck.flashcard_assignments.find(params[:assignment_id])
+    assignment.destroy!
+    render json: { ok: true }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   private

@@ -2,11 +2,13 @@
   when "multiple_choice" then (question.allow_multiple ? t("quiz.badge_multi") : t("quiz.badge_single"))
   when "true_false"      then t("quiz.badge_tf")
   when "short_answer"    then t("quiz.badge_sa")
+  when "essay"           then "📝 Tự luận"
   end
   type_color = case question.question_type
     when "multiple_choice" then question.allow_multiple ? "bg-violet-100 text-violet-700" : "bg-indigo-100 text-indigo-700"
     when "true_false"      then "bg-amber-100 text-amber-700"
     when "short_answer"    then "bg-emerald-100 text-emerald-700"
+    when "essay"           then "bg-rose-100 text-rose-700"
   end
 %>
 <div id="q-<%= question.id %>" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4"
@@ -19,6 +21,7 @@
       <div class="flex items-start gap-2 mb-2 flex-wrap">
         <p class="text-[14px] font-semibold text-slate-800 flex-1"><%= question.question_text %></p>
         <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 <%= type_color %>"><%= type_label %></span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600 flex-shrink-0"><%= question.points % 1 == 0 ? question.points.to_i : question.points %>đ</span>
       </div>
       <% if question.explanation.present? %>
         <p class="text-[11px] text-slate-400 italic mb-2">💡 <%= question.explanation %></p>
@@ -26,6 +29,11 @@
 
       <% if question.short_answer? %>
         <p class="text-[12px] text-slate-400 italic mb-3">✍️ <%= t("quiz.student_types_answer") %></p>
+      <% elsif question.essay? %>
+        <p class="text-[12px] text-slate-400 italic mb-2">📝 Học viên viết câu trả lời tự luận. AI sẽ chấm điểm.</p>
+        <% if question.essay_rubric.present? %>
+          <p class="text-[11px] text-slate-400 italic mb-3">📋 Rubric: <%= question.essay_rubric %></p>
+        <% end %>
       <% else %>
         <!-- Options -->
         <div id="opts-<%= question.id %>" class="space-y-0.5 mb-3">
@@ -55,7 +63,7 @@
         <% unless question.true_false? %>
           <div class="flex gap-2">
             <input type="text" id="opt-input-<%= question.id %>" placeholder="<%= t('quiz.option_placeholder') %>"
-                   class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[12px] focus:border-indigo-500 outline-none"
+                   class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[12px] focus:border-[#1e3a5f] outline-none"
                    onkeydown="if(event.key==='Enter'){event.preventDefault();addOption(<%= question.id %>)}">
             <button onclick="addOption(<%= question.id %>)"
                     class="px-3 py-1.5 bg-slate-100 hover:bg-[#1e3a5f] hover:text-white text-slate-500 text-[12px] font-semibold rounded-lg transition-colors">

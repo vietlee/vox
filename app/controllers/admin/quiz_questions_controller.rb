@@ -27,6 +27,8 @@ class Admin::QuizQuestionsController < Admin::BaseController
         question_type: @question.question_type,
         allow_multiple: @question.allow_multiple,
         explanation:   @question.explanation,
+        points:        @question.points,
+        essay_rubric:  @question.essay_rubric,
         options: @question.quiz_options.map { |o| { id: o.id, text: o.option_text, correct: o.is_correct } }
       }
     else
@@ -64,6 +66,6 @@ class Admin::QuizQuestionsController < Admin::BaseController
   end
 
   def question_params
-    params.require(:quiz_question).permit(:question_text, :question_type, :explanation, :points, :allow_multiple)
+    params.require(:quiz_question).permit(:question_text, :question_type, :explanation, :points, :allow_multiple, :essay_rubric)
   end
 end

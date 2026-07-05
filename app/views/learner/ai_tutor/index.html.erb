@@ -1,116 +1,644 @@
 <% content_for :title, "AI Tutor" %>
-<% content_for :head do %>
+<% content_for :lp_style, "padding:12px;background:#f0f4f8;height:calc(100dvh - 56px - 60px);display:flex;flex-direction:column;overflow:hidden;" %>
+
 <style>
-  .lp-main { padding-bottom: 0 !important; }
-  .lp-page { padding: 0 !important; max-width: 100% !important; height: calc(100dvh - 56px - 60px); display: flex; flex-direction: column; }
-  .chat-msgs { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-  .msg { max-width: 82%; }
-  .msg-ai   { align-self: flex-start; }
-  .msg-user { align-self: flex-end; }
-  .msg-bubble { padding: 12px 14px; border-radius: 18px; font-size: 15px; line-height: 1.5; }
-  .msg-ai   .msg-bubble { background: white; color: #1e1b4b; border-radius: 4px 18px 18px 18px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
-  .msg-user .msg-bubble { background: linear-gradient(135deg,#6366f1,#7c3aed); color: white; border-radius: 18px 4px 18px 18px; }
-  .msg-time { font-size: 11px; color: #9ca3af; margin-top: 3px; padding: 0 4px; }
-  .msg-ai .msg-time   { text-align: left; }
-  .msg-user .msg-time { text-align: right; }
-  .chat-input-bar { background: white; border-top: 1px solid #e5e7eb; padding: 10px 12px calc(10px + var(--safe-bottom)); display: flex; gap: 8px; align-items: flex-end; }
-  .chat-textarea { flex: 1; border: 1.5px solid #e5e7eb; border-radius: 20px; padding: 10px 14px; font-size: 15px; resize: none; max-height: 120px; outline: none; font-family: inherit; transition: border-color 0.2s; }
-  .chat-textarea:focus { border-color: #6366f1; }
-  .chat-send-btn { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg,#6366f1,#7c3aed); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
-  .chat-send-btn:hover { transform: scale(1.05); }
-  .chat-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .typing-dots span { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #9ca3af; animation: dot-bounce 1.2s ease-in-out infinite; margin: 0 2px; }
-  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes dot-bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
-  .credit-bar { background: #f5f3ff; border-bottom: 1px solid #e9d5ff; padding: 8px 16px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6b21a8; }
+/* ── Animations ── */
+@keyframes dot-bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-4px)} }
+@keyframes lp-fade-in { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes lp-vc-spin  { to{transform:rotate(360deg)} }
+@keyframes lp-vc-blob  { 0%,100%{border-radius:62% 38% 54% 46%/48% 62% 38% 52%} 33%{border-radius:44% 56% 38% 62%/62% 38% 57% 43%} 66%{border-radius:57% 43% 62% 38%/38% 57% 43% 62%} }
+@keyframes lp-vc-glow-listening { 0%,100%{box-shadow:0 0 40px 10px rgba(99,102,241,.5),0 0 80px 24px rgba(79,70,229,.2)} 50%{box-shadow:0 0 60px 18px rgba(139,92,246,.7),0 0 110px 36px rgba(99,102,241,.15)} }
+@keyframes lp-vc-glow-speaking  { 0%,100%{box-shadow:0 0 40px 10px rgba(16,185,129,.55),0 0 80px 24px rgba(5,150,105,.2)} 50%{box-shadow:0 0 60px 18px rgba(52,211,153,.75),0 0 110px 36px rgba(16,185,129,.15)} }
+@keyframes lp-vc-glow-processing{ 0%,100%{box-shadow:0 0 40px 10px rgba(245,158,11,.5)} 50%{box-shadow:0 0 60px 18px rgba(252,211,77,.7)} }
+@keyframes lp-vc-ring-pulse  { 0%,100%{transform:scale(1);opacity:.5} 50%{transform:scale(1.1);opacity:.15} }
+@keyframes lp-vc-ring-pulse2 { 0%,100%{transform:scale(1);opacity:.25} 50%{transform:scale(1.2);opacity:.05} }
+@keyframes lp-vc-float  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes lp-vc-wave-a { 0%,100%{transform:scaleY(.10)} 50%{transform:scaleY(1.00)} }
+@keyframes lp-vc-wave-b { 0%,100%{transform:scaleY(.18)} 50%{transform:scaleY(.80)} }
+@keyframes lp-vc-wave-c { 0%,100%{transform:scaleY(.25)} 50%{transform:scaleY(.60)} }
+
+.lp-msg-row { animation: lp-fade-in .22s ease both; }
+.lp-bubble-ai  { background:#fff; border:1px solid #e8ecf0; border-radius:4px 18px 18px 18px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
+.lp-bubble-user{ background:linear-gradient(135deg,#1e3a5f,#2d5282); color:#fff; border-radius:18px 4px 18px 18px; }
+.lp-input-wrap  { border:1.5px solid #e2e8f0; border-radius:16px; background:#fff; transition:border-color .2s,box-shadow .2s; }
+.lp-input-wrap:focus-within { border-color:#1e3a5f; box-shadow:0 0 0 3px rgba(30,58,95,.08); }
+.lp-toolbar-btn { display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;border:none;background:transparent;color:#94a3b8;cursor:pointer;transition:all .15s; }
+.lp-toolbar-btn:hover { background:#f1f5f9; color:#1e3a5f; }
+.lp-toolbar-btn.active { background:#fee2e2; color:#ef4444; }
+.lp-send-btn { width:38px;height:38px;border-radius:12px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s; }
+.lp-send-btn:disabled { background:#f1f5f9; color:#cbd5e1; cursor:not-allowed; }
+.lp-send-btn:not(:disabled) { background:#1e3a5f; color:#fff; box-shadow:0 2px 8px rgba(30,58,95,.3); }
+.lp-send-btn:not(:disabled):hover { background:#16304f; transform:translateY(-1px); box-shadow:0 4px 12px rgba(30,58,95,.35); }
+.lp-vc-bar { width:3px; border-radius:99px; background:currentColor; transform-origin:center; transform:scaleY(.10); height:32px; }
+.lp-vc-voice-card { transition:border-color .15s,background .15s; cursor:pointer; }
+.lp-vc-voice-card:hover { transform:translateY(-1px); }
+pre  { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; overflow-x:auto; font-size:12.5px; margin:6px 0; }
+code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px; font-family:monospace; }
 </style>
-<% end %>
 
-<div class="credit-bar">
-  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-  <span id="credits-count"><%= current_learner.credits %></span> credits · 1 credit / tin nhắn
-  <a href="<%= learner_credits_path %>" style="margin-left:auto;color:#7c3aed;font-weight:600;">Mua thêm</a>
-</div>
+<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fff;border-radius:16px;border:1px solid #e2e8f0;box-shadow:0 2px 16px rgba(0,0,0,.07);">
 
-<div class="chat-msgs" id="chat-msgs">
-  <div class="msg msg-ai">
-    <div class="msg-bubble">Xin chào <strong><%= current_learner.name %></strong>! Tôi là AI Tutor của VOX. Bạn muốn tìm hiểu gì hôm nay?<%= params[:context].present? ? " (Đang xem: #{params[:context]})" : "" %></div>
-    <p class="msg-time">AI Tutor</p>
+<!-- ── Top bar ── -->
+<div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #f0f4f8;background:#fff;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#1e3a5f,#2d5282);display:flex;align-items:center;justify-content:center;">
+      <svg width="16" height="16" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+    </div>
+    <div>
+      <p style="font-size:13px;font-weight:700;color:#0f172a;margin:0;line-height:1.2;">AI Tutor</p>
+      <p style="font-size:11px;color:#64748b;margin:0;">
+        <span style="display:inline-flex;align-items:center;gap:3px;">
+          <span style="width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;"></span> Sẵn sàng
+        </span>
+      </p>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <div style="display:flex;align-items:center;gap:5px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:20px;padding:5px 10px;">
+      <svg width="12" height="12" fill="none" stroke="#f59e0b" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      <span style="font-size:12px;font-weight:700;color:#0f172a;"><span id="lp-credits-count"><%= current_learner.credits %></span></span>
+      <span style="font-size:11px;color:#94a3b8;">credits</span>
+    </div>
+    <% if @has_tts %>
+    <button id="lp-auto-speak-btn" onclick="lpToggleAutoSpeak()" title="Tự đọc"
+            style="height:34px;padding:0 10px;border-radius:20px;border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8;cursor:pointer;font-size:11px;display:flex;align-items:center;gap:4px;transition:all .15s;">
+      <svg id="lp-speak-icon" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+      <span id="lp-speak-label">Tự đọc</span>
+    </button>
+    <% end %>
+    <button onclick="lpClearHistory()" title="Xoá lịch sử"
+            style="width:34px;height:34px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;"
+            onmouseover="this.style.background='#fee2e2';this.style.color='#ef4444'" onmouseout="this.style.background='#f8fafc';this.style.color='#94a3b8'">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    </button>
   </div>
 </div>
 
-<div class="chat-input-bar">
-  <textarea class="chat-textarea" id="chat-input" placeholder="Hỏi bất cứ điều gì..." rows="1"
-            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"
-            oninput="autoResize(this)"></textarea>
-  <button class="chat-send-btn" id="send-btn" onclick="sendMsg()">
-    <svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-  </button>
+<!-- ── Messages ── -->
+<div id="lp-chat-msgs" style="flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:16px;">
+  <!-- Welcome bubble -->
+  <div class="lp-msg-row" style="display:flex;gap:10px;max-width:100%;">
+    <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#1e3a5f,#2d5282);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+      <svg width="15" height="15" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+    </div>
+    <div class="lp-bubble-ai" style="padding:12px 15px;max-width:80%;font-size:14px;color:#1e293b;line-height:1.65;">
+      Xin chào <strong><%= current_learner.name %></strong>! Tôi là AI Tutor của VOX.<%= raw(params[:context].present? ? " Tôi thấy bạn đang học: <strong>#{ERB::Util.html_escape(params[:context])}</strong>." : "") %> Hỏi tôi bất cứ điều gì bạn muốn tìm hiểu nhé!
+    </div>
+  </div>
+</div>
+
+<!-- ── Voice recording bar ── -->
+<div id="lp-voice-indicator" style="display:none;flex-shrink:0;align-items:center;justify-content:center;gap:10px;padding:8px 16px;background:#fff5f5;border-top:1px solid #fecaca;">
+  <div style="display:flex;gap:2px;align-items:flex-end;">
+    <% [7,11,9,14,9,11,7].each_with_index do |h,i| %>
+      <div style="width:3px;background:#f87171;border-radius:99px;height:<%= h %>px;animation:dot-bounce 1.1s ease-in-out infinite <%= (i*0.09).round(2) %>s;"></div>
+    <% end %>
+  </div>
+  <span style="font-size:12px;font-weight:600;color:#ef4444;">Đang ghi âm...</span>
+  <button onclick="lpStopRecording(false)" style="padding:4px 12px;border-radius:20px;background:#ef4444;border:none;color:white;cursor:pointer;font-size:11px;font-weight:600;">Gửi</button>
+  <button onclick="lpStopRecording(true)"  style="padding:4px 12px;border-radius:20px;background:#fee2e2;border:none;color:#ef4444;cursor:pointer;font-size:11px;font-weight:600;">Huỷ</button>
+</div>
+
+<!-- ── Input area ── -->
+<div style="flex-shrink:0;padding:10px 14px 12px;background:#f8fafc;border-top:1px solid #e8edf2;border-radius:0 0 16px 16px;">
+  <!-- Attach preview -->
+  <div id="lp-attach-preview" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+
+  <div style="display:flex;gap:8px;align-items:flex-end;">
+    <div class="lp-input-wrap" style="flex:1;padding:8px 8px 8px 14px;">
+      <textarea id="lp-input" rows="1" placeholder="Hỏi bất cứ điều gì..."
+                style="width:100%;border:none;outline:none;font-size:14px;resize:none;max-height:120px;background:transparent;font-family:inherit;color:#1e293b;line-height:1.6;box-sizing:border-box;"
+                oninput="lpAutoResize(this);lpToggleSend(this.value)"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();lpSendMsg();}"></textarea>
+
+      <input id="lp-attach-input" type="file" style="display:none;" multiple
+             accept=".txt,.md,.csv,.json,.html,.xml,.pdf,.png,.jpg,.jpeg,.gif,.webp"
+             onchange="lpHandleAttach(this)">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:2px;">
+          <label for="lp-attach-input" class="lp-toolbar-btn" title="Đính kèm file" style="cursor:pointer;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+          </label>
+          <% if @has_stt %>
+          <button id="lp-mic-btn" class="lp-toolbar-btn" onclick="lpToggleRecording()" title="Ghi âm giọng nói">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+          </button>
+          <% end %>
+        </div>
+        <span style="font-size:11px;color:#cbd5e1;">Enter gửi · Shift+Enter xuống dòng</span>
+      </div>
+    </div>
+
+    <!-- Right column: voice call orb + send (giống admin) -->
+    <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+      <% if @has_stt && @has_tts %>
+      <button onclick="lpEnterVoiceCall()" title="Trò chuyện cùng AI"
+              style="width:38px;height:38px;border-radius:12px;border:0;padding:0;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 2px 12px rgba(99,102,241,.40);transition:transform .15s,box-shadow .15s;"
+              onmouseenter="this.style.transform='scale(1.07)';this.style.boxShadow='0 4px 18px rgba(99,102,241,.60)'"
+              onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 2px 12px rgba(99,102,241,.40)'">
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 35% 30%,#4f46e5 0%,#1e1b4b 55%,#07060f 100%);"></div>
+        <div style="position:absolute;inset:-3px;background:conic-gradient(from 0deg,transparent 0%,rgba(167,139,250,.85) 10%,transparent 22%,rgba(96,165,250,.70) 38%,transparent 52%,rgba(236,72,153,.60) 68%,transparent 80%,rgba(34,211,238,.50) 94%,transparent 100%);animation:lp-vc-spin 5s linear infinite;mix-blend-mode:screen;border-radius:14px;"></div>
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 30% 22%,rgba(255,255,255,.45) 0%,rgba(255,255,255,.05) 50%,transparent 72%);border-radius:14px;"></div>
+      </button>
+      <% end %>
+      <button id="lp-send-btn" class="lp-send-btn" onclick="lpSendMsg()" disabled>
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
-var _csrf    = '<%= form_authenticity_token %>';
-var _chatUrl = '<%= learner_ai_tutor_chat_path %>';
-var _context = <%= raw params[:context].to_s.to_json %>;
-var _msgs    = document.getElementById('chat-msgs');
-var _input   = document.getElementById('chat-input');
-var _sendBtn = document.getElementById('send-btn');
+(function() {
+const CSRF      = () => document.querySelector('meta[name="csrf-token"]').content;
+const CHAT_URL  = '<%= learner_ai_tutor_chat_path %>';
+const VOICE_URL = '<%= learner_ai_tutor_voice_path %>';
+const TTS_URL   = '<%= learner_ai_tutor_tts_path %>';
+const TTS_V_URL = '<%= learner_ai_tutor_tts_voices_path %>';
+const STT_URL   = '<%= learner_ai_tutor_stt_path %>';
+const HAS_TTS   = <%= @has_tts ? 'true' : 'false' %>;
+const HAS_STT   = <%= @has_stt ? 'true' : 'false' %>;
+const STORAGE_KEY = 'vox_lp_tutor_<%= current_learner.id %>';
 
-function autoResize(ta) {
-  ta.style.height = 'auto';
-  ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+// ── History ──────────────────────────────────────────────────────
+let chatHistory = [];
+try { const s = localStorage.getItem(STORAGE_KEY); if (s) chatHistory = JSON.parse(s); } catch(e) {}
+(function restoreHistory() {
+  chatHistory.forEach(m => lpAppendMsg(m.role, m.content));
+  const c = document.getElementById('lp-chat-msgs');
+  if (c) c.scrollTop = c.scrollHeight;
+})();
+function lpSaveHistory() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory.slice(-40))); } catch(e) {}
 }
-
-function appendMsg(role, text) {
-  var div = document.createElement('div');
-  div.className = 'msg msg-' + role;
-  var time = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-  div.innerHTML = '<div class="msg-bubble">' + escHtml(text) + '</div><p class="msg-time">' + (role === 'ai' ? 'AI Tutor · ' : '') + time + '</p>';
-  _msgs.appendChild(div);
-  _msgs.scrollTop = _msgs.scrollHeight;
-  return div;
+function lpClearHistory() {
+  chatHistory = []; localStorage.removeItem(STORAGE_KEY);
+  const c = document.getElementById('lp-chat-msgs');
+  // keep only first welcome bubble
+  while (c.children.length > 1) c.removeChild(c.lastChild);
 }
+window.lpClearHistory = lpClearHistory;
 
-function appendTyping() {
-  var div = document.createElement('div');
-  div.className = 'msg msg-ai'; div.id = 'typing-indicator';
-  div.innerHTML = '<div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
-  _msgs.appendChild(div); _msgs.scrollTop = _msgs.scrollHeight;
+// ── Attachments ─────────────────────────────────────────────────
+let _attached = [];
+function lpHandleAttach(input) {
+  const files = Array.from(input.files); if (!files.length) return; input.value = '';
+  let pending = files.length;
+  files.forEach(f => {
+    const isImg = f.type.startsWith('image/');
+    const r = new FileReader();
+    r.onload = e => {
+      _attached.push({ name: f.name, content: e.target.result, type: isImg ? 'image' : 'text' });
+      if (--pending === 0) { lpRenderAttachPreview(); lpToggleSend(document.getElementById('lp-input').value); }
+    };
+    isImg ? r.readAsDataURL(f) : r.readAsText(f);
+  });
 }
-
-function escHtml(t) {
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+window.lpHandleAttach = lpHandleAttach;
+function lpRenderAttachPreview() {
+  const w = document.getElementById('lp-attach-preview');
+  if (!_attached.length) { w.style.display = 'none'; w.innerHTML = ''; return; }
+  w.style.display = 'flex';
+  w.innerHTML = _attached.map((f,i) => f.type === 'image'
+    ? `<div style="position:relative"><img src="${f.content}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:1px solid #e2e8f0"><button onclick="lpRemoveAttach(${i})" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#64748b;border:none;color:white;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;">×</button></div>`
+    : `<div style="display:flex;align-items:center;gap:5px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:4px 9px;font-size:11px;color:#475569;max-width:130px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8" style="flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M14 3v4a1 1 0 001 1h4M7 3h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg> ${f.name}<button onclick="lpRemoveAttach(${i})" style="border:none;background:none;color:#94a3b8;cursor:pointer;padding:0 0 0 4px;font-size:12px;">×</button></div>`
+  ).join('');
 }
+function lpRemoveAttach(i) { _attached.splice(i,1); lpRenderAttachPreview(); lpToggleSend(document.getElementById('lp-input').value); }
+window.lpRemoveAttach = lpRemoveAttach;
 
-function sendMsg() {
-  var text = _input.value.trim();
-  if (!text) return;
-  _sendBtn.disabled = true;
-  _input.value = ''; _input.style.height = 'auto';
-  appendMsg('user', text);
-  appendTyping();
+// ── Input helpers ────────────────────────────────────────────────
+function lpAutoResize(ta) { ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,120)+'px'; }
+window.lpAutoResize = lpAutoResize;
+function lpToggleSend(v) {
+  const btn = document.getElementById('lp-send-btn');
+  btn.disabled = !(v.trim() || _attached.length);
+}
+window.lpToggleSend = lpToggleSend;
 
-  fetch(_chatUrl, {
-    method: 'POST',
-    headers: { 'X-CSRF-Token': _csrf, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: text, context: _context })
-  }).then(function(r){ return r.json(); }).then(function(d){
-    var t = document.getElementById('typing-indicator');
-    if (t) t.remove();
-    if (d.error) {
-      appendMsg('ai', '⚠️ ' + d.error);
-    } else {
-      appendMsg('ai', d.reply);
-      var el = document.getElementById('credits-count');
-      if (el) el.textContent = d.credits_remaining;
+// ── Send message ─────────────────────────────────────────────────
+async function lpSendMsg() {
+  const input = document.getElementById('lp-input');
+  let msg = input.value.trim();
+  if (!msg && !_attached.length) return;
+  let payloadMsg = msg;
+  if (_attached.length) {
+    const parts = _attached.map(f => f.type==='image' ? `[Hình ảnh: ${f.name}]` : `File (${f.name}):\n\`\`\`\n${f.content.slice(0,8000)}\n\`\`\``);
+    payloadMsg = [msg,...parts].filter(Boolean).join('\n\n');
+    _attached = []; lpRenderAttachPreview();
+  }
+  input.value = ''; lpToggleSend(''); input.style.height = '';
+  chatHistory.push({ role:'user', content:payloadMsg }); lpSaveHistory();
+  lpAppendMsg('user', msg || '📎 File đính kèm');
+  const thinkEl = lpAppendMsg('assistant', null, true);
+  try {
+    const res  = await fetch(CHAT_URL, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF()}, body:JSON.stringify({message:payloadMsg, history:chatHistory.slice(0,-1)}) });
+    const data = await res.json();
+    const reply = data.response || data.error || 'Lỗi không xác định';
+    thinkEl.innerHTML = lpMd(reply);
+    if (data.response) {
+      chatHistory.push({ role:'assistant', content:data.response }); lpSaveHistory();
+      const el = document.getElementById('lp-credits-count'); if (el) el.textContent = data.credits_remaining;
+      if (window.updateLpCredits) updateLpCredits(data.credits_remaining);
+      if (_autoSpeak) lpSpeakText(data.response);
+      if (HAS_TTS) lpAddSpeakBtn(thinkEl, data.response);
     }
-  }).catch(function(){
-    var t = document.getElementById('typing-indicator');
-    if (t) t.remove();
-    appendMsg('ai', 'Đã có lỗi xảy ra. Vui lòng thử lại.');
-  }).finally(function(){ _sendBtn.disabled = false; _input.focus(); });
+  } catch(e) { thinkEl.innerHTML = '<span style="color:#ef4444;font-size:13px;">Lỗi kết nối. Thử lại.</span>'; }
+}
+window.lpSendMsg = lpSendMsg;
+
+function lpAppendMsg(role, html, thinking = false) {
+  const c = document.getElementById('lp-chat-msgs');
+  const isUser = role === 'user';
+  const row = document.createElement('div');
+  row.className = 'lp-msg-row';
+  row.style.cssText = 'display:flex;gap:10px;max-width:100%;' + (isUser ? 'justify-content:flex-end;' : '');
+
+  if (!isUser) {
+    const av = document.createElement('div');
+    av.style.cssText = 'width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#1e3a5f,#2d5282);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;';
+    av.innerHTML = '<svg width="15" height="15" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>';
+    row.appendChild(av);
+  }
+
+  const b = document.createElement('div');
+  if (isUser) {
+    b.className = 'lp-bubble-user';
+    b.style.cssText = 'padding:10px 14px;max-width:78%;font-size:14px;line-height:1.6;word-break:break-word;';
+    b.innerHTML = lpEsc(html||'');
+  } else {
+    b.className = 'lp-bubble-ai';
+    b.style.cssText = 'padding:12px 15px;max-width:85%;font-size:14px;color:#1e293b;line-height:1.65;word-break:break-word;';
+    b.innerHTML = thinking
+      ? '<span style="display:inline-flex;gap:4px;align-items:center;"><span style="width:6px;height:6px;border-radius:50%;background:#cbd5e1;animation:dot-bounce 1.2s ease-in-out infinite;"></span><span style="width:6px;height:6px;border-radius:50%;background:#cbd5e1;animation:dot-bounce 1.2s ease-in-out infinite .2s;"></span><span style="width:6px;height:6px;border-radius:50%;background:#cbd5e1;animation:dot-bounce 1.2s ease-in-out infinite .4s;"></span></span>'
+      : lpMd(html||'');
+  }
+  row.appendChild(b);
+  c.appendChild(row);
+  c.scrollTop = c.scrollHeight;
+  return b;
 }
 
-_input.focus();
+function lpMd(t) {
+  return (t||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/```([\s\S]*?)```/g,'<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^### (.+)$/gm,'<p style="font-weight:700;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px;">$1</p>')
+    .replace(/^## (.+)$/gm,'<p style="font-weight:700;font-size:15px;color:#1e293b;margin:10px 0 4px;">$1</p>')
+    .replace(/^- (.+)$/gm,'<div style="display:flex;gap:6px;margin:2px 0;"><span style="color:#1e3a5f;margin-top:2px;">•</span><span>$1</span></div>')
+    .replace(/\n/g,'<br>');
+}
+function lpEsc(t) { return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+// ── TTS ──────────────────────────────────────────────────────────
+let _autoSpeak = false, _currentAudio = null;
+function lpToggleAutoSpeak() {
+  _autoSpeak = !_autoSpeak;
+  const btn = document.getElementById('lp-auto-speak-btn');
+  const icon = document.getElementById('lp-speak-icon');
+  const label = document.getElementById('lp-speak-label');
+  if (_autoSpeak) {
+    btn.style.borderColor = '#1e3a5f'; btn.style.color = '#1e3a5f'; btn.style.background = '#eff6ff';
+    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6v12M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM18.364 5.636a9 9 0 010 12.728"/>';
+    label.textContent = 'Đang bật';
+  } else {
+    btn.style.borderColor = '#e2e8f0'; btn.style.color = '#94a3b8'; btn.style.background = '#f8fafc';
+    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>';
+    label.textContent = 'Tự đọc';
+    if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+  }
+}
+window.lpToggleAutoSpeak = lpToggleAutoSpeak;
+
+function lpAddSpeakBtn(bubble, text) {
+  const btn = document.createElement('button');
+  btn.style.cssText = 'margin-top:8px;display:flex;align-items:center;gap:4px;font-size:11px;color:#94a3b8;background:transparent;border:none;cursor:pointer;padding:0;transition:color .15s;';
+  btn.innerHTML = '<svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg> Nghe';
+  btn.onmouseover = () => btn.style.color = '#1e3a5f';
+  btn.onmouseout  = () => btn.style.color = '#94a3b8';
+  btn.onclick = () => lpSpeakText(text, btn);
+  bubble.appendChild(btn);
+}
+
+async function lpSpeakText(text, btn) {
+  if (!HAS_TTS) return;
+  if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+  const plain = text.replace(/\*\*(.+?)\*\*/g,'$1').replace(/`(.+?)`/g,'$1').replace(/#+\s/g,'').trim().slice(0,1000);
+  if (btn) { btn.innerHTML = '⏳ Đang tải...'; btn.disabled = true; }
+  try {
+    const fd = new FormData(); fd.append('text',plain); fd.append('model','eleven_turbo_v2_5'); fd.append('authenticity_token',CSRF());
+    const res = await fetch(TTS_URL, {method:'POST',body:fd});
+    if (!res.ok) throw new Error();
+    const url = URL.createObjectURL(await res.blob());
+    _currentAudio = new Audio(url);
+    _currentAudio.onended = () => { URL.revokeObjectURL(url); _currentAudio = null; if (btn) { btn.innerHTML = '🔊 Nghe lại'; btn.disabled = false; } };
+    _currentAudio.play();
+    if (btn) btn.innerHTML = '⏸ Đang phát';
+  } catch(e) { if (btn) { btn.innerHTML = '⚠ Lỗi'; btn.disabled = false; } }
+}
+
+// ── STT ──────────────────────────────────────────────────────────
+let _recorder = null, _audioChunks = [], _cancelled = false;
+function lpToggleRecording() { _recorder ? lpStopRecording(false) : lpStartRecording(); }
+window.lpToggleRecording = lpToggleRecording;
+async function lpStartRecording() {
+  if (!HAS_STT || _recorder) return;
+  _cancelled = false; _audioChunks = [];
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    _recorder = new MediaRecorder(stream, {mimeType:'audio/webm'});
+    _recorder.ondataavailable = e => { if (e.data.size>0) _audioChunks.push(e.data); };
+    _recorder.onstop = async () => {
+      stream.getTracks().forEach(t=>t.stop());
+      document.getElementById('lp-voice-indicator').style.display = 'none';
+      const btn = document.getElementById('lp-mic-btn');
+      if (btn) btn.classList.remove('active');
+      if (_cancelled || !_audioChunks.length) { _recorder=null; return; }
+      await lpTranscribe(new Blob(_audioChunks,{type:'audio/webm'}));
+      _recorder = null;
+    };
+    _recorder.start(250);
+    document.getElementById('lp-voice-indicator').style.display = 'flex';
+    const btn = document.getElementById('lp-mic-btn');
+    if (btn) btn.classList.add('active');
+  } catch(e) { alert('Không thể truy cập microphone.'); _recorder=null; }
+}
+function lpStopRecording(cancel) { if (!_recorder) return; _cancelled=cancel; _recorder.stop(); }
+window.lpStopRecording = lpStopRecording;
+async function lpTranscribe(blob) {
+  const input = document.getElementById('lp-input');
+  input.placeholder = '⏳ Đang nhận dạng...'; input.disabled = true;
+  try {
+    const fd = new FormData(); fd.append('chunk',blob,'voice.webm'); fd.append('authenticity_token',CSRF());
+    const res  = await fetch(STT_URL,{method:'POST',body:fd});
+    const data = await res.json();
+    if (data.text?.trim()) { input.value=data.text.trim(); lpToggleSend(input.value); setTimeout(()=>{ if(input.value.trim()) lpSendMsg(); },400); }
+    else input.placeholder = 'Không nhận được. Thử lại...';
+  } catch(e) { input.placeholder = 'Lỗi. Thử lại...'; }
+  finally { input.disabled=false; setTimeout(()=>{input.placeholder='Hỏi bất cứ điều gì...';},2000); }
+}
+
+// ── Voice Call ───────────────────────────────────────────────────
+let _vcActive=false,_vcListening=false,_vcRecorder=null,_vcChunks=[],_vcStream=null;
+let _vcAnalyser=null,_vcSilTimer=null,_vcAudioCtx=null,_vcAnimFrame=null;
+let _vcVoiceId=localStorage.getItem('lp_vc_voice_id')||'';
+let _vcSpeed=parseFloat(localStorage.getItem('lp_vc_speed')||'0.95');
+let _voiceList=null;
+const VC_SPEEDS=[0.75,0.85,0.95,1.0,1.1];
+
+function lpEnterVoiceCall() { if (!HAS_STT||!HAS_TTS) return; lpOpenVoicePicker(); }
+window.lpEnterVoiceCall = lpEnterVoiceCall;
+function lpOpenVoicePicker() { document.getElementById('lp-vc-picker').style.display='flex'; document.body.style.overflow='hidden'; if (!_voiceList) lpLoadVoices(); }
+window.lpOpenVoicePicker = lpOpenVoicePicker;
+function lpCloseVoicePicker() { document.getElementById('lp-vc-picker').style.display='none'; document.body.style.overflow=''; }
+window.lpCloseVoicePicker = lpCloseVoicePicker;
+
+async function lpLoadVoices() {
+  const el = document.getElementById('lp-vc-voice-grid');
+  el.innerHTML = '<div style="grid-column:span 2;text-align:center;padding:32px;color:#94a3b8;font-size:13px;">Đang tải...</div>';
+  try {
+    const res  = await fetch(TTS_V_URL,{headers:{'X-CSRF-Token':CSRF()}});
+    const data = await res.json();
+    _voiceList = (Array.isArray(data)?data:(data.voices||[])).filter(v=>v.id&&v.name);
+    lpRenderVoiceGrid();
+  } catch(e) { el.innerHTML='<p style="color:#ef4444;font-size:13px;text-align:center;grid-column:span 2;padding:20px;">Không thể tải giọng</p>'; }
+}
+function lpRenderVoiceGrid() {
+  const el = document.getElementById('lp-vc-voice-grid');
+  if (!_voiceList?.length) { el.innerHTML='<p style="text-align:center;color:#94a3b8;grid-column:span 2;padding:20px;font-size:13px;">Không có giọng nào</p>'; return; }
+  const clrs=['#1e3a5f','#2d5282','#3b82f6','#7c3aed','#059669','#d97706'];
+  el.innerHTML=_voiceList.map((v,i)=>{
+    const sel=v.id===_vcVoiceId;
+    const clr=clrs[i%clrs.length];
+    const init=v.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return `<div data-vid="${v.id}" onclick="lpSelectVoice('${v.id}')" class="lp-vc-voice-card"
+                 style="padding:12px;border-radius:14px;border:1.5px solid ${sel?'#1e3a5f':'rgba(255,255,255,0.08)'};background:${sel?'rgba(30,58,95,0.2)':'rgba(255,255,255,0.03)'};">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:${sel?'#1e3a5f':clr};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0;">${init}</div>
+        <div><p style="font-size:12px;font-weight:600;color:${sel?'white':'rgba(255,255,255,0.8)'};margin:0;">${v.name}</p>
+          <p style="font-size:10px;color:rgba(255,255,255,0.35);margin:0;">${v.language||'en'}</p></div>
+        ${sel?'<svg style="width:14px;height:14px;flex-shrink:0;margin-left:auto;" fill="#60a5fa" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>':''}
+      </div>
+      <button onclick="event.stopPropagation();lpPreviewVoice('${v.id}',this)"
+              style="width:100%;padding:5px;border-radius:8px;border:none;cursor:pointer;font-size:10px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;gap:4px;">
+        ▶ Nghe thử</button>
+    </div>`;
+  }).join('');
+}
+function lpSelectVoice(id) {
+  _vcVoiceId=id; localStorage.setItem('lp_vc_voice_id',id);
+  const v=_voiceList?.find(x=>x.id===id);
+  if (v) { const n=document.getElementById('lp-vc-selected-name'); if(n) n.textContent=v.name; }
+  lpRenderVoiceGrid();
+}
+window.lpSelectVoice = lpSelectVoice;
+let _previewAudio=null;
+async function lpPreviewVoice(voiceId,btn) {
+  if (_previewAudio) { _previewAudio.pause(); _previewAudio=null; }
+  btn.textContent='⏳';
+  try {
+    const fd=new FormData(); fd.append('text','Xin chào, tôi là trợ lý AI của VOX!'); fd.append('voice_id',voiceId); fd.append('model','eleven_turbo_v2_5'); fd.append('authenticity_token',CSRF());
+    const res=await fetch(TTS_URL,{method:'POST',body:fd});
+    if (res.ok) { const url=URL.createObjectURL(await res.blob()); _previewAudio=new Audio(url); _previewAudio.onended=()=>URL.revokeObjectURL(url); _previewAudio.play(); }
+  } catch(e) {}
+  btn.textContent='▶ Nghe thử';
+}
+window.lpPreviewVoice = lpPreviewVoice;
+
+function lpStartVoiceCall() {
+  lpCloseVoicePicker(); _vcActive=true;
+  document.getElementById('lp-vc-overlay').style.display='flex';
+  document.body.style.overflow='hidden';
+  const vnd=document.getElementById('lp-vc-voice-name');
+  if (vnd&&_voiceList) { const sv=_voiceList.find(x=>x.id===_vcVoiceId); if(sv) vnd.textContent=sv.name; }
+  lpVcSetStatus('listening'); lpVcStartListening();
+}
+window.lpStartVoiceCall = lpStartVoiceCall;
+function lpExitVoiceCall() {
+  _vcActive=false; lpVcStopAll();
+  document.getElementById('lp-vc-overlay').style.display='none';
+  document.body.style.overflow='';
+  if (_currentAudio) { _currentAudio.pause(); _currentAudio=null; }
+}
+window.lpExitVoiceCall = lpExitVoiceCall;
+
+function lpVcSetStatus(state) {
+  const S={listening:{label:'Đang lắng nghe...',sub:'Cứ nói tự nhiên'},processing:{label:'Đang xử lý...',sub:'AI đang suy nghĩ'},speaking:{label:'AI đang nói...',sub:'Nhấn orb để ngắt'},idle:{label:'Sẵn sàng',sub:'Bắt đầu nói'}};
+  const s=S[state]||S.idle;
+  const el=document.getElementById('lp-vc-status'); if(el) el.textContent=s.label;
+  const sub=document.getElementById('lp-vc-sub'); if(sub) sub.textContent=s.sub;
+  const glows={listening:'lp-vc-blob 7s ease-in-out infinite,lp-vc-glow-listening 2.5s ease-in-out infinite',speaking:'lp-vc-blob 3.5s ease-in-out infinite,lp-vc-glow-speaking 1.6s ease-in-out infinite',processing:'lp-vc-blob 4.5s ease-in-out infinite,lp-vc-glow-processing 1.0s ease-in-out infinite',idle:'lp-vc-blob 10s ease-in-out infinite'};
+  const dot=document.getElementById('lp-vc-orb'); if(dot) dot.style.animation=glows[state]||glows.idle;
+  const barsWrap=document.getElementById('lp-vc-bars');
+  const clrs={listening:'#6366f1',speaking:'#10b981',processing:'#f59e0b',idle:'#64748b'};
+  barsWrap.style.color=clrs[state]||'#94a3b8';
+}
+
+async function lpVcStartListening() {
+  if (!_vcActive) return; lpVcSetStatus('listening'); _vcListening=true; _vcChunks=[];
+  try {
+    _vcStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    _vcAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const src=_vcAudioCtx.createMediaStreamSource(_vcStream);
+    _vcAnalyser=_vcAudioCtx.createAnalyser(); _vcAnalyser.fftSize=256;
+    src.connect(_vcAnalyser); lpVcAnimateBars(); lpVcDetectSilence();
+    _vcRecorder=new MediaRecorder(_vcStream,{mimeType:'audio/webm'});
+    _vcRecorder.ondataavailable=e=>{ if(e.data.size>0) _vcChunks.push(e.data); };
+    _vcRecorder.onstop=async()=>{ lpVcStopStream(); if(!_vcActive||!_vcChunks.length) return; lpVcSetStatus('processing'); await lpVcProcessAndReply(); };
+    _vcRecorder.start(200);
+  } catch(e) { lpVcSetStatus('idle'); const s=document.getElementById('lp-vc-sub'); if(s) s.textContent='Không thể truy cập mic'; }
+}
+function lpVcDetectSilence() {
+  const data=new Uint8Array(_vcAnalyser.frequencyBinCount);
+  let silMs=0,spk=false;
+  const start=Date.now();
+  function check() {
+    if (!_vcListening||!_vcActive) return;
+    _vcAnalyser.getByteFrequencyData(data);
+    const avg=data.reduce((a,b)=>a+b,0)/data.length;
+    if (avg>=20) { spk=true; silMs=0; }
+    else if (spk&&avg<14) { silMs+=100; if(silMs>=1000) { lpVcStopListening(); return; } }
+    if (Date.now()-start>30000) { lpVcStopListening(); return; }
+    _vcSilTimer=setTimeout(check,100);
+  }
+  _vcSilTimer=setTimeout(check,300);
+}
+function lpVcAnimateBars() {
+  if (!_vcAnalyser) return;
+  _vcAnalyser.fftSize=512; _vcAnalyser.smoothingTimeConstant=0.80;
+  const data=new Uint8Array(_vcAnalyser.frequencyBinCount);
+  const bars=document.querySelectorAll('.lp-vc-bar');
+  const smoothed=new Array(bars.length).fill(0.10);
+  const voiceBins=Math.floor(_vcAnalyser.frequencyBinCount*0.35);
+  function frame() {
+    if (!_vcActive) return;
+    _vcAnalyser.getByteFrequencyData(data);
+    const slice=Math.max(1,Math.floor(voiceBins/bars.length));
+    bars.forEach((b,i)=>{ let sum=0; for(let j=0;j<Math.min(slice,4);j++) sum+=(data[i*slice+j]||0); const boosted=Math.pow(sum/Math.min(slice,4)/255,0.45); const target=Math.max(0.08,Math.min(1.0,boosted*1.4)); smoothed[i]=smoothed[i]*0.4+target*0.6; b.style.transform='scaleY('+smoothed[i].toFixed(3)+')'; b.style.animation='none'; });
+    _vcAnimFrame=requestAnimationFrame(frame);
+  }
+  _vcAnimFrame=requestAnimationFrame(frame);
+}
+function lpVcStopListening() { _vcListening=false; clearTimeout(_vcSilTimer); if(_vcRecorder?.state==='recording') _vcRecorder.stop(); }
+function lpVcStopStream() { _vcStream?.getTracks().forEach(t=>t.stop()); _vcStream=null; _vcAudioCtx?.close().catch(()=>{}); _vcAudioCtx=null; if(_vcAnimFrame){cancelAnimationFrame(_vcAnimFrame);_vcAnimFrame=null;} }
+function lpVcStopAll() { _vcListening=false; clearTimeout(_vcSilTimer); if(_vcRecorder?.state!=='inactive'){try{_vcRecorder.stop();}catch(e){}} lpVcStopStream(); }
+function lpVcTapMic() { if(!_vcActive) return; if(_vcListening){lpVcStopListening();}else if(_vcAudioCtx){if(_currentAudio){_currentAudio.pause();_currentAudio=null;}setTimeout(()=>{if(_vcActive)lpVcStartListening();},200);}else{lpVcStartListening();} }
+window.lpVcTapMic = lpVcTapMic;
+
+async function lpVcProcessAndReply() {
+  if (!_vcChunks.length) { if(_vcActive) lpVcStartListening(); return; }
+  const blob=new Blob(_vcChunks,{type:'audio/webm'}); _vcChunks=[];
+  const txEl=document.getElementById('lp-vc-transcript'); if(txEl){txEl.textContent='⏳ Đang nhận dạng...';txEl.style.opacity='1';}
+  const fd=new FormData(); fd.append('chunk',blob,'voice.webm'); fd.append('authenticity_token',CSRF());
+  let userText='';
+  try { const r=await fetch(STT_URL,{method:'POST',body:fd}); const d=await r.json(); userText=(d.text||'').trim(); } catch(e) {}
+  if (!userText) { if(_vcActive) lpVcStartListening(); return; }
+  lpAppendMsg('user',userText); chatHistory.push({role:'user',content:userText}); lpSaveHistory();
+  if(txEl) txEl.textContent='🗣 '+userText;
+  lpVcSetStatus('processing');
+  const thinkEl=lpAppendMsg('assistant',null,true);
+  let reply='';
+  try {
+    const res=await fetch(VOICE_URL,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF()},body:JSON.stringify({message:userText,history:chatHistory.slice(0,-1)})});
+    const data=await res.json();
+    reply=data.reply||data.response||'';
+    thinkEl.innerHTML=lpMd(reply);
+  } catch(e) { thinkEl.innerHTML='<span style="color:#ef4444;">Lỗi kết nối.</span>'; if(_vcActive) lpVcStartListening(); return; }
+  if (reply) {
+    chatHistory.push({role:'assistant',content:reply}); lpSaveHistory();
+    if (window.updateLpCredits && data.credits_remaining !== undefined) { updateLpCredits(data.credits_remaining); } else { const el=document.getElementById('lp-credits-count'); if(el) el.textContent=parseInt(el.textContent||0)-1; if(window.updateLpCredits) updateLpCredits(parseInt(el&&el.textContent||0)); }
+    if(txEl) txEl.textContent='🤖 '+reply.slice(0,80)+(reply.length>80?'...':'');
+    if (HAS_TTS) {
+      lpVcSetStatus('speaking');
+      const fd2=new FormData(); fd2.append('text',reply.replace(/\*\*(.+?)\*\*/g,'$1').replace(/`(.+?)`/g,'$1').slice(0,1000)); fd2.append('model','eleven_flash_v2_5'); fd2.append('speed',String(_vcSpeed)); if(_vcVoiceId) fd2.append('voice_id',_vcVoiceId); fd2.append('authenticity_token',CSRF());
+      try { const ar=await fetch(TTS_URL,{method:'POST',body:fd2}); if(ar.ok){const url=URL.createObjectURL(await ar.blob()); _currentAudio=new Audio(url); _currentAudio.onended=()=>{URL.revokeObjectURL(url);_currentAudio=null;if(_vcActive)lpVcStartListening();}; _currentAudio.play(); return; } } catch(e) {}
+    }
+  }
+  if (_vcActive) lpVcStartListening();
+}
+
+window.lpVcSpeedDec=function(){const i=VC_SPEEDS.indexOf(_vcSpeed);if(i>0){_vcSpeed=VC_SPEEDS[i-1];localStorage.setItem('lp_vc_speed',_vcSpeed);const l=document.getElementById('lp-vc-speed-label');if(l)l.textContent=_vcSpeed+'×';}};
+window.lpVcSpeedInc=function(){const i=VC_SPEEDS.indexOf(_vcSpeed);if(i<VC_SPEEDS.length-1){_vcSpeed=VC_SPEEDS[i+1];localStorage.setItem('lp_vc_speed',_vcSpeed);const l=document.getElementById('lp-vc-speed-label');if(l)l.textContent=_vcSpeed+'×';}};
+document.addEventListener('DOMContentLoaded',()=>{const l=document.getElementById('lp-vc-speed-label');if(l)l.textContent=_vcSpeed+'×';});
+
+document.getElementById('lp-input').focus();
+})();
 </script>
+
+</div><!-- end chat card -->
+
+<!-- ── Voice Picker Modal ── -->
+<% if @has_stt && @has_tts %>
+<div id="lp-vc-picker" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(8,10,20,0.75);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#0f1629;border:1px solid rgba(255,255,255,0.07);border-radius:22px;width:100%;max-width:420px;display:flex;flex-direction:column;max-height:86vh;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div>
+        <h3 style="font-size:15px;font-weight:700;color:white;margin:0 0 2px;">Chọn giọng AI</h3>
+        <p style="font-size:11px;color:rgba(255,255,255,0.35);margin:0;">Đã chọn: <span id="lp-vc-selected-name" style="color:#60a5fa;font-weight:600;">Mặc định</span></p>
+      </div>
+      <button onclick="lpCloseVoicePicker()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.07);border:none;color:rgba(255,255,255,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;">×</button>
+    </div>
+    <div id="lp-vc-voice-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;overflow-y:auto;flex:1;"></div>
+    <div style="padding:10px 14px;border-top:1px solid rgba(255,255,255,0.06);">
+      <button onclick="lpStartVoiceCall()" style="width:100%;padding:12px;border-radius:14px;border:none;color:white;font-size:14px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#1e3a5f,#2d5282);display:flex;align-items:center;justify-content:center;gap:8px;">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+        Bắt đầu trò chuyện
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Voice Call Overlay ── -->
+<div id="lp-vc-overlay" style="display:none;position:fixed;inset:0;z-index:190;background:linear-gradient(160deg,#07080f 0%,#0d0f1e 55%,#080c18 100%);flex-direction:column;align-items:center;justify-content:center;">
+  <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:7px;height:7px;border-radius:50%;background:#6366f1;"></div>
+      <span id="lp-vc-voice-name" style="font-size:12px;font-weight:600;color:#64748b;">AI Tutor</span>
+    </div>
+    <button onclick="lpExitVoiceCall()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;">×</button>
+  </div>
+
+  <div style="position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:32px;animation:lp-vc-float 5s ease-in-out infinite;" onclick="lpVcTapMic()">
+    <div style="position:absolute;width:130px;height:130px;border-radius:50%;border:1.5px solid rgba(99,102,241,0.25);animation:lp-vc-ring-pulse 2.2s ease-in-out infinite;pointer-events:none;"></div>
+    <div style="position:absolute;width:165px;height:165px;border-radius:50%;border:1px solid rgba(99,102,241,0.12);animation:lp-vc-ring-pulse2 2.2s ease-in-out infinite .4s;pointer-events:none;"></div>
+    <div id="lp-vc-orb" style="width:100px;height:100px;border-radius:50%;overflow:hidden;position:relative;cursor:pointer;animation:lp-vc-blob 7s ease-in-out infinite,lp-vc-glow-listening 2.5s ease-in-out infinite;">
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at 35% 30%,#1e3a5f 0%,#0d1b2e 50%,#050810 100%);"></div>
+      <div style="position:absolute;inset:-6px;background:conic-gradient(from 0deg,transparent 0%,rgba(99,102,241,.85) 10%,transparent 22%,rgba(59,130,246,.70) 38%,transparent 52%,rgba(16,185,129,.55) 68%,transparent 80%,rgba(99,102,241,.45) 94%,transparent 100%);animation:lp-vc-spin 5s linear infinite;mix-blend-mode:screen;border-radius:50%;"></div>
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 30% 22%,rgba(255,255,255,.45) 0%,rgba(255,255,255,.05) 50%,transparent 72%);"></div>
+    </div>
+  </div>
+
+  <div id="lp-vc-status" style="font-size:18px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">Đang lắng nghe...</div>
+  <div id="lp-vc-sub" style="font-size:12px;color:#475569;margin-bottom:24px;">Cứ nói tự nhiên</div>
+
+  <div id="lp-vc-bars" style="display:flex;align-items:center;gap:3px;height:40px;margin-bottom:24px;color:#6366f1;">
+    <% [['a',1.1],['b',1.28],['c',1.46],['b',1.64],['a',1.82],['c',1.1],['b',1.28],['a',1.46],['c',1.64],['b',1.82],['a',1.1],['b',1.28],['c',1.46],['b',1.64],['a',1.82],['c',1.1],['b',1.28],['a',1.46],['c',1.64],['b',1.82]].each_with_index do |(w,spd),i| %>
+      <div class="lp-vc-bar" style="animation:lp-vc-wave-<%= w %> <%= spd %>s ease-in-out infinite <%= (i*0.09).round(2) %>s;"></div>
+    <% end %>
+  </div>
+
+  <div style="max-width:340px;width:100%;padding:0 20px;margin-bottom:24px;">
+    <div id="lp-vc-transcript" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:10px 14px;font-size:12.5px;color:#94a3b8;text-align:center;min-height:40px;line-height:1.6;">
+      Cuộc trò chuyện sẽ xuất hiện ở đây
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <span style="font-size:9px;color:#334155;font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Tốc độ</span>
+      <div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:3px 10px;">
+        <button onclick="lpVcSpeedDec()" style="width:20px;height:20px;border-radius:50%;background:transparent;border:none;color:#64748b;font-size:15px;cursor:pointer;">−</button>
+        <span id="lp-vc-speed-label" style="font-size:11px;font-weight:700;color:#cbd5e1;min-width:34px;text-align:center;">0.95×</span>
+        <button onclick="lpVcSpeedInc()" style="width:20px;height:20px;border-radius:50%;background:transparent;border:none;color:#64748b;font-size:15px;cursor:pointer;">+</button>
+      </div>
+    </div>
+    <button onclick="lpExitVoiceCall()" style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(239,68,68,.4);">
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+    </button>
+  </div>
+</div>
+<% end %>

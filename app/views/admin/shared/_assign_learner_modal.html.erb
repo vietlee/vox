@@ -1,141 +1,456 @@
-<%# locals: resource_type ("quiz" | "flashcard" | "learning_path"), assign_url, assignments_url, resource_title %>
+<%# locals: resource_type ("quiz" | "flashcard" | "learning_path"), assign_url, assignments_url, remove_assignment_url, resource_title, published (optional, default true) %>
+<% published = local_assigns.fetch(:published, true) %>
 
 <!-- Assign Learner Button -->
-<button onclick="openAssignLearnerModal()"
-        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-bold border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors">
-  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-  Giao cho Learner
-</button>
+<% if published %>
+  <button onclick="openAssignLearnerModal()"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-bold border border-[#1e3a5f] bg-[#eef3fa] hover:bg-[#1e3a5f] hover:text-white text-[#1e3a5f] transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    <%= t("assign_learner_modal.open_btn") %>
+  </button>
+<% else %>
+  <span title="Cần công khai trước khi giao cho learner"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-bold border border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    <%= t("assign_learner_modal.open_btn") %>
+    <span class="text-[11px] font-normal">(chưa công khai)</span>
+  </span>
+<% end %>
 
 <!-- Modal Backdrop -->
 <div id="assign-learner-modal"
-     style="display:none;position:fixed;inset:0;z-index:70;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.55);"
+     style="display:none;position:fixed;inset:0;z-index:9999;overflow:hidden;background:rgba(15,23,42,0.55);align-items:center;justify-content:center;"
      onclick="if(event.target===this)closeAssignLearnerModal()">
-  <div style="background:#fff;border-radius:22px;box-shadow:0 8px 48px rgba(0,0,0,0.18);width:100%;max-width:440px;overflow:hidden;">
+  <div style="width:100%;max-width:480px;margin:20px auto;">
+  <div style="background:#fff;border-radius:22px;box-shadow:0 8px 48px rgba(0,0,0,0.18);width:100%;overflow:hidden;display:flex;flex-direction:column;">
 
     <!-- Header -->
-    <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:20px 24px;">
-      <h3 style="color:#fff;font-size:16px;font-weight:800;margin:0 0 2px;">Giao cho Learner</h3>
-      <p style="color:rgba(255,255,255,0.75);font-size:12px;margin:0;">
-        <%= resource_title %>
-      </p>
+    <div style="background:#1e3a5f;padding:20px 24px;flex-shrink:0;">
+      <h3 style="color:#fff;font-size:16px;font-weight:800;margin:0 0 2px;"><%= t("assign_learner_modal.title") %></h3>
+      <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0;"><%= resource_title %></p>
     </div>
 
     <!-- Tab bar -->
-    <div style="display:flex;border-bottom:1px solid #e5e7eb;">
+    <div style="display:flex;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
       <button id="alm-tab-assign" onclick="almTab('assign')"
-              style="flex:1;padding:10px;font-size:13px;font-weight:700;color:#4f46e5;border-bottom:2px solid #4f46e5;background:none;border-top:none;border-left:none;border-right:none;cursor:pointer;">
-        Giao mới
+              style="flex:1;padding:10px;font-size:13px;font-weight:700;color:#1e3a5f;border-bottom:2px solid #1e3a5f;background:none;border-top:none;border-left:none;border-right:none;cursor:pointer;">
+        <%= t("assign_learner_modal.tab_new") %>
       </button>
       <button id="alm-tab-list" onclick="almTab('list')"
               style="flex:1;padding:10px;font-size:13px;font-weight:600;color:#9ca3af;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;cursor:pointer;">
-        Đã giao
+        <%= t("assign_learner_modal.tab_assigned") %>
       </button>
     </div>
 
     <!-- Panel: Giao mới -->
-    <div id="alm-panel-assign" style="padding:20px 24px;">
-      <%= form_with url: assign_url, method: :post do |f| %>
-        <div style="margin-bottom:14px;">
-          <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Email learner <span style="color:#ef4444;">*</span></label>
-          <%= f.email_field :email, required: true, placeholder: "learner@example.com",
-              style: "width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;font-family:inherit;",
-              onfocus: "this.style.borderColor='#6366f1'", onblur: "this.style.borderColor='#e5e7eb'" %>
-          <p style="font-size:11px;color:#9ca3af;margin-top:5px;">Nếu chưa có tài khoản, hệ thống sẽ tự tạo và gửi email mời.</p>
+    <div id="alm-panel-assign">
+
+      <!-- Fixed: folder pills + search + select all -->
+      <div style="flex-shrink:0;padding:16px 24px 0;">
+        <!-- Folder filter pills -->
+        <div style="margin-bottom:12px;">
+          <p style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.4px;margin:0 0 8px;"><%= t("assign_learner_modal.folder_filter_label") %></p>
+          <div id="alm-folder-pills" style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button onclick="almSelectAllFolders()"
+                    id="alm-folder-all"
+                    style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid #1e3a5f;background:#1e3a5f;color:#fff;cursor:pointer;">
+              <%= t("assign_learner_modal.folder_all") %>
+            </button>
+            <!-- folders rendered by JS -->
+          </div>
         </div>
-        <div style="margin-bottom:14px;">
-          <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Tên (tuỳ chọn)</label>
-          <%= f.text_field :name, placeholder: "Tên hiển thị",
-              style: "width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;font-family:inherit;",
-              onfocus: "this.style.borderColor='#6366f1'", onblur: "this.style.borderColor='#e5e7eb'" %>
+
+        <!-- Search -->
+        <div style="margin-bottom:10px;position:relative;">
+          <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;" width="15" height="15" fill="none" stroke="#9ca3af" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/></svg>
+          <input id="alm-search" type="text" placeholder="<%= t('assign_learner_modal.search_placeholder') %>"
+                 oninput="almFilter()"
+                 style="width:100%;box-sizing:border-box;padding:9px 12px 9px 32px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;outline:none;font-family:inherit;"
+                 onfocus="this.style.borderColor='#1e3a5f'" onblur="this.style.borderColor='#e5e7eb'">
         </div>
-        <% if resource_type == "quiz" || resource_type == "flashcard" %>
-        <div style="margin-bottom:18px;">
-          <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Hạn hoàn thành (tuỳ chọn)</label>
-          <%= f.datetime_local_field :due_at,
-              style: "width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;font-family:inherit;",
-              onfocus: "this.style.borderColor='#6366f1'", onblur: "this.style.borderColor='#e5e7eb'" %>
+
+        <!-- Select all / count -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;">
+            <input type="checkbox" id="alm-select-all" onchange="almToggleAll(this.checked)"
+                   style="width:15px;height:15px;accent-color:#1e3a5f;cursor:pointer;">
+            <%= t("assign_learner_modal.select_all") %>
+          </label>
+          <span id="alm-selected-count" style="font-size:12px;font-weight:600;color:#1e3a5f;">0 đã chọn</span>
         </div>
-        <% else %>
-        <div style="margin-bottom:18px;">
-          <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Hạn hoàn thành (tuỳ chọn)</label>
-          <%= f.date_field :due_date,
-              style: "width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;font-family:inherit;",
-              onfocus: "this.style.borderColor='#6366f1'", onblur: "this.style.borderColor='#e5e7eb'" %>
+      </div>
+
+      <!-- Scrollable: learner list only -->
+      <div style="padding:0 24px 12px;">
+        <div id="alm-learner-list" style="border:1px solid #e5e7eb;border-radius:12px;overflow-y:auto;max-height:calc(100vh - 480px);min-height:120px;">
+          <div style="text-align:center;padding:24px;color:#9ca3af;font-size:13px;">Đang tải...</div>
         </div>
-        <% end %>
-        <div style="display:flex;gap:8px;">
-          <%= f.submit "Giao ngay",
-              style: "flex:1;padding:11px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;" %>
-          <button type="button" onclick="closeAssignLearnerModal()"
-                  style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">Huỷ</button>
-        </div>
-      <% end %>
+        <p id="alm-no-learners" style="display:none;font-size:12px;color:#f59e0b;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-top:8px;">
+          <%= t("assign_learner_modal.no_learners_warning") %>
+        </p>
+      </div>
+
+      <!-- Hidden form (submitted by JS) -->
+      <form id="alm-form" action="<%= assign_url %>" method="post" style="display:none;">
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+        <div id="alm-hidden-ids"></div>
+        <input type="hidden" id="alm-due-hidden" name="<%= resource_type == 'learning_path' ? 'due_date' : 'due_at' %>">
+      </form>
     </div>
 
     <!-- Panel: Đã giao -->
-    <div id="alm-panel-list" style="display:none;padding:0 0 8px;">
-      <div id="alm-list-body" style="max-height:320px;overflow-y:auto;">
+    <div id="alm-panel-list" style="display:none;flex:1;overflow-y:auto;min-height:0;">
+      <div id="alm-list-body">
         <div style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;">Đang tải...</div>
       </div>
     </div>
 
+    <!-- Footer cố định: due date + actions (luôn hiển thị) -->
+    <div id="alm-footer" style="flex-shrink:0;padding:14px 24px 18px;border-top:1px solid #f1f5f9;background:#fff;">
+      <!-- Due date -->
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">
+          <%= t("assign_learner_modal.due_label") %>
+        </label>
+        <% if resource_type == "learning_path" %>
+          <input type="date" id="alm-due-date" name="due_date"
+                 style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;outline:none;font-family:inherit;"
+                 onfocus="this.style.borderColor='#1e3a5f'" onblur="this.style.borderColor='#e5e7eb'">
+        <% else %>
+          <input type="datetime-local" id="alm-due-date" name="due_at"
+                 style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;outline:none;font-family:inherit;"
+                 onfocus="this.style.borderColor='#1e3a5f'" onblur="this.style.borderColor='#e5e7eb'">
+        <% end %>
+      </div>
+      <!-- Actions -->
+      <div style="display:flex;gap:8px;">
+        <button id="alm-submit-btn" onclick="almSubmit()"
+                style="flex:1;padding:11px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <span id="alm-submit-text"><%= t("assign_learner_modal.submit_btn") %></span>
+          <svg id="alm-spinner" style="display:none;width:15px;height:15px;animation:almSpin .8s linear infinite;" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
+            <path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button type="button" onclick="closeAssignLearnerModal()"
+                style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;"><%= t("assign_learner_modal.cancel") %></button>
+      </div>
+    </div>
+
+  </div>
+  </div><!-- /inner centering wrapper -->
+</div>
+
+<!-- Confirm popup: Huỷ giao -->
+<div id="alm-confirm-popup"
+     style="display:none;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;background:rgba(15,23,42,0.45);">
+  <div style="background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.18);padding:28px 28px 20px;width:340px;max-width:90vw;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div style="width:36px;height:36px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" fill="none" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+      </div>
+      <div>
+        <p style="font-size:14px;font-weight:800;color:#1e293b;margin:0;"><%= t("assign_learner_modal.confirm_title") %></p>
+        <p style="font-size:12px;color:#9ca3af;margin:0;"><%= t("assign_learner_modal.confirm_desc") %></p>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+      <button id="alm-confirm-cancel"
+              style="padding:8px 18px;font-size:13px;font-weight:700;border-radius:10px;border:1.5px solid #e5e7eb;background:#f9fafb;color:#374151;cursor:pointer;">
+        <%= t("assign_learner_modal.confirm_cancel") %>
+      </button>
+      <button id="alm-confirm-ok"
+              style="padding:8px 18px;font-size:13px;font-weight:700;border-radius:10px;border:none;background:#ef4444;color:#fff;cursor:pointer;">
+        <%= t("assign_learner_modal.confirm_ok") %>
+      </button>
+    </div>
   </div>
 </div>
 
+<style>
+@keyframes almSpin { to { transform: rotate(360deg); } }
+</style>
+
 <script>
 (function() {
-  var _assignmentsUrl = "<%= assignments_url %>";
+  var _assignmentsUrl      = "<%= assignments_url %>";
+  var _removeAssignmentUrl = "<%= remove_assignment_url %>";
+  var _workspaceLearnerUrl = "<%= workspace_learners_path %>";
+  var _csrfToken           = document.querySelector('meta[name="csrf-token"]').content;
+  var _allLearners         = [];
+  var _assignedLearnerIds  = new Set();
+  var _cachedAssignments   = null;
+  var _folders      = [];
+  var _activeFolders = new Set();
 
+  var _fetchOpts = { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } };
+
+  // ── Open / Close ──────────────────────────────────────────────────
   window.openAssignLearnerModal = function() {
-    document.getElementById('assign-learner-modal').style.display = 'flex';
+    var modal = document.getElementById('assign-learner-modal');
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
     almTab('assign');
+    loadAll();
   };
   window.closeAssignLearnerModal = function() {
     document.getElementById('assign-learner-modal').style.display = 'none';
   };
+
+  // ── Tab switch ────────────────────────────────────────────────────
   window.almTab = function(tab) {
     var isAssign = tab === 'assign';
     document.getElementById('alm-panel-assign').style.display = isAssign ? '' : 'none';
     document.getElementById('alm-panel-list').style.display   = isAssign ? 'none' : '';
+    document.getElementById('alm-footer').style.display       = isAssign ? '' : 'none';
     var tA = document.getElementById('alm-tab-assign');
     var tL = document.getElementById('alm-tab-list');
-    tA.style.color        = isAssign ? '#4f46e5' : '#9ca3af';
-    tA.style.borderBottomColor = isAssign ? '#4f46e5' : 'transparent';
-    tA.style.fontWeight   = isAssign ? '700' : '600';
-    tL.style.color        = !isAssign ? '#4f46e5' : '#9ca3af';
-    tL.style.borderBottomColor = !isAssign ? '#4f46e5' : 'transparent';
-    tL.style.fontWeight   = !isAssign ? '700' : '600';
+    tA.style.color             = isAssign ? '#1e3a5f' : '#9ca3af';
+    tA.style.borderBottomColor = isAssign ? '#1e3a5f' : 'transparent';
+    tA.style.fontWeight        = isAssign ? '700' : '600';
+    tL.style.color             = !isAssign ? '#1e3a5f' : '#9ca3af';
+    tL.style.borderBottomColor = !isAssign ? '#1e3a5f' : 'transparent';
+    tL.style.fontWeight        = !isAssign ? '700' : '600';
     if (!isAssign) loadLearnerList();
   };
 
-  function loadLearnerList() {
-    var el = document.getElementById('alm-list-body');
-    el.innerHTML = '<div style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;">Đang tải...</div>';
-    fetch(_assignmentsUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (!data.length) {
-          el.innerHTML = '<div style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;">Chưa có learner nào được giao.</div>';
-          return;
-        }
-        var statusLabel = { pending: '⏳ Chờ', in_progress: '📖 Đang học', completed: '✅ Hoàn thành' };
-        el.innerHTML = data.map(function(a) {
-          return '<div style="display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid #f3f4f6;">' +
-            '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
-              '<span style="color:#fff;font-size:14px;font-weight:800;">' + (a.name||a.email).charAt(0).toUpperCase() + '</span>' +
-            '</div>' +
-            '<div style="flex:1;min-width:0;">' +
-              '<p style="font-size:13px;font-weight:700;color:#1e293b;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (a.name||'—') + '</p>' +
-              '<p style="font-size:11px;color:#9ca3af;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + a.email + '</p>' +
-            '</div>' +
-            '<span style="font-size:11px;font-weight:600;white-space:nowrap;">' + (statusLabel[a.status]||a.status) + '</span>' +
-          '</div>';
-        }).join('');
+  // ── Load workspace learners + assigned list in parallel ──────────
+  function loadAll() {
+    document.getElementById('alm-learner-list').innerHTML =
+      '<div style="text-align:center;padding:24px;color:#9ca3af;font-size:13px;">Đang tải...</div>';
+    Promise.all([
+      fetch(_workspaceLearnerUrl, _fetchOpts).then(function(r) { return r.json(); }),
+      fetch(_assignmentsUrl, _fetchOpts).then(function(r) { return r.json(); })
+    ]).then(function(results) {
+        var wsData      = results[0];
+        var assignments = results[1];
+        _allLearners       = wsData.learners || [];
+        _folders           = wsData.folders  || [];
+        _cachedAssignments = assignments;
+        _assignedLearnerIds = new Set(assignments.map(function(a) { return a.learner_id; }));
+        renderFolderPills();
+        almFilter();
+        document.getElementById('alm-no-learners').style.display = _allLearners.length ? 'none' : '';
       })
       .catch(function() {
-        el.innerHTML = '<div style="text-align:center;padding:32px;color:#ef4444;font-size:13px;">Lỗi tải danh sách.</div>';
+        document.getElementById('alm-learner-list').innerHTML =
+          '<div style="text-align:center;padding:24px;color:#ef4444;font-size:13px;">Lỗi tải danh sách.</div>';
       });
   }
+
+  // ── Folder pills ──────────────────────────────────────────────────
+  function renderFolderPills() {
+    var container = document.getElementById('alm-folder-pills');
+    // keep "Tất cả" button, remove the rest
+    var allBtn = document.getElementById('alm-folder-all');
+    container.innerHTML = '';
+    container.appendChild(allBtn);
+    _folders.forEach(function(f) {
+      var btn = document.createElement('button');
+      btn.textContent = f.name + ' (' + f.learner_ids.length + ')';
+      btn.dataset.folderId = f.id;
+      btn.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid #d1dce8;background:#f0f4f8;color:#1e3a5f;cursor:pointer;';
+      btn.onclick = function() { almToggleFolder(f.id, btn); };
+      container.appendChild(btn);
+    });
+  }
+
+  window.almSelectAllFolders = function() {
+    _activeFolders.clear();
+    document.querySelectorAll('#alm-folder-pills button').forEach(function(b) {
+      if (b.id === 'alm-folder-all') {
+        b.style.background = '#1e3a5f'; b.style.color = '#fff'; b.style.borderColor = '#1e3a5f';
+      } else {
+        b.style.background = '#f0f4f8'; b.style.color = '#1e3a5f'; b.style.borderColor = '#d1dce8';
+      }
+    });
+    almFilter();
+  };
+
+  function almToggleFolder(id, btn) {
+    // deselect "Tất cả" pill
+    var allBtn = document.getElementById('alm-folder-all');
+    allBtn.style.background = '#f0f4f8'; allBtn.style.color = '#1e3a5f'; allBtn.style.borderColor = '#d1dce8';
+
+    if (_activeFolders.has(id)) {
+      _activeFolders.delete(id);
+      btn.style.background = '#f0f4f8'; btn.style.color = '#1e3a5f'; btn.style.borderColor = '#d1dce8';
+    } else {
+      _activeFolders.add(id);
+      btn.style.background = '#1e3a5f'; btn.style.color = '#fff'; btn.style.borderColor = '#1e3a5f';
+    }
+    if (_activeFolders.size === 0) almSelectAllFolders();
+    else almFilter();
+  }
+
+  // ── Filter learners ───────────────────────────────────────────────
+  window.almFilter = function() {
+    var query = (document.getElementById('alm-search').value || '').toLowerCase();
+
+    var folderLearnerIds = null;
+    if (_activeFolders.size > 0) {
+      folderLearnerIds = new Set();
+      _folders.forEach(function(f) {
+        if (_activeFolders.has(f.id)) f.learner_ids.forEach(function(id) { folderLearnerIds.add(id); });
+      });
+    }
+
+    var filtered = _allLearners.filter(function(l) {
+      var matchFolder = !folderLearnerIds || folderLearnerIds.has(l.id);
+      var matchQuery  = !query || l.name.toLowerCase().includes(query) || l.email.toLowerCase().includes(query);
+      return matchFolder && matchQuery;
+    });
+    renderLearnerList(filtered);
+  };
+
+  // ── Render learner checkboxes ─────────────────────────────────────
+  function renderLearnerList(learners) {
+    var el = document.getElementById('alm-learner-list');
+    if (!learners.length) {
+      el.innerHTML = '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">Không tìm thấy learner.</div>';
+      updateCount();
+      return;
+    }
+    el.innerHTML = learners.map(function(l) {
+      var assigned = _assignedLearnerIds.has(l.id);
+      var avatarBg = assigned ? '#9ca3af' : '#1e3a5f';
+      var cursor   = assigned ? 'default' : 'pointer';
+      var labelStyle = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f3f4f6;cursor:' + cursor + ';' + (assigned ? 'opacity:0.6;' : '');
+      var hoverIn  = assigned ? '' : 'this.style.background=\'#f8fafc\'';
+      var hoverOut = assigned ? '' : 'this.style.background=\'\'';
+      var checkboxHtml = assigned
+        ? '<input type="checkbox" checked disabled style="width:16px;height:16px;accent-color:#9ca3af;flex-shrink:0;">'
+        : '<input type="checkbox" class="alm-cb" value="' + l.id + '" onchange="updateCount()" style="width:16px;height:16px;accent-color:#1e3a5f;cursor:pointer;flex-shrink:0;">';
+      var badge = assigned ? '<span style="font-size:10px;font-weight:700;color:#059669;background:#d1fae5;border-radius:4px;padding:1px 6px;white-space:nowrap;flex-shrink:0;">Đã giao</span>' : '';
+      return '<label style="' + labelStyle + '" onmouseover="' + hoverIn + '" onmouseout="' + hoverOut + '">' +
+        checkboxHtml +
+        '<div style="width:32px;height:32px;border-radius:50%;background:' + avatarBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+          '<span style="color:#fff;font-size:13px;font-weight:800;">' + (l.name || l.email).charAt(0).toUpperCase() + '</span>' +
+        '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<p style="font-size:13px;font-weight:700;color:#1e293b;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (l.name || '—') + '</p>' +
+          '<p style="font-size:11px;color:#9ca3af;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + l.email + '</p>' +
+        '</div>' +
+        badge +
+      '</label>';
+    }).join('');
+    updateCount();
+  }
+
+  // ── Select all toggle ─────────────────────────────────────────────
+  window.almToggleAll = function(checked) {
+    document.querySelectorAll('.alm-cb').forEach(function(cb) { cb.checked = checked; });
+    updateCount();
+  };
+
+  function updateCount() {
+    var n = document.querySelectorAll('.alm-cb:checked').length;
+    document.getElementById('alm-selected-count').textContent = n + ' đã chọn';
+    document.getElementById('alm-select-all').checked =
+      n > 0 && n === document.querySelectorAll('.alm-cb').length;
+    document.getElementById('alm-select-all').indeterminate =
+      n > 0 && n < document.querySelectorAll('.alm-cb').length;
+  }
+  window.updateCount = updateCount;
+
+  // ── Submit ────────────────────────────────────────────────────────
+  window.almSubmit = function() {
+    var ids = Array.from(document.querySelectorAll('.alm-cb:checked')).map(function(cb) { return cb.value; });
+    if (!ids.length) { alert('Vui lòng chọn ít nhất một learner.'); return; }
+
+    var form = document.getElementById('alm-form');
+    document.getElementById('alm-hidden-ids').innerHTML =
+      ids.map(function(id) { return '<input type="hidden" name="learner_ids[]" value="' + id + '">'; }).join('');
+    document.getElementById('alm-due-hidden').value = document.getElementById('alm-due-date').value;
+
+    var btn  = document.getElementById('alm-submit-btn');
+    var text = document.getElementById('alm-submit-text');
+    var spin = document.getElementById('alm-spinner');
+    text.textContent = 'Đang giao...';
+    spin.style.display = 'block';
+    btn.disabled = true;
+    btn.style.opacity = '0.8';
+
+    form.submit();
+  };
+
+  // ── Load assigned list (tab Đã giao) — dùng cache, không fetch lại ─
+  function loadLearnerList() {
+    var el = document.getElementById('alm-list-body');
+    if (_cachedAssignments !== null) {
+      renderAssignmentList(el, _cachedAssignments);
+      return;
+    }
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;">Đang tải...</div>';
+    fetch(_assignmentsUrl, _fetchOpts)
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        _cachedAssignments = data;
+        renderAssignmentList(el, data);
+      })
+      .catch(function(e) {
+        el.innerHTML = '<div style="text-align:center;padding:32px;color:#ef4444;font-size:13px;">Lỗi tải danh sách: ' + e.message + '</div>';
+      });
+  }
+
+  function renderAssignmentList(el, data) {
+    if (!data.length) {
+      el.innerHTML = '<div style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;">Chưa có learner nào được giao.</div>';
+      return;
+    }
+    var statusLabel = { pending: '⏳ Chờ', in_progress: '📖 Đang học', completed: '✅ Hoàn thành', active: '✅ Đang học' };
+    el.innerHTML = data.map(function(a) {
+      return '<div id="alm-row-' + a.id + '" style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f3f4f6;">' +
+        '<div style="width:34px;height:34px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+          '<span style="color:#fff;font-size:14px;font-weight:800;">' + (a.name || a.email).charAt(0).toUpperCase() + '</span>' +
+        '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<p style="font-size:13px;font-weight:700;color:#1e293b;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (a.name || '—') + '</p>' +
+          '<p style="font-size:11px;color:#9ca3af;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + a.email + '</p>' +
+        '</div>' +
+        '<span style="font-size:11px;font-weight:600;color:#64748b;white-space:nowrap;margin-right:8px;">' + (statusLabel[a.status] || a.status) + '</span>' +
+        '<button onclick="almRemove(' + a.id + ',' + a.learner_id + ',this)" ' +
+          'style="padding:4px 10px;font-size:11px;font-weight:700;color:#ef4444;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;cursor:pointer;white-space:nowrap;flex-shrink:0;">' +
+          'Huỷ giao' +
+        '</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ── Remove assignment ─────────────────────────────────────────────
+  window.almRemove = function(assignmentId, learnerId, btn) {
+    var popup = document.getElementById('alm-confirm-popup');
+    document.body.appendChild(popup);
+    popup.style.display = 'flex';
+    document.getElementById('alm-confirm-ok').onclick = function() {
+      popup.style.display = 'none';
+      btn.textContent = '...';
+      btn.disabled = true;
+    fetch(_removeAssignmentUrl + '?assignment_id=' + assignmentId, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json', 'X-CSRF-Token': _csrfToken }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        var row = document.getElementById('alm-row-' + assignmentId);
+        if (row) row.remove();
+        _assignedLearnerIds.delete(learnerId);
+        almFilter();
+      } else {
+        btn.textContent = 'Huỷ giao'; btn.disabled = false;
+        alert(data.error || 'Lỗi xoá.');
+      }
+    })
+      .catch(function() { btn.textContent = 'Huỷ giao'; btn.disabled = false; });
+    };
+    document.getElementById('alm-confirm-cancel').onclick = function() {
+      popup.style.display = 'none';
+    };
+  };
 })();
 </script>

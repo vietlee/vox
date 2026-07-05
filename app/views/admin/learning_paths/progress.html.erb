@@ -19,7 +19,7 @@
               class="flex items-center gap-1.5 px-3 py-2 text-[13px] font-bold text-white rounded-xl border-0 cursor-pointer transition-colors"
               style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-        ✦ Phân tích AI toàn lớp · 3 credits
+        ✨ Phân tích AI toàn lớp · 3 credits
       </button>
     <% else %>
       <div title="Còn <%= not_done_count %> học viên chưa hoàn thành"
@@ -106,13 +106,14 @@
           %>
           <tr class="hover:bg-slate-50 transition-colors">
             <td class="px-4 py-3">
+              <% person = asgn.learner %>
               <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-[13px] font-bold text-indigo-600 shrink-0">
-                  <%= asgn.assignee.name.presence&.first&.upcase || asgn.assignee.email.first.upcase %>
+                  <%= person.name.presence&.first&.upcase || person.email.first.upcase %>
                 </div>
                 <div>
-                  <div class="text-[13px] font-semibold text-slate-800"><%= asgn.assignee.name.presence || asgn.assignee.email %></div>
-                  <div class="text-[11px] text-slate-400"><%= asgn.assignee.email %></div>
+                  <div class="text-[13px] font-semibold text-slate-800"><%= person.name.presence || person.email %></div>
+                  <div class="text-[11px] text-slate-400"><%= person.email %></div>
                 </div>
               </div>
             </td>
@@ -163,7 +164,7 @@
   <!-- AI evaluation result panel -->
   <div id="lp-ai-result" class="hidden mt-5 bg-white border border-violet-200 rounded-2xl shadow-sm overflow-hidden">
     <div class="flex items-center gap-3 px-5 py-4 border-b border-violet-100" style="background:linear-gradient(135deg,#f5f3ff,#eef2ff)">
-      <div class="w-8 h-8 rounded-lg flex items-center justify-center text-[18px]" style="background:#ede9fe">✦</div>
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center text-[18px]" style="background:#ede9fe">✨</div>
       <div>
         <div class="text-[14px] font-extrabold text-violet-900">Phân tích AI toàn lớp</div>
         <div id="lp-ai-eval-time" class="text-[11px] text-violet-500 mt-0.5"></div>
@@ -195,11 +196,11 @@ function lpAiEvaluate() {
     if (data.error) {
       body.innerHTML = '<p class="text-red-500 text-[13px] py-4">' + data.error + '</p>';
       btn.disabled = false;
-      btn.innerHTML = '✦ Phân tích AI toàn lớp · 3 credits';
+      btn.innerHTML = '✨ Phân tích AI toàn lớp · 3 credits';
     } else {
       body.innerHTML = data.html;
       timeEl.textContent = 'Đã phân tích lúc ' + new Date().toLocaleTimeString('vi-VN');
-      btn.innerHTML = '✦ Phân tích lại · 3 credits';
+      btn.innerHTML = '✨ Phân tích lại · 3 credits';
       btn.disabled = false;
       result.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -207,7 +208,7 @@ function lpAiEvaluate() {
   .catch(() => {
     body.innerHTML = '<p class="text-red-500 text-[13px] py-4">Lỗi kết nối. Vui lòng thử lại.</p>';
     btn.disabled = false;
-    btn.innerHTML = '✦ Phân tích AI toàn lớp · 3 credits';
+    btn.innerHTML = '✨ Phân tích AI toàn lớp · 3 credits';
   });
 }
 </script>

@@ -1,5 +1,6 @@
 class Learner::LearningPathAssignmentsController < Learner::BaseController
   before_action :set_assignment
+  before_action :ensure_published
 
   def show
     @path  = @assignment.learning_path
@@ -27,5 +28,12 @@ class Learner::LearningPathAssignmentsController < Learner::BaseController
 
   def set_assignment
     @assignment = current_learner.learning_path_assignments.find_by!(token: params[:token])
+  end
+
+  def ensure_published
+    unless @assignment.learning_path.published?
+      redirect_to learner_root_path,
+        alert: "Lộ trình học này chưa được mở. Vui lòng liên hệ admin."
+    end
   end
 end

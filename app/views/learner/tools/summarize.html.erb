@@ -1,0 +1,378 @@
+<% content_for :title, t('learner_sum.title') %>
+
+<style>
+@keyframes lp-spin { to { transform: rotate(360deg); } }
+@keyframes lp-fade { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.lp-sum-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:16px; }
+.lp-sum-saved-item { animation: lp-fade .2s ease both; }
+pre { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px; font-size:12.5px; overflow-x:auto; }
+code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px; font-family:monospace; }
+</style>
+
+<div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;gap:10px;">
+    <%= link_to learner_root_path, style:"display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;background:#f1f5f9;color:#64748b;text-decoration:none;flex-shrink:0;" do %>
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    <% end %>
+    <div style="width:36px;height:36px;border-radius:10px;background:#eef3fa;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📄</div>
+    <div style="flex:1;">
+      <h1 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;"><%= t('learner_sum.title') %></h1>
+      <p style="font-size:12px;color:#64748b;margin:0;"><%= t('learner_sum.subtitle2') %></p>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:20px;padding:4px 10px;">
+      <svg width="12" height="12" fill="none" stroke="#f59e0b" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      <span id="lp-sum-credits" style="font-size:12px;font-weight:700;color:#0f172a;"><%= current_learner.credits %></span>
+    </div>
+  </div>
+
+  <!-- Input card -->
+  <div class="lp-sum-card">
+    <!-- Prompt -->
+    <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;"><%= t('learner_sum.prompt_label2') %></label>
+    <textarea id="lp-sum-prompt" rows="4" placeholder="<%= t('learner_sum.prompt_ph2') %>"
+              style="width:100%;padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;color:#1e293b;resize:vertical;outline:none;font-family:inherit;line-height:1.6;box-sizing:border-box;transition:border-color .2s;"
+              onfocus="this.style.borderColor='#1e3a5f'" onblur="this.style.borderColor='#e2e8f0'"
+              oninput="lpSumToggleBtn()"></textarea>
+
+    <!-- File attach -->
+    <input id="lp-sum-file-input" type="file" multiple style="display:none;"
+           accept=".txt,.md,.csv,.json,.html,.xml,.pdf,.docx,.doc,.png,.jpg,.jpeg,.gif,.webp,.heic"
+           onchange="lpSumHandleFiles(this)">
+    <div id="lp-sum-attach-preview" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:8px;">
+      <label for="lp-sum-file-input"
+             style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;color:#475569;cursor:pointer;transition:all .15s;"
+             onmouseover="this.style.background='#f1f5f9';this.style.borderColor='#cbd5e1'"
+             onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0'">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+        <%= t('learner_sum.attach2') %>
+      </label>
+
+      <button id="lp-sum-btn" onclick="lpSumGenerate()" disabled
+              style="flex:1;max-width:180px;padding:8px 16px;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;border:none;border-radius:10px;cursor:pointer;opacity:.4;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .15s;">
+        <svg id="lp-sum-spin" width="14" height="14" fill="none" viewBox="0 0 24 24" style="display:none;animation:lp-spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="3" opacity=".25"/><path fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        <span id="lp-sum-btn-label">✨ <%= t('learner_sum.summarize') %></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div id="lp-sum-result" style="display:none;" class="lp-sum-card">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;">
+      <div style="flex:1;">
+        <p style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px;"><%= t('learner_sum.result') %></p>
+        <p id="lp-sum-title-display" style="font-size:14px;font-weight:700;color:#1e293b;margin:0;"></p>
+      </div>
+      <button onclick="lpSumSave()"
+              style="display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;border:1px solid #1e3a5f;background:#fff;color:#1e3a5f;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;"
+              onmouseover="this.style.background='#1e3a5f';this.style.color='#fff'"
+              onmouseout="this.style.background='#fff';this.style.color='#1e3a5f'">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+        <%= t('learner_sum.save') %>
+      </button>
+    </div>
+    <div id="lp-sum-body" style="font-size:14px;color:#1e293b;line-height:1.75;"></div>
+    <div style="margin-top:10px;display:flex;gap:6px;">
+      <button onclick="lpSumCopy()" style="padding:5px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#475569;cursor:pointer;">📋 <%= t('learner_sum.copy') %></button>
+      <button onclick="lpSumNew()" style="padding:5px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;"><%= t('learner_sum.new_one') %></button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div id="lp-sum-error" style="display:none;padding:12px;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;font-size:13px;color:#be123c;"></div>
+
+  <!-- Saved list -->
+  <div id="lp-sum-saved-section" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0;"><%= t('learner_sum.saved_list') %></p>
+      <button onclick="lpSumClearAll()" style="font-size:11px;color:#94a3b8;border:none;background:none;cursor:pointer;"><%= t('learner_sum.clear_all') %></button>
+    </div>
+    <div id="lp-sum-saved-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+
+</div>
+
+<!-- View saved modal -->
+<div id="lp-sum-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.6);align-items:flex-end;justify-content:center;padding-bottom:60px;">
+  <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:14px 16px 10px;border-bottom:1px solid #f0f4f8;display:flex;align-items:center;justify-content:space-between;">
+      <p id="lp-sum-modal-title" style="font-size:14px;font-weight:700;color:#0f172a;margin:0;"></p>
+      <button onclick="lpSumCloseModal()" style="width:28px;height:28px;border-radius:50%;border:none;background:#f1f5f9;color:#64748b;cursor:pointer;font-size:15px;">×</button>
+    </div>
+    <div id="lp-sum-modal-body" style="padding:16px;overflow-y:auto;font-size:14px;color:#1e293b;line-height:1.75;flex:1;"></div>
+    <div style="padding:10px 16px;border-top:1px solid #f0f4f8;display:flex;gap:6px;">
+      <button onclick="lpSumModalCopy()" style="padding:7px 16px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;color:#475569;cursor:pointer;">📋 <%= t('learner_sum.copy') %></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const CSRF     = () => document.querySelector('meta[name="csrf-token"]').content;
+  const POST_URL = '<%= learner_tools_summarize_path %>';
+  const SK       = 'vox_lp_summaries_<%= current_learner.id %>';
+  let _currentResult = null, _attached = [];
+
+  // ── File attach ──────────────────────────────────────────────────
+  window.lpSumHandleFiles = function(input) {
+    Array.from(input.files).forEach(f => _attached.push(f));
+    input.value = '';
+    lpSumRenderAttach();
+    lpSumToggleBtn();
+  };
+
+  function lpSumRenderAttach() {
+    const w = document.getElementById('lp-sum-attach-preview');
+    if (!_attached.length) { w.style.display='none'; w.innerHTML=''; return; }
+    w.style.display = 'flex';
+    w.innerHTML = _attached.map((f,i) => {
+      const isImg = f.type.startsWith('image/');
+      const imgIcon = '<svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8" style="flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 15l-5-5L5 21"/></svg>';
+      const docIcon = '<svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8" style="flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M14 3v4a1 1 0 001 1h4M7 3h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>';
+      const icon  = isImg ? imgIcon : docIcon;
+      return `<div style="display:flex;align-items:center;gap:5px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:4px 9px;font-size:11px;color:#475569;">
+        ${icon} <span style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name}</span>
+        <button onclick="lpSumRemoveFile(${i})" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:13px;padding:0 0 0 3px;">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  window.lpSumRemoveFile = function(i) { _attached.splice(i,1); lpSumRenderAttach(); lpSumToggleBtn(); };
+
+  // ── Toggle button ────────────────────────────────────────────────
+  window.lpSumToggleBtn = function() {
+    const btn = document.getElementById('lp-sum-btn');
+    const ok  = document.getElementById('lp-sum-prompt').value.trim().length > 0 || _attached.length > 0;
+    btn.disabled = !ok; btn.style.opacity = ok ? '1' : '0.4'; btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+  };
+
+  // ── Generate ─────────────────────────────────────────────────────
+  window.lpSumGenerate = async function() {
+    const prompt = document.getElementById('lp-sum-prompt').value.trim();
+    if (!prompt && !_attached.length) return;
+
+    const btn    = document.getElementById('lp-sum-btn');
+    const spin   = document.getElementById('lp-sum-spin');
+    const label  = document.getElementById('lp-sum-btn-label');
+    btn.disabled = true; btn.style.opacity = '.7';
+    spin.style.display = 'inline-block'; label.textContent = '<%= j t('learner_sum.summarizing') %>';
+    document.getElementById('lp-sum-result').style.display = 'none';
+    document.getElementById('lp-sum-error').style.display  = 'none';
+
+    try {
+      const fd = new FormData();
+      fd.append('prompt', prompt);
+      fd.append('authenticity_token', CSRF());
+      _attached.forEach(f => fd.append('files[]', f, f.name));
+
+      const res  = await fetch(POST_URL, {method:'POST', body:fd});
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      _currentResult = { title: data.title, summary: data.summary, created_at: new Date().toISOString() };
+      document.getElementById('lp-sum-title-display').textContent = data.title;
+      document.getElementById('lp-sum-body').innerHTML = lpMd(data.summary);
+      document.getElementById('lp-sum-result').style.display = 'block';
+      document.getElementById('lp-sum-result').scrollIntoView({behavior:'smooth', block:'nearest'});
+      const cr = document.getElementById('lp-sum-credits'); if (cr) cr.textContent = data.credits_remaining;
+      if (window.updateLpCredits) updateLpCredits(data.credits_remaining);
+    } catch(e) {
+      const el = document.getElementById('lp-sum-error');
+      el.style.display = 'block'; el.textContent = '⚠️ ' + e.message;
+    } finally {
+      btn.disabled = false; btn.style.opacity = '1';
+      spin.style.display = 'none'; label.textContent = '✨ <%= j t('learner_sum.summarize') %>';
+      lpSumToggleBtn();
+    }
+  };
+
+  // ── Save ─────────────────────────────────────────────────────────
+  window.lpSumSave = function() {
+    if (!_currentResult) return;
+    let list = lpSumLoad();
+    list.unshift({ ..._currentResult, id: Date.now() });
+    list = list.slice(0, 30);
+    try { localStorage.setItem(SK, JSON.stringify(list)); } catch(e) {}
+    lpSumRenderList();
+    const btn = event.target.closest('button');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✅ <%= j t('learner_sum.saved_ok') %>'; btn.disabled = true;
+    setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1500);
+  };
+
+  window.lpSumNew = function() {
+    _currentResult = null; _attached = [];
+    document.getElementById('lp-sum-prompt').value = '';
+    document.getElementById('lp-sum-result').style.display = 'none';
+    document.getElementById('lp-sum-error').style.display  = 'none';
+    lpSumRenderAttach(); lpSumToggleBtn();
+    document.getElementById('lp-sum-prompt').focus();
+  };
+
+  window.lpSumCopy = function() {
+    const txt = document.getElementById('lp-sum-body').innerText;
+    navigator.clipboard.writeText(txt).then(() => {
+      const btn = event.target; btn.textContent = '✅ <%= j t('learner_sum.copied') %>';
+      setTimeout(() => btn.textContent = '📋 <%= j t('learner_sum.copy') %>', 1500);
+    });
+  };
+
+  // ── Saved list ───────────────────────────────────────────────────
+  function lpSumLoad() {
+    try { return JSON.parse(localStorage.getItem(SK) || '[]'); } catch(e) { return []; }
+  }
+
+  function lpSumRenderList() {
+    const list = lpSumLoad();
+    const sec  = document.getElementById('lp-sum-saved-section');
+    const el   = document.getElementById('lp-sum-saved-list');
+    if (!list.length) { sec.style.display='none'; return; }
+    sec.style.display = 'block';
+    el.innerHTML = list.map((item,i) => {
+      const d = new Date(item.created_at);
+      const ds = d.toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'});
+      return `<div class="lp-sum-saved-item" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;cursor:pointer;" onclick="lpSumViewItem(${i})">
+        <div style="width:32px;height:32px;border-radius:9px;background:#eef3fa;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">📄</div>
+        <div style="flex:1;overflow:hidden;">
+          <p style="margin:0;font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lpEsc(item.title)}</p>
+          <p style="margin:0;font-size:11px;color:#94a3b8;">${ds}</p>
+        </div>
+        <button onclick="event.stopPropagation();lpSumDeleteItem(${i})" style="width:24px;height:24px;border-radius:50%;border:none;background:#f1f5f9;color:#94a3b8;cursor:pointer;font-size:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  window.lpSumViewItem = function(i) {
+    const list = lpSumLoad(); const item = list[i]; if (!item) return;
+    document.getElementById('lp-sum-modal-title').textContent = item.title;
+    document.getElementById('lp-sum-modal-body').innerHTML    = lpMd(item.summary);
+    document.getElementById('lp-sum-modal').style.display     = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+  window.lpSumCloseModal = function() {
+    document.getElementById('lp-sum-modal').style.display = 'none';
+    document.body.style.overflow = '';
+  };
+  window.lpSumModalCopy = function() {
+    const txt = document.getElementById('lp-sum-modal-body').innerText;
+    navigator.clipboard.writeText(txt);
+  };
+  window.lpSumDeleteItem = function(i) {
+    let list = lpSumLoad(); list.splice(i,1);
+    try { localStorage.setItem(SK, JSON.stringify(list)); } catch(e) {}
+    lpSumRenderList();
+  };
+  window.lpSumClearAll = function() {
+    if (!confirm('<%= j t('learner_sum.confirm_clear_all') %>')) return;
+    localStorage.removeItem(SK); lpSumRenderList();
+  };
+
+  // ── Markdown ─────────────────────────────────────────────────────
+  // Inline markdown (bold, italic, code) on already HTML-escaped text
+  function lpInline(s) {
+    return s
+      .replace(/`([^`]+)`/g,'<code>$1</code>')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,'<em>$1</em>');
+  }
+  function lpEscMd(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function lpIsTableSep(s){ return /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(s) && s.indexOf('-')>=0; }
+  function lpCells(row){
+    var r = row.trim().replace(/^\||\|$/g,'');
+    return r.split('|').map(function(c){ return lpInline(lpEscMd(c.trim())); });
+  }
+
+  // Block-based markdown → professional HTML
+  function lpMd(t) {
+    var lines = (t||'').replace(/\r/g,'').split('\n');
+    var html = '', i = 0;
+    var H = '#e2e8f0';
+
+    function flushList(items, ordered){
+      if (!items.length) return '';
+      var out = '<div style="margin:8px 0;display:grid;gap:6px;">';
+      items.forEach(function(it, idx){
+        var marker = ordered
+          ? '<span style="color:#1e3a5f;font-weight:700;min-width:18px;flex-shrink:0;">'+(idx+1)+'.</span>'
+          : '<span style="width:6px;height:6px;border-radius:50%;background:#1e3a5f;flex-shrink:0;margin-top:7px;"></span>';
+        out += '<div style="display:flex;gap:9px;align-items:flex-start;line-height:1.65;">'+marker+'<span>'+it+'</span></div>';
+      });
+      return out + '</div>';
+    }
+
+    while (i < lines.length) {
+      var line = lines[i];
+
+      if (!line.trim()) { i++; continue; }
+
+      // Fenced code
+      if (/^```/.test(line)) {
+        var code = []; i++;
+        while (i < lines.length && !/^```/.test(lines[i])) { code.push(lpEscMd(lines[i])); i++; }
+        i++;
+        html += '<pre style="background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px 14px;overflow-x:auto;font-size:12.5px;margin:10px 0;line-height:1.5;"><code>'+code.join('\n')+'</code></pre>';
+        continue;
+      }
+
+      // Table: header row + separator
+      if (line.indexOf('|') >= 0 && i+1 < lines.length && lpIsTableSep(lines[i+1])) {
+        var head = lpCells(line);
+        i += 2;
+        var rows = [];
+        while (i < lines.length && lines[i].indexOf('|') >= 0 && lines[i].trim()) { rows.push(lpCells(lines[i])); i++; }
+        var tb = '<div style="overflow-x:auto;margin:12px 0;border:1px solid '+H+';border-radius:12px;">';
+        tb += '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+        tb += '<thead><tr>';
+        head.forEach(function(c){ tb += '<th style="text-align:left;padding:9px 12px;background:#f8fafc;color:#0f172a;font-weight:700;border-bottom:1px solid '+H+';">'+c+'</th>'; });
+        tb += '</tr></thead><tbody>';
+        rows.forEach(function(r, ri){
+          tb += '<tr style="background:'+(ri%2?'#fafbfc':'#fff')+';">';
+          r.forEach(function(c){ tb += '<td style="padding:9px 12px;color:#334155;border-bottom:1px solid #f1f5f9;">'+c+'</td>'; });
+          tb += '</tr>';
+        });
+        tb += '</tbody></table></div>';
+        html += tb;
+        continue;
+      }
+
+      // Headings
+      var m;
+      if ((m = line.match(/^#{1,2}\s+(.+)$/))) {
+        html += '<p style="font-size:16px;font-weight:700;color:#0f172a;margin:16px 0 6px;">'+lpInline(lpEscMd(m[1]))+'</p>'; i++; continue;
+      }
+      if ((m = line.match(/^#{3,}\s+(.+)$/))) {
+        html += '<p style="font-size:13px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin:14px 0 5px;">'+lpInline(lpEscMd(m[1]))+'</p>'; i++; continue;
+      }
+
+      // Bullet list
+      if (/^\s*[-*]\s+/.test(line)) {
+        var bl = [];
+        while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { bl.push(lpInline(lpEscMd(lines[i].replace(/^\s*[-*]\s+/,'')))); i++; }
+        html += flushList(bl, false); continue;
+      }
+      // Numbered list
+      if (/^\s*\d+\.\s+/.test(line)) {
+        var ol = [];
+        while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) { ol.push(lpInline(lpEscMd(lines[i].replace(/^\s*\d+\.\s+/,'')))); i++; }
+        html += flushList(ol, true); continue;
+      }
+
+      // Paragraph (gather consecutive plain lines)
+      var para = [];
+      while (i < lines.length && lines[i].trim() && !/^(#{1,}\s|\s*[-*]\s|\s*\d+\.\s|```)/.test(lines[i]) && !(lines[i].indexOf('|')>=0 && i+1<lines.length && lpIsTableSep(lines[i+1]))) {
+        para.push(lpInline(lpEscMd(lines[i]))); i++;
+      }
+      html += '<p style="margin:8px 0;line-height:1.75;">'+para.join('<br>')+'</p>';
+    }
+    return html;
+  }
+  function lpEsc(t) { return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // init
+  lpSumRenderList();
+  document.getElementById('lp-sum-modal').addEventListener('click', e => { if (e.target === e.currentTarget) lpSumCloseModal(); });
+})();
+</script>

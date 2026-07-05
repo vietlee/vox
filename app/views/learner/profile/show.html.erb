@@ -1,7 +1,11 @@
-<% content_for :title, "Hồ sơ" %>
+<% content_for :title, t('learner_profile.title') %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current"><%= t('learner_profile.title') %></span>
+<% end %>
 
 <div style="text-align:center;padding:20px 0 24px;">
-  <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+  <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1e3a5f,#16304f);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
     <span style="font-size:32px;font-weight:800;color:white;"><%= current_learner.name.first.upcase %></span>
   </div>
   <h1 style="font-size:20px;font-weight:800;"><%= current_learner.name %></h1>
@@ -10,33 +14,80 @@
 
 <div class="lp-card" style="margin-bottom:20px;">
   <div class="lp-card-body">
-    <%= form_with model: current_learner, url: learner_profile_path, method: :patch do |f| %>
+    <%= form_with url: learner_profile_path, method: :patch, scope: :learner do |f| %>
       <div class="form-group" style="margin-bottom:14px;">
-        <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Tên hiển thị</label>
-        <%= f.text_field :name, style: "width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:15px;outline:none;", onfocus: "this.style.borderColor='#6366f1'", onblur: "this.style.borderColor='#e5e7eb'" %>
+        <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;"><%= t('learner_profile.display_name') %></label>
+        <%= f.text_field :name, value: current_learner.name, style: "width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:15px;outline:none;", onfocus: "this.style.borderColor='#1e3a5f'", onblur: "this.style.borderColor='#e5e7eb'" %>
       </div>
       <div style="margin-bottom:14px;">
-        <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Email</label>
+        <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;"><%= t('learner_profile.email') %></label>
         <input type="email" value="<%= current_learner.email %>" disabled style="width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:15px;background:#f9fafb;color:#6b7280;">
       </div>
-      <%= f.submit "Lưu thay đổi", class: "lp-btn lp-btn-primary lp-btn-full" %>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">🎯 Mục tiêu học mỗi ngày</label>
+        <div style="display:flex;gap:8px;" id="lp-goal-picker">
+          <% [2,3,5,10].each do |g| %>
+            <% on = current_learner.daily_goal == g %>
+            <label style="flex:1;cursor:pointer;">
+              <input type="radio" name="learner[daily_goal]" value="<%= g %>" <%= "checked" if on %> style="display:none;" onchange="lpPickGoal(this)">
+              <span class="lp-goal-opt" style="display:block;text-align:center;padding:10px 0;border-radius:10px;border:1.5px solid <%= on ? '#1e3a5f' : '#e5e7eb' %>;background:<%= on ? '#f0f6ff' : '#fff' %>;color:<%= on ? '#1e3a5f' : '#64748b' %>;font-size:14px;font-weight:700;"><%= g %></span>
+            </label>
+          <% end %>
+        </div>
+        <p style="font-size:11px;color:#9ca3af;margin-top:5px;">Số hoạt động cần hoàn thành mỗi ngày để giữ streak 🔥</p>
+      </div>
+      <%= f.submit t('learner_profile.save'), class: "lp-btn lp-btn-primary lp-btn-full" %>
     <% end %>
+    <script>
+      function lpPickGoal(input){
+        document.querySelectorAll('#lp-goal-picker .lp-goal-opt').forEach(function(s){
+          s.style.borderColor='#e5e7eb'; s.style.background='#fff'; s.style.color='#64748b';
+        });
+        var s = input.nextElementSibling;
+        s.style.borderColor='#1e3a5f'; s.style.background='#f0f6ff'; s.style.color='#1e3a5f';
+      }
+    </script>
   </div>
 </div>
 
 <div class="lp-card">
   <div class="lp-card-body">
-    <p style="font-weight:700;font-size:14px;margin-bottom:12px;">Tài khoản</p>
+    <p style="font-weight:700;font-size:14px;margin-bottom:12px;"><%= t('learner_profile.account_section') %></p>
     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f3f4f6;">
-      <span style="font-size:14px;color:#6b7280;">Credits còn lại</span>
-      <span style="font-weight:700;color:#7c3aed;"><%= current_learner.credits %></span>
+      <span style="font-size:14px;color:#6b7280;"><%= t('learner_profile.credits_remaining') %></span>
+      <span style="font-weight:700;color:#1e3a5f;"><%= current_learner.credits %></span>
     </div>
     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f3f4f6;">
-      <span style="font-size:14px;color:#6b7280;">Tham gia từ</span>
+      <span style="font-size:14px;color:#6b7280;"><%= t('learner_profile.joined_at') %></span>
       <span style="font-weight:600;"><%= current_learner.created_at.strftime("%d/%m/%Y") %></span>
     </div>
     <div style="padding-top:14px;">
-      <%= link_to "Đăng xuất", destroy_learner_session_path, data: { turbo_method: :delete }, class: "lp-btn lp-btn-full", style: "background:#fee2e2;color:#991b1b;border:none;" %>
+      <button type="button" onclick="document.getElementById('logout-confirm').style.display='flex'"
+              class="lp-btn lp-btn-full" style="background:#fee2e2;color:#991b1b;border:none;cursor:pointer;font-family:inherit;">
+        <%= t('learner_profile.logout') %>
+      </button>
+
+      <!-- Confirm popup -->
+      <div id="logout-confirm" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.5);align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:18px;padding:28px 24px;width:100%;max-width:320px;margin:16px;box-shadow:0 8px 40px rgba(0,0,0,0.18);text-align:center;">
+          <div style="width:48px;height:48px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;">🚪</div>
+          <p style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 6px;"><%= t('learner_profile.logout_confirm_title') %></p>
+          <p style="font-size:13px;color:#94a3b8;margin:0 0 20px;"><%= t('learner_profile.logout_confirm_desc') %></p>
+          <div style="display:flex;gap:10px;">
+            <button type="button" onclick="document.getElementById('logout-confirm').style.display='none'"
+                    style="flex:1;padding:11px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:14px;font-weight:600;color:#475569;background:#fff;cursor:pointer;font-family:inherit;">
+              <%= t('learner_profile.logout_cancel') %>
+            </button>
+            <form action="<%= destroy_learner_session_path %>" method="post" style="flex:1;">
+              <%= hidden_field_tag :_method, :delete %>
+              <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+              <button type="submit" style="width:100%;padding:11px;border:none;border-radius:12px;font-size:14px;font-weight:700;color:#fff;background:#ef4444;cursor:pointer;font-family:inherit;">
+                <%= t('learner_profile.logout_confirm') %>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

@@ -1,9 +1,11 @@
 class QuizSet < ApplicationRecord
-  belongs_to :workspace
-  belongs_to :user
+  belongs_to :workspace, optional: true
+  belongs_to :user,      optional: true
+  belongs_to :learner,   optional: true
 
-  has_many :quiz_questions, -> { order(:position) }, dependent: :destroy
-  has_many :quiz_attempts,  dependent: :destroy
+  has_many :quiz_questions,   -> { order(:position) }, dependent: :destroy
+  has_many :quiz_attempts,    dependent: :destroy
+  has_many :quiz_assignments, dependent: :destroy
   has_one  :qr_code, as: :resource, dependent: :destroy
 
   enum :status,      { draft: 0, published: 1 }
@@ -17,6 +19,16 @@ class QuizSet < ApplicationRecord
 
   def question_count = quiz_questions.count
   def attempt_count  = quiz_attempts.where.not(submitted_at: nil).count
+  def has_essay?     = quiz_questions.where(question_type: :essay).exists?
+
+  def computed_total_score
+    total_score.presence || quiz_questions.sum(:points)
+  end
+
+  def passing_score_points
+    return passing_score if passing_score_type == 'points'
+    (computed_total_score * passing_score / 100.0).ceil
+  end
 
   def avg_score
     attempts = quiz_attempts.where.not(submitted_at: nil)

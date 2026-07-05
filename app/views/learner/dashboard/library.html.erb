@@ -1,0 +1,154 @@
+<% content_for :title, t('learner_dashboard.library') %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current"><%= t('learner_dashboard.library') %></span>
+<% end %>
+
+<h1 style="font-size:18px;font-weight:800;color:#0f172a;margin:8px 0 16px;"><%= t('learner_dashboard.library') %></h1>
+
+<%# small orange "+" add button per section %>
+<% add_btn = ->(url, _color, label) {
+     link_to url, title: label, "aria-label": label,
+       onmouseover: "this.style.background='#c2410c';this.style.transform='scale(1.08)'",
+       onmouseout: "this.style.background='#ea580c';this.style.transform='scale(1)'",
+       style: "display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;color:#fff;background:#ea580c;border-radius:8px;text-decoration:none;flex-shrink:0;box-shadow:0 1px 4px rgba(234,88,12,.35);transition:background .15s,transform .12s;" do
+       '<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>'.html_safe
+     end
+   } %>
+<% view_btn = ->(url, label) {
+     link_to url, title: label, "aria-label": label,
+       onmouseover: "this.style.background='#e2e8f0';this.style.color='#1e3a5f'",
+       onmouseout: "this.style.background='#f1f5f9';this.style.color='#64748b'",
+       style: "display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;color:#64748b;background:#f1f5f9;border-radius:8px;text-decoration:none;flex-shrink:0;transition:all .15s;" do
+       '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>'.html_safe
+     end
+   } %>
+
+<%# Quiz assignments %>
+<% if @quiz_assignments.any? %>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+    <p class="lp-section-title" style="margin:0;"><%= t('learner_dashboard.section_quiz') %></p>
+    <div style="display:flex;gap:8px;">
+      <%= view_btn.(learner_my_quizzes_path, t('learner_qz.mine_title')) %>
+      <%= add_btn.(learner_new_my_quiz_path, "#2563eb", "Tạo bài kiểm tra") %>
+    </div>
+  </div>
+  <% @quiz_assignments.each do |a| %>
+    <div class="lp-card">
+      <div class="lp-card-body" style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="22" height="22" fill="none" stroke="#1d4ed8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= a.quiz_set.title %></p>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+            <% if a.completed? %>
+              <span class="lp-badge lp-badge-done">✓ <%= t('learner_dashboard.status_completed') %></span>
+            <% elsif a.overdue? %>
+              <span class="lp-badge lp-badge-overdue"><%= t('learner_dashboard.status_overdue') %></span>
+            <% elsif a.in_progress? %>
+              <span class="lp-badge lp-badge-progress"><%= t('learner_dashboard.status_in_progress') %></span>
+            <% else %>
+              <span class="lp-badge lp-badge-pending"><%= t('learner_dashboard.status_pending') %></span>
+            <% end %>
+            <% if a.due_at %>
+              <span style="font-size:11px;color:#9ca3af;">· <%= a.due_at.strftime("%d/%m/%Y") %></span>
+            <% end %>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <% if a.completed? %>
+            <%= link_to t('learner_dashboard.btn_view_result'), result_learner_quiz_assignment_path(a.token),
+                  class: "lp-btn lp-btn-primary", style: "padding:8px 14px;font-size:13px;" %>
+            <% if a.quiz_set.allow_retake %>
+              <%= link_to t('learner_qz.redo_quiz'), take_learner_quiz_assignment_path(a.token),
+                    class: "lp-btn lp-btn-outline", style: "padding:8px 14px;font-size:13px;" %>
+            <% end %>
+          <% else %>
+            <%= link_to (a.in_progress? ? t('learner_dashboard.btn_continue') : t('learner_dashboard.btn_start')), learner_quiz_assignment_path(a.token),
+                  class: "lp-btn lp-btn-primary", style: "padding:8px 14px;font-size:13px;" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<%# Flashcard assignments %>
+<% if @flashcard_assignments.any? %>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 4px;">
+    <p class="lp-section-title" style="margin:0;"><%= t('learner_dashboard.section_flashcard') %></p>
+    <div style="display:flex;gap:8px;">
+      <%= view_btn.(learner_my_flashcards_path, t('learner_fc.mine_title')) %>
+      <%= add_btn.(learner_new_my_flashcard_path, "#059669", "Tạo flashcard") %>
+    </div>
+  </div>
+  <% @flashcard_assignments.each do |a| %>
+    <div class="lp-card">
+      <div class="lp-card-body" style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="22" height="22" fill="none" stroke="#065f46" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= a.flashcard_deck.title %></p>
+          <% fc_total = a.flashcard_deck.flashcards.count; fc_pct = a.progress_pct %>
+          <% if fc_pct > 0 %>
+            <div style="margin-top:5px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                <span style="font-size:11px;color:#9ca3af;"><%= a.cards_reviewed %>/<%= fc_total %> thẻ</span>
+                <span style="font-size:11px;font-weight:700;color:#065f46;"><%= fc_pct %>%</span>
+              </div>
+              <div class="lp-progress-bar"><div class="lp-progress-fill" style="width:<%= fc_pct %>%;background:linear-gradient(90deg,#059669,#34d399);"></div></div>
+            </div>
+          <% else %>
+            <p style="font-size:12px;color:#6b7280;margin-top:2px;"><%= fc_total %> thẻ</p>
+          <% end %>
+        </div>
+        <%= link_to a.completed? ? learner_flashcard_assignment_path(a.token) : study_learner_flashcard_assignment_path(a.token),
+              class: "lp-btn lp-btn-primary", style: "padding:8px 14px;font-size:13px;flex-shrink:0;" do %>
+          <%= a.completed? ? "Ôn lại" : "Học ngay" %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<%# Learning path assignments %>
+<% if @path_assignments.any? %>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 4px;">
+    <p class="lp-section-title" style="margin:0;"><%= t('learner_dashboard.section_lp') %></p>
+    <div style="display:flex;gap:8px;">
+      <%= view_btn.(learner_study_plans_path, t('learner_plan.title')) %>
+      <%= add_btn.(learner_study_plans_path, "#d97706", "Tạo lộ trình AI") %>
+    </div>
+  </div>
+  <% @path_assignments.each do |a| %>
+    <div class="lp-card">
+      <div class="lp-card-body">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+          <div style="width:44px;height:44px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="22" height="22" fill="none" stroke="#92400e" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <p style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= a.learning_path.title %></p>
+            <p style="font-size:12px;color:#6b7280;margin-top:2px;"><%= a.progress_pct %>% hoàn thành</p>
+          </div>
+          <%= link_to learner_learning_path_assignment_path(a.token), class: "lp-btn lp-btn-primary", style: "padding:8px 14px;font-size:13px;flex-shrink:0;" do %>
+            <%= a.completed? ? "Xem lại" : "Tiếp tục" %>
+          <% end %>
+        </div>
+        <div class="lp-progress-bar">
+          <div class="lp-progress-fill" style="width:<%= a.progress_pct %>%;"></div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<% if @quiz_assignments.empty? && @flashcard_assignments.empty? && @path_assignments.empty? %>
+  <div style="text-align:center;padding:60px 20px;">
+    <div style="font-size:48px;margin-bottom:12px;">📚</div>
+    <p style="font-weight:700;font-size:16px;color:#374151;"><%= t('learner_dashboard.empty_title') %></p>
+    <p style="font-size:14px;color:#9ca3af;margin-top:6px;"><%= t('learner_dashboard.empty_desc') %></p>
+  </div>
+<% end %>

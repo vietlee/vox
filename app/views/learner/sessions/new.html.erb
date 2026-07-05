@@ -1,48 +1,96 @@
 <% content_for :title, "Đăng nhập" %>
+<% content_for :head do %>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  body { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%) !important; }
-  .auth-card { background: white; border-radius: 24px; padding: 32px 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-width: 400px; margin: 40px auto 0; }
-  .auth-logo { text-align: center; margin-bottom: 28px; }
-  .auth-logo svg { margin-bottom: 12px; }
-  .auth-logo h1 { font-size: 24px; font-weight: 800; color: #4f46e5; }
-  .auth-logo p { font-size: 14px; color: #6b7280; margin-top: 4px; }
-  .form-group { margin-bottom: 16px; }
-  .form-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
-  .form-input { width: 100%; padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 12px; font-size: 15px; outline: none; transition: border-color 0.2s; background: #fafafa; }
-  .form-input:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
-  .auth-submit { width: 100%; padding: 13px; background: linear-gradient(135deg, #6366f1, #7c3aed); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
-  .auth-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
-  .auth-links { text-align: center; margin-top: 20px; font-size: 13px; color: #6b7280; }
-  .auth-links a { color: #6366f1; font-weight: 600; text-decoration: none; }
-  .auth-divider { text-align: center; color: #d1d5db; font-size: 13px; margin: 16px 0; position: relative; }
-  .auth-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #e5e7eb; }
-  .auth-divider span { background: white; padding: 0 12px; position: relative; }
+  html, body { background: #0F172A !important; overflow: hidden !important; height: 100% !important; }
+  .lp-main { background: #0F172A !important; overflow-y: auto !important; }
+
+  .lp-alert-success, .lp-alert-error { display: none !important; }
 </style>
+<% end %>
 
-<div class="auth-card">
-  <div class="auth-logo">
-    <svg width="52" height="52" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="9" fill="#6366f1"/><polygon points="10,24 6,31 16,24" fill="white"/><rect x="6" y="6" width="24" height="19" rx="5" fill="white" fill-opacity="0.9"/><rect x="10" y="11" width="4" height="7" rx="1" fill="#6366f1"/><rect x="16" y="8" width="4" height="13" rx="1" fill="#6366f1"/><rect x="23" y="10" width="4" height="9" rx="1" fill="#6366f1"/></svg>
-    <h1>VOX Learn</h1>
-    <p>Đăng nhập để tiếp tục học tập</p>
-  </div>
+<div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 16px; font-family:'Inter',sans-serif;">
 
-  <%= form_with url: learner_session_path, method: :post do |f| %>
-    <div class="form-group">
-      <%= f.label :email, "Email", class: "form-label" %>
-      <%= f.email_field :email, class: "form-input", placeholder: "you@example.com", autofocus: true, autocomplete: "email" %>
-    </div>
-    <div class="form-group">
-      <%= f.label :password, "Mật khẩu", class: "form-label" %>
-      <%= f.password_field :password, class: "form-input", placeholder: "••••••••", autocomplete: "current-password" %>
-    </div>
-    <%= f.submit "Đăng nhập", class: "auth-submit" %>
+  <!-- Flash notices (inline, not from layout) -->
+  <% if notice.present? %>
+    <div style="position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;"><%= notice %></div>
+  <% end %>
+  <% if alert.present? %>
+    <div style="position:fixed;top:16px;left:50%;transform:translateX(-50%);background:rgba(239,68,68,0.9);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;"><%= alert %></div>
   <% end %>
 
-  <div class="auth-links" style="margin-top:14px;">
-    <%= link_to "Quên mật khẩu?", new_learner_password_path %>
-  </div>
-  <div class="auth-divider"><span>hoặc</span></div>
-  <div class="auth-links">
-    Chưa có tài khoản? <%= link_to "Đăng ký", new_learner_registration_path %>
+  <div style="width:100%;max-width:440px;">
+    <!-- Logo -->
+    <div style="text-align:center; margin-bottom:16px;">
+      <div style="display:inline-flex; align-items:center; gap:10px; filter:drop-shadow(0 6px 18px rgba(26,107,255,0.4));">
+        <svg width="36" height="36" viewBox="295 27 90 90" xmlns="http://www.w3.org/2000/svg">
+          <rect x="305" y="38" width="70" height="70" rx="18" fill="#1A6BFF"/>
+          <polygon points="325,84 318,98 338,84" fill="white"/>
+          <rect x="317" y="49" width="46" height="37" rx="9" fill="white"/>
+          <rect x="326" y="59" width="7" height="14" rx="2" fill="#1A6BFF"/>
+          <rect x="338" y="53" width="7" height="26" rx="2" fill="#1A6BFF"/>
+          <rect x="350" y="57" width="7" height="18" rx="2" fill="#1A6BFF"/>
+        </svg>
+        <div style="font-size:28px; font-weight:800; letter-spacing:8px; color:#1A6BFF; line-height:1; padding-left:4px;">VOX</div>
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div style="background:#1E293B; border-radius:20px; border:1px solid rgba(255,255,255,0.07); box-shadow:0 24px 60px rgba(0,0,0,0.5); overflow:hidden;">
+
+      <!-- Header -->
+      <div style="padding:20px 24px 16px; border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="width:38px; height:38px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:12px;">🎓</div>
+        <h1 style="font-size:18px; font-weight:800; color:#f1f5f9; margin:0 0 4px;">Đăng nhập</h1>
+        <p style="font-size:12px; color:#64748b; margin:0; line-height:1.5;">Đăng nhập để tiếp tục học tập trên VOX.</p>
+      </div>
+
+      <!-- Form -->
+      <div style="padding:18px 24px;">
+        <% if resource.errors.any? %>
+          <div style="margin-bottom:16px; display:flex; align-items:flex-start; gap:10px; padding:14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:12px; font-size:13px; color:#f87171; line-height:1.5;">
+            <span>⚠</span>
+            <div>
+              <% resource.errors.full_messages.each do |msg| %>
+                <div>• <%= msg %></div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <%= form_with scope: :learner, url: learner_session_path, method: :post, local: true, data: { turbo: false } do |f| %>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Email</label>
+            <%= f.email_field :email, autofocus: true, autocomplete: "email",
+              placeholder: "you@example.com",
+              style: "display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:16px; color:#f1f5f9; font-family:'Inter',sans-serif;" %>
+          </div>
+          <div style="margin-bottom:20px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Mật khẩu</label>
+            <%= f.password_field :password, autocomplete: "current-password",
+              placeholder: "••••••••",
+              style: "display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:16px; color:#f1f5f9; font-family:'Inter',sans-serif;" %>
+          </div>
+          <button type="submit"
+            style="display:block; width:100%; padding:14px; background:#4F46E5; color:#fff; font-size:15px; font-weight:700; border:none; border-radius:12px; cursor:pointer; font-family:'Inter',sans-serif; transition:opacity 0.2s;">
+            Đăng nhập →
+          </button>
+        <% end %>
+      </div>
+
+      <!-- Links -->
+      <div style="padding:0 28px 24px; display:flex; flex-direction:column; gap:10px;">
+        <%= link_to new_learner_password_path,
+          style: "display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; font-size:13px; color:#64748b; text-decoration:none; border:1.5px solid rgba(255,255,255,0.07); border-radius:12px;" do %>
+          🔑 Quên mật khẩu?
+        <% end %>
+        <%= link_to new_learner_registration_path,
+          style: "display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; font-size:13px; color:#64748b; text-decoration:none; border:1.5px solid rgba(255,255,255,0.07); border-radius:12px;" do %>
+          ✨ Chưa có tài khoản? <span style="color:#818cf8; font-weight:600;">Đăng ký</span>
+        <% end %>
+      </div>
+    </div>
+
+    <p style="text-align:center; font-size:11px; color:#334155; margin-top:18px;">© <%= Date.current.year %> VOX Platform</p>
   </div>
 </div>

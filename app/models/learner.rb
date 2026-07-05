@@ -2,6 +2,11 @@ class Learner < ApplicationRecord
   devise :database_authenticatable, :registerable, :recoverable,
          :rememberable, :trackable, :confirmable
 
+  has_many :learner_payments,            dependent: :destroy
+  has_many :learner_suggestions,         dependent: :destroy
+  has_many :learner_daily_stats,         dependent: :destroy
+  has_many :learner_study_plans,         dependent: :destroy
+  has_many :learner_speaking_sessions,   dependent: :destroy
   has_many :quiz_assignments,           dependent: :destroy
   has_many :flashcard_assignments,      dependent: :destroy
   has_many :learning_path_assignments,  dependent: :destroy, foreign_key: :learner_id
@@ -15,9 +20,22 @@ class Learner < ApplicationRecord
 
   before_create :skip_confirmation_for_invite
 
+  MONTHLY_FREE_CREDITS = 50
+
   def deduct_credits!(amount)
     raise "Không đủ credit" if credits < amount
     decrement!(:credits, amount)
+  end
+
+  # Called when a learner purchases credits
+  def add_credits!(amount)
+    increment!(:credits, amount)
+    increment!(:max_credits, amount)
+  end
+
+  # Called by MonthlyFreeResetJob on the 1st of each month
+  def reset_monthly_credits!
+    update_columns(credits: MONTHLY_FREE_CREDITS, max_credits: MONTHLY_FREE_CREDITS)
   end
 
   def invite!(assigned_by:)
