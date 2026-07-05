@@ -26,7 +26,7 @@
 .lp-toolbar-btn:hover { background:#f1f5f9; color:#1e3a5f; }
 .lp-toolbar-btn.active { background:#fee2e2; color:#ef4444; }
 .lp-send-btn { width:38px;height:38px;border-radius:12px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s; }
-.lp-send-btn:disabled { background:#f1f5f9; color:#cbd5e1; cursor:not-allowed; }
+.lp-send-btn:disabled { background:#8a9cb5; color:#eef2f7; cursor:not-allowed; }
 .lp-send-btn:not(:disabled) { background:#1e3a5f; color:#fff; box-shadow:0 2px 8px rgba(30,58,95,.3); }
 .lp-send-btn:not(:disabled):hover { background:#16304f; transform:translateY(-1px); box-shadow:0 4px 12px rgba(30,58,95,.35); }
 .lp-vc-bar { width:3px; border-radius:99px; background:currentColor; transform-origin:center; transform:scaleY(.10); height:32px; }
@@ -332,11 +332,15 @@ async function lpSpeakText(text, btn) {
   try {
     const fd = new FormData(); fd.append('text',plain); fd.append('model','eleven_turbo_v2_5'); fd.append('authenticity_token',CSRF());
     const res = await fetch(TTS_URL, {method:'POST',body:fd});
-    if (!res.ok) throw new Error();
-    const url = URL.createObjectURL(await res.blob());
+    const d = await res.json().catch(function(){return {};});
+    if (!res.ok || !d.audio_base64) throw new Error(d.error||'');
+    if (d.credits_remaining !== undefined && window.updateLpCredits) updateLpCredits(d.credits_remaining);
+    const bin = atob(d.audio_base64), arr = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([arr],{type:'audio/mpeg'}));
     _currentAudio = new Audio(url);
-    _currentAudio.onended = () => { URL.revokeObjectURL(url); _currentAudio = null; if (btn) { btn.innerHTML = '🔊 Nghe lại'; btn.disabled = false; } };
-    _currentAudio.play();
+    _currentAudio.onended = _currentAudio.onerror = () => { URL.revokeObjectURL(url); _currentAudio = null; if (btn) { btn.innerHTML = '🔊 Nghe lại'; btn.disabled = false; } };
+    const pr = _currentAudio.play(); if (pr && pr.catch) pr.catch(function(){ if(btn){btn.innerHTML='🔊 Nghe lại';btn.disabled=false;} });
     if (btn) btn.innerHTML = '⏸ Đang phát';
   } catch(e) { if (btn) { btn.innerHTML = '⚠ Lỗi'; btn.disabled = false; } }
 }
@@ -443,7 +447,13 @@ async function lpPreviewVoice(voiceId,btn) {
   try {
     const fd=new FormData(); fd.append('text','Xin chào, tôi là trợ lý AI của VOX!'); fd.append('voice_id',voiceId); fd.append('model','eleven_turbo_v2_5'); fd.append('authenticity_token',CSRF());
     const res=await fetch(TTS_URL,{method:'POST',body:fd});
-    if (res.ok) { const url=URL.createObjectURL(await res.blob()); _previewAudio=new Audio(url); _previewAudio.onended=()=>URL.revokeObjectURL(url); _previewAudio.play(); }
+    const d=await res.json().catch(function(){return {};});
+    if (res.ok && d.audio_base64) {
+      if (d.credits_remaining!==undefined && window.updateLpCredits) updateLpCredits(d.credits_remaining);
+      const bin=atob(d.audio_base64), arr=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+      const url=URL.createObjectURL(new Blob([arr],{type:'audio/mpeg'}));
+      _previewAudio=new Audio(url); _previewAudio.onended=()=>URL.revokeObjectURL(url); _previewAudio.play().catch(function(){});
+    }
   } catch(e) {}
   btn.textContent='▶ Nghe thử';
 }
