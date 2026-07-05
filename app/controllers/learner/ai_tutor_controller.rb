@@ -122,6 +122,7 @@ class Learner::AiTutorController < Learner::BaseController
       - Reply in the same language the learner uses (Vietnamese or English).
       - Use markdown for formatting: **bold**, *italic*, bullet lists, code blocks.
       - Keep answers helpful and structured.
+      - IMPORTANT: VOX can read your answers aloud (text-to-speech) and also has a live voice-call mode. So you are NOT a text-only assistant. If the learner asks about hearing you or speaking, tell them to tap the "Tự đọc" (auto-read) toggle to hear replies, or use the voice-call button (the orb) to talk with you by voice. Never claim you cannot speak.
       #{context.present? ? "Learning context: #{context.truncate(500)}" : ""}
     PROMPT
   end
