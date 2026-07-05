@@ -1,4 +1,4 @@
-<% content_for :title, "Đăng nhập" %>
+<% content_for :title, t('learner_auth.login_title') %>
 <% content_for :head do %>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -41,8 +41,8 @@
       <!-- Header -->
       <div style="padding:20px 24px 16px; border-bottom:1px solid rgba(255,255,255,0.05);">
         <div style="width:38px; height:38px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:12px;">🎓</div>
-        <h1 style="font-size:18px; font-weight:800; color:#f1f5f9; margin:0 0 4px;">Đăng nhập</h1>
-        <p style="font-size:12px; color:#64748b; margin:0; line-height:1.5;">Đăng nhập để tiếp tục học tập trên VOX.</p>
+        <h1 style="font-size:18px; font-weight:800; color:#f1f5f9; margin:0 0 4px;"><%= t('learner_auth.login_title') %></h1>
+        <p style="font-size:12px; color:#64748b; margin:0; line-height:1.5;"><%= t('learner_auth.login_subtitle') %></p>
       </div>
 
       <!-- Form -->
@@ -60,20 +60,20 @@
 
         <%= form_with scope: :learner, url: learner_session_path, method: :post, local: true, data: { turbo: false } do |f| %>
           <div style="margin-bottom:16px;">
-            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Email</label>
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;"><%= t('learner_auth.email') %></label>
             <%= f.email_field :email, autofocus: true, autocomplete: "email",
-              placeholder: "you@example.com",
+              placeholder: t('learner_auth.ph_email'),
               style: "display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:16px; color:#f1f5f9; font-family:'Inter',sans-serif;" %>
           </div>
           <div style="margin-bottom:20px;">
-            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Mật khẩu</label>
+            <label style="display:block; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;"><%= t('learner_auth.password') %></label>
             <%= f.password_field :password, autocomplete: "current-password",
               placeholder: "••••••••",
               style: "display:block; width:100%; padding:13px 16px; background:#0F172A; border:1.5px solid rgba(255,255,255,0.08); border-radius:12px; font-size:16px; color:#f1f5f9; font-family:'Inter',sans-serif;" %>
           </div>
           <button type="submit"
             style="display:block; width:100%; padding:14px; background:#4F46E5; color:#fff; font-size:15px; font-weight:700; border:none; border-radius:12px; cursor:pointer; font-family:'Inter',sans-serif; transition:opacity 0.2s;">
-            Đăng nhập →
+            <%= t('learner_auth.login_btn') %>
           </button>
         <% end %>
       </div>
@@ -82,11 +82,11 @@
       <div style="padding:0 28px 24px; display:flex; flex-direction:column; gap:10px;">
         <%= link_to new_learner_password_path,
           style: "display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; font-size:13px; color:#64748b; text-decoration:none; border:1.5px solid rgba(255,255,255,0.07); border-radius:12px;" do %>
-          🔑 Quên mật khẩu?
+          🔑 <%= t('learner_auth.forgot_link') %>
         <% end %>
         <%= link_to new_learner_registration_path,
           style: "display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; font-size:13px; color:#64748b; text-decoration:none; border:1.5px solid rgba(255,255,255,0.07); border-radius:12px;" do %>
-          ✨ Chưa có tài khoản? <span style="color:#818cf8; font-weight:600;">Đăng ký</span>
+          ✨ <%= t('learner_auth.no_account') %> <span style="color:#818cf8; font-weight:600;"><%= t('learner_auth.register_link') %></span>
         <% end %>
       </div>
     </div>
