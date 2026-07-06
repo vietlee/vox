@@ -48,7 +48,7 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
       <p style="font-size:13px;font-weight:700;color:#0f172a;margin:0;line-height:1.2;">AI Tutor</p>
       <p style="font-size:11px;color:#64748b;margin:0;">
         <span style="display:inline-flex;align-items:center;gap:3px;">
-          <span style="width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;"></span> Sẵn sàng
+          <span style="width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;"></span> <%= t('learner_ai_tutor.ready') %>
         </span>
       </p>
     </div>
@@ -60,10 +60,10 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
       <span style="font-size:11px;color:#94a3b8;">credits</span>
     </div>
     <% if @has_tts %>
-    <button id="lp-auto-speak-btn" onclick="lpToggleAutoSpeak()" title="Tự đọc"
+    <button id="lp-auto-speak-btn" onclick="lpToggleAutoSpeak()" title="<%= t('learner_ai_tutor.auto_speak') %>"
             style="height:34px;padding:0 10px;border-radius:20px;border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8;cursor:pointer;font-size:11px;display:flex;align-items:center;gap:4px;transition:all .15s;">
       <svg id="lp-speak-icon" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
-      <span id="lp-speak-label">Tự đọc</span>
+      <span id="lp-speak-label"><%= t('learner_ai_tutor.auto_speak') %></span>
     </button>
     <% end %>
     <button onclick="lpClearHistory()" title="Xoá lịch sử"
@@ -106,7 +106,7 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
 
   <div style="display:flex;gap:8px;align-items:flex-end;">
     <div class="lp-input-wrap" style="flex:1;padding:8px 8px 8px 14px;">
-      <textarea id="lp-input" rows="1" placeholder="Hỏi bất cứ điều gì..."
+      <textarea id="lp-input" rows="1" placeholder="<%= t('learner_ai_tutor.placeholder') %>"
                 style="width:100%;border:none;outline:none;font-size:14px;resize:none;max-height:120px;background:transparent;font-family:inherit;color:#1e293b;line-height:1.6;box-sizing:border-box;"
                 oninput="lpAutoResize(this);lpToggleSend(this.value)"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();lpSendMsg();}"></textarea>
@@ -126,7 +126,7 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
           </button>
           <% end %>
         </div>
-        <span style="font-size:11px;color:#cbd5e1;">Enter gửi · Shift+Enter xuống dòng</span>
+        <span style="font-size:11px;color:#cbd5e1;"><%= t('learner_ai_tutor.hint') %></span>
       </div>
     </div>
 
@@ -327,11 +327,11 @@ function lpToggleAutoSpeak() {
   if (_autoSpeak) {
     btn.style.borderColor = '#1e3a5f'; btn.style.color = '#1e3a5f'; btn.style.background = '#eff6ff';
     icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6v12M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM18.364 5.636a9 9 0 010 12.728"/>';
-    label.textContent = 'Đang bật';
+    label.textContent = '<%= j t('learner_ai_tutor.auto_speak') %> ✓';
   } else {
     btn.style.borderColor = '#e2e8f0'; btn.style.color = '#94a3b8'; btn.style.background = '#f8fafc';
     icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>';
-    label.textContent = 'Tự đọc';
+    label.textContent = '<%= j t('learner_ai_tutor.auto_speak') %>';
     lpStopShared();
   }
 }
@@ -499,7 +499,7 @@ function lpExitVoiceCall() {
 window.lpExitVoiceCall = lpExitVoiceCall;
 
 function lpVcSetStatus(state) {
-  const S={listening:{label:'Đang lắng nghe...',sub:'Cứ nói tự nhiên'},processing:{label:'Đang xử lý...',sub:'AI đang suy nghĩ'},speaking:{label:'AI đang nói...',sub:'Nhấn orb để ngắt'},idle:{label:'Sẵn sàng',sub:'Bắt đầu nói'}};
+  const S={listening:{label:'<%= j t('learner_ai_tutor.voice_listening') %>',sub:'<%= j t('learner_ai_tutor.voice_listening_sub') %>'},processing:{label:'<%= j t('learner_ai_tutor.voice_processing') %>',sub:'<%= j t('learner_ai_tutor.voice_processing_sub') %>'},speaking:{label:'<%= j t('learner_ai_tutor.voice_speaking') %>',sub:'<%= j t('learner_ai_tutor.voice_speaking_sub') %>'},idle:{label:'<%= j t('learner_ai_tutor.voice_idle') %>',sub:'<%= j t('learner_ai_tutor.voice_idle_sub') %>'}};
   const s=S[state]||S.idle;
   const el=document.getElementById('lp-vc-status'); if(el) el.textContent=s.label;
   const sub=document.getElementById('lp-vc-sub'); if(sub) sub.textContent=s.sub;

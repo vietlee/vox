@@ -77,7 +77,7 @@ class Learner::DashboardController < Learner::BaseController
     speaking = current_learner.learner_speaking_sessions
                  .where('created_at >= ?', today).where('turns > 0')
     if speaking.any?
-      items << { icon: '🗣️', label: "Luyện nói · #{speaking.sum(:turns)} lượt",
+      items << { icon: '🗣️', label: I18n.t('learner_dashboard.speaking_turns', n: speaking.sum(:turns)),
                  kind: 'speaking', url: learner_speaking_path }
     end
 
@@ -94,7 +94,7 @@ class Learner::DashboardController < Learner::BaseController
     accounted = quizzes.count + flashcards.count + speaking.sum(:turns) + plan_items.count
     tutor_count = [@activities_today - accounted, 0].max
     if tutor_count > 0
-      items << { icon: '💬', label: "AI Tutor · #{tutor_count} tin nhắn",
+      items << { icon: '💬', label: I18n.t('learner_dashboard.tutor_messages', n: tutor_count),
                  kind: 'tutor', url: learner_ai_tutor_path }
     end
 
@@ -119,7 +119,7 @@ class Learner::DashboardController < Learner::BaseController
         items << {
           type: :quiz, title: a.quiz_set.title,
           url: learner_quiz_assignment_path(a.token),
-          cta: a.in_progress? ? "Tiếp tục" : "Bắt đầu",
+          cta: a.in_progress? ? I18n.t('learner_dashboard.btn_continue') : I18n.t('learner_dashboard.btn_start'),
           progress: a.progress_pct, due: due,
           overdue: a.respond_to?(:overdue?) && a.overdue?,
           sort: [due && due < Time.current ? 0 : 1, (due || far).to_i, -a.updated_at.to_i]
@@ -130,7 +130,7 @@ class Learner::DashboardController < Learner::BaseController
         items << {
           type: :flashcard, title: a.flashcard_deck.title,
           url: study_learner_flashcard_assignment_path(a.token),
-          cta: a.cards_reviewed.to_i > 0 ? "Tiếp tục" : "Học ngay",
+          cta: a.cards_reviewed.to_i > 0 ? I18n.t('learner_dashboard.btn_continue') : I18n.t('learner_dashboard.btn_study'),
           progress: a.progress_pct, due: nil, overdue: false,
           sort: [1, far.to_i, -a.updated_at.to_i]
         }
@@ -141,7 +141,7 @@ class Learner::DashboardController < Learner::BaseController
         items << {
           type: :path, title: a.learning_path.title,
           url: learner_learning_path_assignment_path(a.token),
-          cta: "Tiếp tục", progress: a.progress_pct, due: a.due_date,
+          cta: I18n.t('learner_dashboard.btn_continue'), progress: a.progress_pct, due: a.due_date,
           overdue: due && due < Time.current,
           sort: [due && due < Time.current ? 0 : 1, (due || far).to_i, -a.updated_at.to_i]
         }

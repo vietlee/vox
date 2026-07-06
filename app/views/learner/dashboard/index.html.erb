@@ -23,9 +23,9 @@
   <%# Daily goal progress — tap to see activity breakdown %>
   <div onclick="openActivitySheet()" style="margin-top:14px;background:rgba(255,255,255,0.1);border-radius:12px;padding:10px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s;" onmousedown="this.style.background='rgba(255,255,255,0.18)'" onmouseup="this.style.background='rgba(255,255,255,0.1)'" ontouchstart="this.style.background='rgba(255,255,255,0.18)'" ontouchend="this.style.background='rgba(255,255,255,0.1)'">
     <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:6px;">
-      <span style="font-weight:600;"><%= @goal_met ? "🎉 Đã đạt mục tiêu hôm nay!" : "🎯 Mục tiêu hôm nay" %></span>
+      <span style="font-weight:600;"><%= @goal_met ? t('learner_dashboard.goal_met') : t('learner_dashboard.goal_today') %></span>
       <div style="display:flex;align-items:center;gap:5px;opacity:.85;">
-        <span><%= [@activities_today, @daily_goal].min %>/<%= @daily_goal %> hoạt động</span>
+        <span><%= [@activities_today, @daily_goal].min %>/<%= @daily_goal %> <%= t('learner_dashboard.activities_unit') %></span>
         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="opacity:.7;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
       </div>
     </div>
@@ -70,9 +70,9 @@
 <% total_items = @quiz_count + @flashcard_count + @path_count %>
 <% if @continue.any? %>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-    <p class="lp-section-title" style="margin:0;">📌 Tiếp tục học</p>
+    <p class="lp-section-title" style="margin:0;"><%= t('learner_dashboard.section_continue') %></p>
     <% if total_items > 0 %>
-      <%= link_to "Xem tất cả (#{total_items}) →", learner_library_path,
+      <%= link_to t('learner_dashboard.view_all', n: total_items), learner_library_path,
             onmouseover: "this.style.background='#c2410c'", onmouseout: "this.style.background='#ea580c'",
             style:"font-size:12px;font-weight:700;color:#fff;text-decoration:none;background:#ea580c;padding:6px 12px;border-radius:9px;box-shadow:0 1px 4px rgba(234,88,12,.35);transition:background .15s;" %>
     <% end %>
@@ -89,12 +89,12 @@
             <p style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= it[:title] %></p>
             <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
               <% if it[:overdue] %>
-                <span class="lp-badge lp-badge-overdue">Quá hạn</span>
+                <span class="lp-badge lp-badge-overdue"><%= t('learner_dashboard.overdue_badge') %></span>
               <% elsif it[:progress].to_i > 0 %>
                 <span style="font-size:11px;font-weight:700;color:<%= m[:bar] %>;"><%= it[:progress] %>%</span>
               <% end %>
               <% if it[:due] %>
-                <span style="font-size:11px;color:#9ca3af;">· hạn <%= it[:due].strftime("%d/%m") %></span>
+                <span style="font-size:11px;color:#9ca3af;">· <%= t('learner_dashboard.due_prefix') %> <%= it[:due].strftime("%d/%m") %></span>
               <% end %>
             </div>
             <% if it[:progress].to_i > 0 %>
@@ -109,13 +109,13 @@
 <% end %>
 
 <%# ── Quick actions ── %>
-<p class="lp-section-title" style="margin-bottom:8px;">Khám phá</p>
+<p class="lp-section-title" style="margin-bottom:8px;"><%= t('learner_dashboard.section_explore') %></p>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
   <% quick = [
-       { url: learner_ai_tutor_path,        icon:'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z', label:'AI Tutor', desc:'Hỏi bất cứ điều gì', c:'#6b21a8', bg:'#faf5ff', bd:'#e9d5ff' },
-       { url: learner_speaking_path,         icon:'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z', label:'Luyện nói', desc:'Hội thoại với AI', c:'#92400e', bg:'#fffbeb', bd:'#fde68a' },
-       { url: learner_study_plans_path,      icon:'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', label:'Lộ trình AI', desc:'Kế hoạch riêng', c:'#3730a3', bg:'#eef2ff', bd:'#c7d2fe' },
-       { url: learner_new_my_flashcard_path, icon:'M12 4v16m8-8H4', label:'Tạo Flashcard', desc:'Bộ thẻ theo yêu cầu', c:'#065f46', bg:'#ecfdf5', bd:'#a7f3d0' }
+       { url: learner_ai_tutor_path,        icon:'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z', label: t('learner_dashboard.explore_tutor_label'), desc: t('learner_dashboard.explore_tutor_desc'), c:'#6b21a8', bg:'#faf5ff', bd:'#e9d5ff' },
+       { url: learner_speaking_path,         icon:'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z', label: t('learner_dashboard.explore_speaking_label'), desc: t('learner_dashboard.explore_speaking_desc'), c:'#92400e', bg:'#fffbeb', bd:'#fde68a' },
+       { url: learner_study_plans_path,      icon:'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', label: t('learner_dashboard.explore_path_label'), desc: t('learner_dashboard.explore_path_desc'), c:'#3730a3', bg:'#eef2ff', bd:'#c7d2fe' },
+       { url: learner_new_my_flashcard_path, icon:'M12 4v16m8-8H4', label: t('learner_dashboard.explore_flashcard_label'), desc: t('learner_dashboard.explore_flashcard_desc'), c:'#065f46', bg:'#ecfdf5', bd:'#a7f3d0' }
      ] %>
   <% quick.each do |q| %>
     <%= link_to q[:url], style:"text-decoration:none;background:#{q[:bg]};border:1.5px solid #{q[:bd]};border-radius:14px;padding:14px;display:block;" do %>
@@ -131,8 +131,8 @@
 <% if @active_total.zero? && (@quiz_count + @flashcard_count + @path_count) > 0 %>
   <div style="text-align:center;padding:20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;margin-bottom:16px;">
     <div style="font-size:32px;">🎉</div>
-    <p style="font-size:14px;font-weight:700;color:#166534;margin:4px 0 2px;">Bạn đã hoàn thành mọi bài được giao!</p>
-    <%= link_to "Xem lại tất cả →", learner_library_path, style:"font-size:12px;font-weight:700;color:#166534;text-decoration:none;" %>
+    <p style="font-size:14px;font-weight:700;color:#166534;margin:4px 0 2px;"><%= t('learner_dashboard.all_done_title') %></p>
+    <%= link_to t('learner_dashboard.all_done_link'), learner_library_path, style:"font-size:12px;font-weight:700;color:#166534;text-decoration:none;" %>
   </div>
 <% end %>
 
@@ -225,7 +225,7 @@
     <div style="width:36px;height:4px;background:#e2e8f0;border-radius:2px;"></div>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 16px 12px;">
-    <p style="font-size:14px;font-weight:800;color:#1e293b;margin:0;">Hoạt động hôm nay</p>
+    <p style="font-size:14px;font-weight:800;color:#1e293b;margin:0;"><%= t('learner_dashboard.activity_sheet_title') %></p>
     <button onclick="closeActivitySheet()" style="width:28px;height:28px;border-radius:50%;border:none;background:#f1f5f9;color:#94a3b8;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;">×</button>
   </div>
   <div style="overflow-y:auto;padding:0 16px 4px;flex:1;">
@@ -242,13 +242,13 @@
     <% else %>
       <div style="text-align:center;padding:28px 0;color:#9ca3af;">
         <div style="font-size:32px;margin-bottom:8px;">🌱</div>
-        <p style="font-size:13px;">Chưa có hoạt động nào hôm nay</p>
+        <p style="font-size:13px;"><%= t('learner_dashboard.activity_sheet_empty') %></p>
       </div>
     <% end %>
     <% if @activities_today > 0 %>
       <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 2px;border-top:1px solid #f1f5f9;margin-top:4px;">
-        <span style="font-size:12px;color:#9ca3af;">Tổng hôm nay</span>
-        <span style="font-size:13px;font-weight:800;color:#1e3a5f;"><%= @activities_today %> hoạt động · +<%= LearnerDailyStat.find_by(learner_id: current_learner.id, day: Date.current)&.xp.to_i %> XP</span>
+        <span style="font-size:12px;color:#9ca3af;"><%= t('learner_dashboard.activity_total') %></span>
+        <span style="font-size:13px;font-weight:800;color:#1e3a5f;"><%= @activities_today %> <%= t('learner_dashboard.activities_unit') %> · +<%= LearnerDailyStat.find_by(learner_id: current_learner.id, day: Date.current)&.xp.to_i %> XP</span>
       </div>
     <% end %>
   </div>
