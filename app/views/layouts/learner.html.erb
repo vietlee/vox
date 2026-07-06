@@ -32,7 +32,7 @@
       --lp-warning: #f59e0b;
       --lp-danger: #ef4444;
       --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bottom: clamp(0px, env(safe-area-inset-bottom, 0px), 44px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
       --topbar-h: calc(56px + var(--safe-top));
       --bottomnav-h: calc(50px + var(--safe-bottom));
     }
@@ -118,6 +118,18 @@
     }
   </style>
   <%= yield :head %>
+  <script>
+    // iOS PWA cold-start bug: env(safe-area-inset-bottom) resolves to a wrong large
+    // value on the first frame, then corrects after the first scroll. Bypass env()
+    // entirely for Face ID iPhones (logical screen > 750px) by hardcoding the real
+    // home-indicator inset (34px) synchronously — this runs before the first paint.
+    (function () {
+      if (/iPhone/.test(navigator.userAgent) &&
+          Math.max(window.screen.width, window.screen.height) > 750) {
+        document.documentElement.style.setProperty('--safe-bottom', '34px');
+      }
+    })();
+  </script>
 </head>
 <body data-page="<%= controller_path.gsub('/', '-') %>">
   <%# Top bar — hidden on auth pages %>
