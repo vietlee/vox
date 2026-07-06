@@ -50,6 +50,45 @@
   </div>
 </div>
 
+<div class="lp-card" id="pwa-profile-card" style="margin-bottom:20px;">
+  <div class="lp-card-body">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <img src="/icon-192.png" alt="VOX" style="width:44px;height:44px;border-radius:12px;flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <p style="font-weight:700;font-size:14px;margin:0;">Ứng dụng VOX</p>
+        <p id="pwa-profile-desc" style="font-size:12px;color:#9ca3af;margin:2px 0 0;">Cài vào màn hình chính để mở nhanh như một app.</p>
+      </div>
+      <button type="button" id="pwa-profile-btn" onclick="lpProfileInstall()"
+              style="flex-shrink:0;padding:9px 16px;border-radius:11px;border:none;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Cài</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function(){
+    var btn = document.getElementById('pwa-profile-btn');
+    var desc = document.getElementById('pwa-profile-desc');
+    function refresh(){
+      if (window.voxIsStandalone && window.voxIsStandalone()) {
+        btn.textContent = 'Đã cài ✓';
+        btn.disabled = true;
+        btn.style.background = '#e2e8f0';
+        btn.style.color = '#64748b';
+        btn.style.cursor = 'default';
+        desc.textContent = 'Bạn đang dùng VOX ở chế độ ứng dụng.';
+      }
+    }
+    window.lpProfileInstall = function(){
+      var res = window.voxTriggerInstall ? window.voxTriggerInstall() : 'unavailable';
+      if (res === 'installed') { refresh(); }
+      else if (res === 'unavailable') {
+        desc.textContent = 'Mở menu trình duyệt và chọn "Thêm vào màn hình chính" để cài.';
+      }
+    };
+    refresh();
+    window.addEventListener('appinstalled', refresh);
+  })();
+</script>
+
 <div class="lp-card">
   <div class="lp-card-body">
     <p style="font-weight:700;font-size:14px;margin-bottom:12px;"><%= t('learner_profile.account_section') %></p>

@@ -418,6 +418,21 @@
       deferredPrompt = e;
       if (isMobile() && !isStandalone() && !recentlyDismissed() && bar) bar.style.display = 'flex';
     });
+    window.addEventListener('appinstalled', function(){ deferredPrompt = null; if (bar) bar.style.display = 'none'; });
+
+    // Exposed so the Profile page (or anywhere) can trigger install on demand.
+    // Returns a status string so callers can show the right message.
+    window.voxTriggerInstall = function(){
+      if (isStandalone()) return 'installed';
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.finally(function(){ deferredPrompt = null; if (bar) bar.style.display = 'none'; });
+        return 'prompted';
+      }
+      if (isIOS()) { var g = document.getElementById('pwa-ios-guide'); if (g) g.style.display = 'flex'; return 'ios'; }
+      return 'unavailable';
+    };
+    window.voxIsStandalone = isStandalone;
 
     var installBtn = document.getElementById('pwa-install-btn');
     if (installBtn) installBtn.addEventListener('click', function(){
