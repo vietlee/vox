@@ -1,8 +1,8 @@
 class Learner::AiTutorController < Learner::BaseController
   CHAT_SESSION_COST  = 2   # charged once at session start (first message)
   VOICE_SESSION_COST = 1   # charged once at call start (first turn)
-  TTS_CREDIT_COST    = 2
-  STT_CREDIT_COST    = 2
+  TTS_CHARS_PER_CREDIT = 200   # 1 credit per 200 chars, minimum 1
+  STT_CREDIT_COST      = 2
 
   def index
     @context = params[:context]
@@ -72,14 +72,15 @@ class Learner::AiTutorController < Learner::BaseController
   end
 
   def tts_generate
-    embedded = in_speaking_session? || in_voice_session?
-    unless embedded
-      return render json: { error: "Không đủ credit.", credits_remaining: current_learner.credits }, status: :payment_required unless current_learner.credits >= TTS_CREDIT_COST
-    end
-
     text = params[:text].to_s.strip
     return render json: { error: "Nội dung trống" }, status: :unprocessable_entity if text.blank?
     return render json: { error: "Văn bản quá dài" }, status: :unprocessable_entity if text.length > 5000
+
+    embedded   = in_speaking_session? || in_voice_session?
+    cost       = embedded ? 0 : [(text.length.to_f / TTS_CHARS_PER_CREDIT).ceil, 1].max
+    unless embedded
+      return render json: { error: "Không đủ credit.", credits_remaining: current_learner.credits }, status: :payment_required unless current_learner.credits >= cost
+    end
 
     voice_id   = params[:voice_id].presence || ElevenLabsService::DEFAULT_VOICE
     model      = params[:model].presence    || "eleven_turbo_v2_5"
@@ -95,12 +96,11 @@ class Learner::AiTutorController < Learner::BaseController
                                similarity: similarity, style: style,
                                language_code: lang_code)
 
-    current_learner.deduct_credits!(TTS_CREDIT_COST) unless embedded
+    current_learner.deduct_credits!(cost) if cost > 0
     remaining = current_learner.reload.credits
 
-    # Return audio as base64 so we can include credits_remaining in JSON
     encoded = Base64.strict_encode64(audio)
-    render json: { audio_base64: encoded, credits_remaining: remaining }
+    render json: { audio_base64: encoded, credits_remaining: remaining, credits_cost: cost }
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

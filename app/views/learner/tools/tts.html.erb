@@ -51,13 +51,16 @@
 
     <!-- Textarea -->
     <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;"><%= t('learner_tts.text') %></label>
-        <span id="lp-tts-chars" style="font-size:11px;color:#94a3b8;">0 / 5,000</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="lp-tts-cost" style="font-size:11px;font-weight:700;color:#7c3aed;background:#f5f3ff;padding:2px 8px;border-radius:99px;display:none;">⚡ 1 credit</span>
+          <span id="lp-tts-chars" style="font-size:11px;color:#94a3b8;">0 / 5,000</span>
+        </div>
       </div>
       <textarea id="lp-tts-text" rows="8" maxlength="5000" placeholder="<%= t('learner_tts.text_ph') %>"
                 style="width:100%;padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;color:#1e293b;resize:vertical;outline:none;font-family:inherit;line-height:1.6;box-sizing:border-box;"
-                oninput="document.getElementById('lp-tts-chars').textContent=this.value.length+' / 5,000';lpTtsToggleBtn()"></textarea>
+                oninput="lpTtsUpdate()"></textarea>
     </div>
 
     <!-- Generate button -->
@@ -100,11 +103,29 @@
         document.getElementById('lp-tts-voice').innerHTML = '<option value=""><%= j t('learner_tts.voice_err') %></option>';
       });
 
-    window.lpTtsToggleBtn = function() {
-      const btn = document.getElementById('lp-tts-btn');
-      const ok = document.getElementById('lp-tts-text').value.trim().length > 0;
-      btn.disabled = !ok; btn.style.opacity = ok ? '1' : '0.4'; btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+    const TTS_CHARS_PER_CREDIT = 200;
+    function lpTtsCalcCost(len) { return len > 0 ? Math.max(1, Math.ceil(len / TTS_CHARS_PER_CREDIT)) : 0; }
+
+    window.lpTtsUpdate = function() {
+      const text = document.getElementById('lp-tts-text').value;
+      const len  = text.length;
+      const cost = lpTtsCalcCost(text.trim().length);
+      document.getElementById('lp-tts-chars').textContent = len + ' / 5,000';
+      const costEl = document.getElementById('lp-tts-cost');
+      const btn    = document.getElementById('lp-tts-btn');
+      const label  = document.getElementById('lp-tts-btn-label');
+      if (cost > 0) {
+        costEl.style.display = 'inline';
+        costEl.textContent   = '⚡ ' + cost + (cost === 1 ? ' credit' : ' credits');
+        label.textContent    = '🎙️ <%= j t('learner_tts.generate') %> (' + cost + (cost === 1 ? ' credit)' : ' credits)');
+        btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+      } else {
+        costEl.style.display = 'none';
+        label.textContent    = '🎙️ <%= j t('learner_tts.generate') %>';
+        btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';
+      }
     };
+    window.lpTtsToggleBtn = lpTtsUpdate;
 
     window.lpTtsGenerate = async function() {
       const text = document.getElementById('lp-tts-text').value.trim();
