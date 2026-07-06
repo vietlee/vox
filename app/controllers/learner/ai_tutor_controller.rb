@@ -43,6 +43,7 @@ class Learner::AiTutorController < Learner::BaseController
     first_turn = history.empty?
     if first_turn
       return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= VOICE_SESSION_COST
+      start_free_tts_session!(:vc_active)
     end
 
     system_prompt = <<~PROMPT
@@ -71,7 +72,10 @@ class Learner::AiTutorController < Learner::BaseController
   end
 
   def tts_generate
-    return render json: { error: "Không đủ credit.", credits_remaining: current_learner.credits }, status: :payment_required unless current_learner.credits >= TTS_CREDIT_COST
+    embedded = in_speaking_session? || in_voice_session?
+    unless embedded
+      return render json: { error: "Không đủ credit.", credits_remaining: current_learner.credits }, status: :payment_required unless current_learner.credits >= TTS_CREDIT_COST
+    end
 
     text = params[:text].to_s.strip
     return render json: { error: "Nội dung trống" }, status: :unprocessable_entity if text.blank?
@@ -91,7 +95,7 @@ class Learner::AiTutorController < Learner::BaseController
                                similarity: similarity, style: style,
                                language_code: lang_code)
 
-    current_learner.deduct_credits!(TTS_CREDIT_COST)
+    current_learner.deduct_credits!(TTS_CREDIT_COST) unless embedded
     remaining = current_learner.reload.credits
 
     # Return audio as base64 so we can include credits_remaining in JSON
@@ -102,7 +106,10 @@ class Learner::AiTutorController < Learner::BaseController
   end
 
   def stt_chunk
-    return render json: { error: "Không đủ credit.", credits_remaining: current_learner.credits }, status: :payment_required unless current_learner.credits >= STT_CREDIT_COST
+    embedded = in_speaking_session? || in_voice_session?
+    unless embedded
+      return render json: { error: "Không đủ credit.", credits_remaining: current_learner.credits }, status: :payment_required unless current_learner.credits >= STT_CREDIT_COST
+    end
 
     blob = params[:chunk]
     return render json: { error: "Không có dữ liệu âm thanh" }, status: :unprocessable_entity unless blob.present?
@@ -115,7 +122,7 @@ class Learner::AiTutorController < Learner::BaseController
     svc    = ElevenLabsService.new
     result = svc.speech_to_text(audio_io: tmp, filename: "chunk.webm")
 
-    current_learner.deduct_credits!(STT_CREDIT_COST)
+    current_learner.deduct_credits!(STT_CREDIT_COST) unless embedded
     render json: { text: result[:text], credits_remaining: current_learner.reload.credits }
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity

@@ -31,6 +31,7 @@ class Learner::SpeakingController < Learner::BaseController
     first_turn = history.empty?
     if first_turn
       return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= CREDIT_COST
+      start_free_tts_session!(:sp_active)
     end
 
     system_prompt = <<~P
@@ -82,6 +83,7 @@ class Learner::SpeakingController < Learner::BaseController
     raw  = svc.call(system_prompt: system_prompt, messages: [{ role: "user", content: convo }], max_tokens: 400)
     data = (JSON.parse(raw.match(/\{[\s\S]*\}/)[0]) rescue { "score" => nil, "feedback" => raw.to_s.truncate(400) })
 
+    end_free_tts_session!(:sp_active)
     session = current_learner.learner_speaking_sessions.create!(
       language: lang_code.presence || "en",
       scenario: params[:scenario].to_s.presence || "free",
