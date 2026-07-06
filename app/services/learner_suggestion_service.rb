@@ -147,7 +147,7 @@ class LearnerSuggestionService
   # --- Rule 4: AI trending (no data) ---
   def ai_trending_suggestion
     prompt = <<~P
-      You are a learning assistant. Suggest ONE trending and practical learning topic for a Vietnamese learner in 2025.
+      You are a learning assistant. Suggest ONE trending and practical learning topic for a Vietnamese learner in #{Date.current.year}.
       Keep it concise and motivating. Reply in Vietnamese.
 
       Return ONLY valid JSON, no other text:
