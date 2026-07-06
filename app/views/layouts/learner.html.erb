@@ -7,6 +7,13 @@
   <title><%= content_for?(:title) ? "#{yield :title} · VOX Learn" : "VOX Learn" %></title>
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="icon" href="/icon.png" type="image/png">
+  <%# ── PWA (installable app on phone home screen) ── %>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VOX">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
   <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
@@ -349,5 +356,98 @@
       m.onclick = function(e){ if (e.target === m) close(); };
     };
   </script>
+
+  <% if learner_signed_in? %>
+  <%# ── PWA install prompt (Android auto-install / iOS guided) ── %>
+  <div id="pwa-install-bar" style="display:none;position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);z-index:9998;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.16);padding:12px 14px;align-items:center;gap:12px;">
+    <img src="/icon-192.png" alt="VOX" style="width:42px;height:42px;border-radius:11px;flex-shrink:0;">
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:14px;font-weight:800;color:#0f172a;line-height:1.2;">Cài VOX vào màn hình chính</div>
+      <div style="font-size:12px;color:#64748b;line-height:1.3;margin-top:2px;">Mở nhanh như một ứng dụng, học mọi lúc.</div>
+    </div>
+    <button id="pwa-install-btn" style="flex-shrink:0;padding:9px 14px;border-radius:11px;border:none;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Cài</button>
+    <button id="pwa-install-close" aria-label="Đóng" style="flex-shrink:0;width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:15px;cursor:pointer;line-height:1;">×</button>
+  </div>
+
+  <div id="pwa-ios-guide" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);align-items:flex-end;justify-content:center;">
+    <div style="background:#fff;width:100%;max-width:460px;border-radius:20px 20px 0 0;padding:20px 20px calc(env(safe-area-inset-bottom,0px) + 20px);">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <img src="/icon-192.png" alt="VOX" style="width:46px;height:46px;border-radius:12px;">
+        <div style="flex:1;"><div style="font-size:16px;font-weight:800;color:#0f172a;">Thêm VOX vào màn hình chính</div><div style="font-size:12px;color:#64748b;">Chỉ mất vài giây trên iPhone / iPad</div></div>
+        <button id="pwa-ios-close" aria-label="Đóng" style="width:30px;height:30px;border-radius:9px;border:none;background:#f1f5f9;color:#64748b;font-size:17px;cursor:pointer;">×</button>
+      </div>
+      <ol style="margin:0;padding-left:6px;list-style:none;font-size:14px;color:#334155;line-height:1.7;">
+        <li style="display:flex;gap:9px;align-items:center;margin-bottom:8px;"><span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#1e3a5f;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">1</span> Bấm nút <b>Chia sẻ</b> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" stroke-width="2" style="vertical-align:middle"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L8 8m4-4l4 4M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4"/></svg> ở thanh trình duyệt</li>
+        <li style="display:flex;gap:9px;align-items:center;margin-bottom:8px;"><span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#1e3a5f;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">2</span> Chọn <b>Thêm vào MH chính</b> (Add to Home Screen)</li>
+        <li style="display:flex;gap:9px;align-items:center;"><span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#1e3a5f;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">3</span> Bấm <b>Thêm</b> — xong!</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    // Register service worker (required for installability)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function(){
+        navigator.serviceWorker.register('/service-worker.js').catch(function(){});
+      });
+    }
+
+    var DISMISS_KEY = 'vox_pwa_dismissed_at';
+    var HIDE_DAYS = 14;
+    function recentlyDismissed(){
+      var t = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
+      return t && (Date.now() - t) < HIDE_DAYS * 864e5;
+    }
+    function isStandalone(){
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+    function isIOS(){
+      return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+    }
+
+    var bar = document.getElementById('pwa-install-bar');
+    var deferredPrompt = null;
+
+    // Android / Chrome: capture the install event, show our own button
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault();
+      deferredPrompt = e;
+      if (!isStandalone() && !recentlyDismissed() && bar) bar.style.display = 'flex';
+    });
+
+    var installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) installBtn.addEventListener('click', function(){
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.finally(function(){
+        deferredPrompt = null;
+        if (bar) bar.style.display = 'none';
+      });
+    });
+    var closeBtn = document.getElementById('pwa-install-close');
+    if (closeBtn) closeBtn.addEventListener('click', function(){
+      if (bar) bar.style.display = 'none';
+      localStorage.setItem(DISMISS_KEY, Date.now());
+    });
+
+    // iOS: no install API — show guided sheet (only Safari, not standalone, not recently dismissed)
+    if (isIOS() && !isStandalone() && !recentlyDismissed()) {
+      setTimeout(function(){
+        var g = document.getElementById('pwa-ios-guide');
+        if (g) g.style.display = 'flex';
+      }, 2500);
+    }
+    var iosClose = document.getElementById('pwa-ios-close');
+    var iosGuide = document.getElementById('pwa-ios-guide');
+    function hideIos(){ if (iosGuide) iosGuide.style.display = 'none'; localStorage.setItem(DISMISS_KEY, Date.now()); }
+    if (iosClose) iosClose.addEventListener('click', hideIos);
+    if (iosGuide) iosGuide.addEventListener('click', function(e){ if (e.target === iosGuide) hideIos(); });
+
+    // Hide app-chrome adjustments when already installed
+    if (isStandalone()) document.documentElement.classList.add('pwa-standalone');
+  })();
+  </script>
+  <% end %>
 </body>
 </html>
