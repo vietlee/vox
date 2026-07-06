@@ -405,6 +405,9 @@
     function isIOS(){
       return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
     }
+    function isMobile(){
+      return window.matchMedia('(max-width: 768px)').matches;
+    }
 
     var bar = document.getElementById('pwa-install-bar');
     var deferredPrompt = null;
@@ -413,7 +416,7 @@
     window.addEventListener('beforeinstallprompt', function(e){
       e.preventDefault();
       deferredPrompt = e;
-      if (!isStandalone() && !recentlyDismissed() && bar) bar.style.display = 'flex';
+      if (isMobile() && !isStandalone() && !recentlyDismissed() && bar) bar.style.display = 'flex';
     });
 
     var installBtn = document.getElementById('pwa-install-btn');
@@ -432,7 +435,7 @@
     });
 
     // iOS: no install API — show guided sheet (only Safari, not standalone, not recently dismissed)
-    if (isIOS() && !isStandalone() && !recentlyDismissed()) {
+    if (isIOS() && isMobile() && !isStandalone() && !recentlyDismissed()) {
       setTimeout(function(){
         var g = document.getElementById('pwa-ios-guide');
         if (g) g.style.display = 'flex';
