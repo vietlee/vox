@@ -485,6 +485,7 @@ function lpStartVoiceCall() {
   lpCloseVoicePicker(); _vcActive=true;
   document.getElementById('lp-vc-overlay').style.display='flex';
   document.body.style.overflow='hidden';
+  document.documentElement.style.background='#07080f';
   const vnd=document.getElementById('lp-vc-voice-name');
   if (vnd&&_voiceList) { const sv=_voiceList.find(x=>x.id===_vcVoiceId); if(sv) vnd.textContent=sv.name; }
   lpVcSetStatus('listening'); lpVcStartListening();
@@ -494,6 +495,7 @@ function lpExitVoiceCall() {
   _vcActive=false; lpVcStopAll();
   document.getElementById('lp-vc-overlay').style.display='none';
   document.body.style.overflow='';
+  document.documentElement.style.background='';
   lpStopShared();
 }
 window.lpExitVoiceCall = lpExitVoiceCall;
@@ -642,7 +644,7 @@ document.getElementById('lp-input').focus();
 </div>
 
 <!-- ── Voice Call Overlay ── -->
-<div id="lp-vc-overlay" style="display:none;position:fixed;inset:0;z-index:190;background:linear-gradient(160deg,#07080f 0%,#0d0f1e 55%,#080c18 100%);flex-direction:column;align-items:center;justify-content:center;">
+<div id="lp-vc-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;height:100%;height:-webkit-fill-available;z-index:190;background:linear-gradient(160deg,#07080f 0%,#0d0f1e 55%,#080c18 100%);flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
   <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;">
     <div style="display:flex;align-items:center;gap:8px;">
       <div style="width:7px;height:7px;border-radius:50%;background:#6366f1;"></div>
