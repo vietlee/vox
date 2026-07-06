@@ -1,7 +1,7 @@
 lock "~> 3.18"
 
 set :application, "vox"
-set :repo_url,    "git@github.com:vietlee/vox.git"
+set :repo_url,    "https://github.com/vietlee/vox.git"
 
 set :deploy_to,   "/var/www/vox"
 set :branch,      ENV.fetch("BRANCH", "main")
