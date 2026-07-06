@@ -70,7 +70,7 @@
       .lp-tools-sheet-inner { max-width: 58.33%; }
     }
     .lp-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: var(--lp-muted); font-size: 10.5px; font-weight: 500; transition: color 0.2s, background 0.15s, transform 0.1s; padding: 4px 2px; border-radius: 10px; margin: 2px; background: transparent; }
-    .lp-nav-item svg { width: 20px; height: 20px; transition: transform 0.15s; }
+    .lp-nav-item svg { width: 22px; height: 22px; transition: transform 0.15s; }
     @media (hover: hover) {
       .lp-nav-item:hover { color: var(--lp-purple); background: rgba(30,58,95,0.06); }
       .lp-nav-item:hover svg { transform: translateY(-2px); }
@@ -118,6 +118,24 @@
     }
   </style>
   <%= yield :head %>
+  <script>
+    // iOS PWA: env(safe-area-inset-bottom) can report a stale/wrong value on cold
+    // launch — the real value only settles after the first layout paint. We probe it
+    // with a zero-size element and push the correct pixel value into the CSS variable
+    // so the nav bar is the right height from frame 1, without needing a scroll.
+    (function () {
+      var p = document.createElement('div');
+      p.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom,0px);width:1px;pointer-events:none;opacity:0;z-index:-1;';
+      function apply() {
+        document.documentElement.style.setProperty('--safe-bottom', p.offsetHeight + 'px');
+      }
+      document.addEventListener('DOMContentLoaded', function () {
+        document.documentElement.appendChild(p);
+        requestAnimationFrame(function () { requestAnimationFrame(apply); });
+      });
+      window.addEventListener('resize', apply, { passive: true });
+    })();
+  </script>
 </head>
 <body data-page="<%= controller_path.gsub('/', '-') %>">
   <%# Top bar — hidden on auth pages %>
