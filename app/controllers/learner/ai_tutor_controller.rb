@@ -56,7 +56,7 @@ class Learner::AiTutorController < Learner::BaseController
     messages = history.map { |m| { role: m["role"], content: m["content"].to_s.truncate(1000) } }
     messages << { role: "user", content: message }
 
-    svc   = ClaudeService.for_feature("ai_tutor", timeout: 30)
+    svc   = ClaudeService.haiku
     reply = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 300)
     current_learner.deduct_credits!(VOICE_SESSION_COST) if first_turn
     render json: { reply: reply, credits_remaining: current_learner.reload.credits }

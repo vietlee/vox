@@ -410,7 +410,10 @@ async function lpTranscribe(blob) {
 
 // ── Voice Call ───────────────────────────────────────────────────
 let _vcActive=false,_vcListening=false,_vcRecorder=null,_vcChunks=[],_vcStream=null;
-let _vcAnalyser=null,_vcSilTimer=null,_vcAudioCtx=null,_vcAnimFrame=null;
+let _vcAnalyser=null,_vcSilTimer=null,_vcAudioCtx=null,_vcAnimFrame=null,_vcSpeechRec=null;
+const _hasSpeechRec=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
+const SpeechRecCtor=window.SpeechRecognition||window.webkitSpeechRecognition||null;
+const SPEECH_LANG=navigator.language||'en-US';
 let _vcVoiceId=localStorage.getItem('lp_vc_voice_id')||'';
 let _vcSpeed=parseFloat(localStorage.getItem('lp_vc_speed')||'0.95');
 let _voiceList=null;
@@ -512,19 +515,44 @@ function lpVcSetStatus(state) {
   barsWrap.style.color=clrs[state]||'#94a3b8';
 }
 
+async function lpVcInitStream() {
+  if (_vcStream) return;
+  _vcStream=await navigator.mediaDevices.getUserMedia({audio:true});
+  _vcAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  const src=_vcAudioCtx.createMediaStreamSource(_vcStream);
+  _vcAnalyser=_vcAudioCtx.createAnalyser(); _vcAnalyser.fftSize=256;
+  src.connect(_vcAnalyser);
+}
 async function lpVcStartListening() {
   if (!_vcActive) return; lpVcSetStatus('listening'); _vcListening=true; _vcChunks=[];
-  try {
-    _vcStream=await navigator.mediaDevices.getUserMedia({audio:true});
-    _vcAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    const src=_vcAudioCtx.createMediaStreamSource(_vcStream);
-    _vcAnalyser=_vcAudioCtx.createAnalyser(); _vcAnalyser.fftSize=256;
-    src.connect(_vcAnalyser); lpVcAnimateBars(); lpVcDetectSilence();
+  try { await lpVcInitStream(); lpVcAnimateBars(); }
+  catch(e) { lpVcSetStatus('idle'); const s=document.getElementById('lp-vc-sub'); if(s) s.textContent='Không thể truy cập mic'; return; }
+  if (_hasSpeechRec) {
+    _vcSpeechRec=new SpeechRecCtor();
+    _vcSpeechRec.lang=SPEECH_LANG; _vcSpeechRec.continuous=false; _vcSpeechRec.interimResults=true; _vcSpeechRec.maxAlternatives=1;
+    let finalTxt=''; const txEl=document.getElementById('lp-vc-transcript');
+    _vcSpeechRec.onresult=function(ev){
+      let finals='',interim='';
+      for(let i=ev.resultIndex;i<ev.results.length;i++){const t=ev.results[i][0].transcript;if(ev.results[i].isFinal)finals+=t;else interim+=t;}
+      if(finals)finalTxt+=finals;
+      if(txEl)txEl.textContent='🗣 '+(finalTxt||interim);
+    };
+    _vcSpeechRec.onend=function(){
+      _vcListening=false; if(!_vcActive)return;
+      if(finalTxt.trim())lpVcProcessWithText(finalTxt.trim());
+      else setTimeout(()=>{if(_vcActive)lpVcStartListening();},300);
+    };
+    _vcSpeechRec.onerror=function(e){
+      _vcListening=false; if(!_vcActive)return;
+      setTimeout(()=>{if(_vcActive)lpVcStartListening();},300);
+    };
+    try{_vcSpeechRec.start();}catch(e){}
+  } else {
     _vcRecorder=new MediaRecorder(_vcStream,{mimeType:'audio/webm'});
     _vcRecorder.ondataavailable=e=>{ if(e.data.size>0) _vcChunks.push(e.data); };
-    _vcRecorder.onstop=async()=>{ lpVcStopStream(); if(!_vcActive||!_vcChunks.length) return; lpVcSetStatus('processing'); await lpVcProcessAndReply(); };
-    _vcRecorder.start(200);
-  } catch(e) { lpVcSetStatus('idle'); const s=document.getElementById('lp-vc-sub'); if(s) s.textContent='Không thể truy cập mic'; }
+    _vcRecorder.onstop=async()=>{ if(!_vcActive||!_vcChunks.length) return; lpVcSetStatus('processing'); await lpVcProcessAndReply(); };
+    _vcRecorder.start(200); lpVcDetectSilence();
+  }
 }
 function lpVcDetectSilence() {
   const data=new Uint8Array(_vcAnalyser.frequencyBinCount);
@@ -535,7 +563,7 @@ function lpVcDetectSilence() {
     _vcAnalyser.getByteFrequencyData(data);
     const avg=data.reduce((a,b)=>a+b,0)/data.length;
     if (avg>=20) { spk=true; silMs=0; }
-    else if (spk&&avg<14) { silMs+=100; if(silMs>=1000) { lpVcStopListening(); return; } }
+    else if (spk&&avg<14) { silMs+=100; if(silMs>=1500) { lpVcStopListening(); return; } }
     if (Date.now()-start>30000) { lpVcStopListening(); return; }
     _vcSilTimer=setTimeout(check,100);
   }
@@ -557,7 +585,11 @@ function lpVcAnimateBars() {
   }
   _vcAnimFrame=requestAnimationFrame(frame);
 }
-function lpVcStopListening() { _vcListening=false; clearTimeout(_vcSilTimer); if(_vcRecorder?.state==='recording') _vcRecorder.stop(); }
+function lpVcStopListening() {
+  _vcListening=false; clearTimeout(_vcSilTimer);
+  if(_vcSpeechRec){try{_vcSpeechRec.abort();}catch(e){} _vcSpeechRec=null;}
+  if(_vcRecorder?.state==='recording') _vcRecorder.stop();
+}
 function lpVcStopStream() { _vcStream?.getTracks().forEach(t=>t.stop()); _vcStream=null; _vcAudioCtx?.close().catch(()=>{}); _vcAudioCtx=null; if(_vcAnimFrame){cancelAnimationFrame(_vcAnimFrame);_vcAnimFrame=null;} }
 function lpVcStopAll() { _vcListening=false; clearTimeout(_vcSilTimer); if(_vcRecorder?.state!=='inactive'){try{_vcRecorder.stop();}catch(e){}} lpVcStopStream(); }
 function lpVcTapMic() { if(!_vcActive) return; if(_vcListening){lpVcStopListening();}else if(_vcAudioCtx){lpStopShared();setTimeout(()=>{if(_vcActive)lpVcStartListening();},200);}else{lpVcStartListening();} }
@@ -571,8 +603,12 @@ async function lpVcProcessAndReply() {
   let userText='';
   try { const r=await fetch(STT_URL,{method:'POST',body:fd}); const d=await r.json(); userText=(d.text||'').trim(); } catch(e) {}
   if (!userText) { if(_vcActive) lpVcStartListening(); return; }
+  await lpVcProcessWithText(userText);
+}
+async function lpVcProcessWithText(userText) {
+  const txEl=document.getElementById('lp-vc-transcript');
+  if(txEl){txEl.textContent='🗣 '+userText;txEl.style.opacity='1';}
   lpAppendMsg('user',userText); chatHistory.push({role:'user',content:userText}); lpSaveHistory();
-  if(txEl) txEl.textContent='🗣 '+userText;
   lpVcSetStatus('processing');
   const thinkEl=lpAppendMsg('assistant',null,true);
   let reply='', data={};
