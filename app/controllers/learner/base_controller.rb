@@ -1,6 +1,4 @@
 class Learner::BaseController < ApplicationController
-  include Paginatable
-
   layout "learner"
 
   before_action :authenticate_learner!
@@ -47,5 +45,18 @@ class Learner::BaseController < ApplicationController
       store_location_for(:learner, request.fullpath)
       redirect_to new_learner_session_path, alert: "Vui lòng đăng nhập để tiếp tục."
     end
+  end
+
+  def pagy(scope, items: 10, page: nil)
+    page  = (page || 1).to_i
+    total = scope.count
+    pages = [(total.to_f / items).ceil, 1].max
+    page  = [[page, 1].max, pages].min
+    records  = scope.offset((page - 1) * items).limit(items)
+    prev_p   = page > 1 ? page - 1 : nil
+    next_p   = page < pages ? page + 1 : nil
+    pagy_obj = Struct.new(:page, :items, :count, :pages, :prev, :next)
+                     .new(page, items, total, pages, prev_p, next_p)
+    [pagy_obj, records]
   end
 end
