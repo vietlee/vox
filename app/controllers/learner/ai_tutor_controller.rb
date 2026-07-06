@@ -1,8 +1,8 @@
 class Learner::AiTutorController < Learner::BaseController
   CHAT_SESSION_COST  = 2   # charged once at session start (first message)
   VOICE_SESSION_COST = 1   # charged once at call start (first turn)
-  TTS_CREDIT_COST    = 1
-  STT_CREDIT_COST    = 1
+  TTS_CREDIT_COST    = 2
+  STT_CREDIT_COST    = 2
 
   def index
     @context = params[:context]
