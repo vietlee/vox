@@ -50,7 +50,7 @@
         <svg width="17" height="17" fill="none" stroke="#1e3a5f" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L8 8m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
       </div>
       <div style="min-width:0;">
-        <p id="qz-files-label" style="font-size:13px;font-weight:600;color:#1e3a5f;margin:0;">Chọn tệp để tải lên</p>
+        <p id="qz-files-label" style="font-size:13px;font-weight:600;color:#1e3a5f;margin:0;"><%= t('learner_qz.files_choose') %></p>
         <p style="font-size:11px;color:#94a3b8;margin:0;"><%= t('learner_qz.files_hint') %></p>
       </div>
     </label>
@@ -99,12 +99,14 @@
 (function(){
   var CSRF = document.querySelector('meta[name="csrf-token"]').content;
   var MSGS = ['<%= raw j t('learner_qz.gen_1') %>','<%= raw j t('learner_qz.gen_2') %>','<%= raw j t('learner_qz.gen_3') %>','<%= raw j t('learner_qz.gen_4') %>'];
+  var FILES_CHOOSE = '<%= j t('learner_qz.files_choose') %>';
+  var FILES_SELECTED = '<%= j t('learner_qz.files_selected', n: '__N__') %>';
   var _i=0, _int;
   window.qzFilesChanged = function(input){
     var lbl = document.getElementById('qz-files-label');
     var n = input.files.length;
-    if (!n) { lbl.textContent = 'Chọn tệp để tải lên'; return; }
-    lbl.textContent = n === 1 ? input.files[0].name : (n + ' tệp đã chọn');
+    if (!n) { lbl.textContent = FILES_CHOOSE; return; }
+    lbl.textContent = n === 1 ? input.files[0].name : FILES_SELECTED.replace('__N__', n);
   };
   window.qzPickTime = function(input){
     document.querySelectorAll('#qz-time-picker .qz-time-opt').forEach(function(s){ s.style.borderColor='#e5e7eb'; s.style.background='#fff'; s.style.color='#64748b'; });
