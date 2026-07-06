@@ -21,14 +21,17 @@ class Learner::SpeakingController < Learner::BaseController
 
   # Learner spoke → AI conversational reply in target language
   def reply
-    return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= CREDIT_COST
-
     lang_code = params[:language].to_s
     lang      = LANGS[lang_code] || "English"
     scenario  = SCENARIOS[params[:scenario].to_s] || SCENARIOS["free"]
     message   = params[:message].to_s.strip
     history   = Array(params[:history]).last(12)
     return render json: { error: "Nội dung trống" } if message.blank?
+
+    first_turn = history.empty?
+    if first_turn
+      return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= CREDIT_COST
+    end
 
     system_prompt = <<~P
       You are a friendly #{lang} conversation partner helping a learner practice speaking.
@@ -46,7 +49,7 @@ class Learner::SpeakingController < Learner::BaseController
     svc   = ClaudeService.for_feature("ai_tutor", timeout: 25)
     reply = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 200)
 
-    current_learner.deduct_credits!(CREDIT_COST)
+    current_learner.deduct_credits!(CREDIT_COST) if first_turn
     LearnerGamification.record!(current_learner, :speaking_turn)
 
     render json: { reply: reply.strip, credits_remaining: current_learner.reload.credits }

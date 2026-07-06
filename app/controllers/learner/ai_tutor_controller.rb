@@ -1,7 +1,8 @@
 class Learner::AiTutorController < Learner::BaseController
-  CREDIT_COST     = 1
-  TTS_CREDIT_COST = 1
-  STT_CREDIT_COST = 1
+  CHAT_SESSION_COST  = 2   # charged once at session start (first message)
+  VOICE_SESSION_COST = 1   # charged once at call start (first turn)
+  TTS_CREDIT_COST    = 1
+  STT_CREDIT_COST    = 1
 
   def index
     @context = params[:context]
@@ -10,12 +11,15 @@ class Learner::AiTutorController < Learner::BaseController
   end
 
   def chat
-    return render json: { error: "Không đủ credit. Vui lòng mua thêm." }, status: :payment_required unless current_learner.credits >= CREDIT_COST
-
     message = params[:message].to_s.strip
     history = Array(params[:history]).last(20)
     context = params[:context].to_s.strip
     return render json: { error: "Tin nhắn trống" }, status: :unprocessable_entity if message.blank?
+
+    first_turn = history.empty?
+    if first_turn
+      return render json: { error: "Không đủ credit. Vui lòng mua thêm." }, status: :payment_required unless current_learner.credits >= CHAT_SESSION_COST
+    end
 
     system_prompt = build_system_prompt(context)
     messages = history.map { |m| { role: m["role"], content: m["content"].to_s.truncate(2000) } }
@@ -24,7 +28,7 @@ class Learner::AiTutorController < Learner::BaseController
     svc      = ClaudeService.for_feature("ai_tutor", timeout: 30)
     response = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 1000)
 
-    current_learner.deduct_credits!(CREDIT_COST)
+    current_learner.deduct_credits!(CHAT_SESSION_COST) if first_turn
     LearnerGamification.record!(current_learner, :tutor_chat)
     render json: { response: response, credits_remaining: current_learner.reload.credits }
   rescue => e
@@ -32,11 +36,14 @@ class Learner::AiTutorController < Learner::BaseController
   end
 
   def voice
-    return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= CREDIT_COST
-
     message  = params[:message].to_s.strip
     history  = Array(params[:history]).last(10)
     context  = params[:context].to_s.strip
+
+    first_turn = history.empty?
+    if first_turn
+      return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= VOICE_SESSION_COST
+    end
 
     system_prompt = <<~PROMPT
       You are a friendly voice AI Tutor — give short, natural spoken answers (2-3 sentences max).
@@ -50,7 +57,7 @@ class Learner::AiTutorController < Learner::BaseController
 
     svc   = ClaudeService.for_feature("ai_tutor", timeout: 30)
     reply = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 300)
-    current_learner.deduct_credits!(CREDIT_COST)
+    current_learner.deduct_credits!(VOICE_SESSION_COST) if first_turn
     render json: { reply: reply, credits_remaining: current_learner.reload.credits }
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
