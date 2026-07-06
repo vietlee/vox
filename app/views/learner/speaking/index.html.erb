@@ -261,37 +261,37 @@
       .catch(function(){ _busy = false; setMicStatus('<%= j t('learner_sp.mic_idle') %>'); });
   }
 
-  // ── Speech input: Web Speech (Chrome) with MediaRecorder+server-STT fallback (iOS Safari) ──
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  // ── Speech input: MediaRecorder + ElevenLabs STT (same path as AI Tutor; works on all mobile browsers) ──
   var STT_URL = '<%= learner_ai_tutor_stt_path %>';
-  var _finalText = '';
-  var _mr=null, _mrChunks=[], _mrStream=null;
-  window.spToggleMic = function() {
-    if (SR) { _listening ? stopRec() : startRec(); }
-    else    { _listening ? mrStop() : mrStart(); }
-  };
+  var _recorder = null, _chunks = [], _cancelled = false;
 
-  // MediaRecorder fallback (records audio, transcribes via ElevenLabs STT endpoint)
-  async function mrStart() {
-    if (_busy) return;
-    try { _mrStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  window.spToggleMic = function() { _recorder ? spStopMic(false) : spStartMic(); };
+
+  async function spStartMic() {
+    if (_busy || _recorder) return;
+    _cancelled = false; _chunks = [];
+    var stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
     catch(e) { alert('<%= j t('learner_sp.err_mic_perm') %>'); return; }
-    _mrChunks = [];
-    var mime = (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/mp4')) ? 'audio/mp4'
-             : (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm')) ? 'audio/webm' : '';
-    try { _mr = mime ? new MediaRecorder(_mrStream, { mimeType: mime }) : new MediaRecorder(_mrStream); }
-    catch(e) { _mr = new MediaRecorder(_mrStream); }
-    _mr.ondataavailable = function(e){ if (e.data && e.data.size > 0) _mrChunks.push(e.data); };
-    _mr.onstop = function(){
+    var mime = (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm')) ? 'audio/webm'
+             : (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/mp4')) ? 'audio/mp4' : '';
+    try { _recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream); }
+    catch(e) { _recorder = new MediaRecorder(stream); }
+    _recorder.ondataavailable = function(e){ if (e.data && e.data.size > 0) _chunks.push(e.data); };
+    _recorder.onstop = function(){
+      stream.getTracks().forEach(function(t){ t.stop(); });
       _listening = false; setMicUI(false);
-      if (_mrStream) _mrStream.getTracks().forEach(function(t){ t.stop(); });
-      if (!_mrChunks.length) return;
-      mrTranscribe(new Blob(_mrChunks, { type: _mr.mimeType || 'audio/mp4' }));
+      var mt = (_recorder && _recorder.mimeType) || 'audio/webm';
+      _recorder = null;
+      if (_cancelled || !_chunks.length) return;
+      spTranscribe(new Blob(_chunks, { type: mt }));
     };
-    _mr.start(); _listening = true; setMicUI(true);
+    _recorder.start();
+    _listening = true; setMicUI(true);
   }
-  function mrStop(){ if (_mr && _mr.state !== 'inactive') { try { _mr.stop(); } catch(e){} } }
-  async function mrTranscribe(blob) {
+  function spStopMic(cancel){ _cancelled = !!cancel; if (_recorder && _recorder.state !== 'inactive') { try { _recorder.stop(); } catch(e){} } }
+
+  async function spTranscribe(blob) {
     document.getElementById('sp-interim').textContent = '⏳...';
     var ext = (blob.type.indexOf('mp4') >= 0) ? 'mp4' : 'webm';
     var fd = new FormData(); fd.append('chunk', blob, 'voice.' + ext); fd.append('authenticity_token', CSRF);
@@ -299,36 +299,11 @@
       var r = await fetch(STT_URL, { method:'POST', body: fd });
       var d = await r.json().catch(function(){ return {}; });
       document.getElementById('sp-interim').textContent = '';
+      if (d.error) { alert(d.error); return; }
       if (d.credits_remaining !== undefined && window.updateLpCredits) updateLpCredits(d.credits_remaining);
       showDraft((d.text || '').trim());
     } catch(e) { document.getElementById('sp-interim').textContent = ''; }
   }
-
-  function startRec() {
-    if (!SR) { alert('<%= j t('learner_sp.err_mic') %>'); return; }
-    if (_busy) return;
-    _finalText = '';
-    _recog = new SR();
-    _recog.lang = SPEECH_LANG[_lang] || 'en-US';
-    _recog.interimResults = true;
-    _recog.continuous = true;   // keep listening across pauses; stop only when user taps
-    _recog.onstart = function(){ _listening = true; setMicUI(true); };
-    _recog.onresult = function(e){
-      var interim = '';
-      for (var i=e.resultIndex;i<e.results.length;i++){
-        if (e.results[i].isFinal) _finalText += e.results[i][0].transcript + ' ';
-        else interim += e.results[i][0].transcript;
-      }
-      document.getElementById('sp-interim').textContent = (_finalText + interim).trim();
-    };
-    _recog.onerror = function(e){ if (e.error==='not-allowed') alert('<%= j t('learner_sp.err_mic_perm') %>'); stopRec(); };
-    _recog.onend = function(){
-      _listening = false; setMicUI(false);
-      showDraft(_finalText.trim());   // review — do NOT auto-send
-    };
-    try { _recog.start(); } catch(ex){}
-  }
-  function stopRec(){ _listening=false; if(_recog){ try{ _recog.stop(); }catch(ex){} } }
 
   function showDraft(text) {
     document.getElementById('sp-interim').textContent = '';
@@ -366,7 +341,7 @@
 
   window.spFinish = function() {
     if (_spAudio) { _spAudio.pause(); }
-    if (_listening) stopRec();
+    if (_listening) spStopMic(true);
     document.getElementById('sp-score-modal').style.display = 'flex';
     document.getElementById('sp-score-num').textContent = '…';
     document.getElementById('sp-score-feedback').textContent = '<%= j t('learner_sp.scoring') %>';
