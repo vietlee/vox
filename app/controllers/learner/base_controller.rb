@@ -1,4 +1,6 @@
 class Learner::BaseController < ApplicationController
+  include Paginatable
+
   layout "learner"
 
   before_action :authenticate_learner!

@@ -7,7 +7,7 @@ class Admin::DashboardController < Admin::BaseController
     # Core stats
     @surveys_count        = @workspace.surveys.count
     @votes_count          = @workspace.votes.count
-    @feedbacks_count      = @workspace.feedback_boards.map { |b| b.feedbacks.count }.sum
+    @feedbacks_count      = Feedback.where(feedback_board_id: @workspace.feedback_board_ids).count
     @members_count        = @workspace.workspace_memberships.active.count
     @quiz_sets_count      = @workspace.quiz_sets.count
     @learning_paths_count = @workspace.learning_paths.count

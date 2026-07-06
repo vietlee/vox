@@ -1,4 +1,6 @@
 class Learner::QuizAssignmentsController < Learner::BaseController
+  GRADE_COST = 2  # credits charged when AI grades a learner-created quiz
+
   before_action :set_assignment
   before_action :ensure_published, except: [:show, :result]
 
@@ -10,6 +12,7 @@ class Learner::QuizAssignmentsController < Learner::BaseController
     @questions  = @quiz_set.quiz_questions.includes(:quiz_options).order(:position)
     @attempt    = find_or_build_attempt
     @attempt.quiz_attempt_answers.load
+    @ai_grade_cost = @quiz_set.learner_id.present? ? GRADE_COST : 0
   end
 
   def start
@@ -37,7 +40,13 @@ class Learner::QuizAssignmentsController < Learner::BaseController
 
     was_completed = @assignment.completed?
     if @assignment.quiz_set.learner_id.present?
-      LearnerQuizGrader.new(attempt).grade!   # AI grades essays + overall nhận xét
+      if current_learner.credits >= GRADE_COST
+        LearnerQuizGrader.new(attempt).grade!
+        current_learner.deduct_credits!(GRADE_COST)
+      else
+        calculate_score(attempt)
+        flash[:notice] = I18n.t('learner_qz.grade_skipped', cost: GRADE_COST)
+      end
     else
       calculate_score(attempt)
     end

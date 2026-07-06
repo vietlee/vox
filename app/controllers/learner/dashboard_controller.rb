@@ -2,11 +2,13 @@ class Learner::DashboardController < Learner::BaseController
   CONTINUE_LIMIT = 5
 
   def index
-    load_assignments
+    # Count badges via dedicated queries (no full load needed)
+    @quiz_count      = current_learner.quiz_assignments.count
+    @flashcard_count = current_learner.flashcard_assignments.count
+    @path_count      = current_learner.learning_path_assignments.count
 
-    @quiz_count      = @quiz_assignments.size
-    @flashcard_count = @flashcard_assignments.size
-    @path_count      = @path_assignments.size
+    # continue_items only needs non-completed items
+    load_pending_assignments
 
     # Prioritized "Tiếp tục học" list (chỉ việc chưa xong, sắp xếp theo độ khẩn)
     @continue     = continue_items.first(CONTINUE_LIMIT)
@@ -24,7 +26,15 @@ class Learner::DashboardController < Learner::BaseController
 
   # GET /learner/library — full catalog of all assigned/created content
   def library
-    load_assignments
+    @pagy_quiz, @quiz_assignments =
+      pagy(current_learner.quiz_assignments.includes(:quiz_set).order(created_at: :desc),
+           items: 10, page: params[:quiz_page] || 1)
+    @pagy_fc, @flashcard_assignments =
+      pagy(current_learner.flashcard_assignments.includes(:flashcard_deck).order(created_at: :desc),
+           items: 10, page: params[:fc_page] || 1)
+    @pagy_path, @path_assignments =
+      pagy(current_learner.learning_path_assignments.includes(:learning_path).order(created_at: :desc),
+           items: 10, page: params[:path_page] || 1)
   end
 
   # GET /learner/suggestion/fetch — called via AJAX after page load
@@ -101,10 +111,13 @@ class Learner::DashboardController < Learner::BaseController
     items
   end
 
-  def load_assignments
-    @quiz_assignments      = current_learner.quiz_assignments.includes(:quiz_set).order(created_at: :desc)
-    @flashcard_assignments = current_learner.flashcard_assignments.includes(:flashcard_deck).order(created_at: :desc)
-    @path_assignments      = current_learner.learning_path_assignments.includes(:learning_path).order(created_at: :desc)
+  def load_pending_assignments
+    @quiz_assignments      = current_learner.quiz_assignments.includes(:quiz_set)
+                               .where(status: [:pending, :in_progress]).order(created_at: :desc)
+    @flashcard_assignments = current_learner.flashcard_assignments.includes(:flashcard_deck)
+                               .where(status: [:pending, :in_progress]).order(created_at: :desc)
+    @path_assignments      = current_learner.learning_path_assignments.includes(:learning_path)
+                               .where(status: :active).order(created_at: :desc)
   end
 
   # Unified list of not-completed items across quiz / flashcard / path,
@@ -114,7 +127,7 @@ class Learner::DashboardController < Learner::BaseController
       far = 100.years.from_now
       items = []
 
-      @quiz_assignments.reject(&:completed?).each do |a|
+      @quiz_assignments.each do |a|
         due = a.due_at
         items << {
           type: :quiz, title: a.quiz_set.title,
@@ -126,7 +139,7 @@ class Learner::DashboardController < Learner::BaseController
         }
       end
 
-      @flashcard_assignments.reject(&:completed?).each do |a|
+      @flashcard_assignments.each do |a|
         items << {
           type: :flashcard, title: a.flashcard_deck.title,
           url: study_learner_flashcard_assignment_path(a.token),
@@ -136,7 +149,7 @@ class Learner::DashboardController < Learner::BaseController
         }
       end
 
-      @path_assignments.reject(&:completed?).each do |a|
+      @path_assignments.each do |a|
         due = a.due_date&.to_time
         items << {
           type: :path, title: a.learning_path.title,
