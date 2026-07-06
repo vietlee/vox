@@ -58,23 +58,23 @@ class LearnerSuggestionService
 
     if use_quiz
       days_left = ((quiz_due - Time.current) / 1.day).ceil
-      days_str  = days_left <= 1 ? "hôm nay" : "#{days_left} ngày nữa"
+      days_str  = days_left <= 1 ? I18n.t('learner_suggestions.days_today') : I18n.t('learner_suggestions.days_remaining', n: days_left)
       {
         kind:         "deadline",
-        title:        "⏰ Deadline sắp đến",
-        body:         "Quiz \"#{quiz.quiz_set.title}\" cần hoàn thành #{days_str}. Đừng để deadline trôi qua!",
-        action_label: "Làm quiz ngay →",
+        title:        I18n.t('learner_suggestions.deadline_title'),
+        body:         I18n.t('learner_suggestions.deadline_quiz_body', title: quiz.quiz_set.title, days_str: days_str),
+        action_label: I18n.t('learner_suggestions.deadline_quiz_action'),
         action_url:   take_learner_quiz_assignment_path(quiz.token),
         prefill_topic: nil
       }
     else
       days_left = (path.due_date - Date.current).to_i
-      days_str  = days_left <= 0 ? "hôm nay" : "#{days_left} ngày nữa"
+      days_str  = days_left <= 0 ? I18n.t('learner_suggestions.days_today') : I18n.t('learner_suggestions.days_remaining', n: days_left)
       {
         kind:         "deadline",
-        title:        "⏰ Deadline sắp đến",
-        body:         "Lộ trình \"#{path.learning_path.title}\" cần hoàn thành #{days_str}. Tiếp tục ngay nào!",
-        action_label: "Tiếp tục →",
+        title:        I18n.t('learner_suggestions.deadline_title'),
+        body:         I18n.t('learner_suggestions.deadline_path_body', title: path.learning_path.title, days_str: days_str),
+        action_label: I18n.t('learner_suggestions.deadline_path_action'),
         action_url:   learner_learning_path_assignment_path(path.token),
         prefill_topic: nil
       }
@@ -95,9 +95,9 @@ class LearnerSuggestionService
     topic = weak.quiz_set.title
     {
       kind:          "low_score",
-      title:         "📉 Cần cải thiện",
-      body:          "Bạn đạt #{weak.score_pct}% trong quiz \"#{topic}\" — chưa đạt yêu cầu. Hãy ôn lại kiến thức bằng flashcard AI!",
-      action_label:  "Tạo flashcard ôn tập →",
+      title:         I18n.t('learner_suggestions.low_score_title'),
+      body:          I18n.t('learner_suggestions.low_score_body', pct: weak.score_pct, title: topic),
+      action_label:  I18n.t('learner_suggestions.low_score_action'),
       action_url:    "/learner/my_flashcards/new",
       prefill_topic: topic
     }
@@ -124,9 +124,9 @@ class LearnerSuggestionService
       days = ((Time.current - fc.updated_at) / 1.day).round
       {
         kind:         "abandoned",
-        title:        "😴 Bạn đang bỏ quên",
-        body:         "Bộ flashcard \"#{name}\" chưa được ôn trong #{days} ngày. Chỉ cần 5 phút mỗi ngày là đủ!",
-        action_label: "Ôn flashcard →",
+        title:        I18n.t('learner_suggestions.abandoned_fc_title'),
+        body:         I18n.t('learner_suggestions.abandoned_fc_body', title: name, days: days),
+        action_label: I18n.t('learner_suggestions.abandoned_fc_action'),
         action_url:   study_learner_flashcard_assignment_path(fc.token),
         prefill_topic: nil
       }
@@ -135,9 +135,9 @@ class LearnerSuggestionService
       days = ((Time.current - lp.updated_at) / 1.day).round
       {
         kind:         "abandoned",
-        title:        "😴 Bạn đang bỏ dở",
-        body:         "Lộ trình \"#{name}\" chưa được tiếp tục trong #{days} ngày. Hãy hoàn thành bước tiếp theo!",
-        action_label: "Tiếp tục →",
+        title:        I18n.t('learner_suggestions.abandoned_lp_title'),
+        body:         I18n.t('learner_suggestions.abandoned_lp_body', title: name, days: days),
+        action_label: I18n.t('learner_suggestions.abandoned_lp_action'),
         action_url:   learner_learning_path_assignment_path(lp.token),
         prefill_topic: nil
       }
@@ -146,12 +146,13 @@ class LearnerSuggestionService
 
   # --- Rule 4: AI trending (no data) ---
   def ai_trending_suggestion
+    reply_lang = I18n.locale == :en ? "English" : "Vietnamese"
     prompt = <<~P
-      You are a learning assistant. Suggest ONE trending and practical learning topic for a Vietnamese learner in #{Date.current.year}.
-      Keep it concise and motivating. Reply in Vietnamese.
+      You are a learning assistant. Suggest ONE trending and practical learning topic for a learner in #{Date.current.year}.
+      Keep it concise and motivating. Reply in #{reply_lang}.
 
       Return ONLY valid JSON, no other text:
-      {"topic":"<tên chủ đề ngắn gọn>","body":"<1-2 câu gợi ý hấp dẫn, nêu lợi ích thực tế>"}
+      {"topic":"<short topic name>","body":"<1-2 motivating sentences highlighting practical benefits>"}
     P
 
     svc  = ClaudeService.for_feature("ai_tutor", timeout: 20)
@@ -164,9 +165,9 @@ class LearnerSuggestionService
 
     {
       kind:          "ai_trending",
-      title:         "✨ Gợi ý cho bạn",
+      title:         I18n.t('learner_suggestions.trending_title'),
       body:          body,
-      action_label:  "Khám phá với Flashcard →",
+      action_label:  I18n.t('learner_suggestions.trending_action'),
       action_url:    "/learner/my_flashcards/new",
       prefill_topic: topic
     }
@@ -174,9 +175,9 @@ class LearnerSuggestionService
     Rails.logger.warn("[LearnerSuggestionService] AI fallback failed: #{e.message}")
     {
       kind:          "ai_trending",
-      title:         "✨ Mẹo học tập",
-      body:          "Thử tạo bộ flashcard về một chủ đề bạn muốn cải thiện — chỉ mất 30 giây!",
-      action_label:  "Tạo flashcard →",
+      title:         I18n.t('learner_suggestions.fallback_title'),
+      body:          I18n.t('learner_suggestions.fallback_body'),
+      action_label:  I18n.t('learner_suggestions.fallback_action'),
       action_url:    "/learner/my_flashcards/new",
       prefill_topic: nil
     }

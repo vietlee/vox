@@ -82,7 +82,7 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
       <svg width="15" height="15" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
     </div>
     <div class="lp-bubble-ai" style="padding:12px 15px;max-width:80%;font-size:14px;color:#1e293b;line-height:1.65;">
-      Xin chào <strong><%= current_learner.name %></strong>! Tôi là AI Tutor của VOX.<%= raw(params[:context].present? ? " Tôi thấy bạn đang học: <strong>#{ERB::Util.html_escape(params[:context])}</strong>." : "") %> Hỏi tôi bất cứ điều gì bạn muốn tìm hiểu nhé!
+      <%= t('learner_ai_tutor.welcome_before_name') %><strong><%= current_learner.name %></strong><%= t('learner_ai_tutor.welcome_after_name') %><%= raw(params[:context].present? ? t('learner_ai_tutor.welcome_context', topic: "<strong>#{ERB::Util.html_escape(params[:context])}</strong>") : "") %><%= t('learner_ai_tutor.welcome_hint') %>
     </div>
   </div>
 </div>
@@ -467,7 +467,7 @@ async function lpPreviewVoice(voiceId,btn) {
   lpPrimeAudio(); lpStopShared();
   btn.textContent='⏳';
   try {
-    const fd=new FormData(); fd.append('text','Xin chào, tôi là trợ lý AI của VOX!'); fd.append('voice_id',voiceId); fd.append('model','eleven_turbo_v2_5'); fd.append('authenticity_token',CSRF());
+    const fd=new FormData(); fd.append('text','<%= j t('learner_ai_tutor.voice_preview_text') %>'); fd.append('voice_id',voiceId); fd.append('model','eleven_turbo_v2_5'); fd.append('authenticity_token',CSRF());
     const res=await fetch(TTS_URL,{method:'POST',body:fd});
     const d=await res.json().catch(function(){return {};});
     if (res.ok && d.audio_base64) {
