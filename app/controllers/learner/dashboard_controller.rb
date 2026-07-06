@@ -19,6 +19,7 @@ class Learner::DashboardController < Learner::BaseController
     @daily_goal       = current_learner.daily_goal
     @activities_today = gam.activities_today
     @goal_met         = gam.goal_met_today?
+    @activity_details = today_activity_details
   end
 
   # GET /learner/library — full catalog of all assigned/created content
@@ -54,6 +55,51 @@ class Learner::DashboardController < Learner::BaseController
   end
 
   private
+
+  def today_activity_details
+    today = Date.current.beginning_of_day
+    items = []
+
+    quizzes = current_learner.quiz_assignments.includes(:quiz_set)
+                .where('completed_at >= ?', today).where.not(completed_at: nil)
+    quizzes.each do |a|
+      items << { icon: '📝', label: a.quiz_set.title, kind: 'quiz',
+                 url: learner_quiz_assignment_path(a.token) }
+    end
+
+    flashcards = current_learner.flashcard_assignments.includes(:flashcard_deck)
+                   .where('updated_at >= ?', today).where('cards_reviewed > 0')
+    flashcards.each do |a|
+      items << { icon: '🃏', label: a.flashcard_deck.title, kind: 'flashcard',
+                 url: study_learner_flashcard_assignment_path(a.token) }
+    end
+
+    speaking = current_learner.learner_speaking_sessions
+                 .where('created_at >= ?', today).where('turns > 0')
+    if speaking.any?
+      items << { icon: '🗣️', label: "Luyện nói · #{speaking.sum(:turns)} lượt",
+                 kind: 'speaking', url: learner_speaking_path }
+    end
+
+    plan_items = LearnerStudyPlanItem
+                   .joins(:learner_study_plan)
+                   .where(learner_study_plans: { learner_id: current_learner.id })
+                   .where(done: true).where('done_at >= ?', today)
+    plan_items.each do |item|
+      items << { icon: '🧠', label: item.title, kind: 'plan',
+                 url: learner_study_plans_path }
+    end
+
+    # Infer AI Tutor usage from remaining activity count
+    accounted = quizzes.count + flashcards.count + speaking.sum(:turns) + plan_items.count
+    tutor_count = [@activities_today - accounted, 0].max
+    if tutor_count > 0
+      items << { icon: '💬', label: "AI Tutor · #{tutor_count} tin nhắn",
+                 kind: 'tutor', url: learner_ai_tutor_path }
+    end
+
+    items
+  end
 
   def load_assignments
     @quiz_assignments      = current_learner.quiz_assignments.includes(:quiz_set).order(created_at: :desc)
