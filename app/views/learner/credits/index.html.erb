@@ -120,6 +120,16 @@ function setAmount(n) {
   document.getElementById('credit-amount').value = n;
   updateTotal();
 }
+// Reset button if user returns via browser back / bfcache (e.g. closing PayOS with X)
+window.addEventListener('pageshow', function(e) {
+  if (e.persisted) {
+    var btn = document.querySelector('[onclick="buyCredits()"]');
+    if (btn && btn.disabled) {
+      btn.disabled = false;
+      btn.textContent = 'Thanh toán ngay →';
+    }
+  }
+});
 function buyCredits() {
   var amt = parseInt(document.getElementById('credit-amount').value) || 0;
   if (amt < 10) { alert('Vui lòng nhập ít nhất 10 credits.'); return; }
