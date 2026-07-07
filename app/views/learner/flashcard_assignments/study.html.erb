@@ -7,10 +7,10 @@
   .fc-progress { background: #e5e7eb; border-radius: 99px; height: 6px; margin-top: 8px; }
   .fc-progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg,#1e3a5f,#4a7fa8); transition: width 0.4s; }
   .fc-arena { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px 16px 8px; perspective: 1000px; }
-  .fc-card-wrap { width: 100%; max-width: 480px; height: 280px; position: relative; cursor: pointer; }
+  .fc-card-wrap { width: 100%; max-width: 480px; min-height: 220px; height: 280px; position: relative; cursor: pointer; }
   .fc-card { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4,0,0.2,1); }
   .fc-card.flipped { transform: rotateY(180deg); }
-  .fc-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 24px; display: flex; align-items: center; justify-content: center; padding: 28px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+  .fc-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 24px; display: flex; align-items: center; justify-content: center; padding: 44px 20px 20px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.12); overflow-y: auto; }
   .fc-front { background: linear-gradient(135deg, #1e3a5f, #16304f); color: white; }
   .fc-back  { background: white; border: 1.5px solid #e5e7eb; transform: rotateY(180deg); }
   .fc-face-label { position: absolute; top: 14px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; }
@@ -242,9 +242,18 @@ window.replayTTS = function() {
   fcSpeak(_flipped ? card.back : card.front);
 };
 
+function scaleFcFont(el, text) {
+  var len = (text || '').length;
+  el.style.fontSize = len <= 30 ? '26px' : len <= 60 ? '20px' : len <= 120 ? '16px' : '13px';
+}
+
 function showCard(card) {
-  document.getElementById('fc-front-text').textContent = card.front;
-  document.getElementById('fc-back-text').textContent  = card.back;
+  var frontEl = document.getElementById('fc-front-text');
+  var backEl  = document.getElementById('fc-back-text');
+  frontEl.textContent = card.front;
+  backEl.textContent  = card.back;
+  scaleFcFont(frontEl, card.front);
+  scaleFcFont(backEl,  card.back);
   var img = document.getElementById('fc-back-img');
   if (card.image) { img.src = card.image; img.style.display = ''; }
   else { img.style.display = 'none'; }
