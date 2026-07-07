@@ -42,6 +42,9 @@
     html { height: 100%; height: -webkit-fill-available; background: white; }
     body { height: 100%; min-height: -webkit-fill-available; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--lp-text); display: flex; flex-direction: column; background: white; }
     .lp-main { background: var(--lp-bg); }
+    body[data-page="learner-dashboard-library"] .lp-main,
+    body[data-page="learner-my_quizzes-index"] .lp-main,
+    body[data-page="learner-my_flashcards-index"] .lp-main { background: #fff; }
     .lp-topbar {
       position: sticky; top: 0; z-index: 50;
       background: linear-gradient(135deg, #1e3a5f 0%, #16304f 100%);
@@ -146,7 +149,7 @@
   </style>
   <script>if(sessionStorage.getItem('vox_loaded'))document.documentElement.classList.add('vox-loaded');</script>
 </head>
-<body data-page="<%= controller_path.gsub('/', '-') %>">
+<body data-page="<%= "#{controller_path}/#{action_name}".gsub('/', '-') %>">
   <div id="vox-splash" role="status" aria-label="Đang tải...">
     <div id="vox-splash-icon"><img src="/icon-mark.svg" width="76" height="76" alt="VOX" onerror="this.style.display='none'"></div>
     <div style="display:flex;gap:7px;align-items:center;">
