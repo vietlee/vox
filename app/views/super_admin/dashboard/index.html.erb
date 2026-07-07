@@ -33,23 +33,59 @@
   <div class="flex items-center gap-2 mb-4">
     <span class="inline-block w-2 h-2 rounded-full bg-emerald-500" style="box-shadow:0 0 0 3px rgba(16,185,129,.2)"></span>
     <h2 class="text-[13px] font-bold text-slate-700">Người dùng online & tổng hệ thống</h2>
-    <span class="text-[11px] text-slate-400 ml-auto">Cập nhật mỗi 5 phút</span>
+    <span class="text-[11px] text-slate-400 ml-auto">Cập nhật mỗi 5 phút · Hover để xem danh sách</span>
   </div>
   <div class="grid grid-cols-4 gap-4">
-    <div class="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-center">
+
+    <%# Learner online — hover list %>
+    <div class="sa-online-card rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-center cursor-default" style="position:relative;">
       <div class="flex items-center justify-center gap-1.5 mb-1">
         <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="text-[11px] font-semibold text-emerald-600 uppercase tracking-wide">Learner online</span>
       </div>
       <div class="text-[28px] font-black text-emerald-700"><%= @learners_online %></div>
+      <% if @learners_online_list.any? %>
+        <div class="sa-online-popup" style="position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);min-width:260px;max-width:320px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.13);z-index:50;padding:10px 0;display:none;">
+          <div style="padding:6px 14px 8px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #f1f5f9;">Learner đang online</div>
+          <% @learners_online_list.first(20).each do |u| %>
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 14px;">
+              <span style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;"><%= u.name.first.upcase rescue "?" %></span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= u.name.presence || u.email %></div>
+                <div style="font-size:11px;color:#94a3b8;"><%= time_ago_in_words(u.last_seen_at) %> ago</div>
+              </div>
+            </div>
+          <% end %>
+          <% if @learners_online > 20 %>
+            <div style="padding:6px 14px;font-size:11px;color:#94a3b8;text-align:center;">+ <%= @learners_online - 20 %> người khác</div>
+          <% end %>
+        </div>
+      <% end %>
     </div>
-    <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-center">
+
+    <%# Trainer online — hover list %>
+    <div class="sa-online-card rounded-xl border border-blue-100 bg-blue-50 p-4 text-center cursor-default" style="position:relative;">
       <div class="flex items-center justify-center gap-1.5 mb-1">
         <span class="inline-block w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
         <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wide">Trainer online</span>
       </div>
       <div class="text-[28px] font-black text-blue-700"><%= @trainers_online %></div>
+      <% if @trainers_online_list.any? %>
+        <div class="sa-online-popup" style="position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);min-width:260px;max-width:320px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.13);z-index:50;padding:10px 0;display:none;">
+          <div style="padding:6px 14px 8px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #f1f5f9;">Trainer đang online</div>
+          <% @trainers_online_list.each do |u| %>
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 14px;">
+              <span style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:#dbeafe;color:#1e40af;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;"><%= u.name.first.upcase rescue "?" %></span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= u.name.presence || u.email %></div>
+                <div style="font-size:11px;color:#94a3b8;"><%= u.role %> · <%= time_ago_in_words(u.last_seen_at) %> ago</div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
     </div>
+
     <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
       <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Tổng Learner</div>
       <div class="text-[28px] font-black text-slate-800"><%= @total_learners %></div>
@@ -60,6 +96,17 @@
     </div>
   </div>
 </div>
+
+<script>
+(function(){
+  document.querySelectorAll('.sa-online-card').forEach(function(card) {
+    var popup = card.querySelector('.sa-online-popup');
+    if (!popup) return;
+    card.addEventListener('mouseenter', function() { popup.style.display = 'block'; });
+    card.addEventListener('mouseleave', function() { popup.style.display = 'none'; });
+  });
+})();
+</script>
 
 <!-- ElevenLabs API Usage -->
 <% if @elevenlabs %>

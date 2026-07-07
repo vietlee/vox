@@ -9,8 +9,10 @@ class SuperAdmin::DashboardController < SuperAdmin::BaseController
     @recent_workspaces = Workspace.order(created_at: :desc).limit(10)
 
     # Online & active user stats
-    @learners_online  = Learner.where(last_seen_at: ONLINE_WINDOW.ago..).count
-    @trainers_online  = User.where(role: [:admin, :supporter]).where(last_seen_at: ONLINE_WINDOW.ago..).count
+    @learners_online_list = Learner.where(last_seen_at: ONLINE_WINDOW.ago..).order(last_seen_at: :desc).select(:id, :name, :email, :last_seen_at)
+    @trainers_online_list = User.where(role: [:admin, :supporter]).where(last_seen_at: ONLINE_WINDOW.ago..).order(last_seen_at: :desc).select(:id, :name, :email, :role, :last_seen_at)
+    @learners_online  = @learners_online_list.size
+    @trainers_online  = @trainers_online_list.size
     @total_learners   = Learner.count
     @total_trainers   = User.where(role: [:admin, :supporter]).count
 
