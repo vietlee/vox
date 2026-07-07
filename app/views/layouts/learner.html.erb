@@ -668,18 +668,23 @@
       if (_msgs.length) $id('aip-msg').textContent = _msgs[_msgIdx++ % _msgs.length];
     }
 
-    // Restore minimized pill after Turbo navigation replaces the body
+    // Restore minimized pill immediately — this script runs after body elements
+    // are in DOM (Turbo re-executes scripts after body-swap, so turbo:load has
+    // already fired by the time we get here; direct DOM access is the only
+    // reliable way to restore state on every navigation).
     (function() {
       try {
         var saved = JSON.parse(sessionStorage.getItem(_SS) || 'null');
         if (saved && saved.minimized) {
           _minimized = true;
-          document.addEventListener('turbo:load', function() {
-            var lbl = saved.label || 'Đang tạo...';
-            $id('aip-mini-label').textContent = lbl;
-            $id('aip-mini-pct').textContent = '...';
-            $id('aip-mini').style.display = 'flex';
-          }, { once: true });
+          var mini = document.getElementById('aip-mini');
+          if (mini) {
+            var lbl = document.getElementById('aip-mini-label');
+            var pct = document.getElementById('aip-mini-pct');
+            if (lbl) lbl.textContent = saved.label || 'Đang tạo...';
+            if (pct) pct.textContent = '...';
+            mini.style.display = 'flex';
+          }
         }
       } catch(e) {}
     })();
