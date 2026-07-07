@@ -1679,9 +1679,8 @@ class ContentOutlineGenerator
       els << el_ellipse("ddot#{i}", LM + 4.65, cy + (item_h - dot_sz) / 2.0, dot_sz, dot_sz, ac, z: 2)
       els << el_text("dlbl#{i}", LM + 5.00, cy + 0.04, CW - 5.00, 0.30, it["label"] || "",
         heading_style(10, color: ac))
-      detail_val = it['detail'].to_s.strip
-      # Skip detail if it's just the same percentage repeated (e.g. "34%" when value=34)
-      show_detail = detail_val.present? && detail_val.gsub(/[%\s]/, '') != it['value'].to_f.to_i.to_s
+      detail_val = it['detail'].to_s.strip.sub(/\A\d+\.?\d*%\s*[-–·]?\s*/, '').strip
+      show_detail = detail_val.present?
       els << el_text("ddtl#{i}", LM + 5.00, cy + 0.32, CW - 5.00, 0.26,
         "#{it['value']}%#{show_detail ? ' · ' + detail_val : ''}",
         body_style(9, color: "#5B6478"))
