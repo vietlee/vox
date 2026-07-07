@@ -42,24 +42,39 @@
   <p class="lp-section-title"><%= t('learner_plan.yours') %></p>
   <div style="display:grid;gap:12px;">
     <% @plans.each do |plan| %>
-      <%= link_to learner_study_plan_path(plan), style:"text-decoration:none;" do %>
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;">
+      <div id="study-plan-<%= plan.id %>" style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:10px;">
+        <%= link_to learner_study_plan_path(plan), style:"text-decoration:none;flex:1;min-width:0;" do %>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
             <p style="font-size:14px;font-weight:700;color:#0f172a;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= plan.title %></p>
             <% if plan.completed? %>
-              <span style="font-size:10px;font-weight:700;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:99px;flex-shrink:0;">✓ <%= t('learner_plan.completed') %></span>
+              <span style="font-size:10px;font-weight:700;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:99px;flex-shrink:0;margin-left:8px;">✓ <%= t('learner_plan.completed') %></span>
             <% else %>
-              <span style="font-size:11px;font-weight:700;color:#1e3a5f;flex-shrink:0;"><%= plan.progress_pct %>%</span>
+              <span style="font-size:11px;font-weight:700;color:#1e3a5f;flex-shrink:0;margin-left:8px;"><%= plan.progress_pct %>%</span>
             <% end %>
           </div>
           <div style="background:#f1f5f9;border-radius:99px;height:6px;overflow:hidden;">
             <div style="height:100%;border-radius:99px;background:linear-gradient(90deg,#1e3a5f,#4a7fa8);width:<%= plan.progress_pct %>%;"></div>
           </div>
           <p style="font-size:11px;color:#94a3b8;margin:8px 0 0;"><%= t('learner_plan.steps_date', n: plan.items.count, date: plan.created_at.strftime('%d/%m/%Y')) %></p>
-        </div>
-      <% end %>
+        <% end %>
+        <button onclick="planDelete(<%= plan.id %>, '<%= j plan.title %>')"
+                style="flex-shrink:0;width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#cbd5e1;transition:color .15s,background .15s;"
+                onmouseover="this.style.color='#ef4444';this.style.background='#fef2f2'" onmouseout="this.style.color='#cbd5e1';this.style.background='transparent'" title="Xoá">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+      </div>
     <% end %>
   </div>
+  <script>
+  function planDelete(id, name) {
+    lpDeleteConfirm(
+      '/learner/study-plans/' + id,
+      'Xoá lộ trình học?',
+      'Lộ trình "' + name + '" sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác.',
+      function() { document.getElementById('study-plan-' + id).remove(); }
+    );
+  }
+  </script>
 <% else %>
   <div style="text-align:center;padding:32px 20px;background:#fff;border:1px dashed #e2e8f0;border-radius:16px;">
     <div style="font-size:36px;margin-bottom:10px;">🗺️</div>

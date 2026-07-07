@@ -383,7 +383,7 @@ Rails.application.routes.draw do
     get  "progress", to: "progress#index", as: :progress
 
     # AI personalized study plan
-    resources :study_plans, only: [:index, :show, :create], path: "study-plans" do
+    resources :study_plans, only: [:index, :show, :create, :destroy], path: "study-plans" do
       member { post "items/:item_id/toggle", to: "study_plans#toggle_item", as: :toggle_item }
     end
 
@@ -412,15 +412,17 @@ Rails.application.routes.draw do
     end
 
     # Learner self-generate flashcard decks
-    get  "my_flashcards",          to: "my_flashcards#index",    as: :my_flashcards
-    get  "my_flashcards/new",      to: "my_flashcards#new",      as: :new_my_flashcard
-    post "my_flashcards/generate", to: "my_flashcards#generate", as: :generate_my_flashcard
-    get  "my_flashcards/:id",             to: "my_flashcards#show",            as: :my_flashcard
+    get    "my_flashcards",          to: "my_flashcards#index",    as: :my_flashcards
+    get    "my_flashcards/new",      to: "my_flashcards#new",      as: :new_my_flashcard
+    post   "my_flashcards/generate", to: "my_flashcards#generate", as: :generate_my_flashcard
+    get    "my_flashcards/:id",      to: "my_flashcards#show",     as: :my_flashcard
+    delete "my_flashcards/:id",      to: "my_flashcards#destroy",  as: :destroy_my_flashcard
 
     # Learner self-generated quizzes
-    get  "my_quizzes",          to: "my_quizzes#index",    as: :my_quizzes
-    get  "my_quizzes/new",      to: "my_quizzes#new",      as: :new_my_quiz
-    post "my_quizzes/generate", to: "my_quizzes#generate", as: :generate_my_quiz
+    get    "my_quizzes",          to: "my_quizzes#index",    as: :my_quizzes
+    get    "my_quizzes/new",      to: "my_quizzes#new",      as: :new_my_quiz
+    post   "my_quizzes/generate", to: "my_quizzes#generate", as: :generate_my_quiz
+    delete "my_quizzes/:id",      to: "my_quizzes#destroy",  as: :destroy_my_quiz
     post "my_flashcards/:id/images",      to: "my_flashcards#generate_images", as: :generate_images_my_flashcard
     get  "my_flashcards/:id/image_status",to: "my_flashcards#image_status",    as: :image_status_my_flashcard
 

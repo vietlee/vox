@@ -22,6 +22,12 @@ class Learner::StudyPlansController < Learner::BaseController
     redirect_to learner_study_plans_path, alert: "Không tạo được lộ trình: #{e.message}"
   end
 
+  def destroy
+    plan = current_learner.learner_study_plans.find(params[:id])
+    plan.destroy!
+    render json: { ok: true }
+  end
+
   def toggle_item
     @plan = current_learner.learner_study_plans.find(params[:id])
     item  = @plan.items.find(params[:item_id])

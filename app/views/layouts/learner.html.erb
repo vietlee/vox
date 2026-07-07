@@ -512,6 +512,49 @@
   })();
   </script>
   <% end %>
+  <%# Shared delete-confirm modal used by my_flashcards, my_quizzes, study_plans %>
+  <div id="lp-delete-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(15,23,42,.55);align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.22);text-align:center;">
+      <div style="width:52px;height:52px;background:#fef2f2;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+        <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </div>
+      <p style="font-size:16px;font-weight:800;color:#0f172a;margin:0 0 6px;" id="lp-delete-title">Xác nhận xoá</p>
+      <p style="font-size:13px;color:#64748b;margin:0 0 20px;line-height:1.6;" id="lp-delete-desc"></p>
+      <div style="display:flex;gap:10px;">
+        <button onclick="lpDeleteCancel()" style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;font-size:14px;font-weight:600;color:#64748b;cursor:pointer;">Huỷ</button>
+        <button id="lp-delete-confirm-btn" style="flex:1;padding:11px;border:none;border-radius:12px;background:#ef4444;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">Xoá</button>
+      </div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var _modal = null, _url = null, _onDone = null;
+    function getModal() { return document.getElementById('lp-delete-modal'); }
+    window.lpDeleteConfirm = function(url, title, desc, onDone) {
+      _url = url; _onDone = onDone;
+      document.getElementById('lp-delete-title').textContent = title;
+      document.getElementById('lp-delete-desc').textContent  = desc;
+      var btn = document.getElementById('lp-delete-confirm-btn');
+      btn.disabled = false; btn.textContent = 'Xoá';
+      var m = getModal(); m.style.display = 'flex';
+    };
+    window.lpDeleteCancel = function() { getModal().style.display = 'none'; };
+    document.getElementById('lp-delete-confirm-btn').addEventListener('click', function() {
+      if (!_url) return;
+      var btn = this; btn.disabled = true; btn.textContent = '...';
+      var token = document.querySelector('meta[name="csrf-token"]').content;
+      fetch(_url, { method: 'DELETE', headers: { 'X-CSRF-Token': token, 'Accept': 'application/json' } })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          getModal().style.display = 'none';
+          if (d.ok && typeof _onDone === 'function') _onDone();
+        })
+        .catch(function() { btn.disabled = false; btn.textContent = 'Xoá'; });
+    });
+    getModal().addEventListener('click', function(e) { if (e.target === this) window.lpDeleteCancel(); });
+  })();
+  </script>
+
   <script>
   /* markFieldError — highlight a required field with red border on failed submit */
   window.markFieldError = function(el) {

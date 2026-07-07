@@ -25,7 +25,7 @@
   <div style="display:grid;gap:12px;">
     <% @quizzes.each do |quiz| %>
       <% asg = @assignments[quiz.id] %>
-      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+      <div id="my-quiz-<%= quiz.id %>" style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
         <div style="width:44px;height:44px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <svg width="22" height="22" fill="none" stroke="#1d4ed8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
         </div>
@@ -35,8 +35,8 @@
             <%= quiz.question_count %> <%= t('learner_qz.q_unit') %><% if quiz.has_essay? %> · <%= t('learner_qz.has_essay') %><% end %><% if quiz.time_limit_minutes %> · <%= quiz.time_limit_minutes %> <%= t('learner_qz.minutes') %><% end %> · <%= quiz.created_at.strftime("%d/%m/%Y") %>
           </p>
         </div>
-        <% if asg %>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          <% if asg %>
             <% if asg.completed? %>
               <%= link_to t('learner_dashboard.btn_view_result'), result_learner_quiz_assignment_path(asg.token),
                     class:"lp-btn lp-btn-primary", style:"padding:8px 14px;font-size:13px;" %>
@@ -48,9 +48,24 @@
               <%= link_to (asg.in_progress? ? t('learner_dashboard.btn_continue') : t('learner_qz.do_quiz')), take_learner_quiz_assignment_path(asg.token),
                     class:"lp-btn lp-btn-primary", style:"padding:8px 14px;font-size:13px;" %>
             <% end %>
-          </div>
-        <% end %>
+          <% end %>
+          <button onclick="qzDeleteQuiz(<%= quiz.id %>, '<%= j quiz.title %>')"
+                  style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#cbd5e1;transition:color .15s,background .15s;"
+                  onmouseover="this.style.color='#ef4444';this.style.background='#fef2f2'" onmouseout="this.style.color='#cbd5e1';this.style.background='transparent'" title="Xoá">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
       </div>
     <% end %>
   </div>
+  <script>
+  function qzDeleteQuiz(id, name) {
+    lpDeleteConfirm(
+      '/learner/my_quizzes/' + id,
+      'Xoá bài kiểm tra?',
+      'Bài "' + name + '" và toàn bộ lịch sử làm bài sẽ bị xoá vĩnh viễn.',
+      function() { document.getElementById('my-quiz-' + id).remove(); }
+    );
+  }
+  </script>
 <% end %>

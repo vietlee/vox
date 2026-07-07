@@ -42,6 +42,12 @@ class Learner::MyFlashcardsController < Learner::BaseController
     end
   end
 
+  def destroy
+    deck = FlashcardDeck.find_by!(id: params[:id], learner_id: current_learner.id)
+    deck.destroy!
+    render json: { ok: true }
+  end
+
   def generate
     unless current_learner.credits >= GENERATE_COST
       return render json: { error: "Không đủ credits. Cần #{GENERATE_COST} credits để tạo bộ flashcard." }, status: :payment_required

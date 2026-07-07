@@ -11,6 +11,12 @@ class Learner::MyQuizzesController < Learner::BaseController
     @cost = GENERATE_COST
   end
 
+  def destroy
+    quiz = QuizSet.find_by!(id: params[:id], learner_id: current_learner.id)
+    quiz.destroy!
+    render json: { ok: true }
+  end
+
   def generate
     unless current_learner.credits >= GENERATE_COST
       return render json: { error: "Không đủ credits. Cần #{GENERATE_COST} credits để tạo bài kiểm tra." }, status: :payment_required
