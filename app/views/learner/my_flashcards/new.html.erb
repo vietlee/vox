@@ -72,66 +72,45 @@
   </div>
 </div>
 
-<!-- Progress overlay -->
-<div id="fc-progress" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;display:none;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:20px;padding:36px 40px;text-align:center;max-width:300px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);">
-    <div style="width:56px;height:56px;margin:0 auto 16px;">
-      <svg viewBox="0 0 56 56" fill="none" style="animation:lp-spin 1s linear infinite;">
-        <circle cx="28" cy="28" r="22" stroke="#e2e8f0" stroke-width="4"/>
-        <path fill="#1e3a5f" d="M6 28a22 22 0 0122-22V0C12.536 0 0 12.536 0 28h6z"/>
-      </svg>
-    </div>
-    <p style="font-size:16px;font-weight:800;color:#0f172a;margin:0 0 8px;"><%= t('learner_fc.generating') %></p>
-    <p id="fc-progress-msg" style="font-size:13px;color:#64748b;margin:0;"><%= t('learner_fc.gen_1') %></p>
-  </div>
-</div>
-
-<style>@keyframes lp-spin { to { transform: rotate(360deg); } }</style>
 <script>
 (function(){
-  const MSGS = ['<%= j t('learner_fc.gen_1') %>', '<%= j t('learner_fc.gen_2') %>', '<%= j t('learner_fc.gen_3') %>', '<%= j t('learner_fc.gen_4') %>'];
-  let _msgIdx = 0, _msgInt;
-
-  function showProgress(on) {
-    const el = document.getElementById('fc-progress');
-    el.style.display = on ? 'flex' : 'none';
-    if (on) { _msgIdx = 0; _msgInt = setInterval(() => {
-      document.getElementById('fc-progress-msg').textContent = MSGS[_msgIdx++ % MSGS.length];
-    }, 2000); }
-    else { clearInterval(_msgInt); }
-  }
+  var _fcMsgs = ['<%= j t("learner_fc.gen_1") %>', '<%= j t("learner_fc.gen_2") %>', '<%= j t("learner_fc.gen_3") %>', '<%= j t("learner_fc.gen_4") %>'];
 
   window.fcGenerate = function() {
-    const topic = document.getElementById('fc-topic').value.trim();
+    var topic = document.getElementById('fc-topic').value.trim();
     if (!topic) { markFieldError(document.getElementById('fc-topic')); return; }
 
-    const count = document.getElementById('fc-count').value;
-    const lang  = document.querySelector('input[name="fc-lang"]:checked').value;
-    const btn   = document.getElementById('fc-generate-btn');
+    var count = document.getElementById('fc-count').value;
+    var lang  = document.querySelector('input[name="fc-lang"]:checked').value;
+    var btn   = document.getElementById('fc-generate-btn');
 
     btn.disabled = true;
-    showProgress(true);
+    AiProgress.start({
+      title: '<%= j t("learner_fc.generating") %>',
+      miniLabel: topic.slice(0, 32),
+      msgs: _fcMsgs
+    });
 
-    const fd = new FormData();
+    var fd = new FormData();
     fd.append('topic',      topic);
     fd.append('card_count', count);
     fd.append('language',   lang);
     fd.append('authenticity_token', document.querySelector('meta[name="csrf-token"]').content);
 
     fetch('<%= learner_generate_my_flashcard_path %>', { method: 'POST', body: fd })
-      .then(r => r.json())
+      .then(function(r) { return r.json(); })
       .then(function(d) {
-        showProgress(false);
         if (d.redirect_url) {
-          window.location = d.redirect_url;
+          AiProgress.done(d.redirect_url, '<%= j t("learner_fc.done_label") %>');
         } else {
-          alert(d.error || '<%= j t('learner_fc.err_generic') %>');
+          AiProgress.error();
+          alert(d.error || '<%= j t("learner_fc.err_generic") %>');
           btn.disabled = false;
         }
       })
       .catch(function() {
-        showProgress(false);
-        alert('<%= j t('learner_fc.err_conn') %>');
+        AiProgress.error();
+        alert('<%= j t("learner_fc.err_conn") %>');
         btn.disabled = false;
       });
   };

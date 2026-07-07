@@ -12,14 +12,24 @@ class Learner::StudyPlansController < Learner::BaseController
 
   def create
     unless current_learner.credits >= GENERATE_COST
-      return redirect_to learner_study_plans_path, alert: "Không đủ credit. Cần #{GENERATE_COST} credits để tạo lộ trình."
+      respond_to do |fmt|
+        fmt.json { render json: { error: "Không đủ credit. Cần #{GENERATE_COST} credits." } }
+        fmt.html { redirect_to learner_study_plans_path, alert: "Không đủ credit. Cần #{GENERATE_COST} credits để tạo lộ trình." }
+      end
+      return
     end
 
     plan = StudyPlanGenerator.new(current_learner, extra: params[:focus]).generate!
     current_learner.deduct_credits!(GENERATE_COST)
-    redirect_to learner_study_plan_path(plan)
+    respond_to do |fmt|
+      fmt.json { render json: { redirect_url: learner_study_plan_path(plan) } }
+      fmt.html { redirect_to learner_study_plan_path(plan) }
+    end
   rescue => e
-    redirect_to learner_study_plans_path, alert: "Không tạo được lộ trình: #{e.message}"
+    respond_to do |fmt|
+      fmt.json { render json: { error: "Không tạo được lộ trình: #{e.message}" } }
+      fmt.html { redirect_to learner_study_plans_path, alert: "Không tạo được lộ trình: #{e.message}" }
+    end
   end
 
   def destroy

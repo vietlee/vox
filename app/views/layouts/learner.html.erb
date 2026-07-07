@@ -592,5 +592,139 @@
     setTimeout(function() { el.addEventListener('focus', clearErr, {once: true}); }, 0);
   };
   </script>
+
+  <!-- ── AiProgress: minimizable loading overlay + completion toast for all AI generators ── -->
+  <!-- Full-screen overlay -->
+  <div id="aip-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:10010;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#fff;border-radius:24px;padding:30px 24px 22px;text-align:center;max-width:320px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.25);">
+      <div style="width:52px;height:52px;margin:0 auto 14px;position:relative;">
+        <svg viewBox="0 0 52 52" fill="none" style="position:absolute;inset:0;width:52px;height:52px;animation:aip-spin 1.4s linear infinite;">
+          <circle cx="26" cy="26" r="22" stroke="#e2e8f0" stroke-width="4"/>
+          <path fill="#1e3a5f" d="M4 26a22 22 0 0122-22V0C10.745 0 0 10.745 0 26h4z"/>
+        </svg>
+        <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;">⚡</span>
+      </div>
+      <p id="aip-title" style="font-size:15px;font-weight:800;color:#0f172a;margin:0 0 14px;"></p>
+      <div style="background:#f1f5f9;border-radius:99px;height:8px;margin-bottom:6px;overflow:hidden;">
+        <div id="aip-bar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#1e3a5f,#4a7fa8);width:0%;transition:width .5s ease;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <p id="aip-msg" style="font-size:12px;color:#64748b;margin:0;flex:1;text-align:left;line-height:1.4;"></p>
+        <span id="aip-pct" style="font-size:14px;font-weight:800;color:#1e3a5f;flex-shrink:0;margin-left:10px;">0%</span>
+      </div>
+      <button onclick="AiProgress.minimize()" style="width:100%;padding:10px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
+        ↓ Thu nhỏ để làm việc khác
+      </button>
+    </div>
+  </div>
+
+  <!-- Minimized floating pill (above bottom nav) -->
+  <div id="aip-mini" style="display:none;position:fixed;bottom:calc(var(--bottomnav-h,56px) + 12px);left:50%;transform:translateX(-50%);z-index:10010;background:#1e3a5f;color:white;border-radius:99px;padding:10px 14px 10px 12px;align-items:center;gap:8px;box-shadow:0 6px 24px rgba(30,58,95,.45);min-width:200px;max-width:88vw;cursor:pointer;" onclick="AiProgress.expand()">
+    <svg viewBox="0 0 20 20" fill="none" style="width:18px;height:18px;flex-shrink:0;animation:aip-spin 1.4s linear infinite;">
+      <circle cx="10" cy="10" r="8" stroke="rgba(255,255,255,.3)" stroke-width="2.5"/>
+      <path fill="white" d="M2 10a8 8 0 018-8V0C4.477 0 0 4.477 0 10h2z"/>
+    </svg>
+    <span id="aip-mini-label" style="font-size:13px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+    <span id="aip-mini-pct" style="font-size:12px;font-weight:800;opacity:.85;flex-shrink:0;margin-right:4px;"></span>
+    <span style="background:rgba(255,255,255,.18);border-radius:99px;padding:2px 9px;font-size:11px;font-weight:700;flex-shrink:0;">↑</span>
+  </div>
+
+  <!-- Completion toast -->
+  <div id="aip-toast" style="display:none;position:fixed;bottom:calc(var(--bottomnav-h,56px) + 12px);left:50%;transform:translateX(-50%);z-index:10010;background:#fff;border:1.5px solid #bbf7d0;border-radius:16px;padding:12px 14px 10px;box-shadow:0 6px 28px rgba(0,0,0,.13);min-width:260px;max-width:92vw;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px;flex-shrink:0;">✅</span>
+      <div style="flex:1;min-width:0;">
+        <p style="font-size:13px;font-weight:700;color:#15803d;margin:0 0 3px;">Hoàn tất!</p>
+        <a id="aip-toast-link" href="#" style="font-size:12px;color:#1e3a5f;font-weight:600;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;"></a>
+      </div>
+      <button onclick="AiProgress.dismissToast()" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;padding:2px 6px;line-height:1;margin-left:2px;">×</button>
+    </div>
+    <div style="background:#f0fdf4;border-radius:99px;height:3px;margin-top:10px;overflow:hidden;">
+      <div id="aip-toast-bar" style="height:100%;border-radius:99px;background:#22c55e;width:100%;"></div>
+    </div>
+  </div>
+
+  <style>@keyframes aip-spin { to { transform: rotate(360deg); } }</style>
+  <script>
+  window.AiProgress = (function() {
+    var _pct = 0, _ticker, _msgInt, _msgIdx = 0;
+    var _msgs = [], _minimized = false, _toastTimer;
+
+    function $id(id) { return document.getElementById(id); }
+
+    function setBar(p) {
+      _pct = p;
+      var r = Math.round(p);
+      $id('aip-bar').style.width = p + '%';
+      $id('aip-pct').textContent  = r + '%';
+      $id('aip-mini-pct').textContent = r + '%';
+    }
+
+    function cycleMsg() {
+      if (_msgs.length) $id('aip-msg').textContent = _msgs[_msgIdx++ % _msgs.length];
+    }
+
+    return {
+      start: function(opts) {
+        _minimized = false; _pct = 0; _msgIdx = 0;
+        _msgs = opts.msgs || [];
+        setBar(0);
+        $id('aip-title').textContent = opts.title || 'Đang tạo...';
+        $id('aip-mini-label').textContent = opts.miniLabel || opts.title || 'Đang tạo...';
+        cycleMsg();
+        clearInterval(_ticker); clearInterval(_msgInt);
+        _ticker = setInterval(function() { setBar(_pct + (95 - _pct) * 0.036); }, 400);
+        _msgInt = setInterval(cycleMsg, 2200);
+        $id('aip-overlay').style.display = 'flex';
+        $id('aip-mini').style.display    = 'none';
+        $id('aip-toast').style.display   = 'none';
+      },
+
+      minimize: function() {
+        _minimized = true;
+        $id('aip-overlay').style.display = 'none';
+        $id('aip-mini').style.display    = 'flex';
+      },
+
+      expand: function() {
+        _minimized = false;
+        $id('aip-overlay').style.display = 'flex';
+        $id('aip-mini').style.display    = 'none';
+      },
+
+      done: function(url, label) {
+        clearInterval(_ticker); clearInterval(_msgInt);
+        if (_minimized) {
+          setBar(100);
+          $id('aip-mini').style.display = 'none';
+          var lnk = $id('aip-toast-link');
+          lnk.href = url;
+          lnk.textContent = (label || 'Mở ngay') + ' →';
+          var t = $id('aip-toast'); t.style.display = 'block';
+          var bar = $id('aip-toast-bar');
+          bar.style.transition = 'none'; bar.style.width = '100%';
+          setTimeout(function() { bar.style.transition = 'width 5s linear'; bar.style.width = '0%'; }, 60);
+          clearTimeout(_toastTimer);
+          _toastTimer = setTimeout(function() { AiProgress.dismissToast(); }, 5200);
+        } else {
+          setBar(100);
+          $id('aip-msg').textContent = 'Hoàn tất!';
+          setTimeout(function() { window.location = url; }, 500);
+        }
+      },
+
+      error: function() {
+        clearInterval(_ticker); clearInterval(_msgInt);
+        $id('aip-overlay').style.display = 'none';
+        $id('aip-mini').style.display    = 'none';
+      },
+
+      dismissToast: function() {
+        clearTimeout(_toastTimer);
+        $id('aip-toast').style.display = 'none';
+      }
+    };
+  })();
+  </script>
 </body>
 </html>

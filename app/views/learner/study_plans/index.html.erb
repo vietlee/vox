@@ -14,7 +14,7 @@
   <p style="font-size:13px;color:#64748b;margin:0;"><%= t('learner_plan.hero_desc') %></p>
 </div>
 
-<%= form_with url: learner_study_plans_path, method: :post, id: "gen-plan-form" do |f| %>
+<%= form_with url: learner_study_plans_path, method: :post, id: "gen-plan-form", data: { turbo: false } do |f| %>
   <div style="margin-bottom:10px;">
     <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;"><%= t('learner_plan.wish_label') %></label>
     <textarea name="focus" rows="3" maxlength="500" placeholder="<%= t('learner_plan.wish_ph') %>"
@@ -28,15 +28,6 @@
 <% end %>
 <p style="text-align:center;font-size:11px;color:#94a3b8;margin-bottom:20px;"><%= t('learner_plan.credits_left', n: current_learner.credits) %></p>
 
-<!-- Loading overlay -->
-<div id="gen-plan-loading" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.6);align-items:center;justify-content:center;padding:20px;">
-  <div style="background:#fff;border-radius:20px;padding:36px 32px;text-align:center;max-width:320px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);">
-    <div style="width:56px;height:56px;margin:0 auto 16px;"><svg viewBox="0 0 56 56" fill="none" style="animation:gp-spin 1s linear infinite;"><circle cx="28" cy="28" r="22" stroke="#e2e8f0" stroke-width="4"/><path fill="#1e3a5f" d="M6 28a22 22 0 0122-22V0C12.536 0 0 12.536 0 28h6z"/></svg></div>
-    <p style="font-size:16px;font-weight:800;color:#0f172a;margin:0 0 8px;">🧠 <%= t('learner_plan.loading_title') %></p>
-    <p style="font-size:13px;color:#64748b;line-height:1.6;margin:0;"><%= t('learner_plan.loading_sub') %></p>
-  </div>
-</div>
-<style>@keyframes gp-spin { to { transform: rotate(360deg); } }</style>
 
 <% if @plans.any? %>
   <p class="lp-section-title"><%= t('learner_plan.yours') %></p>
@@ -84,11 +75,40 @@
 <% end %>
 
 <script>
-  // Show a loading state while AI generates (can take a few seconds)
+(function(){
+  var _planMsgs = ['<%= j t("learner_plan.gen_1") %>','<%= j t("learner_plan.gen_2") %>','<%= j t("learner_plan.gen_3") %>','<%= j t("learner_plan.gen_4") %>'];
   var f = document.getElementById('gen-plan-form');
-  if (f) f.addEventListener('submit', function() {
-    var btn = document.getElementById('gen-plan-btn');
-    if (btn) { btn.disabled = true; btn.style.opacity = '.7'; }
-    document.getElementById('gen-plan-loading').style.display = 'flex';
+  if (!f) return;
+  f.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var btn   = document.getElementById('gen-plan-btn');
+    var focus = (f.querySelector('[name=focus]') || {}).value || '';
+    btn.disabled = true;
+    AiProgress.start({
+      title: '<%= j t("learner_plan.loading_title") %>',
+      miniLabel: focus.trim().slice(0, 32) || 'Lộ trình học mới',
+      msgs: _planMsgs
+    });
+    var fd = new FormData(f);
+    fetch(f.action, {
+      method: 'POST', body: fd,
+      headers: { 'Accept': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.redirect_url) {
+          AiProgress.done(d.redirect_url, '<%= j t("learner_plan.done_label") %>');
+        } else {
+          AiProgress.error();
+          alert(d.error || 'Có lỗi xảy ra, vui lòng thử lại.');
+          btn.disabled = false;
+        }
+      })
+      .catch(function() {
+        AiProgress.error();
+        alert('Không thể kết nối máy chủ.');
+        btn.disabled = false;
+      });
   });
+})();
 </script>
