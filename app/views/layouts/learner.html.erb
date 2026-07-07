@@ -649,6 +649,7 @@
   window.AiProgress = (function() {
     var _pct = 0, _ticker, _msgInt, _msgIdx = 0;
     var _msgs = [], _minimized = false, _toastTimer;
+    var _SS = 'aip_state';
 
     function $id(id) { return document.getElementById(id); }
 
@@ -664,10 +665,27 @@
       if (_msgs.length) $id('aip-msg').textContent = _msgs[_msgIdx++ % _msgs.length];
     }
 
+    // Restore minimized pill after Turbo navigation replaces the body
+    (function() {
+      try {
+        var saved = JSON.parse(sessionStorage.getItem(_SS) || 'null');
+        if (saved && saved.minimized) {
+          _minimized = true;
+          document.addEventListener('turbo:load', function() {
+            var lbl = saved.label || 'Đang tạo...';
+            $id('aip-mini-label').textContent = lbl;
+            $id('aip-mini-pct').textContent = '...';
+            $id('aip-mini').style.display = 'flex';
+          }, { once: true });
+        }
+      } catch(e) {}
+    })();
+
     return {
       start: function(opts) {
         _minimized = false; _pct = 0; _msgIdx = 0;
         _msgs = opts.msgs || [];
+        try { sessionStorage.removeItem(_SS); } catch(e) {}
         setBar(0);
         $id('aip-title').textContent = opts.title || 'Đang tạo...';
         $id('aip-mini-label').textContent = opts.miniLabel || opts.title || 'Đang tạo...';
@@ -684,6 +702,7 @@
         _minimized = true;
         $id('aip-overlay').style.display = 'none';
         $id('aip-mini').style.display    = 'flex';
+        try { sessionStorage.setItem(_SS, JSON.stringify({ minimized: true, label: $id('aip-mini-label').textContent })); } catch(e) {}
       },
 
       expand: function() {
@@ -694,6 +713,7 @@
 
       done: function(url, label) {
         clearInterval(_ticker); clearInterval(_msgInt);
+        try { sessionStorage.removeItem(_SS); } catch(e) {}
         if (_minimized) {
           setBar(100);
           $id('aip-mini').style.display = 'none';
@@ -715,9 +735,13 @@
 
       error: function() {
         clearInterval(_ticker); clearInterval(_msgInt);
+        _minimized = false;
+        try { sessionStorage.removeItem(_SS); } catch(e) {}
         $id('aip-overlay').style.display = 'none';
         $id('aip-mini').style.display    = 'none';
       },
+
+      isMinimized: function() { return _minimized; },
 
       dismissToast: function() {
         clearTimeout(_toastTimer);
