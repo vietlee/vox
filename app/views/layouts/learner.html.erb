@@ -414,6 +414,19 @@
     <button id="pwa-install-close" aria-label="Đóng" style="flex-shrink:0;width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:15px;cursor:pointer;line-height:1;">×</button>
   </div>
 
+  <%# Custom HTML install confirmation modal (replaces native browser dialog) %>
+  <div id="pwa-install-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(15,23,42,.6);align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#fff;border-radius:22px;padding:28px 24px 24px;max-width:340px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.22);text-align:center;">
+      <img src="/icon-192.png" alt="VOX" style="width:72px;height:72px;border-radius:18px;margin:0 auto 14px;display:block;box-shadow:0 4px 16px rgba(30,58,95,.18);">
+      <div style="font-size:18px;font-weight:900;color:#0f172a;margin-bottom:4px;">VOX — Học cùng AI</div>
+      <div style="font-size:13px;color:#64748b;margin-bottom:20px;">vox.czin.net</div>
+      <div style="display:flex;gap:10px;">
+        <button id="pwa-modal-cancel" style="flex:1;padding:12px;border-radius:12px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Huỷ</button>
+        <button id="pwa-modal-install" style="flex:1;padding:12px;border-radius:12px;border:none;background:#1e3a5f;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Cài đặt</button>
+      </div>
+    </div>
+  </div>
+
   <div id="pwa-ios-guide" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);align-items:flex-end;justify-content:center;">
     <div style="background:#fff;width:100%;max-width:460px;border-radius:20px 20px 0 0;padding:20px 20px calc(env(safe-area-inset-bottom,0px) + 20px);">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
@@ -456,6 +469,25 @@
 
     var bar = document.getElementById('pwa-install-bar');
     var deferredPrompt = null;
+    var installModal = document.getElementById('pwa-install-modal');
+
+    function showInstallModal() {
+      if (installModal) { installModal.style.display = 'flex'; }
+    }
+    function hideInstallModal() {
+      if (installModal) { installModal.style.display = 'none'; }
+    }
+    function doInstall() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.finally(function(){ deferredPrompt = null; if (bar) bar.style.display = 'none'; hideInstallModal(); });
+    }
+
+    var modalInstall = document.getElementById('pwa-modal-install');
+    var modalCancel  = document.getElementById('pwa-modal-cancel');
+    if (modalInstall) modalInstall.addEventListener('click', doInstall);
+    if (modalCancel)  modalCancel.addEventListener('click', function(){ hideInstallModal(); localStorage.setItem(DISMISS_KEY, Date.now()); });
+    if (installModal) installModal.addEventListener('click', function(e){ if (e.target === installModal) hideInstallModal(); });
 
     // Android / Chrome: capture the install event, show our own button
     window.addEventListener('beforeinstallprompt', function(e){
@@ -463,17 +495,13 @@
       deferredPrompt = e;
       if (isMobile() && !isStandalone() && !recentlyDismissed() && bar) bar.style.display = 'flex';
     });
-    window.addEventListener('appinstalled', function(){ deferredPrompt = null; if (bar) bar.style.display = 'none'; });
+    window.addEventListener('appinstalled', function(){ deferredPrompt = null; if (bar) bar.style.display = 'none'; hideInstallModal(); });
 
     // Exposed so the Profile page (or anywhere) can trigger install on demand.
     // Returns a status string so callers can show the right message.
     window.voxTriggerInstall = function(){
       if (isStandalone()) return 'installed';
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.finally(function(){ deferredPrompt = null; if (bar) bar.style.display = 'none'; });
-        return 'prompted';
-      }
+      if (deferredPrompt) { showInstallModal(); return 'prompted'; }
       if (isIOS()) { var g = document.getElementById('pwa-ios-guide'); if (g) g.style.display = 'flex'; return 'ios'; }
       return 'unavailable';
     };
@@ -482,11 +510,8 @@
     var installBtn = document.getElementById('pwa-install-btn');
     if (installBtn) installBtn.addEventListener('click', function(){
       if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.finally(function(){
-        deferredPrompt = null;
-        if (bar) bar.style.display = 'none';
-      });
+      if (bar) bar.style.display = 'none';
+      showInstallModal();
     });
     var closeBtn = document.getElementById('pwa-install-close');
     if (closeBtn) closeBtn.addEventListener('click', function(){
