@@ -1,10 +1,18 @@
 class SuperAdmin::DashboardController < SuperAdmin::BaseController
+  ONLINE_WINDOW = 5.minutes
+
   def index
     @workspaces_count  = Workspace.count
     @users_count       = User.count
     @surveys_count     = Survey.count
     @votes_count       = Vote.count
     @recent_workspaces = Workspace.order(created_at: :desc).limit(10)
+
+    # Online & active user stats
+    @learners_online  = Learner.where(last_seen_at: ONLINE_WINDOW.ago..).count
+    @trainers_online  = User.where(role: [:admin, :supporter]).where(last_seen_at: ONLINE_WINDOW.ago..).count
+    @total_learners   = Learner.count
+    @total_trainers   = User.where(role: [:admin, :supporter]).count
 
     # Date range filter
     @date_from = params[:date_from].present? ? (Date.parse(params[:date_from]) rescue nil) : nil

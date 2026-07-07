@@ -2,6 +2,7 @@ class Learner::BaseController < ApplicationController
   layout "learner"
 
   before_action :authenticate_learner!
+  before_action :touch_last_seen!
   skip_before_action :authenticate_user!
   skip_before_action :set_current_workspace
 
@@ -38,6 +39,12 @@ class Learner::BaseController < ApplicationController
 
   def current_learner
     @current_learner ||= warden.authenticate(scope: :learner)
+  end
+
+  def touch_last_seen!
+    return unless current_learner
+    return if current_learner.last_seen_at && current_learner.last_seen_at > 2.minutes.ago
+    current_learner.update_column(:last_seen_at, Time.current)
   end
 
   def authenticate_learner!

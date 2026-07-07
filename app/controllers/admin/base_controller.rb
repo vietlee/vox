@@ -1,6 +1,7 @@
 class Admin::BaseController < ApplicationController
   before_action :require_workspace_member!
   before_action :require_workspace_active!
+  before_action :touch_last_seen!
   layout "admin"
 
   # DISPLAY: always the logged-in user's own subscription (user-level budget).
@@ -31,6 +32,12 @@ class Admin::BaseController < ApplicationController
   end
 
   private
+
+  def touch_last_seen!
+    return unless current_user
+    return if current_user.last_seen_at && current_user.last_seen_at > 2.minutes.ago
+    current_user.update_column(:last_seen_at, Time.current)
+  end
 
   def require_workspace_member!
     # Participant users cannot access admin dashboard
