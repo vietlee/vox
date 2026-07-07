@@ -53,8 +53,22 @@ class Learner::CreditsController < Learner::BaseController
 
   def payment_return
     @payment = current_learner.learner_payments.find_by(id: params[:payment_id])
-    if @payment&.completed?
+    return redirect_to learner_credits_path, alert: "Không tìm thấy giao dịch." unless @payment
+
+    if @payment.completed?
       redirect_to learner_credits_path, notice: "Mua thành công #{@payment.credits_amount} credits!"
+    elsif params[:status] == "PAID" || params[:code] == "00"
+      # PayOS confirmed success in return URL — verify via API and complete if not yet done
+      info = PayosService.new.get_payment_info(@payment.payos_order_code)
+      if info && info["status"] == "PAID"
+        ActiveRecord::Base.transaction do
+          @payment.update_column(:status, LearnerPayment.statuses[:completed])
+          @payment.learner.add_credits!(@payment.credits_amount)
+        end unless @payment.reload.completed?
+        redirect_to learner_credits_path, notice: "Mua thành công #{@payment.credits_amount} credits!"
+      else
+        render :payment_pending
+      end
     else
       render :payment_pending
     end
@@ -69,7 +83,7 @@ class Learner::CreditsController < Learner::BaseController
   def payment_status
     payment = current_learner.learner_payments.find_by(id: params[:id])
     if payment&.completed?
-      render json: { status: "completed", credits: current_learner.reload.credits }
+      render json: { status: "completed", credits: current_learner.reload.credits, bought: payment.credits_amount }
     elsif payment&.failed?
       render json: { status: "failed" }
     else

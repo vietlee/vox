@@ -25,6 +25,7 @@
     if (attempts++ > 20) return;
     fetch(statusUrl).then(r => r.json()).then(function(d) {
       if (d.status === 'completed') {
+        sessionStorage.setItem('lp_pay_ok', d.bought || d.credits || '');
         window.location = '<%= learner_credits_path %>';
       } else if (d.status === 'failed') {
         document.querySelector('h2').textContent = 'Thanh toán thất bại';

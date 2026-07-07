@@ -35,6 +35,21 @@ class PayosService
     nil
   end
 
+  # Fetches payment info from PayOS by orderCode. Returns data hash or nil.
+  def get_payment_info(order_code)
+    response = HTTParty.get(
+      "#{BASE_URL}/v2/payment-requests/#{order_code}",
+      headers: headers,
+      timeout: 8
+    )
+    parsed = response.parsed_response
+    return nil unless parsed.is_a?(Hash) && parsed["code"] == "00"
+    parsed["data"]
+  rescue => e
+    Rails.logger.error("[PayOS] get_payment_info error: #{e.message}")
+    nil
+  end
+
   # Verifies the webhook payload signature. Call with the parsed JSON body hash.
   def verify_webhook(payload)
     data = payload["data"]
