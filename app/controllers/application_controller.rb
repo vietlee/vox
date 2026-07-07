@@ -21,8 +21,16 @@ class ApplicationController < ActionController::Base
     if session[:current_workspace_id].present?
       ws = accessible_workspaces.find { |w| w.id == session[:current_workspace_id].to_i }
     end
-    @current_workspace = ws || current_user&.workspace
-    session[:current_workspace_id] = @current_workspace&.id
+
+    if ws
+      @current_workspace = ws
+    else
+      # Session workspace not accessible (deleted, revoked, or first load).
+      # Fall back to primary workspace and reset session so the next request
+      # doesn't repeatedly fail the accessible_workspaces lookup.
+      @current_workspace = current_user&.workspace
+      session[:current_workspace_id] = @current_workspace&.id
+    end
   end
 
   # All workspaces this user can access (all owned + active memberships in other workspaces)

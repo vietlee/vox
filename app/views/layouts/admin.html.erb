@@ -139,8 +139,41 @@
     }
   </style>
   <%= yield :head if content_for?(:head) %>
+  <%# VOX splash: shows on cold-start, hidden instantly on subsequent Turbo navigations %>
+  <style>
+    #vox-splash{position:fixed;inset:0;z-index:99999;background:#0F172A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .3s ease;}
+    html.vox-loaded #vox-splash{display:none!important;}
+    #vox-splash.vox-splash-out{opacity:0;pointer-events:none;}
+    @keyframes vox-spl-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.85);opacity:.7}}
+    @keyframes vox-spl-dot{0%,80%,100%{transform:scale(.45);opacity:.3}40%{transform:scale(1);opacity:.85}}
+    #vox-splash-icon{animation:vox-spl-pulse 1.5s ease-in-out infinite}
+    .vox-spl-dot{width:7px;height:7px;border-radius:50%;background:#7aaac9;display:inline-block;animation:vox-spl-dot 1.2s ease-in-out infinite}
+    .vox-spl-dot:nth-child(2){animation-delay:.18s}
+    .vox-spl-dot:nth-child(3){animation-delay:.36s}
+  </style>
+  <script>if(sessionStorage.getItem('vox_loaded'))document.documentElement.classList.add('vox-loaded');</script>
 </head>
 <body class="h-full font-inter antialiased bg-slate-100">
+<div id="vox-splash" role="status" aria-label="Đang tải...">
+  <div id="vox-splash-icon"><img src="/icon-mark.svg" width="76" height="76" alt="VOX" onerror="this.style.display='none'"></div>
+  <div style="display:flex;gap:7px;align-items:center;">
+    <span class="vox-spl-dot"></span><span class="vox-spl-dot"></span><span class="vox-spl-dot"></span>
+  </div>
+</div>
+<script>
+  (function(){
+    function hideSplash(){
+      var s=document.getElementById('vox-splash');
+      if(!s||s._done)return; s._done=true;
+      sessionStorage.setItem('vox_loaded','1');
+      document.documentElement.classList.add('vox-loaded');
+      s.classList.add('vox-splash-out');
+      setTimeout(function(){s.style.display='none';},320);
+    }
+    document.addEventListener('turbo:load',hideSplash,{once:true});
+    window.addEventListener('load',hideSplash,{once:true});
+  })();
+</script>
 
 <div class="flex h-full">
   <!-- Sidebar -->
@@ -159,56 +192,6 @@
         </button>
       </div>
 
-      <%# Workspace switcher %>
-      <% all_workspaces = accessible_workspaces rescue [] %>
-      <div class="relative mt-2" id="ws-switcher">
-        <button type="button" onclick="document.getElementById('ws-dropdown').classList.toggle('hidden')"
-          class="w-full flex items-center gap-2 text-left group cursor-pointer bg-white/[0.06] hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg px-2.5 py-1.5 transition-all">
-          <span class="text-[12px] text-slate-200 font-semibold truncate flex-1 group-hover:text-white transition-colors">
-            <%= current_workspace&.name || "Platform" %>
-          </span>
-          <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/>
-          </svg>
-        </button>
-        <div id="ws-dropdown" class="hidden absolute left-0 top-full mt-1 z-50 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl py-1 min-w-[180px] max-w-[220px]">
-          <% all_workspaces.each do |ws| %>
-            <% is_active = ws.id == current_workspace&.id %>
-            <% ws_suspended = !ws.active? %>
-            <% ws_role = (ws.owner_id == current_user.id || current_user.workspace_id == ws.id) ? :admin : current_user.workspace_memberships.find_by(workspace: ws, status: :active)&.role&.to_sym %>
-            <%= button_to switch_workspace_path(workspace_id: ws.id), method: :post,
-                  data: { turbo: false },
-                  class: "w-full text-left px-3 py-2.5 flex items-center gap-2 hover:bg-white/5 transition-colors border-0 bg-transparent cursor-pointer #{is_active ? '' : 'opacity-75 hover:opacity-100'}" do %>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-[12px] font-semibold text-white truncate"><%= ws.name %></span>
-                  <% if ws_suspended %>
-                    <span class="text-[9px] px-1 py-0.5 rounded bg-red-500/20 text-red-400 font-bold flex-shrink-0">🔒</span>
-                  <% end %>
-                </div>
-                <div class="text-[10px] text-slate-500 mt-0.5"><%= ws_role ? t("roles.#{ws_role}") : "" %></div>
-              </div>
-              <% if is_active %>
-                <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"></span>
-              <% end %>
-            <% end %>
-          <% end %>
-          <div class="border-t border-white/10 mt-1 pt-1">
-            <%= link_to new_workspace_path,
-                  class: "flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-indigo-300 hover:text-indigo-200 hover:bg-white/5 transition-colors rounded-lg mx-1" do %>
-              <span class="text-[14px]">+</span>
-              <%= I18n.locale == :vi ? "Tạo không gian mới" : "Create new workspace" %>
-            <% end %>
-          </div>
-        </div>
-      </div>
-      <script>
-        document.addEventListener('click', function(e) {
-          var sw = document.getElementById('ws-switcher');
-          var dd = document.getElementById('ws-dropdown');
-          if (sw && dd && !sw.contains(e.target)) dd.classList.add('hidden');
-        });
-      </script>
     </div>
 
     <nav class="flex-1 pt-3 overflow-y-auto">
@@ -254,8 +237,69 @@
       <% end %>
     </nav>
 
-    <!-- Sidebar footer: AI credits + user -->
+    <!-- Sidebar footer: workspace switcher + AI credits + user -->
     <div class="mt-auto border-t border-white/[0.06] px-4 py-3.5 sb-footer">
+      <%# Workspace switcher — lives in footer so dropdown opens upward (never overlaps nav items) %>
+      <% all_workspaces = accessible_workspaces rescue [] %>
+      <% if all_workspaces.size > 0 %>
+        <div class="relative mb-3" id="ws-switcher">
+          <button type="button" onclick="document.getElementById('ws-dropdown').classList.toggle('hidden')"
+            class="w-full flex items-center gap-2 text-left group cursor-pointer bg-white/[0.06] hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg px-2.5 py-1.5 transition-all">
+            <div class="w-4 h-4 rounded bg-indigo-500/30 flex items-center justify-center flex-shrink-0">
+              <svg class="w-2.5 h-2.5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 7h18M3 12h18M3 17h18"/></svg>
+            </div>
+            <span class="sb-label text-[12px] text-slate-200 font-semibold truncate flex-1 group-hover:text-white transition-colors">
+              <%= current_workspace&.name || "Platform" %>
+            </span>
+            <svg class="sb-label w-3 h-3 text-slate-500 group-hover:text-slate-300 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/>
+            </svg>
+          </button>
+          <%# Dropdown opens UPWARD (bottom-full) — never overlaps nav items %>
+          <div id="ws-dropdown" class="hidden absolute left-0 bottom-full mb-1 z-50 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl py-1 min-w-[180px] max-w-[220px]">
+            <% all_workspaces.each do |ws| %>
+              <% is_active = ws.id == current_workspace&.id %>
+              <% ws_suspended = !ws.active? %>
+              <% ws_role = (ws.owner_id == current_user.id || current_user.workspace_id == ws.id) ? :admin : current_user.workspace_memberships.find_by(workspace: ws, status: :active)&.role&.to_sym %>
+              <%= button_to switch_workspace_path(workspace_id: ws.id), method: :post,
+                    data: { turbo: false },
+                    class: "w-full text-left px-3 py-2.5 flex items-center gap-2 hover:bg-white/5 transition-colors border-0 bg-transparent cursor-pointer #{is_active ? '' : 'opacity-75 hover:opacity-100'}" do %>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[12px] font-semibold text-white truncate"><%= ws.name %></span>
+                    <% if ws_suspended %>
+                      <span class="text-[9px] px-1 py-0.5 rounded bg-red-500/20 text-red-400 font-bold flex-shrink-0">🔒</span>
+                    <% end %>
+                  </div>
+                  <div class="text-[10px] text-slate-500 mt-0.5"><%= ws_role ? t("roles.#{ws_role}") : "" %></div>
+                </div>
+                <% if is_active %>
+                  <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"></span>
+                <% end %>
+              <% end %>
+            <% end %>
+            <div class="border-t border-white/10 mt-1 pt-1">
+              <%= link_to new_workspace_path,
+                    class: "flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-indigo-300 hover:text-indigo-200 hover:bg-white/5 transition-colors rounded-lg mx-1" do %>
+                <span class="text-[14px]">+</span>
+                <%= I18n.locale == :vi ? "Tạo không gian mới" : "Create new workspace" %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        <script>
+          document.addEventListener('click', function(e) {
+            var sw = document.getElementById('ws-switcher');
+            var dd = document.getElementById('ws-dropdown');
+            if (sw && dd && !sw.contains(e.target)) dd.classList.add('hidden');
+          });
+          // Also close dropdown on any Turbo navigation to prevent stale open state
+          document.addEventListener('turbo:before-visit', function() {
+            document.getElementById('ws-dropdown')?.classList.add('hidden');
+          });
+        </script>
+      <% end %>
+
       <% if (sub = current_workspace&.credit_subscription) && sub.max_ai_credits.to_i > 0 %>
         <div class="flex justify-between text-[11px] text-slate-500 mb-1.5 mt-2">
           <span>AI Credits</span>
@@ -908,7 +952,7 @@ window.VoxTaskManager = window.VoxTaskManager || (function() {
         existing.poll_url = task.poll_url || existing.poll_url;
         _save(); _startPolling(); return;
       }
-      task.pct = 0;
+      task.pct = task.pct || 0;
       task.minimized = false;
       _tasks.push(task);
       _save(); _render(); _startPolling();

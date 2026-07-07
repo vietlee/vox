@@ -217,7 +217,8 @@ function makeCoProgressRing(phases) {
   }, 300);
 
   return {
-    finish: function() { clearInterval(timer); ring.style.strokeDashoffset = '0'; pctEl.textContent = '100%'; }
+    finish:     function() { clearInterval(timer); ring.style.strokeDashoffset = '0'; pctEl.textContent = '100%'; },
+    currentPct: function() { return Math.round(pct); }
   };
 }
 
@@ -289,7 +290,8 @@ function coMinimize() {
       label:        'Tạo Slide AI',
       title:        titleVal ? titleVal.value : 'Slide mới',
       poll_url:     _coPollUrl,
-      redirect_url: _coShowUrl
+      redirect_url: _coShowUrl,
+      pct:          _coRingCtrl ? _coRingCtrl.currentPct() : 0
     });
   }
 }
