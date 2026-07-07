@@ -577,7 +577,7 @@ function renderModalOptions() {
 function addModalOption() {
   const input = document.getElementById('modal-opt-input');
   const text = (input ? input.value : '').trim();
-  if (!text) { if (input) input.focus(); return; }
+  if (!text) { if (input) markFieldError(input); return; }
   modalOptions.push({ text: text, correct: false });
   renderModalOptions();
   input.value = '';
@@ -675,7 +675,7 @@ if (_addQModal && !_addQModal._hasClickListener) {
 
 async function submitNewQuestion() {
   const text = document.getElementById('new-q-text').value.trim();
-  if (!text) { document.getElementById('new-q-text').focus(); return; }
+  if (!text) { markFieldError(document.getElementById('new-q-text')); return; }
 
   // Validate options
   const errEl = document.getElementById('modal-opts-error');
