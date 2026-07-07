@@ -1,19 +1,17 @@
 <% content_for :title, @folder.name %>
 
-<div class="flex items-center gap-3 mb-6">
+<div class="flex items-center gap-3 mb-5">
   <%= render "admin/shared/back_btn" %>
   <div class="flex-1 min-w-0">
     <h1 class="text-[20px] font-extrabold text-slate-900 truncate">📁 <%= @folder.name %></h1>
-    <p class="text-[13px] text-slate-400 mt-0.5"><%= @members.count %> learners · Tạo <%= @folder.created_at.strftime("%d/%m/%Y") %></p>
+    <p class="text-[13px] text-slate-400 mt-0.5"><%= @class_stats[:total] %> học viên · Tạo <%= @folder.created_at.strftime("%d/%m/%Y") %></p>
   </div>
   <div class="flex items-center gap-2">
-    <!-- Import Excel -->
     <button onclick="document.getElementById('import-modal').style.display='flex'"
             class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold border border-slate-200 bg-white hover:bg-[#1e3a5f] hover:border-[#1e3a5f] hover:text-white text-slate-600 rounded-xl transition-colors">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
       <%= t("learner_folders.show.import_btn") %>
     </button>
-    <!-- Add learner -->
     <button onclick="document.getElementById('add-learner-modal').style.display='flex'"
             class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold bg-[#1e3a5f] hover:bg-[#16304f] text-white rounded-xl transition-colors">
       <%= t("learner_folders.show.add_learner_btn") %>
@@ -28,9 +26,293 @@
   <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-[13px] font-semibold"><%= flash[:alert] %></div>
 <% end %>
 
-<!-- Learner table -->
+<!-- Tabs -->
+<div class="flex gap-1 mb-5 border-b border-slate-200">
+  <button id="tab-btn-dashboard" onclick="switchTab('dashboard')"
+          class="px-4 py-2.5 text-[13px] rounded-t-xl -mb-px transition-colors"
+          style="border-bottom:2px solid #1e3a5f;color:#1e3a5f;font-weight:700;background:white;">
+    📊 Tổng quan lớp
+  </button>
+  <button id="tab-btn-learners" onclick="switchTab('learners')"
+          class="px-4 py-2.5 text-[13px] rounded-t-xl -mb-px transition-colors"
+          style="border-bottom:2px solid transparent;color:#64748b;font-weight:600;">
+    👥 Học viên (<%= @class_stats[:total] %>)
+  </button>
+</div>
+
+<!-- ═══════════ TAB: DASHBOARD ═══════════ -->
+<div id="tab-dashboard">
+
+  <!-- Overview cards -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+    <div class="bg-white border border-slate-200 rounded-2xl px-5 py-4">
+      <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Tổng học viên</p>
+      <p class="text-[28px] font-black text-slate-900 leading-none"><%= @class_stats[:total] %></p>
+      <p class="text-[12px] text-slate-400 mt-1"><%= @class_stats[:active] %> đã đăng nhập</p>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-2xl px-5 py-4">
+      <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Đã kích hoạt</p>
+      <% active_pct = @class_stats[:total] > 0 ? (@class_stats[:active] * 100.0 / @class_stats[:total]).round : 0 %>
+      <p class="text-[28px] font-black text-emerald-600 leading-none"><%= active_pct %>%</p>
+      <p class="text-[12px] text-slate-400 mt-1"><%= @class_stats[:total] - @class_stats[:active] %> chưa đăng nhập</p>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-2xl px-5 py-4">
+      <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Trung bình hoàn thành</p>
+      <% if @class_stats[:completion_avg] %>
+        <p class="text-[28px] font-black text-[#1e3a5f] leading-none"><%= @class_stats[:completion_avg] %>%</p>
+        <p class="text-[12px] text-slate-400 mt-1"><%= @class_stats[:content_count] %> nội dung</p>
+      <% else %>
+        <p class="text-[28px] font-black text-slate-300 leading-none">—</p>
+        <p class="text-[12px] text-slate-400 mt-1">Chưa có nội dung</p>
+      <% end %>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-2xl px-5 py-4">
+      <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Cần hỗ trợ</p>
+      <p class="text-[28px] font-black <%= @class_stats[:at_risk_count] > 0 ? 'text-amber-500' : 'text-slate-300' %> leading-none"><%= @class_stats[:at_risk_count] %></p>
+      <p class="text-[12px] text-slate-400 mt-1">học viên tụt lại</p>
+    </div>
+  </div>
+
+  <!-- Per-quiz stats -->
+  <% if @quiz_dashboard.any? %>
+  <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden mb-5">
+    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2" style="background:rgba(248,250,252,0.8)">
+      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      <span class="text-[13px] font-bold text-slate-700">Kết quả theo quiz</span>
+      <span class="ml-1 text-[11px] text-slate-400">(<%= @quiz_dashboard.size %> quiz được giao)</span>
+    </div>
+    <table class="w-full border-collapse">
+      <thead>
+        <tr class="border-b border-slate-100" style="background:#f8fafc;">
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-2.5">Tên quiz</th>
+          <th class="text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-4 py-2.5 whitespace-nowrap">Được giao</th>
+          <th class="text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-4 py-2.5 whitespace-nowrap">Hoàn thành</th>
+          <th class="text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-4 py-2.5 whitespace-nowrap">Điểm TB</th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-2.5 min-w-[140px]">Tiến độ</th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-2.5">Chưa bắt đầu</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @quiz_dashboard.each do |q| %>
+          <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+            <td class="px-5 py-3">
+              <p class="text-[13px] font-semibold text-slate-800"><%= q[:quiz_set].title %></p>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <span class="text-[13px] font-bold text-slate-700"><%= q[:assigned] %></span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <span class="text-[13px] font-bold <%= q[:completed] == q[:assigned] ? 'text-emerald-600' : 'text-slate-700' %>"><%= q[:completed] %></span>
+              <span class="text-[11px] text-slate-400">/ <%= q[:assigned] %></span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <% if q[:avg_score] %>
+                <span class="text-[13px] font-bold <%= q[:avg_score] >= 70 ? 'text-emerald-600' : q[:avg_score] >= 50 ? 'text-amber-500' : 'text-red-500' %>"><%= q[:avg_score] %>%</span>
+              <% else %>
+                <span class="text-[12px] text-slate-300">—</span>
+              <% end %>
+            </td>
+            <td class="px-5 py-3">
+              <div class="flex items-center gap-2">
+                <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full transition-all <%= q[:completion_pct] == 100 ? 'bg-emerald-500' : q[:completion_pct] >= 50 ? 'bg-[#1e3a5f]' : 'bg-amber-400' %>"
+                       style="width:<%= q[:completion_pct] %>%"></div>
+                </div>
+                <span class="text-[12px] font-bold text-slate-600 w-9 text-right shrink-0"><%= q[:completion_pct] %>%</span>
+              </div>
+            </td>
+            <td class="px-5 py-3">
+              <% if q[:not_started].empty? %>
+                <span class="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-600">✓ Tất cả</span>
+              <% else %>
+                <div class="flex flex-wrap gap-1">
+                  <% q[:not_started].first(3).each do |l| %>
+                    <%= link_to workspace_learner_detail_path(learner_id: l.id), class: "text-[11px] px-2 py-0.5 rounded-full font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors" do %>
+                      <%= l.name.split.first %>
+                    <% end %>
+                  <% end %>
+                  <% if q[:not_started].size > 3 %>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-500">+<%= q[:not_started].size - 3 %></span>
+                  <% end %>
+                </div>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  <% else %>
+  <div class="bg-white border border-slate-200 rounded-2xl py-12 text-center mb-5">
+    <div class="text-4xl mb-3">📋</div>
+    <p class="text-[14px] font-bold text-slate-600 mb-1">Chưa có quiz nào được giao</p>
+    <p class="text-[13px] text-slate-400">Giao quiz cho học viên để theo dõi tiến độ tại đây.</p>
+  </div>
+  <% end %>
+
+  <!-- Flashcard section -->
+  <% if @fc_dashboard.any? %>
+  <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden mb-5">
+    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2" style="background:rgba(248,250,252,0.8)">
+      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      <span class="text-[13px] font-bold text-slate-700">Flashcard</span>
+      <span class="ml-1 text-[11px] text-slate-400">(<%= @fc_dashboard.size %> bộ được giao)</span>
+    </div>
+    <table class="w-full border-collapse">
+      <thead>
+        <tr class="border-b border-slate-100" style="background:#f8fafc;">
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-2.5">Tên bộ thẻ</th>
+          <th class="text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-4 py-2.5">Được giao</th>
+          <th class="text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-4 py-2.5">Hoàn thành</th>
+          <th class="text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-4 py-2.5">Đang học</th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-2.5 min-w-[140px]">Tiến độ</th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-2.5">Chưa bắt đầu</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @fc_dashboard.each do |f| %>
+          <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+            <td class="px-5 py-3"><p class="text-[13px] font-semibold text-slate-800"><%= f[:deck].title %></p></td>
+            <td class="px-4 py-3 text-center"><span class="text-[13px] font-bold text-slate-700"><%= f[:assigned] %></span></td>
+            <td class="px-4 py-3 text-center">
+              <span class="text-[13px] font-bold <%= f[:completed] == f[:assigned] ? 'text-emerald-600' : 'text-slate-700' %>"><%= f[:completed] %></span>
+              <span class="text-[11px] text-slate-400">/ <%= f[:assigned] %></span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <span class="text-[12px] font-semibold text-blue-500"><%= f[:in_progress] %></span>
+            </td>
+            <td class="px-5 py-3">
+              <div class="flex items-center gap-2">
+                <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full <%= f[:completion_pct] == 100 ? 'bg-emerald-500' : f[:completion_pct] >= 50 ? 'bg-[#1e3a5f]' : 'bg-amber-400' %>"
+                       style="width:<%= f[:completion_pct] %>%"></div>
+                </div>
+                <span class="text-[12px] font-bold text-slate-600 w-9 text-right shrink-0"><%= f[:completion_pct] %>%</span>
+              </div>
+            </td>
+            <td class="px-5 py-3">
+              <% if f[:not_started].empty? %>
+                <span class="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-600">✓ Tất cả</span>
+              <% else %>
+                <div class="flex flex-wrap gap-1">
+                  <% f[:not_started].first(3).each do |l| %>
+                    <%= link_to workspace_learner_detail_path(learner_id: l.id), class: "text-[11px] px-2 py-0.5 rounded-full font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors" do %><%= l.name.split.first %><% end %>
+                  <% end %>
+                  <% if f[:not_started].size > 3 %>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-500">+<%= f[:not_started].size - 3 %></span>
+                  <% end %>
+                </div>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  <% end %>
+
+  <!-- Learning path section -->
+  <% if @lp_dashboard.any? %>
+  <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden mb-5">
+    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2" style="background:rgba(248,250,252,0.8)">
+      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+      <span class="text-[13px] font-bold text-slate-700">Lộ trình học</span>
+      <span class="ml-1 text-[11px] text-slate-400">(<%= @lp_dashboard.size %> lộ trình được giao)</span>
+    </div>
+    <table class="w-full border-collapse">
+      <thead>
+        <tr class="border-b border-slate-100" style="background:#f8fafc;">
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-2.5">Tên lộ trình</th>
+          <th class="text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-4 py-2.5">Được giao</th>
+          <th class="text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-4 py-2.5">Hoàn thành</th>
+          <th class="text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-4 py-2.5">Tiến độ TB</th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-2.5 min-w-[140px]">Hoàn thành %</th>
+          <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-2.5">Chưa bắt đầu</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @lp_dashboard.each do |lp| %>
+          <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+            <td class="px-5 py-3"><p class="text-[13px] font-semibold text-slate-800"><%= lp[:lp].title %></p></td>
+            <td class="px-4 py-3 text-center"><span class="text-[13px] font-bold text-slate-700"><%= lp[:assigned] %></span></td>
+            <td class="px-4 py-3 text-center">
+              <span class="text-[13px] font-bold <%= lp[:completed] == lp[:assigned] ? 'text-emerald-600' : 'text-slate-700' %>"><%= lp[:completed] %></span>
+              <span class="text-[11px] text-slate-400">/ <%= lp[:assigned] %></span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <% if lp[:avg_progress] %>
+                <span class="text-[13px] font-bold <%= lp[:avg_progress] >= 70 ? 'text-emerald-600' : lp[:avg_progress] >= 40 ? 'text-amber-500' : 'text-slate-400' %>"><%= lp[:avg_progress] %>%</span>
+              <% else %>
+                <span class="text-[12px] text-slate-300">—</span>
+              <% end %>
+            </td>
+            <td class="px-5 py-3">
+              <div class="flex items-center gap-2">
+                <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full <%= lp[:completion_pct] == 100 ? 'bg-emerald-500' : lp[:completion_pct] >= 50 ? 'bg-[#1e3a5f]' : 'bg-amber-400' %>"
+                       style="width:<%= lp[:completion_pct] %>%"></div>
+                </div>
+                <span class="text-[12px] font-bold text-slate-600 w-9 text-right shrink-0"><%= lp[:completion_pct] %>%</span>
+              </div>
+            </td>
+            <td class="px-5 py-3">
+              <% if lp[:not_started].empty? %>
+                <span class="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-600">✓ Tất cả</span>
+              <% else %>
+                <div class="flex flex-wrap gap-1">
+                  <% lp[:not_started].first(3).each do |l| %>
+                    <%= link_to workspace_learner_detail_path(learner_id: l.id), class: "text-[11px] px-2 py-0.5 rounded-full font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors" do %><%= l.name.split.first %><% end %>
+                  <% end %>
+                  <% if lp[:not_started].size > 3 %>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-500">+<%= lp[:not_started].size - 3 %></span>
+                  <% end %>
+                </div>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  <% end %>
+
+  <!-- At-risk learners -->
+  <% if @at_risk.any? %>
+  <div class="bg-white border border-amber-200 rounded-2xl overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-amber-100 flex items-center gap-2" style="background:#fffbeb;">
+      <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      <span class="text-[13px] font-bold text-amber-700">Học viên cần hỗ trợ (<%= @at_risk.size %>)</span>
+      <span class="ml-1 text-[11px] text-amber-500">Hoàn thành &lt; 50% bài và điểm thấp / chưa làm bài</span>
+    </div>
+    <div class="divide-y divide-slate-100">
+      <% @at_risk.each do |l| %>
+        <div class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shrink-0">
+            <span class="text-white text-[13px] font-black"><%= l.name.first.upcase %></span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] font-semibold text-slate-800 truncate"><%= l.name %></p>
+            <p class="text-[11px] text-slate-400 truncate"><%= l.email %></p>
+          </div>
+          <% if l.last_seen_at %>
+            <span class="text-[11px] text-slate-400 shrink-0">Lần cuối: <%= time_ago_in_words(l.last_seen_at) %> trước</span>
+          <% else %>
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-400 shrink-0">Chưa đăng nhập</span>
+          <% end %>
+          <%= link_to "Xem →", workspace_learner_detail_path(learner_id: l.id),
+              class: "text-[12px] font-bold text-[#1e3a5f] hover:underline shrink-0 ml-2" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  <% end %>
+
+</div><%# end tab-dashboard %>
+
+<!-- ═══════════ TAB: LEARNER LIST ═══════════ -->
+<div id="tab-learners" style="display:none">
+
 <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-  <!-- Search bar — nằm NGOÀI vùng replace để giữ focus -->
   <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100" style="background:rgba(248,250,252,0.8)">
     <div class="relative flex-1 max-w-xs">
       <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/></svg>
@@ -47,7 +329,6 @@
     </a>
   </div>
 
-  <!-- Vùng kết quả — chỉ phần này được replace khi search -->
   <div id="learner-table-wrapper">
 
   <% if @members.any? || @search_query.present? %>
@@ -131,6 +412,8 @@
   </div><%# end learner-table-wrapper %>
 </div><%# end outer card %>
 
+</div><%# end tab-learners %>
+
 <!-- Add learner modal -->
 <div id="add-learner-modal" style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);"
      onclick="if(event.target===this)this.style.display='none'">
@@ -173,7 +456,6 @@
     <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 4px;"><%= t("learner_folders.show.import_modal_title") %></h3>
     <p style="font-size:12px;color:#9ca3af;margin:0 0 16px;"><%= t("learner_folders.show.import_modal_desc").html_safe %></p>
 
-    <!-- Template download -->
     <div style="background:#f0f4ff;border:1.5px dashed #a5b4fc;border-radius:12px;padding:12px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
       <svg width="20" height="20" fill="none" stroke="#1e3a5f" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
       <div style="flex:1;">
@@ -223,6 +505,20 @@
 </div>
 
 <script>
+function switchTab(name) {
+  ['dashboard','learners'].forEach(function(t) {
+    var panel = document.getElementById('tab-' + t);
+    var btn   = document.getElementById('tab-btn-' + t);
+    if (!panel || !btn) return;
+    var active = t === name;
+    panel.style.display = active ? '' : 'none';
+    btn.style.borderBottom = active ? '2px solid #1e3a5f' : '2px solid transparent';
+    btn.style.color        = active ? '#1e3a5f' : '#64748b';
+    btn.style.fontWeight   = active ? '700' : '600';
+    btn.style.background   = active ? 'white' : '';
+  });
+}
+
 function showFileName(input) {
   if (input.files && input.files[0]) {
     document.getElementById('file-placeholder').style.display = 'none';
@@ -240,7 +536,8 @@ function handleDrop(e) {
   showFileName(input);
 }
 
-document.querySelector('form[action*="add_learner"]').addEventListener('submit', function() {
+var addForm = document.querySelector('form[action*="add_learner"]');
+if (addForm) addForm.addEventListener('submit', function() {
   var btn  = document.getElementById('add-learner-btn');
   var text = document.getElementById('add-learner-btn-text');
   var spin = document.getElementById('add-learner-spinner');
@@ -251,7 +548,8 @@ document.querySelector('form[action*="add_learner"]').addEventListener('submit',
   btn.style.cursor = 'not-allowed';
 });
 
-document.querySelector('form[action*="import"]').addEventListener('submit', function() {
+var importForm = document.querySelector('form[action*="import"]');
+if (importForm) importForm.addEventListener('submit', function() {
   var btn  = document.getElementById('import-submit-btn');
   var text = document.getElementById('import-btn-text');
   var spin = document.getElementById('import-spinner');
@@ -261,42 +559,6 @@ document.querySelector('form[action*="import"]').addEventListener('submit', func
   btn.style.opacity = '0.8';
   btn.style.cursor = 'not-allowed';
 });
-</script>
-<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-
-<!-- Remove learner confirm modal -->
-<div id="remove-learner-modal" style="display:none;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);">
-  <div style="background:#fff;border-radius:18px;box-shadow:0 8px 40px rgba(0,0,0,0.18);width:100%;max-width:360px;padding:28px 24px;">
-    <div style="text-align:center;margin-bottom:16px;">
-      <div style="width:52px;height:52px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
-        <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/></svg>
-      </div>
-      <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 6px;"><%= t("learner_folders.show.remove_confirm_title") %></h3>
-      <p style="font-size:13px;color:#64748b;margin:0;">Learner <strong id="remove-learner-email" style="color:#1e293b;"></strong> sẽ bị xoá khỏi folder này.<br><%= t("learner_folders.show.remove_confirm_desc") %></p>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="submitRemoveLearner()"
-              style="flex:1;padding:11px;background:#ef4444;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">
-        <%= t("learner_folders.show.remove_confirm_btn") %>
-      </button>
-      <button onclick="document.getElementById('remove-learner-modal').style.display='none'"
-              style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;"><%= t("learner_folders.show.cancel") %></button>
-    </div>
-  </div>
-</div>
-<form id="remove-learner-form" method="post" style="display:none;">
-  <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-  <input type="hidden" name="_method" value="delete">
-</form>
-<script>
-function confirmRemoveLearner(url, email) {
-  document.getElementById('remove-learner-email').textContent = email;
-  document.getElementById('remove-learner-form').action = url;
-  document.getElementById('remove-learner-modal').style.display = 'flex';
-}
-function submitRemoveLearner() {
-  document.getElementById('remove-learner-form').submit();
-}
 
 (function() {
   var input = document.getElementById('learner-search-input');
@@ -321,4 +583,40 @@ function submitRemoveLearner() {
     }, 350);
   });
 })();
+</script>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<!-- Remove learner confirm modal -->
+<div id="remove-learner-modal" style="display:none;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);">
+  <div style="background:#fff;border-radius:18px;box-shadow:0 8px 40px rgba(0,0,0,0.18);width:100%;max-width:360px;padding:28px 24px;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="width:52px;height:52px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+        <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/></svg>
+      </div>
+      <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 6px;"><%= t("learner_folders.show.remove_confirm_title") %></h3>
+      <p style="font-size:13px;color:#64748b;margin:0;">Học viên <strong id="remove-learner-email" style="color:#1e293b;"></strong> sẽ bị xoá khỏi lớp/nhóm này.<br><%= t("learner_folders.show.remove_confirm_desc") %></p>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="submitRemoveLearner()"
+              style="flex:1;padding:11px;background:#ef4444;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">
+        <%= t("learner_folders.show.remove_confirm_btn") %>
+      </button>
+      <button onclick="document.getElementById('remove-learner-modal').style.display='none'"
+              style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;"><%= t("learner_folders.show.cancel") %></button>
+    </div>
+  </div>
+</div>
+<form id="remove-learner-form" method="post" style="display:none;">
+  <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+  <input type="hidden" name="_method" value="delete">
+</form>
+<script>
+function confirmRemoveLearner(url, email) {
+  document.getElementById('remove-learner-email').textContent = email;
+  document.getElementById('remove-learner-form').action = url;
+  document.getElementById('remove-learner-modal').style.display = 'flex';
+}
+function submitRemoveLearner() {
+  document.getElementById('remove-learner-form').submit();
+}
 </script>

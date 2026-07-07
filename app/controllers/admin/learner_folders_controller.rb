@@ -22,6 +22,125 @@ class Admin::LearnerFoldersController < Admin::BaseController
     scope = scope.order("learners.email")
     @search_query = params[:q]
     @pagy, @members = pagy(scope, items: 20)
+
+    # ── Class dashboard stats ──────────────────────────────────────────
+    all_learners   = @folder.learners.select(:id, :name, :email, :last_seen_at, :invite_token, :password_set)
+    learner_ids    = all_learners.map(&:id)
+    learner_emails = all_learners.map(&:email)
+
+    if learner_ids.any?
+      class_assignments = QuizAssignment
+                            .joins(:quiz_set)
+                            .where(quiz_sets: { workspace_id: current_workspace.id }, learner_id: learner_ids)
+                            .includes(:quiz_set, :learner)
+
+      class_attempts = QuizAttempt
+                         .joins(:quiz_set)
+                         .where(quiz_sets: { workspace_id: current_workspace.id })
+                         .where(participant_email: learner_emails)
+
+      class_fc_assignments = FlashcardAssignment
+                               .joins(:flashcard_deck)
+                               .where(flashcard_decks: { workspace_id: current_workspace.id }, learner_id: learner_ids)
+                               .includes(:flashcard_deck, :learner)
+
+      class_lp_assignments = LearningPathAssignment
+                               .joins(:learning_path)
+                               .where(learning_paths: { workspace_id: current_workspace.id })
+                               .where(learner_id: learner_ids)
+                               .includes(:learning_item_progresses, :learner, learning_path: :learning_path_items)
+    else
+      class_assignments    = QuizAssignment.none
+      class_attempts       = QuizAttempt.none
+      class_fc_assignments = FlashcardAssignment.none
+      class_lp_assignments = LearningPathAssignment.none
+    end
+
+    assignments_by_quiz    = class_assignments.group_by(&:quiz_set_id)
+    attempts_by_quiz       = class_attempts.group_by(&:quiz_set_id)
+    assignments_by_deck    = class_fc_assignments.group_by(&:flashcard_deck_id)
+    assignments_by_lp      = class_lp_assignments.group_by(&:learning_path_id)
+
+    assignments_by_learner = class_assignments.group_by(&:learner_id)
+    fc_by_learner          = class_fc_assignments.group_by(&:learner_id)
+    lp_by_learner          = class_lp_assignments.group_by(&:learner_id)
+    attempts_by_email      = class_attempts.group_by(&:participant_email)
+
+    @quiz_dashboard = assignments_by_quiz.map do |quiz_set_id, asgns|
+      qs        = asgns.first.quiz_set
+      attempts  = attempts_by_quiz[quiz_set_id] || []
+      completed = asgns.count { |a| a.status == "completed" }
+      assigned  = asgns.size
+      avg_score = attempts.any? ? (attempts.sum(&:score_pct) / attempts.size.to_f).round : nil
+      not_started_learners = asgns.select { |a| a.status == "pending" }.map(&:learner)
+      {
+        quiz_set:       qs,
+        assigned:       assigned,
+        completed:      completed,
+        completion_pct: assigned > 0 ? (completed * 100.0 / assigned).round : 0,
+        avg_score:      avg_score,
+        not_started:    not_started_learners
+      }
+    end.sort_by { |q| [-q[:completion_pct], q[:quiz_set].title] }
+
+    @fc_dashboard = assignments_by_deck.map do |_deck_id, asgns|
+      deck      = asgns.first.flashcard_deck
+      completed = asgns.count { |a| a.status == "completed" }
+      assigned  = asgns.size
+      in_prog   = asgns.count { |a| a.status == "in_progress" }
+      not_started = asgns.select { |a| a.status == "pending" }.map(&:learner)
+      {
+        deck:           deck,
+        assigned:       assigned,
+        completed:      completed,
+        in_progress:    in_prog,
+        completion_pct: assigned > 0 ? (completed * 100.0 / assigned).round : 0,
+        not_started:    not_started
+      }
+    end.sort_by { |f| [-f[:completion_pct], f[:deck].title] }
+
+    @lp_dashboard = assignments_by_lp.map do |_lp_id, asgns|
+      lp        = asgns.first.learning_path
+      completed = asgns.count { |a| a.status == "completed" }
+      assigned  = asgns.size
+      avg_progress = asgns.any? ? (asgns.sum(&:progress_pct) / asgns.size.to_f).round : nil
+      not_started  = asgns.select { |a| a.status != "completed" && a.learning_item_progresses.empty? }.map(&:learner).compact
+      {
+        lp:             lp,
+        assigned:       assigned,
+        completed:      completed,
+        completion_pct: assigned > 0 ? (completed * 100.0 / assigned).round : 0,
+        avg_progress:   avg_progress,
+        not_started:    not_started
+      }
+    end.sort_by { |l| [-l[:completion_pct], l[:lp].title] }
+
+    total_assigned  = class_assignments.size + class_fc_assignments.size + class_lp_assignments.size
+    total_completed = class_assignments.count { |a| a.status == "completed" } +
+                      class_fc_assignments.count { |a| a.status == "completed" } +
+                      class_lp_assignments.count { |a| a.status == "completed" }
+
+    @at_risk = all_learners.select do |l|
+      qa  = assignments_by_learner[l.id] || []
+      fca = fc_by_learner[l.id]          || []
+      lpa = lp_by_learner[l.id]          || []
+      all_asgns = qa + fca + lpa
+      next false unless all_asgns.present?
+      completed_count  = qa.count  { |a| a.status == "completed" } +
+                         fca.count { |a| a.status == "completed" } +
+                         lpa.count { |a| a.status == "completed" }
+      learner_attempts = attempts_by_email[l.email] || []
+      avg = learner_attempts.any? ? learner_attempts.sum(&:score_pct) / learner_attempts.size.to_f : nil
+      (completed_count.to_f / all_asgns.size) < 0.5 && (learner_attempts.empty? || (avg && avg < 60))
+    end
+
+    @class_stats = {
+      total:          all_learners.size,
+      active:         all_learners.count { |l| l.last_seen_at.present? },
+      content_count:  @quiz_dashboard.size + @fc_dashboard.size + @lp_dashboard.size,
+      completion_avg: total_assigned > 0 ? (total_completed * 100.0 / total_assigned).round : nil,
+      at_risk_count:  @at_risk.size
+    }
   end
 
   def new
