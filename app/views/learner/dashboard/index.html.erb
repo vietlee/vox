@@ -50,6 +50,31 @@
   </div>
 </div>
 
+<%# Daily Challenge card %>
+<% dc = @daily_challenge %>
+<%= link_to learner_daily_challenge_path,
+      style: "display:block;text-decoration:none;margin-bottom:14px;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #f59e0b;border-radius:16px;padding:14px 16px;" do %>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="width:44px;height:44px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <span style="font-size:22px;">⚔️</span>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <p style="font-size:14px;font-weight:800;color:#92400e;margin:0;">Thử thách hôm nay</p>
+      <p style="font-size:12px;color:#b45309;margin:2px 0 0;">
+        <% if dc&.completed? %>
+          <span style="color:#16a34a;font-weight:700;">✓ Hoàn thành · <%= dc.score %>/<%= dc.total %> đúng</span>
+        <% else %>
+          5 câu hỏi · +15 XP ·
+          <% if dc&.questions.present? %>Đang chờ bạn!<% else %>Nhấn để bắt đầu<% end %>
+        <% end %>
+      </p>
+    </div>
+    <% unless dc&.completed? %>
+      <span style="background:#f59e0b;color:#fff;font-size:12px;font-weight:800;padding:6px 12px;border-radius:99px;flex-shrink:0;">BẮT ĐẦU</span>
+    <% end %>
+  </div>
+<% end %>
+
 <%# AI Suggestion card (loaded async) %>
 <div id="lp-suggest-wrap" style="margin-bottom:16px;display:none;">
   <div id="lp-suggest-card" style="border-radius:16px;padding:14px 16px;position:relative;overflow:hidden;">

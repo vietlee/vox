@@ -433,6 +433,14 @@ Rails.application.routes.draw do
       end
     end
 
+    # Daily Challenge
+    get  "daily-challenge",          to: "daily_challenges#show",   as: :daily_challenge
+    post "daily-challenge/submit",   to: "daily_challenges#submit", as: :daily_challenge_submit
+
+    # Push notifications
+    post "push-subscriptions",       to: "push_subscriptions#create",  as: :push_subscriptions
+    delete "push-subscriptions",     to: "push_subscriptions#destroy", as: :push_subscriptions_destroy
+
     # AI Tutor
     get  "tutor",             to: "ai_tutor#index",         as: :ai_tutor
     post "tutor/chat",        to: "ai_tutor#chat",          as: :ai_tutor_chat

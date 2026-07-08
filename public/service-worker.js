@@ -1,5 +1,5 @@
-// VOX PWA service worker — minimal, network-first with offline fallback.
-const CACHE = 'vox-v1';
+// VOX PWA service worker — network-first with offline fallback + push notifications.
+const CACHE = 'vox-v2';
 const OFFLINE_ASSETS = ['/icon-192.png', '/icon-512.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -39,6 +39,43 @@ self.addEventListener('fetch', (event) => {
         return res;
       }).catch(() => cached);
       return cached || fetched;
+    })
+  );
+});
+
+// Push notification handler
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? JSON.parse(event.data.text()) : {}; } catch(e) {}
+
+  const title   = data.title || 'VOX';
+  const options = {
+    body:  data.body  || 'Đến lúc học rồi!',
+    icon:  data.icon  || '/icon-192.png',
+    badge: '/icon-192.png',
+    data:  { url: data.url || '/learner/dashboard' },
+    vibrate: [200, 100, 200]
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Click on notification opens the app at the specified URL
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data && event.notification.data.url
+    ? event.notification.data.url
+    : '/learner/dashboard';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
     })
   );
 });

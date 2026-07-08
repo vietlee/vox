@@ -22,6 +22,9 @@ class Learner::DashboardController < Learner::BaseController
     @activities_today = gam.activities_today
     @goal_met         = gam.goal_met_today?
     @activity_details = today_activity_details
+
+    # Daily challenge — just check if exists (generate lazily via separate controller)
+    @daily_challenge = current_learner.learner_daily_challenges.find_by(challenge_date: Date.current)
   end
 
   # GET /learner/library — full catalog of all assigned/created content

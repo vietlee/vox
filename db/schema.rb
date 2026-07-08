@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_07_082709) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_08_015602) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -360,15 +360,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_07_082709) do
 
   create_table "flashcard_reviews", force: :cascade do |t|
     t.bigint "flashcard_id", null: false
-    t.bigint "user_id", null: false
+    t.bigint "user_id"
     t.integer "rating", default: 0
     t.integer "interval_days", default: 1
     t.float "ease_factor", default: 2.5
     t.datetime "next_review_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "learner_id"
+    t.index ["flashcard_id", "learner_id"], name: "index_fc_reviews_on_flashcard_and_learner", unique: true, where: "(learner_id IS NOT NULL)"
     t.index ["flashcard_id", "user_id"], name: "index_flashcard_reviews_on_flashcard_id_and_user_id", unique: true
     t.index ["flashcard_id"], name: "index_flashcard_reviews_on_flashcard_id"
+    t.index ["learner_id", "next_review_at"], name: "index_fc_reviews_on_learner_and_next_review"
     t.index ["user_id", "next_review_at"], name: "index_flashcard_reviews_on_user_id_and_next_review_at"
     t.index ["user_id"], name: "index_flashcard_reviews_on_user_id"
   end
@@ -382,6 +385,31 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_07_082709) do
     t.datetime "updated_at", null: false
     t.text "image_data"
     t.index ["flashcard_deck_id"], name: "index_flashcards_on_flashcard_deck_id"
+  end
+
+  create_table "learner_badges", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.string "key", null: false
+    t.datetime "earned_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id", "key"], name: "index_learner_badges_on_learner_id_and_key", unique: true
+    t.index ["learner_id"], name: "index_learner_badges_on_learner_id"
+  end
+
+  create_table "learner_daily_challenges", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.date "challenge_date", null: false
+    t.jsonb "questions", default: []
+    t.jsonb "submitted_answers", default: {}
+    t.integer "score", default: 0
+    t.integer "total", default: 5
+    t.boolean "completed", default: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id", "challenge_date"], name: "idx_on_learner_id_challenge_date_8742452dc7", unique: true
+    t.index ["learner_id"], name: "index_learner_daily_challenges_on_learner_id"
   end
 
   create_table "learner_daily_stats", force: :cascade do |t|
@@ -427,6 +455,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_07_082709) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["learner_id"], name: "index_learner_payments_on_learner_id"
+  end
+
+  create_table "learner_push_subscriptions", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.text "endpoint", null: false
+    t.string "p256dh_key"
+    t.string "auth_key"
+    t.string "reminder_hour", default: "20"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["endpoint"], name: "index_learner_push_subscriptions_on_endpoint", unique: true
+    t.index ["learner_id"], name: "index_learner_push_subscriptions_on_learner_id"
   end
 
   create_table "learner_speaking_sessions", force: :cascade do |t|
@@ -1096,11 +1137,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_07_082709) do
   add_foreign_key "flashcard_reviews", "flashcards"
   add_foreign_key "flashcard_reviews", "users"
   add_foreign_key "flashcards", "flashcard_decks"
+  add_foreign_key "learner_badges", "learners"
+  add_foreign_key "learner_daily_challenges", "learners"
   add_foreign_key "learner_folder_members", "learner_folders"
   add_foreign_key "learner_folder_members", "learners"
   add_foreign_key "learner_folders", "users", column: "created_by_id"
   add_foreign_key "learner_folders", "workspaces"
   add_foreign_key "learner_payments", "learners"
+  add_foreign_key "learner_push_subscriptions", "learners"
   add_foreign_key "learning_item_progresses", "learning_path_assignments"
   add_foreign_key "learning_item_progresses", "learning_path_items"
   add_foreign_key "learning_path_assignments", "learning_paths"

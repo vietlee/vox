@@ -33,6 +33,9 @@ gem "sidekiq-cron"
 gem "faraday"
 gem "faraday-retry"
 
+# Web Push notifications (PWA)
+gem "web-push"
+
 # QR Code
 gem "rqrcode"
 

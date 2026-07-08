@@ -16,10 +16,27 @@ class LearnerDailyReminderJob < ApplicationJob
       next unless learner.current_streak >= 1 || self.class.pending_tasks_for(learner).any?
 
       LearnerMailer.daily_reminder(learner).deliver_later
+      send_push_if_subscribed(learner)
     rescue => e
       Rails.logger.warn("[LearnerDailyReminderJob] learner #{learner.id}: #{e.message}")
     end
   end
+
+  private
+
+  def send_push_if_subscribed(learner)
+    return unless learner.learner_push_subscriptions.where(active: true).exists?
+
+    streak_msg = learner.current_streak >= 1 ? " Đừng để mất streak #{learner.current_streak} ngày!" : ""
+    PushNotificationService.send_to_learner(
+      learner,
+      title: "⏰ Nhắc học VOX",
+      body:  "Bạn chưa học hôm nay.#{streak_msg}",
+      url:   "/learner/dashboard"
+    )
+  end
+
+  public
 
   # Real, confirmed accounts only (not un-accepted invites).
   def eligible_learners(_today)

@@ -1,0 +1,160 @@
+<% content_for :title, "Thử thách hôm nay" %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current">Thử thách hôm nay</span>
+<% end %>
+
+<div style="text-align:center;padding:16px 0 20px;">
+  <div style="width:64px;height:64px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:2px solid #f59e0b;">
+    <span style="font-size:30px;">⚔️</span>
+  </div>
+  <h1 style="font-size:19px;font-weight:800;color:#0f172a;margin:0 0 4px;">Thử thách hôm nay</h1>
+  <p style="font-size:13px;color:#64748b;margin:0;"><%= @challenge.total %> câu · +15 XP khi hoàn thành</p>
+</div>
+
+<% if @challenge.completed? %>
+  <%# Result screen %>
+  <div style="text-align:center;padding:32px 20px;background:#fff;border-radius:20px;border:1.5px solid #e2e8f0;">
+    <div style="font-size:56px;margin-bottom:12px;"><%= @challenge.score_pct >= 80 ? "🏆" : (@challenge.score_pct >= 50 ? "👍" : "💪") %></div>
+    <p style="font-size:28px;font-weight:900;color:<%= @challenge.score_pct >= 80 ? '#16a34a' : (@challenge.score_pct >= 50 ? '#d97706' : '#dc2626') %>;margin:0 0 4px;"><%= @challenge.score %>/<%= @challenge.total %> đúng</p>
+    <p style="font-size:14px;color:#64748b;margin:0 0 20px;"><%= @challenge.score_pct %>% chính xác</p>
+
+    <% if @challenge.score_pct >= 80 %>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+        <p style="font-size:13px;font-weight:700;color:#166534;margin:0;">Xuất sắc! Bạn đã nhận +15 XP 🎉</p>
+      </div>
+    <% elsif @challenge.score_pct >= 50 %>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+        <p style="font-size:13px;font-weight:700;color:#92400e;margin:0;">Tốt! Ôn thêm để cải thiện nhé 💪</p>
+      </div>
+    <% else %>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+        <p style="font-size:13px;font-weight:700;color:#991b1b;margin:0;">Cần ôn lại kiến thức này! +15 XP đã cộng.</p>
+      </div>
+    <% end %>
+
+    <%# Show correct answers %>
+    <div style="text-align:left;margin-bottom:20px;">
+      <% @challenge.questions.each_with_index do |q, i| %>
+        <% submitted = @challenge.submitted_answers[q["id"].to_s].to_i %>
+        <% correct   = q["correct_index"].to_i %>
+        <% is_right  = submitted == correct %>
+        <div style="background:<%= is_right ? '#f0fdf4' : '#fef2f2' %>;border:1px solid <%= is_right ? '#bbf7d0' : '#fecaca' %>;border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+          <p style="font-size:13px;font-weight:700;color:#1e293b;margin:0 0 6px;"><%= i + 1 %>. <%= q["text"] %></p>
+          <p style="font-size:12px;color:<%= is_right ? '#16a34a' : '#dc2626' %>;margin:0;">
+            <%= is_right ? "✓" : "✗" %> Bạn chọn: <strong><%= q["options"][submitted] %></strong>
+            <% unless is_right %>· Đáp án: <strong><%= q["options"][correct] %></strong><% end %>
+          </p>
+        </div>
+      <% end %>
+    </div>
+
+    <%= link_to learner_dashboard_path, class: "lp-btn lp-btn-primary lp-btn-full", style: "text-decoration:none;display:block;" do %>Về trang chủ<% end %>
+  </div>
+<% else %>
+  <%# Question UI %>
+  <div id="dc-quiz" style="display:none;">
+    <div id="dc-progress-bar-wrap" style="background:#f1f5f9;border-radius:99px;height:6px;margin-bottom:20px;overflow:hidden;">
+      <div id="dc-progress-bar" style="height:100%;background:linear-gradient(90deg,#f59e0b,#d97706);border-radius:99px;transition:width .3s;width:0%;"></div>
+    </div>
+
+    <div id="dc-question-area">
+      <!-- Filled by JS -->
+    </div>
+
+    <div id="dc-result-area" style="display:none;">
+      <!-- Filled by JS after submission -->
+    </div>
+  </div>
+  <div id="dc-loading" style="text-align:center;padding:40px 20px;">
+    <div style="font-size:32px;margin-bottom:10px;">⏳</div>
+    <p style="font-size:14px;color:#64748b;">Đang tải câu hỏi...</p>
+  </div>
+<% end %>
+
+<% unless @challenge.completed? %>
+<script>
+(function(){
+  var QUESTIONS  = <%= raw @challenge.questions.to_json %>;
+  var SUBMIT_URL = '<%= learner_daily_challenge_submit_path %>';
+  var CSRF       = document.querySelector('meta[name="csrf-token"]').content;
+
+  var current  = 0;
+  var answers  = {};
+  var selected = null;
+
+  function render() {
+    document.getElementById('dc-loading').style.display = 'none';
+    document.getElementById('dc-quiz').style.display = 'block';
+
+    if (current >= QUESTIONS.length) { submitAll(); return; }
+    var q    = QUESTIONS[current];
+    var pct  = Math.round(current / QUESTIONS.length * 100);
+    document.getElementById('dc-progress-bar').style.width = pct + '%';
+
+    selected = null;
+    var area = document.getElementById('dc-question-area');
+    var html = '<div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:16px;padding:18px 16px;margin-bottom:16px;">' +
+               '<p style="font-size:11px;font-weight:700;color:#94a3b8;margin:0 0 8px;text-transform:uppercase;letter-spacing:.5px;">Câu ' + (current + 1) + ' / ' + QUESTIONS.length + '</p>' +
+               '<p style="font-size:15px;font-weight:700;color:#1e293b;margin:0;">' + escHtml(q.text) + '</p></div>';
+
+    html += '<div id="dc-options" style="display:grid;gap:8px;">';
+    q.options.forEach(function(opt, idx) {
+      html += '<button onclick="selectOpt(' + idx + ')" id="dc-opt-' + idx + '" ' +
+              'style="width:100%;text-align:left;padding:13px 16px;border:1.5px solid #e2e8f0;border-radius:13px;background:#fff;font-size:14px;font-weight:600;color:#1e293b;cursor:pointer;transition:all .15s;font-family:inherit;">' +
+              escHtml(opt) + '</button>';
+    });
+    html += '</div>';
+    html += '<button id="dc-next-btn" onclick="nextQ()" disabled style="width:100%;margin-top:14px;padding:13px;border:none;border-radius:13px;background:#1e3a5f;color:#fff;font-size:14px;font-weight:700;cursor:pointer;opacity:.4;transition:opacity .2s;font-family:inherit;">Tiếp theo →</button>';
+    area.innerHTML = html;
+  }
+
+  window.selectOpt = function(idx) {
+    selected = idx;
+    document.querySelectorAll('[id^="dc-opt-"]').forEach(function(b, i) {
+      b.style.borderColor = i === idx ? '#f59e0b' : '#e2e8f0';
+      b.style.background  = i === idx ? '#fffbeb' : '#fff';
+      b.style.color       = i === idx ? '#92400e' : '#1e293b';
+    });
+    var btn = document.getElementById('dc-next-btn');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  };
+
+  window.nextQ = function() {
+    if (selected === null) return;
+    answers[QUESTIONS[current].id] = selected;
+    current++;
+    render();
+  };
+
+  function submitAll() {
+    document.getElementById('dc-question-area').innerHTML =
+      '<div style="text-align:center;padding:32px 20px;"><div style="font-size:32px;">⏳</div><p style="font-size:14px;color:#64748b;margin-top:10px;">Đang chấm...</p></div>';
+    document.getElementById('dc-progress-bar').style.width = '100%';
+
+    var body = { answers: answers };
+    fetch(SUBMIT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify(body)
+    }).then(function(r){ return r.json(); }).then(function(d) {
+      window.location.reload();
+    }).catch(function(){
+      alert('Lỗi kết nối. Vui lòng thử lại.');
+    });
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  if (QUESTIONS.length > 0) { render(); }
+  else {
+    document.getElementById('dc-loading').innerHTML =
+      '<p style="font-size:14px;color:#64748b;">Chưa có đủ nội dung để tạo thử thách. Hãy học thêm quiz hoặc flashcard nhé!</p>' +
+      '<a href="<%= learner_dashboard_path %>" style="display:inline-block;margin-top:14px;padding:10px 20px;background:#1e3a5f;color:#fff;border-radius:12px;font-size:13px;font-weight:700;text-decoration:none;">Về trang chủ</a>';
+  }
+})();
+</script>
+<% end %>

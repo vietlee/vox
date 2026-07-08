@@ -759,5 +759,40 @@
     };
   })();
   </script>
+
+  <!-- Badge unlock toast -->
+  <div id="badge-toast" style="display:none;position:fixed;bottom:calc(var(--bottomnav-h,56px) + 12px);left:50%;transform:translateX(-50%) translateY(20px);z-index:10012;background:#fff;border:1.5px solid #fde68a;border-radius:18px;padding:14px 16px;box-shadow:0 6px 28px rgba(0,0,0,.15);min-width:260px;max-width:92vw;opacity:0;transition:opacity .3s,transform .3s;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span id="badge-toast-icon" style="font-size:28px;flex-shrink:0;"></span>
+      <div style="flex:1;min-width:0;">
+        <p style="font-size:11px;font-weight:800;color:#b45309;margin:0 0 2px;text-transform:uppercase;letter-spacing:.5px;">Thành tích mới!</p>
+        <p id="badge-toast-title" style="font-size:14px;font-weight:800;color:#1e293b;margin:0;"></p>
+        <p id="badge-toast-desc"  style="font-size:12px;color:#64748b;margin:2px 0 0;"></p>
+      </div>
+      <button onclick="window.dismissBadgeToast()" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;padding:2px 6px;line-height:1;">×</button>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var _timer;
+    var toast = document.getElementById('badge-toast');
+    window.showBadgeToast = function(icon, title, desc) {
+      document.getElementById('badge-toast-icon').textContent  = icon;
+      document.getElementById('badge-toast-title').textContent = title;
+      document.getElementById('badge-toast-desc').textContent  = desc;
+      toast.style.display = 'block';
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){
+        toast.style.opacity = '1'; toast.style.transform = 'translateX(-50%) translateY(0)';
+      }); });
+      clearTimeout(_timer);
+      _timer = setTimeout(window.dismissBadgeToast, 5000);
+    };
+    window.dismissBadgeToast = function() {
+      clearTimeout(_timer);
+      toast.style.opacity = '0'; toast.style.transform = 'translateX(-50%) translateY(20px)';
+      setTimeout(function(){ toast.style.display = 'none'; }, 320);
+    };
+  })();
+  </script>
 </body>
 </html>

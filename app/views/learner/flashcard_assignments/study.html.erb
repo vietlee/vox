@@ -285,12 +285,17 @@ function rate(r) {
     _mastered++;
   }
 
-  // save to server (fire-and-forget, only marks complete when all mastered)
+  // save to server
   fetch(_reviewUrl, {
     method: 'POST',
     headers: { 'X-CSRF-Token': _csrf, 'Content-Type': 'application/json' },
     body: JSON.stringify({ flashcard_id: card.id, rating: r, mastered: mastered })
-  });
+  }).then(function(res){ return res.json(); }).then(function(d){
+    if (d.new_badges && d.new_badges.length > 0 && window.showBadgeToast) {
+      var b = d.new_badges[0];
+      window.showBadgeToast(b.icon, b.title, b.desc);
+    }
+  }).catch(function(){});
 
   if (_queue.length === 0) {
     showDone();

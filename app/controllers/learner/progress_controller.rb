@@ -40,6 +40,10 @@ class Learner::ProgressController < Learner::BaseController
     @weak = attempts.to_a.reverse.uniq(&:quiz_set_id)
                     .select { |a| a.quiz_set && !a.passed? }
                     .first(3)
+
+    # Badges
+    @badges = l.learner_badges.order(:earned_at)
+    @badge_keys_earned = @badges.pluck(:key).to_set
   end
 
   private

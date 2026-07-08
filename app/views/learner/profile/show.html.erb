@@ -92,6 +92,152 @@
   })();
 </script>
 
+<!-- Push Notifications -->
+<div class="lp-card" id="push-notif-card" style="margin-bottom:20px;display:none;">
+  <div class="lp-card-body">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div style="width:44px;height:44px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">🔔</div>
+      <div style="flex:1;min-width:0;">
+        <p style="font-weight:700;font-size:14px;margin:0;">Thông báo nhắc học</p>
+        <p id="push-status-desc" style="font-size:12px;color:#9ca3af;margin:2px 0 0;">Nhận nhắc nhở hàng ngày để duy trì streak</p>
+      </div>
+      <label style="position:relative;display:inline-flex;align-items:center;cursor:pointer;flex-shrink:0;">
+        <input type="checkbox" id="push-toggle" style="sr-only;opacity:0;position:absolute;width:0;height:0;" onchange="lpTogglePush(this)">
+        <span id="push-toggle-track" style="width:44px;height:26px;background:#e2e8f0;border-radius:13px;display:block;transition:background .2s;position:relative;">
+          <span id="push-toggle-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:transform .2s;"></span>
+        </span>
+      </label>
+    </div>
+    <div id="push-hour-row" style="display:none;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #f1f5f9;">
+      <span style="font-size:13px;color:#374151;">Giờ nhắc mỗi ngày</span>
+      <select id="push-hour-select" onchange="lpUpdateReminderHour(this.value)"
+              style="padding:6px 10px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;font-weight:600;color:#1e293b;background:#fff;outline:none;">
+        <% (6..23).each do |h| %>
+          <option value="<%= h %>" <%= 'selected' if h == 20 %>><%= h %>:00</option>
+        <% end %>
+      </select>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SUBSCRIBE_URL   = '<%= learner_push_subscriptions_path %>';
+  var UNSUBSCRIBE_URL = '<%= learner_push_subscriptions_destroy_path %>';
+  var CSRF = function(){ return document.querySelector('meta[name="csrf-token"]').content; };
+  var SW_URL = '/service-worker.js';
+  var VAPID_PUBLIC = '<%= ENV["VAPID_PUBLIC_KEY"] %>';
+
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+
+  var card   = document.getElementById('push-notif-card');
+  var toggle = document.getElementById('push-toggle');
+  var track  = document.getElementById('push-toggle-track');
+  var thumb  = document.getElementById('push-toggle-thumb');
+  var desc   = document.getElementById('push-status-desc');
+  var hourRow = document.getElementById('push-hour-row');
+  card.style.display = 'block';
+
+  function setToggleState(on) {
+    toggle.checked = on;
+    track.style.background = on ? '#1e3a5f' : '#e2e8f0';
+    thumb.style.transform  = on ? 'translateX(18px)' : 'translateX(0)';
+    hourRow.style.display  = on ? 'flex' : 'none';
+    desc.textContent = on ? 'Bạn sẽ nhận thông báo hàng ngày' : 'Nhận nhắc nhở hàng ngày để duy trì streak';
+  }
+
+  // Check current subscription state
+  navigator.serviceWorker.getRegistration(SW_URL).then(function(reg) {
+    if (!reg) return;
+    reg.pushManager.getSubscription().then(function(sub) {
+      setToggleState(!!sub);
+    });
+  });
+
+  window.lpTogglePush = function(el) {
+    if (el.checked) { requestAndSubscribe(); }
+    else { unsubscribe(); }
+  };
+
+  function requestAndSubscribe() {
+    if (Notification.permission === 'denied') {
+      desc.textContent = 'Bạn đã tắt thông báo trong trình duyệt. Vui lòng bật lại trong Settings.';
+      setToggleState(false); return;
+    }
+    Notification.requestPermission().then(function(perm) {
+      if (perm !== 'granted') { setToggleState(false); return; }
+      subscribe();
+    });
+  }
+
+  function subscribe() {
+    navigator.serviceWorker.getRegistration(SW_URL).then(function(reg) {
+      if (!reg) { navigator.serviceWorker.register(SW_URL).then(doSubscribe); }
+      else doSubscribe(reg);
+    });
+  }
+
+  function doSubscribe(reg) {
+    var appKey = urlBase64ToUint8Array(VAPID_PUBLIC);
+    reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey })
+      .then(function(sub) {
+        var keys = sub.getKey ? { p256dh: bufToB64(sub.getKey('p256dh')), auth: bufToB64(sub.getKey('auth')) } : {};
+        var hour = document.getElementById('push-hour-select').value;
+        return fetch(SUBSCRIBE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF() },
+          body: JSON.stringify({ subscription: { endpoint: sub.endpoint, keys: keys }, reminder_hour: hour })
+        });
+      })
+      .then(function(){ setToggleState(true); })
+      .catch(function(e){ setToggleState(false); console.error(e); });
+  }
+
+  function unsubscribe() {
+    navigator.serviceWorker.getRegistration(SW_URL).then(function(reg) {
+      if (!reg) { setToggleState(false); return; }
+      reg.pushManager.getSubscription().then(function(sub) {
+        if (!sub) { setToggleState(false); return; }
+        sub.unsubscribe().then(function() {
+          fetch(UNSUBSCRIBE_URL, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF() },
+            body: JSON.stringify({ endpoint: sub.endpoint })
+          });
+          setToggleState(false);
+        });
+      });
+    });
+  }
+
+  window.lpUpdateReminderHour = function(hour) {
+    navigator.serviceWorker.getRegistration(SW_URL).then(function(reg) {
+      if (!reg) return;
+      reg.pushManager.getSubscription().then(function(sub) {
+        if (!sub) return;
+        var keys = sub.getKey ? { p256dh: bufToB64(sub.getKey('p256dh')), auth: bufToB64(sub.getKey('auth')) } : {};
+        fetch(SUBSCRIBE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF() },
+          body: JSON.stringify({ subscription: { endpoint: sub.endpoint, keys: keys }, reminder_hour: hour })
+        });
+      });
+    });
+  };
+
+  function bufToB64(buf) {
+    return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+    var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var raw = atob(base64);
+    return Uint8Array.from(Array.from(raw).map(function(c){ return c.charCodeAt(0); }));
+  }
+})();
+</script>
+
 <div class="lp-card">
   <div class="lp-card-body">
     <p style="font-weight:700;font-size:14px;margin-bottom:12px;"><%= t('learner_profile.account_section') %></p>
