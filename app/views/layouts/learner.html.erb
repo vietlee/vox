@@ -127,12 +127,18 @@
     // iOS PWA cold-start bug: env(safe-area-inset-bottom) resolves to a wrong large
     // value on the first frame, then corrects after the first scroll. Bypass env()
     // entirely for Face ID iPhones (logical screen > 750px) by hardcoding the real
-    // home-indicator inset (34px) synchronously — this runs before the first paint.
+    // home-indicator inset (34px) synchronously — runs before first paint AND after
+    // every Turbo navigation so the variable is never reverted to the bad env() value.
     (function () {
-      if (/iPhone/.test(navigator.userAgent) &&
-          Math.max(window.screen.width, window.screen.height) > 750) {
-        document.documentElement.style.setProperty('--safe-bottom', '34px');
+      function fixSafeBottom() {
+        if (/iPhone/.test(navigator.userAgent) &&
+            Math.max(window.screen.width, window.screen.height) > 750) {
+          document.documentElement.style.setProperty('--safe-bottom', '34px');
+        }
       }
+      fixSafeBottom();
+      document.addEventListener('turbo:load',   fixSafeBottom);
+      document.addEventListener('turbo:render', fixSafeBottom);
     })();
   </script>
   <%# VOX splash: shows on PWA cold-start, hidden instantly on subsequent Turbo navigations %>

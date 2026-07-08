@@ -680,8 +680,9 @@ document.getElementById('lp-input').focus();
 </div>
 
 <!-- ── Voice Call Overlay ── -->
-<div id="lp-vc-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;height:100%;height:-webkit-fill-available;z-index:190;background:linear-gradient(160deg,#07080f 0%,#0d0f1e 55%,#080c18 100%);flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
-  <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;">
+<div id="lp-vc-overlay" style="display:none;position:fixed;inset:0;z-index:190;background:linear-gradient(160deg,#07080f 0%,#0d0f1e 55%,#080c18 100%);flex-direction:column;align-items:center;overflow:hidden;">
+  <!-- Top bar — pushed below status bar via padding-top safe area -->
+  <div style="flex-shrink:0;width:100%;display:flex;align-items:center;justify-content:space-between;padding:calc(var(--safe-top,0px) + 16px) 20px 8px;">
     <div style="display:flex;align-items:center;gap:8px;">
       <div style="width:7px;height:7px;border-radius:50%;background:#6366f1;"></div>
       <span id="lp-vc-voice-name" style="font-size:12px;font-weight:600;color:#64748b;">AI Tutor</span>
@@ -689,32 +690,36 @@ document.getElementById('lp-input').focus();
     <button onclick="lpExitVoiceCall()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;">×</button>
   </div>
 
-  <div style="position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:32px;animation:lp-vc-float 5s ease-in-out infinite;" onclick="lpVcTapMic()">
-    <div style="position:absolute;width:130px;height:130px;border-radius:50%;border:1.5px solid rgba(99,102,241,0.25);animation:lp-vc-ring-pulse 2.2s ease-in-out infinite;pointer-events:none;"></div>
-    <div style="position:absolute;width:165px;height:165px;border-radius:50%;border:1px solid rgba(99,102,241,0.12);animation:lp-vc-ring-pulse2 2.2s ease-in-out infinite .4s;pointer-events:none;"></div>
-    <div id="lp-vc-orb" style="width:100px;height:100px;border-radius:50%;overflow:hidden;position:relative;cursor:pointer;animation:lp-vc-blob 7s ease-in-out infinite,lp-vc-glow-listening 2.5s ease-in-out infinite;">
-      <div style="position:absolute;inset:0;background:radial-gradient(circle at 35% 30%,#1e3a5f 0%,#0d1b2e 50%,#050810 100%);"></div>
-      <div style="position:absolute;inset:-6px;background:conic-gradient(from 0deg,transparent 0%,rgba(99,102,241,.85) 10%,transparent 22%,rgba(59,130,246,.70) 38%,transparent 52%,rgba(16,185,129,.55) 68%,transparent 80%,rgba(99,102,241,.45) 94%,transparent 100%);animation:lp-vc-spin 5s linear infinite;mix-blend-mode:screen;border-radius:50%;"></div>
-      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 30% 22%,rgba(255,255,255,.45) 0%,rgba(255,255,255,.05) 50%,transparent 72%);"></div>
+  <!-- Center content -->
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">
+    <div style="position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:32px;animation:lp-vc-float 5s ease-in-out infinite;" onclick="lpVcTapMic()">
+      <div style="position:absolute;width:130px;height:130px;border-radius:50%;border:1.5px solid rgba(99,102,241,0.25);animation:lp-vc-ring-pulse 2.2s ease-in-out infinite;pointer-events:none;"></div>
+      <div style="position:absolute;width:165px;height:165px;border-radius:50%;border:1px solid rgba(99,102,241,0.12);animation:lp-vc-ring-pulse2 2.2s ease-in-out infinite .4s;pointer-events:none;"></div>
+      <div id="lp-vc-orb" style="width:100px;height:100px;border-radius:50%;overflow:hidden;position:relative;cursor:pointer;animation:lp-vc-blob 7s ease-in-out infinite,lp-vc-glow-listening 2.5s ease-in-out infinite;">
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 35% 30%,#1e3a5f 0%,#0d1b2e 50%,#050810 100%);"></div>
+        <div style="position:absolute;inset:-6px;background:conic-gradient(from 0deg,transparent 0%,rgba(99,102,241,.85) 10%,transparent 22%,rgba(59,130,246,.70) 38%,transparent 52%,rgba(16,185,129,.55) 68%,transparent 80%,rgba(99,102,241,.45) 94%,transparent 100%);animation:lp-vc-spin 5s linear infinite;mix-blend-mode:screen;border-radius:50%;"></div>
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 30% 22%,rgba(255,255,255,.45) 0%,rgba(255,255,255,.05) 50%,transparent 72%);"></div>
+      </div>
+    </div>
+
+    <div id="lp-vc-status" style="font-size:18px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">Đang lắng nghe...</div>
+    <div id="lp-vc-sub" style="font-size:12px;color:#475569;margin-bottom:24px;">Cứ nói tự nhiên</div>
+
+    <div id="lp-vc-bars" style="display:flex;align-items:center;gap:3px;height:40px;margin-bottom:24px;color:#6366f1;">
+      <% [['a',1.1],['b',1.28],['c',1.46],['b',1.64],['a',1.82],['c',1.1],['b',1.28],['a',1.46],['c',1.64],['b',1.82],['a',1.1],['b',1.28],['c',1.46],['b',1.64],['a',1.82],['c',1.1],['b',1.28],['a',1.46],['c',1.64],['b',1.82]].each_with_index do |(w,spd),i| %>
+        <div class="lp-vc-bar" style="animation:lp-vc-wave-<%= w %> <%= spd %>s ease-in-out infinite <%= (i*0.09).round(2) %>s;"></div>
+      <% end %>
+    </div>
+
+    <div style="max-width:340px;width:100%;padding:0 20px;">
+      <div id="lp-vc-transcript" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:10px 14px;font-size:12.5px;color:#94a3b8;text-align:center;min-height:40px;line-height:1.6;">
+        Cuộc trò chuyện sẽ xuất hiện ở đây
+      </div>
     </div>
   </div>
 
-  <div id="lp-vc-status" style="font-size:18px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">Đang lắng nghe...</div>
-  <div id="lp-vc-sub" style="font-size:12px;color:#475569;margin-bottom:24px;">Cứ nói tự nhiên</div>
-
-  <div id="lp-vc-bars" style="display:flex;align-items:center;gap:3px;height:40px;margin-bottom:24px;color:#6366f1;">
-    <% [['a',1.1],['b',1.28],['c',1.46],['b',1.64],['a',1.82],['c',1.1],['b',1.28],['a',1.46],['c',1.64],['b',1.82],['a',1.1],['b',1.28],['c',1.46],['b',1.64],['a',1.82],['c',1.1],['b',1.28],['a',1.46],['c',1.64],['b',1.82]].each_with_index do |(w,spd),i| %>
-      <div class="lp-vc-bar" style="animation:lp-vc-wave-<%= w %> <%= spd %>s ease-in-out infinite <%= (i*0.09).round(2) %>s;"></div>
-    <% end %>
-  </div>
-
-  <div style="max-width:340px;width:100%;padding:0 20px;margin-bottom:24px;">
-    <div id="lp-vc-transcript" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:10px 14px;font-size:12.5px;color:#94a3b8;text-align:center;min-height:40px;line-height:1.6;">
-      Cuộc trò chuyện sẽ xuất hiện ở đây
-    </div>
-  </div>
-
-  <div style="display:flex;align-items:center;gap:14px;">
+  <!-- Bottom controls — pushed above home indicator via padding-bottom safe area -->
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:14px;padding-bottom:calc(var(--safe-bottom,0px) + 20px);padding-top:8px;">
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
       <span style="font-size:9px;color:#334155;font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Tốc độ</span>
       <div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:3px 10px;">

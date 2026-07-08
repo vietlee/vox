@@ -19,14 +19,15 @@
 <% if @has_stt %>
 
 <!-- ===== Mode toggle: Transcription vs Translation ===== -->
-<div style="background:#f1f5f9;border-radius:12px;padding:4px;display:flex;gap:4px;margin-bottom:14px;">
+<div style="background:#e8edf3;border-radius:14px;padding:4px;display:flex;gap:0;margin-bottom:14px;position:relative;">
   <button id="stt-mode-transcribe" onclick="setSttMode('transcribe')"
-          style="flex:1;padding:8px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:#1e3a5f;color:#fff;transition:all .2s;">
+          style="flex:1;padding:10px 8px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:#1e3a5f;color:#fff;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 2px 8px rgba(30,58,95,.25);">
     📝 <%= t('learner_stt.mode_transcribe') %>
   </button>
   <button id="stt-mode-translate" onclick="setSttMode('translate')"
-          style="flex:1;padding:8px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;transition:all .2s;">
+          style="flex:1;padding:10px 8px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#1e3a5f;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;position:relative;">
     🌐 <%= t('learner_stt.mode_translate') %>
+    <span style="position:absolute;top:-5px;right:8px;background:#7c3aed;color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:99px;letter-spacing:.3px;white-space:nowrap;">AI</span>
   </button>
 </div>
 
@@ -192,13 +193,17 @@
   window.setSttMode = function(m) {
     _mode = m;
     const isTrans = m === 'translate';
-    document.getElementById('stt-mode-transcribe').style.background = isTrans ? 'transparent' : '#1e3a5f';
-    document.getElementById('stt-mode-transcribe').style.color      = isTrans ? '#64748b' : '#fff';
-    document.getElementById('stt-mode-translate').style.background  = isTrans ? '#1e3a5f' : 'transparent';
-    document.getElementById('stt-mode-translate').style.color       = isTrans ? '#fff' : '#64748b';
-    document.getElementById('stt-translate-opts').style.display     = isTrans ? 'block' : 'none';
-    document.getElementById('stt-translation-box').style.display    = isTrans ? 'block' : 'none';
-    document.getElementById('stt-box1-label').textContent           = isTrans ? '<%= j t('learner_stt.orig_text') %>' : '<%= j t('learner_stt.result') %>';
+    var btnTrans = document.getElementById('stt-mode-transcribe');
+    var btnTl    = document.getElementById('stt-mode-translate');
+    btnTrans.style.background  = isTrans ? 'transparent' : '#1e3a5f';
+    btnTrans.style.color       = isTrans ? '#1e3a5f' : '#fff';
+    btnTrans.style.boxShadow   = isTrans ? 'none' : '0 2px 8px rgba(30,58,95,.25)';
+    btnTl.style.background     = isTrans ? '#1e3a5f' : 'transparent';
+    btnTl.style.color          = isTrans ? '#fff' : '#1e3a5f';
+    btnTl.style.boxShadow      = isTrans ? '0 2px 8px rgba(30,58,95,.25)' : 'none';
+    document.getElementById('stt-translate-opts').style.display  = isTrans ? 'block' : 'none';
+    document.getElementById('stt-translation-box').style.display = isTrans ? 'block' : 'none';
+    document.getElementById('stt-box1-label').textContent        = isTrans ? '<%= j t('learner_stt.orig_text') %>' : '<%= j t('learner_stt.result') %>';
   };
 
   // ── Target language ──
