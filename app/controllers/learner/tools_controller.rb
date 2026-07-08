@@ -18,11 +18,11 @@ class Learner::ToolsController < Learner::BaseController
     target_lang = params[:target_lang].to_s.strip.presence || "Vietnamese"
     return render json: { error: "Nội dung trống" } if text.blank?
 
-    svc    = ClaudeService.for_feature("ai_tutor", timeout: 20)
+    svc    = ClaudeService.haiku
     result = svc.call(
       system_prompt: "You are a precise translator. Translate the given text to #{target_lang}. Return ONLY the translated text, no explanations, no quotes.",
       messages: [{ role: "user", content: text }],
-      max_tokens: 600
+      max_tokens: 300
     )
 
     current_learner.deduct_credits!(1)

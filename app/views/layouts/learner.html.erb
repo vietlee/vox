@@ -34,7 +34,7 @@
       --lp-warning: #f59e0b;
       --lp-danger: #ef4444;
       --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bottom: min(env(safe-area-inset-bottom, 0px), 50px);
+      --safe-bottom: 0px; /* JS sets to 34px for Face ID iPhones on every navigation */
       --topbar-h: calc(56px + var(--safe-top));
       --bottomnav-h: calc(50px + var(--safe-bottom));
     }
@@ -126,21 +126,32 @@
   </style>
   <%= yield :head %>
   <script>
-    // iOS PWA cold-start bug: env(safe-area-inset-bottom) resolves to a wrong large
-    // value on the first frame, then corrects after the first scroll. Bypass env()
-    // entirely for Face ID iPhones (logical screen > 750px) by hardcoding the real
-    // home-indicator inset (34px) synchronously — runs before first paint AND after
-    // every Turbo navigation so the variable is never reverted to the bad env() value.
+    // iOS PWA: env(safe-area-inset-bottom) is lazily evaluated — only updates after
+    // the first scroll, so CSS-variable approaches leave a white gap until the user
+    // scrolls. Fix: bypass CSS entirely by directly setting inline styles on the nav
+    // and main elements after every Turbo navigation AND on DOMContentLoaded.
     (function () {
-      function fixSafeBottom() {
-        if (/iPhone/.test(navigator.userAgent) &&
-            Math.max(window.screen.width, window.screen.height) > 750) {
-          document.documentElement.style.setProperty('--safe-bottom', '34px');
-        }
+      var _faceId = /iPhone/.test(navigator.userAgent) &&
+        Math.max(window.screen.width, window.screen.height) > 750;
+      var _sb  = _faceId ? 34 : 0;
+      var _nh  = 56 + _sb;
+
+      // Set CSS variable immediately so derived vars (--bottomnav-h etc.) are correct
+      document.documentElement.style.setProperty('--safe-bottom', _sb + 'px');
+
+      function applyNav() {
+        // Re-set CSS variable (persists on <html> across Turbo navigations)
+        document.documentElement.style.setProperty('--safe-bottom', _sb + 'px');
+        // Directly override element styles — immune to CSS cascade / env() timing
+        var nav  = document.querySelector('.lp-bottom-nav');
+        var main = document.querySelector('.lp-main');
+        if (nav)  { nav.style.height = _nh + 'px'; nav.style.paddingBottom = _sb + 'px'; }
+        if (main) { main.style.paddingBottom = _nh + 'px'; }
       }
-      fixSafeBottom();
-      document.addEventListener('turbo:load',   fixSafeBottom);
-      document.addEventListener('turbo:render', fixSafeBottom);
+
+      document.addEventListener('DOMContentLoaded', applyNav);
+      document.addEventListener('turbo:load',   applyNav);
+      document.addEventListener('turbo:render', applyNav);
     })();
   </script>
   <%# VOX splash: shows on PWA cold-start, hidden instantly on subsequent Turbo navigations %>
