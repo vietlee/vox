@@ -34,7 +34,7 @@
       --lp-warning: #f59e0b;
       --lp-danger: #ef4444;
       --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bottom: 0px; /* JS sets to 34px for Face ID iPhones on every navigation */
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
       --topbar-h: calc(56px + var(--safe-top));
       --bottomnav-h: calc(50px + var(--safe-bottom));
     }
@@ -58,7 +58,10 @@
     }
     .lp-topbar-logo { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; text-decoration: none; color: white; }
     .lp-credits-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 4px; color: white; text-decoration: none; }
-    .lp-main { flex: 1; padding-bottom: calc(56px + var(--safe-bottom)); overflow-y: auto; }
+    /* Use env() DIRECTLY (not via --safe-bottom var): iOS WebKit lazily evaluates
+       env() when it's wrapped in a custom property + calc, leaving a white gap
+       until the first scroll. Direct env() on the element is computed at layout. */
+    .lp-main { flex: 1; padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
     .lp-page { margin: 0 auto; padding: 20px 16px; max-width: 100%; }
     @media (min-width: 1024px) {
       .lp-page          { max-width: 58.33%; }
@@ -68,8 +71,8 @@
     .lp-bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
       background: white; border-top: 1px solid var(--lp-border);
-      display: flex; height: calc(56px + var(--safe-bottom));
-      padding-top: 2px; padding-bottom: var(--safe-bottom);
+      display: flex; height: calc(56px + env(safe-area-inset-bottom, 0px));
+      padding-top: 2px; padding-bottom: env(safe-area-inset-bottom, 0px);
       box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
     }
     @media (min-width: 1024px) {
@@ -125,35 +128,6 @@
     }
   </style>
   <%= yield :head %>
-  <script>
-    // iOS PWA: env(safe-area-inset-bottom) is lazily evaluated — only updates after
-    // the first scroll, so CSS-variable approaches leave a white gap until the user
-    // scrolls. Fix: bypass CSS entirely by directly setting inline styles on the nav
-    // and main elements after every Turbo navigation AND on DOMContentLoaded.
-    (function () {
-      var _faceId = /iPhone/.test(navigator.userAgent) &&
-        Math.max(window.screen.width, window.screen.height) > 750;
-      var _sb  = _faceId ? 34 : 0;
-      var _nh  = 56 + _sb;
-
-      // Set CSS variable immediately so derived vars (--bottomnav-h etc.) are correct
-      document.documentElement.style.setProperty('--safe-bottom', _sb + 'px');
-
-      function applyNav() {
-        // Re-set CSS variable (persists on <html> across Turbo navigations)
-        document.documentElement.style.setProperty('--safe-bottom', _sb + 'px');
-        // Directly override element styles — immune to CSS cascade / env() timing
-        var nav  = document.querySelector('.lp-bottom-nav');
-        var main = document.querySelector('.lp-main');
-        if (nav)  { nav.style.height = _nh + 'px'; nav.style.paddingBottom = _sb + 'px'; }
-        if (main) { main.style.paddingBottom = _nh + 'px'; }
-      }
-
-      document.addEventListener('DOMContentLoaded', applyNav);
-      document.addEventListener('turbo:load',   applyNav);
-      document.addEventListener('turbo:render', applyNav);
-    })();
-  </script>
   <%# VOX splash: shows on PWA cold-start, hidden instantly on subsequent Turbo navigations %>
   <style>
     #vox-splash{position:fixed;inset:0;z-index:99999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .3s ease;}

@@ -25,7 +25,9 @@ class Learner::ToolsController < Learner::BaseController
       max_tokens: 300
     )
 
-    current_learner.deduct_credits!(1)
+    # Realtime STT sends many live "interim" previews as the user speaks — those are
+    # free. Only finalized sentences (final=true) cost 1 credit.
+    current_learner.deduct_credits!(1) if params[:final].to_s == "true"
     render json: { translated: result.strip, credits_remaining: current_learner.reload.credits }
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
