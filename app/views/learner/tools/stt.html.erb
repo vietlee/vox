@@ -184,7 +184,9 @@
   let _recognition = null;
   let _listening   = false;
   let _pendingFile = null;
-  let _finalText   = '';   // raw accumulated final transcript
+  let _finalText      = '';   // raw accumulated final transcript
+  let _translatedText = '';   // translated text displayed so far
+  let _translatedUpTo = 0;    // chars of _finalText already sent for translation
   let _transTimer  = null; // debounce timer for translation
   let _puncTimer   = null; // debounce timer for punctuation
   let _transSeq    = 0;    // sequence number — ignore stale translation responses
@@ -209,6 +211,9 @@
   // ── Target language ──
   window.setTranslateLang = function(code, name) {
     _targetCode = code; _targetLang = name;
+    // Reset so full text is re-translated in new language
+    _translatedText = ''; _translatedUpTo = 0;
+    document.getElementById('stt-translation-text').textContent = '';
     document.querySelectorAll('#stt-lang-btns button').forEach(function(b) {
       var active = b.dataset.lang === code;
       b.style.background  = active ? '#1e3a5f' : '#f8fafc';
@@ -216,7 +221,7 @@
       b.style.borderColor = active ? '#1e3a5f' : '#e2e8f0';
     });
     document.getElementById('stt-box2-label').textContent = '<%= j t('learner_stt.translation') %> (' + name + ')';
-    if (_finalText.trim()) scheduleTranslation(_finalText.trim());
+    if (_finalText.trim()) scheduleTranslation();
   };
   setTranslateLang('vi', 'Vietnamese');
 
@@ -279,11 +284,10 @@
 
         updateTranscript(_finalText, interim);
 
-        // Translation: debounce on every result (interim + final), translate full text.
-        // Triggers 700ms after last speech event — fires once per natural pause.
-        if (_mode === 'translate') {
-          var textToTranslate = (_finalText + (interim ? ' ' + interim : '')).trim();
-          if (textToTranslate) scheduleTranslation(textToTranslate);
+        // Translation: fire only when a FINAL result arrives — translate only the
+        // new delta (not full text), so each request is short → fast API response.
+        if (_mode === 'translate' && gotFinal) {
+          scheduleTranslation();
         }
 
         // Punctuation: fire 1.5s after last FINAL result — server adds proper punctuation.
@@ -350,21 +354,24 @@
   }
 
   // ── Realtime translation ──
-  // Debounced 700ms on EVERY speech result (interim + final).
-  // Each call translates the FULL current text. Sequence number ensures
-  // stale responses (from slower earlier calls) are silently dropped.
-  function scheduleTranslation(text) {
+  // Delta-based: each call translates ONLY the new text since last translation.
+  // Short chunks → fast API response. Stale responses are silently dropped.
+  function scheduleTranslation() {
     clearTimeout(_transTimer);
-    _transTimer = setTimeout(function() { doTranslate(text); }, 700);
+    _transTimer = setTimeout(doTranslate, 150);
   }
 
-  function doTranslate(text) {
-    if (!text.trim()) return;
+  function doTranslate() {
+    var fullFinal    = _finalText;
+    var toTranslate  = fullFinal.slice(_translatedUpTo).trim();
+    if (!toTranslate) return;
+
+    var snapshotLen = fullFinal.length; // how far we've committed to translating
     var mySeq = ++_transSeq;
     document.getElementById('stt-translate-spinner').style.display = 'inline';
 
     var fd = new FormData();
-    fd.append('text', text);
+    fd.append('text', toTranslate);
     fd.append('target_lang', _targetLang);
     fd.append('authenticity_token', CSRF());
 
@@ -372,9 +379,11 @@
       .then(function(r) { return r.json(); })
       .then(function(d) {
         document.getElementById('stt-translate-spinner').style.display = 'none';
-        if (mySeq < _transSeq) return; // stale — a newer request already came in
+        if (mySeq < _transSeq) return; // stale — a newer request is in-flight
         if (d.error) { showError(d.error); return; }
-        document.getElementById('stt-translation-text').textContent = d.translated.trim();
+        _translatedUpTo = snapshotLen;
+        _translatedText += (_translatedText ? ' ' : '') + d.translated.trim();
+        document.getElementById('stt-translation-text').textContent = _translatedText;
         document.getElementById('stt-translation-interim').textContent = '';
         if (window.updateLpCredits) updateLpCredits(d.credits_remaining);
       })
@@ -435,10 +444,11 @@
       var data = await res.json();
       if (data.error) throw new Error(data.error);
       // ElevenLabs already returns punctuated text
-      _finalText = data.text || '<%= j t('learner_stt.no_text') %>';
-      updateTranscript(_finalText, '');
+      _finalText = data.text || '';
+      _translatedText = ''; _translatedUpTo = 0;
+      updateTranscript(_finalText || '<%= j t('learner_stt.no_text') %>', '');
       if (window.updateLpCredits) updateLpCredits(data.credits_remaining);
-      if (_mode === 'translate' && data.text) scheduleTranslation(data.text);
+      if (_mode === 'translate' && _finalText) scheduleTranslation();
     } catch(e) { showError(e.message); }
     finally { document.getElementById('stt-processing').style.display = 'none'; }
   };
@@ -455,6 +465,8 @@
 
   window.sttClear = function() {
     _finalText = ''; _transSeq = 0;
+    _translatedText = ''; _translatedUpTo = 0;
+    clearTimeout(_transTimer);
     updateTranscript('', '');
     document.getElementById('stt-translation-text').textContent = '';
     document.getElementById('stt-translation-interim').textContent = '';
