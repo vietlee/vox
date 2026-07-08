@@ -463,6 +463,11 @@ Rails.application.routes.draw do
     get  "credits/cancel",         to: "credits#payment_cancel", as: :credits_cancel
     get  "credits/status/:id",     to: "credits#payment_status", as: :credits_payment_status
 
+    # In-app notifications
+    get  "notifications",              to: "notifications#index",        as: :notifications
+    get  "notifications/unread_count", to: "notifications#unread_count", as: :notifications_unread_count
+    patch "notifications/:id/read",    to: "notifications#mark_read",    as: :notification_mark_read
+
     # Profile
     resource :profile, only: [:show, :update], controller: "profile"
   end

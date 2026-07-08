@@ -111,6 +111,40 @@
         style:"display:inline-block;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;padding:11px 20px;border-radius:12px;text-decoration:none;" %>
 </div>
 
+<%# ── Leaderboard ── %>
+<% if @leaderboard.any? %>
+<div style="margin-top:20px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <p style="font-size:13px;font-weight:800;color:#1e293b;margin:0;">🏆 Bảng xếp hạng</p>
+    <% if @my_rank %>
+      <span style="font-size:11px;font-weight:700;background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:99px;">Hạng của bạn: #<%= @my_rank %></span>
+    <% end %>
+  </div>
+  <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;overflow:hidden;">
+    <% @leaderboard.each_with_index do |lb, i| %>
+      <% rank = i + 1
+         is_me = lb.id == current_learner.id
+         medal = { 1 => "🥇", 2 => "🥈", 3 => "🥉" }[rank] || "##{rank}"
+      %>
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:<%= i < @leaderboard.size - 1 ? '1px solid #f3f4f6' : 'none' %>;<%= is_me ? 'background:#f0f7ff;' : '' %>">
+        <div style="width:28px;text-align:center;font-size:<%= rank <= 3 ? '18px' : '12px' %>;font-weight:800;color:<%= rank <= 3 ? 'inherit' : '#94a3b8' %>;flex-shrink:0;"><%= medal %></div>
+        <div style="width:34px;height:34px;border-radius:50%;background:<%= is_me ? '#1e3a5f' : '#6b7280' %>;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span style="color:#fff;font-size:13px;font-weight:800;"><%= (lb.name.presence || lb.email).first.upcase %></span>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:13px;font-weight:<%= is_me ? '800' : '600' %>;color:#1e293b;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= lb.name.presence || lb.email %><% if is_me %> <span style="font-size:10px;background:#1e3a5f;color:#fff;padding:1px 6px;border-radius:4px;">Bạn</span><% end %></p>
+          <p style="font-size:11px;color:#9ca3af;margin:0;">🔥 <%= lb.current_streak %> streak</p>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:14px;font-weight:800;color:<%= is_me ? '#1e3a5f' : '#374151' %>;">⚡ <%= number_with_delimiter(lb.xp) %></div>
+          <div style="font-size:10px;color:#9ca3af;">XP</div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+<% end %>
+
 <style>
   .lp-stat-tile { border-radius:14px;padding:12px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px; }
 </style>

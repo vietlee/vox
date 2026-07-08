@@ -75,6 +75,27 @@
   </div>
 <% end %>
 
+<%# SRS: Thẻ cần ôn hôm nay %>
+<% if @srs_due_decks.any? %>
+  <div style="margin-bottom:14px;">
+    <p style="font-size:12px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;">🔁 Ôn tập theo lịch SRS</p>
+    <div style="display:grid;gap:7px;">
+      <% @srs_due_decks.each do |d| %>
+        <%= link_to d[:url], style:"display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1.5px solid #c4b5fd;border-radius:14px;padding:12px 14px;text-decoration:none;" do %>
+          <div style="width:40px;height:40px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="font-size:20px;">🃏</span>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <p style="font-size:13px;font-weight:700;color:#4c1d95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;"><%= d[:title] %></p>
+            <p style="font-size:12px;color:#6d28d9;margin:2px 0 0;"><%= d[:due_count] %> thẻ cần ôn hôm nay</p>
+          </div>
+          <span style="background:#7c3aed;color:#fff;font-size:11px;font-weight:800;padding:5px 11px;border-radius:99px;flex-shrink:0;white-space:nowrap;">ÔN NGAY</span>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
 <%# AI Suggestion card (loaded async) %>
 <div id="lp-suggest-wrap" style="margin-bottom:16px;display:none;">
   <div id="lp-suggest-card" style="border-radius:16px;padding:14px 16px;position:relative;overflow:hidden;">

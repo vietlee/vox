@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_08_015602) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_08_143012) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -440,6 +440,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_08_015602) do
     t.datetime "updated_at", null: false
     t.index ["created_by_id"], name: "index_learner_folders_on_created_by_id"
     t.index ["workspace_id"], name: "index_learner_folders_on_workspace_id"
+  end
+
+  create_table "learner_notifications", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.string "title", null: false
+    t.text "body"
+    t.string "notification_type", default: "general", null: false
+    t.boolean "read", default: false, null: false
+    t.string "action_url"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id", "read"], name: "index_learner_notifications_on_learner_id_and_read"
+    t.index ["learner_id"], name: "index_learner_notifications_on_learner_id"
   end
 
   create_table "learner_payments", force: :cascade do |t|
@@ -1143,6 +1156,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_08_015602) do
   add_foreign_key "learner_folder_members", "learners"
   add_foreign_key "learner_folders", "users", column: "created_by_id"
   add_foreign_key "learner_folders", "workspaces"
+  add_foreign_key "learner_notifications", "learners"
   add_foreign_key "learner_payments", "learners"
   add_foreign_key "learner_push_subscriptions", "learners"
   add_foreign_key "learning_item_progresses", "learning_path_assignments"

@@ -186,8 +186,15 @@ class Admin::FlashcardDecksController < Admin::BaseController
   end
 
   def assign_learner
-    learner_ids = Array(params[:learner_ids]).map(&:to_i).uniq
-    due_at      = params[:due_at].presence
+    due_at = params[:due_at].presence
+
+    # Bulk assign by folder or individual learner_ids
+    if params[:folder_id].present?
+      folder = current_workspace.learner_folders.find_by(id: params[:folder_id])
+      learner_ids = folder ? folder.learners.pluck(:id) : []
+    else
+      learner_ids = Array(params[:learner_ids]).map(&:to_i).uniq
+    end
 
     if learner_ids.empty?
       redirect_to flashcard_deck_path(@deck), alert: "Vui lòng chọn ít nhất một learner."; return
@@ -205,6 +212,9 @@ class Admin::FlashcardDecksController < Admin::BaseController
         host: Rails.application.config.action_mailer.default_url_options[:host]
       )
       LearnerMailer.assignment_notification(learner, "Flashcard", @deck.title, url).deliver_later
+      LearnerNotification.notify!(learner: learner, title: "Bạn có bộ flashcard mới: #{@deck.title}",
+        body: due_at ? "Hạn hoàn thành: #{due_at.to_datetime.strftime('%d/%m/%Y %H:%M')}" : nil,
+        type: "flashcard_assigned", action_url: url)
       assigned += 1
     rescue => e
       skipped += 1

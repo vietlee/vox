@@ -370,8 +370,15 @@ class Admin::QuizSetsController < Admin::BaseController
       redirect_to edit_quiz_set_path(@quiz_set), alert: "Bộ đề phải được công khai trước khi giao cho learner."; return
     end
 
-    learner_ids = Array(params[:learner_ids]).map(&:to_i).uniq
-    due_at      = params[:due_at].presence
+    due_at = params[:due_at].presence
+
+    # Bulk assign by folder or individual learner_ids
+    if params[:folder_id].present?
+      folder = current_workspace.learner_folders.find_by(id: params[:folder_id])
+      learner_ids = folder ? folder.learners.pluck(:id) : []
+    else
+      learner_ids = Array(params[:learner_ids]).map(&:to_i).uniq
+    end
 
     if learner_ids.empty?
       redirect_to edit_quiz_set_path(@quiz_set), alert: "Vui lòng chọn ít nhất một learner."; return
@@ -390,6 +397,9 @@ class Admin::QuizSetsController < Admin::BaseController
         host: Rails.application.config.action_mailer.default_url_options[:host]
       )
       LearnerMailer.assignment_notification(learner, "Quiz", @quiz_set.title, url).deliver_later
+      LearnerNotification.notify!(learner: learner, title: "Bạn có bài quiz mới: #{@quiz_set.title}",
+        body: due_at ? "Hạn nộp: #{due_at.to_datetime.strftime('%d/%m/%Y %H:%M')}" : nil,
+        type: "quiz_assigned", action_url: url)
       assigned += 1
     rescue => e
       skipped += 1

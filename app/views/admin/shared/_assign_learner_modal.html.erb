@@ -36,6 +36,10 @@
               style="flex:1;padding:10px;font-size:13px;font-weight:700;color:#1e3a5f;border-bottom:2px solid #1e3a5f;background:none;border-top:none;border-left:none;border-right:none;cursor:pointer;">
         <%= t("assign_learner_modal.tab_new") %>
       </button>
+      <button id="alm-tab-folder" onclick="almTab('folder')"
+              style="flex:1;padding:10px;font-size:13px;font-weight:600;color:#9ca3af;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;cursor:pointer;">
+        📁 Giao theo folder
+      </button>
       <button id="alm-tab-list" onclick="almTab('list')"
               style="flex:1;padding:10px;font-size:13px;font-weight:600;color:#9ca3af;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;cursor:pointer;">
         <%= t("assign_learner_modal.tab_assigned") %>
@@ -97,6 +101,21 @@
         <input type="hidden" id="alm-due-hidden" name="<%= resource_type == 'learning_path' ? 'due_date' : 'due_at' %>">
       </form>
     </div>
+
+    <!-- Panel: Giao theo folder -->
+    <div id="alm-panel-folder" style="display:none;padding:20px 24px;">
+      <p style="font-size:13px;color:#374151;margin:0 0 14px;">Chọn một folder để giao cho <strong>tất cả</strong> learner trong folder đó.</p>
+      <div id="alm-folder-select-list" style="display:grid;gap:8px;">
+        <div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">Đang tải...</div>
+      </div>
+    </div>
+
+    <!-- Form ẩn cho bulk assign theo folder -->
+    <form id="alm-folder-form" action="<%= assign_url %>" method="post" style="display:none;">
+      <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+      <input type="hidden" id="alm-folder-id-input" name="folder_id">
+      <input type="hidden" id="alm-folder-due-hidden" name="<%= resource_type == 'learning_path' ? 'due_date' : 'due_at' %>">
+    </form>
 
     <!-- Panel: Đã giao -->
     <div id="alm-panel-list" style="display:none;flex:1;overflow-y:auto;min-height:0;">
@@ -199,19 +218,20 @@
 
   // ── Tab switch ────────────────────────────────────────────────────
   window.almTab = function(tab) {
-    var isAssign = tab === 'assign';
-    document.getElementById('alm-panel-assign').style.display = isAssign ? '' : 'none';
-    document.getElementById('alm-panel-list').style.display   = isAssign ? 'none' : '';
-    document.getElementById('alm-footer').style.display       = isAssign ? '' : 'none';
-    var tA = document.getElementById('alm-tab-assign');
-    var tL = document.getElementById('alm-tab-list');
-    tA.style.color             = isAssign ? '#1e3a5f' : '#9ca3af';
-    tA.style.borderBottomColor = isAssign ? '#1e3a5f' : 'transparent';
-    tA.style.fontWeight        = isAssign ? '700' : '600';
-    tL.style.color             = !isAssign ? '#1e3a5f' : '#9ca3af';
-    tL.style.borderBottomColor = !isAssign ? '#1e3a5f' : 'transparent';
-    tL.style.fontWeight        = !isAssign ? '700' : '600';
-    if (!isAssign) loadLearnerList();
+    var panels = { assign: 'alm-panel-assign', folder: 'alm-panel-folder', list: 'alm-panel-list' };
+    var tabs   = { assign: 'alm-tab-assign',   folder: 'alm-tab-folder',   list: 'alm-tab-list' };
+    Object.keys(panels).forEach(function(k) {
+      document.getElementById(panels[k]).style.display = k === tab ? (k === 'list' ? 'flex' : '') : 'none';
+      var t = document.getElementById(tabs[k]);
+      if (!t) return;
+      t.style.color = k === tab ? '#1e3a5f' : '#9ca3af';
+      t.style.borderBottomColor = k === tab ? '#1e3a5f' : 'transparent';
+      t.style.fontWeight = k === tab ? '700' : '600';
+    });
+    document.getElementById('alm-panel-list').style.display = tab === 'list' ? '' : 'none';
+    document.getElementById('alm-footer').style.display = (tab === 'assign') ? '' : 'none';
+    if (tab === 'list') loadLearnerList();
+    if (tab === 'folder') renderFolderSelectList();
   };
 
   // ── Load workspace learners + assigned list in parallel ──────────
@@ -419,6 +439,35 @@
       '</div>';
     }).join('');
   }
+
+  // ── Bulk assign by folder ─────────────────────────────────────────
+  function renderFolderSelectList() {
+    var el = document.getElementById('alm-folder-select-list');
+    if (!_folders.length) {
+      el.innerHTML = '<p style="font-size:13px;color:#9ca3af;text-align:center;padding:12px 0;">Workspace chưa có folder nào.</p>';
+      return;
+    }
+    el.innerHTML = _folders.map(function(f) {
+      var n = f.learner_ids.length;
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:12px;">' +
+        '<div>' +
+          '<p style="font-size:13px;font-weight:700;color:#1e293b;margin:0;">📁 ' + f.name + '</p>' +
+          '<p style="font-size:11px;color:#9ca3af;margin:2px 0 0;">' + n + ' learner</p>' +
+        '</div>' +
+        (n > 0
+          ? '<button onclick="almAssignFolder(' + f.id + ',this)" style="padding:7px 14px;background:#1e3a5f;color:#fff;font-size:12px;font-weight:700;border:none;border-radius:9px;cursor:pointer;">Giao cả folder</button>'
+          : '<span style="font-size:11px;color:#d1d5db;">Chưa có learner</span>') +
+      '</div>';
+    }).join('');
+  }
+
+  window.almAssignFolder = function(folderId, btn) {
+    if (!confirm('Giao cho tất cả learner trong folder này?')) return;
+    btn.textContent = 'Đang giao...'; btn.disabled = true;
+    document.getElementById('alm-folder-id-input').value = folderId;
+    document.getElementById('alm-folder-due-hidden').value = document.getElementById('alm-due-date') ? document.getElementById('alm-due-date').value : '';
+    document.getElementById('alm-folder-form').submit();
+  };
 
   // ── Remove assignment ─────────────────────────────────────────────
   window.almRemove = function(assignmentId, learnerId, btn) {

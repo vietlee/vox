@@ -49,6 +49,70 @@
   <% end %>
 </div>
 
+<%# ── Gamification stats ─────────────────────────────────────────────── %>
+<% xp = @learner.xp
+   level = [1, (0.5 * (1 + Math.sqrt(1 + 2.0 * xp / 25))).floor].max
+   xp_for_level   = lambda { |l| 25 * l * (l - 1) }
+   xp_to_next     = xp_for_level.call(level + 1) - xp
+   level_pct      = begin
+     range = xp_for_level.call(level + 1) - xp_for_level.call(level)
+     range > 0 ? [(xp - xp_for_level.call(level)) * 100 / range, 100].min : 100
+   end
+%>
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-5">
+  <div class="px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-white flex items-center gap-2">
+    <span class="text-[18px]">🎮</span>
+    <h3 class="text-[13px] font-bold text-slate-700">Tiến độ học tập & Thành tích</h3>
+  </div>
+  <div class="px-5 py-4">
+    <%# XP / Streak / Level row %>
+    <div class="grid grid-cols-4 gap-3 mb-4">
+      <div class="text-center p-3 bg-violet-50 rounded-xl">
+        <div class="text-[22px] font-extrabold text-violet-700">⚡ <%= xp %></div>
+        <div class="text-[10px] font-bold text-violet-400 uppercase tracking-wide mt-0.5">Tổng XP</div>
+      </div>
+      <div class="text-center p-3 bg-orange-50 rounded-xl">
+        <div class="text-[22px] font-extrabold text-orange-600">🔥 <%= @learner.current_streak %></div>
+        <div class="text-[10px] font-bold text-orange-400 uppercase tracking-wide mt-0.5">Streak hiện tại</div>
+      </div>
+      <div class="text-center p-3 bg-amber-50 rounded-xl">
+        <div class="text-[22px] font-extrabold text-amber-600">🏅 <%= @learner.longest_streak %></div>
+        <div class="text-[10px] font-bold text-amber-400 uppercase tracking-wide mt-0.5">Streak dài nhất</div>
+      </div>
+      <div class="text-center p-3 bg-blue-50 rounded-xl">
+        <div class="text-[22px] font-extrabold text-blue-700">Lv.<%= level %></div>
+        <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wide mt-0.5">Cấp độ</div>
+      </div>
+    </div>
+    <%# XP progress bar %>
+    <div class="mb-4">
+      <div class="flex justify-between text-[11px] text-slate-400 mb-1.5">
+        <span class="font-semibold text-slate-600">Level <%= level %> → <%= level + 1 %></span>
+        <span>Còn <%= xp_to_next %> XP</span>
+      </div>
+      <div class="w-full bg-slate-100 rounded-full h-2">
+        <div class="h-2 rounded-full bg-gradient-to-r from-violet-500 to-purple-400 transition-all" style="width:<%= level_pct %>%"></div>
+      </div>
+    </div>
+    <%# Badges %>
+    <% if @learner_badges.any? %>
+      <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-2">Huy hiệu đã đạt (<%= @learner_badges.size %>)</p>
+      <div class="flex flex-wrap gap-2">
+        <% @learner_badges.each do |badge| %>
+          <% info = badge.info %>
+          <div title="<%= info[:desc] %>\nĐạt ngày: <%= badge.earned_at.strftime('%d/%m/%Y') %>"
+               class="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl cursor-default">
+            <span class="text-[16px]"><%= info[:icon] %></span>
+            <span class="text-[11px] font-bold text-emerald-700"><%= info[:title] %></span>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-[12px] text-slate-400 italic">Chưa đạt huy hiệu nào.</p>
+    <% end %>
+  </div>
+</div>
+
 <%# ── 2-column layout: Left = assignments, Right = AI + history + info ── %>
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 

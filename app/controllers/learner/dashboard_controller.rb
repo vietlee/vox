@@ -25,6 +25,9 @@ class Learner::DashboardController < Learner::BaseController
 
     # Daily challenge — just check if exists (generate lazily via separate controller)
     @daily_challenge = current_learner.learner_daily_challenges.find_by(challenge_date: Date.current)
+
+    # SRS: flashcard decks with cards due for review
+    @srs_due_decks = srs_due_decks
   end
 
   # GET /learner/library — full catalog of all assigned/created content
@@ -112,6 +115,26 @@ class Learner::DashboardController < Learner::BaseController
     end
 
     items
+  end
+
+  def srs_due_decks
+    due_by_deck = FlashcardReview.joins(:flashcard)
+      .where(learner_id: current_learner.id)
+      .where('flashcard_reviews.next_review_at <= ?', Time.current)
+      .group('flashcards.flashcard_deck_id')
+      .count
+    return [] if due_by_deck.empty?
+
+    assignments_by_deck = current_learner.flashcard_assignments
+      .includes(:flashcard_deck)
+      .where(flashcard_deck_id: due_by_deck.keys)
+      .index_by(&:flashcard_deck_id)
+
+    due_by_deck.filter_map do |deck_id, count|
+      a = assignments_by_deck[deck_id]
+      next unless a
+      { title: a.flashcard_deck.title, due_count: count, url: study_learner_flashcard_assignment_path(a.token) }
+    end
   end
 
   def load_pending_assignments

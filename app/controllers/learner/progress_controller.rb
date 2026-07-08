@@ -44,6 +44,22 @@ class Learner::ProgressController < Learner::BaseController
     # Badges
     @badges = l.learner_badges.order(:earned_at)
     @badge_keys_earned = @badges.pluck(:key).to_set
+
+    # Leaderboard — all learners in same workspace(s)
+    workspace_ids = LearnerFolder.joins(:learner_folder_members)
+      .where(learner_folder_members: { learner_id: l.id })
+      .pluck(:workspace_id).uniq
+    if workspace_ids.any?
+      peer_ids = LearnerFolder.where(workspace_id: workspace_ids)
+        .joins(:learner_folder_members)
+        .pluck("learner_folder_members.learner_id").uniq
+      @leaderboard = Learner.where(id: peer_ids).order(xp: :desc).limit(20)
+        .select(:id, :name, :email, :xp, :current_streak)
+      @my_rank = @leaderboard.index { |lb| lb.id == l.id }&.then { |i| i + 1 }
+    else
+      @leaderboard = []
+      @my_rank = nil
+    end
   end
 
   private

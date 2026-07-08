@@ -282,6 +282,9 @@ class Admin::LearnerFoldersController < Admin::BaseController
     @total_completed  = completed_quiz + completed_fc + completed_lp
     @avg_quiz_score   = @quiz_attempts.any? ? (@quiz_attempts.sum(&:score_pct) / @quiz_attempts.size).round : nil
     @quiz_pass_rate   = @quiz_attempts.any? ? (@quiz_attempts.count(&:passed?) * 100.0 / @quiz_attempts.size).round : nil
+
+    # Gamification
+    @learner_badges = @learner.learner_badges.order(earned_at: :desc)
   end
 
   # POST /learners/:learner_id/ai_analyze
