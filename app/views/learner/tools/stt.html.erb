@@ -173,20 +173,20 @@
   const CSRF      = () => document.querySelector('meta[name="csrf-token"]').content;
   const STT_URL   = '<%= learner_ai_tutor_stt_path %>';
   const TRANS_URL = '<%= learner_tools_translate_path %>';
+  const PUNC_URL  = '<%= learner_tools_punctuate_path %>';
 
   // ── State ──
-  let _mode       = 'transcribe';
-  let _tab        = 'mic';
-  let _targetLang = 'Vietnamese';
-  let _targetCode = 'vi';
+  let _mode        = 'transcribe';
+  let _tab         = 'mic';
+  let _targetLang  = 'Vietnamese';
+  let _targetCode  = 'vi';
   let _recognition = null;
   let _listening   = false;
   let _pendingFile = null;
-  let _finalText   = '';       // accumulated final transcript
-  let _translatedText = '';    // accumulated translated text (append-only)
-  let _pendingChunk = '';      // final chunks queued for translation
-  let _transTimer  = null;
-  let _transInFlight = false;
+  let _finalText   = '';   // raw accumulated final transcript
+  let _transTimer  = null; // debounce timer for translation
+  let _puncTimer   = null; // debounce timer for punctuation
+  let _transSeq    = 0;    // sequence number — ignore stale translation responses
 
   // ── Mode toggle ──
   window.setSttMode = function(m) {
@@ -206,13 +206,12 @@
     _targetCode = code; _targetLang = name;
     document.querySelectorAll('#stt-lang-btns button').forEach(function(b) {
       var active = b.dataset.lang === code;
-      b.style.background   = active ? '#1e3a5f' : '#f8fafc';
-      b.style.color        = active ? '#fff' : '#475569';
-      b.style.borderColor  = active ? '#1e3a5f' : '#e2e8f0';
+      b.style.background  = active ? '#1e3a5f' : '#f8fafc';
+      b.style.color       = active ? '#fff' : '#475569';
+      b.style.borderColor = active ? '#1e3a5f' : '#e2e8f0';
     });
     document.getElementById('stt-box2-label').textContent = '<%= j t('learner_stt.translation') %> (' + name + ')';
-    // Retranslate existing text when language changes
-    if (_finalText.trim()) { _pendingChunk = _finalText.trim(); _translatedText = ''; flushTranslation(); }
+    if (_finalText.trim()) scheduleTranslation(_finalText.trim());
   };
   setTranslateLang('vi', 'Vietnamese');
 
@@ -229,16 +228,6 @@
     if (!isMic && _listening) stopRecognition();
   };
 
-  // ── Punctuation helper ──
-  // Capitalizes first letter; appends a period if no terminal punctuation.
-  function applyPunctuation(text) {
-    if (!text) return text;
-    text = text.trim();
-    text = text.charAt(0).toUpperCase() + text.slice(1);
-    if (!/[.!?,;:。！？،]$/.test(text)) text += '.';
-    return text;
-  }
-
   // ── Web Speech API ──
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -247,77 +236,72 @@
   async function startRecognition() {
     hideError();
 
-    // Step 1: Explicitly request mic permission — required for PWA/iOS Safari
+    // Explicitly request mic permission first — required on PWA / iOS Safari
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(function(t) { t.stop(); }); // release immediately
+      stream.getTracks().forEach(function(t) { t.stop(); });
     } catch(e) {
       showError('Không có quyền truy cập microphone. Vui lòng cho phép trong cài đặt trình duyệt.');
       return;
     }
 
-    // Step 2: Check browser support
     if (!SpeechRecognition) {
       showError('Trình duyệt không hỗ trợ nhận giọng nói realtime. Hãy dùng Chrome hoặc Safari, hoặc chuyển sang tab File để tải lên âm thanh.');
       return;
     }
 
-    // Step 3: Create and start recognition
     try {
       _recognition = new SpeechRecognition();
       _recognition.continuous     = true;
       _recognition.interimResults = true;
       _recognition.lang = document.getElementById('stt-src-lang').value || 'vi-VN';
 
-      _recognition.onstart = function() {
-        _listening = true;
-        setOrbUI(true);
-      };
+      _recognition.onstart = function() { _listening = true; setOrbUI(true); };
 
       _recognition.onresult = function(e) {
         var interim = '';
-        var finalChunk = '';
+        var gotFinal = false;
         for (var i = e.resultIndex; i < e.results.length; i++) {
           var t = e.results[i][0].transcript;
           if (e.results[i].isFinal) {
-            finalChunk += t;
+            // Append raw text — punctuation will be added server-side after a pause
+            _finalText += (_finalText && !/\s$/.test(_finalText) ? ' ' : '') + t.trim();
+            gotFinal = true;
           } else {
             interim += t;
           }
         }
 
-        if (finalChunk) {
-          var chunk = applyPunctuation(finalChunk);
-          _finalText += (_finalText && !/\s$/.test(_finalText) ? ' ' : '') + chunk + ' ';
-          // Queue this chunk for translation (only new final text)
-          if (_mode === 'translate') {
-            _pendingChunk += (_pendingChunk ? ' ' : '') + chunk;
-            scheduleTranslation();
-          }
+        updateTranscript(_finalText, interim);
+
+        // Translation: debounce on every result (interim + final), translate full text.
+        // Triggers 700ms after last speech event — fires once per natural pause.
+        if (_mode === 'translate') {
+          var textToTranslate = (_finalText + (interim ? ' ' + interim : '')).trim();
+          if (textToTranslate) scheduleTranslation(textToTranslate);
         }
 
-        updateTranscript(_finalText, interim);
+        // Punctuation: fire 1.5s after last FINAL result — server adds proper punctuation.
+        if (gotFinal) schedulePunctuation();
       };
 
       _recognition.onerror = function(e) {
         if (e.error === 'not-allowed') {
           showError('Microphone bị từ chối. Vui lòng cấp quyền trong cài đặt trình duyệt.');
-          _listening = false;
-          setOrbUI(false);
+          _listening = false; setOrbUI(false);
         } else if (e.error === 'no-speech') {
-          // Ignore — normal when user pauses
+          // normal — user paused
         } else if (e.error !== 'aborted') {
           showError('Lỗi nhận dạng giọng nói: ' + e.error);
         }
       };
 
       _recognition.onend = function() {
-        // Auto-restart for continuous recording.
-        // Delay 200ms to avoid InvalidStateError on iOS Safari PWA.
+        // Auto-restart for continuous recording; 200ms delay avoids InvalidStateError on PWA.
         if (_listening) {
           setTimeout(function() {
             if (_listening && _recognition) {
-              try { _recognition.start(); } catch(ex) { /* already started or stopped */ }
+              try { _recognition.start(); } catch(ex) {}
             }
           }, 200);
         }
@@ -337,6 +321,8 @@
       try { _recognition.stop(); } catch(e) {}
       _recognition = null;
     }
+    // Final punctuation pass when user stops recording
+    if (_finalText.trim()) doPunctuate();
   }
 
   function setOrbUI(on) {
@@ -354,31 +340,23 @@
 
   function updateTranscript(final, interim) {
     document.getElementById('stt-transcript-final').textContent  = final;
-    document.getElementById('stt-transcript-interim').textContent = interim;
+    document.getElementById('stt-transcript-interim').textContent = interim ? ' ' + interim : '';
     document.getElementById('stt-placeholder').style.display = (final || interim) ? 'none' : 'block';
   }
 
-  // ── Realtime translation: chunk-based append ──
-  // Only translate new final chunks, then APPEND to translation box.
-  // This makes translation feel realtime without re-translating old text.
-  function scheduleTranslation() {
+  // ── Realtime translation ──
+  // Debounced 700ms on EVERY speech result (interim + final).
+  // Each call translates the FULL current text. Sequence number ensures
+  // stale responses (from slower earlier calls) are silently dropped.
+  function scheduleTranslation(text) {
     clearTimeout(_transTimer);
-    _transTimer = setTimeout(flushTranslation, 600);
-  }
-
-  function flushTranslation() {
-    if (!_pendingChunk.trim() || _transInFlight) return;
-    var toTranslate = _pendingChunk;
-    _pendingChunk = '';
-    doTranslate(toTranslate);
+    _transTimer = setTimeout(function() { doTranslate(text); }, 700);
   }
 
   function doTranslate(text) {
     if (!text.trim()) return;
-    _transInFlight = true;
+    var mySeq = ++_transSeq;
     document.getElementById('stt-translate-spinner').style.display = 'inline';
-    // Show "..." as interim placeholder in translation box
-    document.getElementById('stt-translation-interim').textContent = ' …';
 
     var fd = new FormData();
     fd.append('text', text);
@@ -389,25 +367,43 @@
       .then(function(r) { return r.json(); })
       .then(function(d) {
         document.getElementById('stt-translate-spinner').style.display = 'none';
+        if (mySeq < _transSeq) return; // stale — a newer request already came in
+        if (d.error) { showError(d.error); return; }
+        document.getElementById('stt-translation-text').textContent = d.translated.trim();
         document.getElementById('stt-translation-interim').textContent = '';
-        if (d.error) { showError(d.error); _transInFlight = false; return; }
-
-        // Append translated chunk (not replace)
-        var sep = _translatedText && !/\s$/.test(_translatedText) ? ' ' : '';
-        _translatedText += sep + d.translated.trim() + ' ';
-        document.getElementById('stt-translation-text').textContent = _translatedText;
-
         if (window.updateLpCredits) updateLpCredits(d.credits_remaining);
-        _transInFlight = false;
-
-        // Flush if more chunks arrived while this was in flight
-        if (_pendingChunk.trim()) flushTranslation();
       })
       .catch(function() {
         document.getElementById('stt-translate-spinner').style.display = 'none';
-        document.getElementById('stt-translation-interim').textContent = '';
-        _transInFlight = false;
       });
+  }
+
+  // ── Server-side punctuation ──
+  // Fires 1.5s after last final result. Sends full raw _finalText to Claude,
+  // gets properly punctuated version back, updates display in place.
+  function schedulePunctuation() {
+    clearTimeout(_puncTimer);
+    _puncTimer = setTimeout(doPunctuate, 1500);
+  }
+
+  function doPunctuate() {
+    var snapshot = _finalText.trim();
+    if (!snapshot) return;
+
+    var fd = new FormData();
+    fd.append('text', snapshot);
+    fd.append('authenticity_token', CSRF());
+
+    fetch(PUNC_URL, { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (!d.punctuated || d.punctuated === snapshot) return;
+        // Preserve any text appended since we sent the request
+        var extra = _finalText.trim().slice(snapshot.length).trim();
+        _finalText = d.punctuated + (extra ? ' ' + extra : '');
+        document.getElementById('stt-transcript-final').textContent = _finalText;
+      })
+      .catch(function() {});
   }
 
   // ── File upload (ElevenLabs) ──
@@ -433,14 +429,11 @@
       var res  = await fetch(STT_URL, { method: 'POST', body: fd });
       var data = await res.json();
       if (data.error) throw new Error(data.error);
-      // File transcription already has punctuation from ElevenLabs
+      // ElevenLabs already returns punctuated text
       _finalText = data.text || '<%= j t('learner_stt.no_text') %>';
       updateTranscript(_finalText, '');
       if (window.updateLpCredits) updateLpCredits(data.credits_remaining);
-      if (_mode === 'translate' && data.text) {
-        _pendingChunk = data.text;
-        flushTranslation();
-      }
+      if (_mode === 'translate' && data.text) scheduleTranslation(data.text);
     } catch(e) { showError(e.message); }
     finally { document.getElementById('stt-processing').style.display = 'none'; }
   };
@@ -456,7 +449,7 @@
   };
 
   window.sttClear = function() {
-    _finalText = ''; _translatedText = ''; _pendingChunk = '';
+    _finalText = ''; _transSeq = 0;
     updateTranscript('', '');
     document.getElementById('stt-translation-text').textContent = '';
     document.getElementById('stt-translation-interim').textContent = '';

@@ -31,6 +31,21 @@ class Learner::ToolsController < Learner::BaseController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def punctuate
+    text = params[:text].to_s.strip
+    return render json: { punctuated: text } if text.blank?
+
+    svc    = ClaudeService.for_feature("ai_tutor", timeout: 15)
+    result = svc.call(
+      system_prompt: "Add proper punctuation and capitalization to this text. Preserve every word exactly — only add or fix punctuation marks and capitalize sentence starts. Return ONLY the corrected text.",
+      messages: [{ role: "user", content: text }],
+      max_tokens: 1000
+    )
+    render json: { punctuated: result.strip }
+  rescue => e
+    render json: { punctuated: text }
+  end
+
   def do_summarize
     return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= SUMMARIZE_COST
 
