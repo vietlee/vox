@@ -133,7 +133,7 @@
       </div>
     </div>
     <div style="min-height:80px;padding:10px;background:#f8fafc;border-radius:8px;position:relative;">
-      <span id="stt-transcript-final" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span><span id="stt-transcript-interim" style="font-size:14px;color:#94a3b8;line-height:1.8;font-style:italic;"></span>
+      <span id="stt-transcript-final" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span><span id="stt-transcript-interim" style="font-size:14px;color:#94a3b8;line-height:1.8;font-style:italic;white-space:pre-wrap;"></span>
       <p id="stt-placeholder" style="font-size:13px;color:#cbd5e1;margin:0;position:absolute;top:10px;left:10px;"><%= t('learner_stt.placeholder_live') %></p>
     </div>
   </div>
@@ -194,7 +194,10 @@
 
   // ── Mode toggle ──
   window.setSttMode = function(m) {
+    if (m === _mode) return;
     _mode = m;
+    // Switching modes auto-clears previous data (both directions)
+    window.sttClear();
     const isTrans = m === 'translate';
     var btnTrans = document.getElementById('stt-mode-transcribe');
     var btnTl    = document.getElementById('stt-mode-translate');
@@ -275,8 +278,8 @@
         for (var i = e.resultIndex; i < e.results.length; i++) {
           var t = e.results[i][0].transcript;
           if (e.results[i].isFinal) {
-            // Append raw text — punctuation will be added server-side after a pause
-            _finalText += (_finalText && !/\s$/.test(_finalText) ? ' ' : '') + t.trim();
+            // Each finalized chunk on its own line; punctuation added server-side later
+            _finalText += (_finalText ? '\n' : '') + t.trim();
             gotFinal = true;
           } else {
             interim += t;
@@ -293,8 +296,9 @@
           scheduleTranslation();
         }
 
-        // Punctuation: fire 1.5s after last FINAL result — server adds proper punctuation.
-        if (gotFinal) schedulePunctuation();
+        // Punctuation: only in transcribe mode. (In translate mode it would rewrite
+        // _finalText and desync the translation's char-offset tracker.)
+        if (gotFinal && _mode === 'transcribe') schedulePunctuation();
       };
 
       _recognition.onerror = function(e) {
@@ -333,8 +337,8 @@
       try { _recognition.stop(); } catch(e) {}
       _recognition = null;
     }
-    // Final punctuation pass when user stops recording
-    if (_finalText.trim()) doPunctuate();
+    // Final punctuation pass when user stops recording (transcribe mode only)
+    if (_finalText.trim() && _mode === 'transcribe') doPunctuate();
   }
 
   function setOrbUI(on) {
@@ -352,7 +356,8 @@
 
   function updateTranscript(final, interim) {
     document.getElementById('stt-transcript-final').textContent  = final;
-    document.getElementById('stt-transcript-interim').textContent = interim ? ' ' + interim : '';
+    // Interim (in-progress sentence) shown on its own new line below the final text
+    document.getElementById('stt-transcript-interim').textContent = interim ? (final ? '\n' : '') + interim : '';
     document.getElementById('stt-placeholder').style.display = (final || interim) ? 'none' : 'block';
   }
 
@@ -389,13 +394,13 @@
         document.getElementById('stt-translate-spinner').style.display = 'none';
         if (d.error) { showError(d.error); return; }
         var tailTrans = (d.translated || '').trim();
-        // Live display: committed translation + current tail translation
-        document.getElementById('stt-translation-text').textContent =
-          _committedTrans + (_committedTrans && tailTrans ? ' ' : '') + tailTrans;
+        // Each translated sentence on its own line, aligned with the transcript
+        var sep = (_committedTrans && tailTrans) ? '\n' : '';
+        document.getElementById('stt-translation-text').textContent = _committedTrans + sep + tailTrans;
         document.getElementById('stt-translation-interim').textContent = '';
         // Lock it in once the sentence is finalized
         if (isFinal) {
-          _committedTrans = _committedTrans + (_committedTrans && tailTrans ? ' ' : '') + tailTrans;
+          _committedTrans = _committedTrans + sep + tailTrans;
           _committedUpTo  = finalLenSnap;
         }
         if (window.updateLpCredits) updateLpCredits(d.credits_remaining);
@@ -425,9 +430,9 @@
       .then(function(r) { return r.json(); })
       .then(function(d) {
         if (!d.punctuated || d.punctuated === snapshot) return;
-        // Preserve any text appended since we sent the request
-        var extra = _finalText.trim().slice(snapshot.length).trim();
-        _finalText = d.punctuated + (extra ? ' ' + extra : '');
+        // Preserve any text appended since we sent the request (on its own line)
+        var extra = _finalText.slice(snapshot.length).trim();
+        _finalText = d.punctuated + (extra ? '\n' + extra : '');
         document.getElementById('stt-transcript-final').textContent = _finalText;
       })
       .catch(function() {});
@@ -456,8 +461,8 @@
       var res  = await fetch(STT_URL, { method: 'POST', body: fd });
       var data = await res.json();
       if (data.error) throw new Error(data.error);
-      // ElevenLabs already returns punctuated text
-      _finalText = data.text || '';
+      // ElevenLabs already returns punctuated text — split each sentence onto its own line
+      _finalText = (data.text || '').trim().replace(/([.!?…])\s+/g, '$1\n');
       _lastInterim = ''; _committedTrans = ''; _committedUpTo = 0;
       updateTranscript(_finalText || '<%= j t('learner_stt.no_text') %>', '');
       if (window.updateLpCredits) updateLpCredits(data.credits_remaining);

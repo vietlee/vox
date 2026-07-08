@@ -39,7 +39,7 @@ class Learner::ToolsController < Learner::BaseController
 
     svc    = ClaudeService.for_feature("ai_tutor", timeout: 15)
     result = svc.call(
-      system_prompt: "Add proper punctuation and capitalization to this text. Preserve every word exactly — only add or fix punctuation marks and capitalize sentence starts. Return ONLY the corrected text.",
+      system_prompt: "Add proper punctuation and capitalization to this text. Preserve every word exactly — only add or fix punctuation marks and capitalize sentence starts. Put each sentence on its own line, separated by a single newline. Return ONLY the corrected text.",
       messages: [{ role: "user", content: text }],
       max_tokens: 1000
     )
