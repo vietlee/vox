@@ -689,8 +689,9 @@ async function lpVcProcessWithText(userText) {
     chatHistory.push({role:'assistant',content:reply}); lpSaveHistory();
     if (window.updateLpCredits && data.credits_remaining !== undefined) updateLpCredits(data.credits_remaining);
     if(txEl) txEl.textContent='🤖 '+reply.slice(0,80)+(reply.length>80?'...':'');
+    lpVcSetStatus('speaking');
+    var _resume = function(){ if(_vcActive) lpVcStartListening(); };
     if (HAS_TTS) {
-      lpVcSetStatus('speaking');
       const fd2=new FormData(); fd2.append('text',reply.replace(/\*\*(.+?)\*\*/g,'$1').replace(/`(.+?)`/g,'$1').slice(0,1000)); fd2.append('model','eleven_flash_v2_5'); fd2.append('speed',String(_vcSpeed)); if(_vcVoiceId) fd2.append('voice_id',_vcVoiceId); fd2.append('authenticity_token',CSRF());
       try {
         const ar=await fetch(TTS_URL,{method:'POST',body:fd2});
@@ -699,13 +700,33 @@ async function lpVcProcessWithText(userText) {
           const bin=atob(ad.audio_base64); const arr=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
           const url=URL.createObjectURL(new Blob([arr],{type:'audio/mpeg'}));
           if(ad.credits_remaining!==undefined && window.updateLpCredits) updateLpCredits(ad.credits_remaining);
-          lpPlayShared(url, function(){ URL.revokeObjectURL(url); if(_vcActive) lpVcStartListening(); });
+          lpPlayShared(url, function(){ URL.revokeObjectURL(url); _resume(); });
           return;
         }
       } catch(e) {}
     }
+    // Fallback: free native voice so the CALL always talks, even without ElevenLabs
+    if (lpVcSpeakNative(reply, _resume)) return;
   }
   if (_vcActive) lpVcStartListening();
+}
+
+// Speak a voice-call reply with the free native voice; calls onend() when done.
+function lpVcSpeakNative(text, onend) {
+  if (!('speechSynthesis' in window)) return false;
+  var plain = lpPlainText(text).slice(0, 600);
+  if (!plain) return false;
+  try {
+    window.speechSynthesis.cancel();
+    var isVi = /[àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]/i.test(plain);
+    var u = new SpeechSynthesisUtterance(plain);
+    u.lang = isVi ? 'vi-VN' : 'en-US';
+    var v = lpPickVoice(isVi); if (v) u.voice = v;
+    u.rate = _vcSpeed || 1.0;
+    u.onend = u.onerror = function(){ if (onend) onend(); };
+    window.speechSynthesis.speak(u);
+    return true;
+  } catch(e) { return false; }
 }
 
 window.lpVcSpeedDec=function(){const i=VC_SPEEDS.indexOf(_vcSpeed);if(i>0){_vcSpeed=VC_SPEEDS[i-1];localStorage.setItem('lp_vc_speed',_vcSpeed);const l=document.getElementById('lp-vc-speed-label');if(l)l.textContent=_vcSpeed+'×';}};

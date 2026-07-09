@@ -366,9 +366,14 @@
   // interim) on every speech result. The committed part stays locked so we never
   // re-translate whole sentences. Live interim previews are free; only when a
   // sentence finalizes do we lock its translation and charge 1 credit.
+  // Throttle: fire immediately if we haven't translated in the last 500ms (so the
+  // translation keeps streaming DURING continuous speech, not only on a pause),
+  // otherwise debounce briefly. Stale responses are dropped by _transSeq.
+  var _lastTransAt = 0;
   function scheduleTranslation() {
     clearTimeout(_transTimer);
-    _transTimer = setTimeout(doTranslate, 250);
+    var wait = Math.max(0, 500 - (Date.now() - _lastTransAt));
+    _transTimer = setTimeout(function(){ _lastTransAt = Date.now(); doTranslate(); }, wait || 120);
   }
 
   function doTranslate() {
