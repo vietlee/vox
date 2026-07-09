@@ -1,5 +1,5 @@
 // VOX PWA service worker — network-first with offline fallback + push notifications.
-const CACHE = 'vox-v6';
+const CACHE = 'vox-v7';
 const OFFLINE_ASSETS = ['/icon-192.png', '/icon-512.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -20,8 +20,15 @@ self.addEventListener('fetch', (event) => {
   // Only handle same-origin GET navigations/assets; let everything else (POST/AJAX, cross-origin) go straight to network.
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
 
-  // Navigations: network-first, fall back to cache then a basic offline message.
-  if (req.mode === 'navigate') {
+  // HTML documents — ALWAYS network-first, and never cached. This covers both
+  // full navigations (req.mode === 'navigate') AND Turbo Drive page fetches
+  // (which use a non-navigate mode and were previously served stale from cache,
+  // so layout/logic changes never reached installed PWAs).
+  const accept = req.headers.get('accept') || '';
+  const isHTML = req.mode === 'navigate' ||
+                 req.destination === 'document' ||
+                 accept.indexOf('text/html') !== -1;
+  if (isHTML) {
     event.respondWith(
       fetch(req).catch(() => caches.match(req).then((r) => r || caches.match('/icon-192.png')))
     );
