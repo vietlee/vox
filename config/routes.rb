@@ -455,6 +455,7 @@ Rails.application.routes.draw do
     get  "tools/summarize",  to: "tools#summarize",    as: :tools_summarize
     post "tools/summarize",  to: "tools#do_summarize"
     post "tools/translate",  to: "tools#translate",    as: :tools_translate
+    post "tools/translate_stream", to: "translate_stream#create", as: :tools_translate_stream
     post "tools/punctuate",  to: "tools#punctuate",    as: :tools_punctuate
 
     # Credits
