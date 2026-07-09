@@ -822,19 +822,34 @@
   // nav + main padding to exact pixels. Runs on load and every Turbo navigation
   // (this script sits at the end of <body>, so Turbo re-executes it each time).
   (function () {
+    function measure(expr) {
+      var p = document.createElement('div');
+      p.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:' + expr + ';visibility:hidden;pointer-events:none;';
+      document.body.appendChild(p);
+      var h = p.getBoundingClientRect().height;
+      document.body.removeChild(p);
+      return (isFinite(h) && h > 0) ? h : 0;
+    }
     function fixBottomNav() {
       var nav  = document.querySelector('.lp-bottom-nav');
       var main = document.querySelector('.lp-main');
       if (!nav && !main) return;
-      var probe = document.createElement('div');
-      probe.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none;';
-      document.body.appendChild(probe);
-      var inset = probe.getBoundingClientRect().height;
-      document.body.removeChild(probe);
-      if (!isFinite(inset) || inset < 0) inset = 0;
-      if (inset > 34) inset = 34;              // clamp buggy inflated value
-      if (nav)  { nav.style.height = (56 + inset) + 'px'; nav.style.paddingBottom = inset + 'px'; }
-      if (main) { main.style.paddingBottom = (56 + inset) + 'px'; }
+
+      var inset = measure('env(safe-area-inset-bottom,0px)');
+      if (inset > 34) inset = 34;                       // clamp buggy inflated inset
+
+      // Some installed iOS PWAs run with a reserved bottom UI band (dynamic viewport
+      // < large viewport), so fixed;bottom:0 lands ABOVE the real screen bottom,
+      // leaving a white strip below the nav. Push the nav down by that exact gap.
+      var gap = Math.round(measure('100vh') - measure('100dvh'));
+      if (!(gap > 0) || gap > 80) gap = 0;              // sanity clamp
+
+      if (nav) {
+        nav.style.bottom        = (-gap) + 'px';        // reach the true screen bottom
+        nav.style.height        = (56 + inset + gap) + 'px';
+        nav.style.paddingBottom = (inset + gap) + 'px'; // keep icons above the home indicator
+      }
+      if (main) main.style.paddingBottom = (56 + inset + gap) + 'px';
     }
     fixBottomNav();
     document.addEventListener('turbo:load', fixBottomNav);
