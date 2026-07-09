@@ -843,7 +843,11 @@
       // leaving a white strip below the nav. Push the nav DOWN by that exact gap so
       // its icons sit near the true bottom — do NOT inflate padding (that would just
       // move the icons back up and leave the same white area beneath them).
-      var gap = Math.round(measure('100vh') - measure('100dvh'));
+      // Reserved bottom band = large viewport − dynamic viewport, cross-checked
+      // against screen.height − innerHeight; take the larger (both point at the gap).
+      var gapA = Math.round(measure('100vh') - measure('100dvh'));
+      var gapB = Math.round((window.screen && window.screen.height ? window.screen.height : 0) - window.innerHeight);
+      var gap  = Math.max(gapA, gapB);
       if (!(gap > 0) || gap > 80) gap = 0;              // sanity clamp
 
       if (nav) {
@@ -852,13 +856,26 @@
         nav.style.paddingBottom = inset + 'px';         // only the home-indicator inset
       }
       if (main) main.style.paddingBottom = (56 + inset + gap) + 'px';
+
+      // TEMP confirmation badge — proves the fix ran & where the nav actually renders
+      var dbg = document.getElementById('vox-navdbg');
+      if (dbg && nav) {
+        var b = nav.getBoundingClientRect();
+        dbg.textContent = 'gapA'+gapA+' gapB'+gapB+' gap'+gap+' navBot'+Math.round(b.bottom)+' inner'+window.innerHeight;
+      }
     }
     fixBottomNav();
+    setTimeout(fixBottomNav, 350);   // re-run after the viewport settles
     document.addEventListener('turbo:load', fixBottomNav);
     document.addEventListener('turbo:render', fixBottomNav);
     window.addEventListener('resize', fixBottomNav);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', fixBottomNav);
     window.addEventListener('orientationchange', function () { setTimeout(fixBottomNav, 200); });
   })();
   </script>
+  <% if learner_signed_in? %>
+  <div id="vox-navdbg" onclick="this.style.display='none'"
+       style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 2px);left:2px;z-index:100000;background:rgba(220,38,38,.9);color:#fff;font:10px/1.3 ui-monospace,monospace;padding:4px 6px;border-radius:6px;">nav…</div>
+  <% end %>
 </body>
 </html>
