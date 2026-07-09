@@ -1,5 +1,5 @@
 // VOX PWA service worker — network-first with offline fallback + push notifications.
-const CACHE = 'vox-v4';
+const CACHE = 'vox-v5';
 const OFFLINE_ASSETS = ['/icon-192.png', '/icon-512.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
