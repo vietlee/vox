@@ -5,24 +5,48 @@ class LearnerDailyReminderJob < ApplicationJob
 
   MAX_TASKS = 4
 
+  # Runs every hour (Asia/Ho_Chi_Minh). Sends a PUSH to each subscribed learner
+  # at the hour THEY chose, and an evening EMAIL nudge at 20:00.
   def perform
     return unless ENV["LEARNER_DAILY_REMINDER"] != "off"
 
-    today = Date.current
-    eligible_learners(today).find_each do |learner|
-      # Skip if already active today (nothing to nudge)
-      next if learner.last_active_on == today
-      # Only email if there's a reason: a streak to protect OR pending work
-      next unless learner.current_streak >= 1 || self.class.pending_tasks_for(learner).any?
+    today        = Date.current
+    current_hour = Time.current.in_time_zone("Asia/Ho_Chi_Minh").hour
 
-      LearnerMailer.daily_reminder(learner).deliver_later
-      send_push_if_subscribed(learner)
-    rescue => e
-      Rails.logger.warn("[LearnerDailyReminderJob] learner #{learner.id}: #{e.message}")
-    end
+    send_hourly_push(today, current_hour)
+    send_evening_email(today) if current_hour == 20
   end
 
   private
+
+  # Push to every learner whose chosen reminder hour matches the current hour.
+  # They opted in explicitly, so we nudge as long as they haven't studied today
+  # (no streak/pending-task requirement — a plain "come study" reminder).
+  def send_hourly_push(today, current_hour)
+    learner_ids = LearnerPushSubscription
+                    .where(active: true, reminder_hour: current_hour.to_s)
+                    .distinct.pluck(:learner_id)
+    return if learner_ids.empty?
+
+    Learner.where(id: learner_ids).find_each do |learner|
+      next if learner.last_active_on == today   # already studied — nothing to nudge
+      send_push_if_subscribed(learner)
+    rescue => e
+      Rails.logger.warn("[LearnerDailyReminderJob push] learner #{learner.id}: #{e.message}")
+    end
+  end
+
+  # Evening email nudge (20:00) — protect streak / surface pending work.
+  def send_evening_email(today)
+    eligible_learners(today).find_each do |learner|
+      next if learner.last_active_on == today
+      next unless learner.current_streak >= 1 || self.class.pending_tasks_for(learner).any?
+
+      LearnerMailer.daily_reminder(learner).deliver_later
+    rescue => e
+      Rails.logger.warn("[LearnerDailyReminderJob email] learner #{learner.id}: #{e.message}")
+    end
+  end
 
   def send_push_if_subscribed(learner)
     return unless learner.learner_push_subscriptions.where(active: true).exists?
@@ -31,7 +55,7 @@ class LearnerDailyReminderJob < ApplicationJob
     PushNotificationService.send_to_learner(
       learner,
       title: "⏰ Nhắc học VOX",
-      body:  "Bạn chưa học hôm nay.#{streak_msg}",
+      body:  "Đến giờ học rồi!#{streak_msg}",
       url:   "/learner/dashboard"
     )
   end

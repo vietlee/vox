@@ -1,5 +1,10 @@
 class Learner::ProfileController < Learner::BaseController
-  def show; end
+  def show
+    @reminder_hour = current_learner.learner_push_subscriptions
+                                    .where(active: true)
+                                    .order(updated_at: :desc)
+                                    .limit(1).pick(:reminder_hour) || "20"
+  end
 
   def update
     if current_learner.update(profile_params)

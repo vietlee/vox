@@ -113,7 +113,7 @@
       <select id="push-hour-select" onchange="lpUpdateReminderHour(this.value)"
               style="padding:6px 10px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;font-weight:600;color:#1e293b;background:#fff;outline:none;">
         <% (6..23).each do |h| %>
-          <option value="<%= h %>" <%= 'selected' if h == 20 %>><%= h %>:00</option>
+          <option value="<%= h %>" <%= 'selected' if h.to_s == (@reminder_hour || "20").to_s %>><%= h %>:00</option>
         <% end %>
       </select>
     </div>
@@ -212,15 +212,21 @@
 
   window.lpUpdateReminderHour = function(hour) {
     navigator.serviceWorker.getRegistration(SW_URL).then(function(reg) {
-      if (!reg) return;
+      if (!reg) { if (window.showLpToast) showLpToast('Vui lòng bật thông báo trước.', 'error'); return; }
       reg.pushManager.getSubscription().then(function(sub) {
-        if (!sub) return;
+        if (!sub) { if (window.showLpToast) showLpToast('Vui lòng bật thông báo trước.', 'error'); return; }
         var keys = sub.getKey ? { p256dh: bufToB64(sub.getKey('p256dh')), auth: bufToB64(sub.getKey('auth')) } : {};
         fetch(SUBSCRIBE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF() },
           body: JSON.stringify({ subscription: { endpoint: sub.endpoint, keys: keys }, reminder_hour: hour })
-        });
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d && d.ok) { if (window.showLpToast) showLpToast('Đã lưu giờ nhắc: ' + hour + ':00', 'success'); }
+          else { if (window.showLpToast) showLpToast('Không lưu được, thử lại.', 'error'); }
+        })
+        .catch(function(){ if (window.showLpToast) showLpToast('Không lưu được, thử lại.', 'error'); });
       });
     });
   };
