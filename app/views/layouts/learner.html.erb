@@ -59,7 +59,14 @@
     .lp-topbar-logo { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; text-decoration: none; color: white; }
     .lp-credits-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 4px; color: white; text-decoration: none; }
     .lp-main { flex: 1; padding-bottom: calc(56px + min(env(safe-area-inset-bottom, 0px), 34px)); overflow-y: auto; }
-    .lp-page { margin: 0 auto; padding: 20px 16px; max-width: 100%; }
+    /* On phones, vertically center short content so sparse pages (tools, empty
+       lists) don't leave a big empty band above the nav. `safe` makes it fall back
+       to top-aligned when content is taller than the screen — so long/scrolling
+       pages are never clipped. */
+    @media (max-width: 1023px) {
+      .lp-main { display: flex; flex-direction: column; justify-content: safe center; }
+    }
+    .lp-page { margin: 0 auto; padding: 20px 16px; max-width: 100%; width: 100%; }
     @media (min-width: 1024px) {
       .lp-page          { max-width: 58.33%; }
       .lp-page-profile  { max-width: 50%; }
