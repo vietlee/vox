@@ -815,12 +815,11 @@
   <% end %>
 
   <script>
-  // Bottom-nav safe-area hard-fix (backup to the CSS min() clamp).
-  // Some iOS PWAs report a wildly inflated safe-area-inset-bottom, which turns the
-  // bottom nav into a tall bar with a big white gap under the icons. We measure the
-  // real inset via a hidden probe, clamp it to 34px (true iPhone max), and pin the
-  // nav + main padding to exact pixels. Runs on load and every Turbo navigation
-  // (this script sits at the end of <body>, so Turbo re-executes it each time).
+  // Bottom-nav safe-area fix. Only clamps a buggy/inflated safe-area-inset-bottom
+  // (some iOS PWAs report a huge value that balloons the nav). It does NOT move the
+  // nav — the nav stays at its normal fixed bottom:0 position with the icons AND
+  // labels fully visible. (An earlier attempt shifted the nav down to "cover" a
+  // bottom band, which pushed the labels off-screen — reverted.)
   (function () {
     function measure(expr) {
       var p = document.createElement('div');
@@ -830,52 +829,27 @@
       document.body.removeChild(p);
       return (isFinite(h) && h > 0) ? h : 0;
     }
-    // Measure the reserved bottom band once and CACHE it. Re-measuring on every
-    // scroll-driven resize/visualViewport event caused the nav to flicker (iOS
-    // fires those continuously), so we only recompute on load / orientation change.
-    var _gap = null;
-    function computeGap() {
-      var gapA = Math.round(measure('100vh') - measure('100dvh'));
-      var gapB = Math.round((window.screen && window.screen.height ? window.screen.height : 0) - window.innerHeight);
-      var g = Math.max(gapA, gapB);
-      if (!(g > 0) || g > 80) g = 0;                    // sanity clamp
-      return g;
-    }
-    function fixBottomNav(remeasure) {
+    function fixBottomNav() {
       var nav  = document.querySelector('.lp-bottom-nav');
       var main = document.querySelector('.lp-main');
       if (!nav && !main) return;
 
       var inset = measure('env(safe-area-inset-bottom,0px)');
-      if (inset > 34) inset = 34;                       // clamp buggy inflated inset
-      if (remeasure || _gap === null) _gap = computeGap();
-      var gap = _gap;
+      if (!isFinite(inset) || inset < 0) inset = 0;
+      if (inset > 34) inset = 34;                      // clamp buggy inflated value
 
       if (nav) {
-        var bottomPx = (-gap) + 'px';
-        // Only write when changed — avoids any re-layout churn
-        if (nav.style.bottom !== bottomPx) nav.style.bottom = bottomPx;
-        nav.style.height        = (56 + inset) + 'px';  // normal height, shifted down
-        nav.style.paddingBottom = inset + 'px';         // only the home-indicator inset
+        nav.style.bottom        = '0px';                // normal position (clear any stale shift)
+        nav.style.height        = (56 + inset) + 'px';
+        nav.style.paddingBottom = inset + 'px';
       }
-      if (main) main.style.paddingBottom = (56 + inset + gap) + 'px';
-
-      var dbg = document.getElementById('vox-navdbg');
-      if (dbg && nav) {
-        var b = nav.getBoundingClientRect();
-        dbg.textContent = 'gap'+gap+' navBot'+Math.round(b.bottom)+' inner'+window.innerHeight;
-      }
+      if (main) main.style.paddingBottom = (56 + inset) + 'px';
     }
-    fixBottomNav(true);
-    setTimeout(function () { fixBottomNav(true); }, 400);   // one settle pass, then cached
-    document.addEventListener('turbo:load',   function () { fixBottomNav(false); });
-    document.addEventListener('turbo:render', function () { fixBottomNav(false); });
-    window.addEventListener('orientationchange', function () { setTimeout(function () { fixBottomNav(true); }, 250); });
+    fixBottomNav();
+    document.addEventListener('turbo:load',   fixBottomNav);
+    document.addEventListener('turbo:render', fixBottomNav);
+    window.addEventListener('orientationchange', function () { setTimeout(fixBottomNav, 250); });
   })();
   </script>
-  <% if learner_signed_in? %>
-  <div id="vox-navdbg" onclick="this.style.display='none'"
-       style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 2px);left:2px;z-index:100000;background:rgba(220,38,38,.9);color:#fff;font:10px/1.3 ui-monospace,monospace;padding:4px 6px;border-radius:6px;">nav…</div>
-  <% end %>
 </body>
 </html>
