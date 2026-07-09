@@ -42,8 +42,8 @@
       --bottomnav-h: calc(50px + var(--safe-bottom));
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { height: 100%; background: white; }
-    body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--lp-text); display: flex; flex-direction: column; background: white; }
+    html { height: 100%; height: -webkit-fill-available; background: white; }
+    body { height: 100%; min-height: -webkit-fill-available; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--lp-text); display: flex; flex-direction: column; background: white; }
     .lp-main { background: var(--lp-bg); }
     body[data-page="learner-dashboard-library"] .lp-main,
     body[data-page="learner-my_quizzes-index"] .lp-main,
@@ -846,5 +846,41 @@
     window.addEventListener('orientationchange', function () { setTimeout(fixBottomNav, 200); });
   })();
   </script>
+
+  <%# ── TEMP diagnostic: shows what iOS reports so the bottom-gap can be fixed precisely. Tap to hide. REMOVE after diagnosis. ── %>
+  <% if learner_signed_in? %>
+  <div id="vox-dbg" onclick="this.style.display='none'"
+       style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 4px);left:4px;z-index:100000;background:rgba(220,38,38,.92);color:#fff;font:11px/1.45 ui-monospace,monospace;padding:7px 9px;border-radius:8px;white-space:pre;box-shadow:0 4px 16px rgba(0,0,0,.4);">loading…</div>
+  <script>
+  (function(){
+    function probe(prop){
+      var p=document.createElement('div');
+      p.style.cssText='position:fixed;bottom:0;left:0;width:0;height:'+prop+';visibility:hidden;pointer-events:none;';
+      document.body.appendChild(p); var h=p.getBoundingClientRect().height; document.body.removeChild(p); return h;
+    }
+    function upd(){
+      var el=document.getElementById('vox-dbg'); if(!el) return;
+      var vv=window.visualViewport;
+      var sa=window.navigator.standalone===true || matchMedia('(display-mode: standalone)').matches;
+      el.textContent =
+        'innerH  '+window.innerHeight+
+        '\nclientH '+document.documentElement.clientHeight+
+        '\nvvH     '+(vv?Math.round(vv.height):'-')+
+        '\nscreenH '+window.screen.height+
+        '\nbodyH   '+Math.round(document.body.getBoundingClientRect().height)+
+        '\nsafeBot '+probe('env(safe-area-inset-bottom,0px)').toFixed(1)+
+        '\ndvh100  '+probe('100dvh').toFixed(1)+
+        '\nvh100   '+probe('100vh').toFixed(1)+
+        '\nfill    '+probe('-webkit-fill-available').toFixed(1)+
+        '\nstandln '+sa+
+        '\nua '+(/CriOS/.test(navigator.userAgent)?'Chrome':/Safari/.test(navigator.userAgent)?'Safari':'?');
+    }
+    upd();
+    window.addEventListener('resize',upd);
+    if(window.visualViewport) window.visualViewport.addEventListener('resize',upd);
+    document.addEventListener('turbo:load',upd);
+  })();
+  </script>
+  <% end %>
 </body>
 </html>
