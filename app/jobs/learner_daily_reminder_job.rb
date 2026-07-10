@@ -22,14 +22,16 @@ class LearnerDailyReminderJob < ApplicationJob
   # Push to every learner whose chosen reminder hour matches the current hour.
   # They opted in explicitly, so we nudge as long as they haven't studied today
   # (no streak/pending-task requirement — a plain "come study" reminder).
-  def send_hourly_push(today, current_hour)
+  def send_hourly_push(_today, current_hour)
     learner_ids = LearnerPushSubscription
                     .where(active: true, reminder_hour: current_hour.to_s)
                     .distinct.pluck(:learner_id)
     return if learner_ids.empty?
 
+    # Fire at the hour the learner explicitly chose — a user-set reminder should
+    # always arrive at its time (we do NOT skip learners who were active today;
+    # that silently suppressed the reminder for anyone using the app).
     Learner.where(id: learner_ids).find_each do |learner|
-      next if learner.last_active_on == today   # already studied — nothing to nudge
       send_push_if_subscribed(learner)
     rescue => e
       Rails.logger.warn("[LearnerDailyReminderJob push] learner #{learner.id}: #{e.message}")
