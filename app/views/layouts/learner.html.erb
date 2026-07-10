@@ -66,14 +66,27 @@
        (body[data-page=...] rules below) become flex columns with an .lp-fill child
        that stretches to remove the empty band above the nav. */
     .lp-page { margin: 0 auto; padding: 20px 16px; max-width: 100%; width: 100%; flex: 1 0 auto; }
-    /* Tool/generator pages have short forms — make their page a flex column so the
-       body can stretch to fill the height (no empty band above the nav). */
+    /* Tool/generator pages: replicate the WORKING "Luyện nói" (speaking) page —
+       give .lp-page a DEFINITE height via 100dvh (iOS resolves this accurately) so
+       flex-fill children actually stretch. With only flex:1 (no definite height),
+       iOS flexbox refuses to fill and leaves a white band at the bottom. The page
+       scrolls internally if a form is taller than the screen. */
+    body[data-page="learner-tools-summarize"] .lp-main,
+    body[data-page="learner-tools-tts"] .lp-main,
+    body[data-page="learner-tools-stt"] .lp-main,
+    body[data-page="learner-study_plans-index"] .lp-main,
+    body[data-page="learner-my_quizzes-new"] .lp-main,
+    body[data-page="learner-my_flashcards-new"] .lp-main { padding-bottom: 0; overflow: hidden; }
     body[data-page="learner-tools-summarize"] .lp-page,
     body[data-page="learner-tools-tts"] .lp-page,
     body[data-page="learner-tools-stt"] .lp-page,
     body[data-page="learner-study_plans-index"] .lp-page,
     body[data-page="learner-my_quizzes-new"] .lp-page,
-    body[data-page="learner-my_flashcards-new"] .lp-page { display: flex; flex-direction: column; }
+    body[data-page="learner-my_flashcards-new"] .lp-page {
+      display: flex; flex-direction: column; flex: none;
+      height: calc(100dvh - var(--topbar-h) - var(--bottomnav-h));
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+    }
     .lp-fill { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
     /* Generic filler: a transparent flex-grow block pages drop in after their content
        to consume the leftover space, keeping content top-aligned with no bottom gap. */
