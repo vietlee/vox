@@ -8,7 +8,9 @@ class DailyChallengeService
     questions += from_quiz_assignments(count * 2)
     questions += from_flashcards(count * 2) if questions.size < count
 
-    questions = questions.uniq { |q| q["id"] }.sample(count)
+    # Dedupe by question text (ids aren't assigned yet — deduping by q["id"] here
+    # collapsed everything to ONE question because every id was nil), then pick `count`.
+    questions = questions.uniq { |q| q["text"] }.sample(count)
     questions.each_with_index { |q, i| q["id"] = i + 1 }
     questions
   end

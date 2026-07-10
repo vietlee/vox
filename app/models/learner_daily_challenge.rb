@@ -9,7 +9,10 @@ class LearnerDailyChallenge < ApplicationRecord
 
   def self.generate!(learner)
     challenge = for_today(learner)
-    return challenge if challenge.persisted? && challenge.questions.present?
+    # Keep an existing challenge only if it's completed, or already has a proper set
+    # of questions. A previous bug persisted 1-question challenges — regenerate those.
+    return challenge if challenge.completed?
+    return challenge if challenge.persisted? && challenge.questions.to_a.size >= 2
 
     questions = DailyChallengeService.new(learner).generate(QUESTION_COUNT)
     challenge.assign_attributes(questions: questions, total: questions.size)
