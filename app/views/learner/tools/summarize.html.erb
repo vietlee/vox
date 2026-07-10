@@ -27,12 +27,13 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
     </div>
   </div>
 
-  <!-- Input card (grows to fill so the page has no empty band above the nav) -->
-  <div class="lp-sum-card lp-fill">
+  <!-- Input card — fills when there's no result yet; shrinks to content once a
+       result is shown so the result can take over the space (no layout break). -->
+  <div id="lp-sum-input-card" class="lp-sum-card" style="flex:1 1 auto;display:flex;flex-direction:column;min-height:180px;">
     <!-- Prompt -->
-    <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;"><%= t('learner_sum.prompt_label2') %></label>
+    <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;flex-shrink:0;"><%= t('learner_sum.prompt_label2') %></label>
     <textarea id="lp-sum-prompt" rows="4" placeholder="<%= t('learner_sum.prompt_ph2') %>"
-              style="width:100%;flex:1;min-height:120px;padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;color:#1e293b;resize:none;outline:none;font-family:inherit;line-height:1.6;box-sizing:border-box;transition:border-color .2s;"
+              style="width:100%;flex:1 1 auto;min-height:90px;padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;color:#1e293b;resize:none;outline:none;font-family:inherit;line-height:1.6;box-sizing:border-box;transition:border-color .2s;"
               onfocus="this.style.borderColor='#1e3a5f'" onblur="this.style.borderColor='#e2e8f0'"
               oninput="lpSumToggleBtn()"></textarea>
 
@@ -40,28 +41,30 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
     <input id="lp-sum-file-input" type="file" multiple style="display:none;"
            accept=".txt,.md,.csv,.json,.html,.xml,.pdf,.docx,.doc,.png,.jpg,.jpeg,.gif,.webp,.heic"
            onchange="lpSumHandleFiles(this)">
-    <div id="lp-sum-attach-preview" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+    <div id="lp-sum-attach-preview" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px;flex-shrink:0;"></div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:8px;">
+    <!-- Attach (small, own row) -->
+    <div style="margin-top:10px;flex-shrink:0;">
       <label for="lp-sum-file-input"
-             style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;color:#475569;cursor:pointer;transition:all .15s;"
+             style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12.5px;font-weight:600;color:#475569;cursor:pointer;transition:all .15s;"
              onmouseover="this.style.background='#f1f5f9';this.style.borderColor='#cbd5e1'"
              onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0'">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
         <%= t('learner_sum.attach2') %>
       </label>
-
-      <button id="lp-sum-btn" onclick="lpSumGenerate()" disabled
-              style="flex:1;max-width:180px;padding:8px 16px;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;border:none;border-radius:10px;cursor:pointer;opacity:.4;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .15s;">
-        <svg id="lp-sum-spin" width="14" height="14" fill="none" viewBox="0 0 24 24" style="display:none;animation:lp-spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="3" opacity=".25"/><path fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-        <span id="lp-sum-btn-label">✨ <%= t('learner_sum.summarize') %></span>
-      </button>
     </div>
+
+    <!-- Generate — full width, prominent -->
+    <button id="lp-sum-btn" onclick="lpSumGenerate()" disabled
+            style="width:100%;margin-top:12px;flex-shrink:0;padding:14px;background:#1e3a5f;color:#fff;font-size:15px;font-weight:700;border:none;border-radius:12px;cursor:pointer;opacity:.4;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;">
+      <svg id="lp-sum-spin" width="16" height="16" fill="none" viewBox="0 0 24 24" style="display:none;animation:lp-spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="3" opacity=".25"/><path fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+      <span id="lp-sum-btn-label">✨ <%= t('learner_sum.summarize') %></span>
+    </button>
   </div>
 
-  <!-- Result -->
-  <div id="lp-sum-result" style="display:none;" class="lp-sum-card">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;">
+  <!-- Result (fills remaining height; body scrolls) -->
+  <div id="lp-sum-result" style="display:none;flex:1 1 auto;flex-direction:column;min-height:0;" class="lp-sum-card">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;flex-shrink:0;">
       <div style="flex:1;">
         <p style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px;"><%= t('learner_sum.result') %></p>
         <p id="lp-sum-title-display" style="font-size:14px;font-weight:700;color:#1e293b;margin:0;"></p>
@@ -74,8 +77,8 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
         <%= t('learner_sum.save') %>
       </button>
     </div>
-    <div id="lp-sum-body" style="font-size:14px;color:#1e293b;line-height:1.75;"></div>
-    <div style="margin-top:10px;display:flex;gap:6px;">
+    <div id="lp-sum-body" style="font-size:14px;color:#1e293b;line-height:1.75;flex:1 1 auto;overflow-y:auto;min-height:0;"></div>
+    <div style="margin-top:10px;display:flex;gap:6px;flex-shrink:0;">
       <button onclick="lpSumCopy()" style="padding:5px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#475569;cursor:pointer;">📋 <%= t('learner_sum.copy') %></button>
       <button onclick="lpSumNew()" style="padding:5px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;"><%= t('learner_sum.new_one') %></button>
     </div>
@@ -175,8 +178,9 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
       _currentResult = { title: data.title, summary: data.summary, created_at: new Date().toISOString() };
       document.getElementById('lp-sum-title-display').textContent = data.title;
       document.getElementById('lp-sum-body').innerHTML = lpMd(data.summary);
-      document.getElementById('lp-sum-result').style.display = 'block';
-      document.getElementById('lp-sum-result').scrollIntoView({behavior:'smooth', block:'nearest'});
+      document.getElementById('lp-sum-result').style.display = 'flex';
+      // Shrink the input card to its content so the result takes over the space
+      document.getElementById('lp-sum-input-card').style.flex = '0 1 auto';
       const cr = document.getElementById('lp-sum-credits'); if (cr) cr.textContent = data.credits_remaining;
       if (window.updateLpCredits) updateLpCredits(data.credits_remaining);
     } catch(e) {
@@ -208,6 +212,8 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
     document.getElementById('lp-sum-prompt').value = '';
     document.getElementById('lp-sum-result').style.display = 'none';
     document.getElementById('lp-sum-error').style.display  = 'none';
+    // Restore the input card to fill the height again
+    document.getElementById('lp-sum-input-card').style.flex = '1 1 auto';
     lpSumRenderAttach(); lpSumToggleBtn();
     document.getElementById('lp-sum-prompt').focus();
   };
