@@ -462,10 +462,32 @@
 
   <script>
   (function(){
-    // Register service worker (required for installability)
+    // Register service worker (required for installability).
+    // updateViaCache:'none' forces the browser to bypass the HTTP cache when
+    // checking service-worker.js for updates — without this, iOS keeps serving a
+    // stale SW (and stale cached HTML) for up to 24h, so app updates never appear.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function(){
-        navigator.serviceWorker.register('/service-worker.js').catch(function(){});
+        navigator.serviceWorker.register('/service-worker.js', { updateViaCache: 'none' })
+          .then(function(reg){
+            reg.update();  // check for a new SW immediately on every launch
+            // If a new SW is waiting, activate it and reload once to apply fresh code.
+            reg.addEventListener('updatefound', function(){
+              var sw = reg.installing;
+              if (!sw) return;
+              sw.addEventListener('statechange', function(){
+                if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                  window.location.reload();
+                }
+              });
+            });
+          })
+          .catch(function(){});
+        // When the controlling SW changes (new one took over), reload once for fresh code.
+        var _reloaded = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function(){
+          if (_reloaded) return; _reloaded = true; window.location.reload();
+        });
       });
     }
 
