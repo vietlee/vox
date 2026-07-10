@@ -179,8 +179,10 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
       document.getElementById('lp-sum-title-display').textContent = data.title;
       document.getElementById('lp-sum-body').innerHTML = lpMd(data.summary);
       document.getElementById('lp-sum-result').style.display = 'flex';
-      // Shrink the input card to its content so the result takes over the space
-      document.getElementById('lp-sum-input-card').style.flex = '0 1 auto';
+      // Input card keeps its FULL natural height (0 0 auto = don't grow, don't shrink)
+      // so the textarea + attach + generate button stay fully visible; the result
+      // card takes the remaining space and scrolls internally.
+      document.getElementById('lp-sum-input-card').style.flex = '0 0 auto';
       const cr = document.getElementById('lp-sum-credits'); if (cr) cr.textContent = data.credits_remaining;
       if (window.updateLpCredits) updateLpCredits(data.credits_remaining);
     } catch(e) {
