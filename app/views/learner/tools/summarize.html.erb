@@ -152,18 +152,33 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
     btn.disabled = !ok; btn.style.opacity = ok ? '1' : '0.4'; btn.style.cursor = ok ? 'pointer' : 'not-allowed';
   };
 
+  // Reveal the summary result inline (used on completion; also from the minimized toast)
+  function lpSumReveal(data) {
+    var r = document.getElementById('lp-sum-result');
+    if (!r) return;
+    document.getElementById('lp-sum-title-display').textContent = data.title;
+    document.getElementById('lp-sum-body').innerHTML = lpMd(data.summary);
+    r.style.display = 'flex';
+    // Input card keeps full natural height; result card takes the rest and scrolls.
+    document.getElementById('lp-sum-input-card').style.flex = '0 0 auto';
+    r.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
   // ── Generate ─────────────────────────────────────────────────────
   window.lpSumGenerate = async function() {
     const prompt = document.getElementById('lp-sum-prompt').value.trim();
     if (!prompt && !_attached.length) return;
 
-    const btn    = document.getElementById('lp-sum-btn');
-    const spin   = document.getElementById('lp-sum-spin');
-    const label  = document.getElementById('lp-sum-btn-label');
+    const btn = document.getElementById('lp-sum-btn');
     btn.disabled = true; btn.style.opacity = '.7';
-    spin.style.display = 'inline-block'; label.textContent = '<%= j t('learner_sum.summarizing') %>';
     document.getElementById('lp-sum-result').style.display = 'none';
     document.getElementById('lp-sum-error').style.display  = 'none';
+    // Full-screen loading overlay (minimizable) — consistent with the AI generators
+    AiProgress.start({
+      title: '<%= j t('learner_sum.summarizing') %>',
+      miniLabel: '<%= j t('learner_sum.title') %>',
+      msgs: ['<%= j t('learner_sum.summarizing') %>', 'AI đang đọc nội dung…', 'Đang rút gọn ý chính…']
+    });
 
     try {
       const fd = new FormData();
@@ -176,21 +191,18 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
       if (data.error) throw new Error(data.error);
 
       _currentResult = { title: data.title, summary: data.summary, created_at: new Date().toISOString() };
-      document.getElementById('lp-sum-title-display').textContent = data.title;
-      document.getElementById('lp-sum-body').innerHTML = lpMd(data.summary);
-      document.getElementById('lp-sum-result').style.display = 'flex';
-      // Input card keeps its FULL natural height (0 0 auto = don't grow, don't shrink)
-      // so the textarea + attach + generate button stay fully visible; the result
-      // card takes the remaining space and scrolls internally.
-      document.getElementById('lp-sum-input-card').style.flex = '0 0 auto';
       const cr = document.getElementById('lp-sum-credits'); if (cr) cr.textContent = data.credits_remaining;
       if (window.updateLpCredits) updateLpCredits(data.credits_remaining);
+      AiProgress.finishInline(function(){ lpSumReveal(data); }, '<%= j t('learner_sum.result') %>');
     } catch(e) {
-      const el = document.getElementById('lp-sum-error');
-      el.style.display = 'block'; el.textContent = '⚠️ ' + e.message;
+      const wasMin = AiProgress.isMinimized();
+      AiProgress.error();
+      if (!wasMin) {
+        const el = document.getElementById('lp-sum-error');
+        el.style.display = 'block'; el.textContent = '⚠️ ' + e.message;
+      }
     } finally {
       btn.disabled = false; btn.style.opacity = '1';
-      spin.style.display = 'none'; label.textContent = '✨ <%= j t('learner_sum.summarize') %>';
       lpSumToggleBtn();
     }
   };

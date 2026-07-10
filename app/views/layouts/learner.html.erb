@@ -782,6 +782,7 @@
           setBar(100);
           $id('aip-mini').style.display = 'none';
           var lnk = $id('aip-toast-link');
+          lnk.onclick = null;              // clear any stale inline handler
           lnk.href = url;
           lnk.textContent = (label || 'Mở ngay') + ' →';
           var t = $id('aip-toast'); t.style.display = 'block';
@@ -794,6 +795,31 @@
           setBar(100);
           $id('aip-msg').textContent = 'Hoàn tất!';
           setTimeout(function() { window.location = url; }, 500);
+        }
+      },
+
+      // Inline completion: result appears on the SAME page (no redirect). `reveal`
+      // is a callback that shows the inline result. Supports minimize while on-page.
+      finishInline: function(reveal, label) {
+        clearInterval(_ticker); clearInterval(_msgInt);
+        try { sessionStorage.removeItem(_SS); } catch(e) {}
+        setBar(100);
+        if (_minimized) {
+          $id('aip-mini').style.display = 'none';
+          var lnk = $id('aip-toast-link');
+          lnk.href = '#';
+          lnk.textContent = (label || 'Xem kết quả') + ' →';
+          lnk.onclick = function(e) { e.preventDefault(); AiProgress.dismissToast(); try { if (reveal) reveal(); } catch(_){} };
+          var t = $id('aip-toast'); t.style.display = 'block';
+          var bar = $id('aip-toast-bar');
+          bar.style.transition = 'none'; bar.style.width = '100%';
+          setTimeout(function() { bar.style.transition = 'width 5s linear'; bar.style.width = '0%'; }, 60);
+          clearTimeout(_toastTimer);
+          _toastTimer = setTimeout(function() { AiProgress.dismissToast(); }, 5200);
+        } else {
+          $id('aip-overlay').style.display = 'none';
+          $id('aip-mini').style.display    = 'none';
+          try { if (reveal) reveal(); } catch(_){}
         }
       },
 

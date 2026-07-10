@@ -130,15 +130,30 @@
     };
     window.lpTtsToggleBtn = lpTtsUpdate;
 
+    // Reveal the generated audio inline (on completion or from the minimized toast)
+    function lpTtsReveal(url) {
+      const player = document.getElementById('lp-tts-player');
+      const dlLink = document.getElementById('lp-tts-download');
+      if (!player) return;
+      player.src = url; dlLink.href = url;
+      document.getElementById('lp-tts-result').style.display = 'block';
+      document.getElementById('lp-tts-result').scrollIntoView({behavior:'smooth', block:'nearest'});
+      const p = player.play(); if (p && p.catch) p.catch(function(){});
+    }
+
     window.lpTtsGenerate = async function() {
       const text = document.getElementById('lp-tts-text').value.trim();
       if (!text) return;
       const btn = document.getElementById('lp-tts-btn');
-      const spinner = document.getElementById('lp-tts-spinner');
-      const label   = document.getElementById('lp-tts-btn-label');
-      btn.disabled = true; spinner.style.display = 'block'; label.textContent = '<%= j t('learner_tts.generating') %>';
+      btn.disabled = true;
       document.getElementById('lp-tts-result').style.display = 'none';
       document.getElementById('lp-tts-error').style.display = 'none';
+      // Full-screen loading overlay (minimizable) — consistent with the AI generators
+      AiProgress.start({
+        title: '<%= j t('learner_tts.generating') %>',
+        miniLabel: '<%= j t('learner_tts.title', default: 'Text to Speech') %>',
+        msgs: ['<%= j t('learner_tts.generating') %>', 'AI đang tạo giọng nói…']
+      });
       try {
         const fd = new FormData();
         fd.append('text', text);
@@ -155,17 +170,17 @@
         const arr    = new Uint8Array(bytes.length);
         for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
         const url    = URL.createObjectURL(new Blob([arr], {type:'audio/mpeg'}));
-        const player = document.getElementById('lp-tts-player');
-        const dlLink = document.getElementById('lp-tts-download');
-        player.src = url; dlLink.href = url;
-        document.getElementById('lp-tts-result').style.display = 'block';
-        player.play();
         if (window.updateLpCredits) updateLpCredits(data.credits_remaining);
+        AiProgress.finishInline(function(){ lpTtsReveal(url); }, '<%= j t('learner_tts.result') %>');
       } catch(e) {
-        const el = document.getElementById('lp-tts-error');
-        el.style.display = 'block'; el.textContent = '⚠️ ' + e.message;
+        const wasMin = AiProgress.isMinimized();
+        AiProgress.error();
+        if (!wasMin) {
+          const el = document.getElementById('lp-tts-error');
+          el.style.display = 'block'; el.textContent = '⚠️ ' + e.message;
+        }
       } finally {
-        btn.disabled = false; spinner.style.display = 'none'; label.textContent = '🎙️ <%= j t('learner_tts.generate') %>';
+        btn.disabled = false;
         lpTtsToggleBtn();
       }
     };
