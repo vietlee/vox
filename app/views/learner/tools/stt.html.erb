@@ -121,10 +121,10 @@
 </div>
 
 <!-- ===== Live transcript / result ===== -->
-<div id="stt-result-area" style="display:grid;gap:10px;">
+<div id="stt-result-area" style="display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;">
 
   <!-- Transcript box -->
-  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;flex:1;display:flex;flex-direction:column;min-height:0;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0;" id="stt-box1-label"><%= t('learner_stt.orig_text') %></p>
       <div style="display:flex;gap:6px;">
@@ -132,14 +132,14 @@
         <button onclick="sttClear()" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;"><%= t('learner_stt.clear') %></button>
       </div>
     </div>
-    <div style="min-height:80px;padding:10px;background:#f8fafc;border-radius:8px;position:relative;">
+    <div style="flex:1;min-height:80px;padding:10px;background:#f8fafc;border-radius:8px;position:relative;overflow-y:auto;">
       <span id="stt-transcript-final" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span><span id="stt-transcript-interim" style="font-size:14px;color:#94a3b8;line-height:1.8;font-style:italic;white-space:pre-wrap;"></span>
       <p id="stt-placeholder" style="font-size:13px;color:#cbd5e1;margin:0;position:absolute;top:10px;left:10px;"><%= t('learner_stt.placeholder_live') %></p>
     </div>
   </div>
 
   <!-- Translation box (hidden in transcribe mode) -->
-  <div id="stt-translation-box" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
+  <div id="stt-translation-box" style="display:none;flex:1;flex-direction:column;min-height:0;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0;" id="stt-box2-label"><%= t('learner_stt.translation') %></p>
       <div style="display:flex;gap:6px;align-items:center;">
@@ -149,7 +149,7 @@
         <button onclick="sttCopy('stt-translation-text')" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#475569;cursor:pointer;">📋 <%= t('learner_stt.copy') %></button>
       </div>
     </div>
-    <div style="min-height:80px;padding:10px;background:#f5f3ff;border-radius:8px;">
+    <div style="flex:1;min-height:80px;padding:10px;background:#f5f3ff;border-radius:8px;overflow-y:auto;">
       <span id="stt-translation-text" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span>
       <span id="stt-translation-interim" style="font-size:14px;color:#94a3b8;line-height:1.8;font-style:italic;"></span>
     </div>
@@ -209,7 +209,7 @@
     btnTl.style.color          = isTrans ? '#fff' : '#1e3a5f';
     btnTl.style.boxShadow      = isTrans ? '0 2px 8px rgba(30,58,95,.25)' : 'none';
     document.getElementById('stt-translate-opts').style.display  = isTrans ? 'block' : 'none';
-    document.getElementById('stt-translation-box').style.display = isTrans ? 'block' : 'none';
+    document.getElementById('stt-translation-box').style.display = isTrans ? 'flex' : 'none';
     document.getElementById('stt-box1-label').textContent        = isTrans ? '<%= j t('learner_stt.orig_text') %>' : '<%= j t('learner_stt.result') %>';
   };
 

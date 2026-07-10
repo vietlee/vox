@@ -66,8 +66,18 @@
        (body[data-page=...] rules below) become flex columns with an .lp-fill child
        that stretches to remove the empty band above the nav. */
     .lp-page { margin: 0 auto; padding: 20px 16px; max-width: 100%; width: 100%; flex: 1 0 auto; }
-    body[data-page="learner-tools-summarize"] .lp-page { display: flex; flex-direction: column; }
+    /* Tool/generator pages have short forms — make their page a flex column so the
+       body can stretch to fill the height (no empty band above the nav). */
+    body[data-page="learner-tools-summarize"] .lp-page,
+    body[data-page="learner-tools-tts"] .lp-page,
+    body[data-page="learner-tools-stt"] .lp-page,
+    body[data-page="learner-study_plans-index"] .lp-page,
+    body[data-page="learner-my_quizzes-new"] .lp-page,
+    body[data-page="learner-my_flashcards-new"] .lp-page { display: flex; flex-direction: column; }
     .lp-fill { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+    /* Generic filler: a transparent flex-grow block pages drop in after their content
+       to consume the leftover space, keeping content top-aligned with no bottom gap. */
+    .lp-spacer { flex: 1 1 auto; min-height: 0; }
     @media (min-width: 1024px) {
       .lp-page          { max-width: 58.33%; }
       .lp-page-profile  { max-width: 50%; }
