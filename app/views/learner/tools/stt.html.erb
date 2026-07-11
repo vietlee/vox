@@ -4,18 +4,6 @@
   <span class="lp-bc-current">Speech to Text</span>
 <% end %>
 
-<!-- Header -->
-<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-  <%= link_to learner_root_path, style:"display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;background:#f1f5f9;color:#64748b;text-decoration:none;flex-shrink:0;" do %>
-    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-  <% end %>
-  <div style="width:36px;height:36px;border-radius:10px;background:#fdf4ff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🎙️</div>
-  <div>
-    <h1 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">Speech to Text</h1>
-    <p style="font-size:12px;color:#64748b;margin:0;"><%= t('learner_stt.subtitle_full') %></p>
-  </div>
-</div>
-
 <% if @has_stt %>
 
 <!-- ===== Mode toggle: Transcription vs Translation ===== -->
@@ -32,27 +20,24 @@
 </div>
 
 <!-- Translation target (hidden in transcription mode) -->
-<div id="stt-translate-opts" style="display:none;margin-bottom:14px;">
-  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;">
-    <p style="font-size:12px;font-weight:700;color:#374151;margin:0 0 8px;"><%= t('learner_stt.translate_to') %></p>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;" id="stt-lang-btns">
-      <% [
-        ['vi','🇻🇳 Tiếng Việt','Vietnamese'],
-        ['en','🇬🇧 English','English'],
-        ['ja','🇯🇵 日本語','Japanese'],
-        ['ko','🇰🇷 한국어','Korean'],
-        ['zh','🇨🇳 中文','Chinese'],
-        ['fr','🇫🇷 Français','French'],
-        ['es','🇪🇸 Español','Spanish'],
-      ].each do |code, label, name| %>
-        <button onclick="setTranslateLang('<%= code %>','<%= name %>')"
-                data-lang="<%= code %>" data-name="<%= name %>"
-                style="padding:6px 12px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;color:#475569;cursor:pointer;transition:all .15s;">
-          <%= label %>
-        </button>
-      <% end %>
-    </div>
-    <p style="font-size:11px;color:#94a3b8;margin:8px 0 0;"><%= t('learner_stt.translate_cost') %></p>
+<div id="stt-translate-opts" style="display:none;margin-bottom:10px;">
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding:2px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;" id="stt-lang-btns">
+    <span style="font-size:11px;font-weight:700;color:#64748b;white-space:nowrap;flex-shrink:0;"><%= t('learner_stt.translate_to') %>:</span>
+    <% [
+      ['vi','🇻🇳 VI','Vietnamese'],
+      ['en','🇬🇧 EN','English'],
+      ['ja','🇯🇵 JA','Japanese'],
+      ['ko','🇰🇷 KO','Korean'],
+      ['zh','🇨🇳 ZH','Chinese'],
+      ['fr','🇫🇷 FR','French'],
+      ['es','🇪🇸 ES','Spanish'],
+    ].each do |code, label, name| %>
+      <button onclick="setTranslateLang('<%= code %>','<%= name %>')"
+              data-lang="<%= code %>" data-name="<%= name %>"
+              style="padding:5px 10px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;color:#475569;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;">
+        <%= label %>
+      </button>
+    <% end %>
   </div>
 </div>
 
@@ -70,11 +55,10 @@
   </div>
 
   <!-- ── Mic panel ── -->
-  <div id="stt-panel-mic" style="padding:20px;text-align:center;">
-
-    <!-- Source language hint for mic -->
-    <div style="display:flex;justify-content:center;margin-bottom:16px;">
-      <select id="stt-src-lang" style="padding:6px 12px;border:1.5px solid #e2e8f0;border-radius:20px;font-size:12px;font-weight:600;color:#475569;background:#f8fafc;outline:none;cursor:pointer;">
+  <div id="stt-panel-mic" style="padding:14px 16px;text-align:center;">
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
+      <!-- Source language hint -->
+      <select id="stt-src-lang" style="padding:5px 10px;border:1.5px solid #e2e8f0;border-radius:20px;font-size:12px;font-weight:600;color:#475569;background:#f8fafc;outline:none;cursor:pointer;">
         <option value="">🌍 <%= t('learner_stt.auto_detect') %></option>
         <option value="vi-VN">🇻🇳 Tiếng Việt</option>
         <option value="en-US">🇬🇧 English</option>
@@ -83,20 +67,20 @@
         <option value="zh-CN">🇨🇳 中文</option>
         <option value="fr-FR">🇫🇷 Français</option>
       </select>
+      <!-- Orb -->
+      <div id="stt-orb" onclick="sttToggleMic()"
+           style="width:64px;height:64px;border-radius:50%;background:#f1f5f9;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s;user-select:none;flex-shrink:0;">
+        <svg id="stt-orb-icon" width="26" height="26" fill="none" stroke="#64748b" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+        </svg>
+      </div>
+      <div style="text-align:left;">
+        <p id="stt-orb-status" style="font-size:13px;font-weight:700;color:#64748b;margin:0 0 2px;"><%= t('learner_stt.mic_hint') %></p>
+        <p style="font-size:11px;color:#94a3b8;margin:0;"><%= t('learner_stt.realtime_free') %></p>
+      </div>
     </div>
-
-    <!-- Orb -->
-    <div id="stt-orb" onclick="sttToggleMic()"
-         style="width:80px;height:80px;border-radius:50%;background:#f1f5f9;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;cursor:pointer;transition:all .25s;user-select:none;">
-      <svg id="stt-orb-icon" width="32" height="32" fill="none" stroke="#64748b" viewBox="0 0 24 24" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
-      </svg>
-    </div>
-    <p id="stt-orb-status" style="font-size:13px;font-weight:700;color:#64748b;margin:0 0 3px;"><%= t('learner_stt.mic_hint') %></p>
-    <p style="font-size:11px;color:#94a3b8;margin:0;"><%= t('learner_stt.realtime_free') %></p>
-
     <!-- Waveform bars -->
-    <div id="stt-wave" style="display:none;justify-content:center;gap:2px;align-items:flex-end;height:28px;margin:12px 0 0;">
+    <div id="stt-wave" style="display:none;justify-content:center;gap:2px;align-items:flex-end;height:22px;margin:10px 0 0;">
       <% 14.times do |i| %>
         <div style="width:3px;background:#ef4444;border-radius:99px;height:8px;animation:lp-wave <%= 0.7+(i%4)*0.15 %>s ease-in-out infinite alternate <%= (i*0.06).round(2) %>s;"></div>
       <% end %>
@@ -121,10 +105,10 @@
 </div>
 
 <!-- ===== Live transcript / result ===== -->
-<div id="stt-result-area" style="display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;">
+<div id="stt-result-area" style="display:flex;flex-direction:column;gap:10px;">
 
   <!-- Transcript box -->
-  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;flex:1;display:flex;flex-direction:column;min-height:0;">
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0;" id="stt-box1-label"><%= t('learner_stt.orig_text') %></p>
       <div style="display:flex;gap:6px;">
@@ -132,14 +116,14 @@
         <button onclick="sttClear()" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;"><%= t('learner_stt.clear') %></button>
       </div>
     </div>
-    <div style="flex:1;min-height:80px;padding:10px;background:#f8fafc;border-radius:8px;position:relative;overflow-y:auto;">
+    <div style="min-height:70px;max-height:160px;padding:10px;background:#f8fafc;border-radius:8px;position:relative;overflow-y:auto;">
       <span id="stt-transcript-final" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span><span id="stt-transcript-interim" style="font-size:14px;color:#94a3b8;line-height:1.8;font-style:italic;white-space:pre-wrap;"></span>
       <p id="stt-placeholder" style="font-size:13px;color:#cbd5e1;margin:0;position:absolute;top:10px;left:10px;"><%= t('learner_stt.placeholder_live') %></p>
     </div>
   </div>
 
   <!-- Translation box (hidden in transcribe mode) -->
-  <div id="stt-translation-box" style="display:none;flex:1;flex-direction:column;min-height:0;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
+  <div id="stt-translation-box" style="display:none;flex-direction:column;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0;" id="stt-box2-label"><%= t('learner_stt.translation') %></p>
       <div style="display:flex;gap:6px;align-items:center;">
@@ -149,7 +133,7 @@
         <button onclick="sttCopy('stt-translation-text')" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#475569;cursor:pointer;">📋 <%= t('learner_stt.copy') %></button>
       </div>
     </div>
-    <div style="flex:1;min-height:80px;padding:10px;background:#f5f3ff;border-radius:8px;overflow-y:auto;">
+    <div style="min-height:70px;max-height:160px;padding:10px;background:#f5f3ff;border-radius:8px;overflow-y:auto;">
       <span id="stt-translation-text" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span>
       <span id="stt-translation-interim" style="font-size:14px;color:#94a3b8;line-height:1.8;font-style:italic;"></span>
     </div>
