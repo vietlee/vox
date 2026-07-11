@@ -100,6 +100,8 @@
 
   var _totalCards = <%= @deck.flashcards.count %>;
   var _allDoneCount = 0;
+  var _lastDone = -1;
+  var _stuckCount = 0;
 
   function startOverlay(){
     AiProgress.start({
@@ -109,9 +111,14 @@
     });
   }
 
+  function forceFinish(){
+    fetch(RESET_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF} }).catch(function(){});
+    AiProgress.finish(PAGE_URL, LBL_READY);
+  }
+
   function poll(){
     _pollCount++;
-    if (_pollCount > 300) {  // ~15 minutes max
+    if (_pollCount > 100) {  // ~5 minutes max
       fetch(RESET_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF} }).catch(function(){});
       AiProgress.error();
       showLpToast(LBL_TOUT, 'error');
@@ -129,13 +136,18 @@
             if (AiProgress.setProgress) AiProgress.setProgress(cardPct, msg);
             if (allDone) {
               _allDoneCount++;
-              if (_allDoneCount >= 2) {
-                fetch(RESET_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF} }).catch(function(){});
-                AiProgress.finish(PAGE_URL, LBL_READY);
-                return;
-              }
+              if (_allDoneCount >= 2) { forceFinish(); return; }
             } else {
               _allDoneCount = 0;
+            }
+            // Stuck detector: if done count hasn't changed for 15 polls (~45s) and
+            // we have at least 1 card done, some cards likely failed — finish anyway.
+            if (d.done === _lastDone) {
+              _stuckCount++;
+              if (_stuckCount >= 15 && d.done > 0) { forceFinish(); return; }
+            } else {
+              _stuckCount = 0;
+              _lastDone = d.done;
             }
           }
           setTimeout(poll, 3000);
