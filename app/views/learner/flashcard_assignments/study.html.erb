@@ -179,9 +179,50 @@ function fcNormalizeTTS(text) {
     .trim();
 }
 
-/* Returns true when text contains both Vietnamese diacritics and multi-char English words */
-function fcTextIsMixed(t) {
-  return FC_VI_RE.test(t) && /[a-zA-Z]{4,}/.test(t);
+/* Split mixed text into [{lang, text}] segments at VI/EN word boundaries.
+   Punctuation and numbers are absorbed into the current segment. */
+function fcSplitLang(text) {
+  var tokens = text.match(/[^\s]+|\s+/g) || [];
+  var segs = [], cur = null;
+  tokens.forEach(function(tok) {
+    if (/^\s+$/.test(tok)) { if (cur) cur.text += tok; return; }
+    var lang = FC_VI_RE.test(tok) ? 'vi'
+             : (/[a-zA-Z]{3,}/.test(tok) ? 'en' : null);
+    if (!lang) { if (cur) cur.text += tok; return; } // punct/numbers: attach to current
+    if (!cur) { cur = {lang: lang, text: tok}; return; }
+    if (lang === cur.lang) { cur.text += tok; }
+    else { segs.push(cur); cur = {lang: lang, text: tok}; }
+  });
+  if (cur && cur.text.trim()) segs.push(cur);
+  return segs.length ? segs : [{lang: fcDetectLang(text), text: text}];
+}
+
+/* Fetch TTS for one segment with eleven_flash_v2_5 + correct language/voice. */
+function fcFetchSeg(segText, lang) {
+  segText = segText.trim();
+  if (!segText) return Promise.resolve({url: null, credits: null});
+  var key = 'seg:' + lang + ':' + segText;
+  if (_ttsCache[key]) return Promise.resolve({url: _ttsCache[key], credits: null});
+  var fd = new FormData();
+  fd.append('text', segText);
+  fd.append('model', 'eleven_flash_v2_5');
+  fd.append('language_code', lang);
+  fd.append('voice_id', FC_VOICE[lang]);
+  fd.append('stability', '0.4');
+  fd.append('similarity', '0.85');
+  fd.append('speed', '0.82');
+  fd.append('authenticity_token', _csrf);
+  return fetch(TTS_URL, {method:'POST', body:fd})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.error) return {url: null, credits: d.credits_remaining};
+      var bin = atob(d.audio_base64), arr = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      var url = URL.createObjectURL(new Blob([arr], {type:'audio/mpeg'}));
+      _ttsCache[key] = url;
+      return {url: url, credits: d.credits_remaining};
+    })
+    .catch(function(){ return {url: null, credits: null}; });
 }
 
 function fcSpeakRaw(text, btn) {
@@ -190,32 +231,30 @@ function fcSpeakRaw(text, btn) {
   if (_ttsBusy) return;
   _ttsBusy = true;
   if (btn) btn.classList.add('speaking');
-  var lang = fcDetectLang(text);
-  var mixed = fcTextIsMixed(text);
-  var fd = new FormData();
-  fd.append('text', text);
-  fd.append('model', mixed ? 'eleven_multilingual_v2' : 'eleven_flash_v2_5'); /* multilingual_v2 handles code-switching naturally */
-  if (!mixed) fd.append('language_code', lang);
-  fd.append('voice_id', FC_VOICE[lang]);
-  fd.append('stability', '0.4');
-  fd.append('similarity', '0.85');
-  fd.append('speed', '0.82');
-  fd.append('authenticity_token', _csrf);
-  fetch(TTS_URL, { method:'POST', body:fd })
-    .then(function(r){ return r.json(); })
-    .then(function(d){
+
+  var mixed = FC_VI_RE.test(text) && /[a-zA-Z]{4,}/.test(text);
+  var segs  = mixed ? fcSplitLang(text) : [{lang: fcDetectLang(text), text: text}];
+
+  /* Fetch all segments in parallel, then play sequentially */
+  Promise.all(segs.map(function(s){ return fcFetchSeg(s.text, s.lang); }))
+    .then(function(results) {
       _ttsBusy = false;
-      if (d.error) {
-        if (btn) btn.classList.remove('speaking');
-        if (d.credits_remaining != null && window.updateLpCredits) updateLpCredits(d.credits_remaining);
-        return;
-      }
-      var bin = atob(d.audio_base64), arr = new Uint8Array(bin.length);
-      for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-      var url = URL.createObjectURL(new Blob([arr], { type:'audio/mpeg' }));
-      _ttsCache[text] = url;
-      if (window.updateLpCredits) updateLpCredits(d.credits_remaining);
-      fcPlayUrl(url, btn);
+      var lastCredits = null;
+      var urls = [];
+      results.forEach(function(r){
+        if (r.credits != null) lastCredits = r.credits;
+        if (r.url) urls.push(r.url);
+      });
+      if (lastCredits != null && window.updateLpCredits) updateLpCredits(lastCredits);
+      if (!mixed && urls[0]) _ttsCache[text] = urls[0]; /* cache single-lang by full text */
+      if (!urls.length) { if (btn) btn.classList.remove('speaking'); return; }
+      fcStopAudio();
+      (function play(i) {
+        if (i >= urls.length) { if (btn) btn.classList.remove('speaking'); return; }
+        _fcAudio.onended = _fcAudio.onerror = function(){ play(i + 1); };
+        _fcAudio.src = urls[i];
+        var p = _fcAudio.play(); if (p && p.catch) p.catch(function(){ play(i + 1); });
+      })(0);
     })
     .catch(function(){ _ttsBusy = false; if (btn) btn.classList.remove('speaking'); });
 }
