@@ -158,6 +158,14 @@ function fcDetectLang(t){
 // Language-matched voices
 var FC_VOICE = { en: '21m00Tcm4TlvDq8ikWAM', vi: 'EXAVITQu4vr4xnSDxMaL' }; // Rachel (EN) · Sarah (VI)
 
+/* Strip IPA phonetic notation before TTS — e.g. "penguin /ˈpeŋwɪn/" → "penguin" */
+function fcStripIPA(text) {
+  return (text || '')
+    .replace(/\s*\/[^/]{1,60}\//g, '')   // /ˈpeŋwɪn/ style
+    .replace(/\s*\[[^\]]{1,60}\]/g, '')   // [phonetics] style
+    .trim();
+}
+
 function fcSpeakRaw(text, btn) {
   if (!text) return;
   if (_ttsCache[text]) { fcPlayUrl(_ttsCache[text], btn); return; }  /* free replay */
@@ -172,7 +180,7 @@ function fcSpeakRaw(text, btn) {
   fd.append('voice_id', FC_VOICE[lang]);
   fd.append('stability', '0.4');
   fd.append('similarity', '0.85');
-  fd.append('speed', '0.95');
+  fd.append('speed', '0.82');
   fd.append('authenticity_token', _csrf);
   fetch(TTS_URL, { method:'POST', body:fd })
     .then(function(r){ return r.json(); })
@@ -203,7 +211,7 @@ function fcSpeak(text) {
 function speakSide(side) {
   var card = _queue[0];
   if (!card) return;
-  var text = side === 'back' ? card.back : card.front;
+  var text = side === 'back' ? card.back : fcStripIPA(card.front);
   var btn  = document.querySelector('.fc-speak-' + side);
   fcSpeakRaw(text, btn);
 }
@@ -239,7 +247,7 @@ window.toggleTTS = function() {
 window.replayTTS = function() {
   var card = _queue[0];
   if (!card) return;
-  fcSpeak(_flipped ? card.back : card.front);
+  fcSpeak(_flipped ? card.back : fcStripIPA(card.front));
 };
 
 function scaleFcFont(el, text) {
@@ -262,7 +270,7 @@ function showCard(card) {
   document.querySelector('.fc-tap-hint').style.display = '';
   _flipped = false;
   updateUI();
-  fcSpeak(card.front);
+  fcSpeak(fcStripIPA(card.front));
 }
 
 function flipCard() {
