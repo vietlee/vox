@@ -88,6 +88,7 @@
   var LBL_TOUT = '<%= j t('learner_fc.img_timeout') %>';
   var btn = document.getElementById('fc-img-btn'), label = document.getElementById('fc-img-label');
   var _gen = <%= @assignment.flashcard_deck.image_generating? ? 'true' : 'false' %>;
+  var _totalCards = <%= @assignment.flashcard_deck.flashcards.count %>;
   var _pollCount = 0;
 
   function busy(t){ btn.disabled=true; btn.style.opacity='.7'; btn.style.cursor='wait'; label.textContent=t; }
@@ -103,7 +104,7 @@
 
   function poll(){
     _pollCount++;
-    if (_pollCount > 100) {
+    if (_pollCount > 300) {  // ~15 minutes max
       fetch(RESET_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF} }).catch(function(){});
       AiProgress.error();
       showLpToast(LBL_TOUT, 'error');
@@ -111,7 +112,15 @@
       return;
     }
     fetch(POLL_URL,{headers:{'Accept':'application/json'}}).then(function(r){return r.json();}).then(function(d){
-      if (d.pending){ setTimeout(poll,3000); return; }
+      if (d.pending) {
+        if (d.done != null && _totalCards > 0) {
+          var msg = 'AI đang vẽ… ' + d.done + '/' + _totalCards + ' thẻ xong';
+          var el = document.getElementById('aip-msg');
+          if (el) el.textContent = msg;
+        }
+        setTimeout(poll,3000);
+        return;
+      }
       if (window.updateLpCredits) updateLpCredits(d.credits_remaining);
       AiProgress.finish(PAGE_URL, LBL_READY);
     }).catch(function(){ setTimeout(poll,4000); });

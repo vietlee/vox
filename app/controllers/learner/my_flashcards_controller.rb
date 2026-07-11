@@ -39,7 +39,9 @@ class Learner::MyFlashcardsController < Learner::BaseController
   def image_status
     deck = FlashcardDeck.find_by!(id: params[:id], learner_id: current_learner.id)
     if deck.image_generating?
-      render json: { pending: true }
+      done  = deck.flashcards.where.not(image_data: [nil, ""]).count
+      total = deck.flashcards.count
+      render json: { pending: true, done: done, total: total }
     else
       render json: { done: true, credits_remaining: current_learner.reload.credits }
     end

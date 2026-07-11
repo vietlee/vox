@@ -91,6 +91,8 @@
   function setBusy(txt){ btn.disabled=true; btn.style.opacity='.7'; btn.style.cursor='wait'; label.textContent=txt; }
   function setReady(){ btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer'; label.textContent=LBL_MAKE; }
 
+  var _totalCards = <%= @deck.flashcards.count %>;
+
   function startOverlay(){
     AiProgress.start({
       title: LBL_DRAW,
@@ -101,7 +103,7 @@
 
   function poll(){
     _pollCount++;
-    if (_pollCount > 100) {  // ~5 minutes
+    if (_pollCount > 300) {  // ~15 minutes max
       fetch(RESET_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF} }).catch(function(){});
       AiProgress.error();
       showLpToast(LBL_TOUT, 'error');
@@ -111,7 +113,15 @@
     fetch(POLL_URL, { headers:{'Accept':'application/json'} })
       .then(function(r){ return r.json(); })
       .then(function(d){
-        if (d.pending) { setTimeout(poll, 3000); return; }
+        if (d.pending) {
+          if (d.done != null && _totalCards > 0) {
+            var msg = 'AI đang vẽ… ' + d.done + '/' + _totalCards + ' thẻ xong';
+            var el = document.getElementById('aip-msg');
+            if (el) el.textContent = msg;
+          }
+          setTimeout(poll, 3000);
+          return;
+        }
         if (window.updateLpCredits) updateLpCredits(d.credits_remaining);
         AiProgress.finish(PAGE_URL, LBL_READY);
       })
