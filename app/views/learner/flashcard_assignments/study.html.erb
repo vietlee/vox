@@ -166,6 +166,19 @@ function fcStripIPA(text) {
     .trim();
 }
 
+/* Add punctuation at natural break points so ElevenLabs pauses correctly */
+function fcNormalizeTTS(text) {
+  return (text || '')
+    // "con voi Ví dụ:" → "con voi, Ví dụ:"
+    .replace(/([^\s,.:;!?…])\s+(Ví dụ\s*:)/g, '$1, $2')
+    // "elephant Example:" → "elephant. Example:"
+    .replace(/([^\s,.:;!?…])\s+(Example\s*:)/gi, '$1. $2')
+    // "sentence (Translation" → "sentence. (Translation"
+    .replace(/([.!?])\s+\(/g, '$1 (')   // already has punct — keep as is
+    .replace(/([^\s,.:;!?…])\s+\(/g, '$1. (') // no punct before ( → add period
+    .trim();
+}
+
 function fcSpeakRaw(text, btn) {
   if (!text) return;
   if (_ttsCache[text]) { fcPlayUrl(_ttsCache[text], btn); return; }  /* free replay */
@@ -211,7 +224,7 @@ function fcSpeak(text) {
 function speakSide(side) {
   var card = _queue[0];
   if (!card) return;
-  var text = side === 'back' ? card.back : fcStripIPA(card.front);
+  var text = side === 'back' ? fcNormalizeTTS(card.back) : fcStripIPA(card.front);
   var btn  = document.querySelector('.fc-speak-' + side);
   fcSpeakRaw(text, btn);
 }
@@ -247,7 +260,7 @@ window.toggleTTS = function() {
 window.replayTTS = function() {
   var card = _queue[0];
   if (!card) return;
-  fcSpeak(_flipped ? card.back : fcStripIPA(card.front));
+  fcSpeak(_flipped ? fcNormalizeTTS(card.back) : fcStripIPA(card.front));
 };
 
 function scaleFcFont(el, text) {
@@ -280,7 +293,7 @@ function flipCard() {
   document.querySelector('.fc-tap-hint').style.display = 'none';
   _flipped = true;
   var card = _queue[0];
-  if (card) fcSpeak(card.back);
+  if (card) fcSpeak(fcNormalizeTTS(card.back));
 }
 
 function rate(r) {

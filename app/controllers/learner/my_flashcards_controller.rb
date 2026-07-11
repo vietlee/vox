@@ -84,7 +84,9 @@ class Learner::MyFlashcardsController < Learner::BaseController
 
           2. Nếu topic là TỪ VỰNG / VOCABULARY tiếng Anh (e.g. IELTS vocab, English words, từ vựng tiếng Anh):
              - Front: từ tiếng Anh + phiên âm IPA ngắn gọn, ví dụ: "commute /kəˈmjuːt/"
-             - Back: nghĩa tiếng Việt + 1 ví dụ câu ngắn sử dụng từ đó
+             - Back: nghĩa tiếng Việt, Ví dụ: [câu ví dụ tiếng Anh]. ([nghĩa câu đó bằng tiếng Việt].)
+               Ví dụ mẫu: "con voi, Ví dụ: The elephant uses its trunk to drink water. (Con voi dùng vòi để uống nước.)"
+               Lưu ý: phải có dấu phẩy sau nghĩa tiếng Việt trước "Ví dụ:"
 
           3. Nếu topic là kiến thức học thuật (toán, lý, hóa, lịch sử, văn học...):
              - Front: câu hỏi hoặc khái niệm cốt lõi, ngắn gọn (tối đa 15 từ)
