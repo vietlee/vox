@@ -779,6 +779,13 @@
         $id('aip-mini').style.display    = 'none';
       },
 
+      setProgress: function(pct, msg) {
+        clearInterval(_ticker);
+        setBar(pct);
+        if (msg) $id('aip-msg').textContent = msg;
+        _ticker = setInterval(function() { setBar(_pct + (95 - _pct) * 0.036); }, 400);
+      },
+
       done: function(url, label) {
         clearInterval(_ticker); clearInterval(_msgInt);
         try { sessionStorage.removeItem(_SS); } catch(e) {}

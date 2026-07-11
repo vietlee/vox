@@ -99,6 +99,7 @@
   function setReady(){ btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer'; label.textContent=LBL_MAKE; }
 
   var _totalCards = <%= @deck.flashcards.count %>;
+  var _allDoneCount = 0;
 
   function startOverlay(){
     AiProgress.start({
@@ -122,9 +123,20 @@
       .then(function(d){
         if (d.pending) {
           if (d.done != null && _totalCards > 0) {
-            var msg = 'AI đang vẽ… ' + d.done + '/' + _totalCards + ' thẻ xong';
-            var el = document.getElementById('aip-msg');
-            if (el) el.textContent = msg;
+            var allDone = d.done >= _totalCards;
+            var cardPct = Math.round(d.done / _totalCards * 90);
+            var msg = allDone ? 'Đang hoàn tất xử lý…' : 'AI đang vẽ… ' + d.done + '/' + _totalCards + ' thẻ xong';
+            if (AiProgress.setProgress) AiProgress.setProgress(cardPct, msg);
+            if (allDone) {
+              _allDoneCount++;
+              if (_allDoneCount >= 2) {
+                fetch(RESET_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF} }).catch(function(){});
+                AiProgress.finish(PAGE_URL, LBL_READY);
+                return;
+              }
+            } else {
+              _allDoneCount = 0;
+            }
           }
           setTimeout(poll, 3000);
           return;
