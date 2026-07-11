@@ -204,11 +204,22 @@
   <%# Top bar — hidden on auth pages %>
   <% if learner_signed_in? %>
   <header class="lp-topbar">
-    <%= link_to learner_root_path, class: "lp-topbar-logo" do %>
-      <img src="/icon.svg" width="28" height="28" alt="VOX" style="display:block;">
-      <span style="font-size:17px;font-weight:800;color:#ffffff;letter-spacing:2.5px;line-height:1;">VOX</span>
-    <% end %>
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div style="display:flex;align-items:center;gap:4px;min-width:0;flex:1;">
+      <%# Back button — shown/hidden by JS based on nav stack %>
+      <button id="lp-back-btn" onclick="lpGoBack()"
+              style="display:none;width:36px;height:36px;background:rgba(255,255,255,0.12);border:none;border-radius:50%;color:white;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;padding:0;-webkit-tap-highlight-color:transparent;transition:background .15s;"
+              onmousedown="this.style.background='rgba(255,255,255,0.22)'" onmouseup="this.style.background='rgba(255,255,255,0.12)'" ontouchstart="this.style.background='rgba(255,255,255,0.22)'" ontouchend="this.style.background='rgba(255,255,255,0.12)'">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <%# Logo — hidden when back button is active %>
+      <%= link_to learner_root_path, class: "lp-topbar-logo", id: "lp-topbar-logo" do %>
+        <img src="/icon.svg" width="28" height="28" alt="VOX" style="display:block;">
+        <span style="font-size:17px;font-weight:800;color:#ffffff;letter-spacing:2.5px;line-height:1;">VOX</span>
+      <% end %>
+      <%# Page title — shown when back button is active %>
+      <span id="lp-topbar-title" style="display:none;font-size:15px;font-weight:700;color:rgba(255,255,255,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
       <!-- Language switcher -->
       <div style="display:flex;align-items:center;background:rgba(255,255,255,0.12);border-radius:20px;padding:3px;">
         <%= link_to request.path + "?locale=vi", style: "padding:3px 10px;border-radius:16px;font-size:11px;font-weight:700;text-decoration:none;transition:all .15s;#{I18n.locale == :vi ? 'background:white;color:#1e3a5f;' : 'color:rgba(255,255,255,0.7);'}" do %>🇻🇳 VI<% end %>
@@ -226,6 +237,80 @@
       <% end %>
     </div>
   </header>
+  <script>
+  /* ── PWA back-button navigation ──
+     Maintains a pathname stack in sessionStorage. On detail pages (stack depth ≥ 2)
+     the back button replaces the logo. Tapping it pops the stack and visits the
+     previous page via Turbo so the main scroll area stays intact. */
+  (function() {
+    var KEY  = 'lp_nav';
+    /* Root pages: back button never shown here */
+    var ROOT = /^\/learner(\/library|\/my_flashcards$|\/my_quizzes$|\/study-plans$|\/credits|\/notifications|\/profile|\/progress|\/speaking$|\/ai-tutor$|\/tools\/tts|\/tools\/translate|\/tools\/summarize|\/tools\/punctuate)?[\/]?(\?.*)?$/;
+
+    var _stack;
+    try { _stack = JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch(e) { _stack = []; }
+
+    function save() {
+      try { sessionStorage.setItem(KEY, JSON.stringify(_stack.slice(-20))); } catch(e) {}
+    }
+
+    function isRoot(path) {
+      return path === '/' || ROOT.test(path.split('?')[0]);
+    }
+
+    function getPageTitle() {
+      /* Prefer the first lp-bc-current span, fall back to document.title minus suffix */
+      var bc = document.querySelector('.lp-bc-current');
+      if (bc) return bc.textContent.trim();
+      return (document.title || '').replace(/\s*·\s*VOX Learn\s*$/, '').trim();
+    }
+
+    function updateBar() {
+      var btn   = document.getElementById('lp-back-btn');
+      var logo  = document.getElementById('lp-topbar-logo');
+      var title = document.getElementById('lp-topbar-title');
+      if (!btn) return;
+      var showBack = _stack.length >= 2 && !isRoot(window.location.pathname);
+      if (showBack) {
+        btn.style.display   = 'flex';
+        logo.style.display  = 'none';
+        title.style.display = 'block';
+        title.textContent   = getPageTitle();
+      } else {
+        btn.style.display   = 'none';
+        logo.style.display  = 'flex';
+        title.style.display = 'none';
+      }
+    }
+
+    document.addEventListener('turbo:load', function() {
+      var path = window.location.pathname;
+      var last = _stack[_stack.length - 1];
+      /* Ignore locale-only query param changes (don't push duplicate path) */
+      if (last !== path) {
+        _stack.push(path);
+        save();
+      }
+      updateBar();
+    });
+
+    window.lpGoBack = function() {
+      if (_stack.length >= 2) {
+        _stack.pop();           /* remove current page */
+        var prev = _stack[_stack.length - 1];
+        save();
+        if (typeof Turbo !== 'undefined') {
+          Turbo.visit(prev, { action: 'replace' });
+        } else {
+          window.location.href = prev;
+        }
+      }
+    };
+
+    /* Also run on plain (non-Turbo) load */
+    updateBar();
+  })();
+  </script>
   <% end %>
 
   <%# Floating language switcher — auth pages (not signed in) %>
