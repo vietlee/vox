@@ -3,7 +3,7 @@ class GenerateFlashcardImagesJob < ApplicationJob
   sidekiq_options retry: 0  # no retries — prevent image_generating flag getting stuck in retry loop
 
   DALLE_API_URL = "https://api.openai.com/v1/images/generations"
-  MAX_THREADS   = 5
+  MAX_THREADS   = 10
 
   def perform(deck_id, user_id)
     deck = FlashcardDeck.find_by(id: deck_id)
