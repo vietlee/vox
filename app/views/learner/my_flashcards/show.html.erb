@@ -58,27 +58,50 @@
 
 <script>
 (function(){
-  var CSRF = document.querySelector('meta[name="csrf-token"]').content;
+  var CSRF     = document.querySelector('meta[name="csrf-token"]').content;
   var GEN_URL  = '<%= learner_generate_images_my_flashcard_path(@deck) %>';
   var POLL_URL = '<%= learner_image_status_my_flashcard_path(@deck) %>';
+  var PAGE_URL = window.location.href;
   var LBL_MAKE = '<%= j (t('learner_fc.img_make') + " " + t('learner_fc.img_cost_suffix', n: @image_cost)) %>';
-  var btn = document.getElementById('fc-img-btn');
+  var LBL_MIN  = '<%= j t('learner_fc.img_mini_label') %>';
+  var LBL_DRAW = '<%= j t('learner_fc.img_drawing') %>';
+  var LBL_READY= '<%= j t('learner_fc.img_ready') %>';
+  var LBL_TOUT = '<%= j t('learner_fc.img_timeout') %>';
+  var btn   = document.getElementById('fc-img-btn');
   var label = document.getElementById('fc-img-label');
   var _generating = <%= @deck.image_generating? ? 'true' : 'false' %>;
+  var _pollCount  = 0;
 
-  function setBusy(txt){ btn.disabled = true; btn.style.opacity = '.7'; btn.style.cursor = 'wait'; label.textContent = txt; }
+  function setBusy(txt){ btn.disabled=true; btn.style.opacity='.7'; btn.style.cursor='wait'; label.textContent=txt; }
+  function setReady(){ btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer'; label.textContent=LBL_MAKE; }
+
+  function startOverlay(){
+    AiProgress.start({
+      title: LBL_DRAW,
+      miniLabel: LBL_MIN,
+      msgs: [LBL_DRAW, 'AI đang vẽ ảnh cho từng thẻ…', 'Đang hoàn thiện…']
+    });
+  }
+
   function poll(){
+    _pollCount++;
+    if (_pollCount > 100) {  // ~5 minutes
+      AiProgress.error();
+      showLpToast(LBL_TOUT, 'error');
+      setReady();
+      return;
+    }
     fetch(POLL_URL, { headers:{'Accept':'application/json'} })
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (d.pending) { setTimeout(poll, 3000); return; }
         if (window.updateLpCredits) updateLpCredits(d.credits_remaining);
-        label.textContent = '✓ <%= j t('learner_fc.img_done') %>';
-        setTimeout(function(){ location.reload(); }, 800);
+        AiProgress.finish(PAGE_URL, LBL_READY);
       })
       .catch(function(){ setTimeout(poll, 4000); });
   }
-  if (_generating) { setBusy('⏳ <%= j t('learner_fc.img_drawing') %>'); poll(); }
+
+  if (_generating) { setBusy('⏳ ' + LBL_DRAW); startOverlay(); poll(); }
 
   window.fcGenImages = function(){
     lpConfirm('<%= j t('learner_fc.img_confirm') %>', function(){
@@ -87,10 +110,12 @@
       fetch(GEN_URL, { method:'POST', body:fd })
         .then(function(r){ return r.json(); })
         .then(function(d){
-          if (d.error) { showLpToast(d.error, 'error'); btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer'; label.textContent=LBL_MAKE; return; }
-          setBusy('⏳ <%= j t('learner_fc.img_drawing') %>'); poll();
+          if (d.error) { showLpToast(d.error, 'error'); setReady(); return; }
+          setBusy('⏳ ' + LBL_DRAW);
+          startOverlay();
+          poll();
         })
-        .catch(function(){ showLpToast('<%= j t('learner_fc.err_conn') %>', 'error'); btn.disabled=false; btn.style.opacity='1'; });
+        .catch(function(){ showLpToast('<%= j t('learner_fc.err_conn') %>', 'error'); setReady(); });
     });
   };
 })();

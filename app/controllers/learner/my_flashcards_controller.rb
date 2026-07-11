@@ -20,7 +20,10 @@ class Learner::MyFlashcardsController < Learner::BaseController
   def generate_images
     deck = FlashcardDeck.find_by!(id: params[:id], learner_id: current_learner.id)
     return render json: { error: "Không có thẻ nào." }, status: :unprocessable_entity if deck.flashcards.empty?
-    return render json: { error: "Đang xử lý." }, status: :unprocessable_entity if deck.image_generating?
+    # If already generating: just hand back the poll URL so the client can resume polling
+    if deck.image_generating?
+      return render json: { pending: true, poll_url: learner_image_status_my_flashcard_path(deck) }
+    end
     unless current_learner.credits >= IMAGE_COST
       return render json: { error: "Không đủ credit. Cần #{IMAGE_COST} credits để tạo ảnh." }, status: :payment_required
     end

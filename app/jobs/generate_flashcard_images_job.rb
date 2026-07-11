@@ -63,7 +63,7 @@ class GenerateFlashcardImagesJob < ApplicationJob
   end
 
   def call_dalle(prompt, card_id, api_key)
-    body = { model: "gpt-image-1.5", prompt: prompt, n: 1, size: "1024x1024", output_format: "webp" }
+    body = { model: "gpt-image-1", prompt: prompt, n: 1, size: "1024x1024", output_format: "webp" }
 
     uri = URI(DALLE_API_URL)
     http = Net::HTTP.new(uri.host, uri.port)
