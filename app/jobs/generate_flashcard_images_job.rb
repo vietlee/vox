@@ -1,31 +1,22 @@
 class GenerateFlashcardImagesJob < ApplicationJob
   queue_as :default
 
-  DALLE_API_URL = "https://api.openai.com/v1/images/generations"
-  MAX_THREADS   = 5
+  MAX_THREADS = 3
 
   def perform(deck_id, user_id)
     deck = FlashcardDeck.find_by(id: deck_id)
     return unless deck
 
-    # Re-set flag on retries (first attempt may have cleared it via rescue)
     deck.update_column(:image_generating, true)
 
-    api_key = ENV["OPENAI_API_KEY"]
-    unless api_key.present?
-      Rails.logger.error "[GenerateFlashcardImagesJob] OPENAI_API_KEY not set"
-      deck.update_column(:image_generating, false)
-      return
-    end
-
     cards = deck.flashcards.order(:position)
-    Rails.logger.info "[GenerateFlashcardImagesJob] Generating #{cards.size} images for deck #{deck_id}"
+    Rails.logger.info "[GenerateFlashcardImagesJob] Generating #{cards.size} SVG illustrations for deck #{deck_id}"
 
     cards.each_slice(MAX_THREADS) do |batch|
       threads = batch.map do |card|
         Thread.new do
-          url = generate_image(card, api_key)
-          card.update_column(:image_data, url) if url.present?
+          svg = generate_svg(card)
+          card.update_column(:image_data, svg) if svg.present?
         rescue => e
           Rails.logger.warn "[GenerateFlashcardImagesJob] card #{card.id}: #{e.message}"
         end
@@ -48,43 +39,33 @@ class GenerateFlashcardImagesJob < ApplicationJob
 
   private
 
-  def generate_image(card, api_key)
-    deck_context = (card.flashcard_deck.subject.presence || card.flashcard_deck.title).to_s.truncate(60)
-    concept      = card.front.to_s.truncate(80)
-    explanation  = card.back.to_s.truncate(100)
-    prompt = "Educational flashcard illustration. Subject: #{deck_context}. " \
-             "Concept: #{concept}. Meaning: #{explanation}. " \
-             "Flat colorful vector style. No text, no letters, no words in image."
+  def generate_svg(card)
+    subject = (card.flashcard_deck.subject.presence || card.flashcard_deck.title).to_s.truncate(60)
+    concept = card.front.to_s.truncate(80)
+    meaning = card.back.to_s.truncate(120)
 
-    call_dalle(prompt, card.id, api_key)
+    svc = ClaudeService.new(model: ClaudeService::HAIKU_MODEL, timeout: 30)
+    raw = svc.call(
+      system_prompt: <<~SYS,
+        You are an SVG illustration generator for educational flashcards.
+        Return ONLY valid SVG code starting with <svg and ending with </svg>.
+        No explanation, no markdown fences, no extra text. Just the raw SVG.
+        Rules: viewBox="0 0 200 200", flat colorful style, no text/labels inside, max 40 elements, clean educational look.
+      SYS
+      user_prompt: "Draw a simple illustration for this flashcard.\nSubject: #{subject}\nConcept: #{concept}\nMeaning: #{meaning}"
+    )
+
+    extract_svg(raw)
+  rescue => e
+    Rails.logger.warn "[GenerateFlashcardImagesJob] SVG error for card #{card.id}: #{e.message}"
+    nil
   end
 
-  def call_dalle(prompt, card_id, api_key)
-    body = { model: "dall-e-2", prompt: prompt, n: 1, size: "512x512", response_format: "b64_json" }
-
-    uri = URI(DALLE_API_URL)
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = true
-    http.read_timeout = 60
-
-    req = Net::HTTP::Post.new(uri)
-    req["Content-Type"]  = "application/json"
-    req["Authorization"] = "Bearer #{api_key}"
-    req.body = body.to_json
-
-    res  = http.request(req)
-    data = JSON.parse(res.body)
-
-    if res.is_a?(Net::HTTPSuccess)
-      b64 = data.dig("data", 0, "b64_json")
-      b64.present? ? "data:image/png;base64,#{b64}" : nil
-    else
-      msg = data.dig("error", "message").to_s
-      Rails.logger.warn "[GenerateFlashcardImagesJob] dall-e-2 error for card #{card_id}: #{msg}"
-      nil
-    end
-  rescue => e
-    Rails.logger.warn "[GenerateFlashcardImagesJob] HTTP error for card #{card_id}: #{e.message}"
-    nil
+  def extract_svg(raw)
+    return nil if raw.blank?
+    m = raw.match(/<svg[\s\S]*?<\/svg>/i)
+    svg = m&.to_s
+    return nil if svg.blank?
+    svg.gsub(/<script[\s\S]*?<\/script>/i, "")
   end
 end
