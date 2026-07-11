@@ -733,7 +733,19 @@ window.lpVcSpeedDec=function(){const i=VC_SPEEDS.indexOf(_vcSpeed);if(i>0){_vcSp
 window.lpVcSpeedInc=function(){const i=VC_SPEEDS.indexOf(_vcSpeed);if(i<VC_SPEEDS.length-1){_vcSpeed=VC_SPEEDS[i+1];localStorage.setItem('lp_vc_speed',_vcSpeed);const l=document.getElementById('lp-vc-speed-label');if(l)l.textContent=_vcSpeed+'×';}};
 document.addEventListener('DOMContentLoaded',()=>{const l=document.getElementById('lp-vc-speed-label');if(l)l.textContent=_vcSpeed+'×';});
 
-document.getElementById('lp-input').focus();
+// Focus input after paint — setTimeout(0) yields to Turbo's DOM swap
+// and requestAnimationFrame ensures the element is visible before focus.
+requestAnimationFrame(function() {
+  setTimeout(function() {
+    var el = document.getElementById('lp-input');
+    if (el) el.focus();
+  }, 0);
+});
+// Also re-focus on every Turbo navigation to this page
+document.addEventListener('turbo:load', function() {
+  var el = document.getElementById('lp-input');
+  if (el && window.location.pathname.startsWith('/learner/tutor')) el.focus();
+});
 })();
 </script>
 
