@@ -19,7 +19,7 @@
   .fc-word { font-size: 26px; font-weight: 800; line-height: 1.3; }
   .fc-front .fc-word { color: white; }
   .fc-back .fc-word { color: #1e293b; }
-  .fc-image { max-width: 120px; max-height: 100px; object-fit: contain; border-radius: 10px; margin-bottom: 10px; }
+  .fc-image { max-width: 260px; max-height: 220px; width: 100%; object-fit: contain; border-radius: 10px; margin-bottom: 10px; }
   .fc-speak-btn { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2; transition: transform .12s, background .15s; -webkit-tap-highlight-color: transparent; }
   .fc-speak-btn:active { transform: scale(0.88); }
   .fc-speak-front { background: rgba(255,255,255,0.18); color: #fff; }
@@ -179,6 +179,11 @@ function fcNormalizeTTS(text) {
     .trim();
 }
 
+/* Returns true when text contains both Vietnamese diacritics and multi-char English words */
+function fcTextIsMixed(t) {
+  return FC_VI_RE.test(t) && /[a-zA-Z]{4,}/.test(t);
+}
+
 function fcSpeakRaw(text, btn) {
   if (!text) return;
   if (_ttsCache[text]) { fcPlayUrl(_ttsCache[text], btn); return; }  /* free replay */
@@ -186,10 +191,11 @@ function fcSpeakRaw(text, btn) {
   _ttsBusy = true;
   if (btn) btn.classList.add('speaking');
   var lang = fcDetectLang(text);
+  var mixed = fcTextIsMixed(text);
   var fd = new FormData();
   fd.append('text', text);
-  fd.append('model', 'eleven_flash_v2_5');   /* Flash v2.5 — fast, supports language_code */
-  fd.append('language_code', lang);          /* lock pronunciation to detected language */
+  fd.append('model', 'eleven_flash_v2_5');
+  if (!mixed) fd.append('language_code', lang); /* skip for mixed VI+EN so ElevenLabs auto-handles each segment */
   fd.append('voice_id', FC_VOICE[lang]);
   fd.append('stability', '0.4');
   fd.append('similarity', '0.85');

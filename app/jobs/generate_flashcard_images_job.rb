@@ -3,7 +3,7 @@ class GenerateFlashcardImagesJob < ApplicationJob
   sidekiq_options retry: 0  # no retries — prevent image_generating flag getting stuck in retry loop
 
   DALLE_API_URL = "https://api.openai.com/v1/images/generations"
-  MAX_THREADS   = 3
+  MAX_THREADS   = 5
 
   def perform(deck_id, user_id)
     deck = FlashcardDeck.find_by(id: deck_id)
@@ -60,7 +60,7 @@ class GenerateFlashcardImagesJob < ApplicationJob
   end
 
   def call_openai(prompt, card_id, api_key)
-    body = { model: "gpt-image-1.5", prompt: prompt, n: 1, size: "1024x1024", output_format: "webp" }
+    body = { model: "gpt-image-1.5", prompt: prompt, n: 1, size: "1024x1024", output_format: "webp", quality: "low" }
 
     uri  = URI(DALLE_API_URL)
     http = Net::HTTP.new(uri.host, uri.port)

@@ -39,6 +39,13 @@
       <span id="fc-img-label"><%= (has_images ? t('learner_fc.img_remake') : t('learner_fc.img_make')) + " " + t('learner_fc.img_cost_suffix', n: @image_cost) %></span>
     </button>
     <p id="fc-img-hint" style="font-size:11px;color:#94a3b8;margin:6px 0 0;"><%= t('learner_fc.img_hint') %></p>
+
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid #f1f5f9;text-align:center;">
+      <button onclick="fcDeleteThisDeck()" style="background:none;border:none;font-size:13px;color:#94a3b8;cursor:pointer;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 6l-1 14H6L5 6m5 4v7m4-7v7M9 6V4h6v2"/></svg>
+        Xoá bộ thẻ này
+      </button>
+    </div>
   </div>
 </div>
 
@@ -129,6 +136,15 @@
   }
 
   if (_generating) { setBusy('⏳ ' + LBL_DRAW); startOverlay(); poll(); }
+
+  window.fcDeleteThisDeck = function() {
+    lpDeleteConfirm(
+      '<%= learner_destroy_my_flashcard_path(@deck) %>',
+      'Xoá bộ flashcard?',
+      'Bộ "<%= j @deck.title %>" và tất cả thẻ sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác.',
+      function() { window.location = '<%= learner_my_flashcards_path %>'; }
+    );
+  };
 
   window.fcGenImages = function(){
     lpConfirm('<%= j t('learner_fc.img_confirm') %>', function(){
