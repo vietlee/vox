@@ -10,7 +10,7 @@
   .fc-card-wrap { width: 100%; max-width: 480px; min-height: 220px; height: 280px; position: relative; cursor: pointer; transition: height 0.3s ease; }
   .fc-card { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4,0,0.2,1); }
   .fc-card.flipped { transform: rotateY(180deg); }
-  .fc-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 24px; display: flex; align-items: center; justify-content: center; padding: 44px 20px 20px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.12); overflow-y: auto; }
+  .fc-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 24px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; padding: 44px 20px 20px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.12); overflow-y: auto; }
   .fc-front { background: linear-gradient(135deg, #1e3a5f, #16304f); color: white; }
   .fc-back  { background: white; border: 1.5px solid #e5e7eb; transform: rotateY(180deg); }
   .fc-face-label { position: absolute; top: 14px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; }
@@ -227,34 +227,21 @@ function fcFetchSeg(segText, lang) {
 
 function fcSpeakRaw(text, btn) {
   if (!text) return;
-  if (_ttsCache[text]) { fcPlayUrl(_ttsCache[text], btn); return; }  /* free replay */
+  if (_ttsCache[text]) { fcPlayUrl(_ttsCache[text], btn); return; }
   if (_ttsBusy) return;
   _ttsBusy = true;
   if (btn) btn.classList.add('speaking');
-
-  var mixed = FC_VI_RE.test(text) && /[a-zA-Z]{4,}/.test(text);
-  var segs  = mixed ? fcSplitLang(text) : [{lang: fcDetectLang(text), text: text}];
-
-  /* Fetch all segments in parallel, then play sequentially */
-  Promise.all(segs.map(function(s){ return fcFetchSeg(s.text, s.lang); }))
-    .then(function(results) {
+  // Send entire text as ONE request with the dominant-language voice.
+  // eleven_flash_v2_5 handles embedded foreign words naturally; splitting into
+  // multiple segments causes jarring voice switches on mixed VI+EN content.
+  var lang = FC_VI_RE.test(text) ? 'vi' : 'en';
+  fcFetchSeg(text, lang)
+    .then(function(result) {
       _ttsBusy = false;
-      var lastCredits = null;
-      var urls = [];
-      results.forEach(function(r){
-        if (r.credits != null) lastCredits = r.credits;
-        if (r.url) urls.push(r.url);
-      });
-      if (lastCredits != null && window.updateLpCredits) updateLpCredits(lastCredits);
-      if (!mixed && urls[0]) _ttsCache[text] = urls[0]; /* cache single-lang by full text */
-      if (!urls.length) { if (btn) btn.classList.remove('speaking'); return; }
-      fcStopAudio();
-      (function play(i) {
-        if (i >= urls.length) { if (btn) btn.classList.remove('speaking'); return; }
-        _fcAudio.onended = _fcAudio.onerror = function(){ play(i + 1); };
-        _fcAudio.src = urls[i];
-        var p = _fcAudio.play(); if (p && p.catch) p.catch(function(){ play(i + 1); });
-      })(0);
+      if (result.credits != null && window.updateLpCredits) updateLpCredits(result.credits);
+      if (!result.url) { if (btn) btn.classList.remove('speaking'); return; }
+      _ttsCache[text] = result.url;
+      fcPlayUrl(result.url, btn);
     })
     .catch(function(){ _ttsBusy = false; if (btn) btn.classList.remove('speaking'); });
 }
