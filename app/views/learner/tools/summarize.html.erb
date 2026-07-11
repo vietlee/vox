@@ -117,6 +117,7 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
   const CSRF     = () => document.querySelector('meta[name="csrf-token"]').content;
   const POST_URL = '<%= learner_tools_summarize_path %>';
   const SK       = 'vox_lp_summaries_<%= current_learner.id %>';
+  const PSK      = 'vox_sum_pending_<%= current_learner.id %>';
   let _currentResult = null, _attached = [];
 
   // ── File attach ──────────────────────────────────────────────────
@@ -155,7 +156,12 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
   // Reveal the summary result inline (used on completion; also from the minimized toast)
   function lpSumReveal(data) {
     var r = document.getElementById('lp-sum-result');
-    if (!r) return;
+    if (!r) {
+      // User navigated away — save result and navigate back to the summarize page
+      try { sessionStorage.setItem(PSK, JSON.stringify(data)); } catch(e) {}
+      window.location.href = POST_URL;
+      return;
+    }
     document.getElementById('lp-sum-title-display').textContent = data.title;
     document.getElementById('lp-sum-body').innerHTML = lpMd(data.summary);
     r.style.display = 'flex';
@@ -193,6 +199,8 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
       _currentResult = { title: data.title, summary: data.summary, created_at: new Date().toISOString() };
       const cr = document.getElementById('lp-sum-credits'); if (cr) cr.textContent = data.credits_remaining;
       if (window.updateLpCredits) updateLpCredits(data.credits_remaining);
+      // Persist result so it survives navigation away (toast → click → back to page)
+      try { sessionStorage.setItem(PSK, JSON.stringify(_currentResult)); } catch(e) {}
       AiProgress.finishInline(function(){ lpSumReveal(data); }, '<%= j t('learner_sum.result') %>');
     } catch(e) {
       const wasMin = AiProgress.isMinimized();
@@ -223,6 +231,7 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
 
   window.lpSumNew = function() {
     _currentResult = null; _attached = [];
+    try { sessionStorage.removeItem(PSK); } catch(e) {}
     document.getElementById('lp-sum-prompt').value = '';
     document.getElementById('lp-sum-result').style.display = 'none';
     document.getElementById('lp-sum-error').style.display  = 'none';
@@ -394,5 +403,15 @@ code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12.5px;
   // init
   lpSumRenderList();
   document.getElementById('lp-sum-modal').addEventListener('click', e => { if (e.target === e.currentTarget) lpSumCloseModal(); });
+  // Restore pending result if user navigated away while toast was showing
+  (function() {
+    try {
+      var pending = sessionStorage.getItem(PSK);
+      if (!pending) return;
+      sessionStorage.removeItem(PSK);
+      var d = JSON.parse(pending);
+      if (d && d.title && d.summary) { _currentResult = d; lpSumReveal(d); }
+    } catch(e) {}
+  })();
 })();
 </script>

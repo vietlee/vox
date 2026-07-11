@@ -79,7 +79,9 @@
     body[data-page="learner-my_quizzes-index"] .lp-main,
     body[data-page="learner-my_flashcards-new"] .lp-main,
     body[data-page="learner-my_flashcards-index"] .lp-main,
-    body[data-page="learner-notifications-index"] .lp-main { padding-bottom: 0; overflow: hidden; }
+    body[data-page="learner-notifications-index"] .lp-main,
+    body[data-page="learner-quiz_assignments-show"] .lp-main,
+    body[data-page="learner-flashcard_assignments-show"] .lp-main { padding-bottom: 0; overflow: hidden; }
     body[data-page="learner-tools-summarize"] .lp-page,
     body[data-page="learner-tools-tts"] .lp-page,
     body[data-page="learner-tools-stt"] .lp-page,
@@ -88,7 +90,9 @@
     body[data-page="learner-my_quizzes-index"] .lp-page,
     body[data-page="learner-my_flashcards-new"] .lp-page,
     body[data-page="learner-my_flashcards-index"] .lp-page,
-    body[data-page="learner-notifications-index"] .lp-page {
+    body[data-page="learner-notifications-index"] .lp-page,
+    body[data-page="learner-quiz_assignments-show"] .lp-page,
+    body[data-page="learner-flashcard_assignments-show"] .lp-page {
       display: flex; flex-direction: column; flex: none;
       height: calc(100dvh - var(--topbar-h) - var(--bottomnav-h));
       overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -381,7 +385,7 @@
         '<div style="width:22px;height:22px;border-radius:50%;background:'+cfg.iconBg+';display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white;font-size:12px;font-weight:900;margin-top:1px;">'+cfg.icon+'</div>'
         +'<p style="flex:1;font-size:13px;line-height:1.5;color:'+cfg.color+';margin:0;font-weight:500;word-break:break-word;">'+message+'</p>'
         +'<button onclick="closeLpToast(this.closest(\'[data-toast]\'))" data-close style="width:22px;height:22px;border:none;background:transparent;cursor:pointer;color:'+cfg.color+';opacity:0.55;padding:0;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:6px;transition:opacity .15s,background .15s;font-size:15px;line-height:1;" onmouseover="this.style.opacity=1;this.style.background=\'rgba(0,0,0,.07)\'" onmouseout="this.style.opacity=.55;this.style.background=\'transparent\'">✕</button>'
-        +'<div class="lp-toast-bar" style="position:absolute;bottom:0;left:0;height:3px;background:'+cfg.iconBg+';opacity:0.35;width:100%;border-radius:0 0 14px 14px;transition:width 5s linear;"></div>';
+        +'<div class="lp-toast-bar" style="position:absolute;bottom:0;left:0;height:3px;background:'+cfg.iconBg+';opacity:0.35;width:100%;border-radius:0 0 14px 14px;transition:width 8s linear;"></div>';
       el.setAttribute('data-toast', '');
       container.appendChild(el);
 
@@ -390,7 +394,7 @@
         el.querySelector('.lp-toast-bar').style.width = '0';
       }); });
 
-      el._lpTimer = setTimeout(function() { closeLpToast(el); }, 5000);
+      el._lpTimer = setTimeout(function() { closeLpToast(el); }, 8000);
     }
 
     function closeLpToast(el) {
@@ -788,9 +792,9 @@
           var t = $id('aip-toast'); t.style.display = 'block';
           var bar = $id('aip-toast-bar');
           bar.style.transition = 'none'; bar.style.width = '100%';
-          setTimeout(function() { bar.style.transition = 'width 5s linear'; bar.style.width = '0%'; }, 60);
+          setTimeout(function() { bar.style.transition = 'width 8s linear'; bar.style.width = '0%'; }, 60);
           clearTimeout(_toastTimer);
-          _toastTimer = setTimeout(function() { AiProgress.dismissToast(); }, 5200);
+          _toastTimer = setTimeout(function() { AiProgress.dismissToast(); }, 8200);
         } else {
           setBar(100);
           $id('aip-msg').textContent = 'Hoàn tất!';
@@ -813,9 +817,9 @@
           var t = $id('aip-toast'); t.style.display = 'block';
           var bar = $id('aip-toast-bar');
           bar.style.transition = 'none'; bar.style.width = '100%';
-          setTimeout(function() { bar.style.transition = 'width 5s linear'; bar.style.width = '0%'; }, 60);
+          setTimeout(function() { bar.style.transition = 'width 8s linear'; bar.style.width = '0%'; }, 60);
           clearTimeout(_toastTimer);
-          _toastTimer = setTimeout(function() { AiProgress.dismissToast(); }, 5200);
+          _toastTimer = setTimeout(function() { AiProgress.dismissToast(); }, 8200);
         } else {
           $id('aip-overlay').style.display = 'none';
           $id('aip-mini').style.display    = 'none';
@@ -866,7 +870,7 @@
         toast.style.opacity = '1'; toast.style.transform = 'translateX(-50%) translateY(0)';
       }); });
       clearTimeout(_timer);
-      _timer = setTimeout(window.dismissBadgeToast, 5000);
+      _timer = setTimeout(window.dismissBadgeToast, 8000);
     };
     window.dismissBadgeToast = function() {
       clearTimeout(_timer);

@@ -27,7 +27,7 @@ class Learner::MyFlashcardsController < Learner::BaseController
 
     deck.update!(image_generating: true)
     GenerateFlashcardImagesJob.perform_later(deck.id, nil)
-    render json: { pending: true, poll_url: image_status_my_flashcard_path(deck) }
+    render json: { pending: true, poll_url: learner_image_status_my_flashcard_path(deck) }
   rescue => e
     deck&.update(image_generating: false)
     render json: { error: e.message.truncate(120) }, status: :unprocessable_entity
@@ -69,10 +69,19 @@ class Learner::MyFlashcardsController < Learner::BaseController
         content: <<~PROMPT
           Tạo #{card_count} flashcards cho chủ đề: "#{topic}".
 
-          Yêu cầu:
-          - Mặt trước (front): câu hỏi hoặc khái niệm cốt lõi, ngắn gọn (tối đa 15 từ).
-          - Mặt sau (back): đáp án/giải thích súc tích (1–3 câu, tối đa 60 từ).
-          - Đa dạng nội dung: định nghĩa, ví dụ, so sánh, câu hỏi ứng dụng.
+          Hướng dẫn định dạng mặt trước/mặt sau (chọn phù hợp nhất với topic):
+
+          1. Nếu người dùng yêu cầu rõ format "front: X, back: Y" trong topic, làm đúng theo đó.
+
+          2. Nếu topic là TỪ VỰNG / VOCABULARY tiếng Anh (e.g. IELTS vocab, English words, từ vựng tiếng Anh):
+             - Front: từ tiếng Anh + phiên âm IPA ngắn gọn, ví dụ: "commute /kəˈmjuːt/"
+             - Back: nghĩa tiếng Việt + 1 ví dụ câu ngắn sử dụng từ đó
+
+          3. Nếu topic là kiến thức học thuật (toán, lý, hóa, lịch sử, văn học...):
+             - Front: câu hỏi hoặc khái niệm cốt lõi, ngắn gọn (tối đa 15 từ)
+             - Back: đáp án/giải thích súc tích (1–3 câu, tối đa 60 từ)
+
+          4. Đa dạng nội dung: định nghĩa, ví dụ, so sánh, câu hỏi ứng dụng.
 
           Trả về JSON theo đúng format này, không có text nào khác:
           {"title":"<tiêu đề ngắn gọn cho bộ thẻ>","cards":[{"front":"...","back":"..."}]}

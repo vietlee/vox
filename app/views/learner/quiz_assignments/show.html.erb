@@ -23,13 +23,13 @@
     <div style="display:flex;justify-content:center;margin-bottom:14px;">
       <div style="text-align:center;flex:1;">
         <p style="font-size:22px;font-weight:800;color:#1e3a5f;"><%= qs.quiz_questions.count %></p>
-        <p style="font-size:12px;color:#9ca3af;">Câu hỏi</p>
+        <p style="font-size:12px;color:#9ca3af;"><%= t('learner_qz.questions_label') %></p>
       </div>
       <% if qs.time_limit_minutes.present? %>
         <div style="width:1px;background:#f3f4f6;"></div>
         <div style="text-align:center;flex:1;">
           <p style="font-size:22px;font-weight:800;color:#1e3a5f;"><%= qs.time_limit_minutes %>′</p>
-          <p style="font-size:12px;color:#9ca3af;">Thời gian</p>
+          <p style="font-size:12px;color:#9ca3af;"><%= t('learner_qz.time_label_short') %></p>
         </div>
       <% end %>
       <% unless own %>
@@ -40,13 +40,13 @@
           <% else %>
             <p style="font-size:22px;font-weight:800;color:#1e3a5f;"><%= qs.passing_score %>%</p>
           <% end %>
-          <p style="font-size:12px;color:#9ca3af;">Cần đạt để qua</p>
+          <p style="font-size:12px;color:#9ca3af;"><%= t('learner_qz.passing_score_label') %></p>
         </div>
         <% if @assignment.due_at %>
           <div style="width:1px;background:#f3f4f6;"></div>
           <div style="text-align:center;flex:1;">
             <p style="font-size:16px;font-weight:800;color:<%= @assignment.overdue? ? '#ef4444' : '#1e3a5f' %>;"><%= @assignment.due_at.strftime("%d/%m") %></p>
-            <p style="font-size:12px;color:#9ca3af;">Hạn nộp</p>
+            <p style="font-size:12px;color:#9ca3af;"><%= t('learner_qz.due_date_label') %></p>
           </div>
         <% end %>
       <% end %>
@@ -54,11 +54,11 @@
     <div style="text-align:center;">
     <% if @assignment.completed? %>
       <%= link_to result_learner_quiz_assignment_path(@assignment.token), class: "lp-btn lp-btn-outline", style: "display:inline-flex;padding:13px 40px;font-size:15px;" do %>
-        Xem kết quả đã làm
+        <%= t('learner_qz.view_result') %>
       <% end %>
     <% else %>
       <%= button_to start_learner_quiz_assignment_path(@assignment.token), method: :post, class: "lp-btn lp-btn-primary", style: "display:inline-flex;font-size:15px;padding:13px 48px;" do %>
-        <%= @assignment.in_progress? ? "Tiếp tục làm bài →" : "Bắt đầu làm bài →" %>
+        <%= @assignment.in_progress? ? t('learner_qz.continue_quiz') : t('learner_qz.start_quiz') %>
       <% end %>
     <% end %>
     </div>
