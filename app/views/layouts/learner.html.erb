@@ -865,9 +865,10 @@
       },
 
       setProgress: function(pct, msg) {
+        if (msg) $id('aip-msg').textContent = msg;
+        if (pct <= _pct) return; // never let the bar go backward
         clearInterval(_ticker);
         setBar(pct);
-        if (msg) $id('aip-msg').textContent = msg;
         _ticker = setInterval(function() { setBar(_pct + (95 - _pct) * 0.036); }, 400);
       },
 
