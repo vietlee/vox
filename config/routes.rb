@@ -423,8 +423,10 @@ Rails.application.routes.draw do
     get    "my_quizzes/new",      to: "my_quizzes#new",      as: :new_my_quiz
     post   "my_quizzes/generate", to: "my_quizzes#generate", as: :generate_my_quiz
     delete "my_quizzes/:id",      to: "my_quizzes#destroy",  as: :destroy_my_quiz
-    post "my_flashcards/:id/images",      to: "my_flashcards#generate_images", as: :generate_images_my_flashcard
-    get  "my_flashcards/:id/image_status",to: "my_flashcards#image_status",    as: :image_status_my_flashcard
+    post "my_flashcards/:id/images",            to: "my_flashcards#generate_images",  as: :generate_images_my_flashcard
+    get  "my_flashcards/:id/image_status",      to: "my_flashcards#image_status",     as: :image_status_my_flashcard
+    post "my_flashcards/:id/reset_image_status",to: "my_flashcards#reset_image_status", as: :reset_image_status_my_flashcard
+    get  "flashcards/:id/image",                to: "flashcards#image",               as: :flashcard_image
 
     # Learning path assignments
     resources :learning_path_assignments, only: [:show], param: :token do

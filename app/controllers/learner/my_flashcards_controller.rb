@@ -45,6 +45,12 @@ class Learner::MyFlashcardsController < Learner::BaseController
     end
   end
 
+  def reset_image_status
+    deck = FlashcardDeck.find_by!(id: params[:id], learner_id: current_learner.id)
+    deck.update_column(:image_generating, false)
+    render json: { ok: true }
+  end
+
   def destroy
     deck = FlashcardDeck.find_by!(id: params[:id], learner_id: current_learner.id)
     deck.destroy!

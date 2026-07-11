@@ -42,13 +42,45 @@
   </div>
 </div>
 
+<!-- Card preview with images -->
+<% preview_cards = @assignment.flashcard_deck.flashcards.limit(6).to_a %>
+<% if preview_cards.any? %>
+  <p class="lp-section-title"><%= t('learner_fc.preview_title') %></p>
+  <div style="display:grid;gap:10px;margin-bottom:16px;">
+    <% preview_cards.each do |card| %>
+      <% has_img = card.image_data.present? %>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;<%= has_img ? '' : 'padding:14px 16px;' %>">
+        <% if has_img %>
+          <div style="display:flex;align-items:stretch;">
+            <div style="width:80px;flex-shrink:0;background:#f1f5f9;">
+              <img src="<%= learner_flashcard_image_path(card.id) %>" alt="" style="width:80px;height:80px;object-fit:cover;display:block;">
+            </div>
+            <div style="padding:10px 14px;flex:1;min-width:0;">
+              <p style="font-size:13px;font-weight:700;color:#0f172a;margin:0 0 3px;"><%= card.front %></p>
+              <p style="font-size:12px;color:#64748b;margin:0;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;"><%= card.back %></p>
+            </div>
+          </div>
+        <% else %>
+          <p style="font-size:13px;font-weight:700;color:#0f172a;margin:0 0 4px;"><%= card.front %></p>
+          <p style="font-size:12px;color:#64748b;margin:0;line-height:1.5;"><%= card.back %></p>
+        <% end %>
+      </div>
+    <% end %>
+    <% rest = @assignment.flashcard_deck.flashcards.count - 6 %>
+    <% if rest > 0 %>
+      <p style="text-align:center;font-size:12px;color:#94a3b8;margin:4px 0 0;"><%= t('learner_fc.preview_more', n: rest) %></p>
+    <% end %>
+  </div>
+<% end %>
+
 <% if @assignment.flashcard_deck.learner_id == current_learner.id %>
 <script>
 (function(){
-  var CSRF     = document.querySelector('meta[name="csrf-token"]').content;
-  var GEN_URL  = '<%= learner_generate_images_my_flashcard_path(@assignment.flashcard_deck) %>';
-  var POLL_URL = '<%= learner_image_status_my_flashcard_path(@assignment.flashcard_deck) %>';
-  var PAGE_URL = window.location.href;
+  var CSRF      = document.querySelector('meta[name="csrf-token"]').content;
+  var GEN_URL   = '<%= learner_generate_images_my_flashcard_path(@assignment.flashcard_deck) %>';
+  var POLL_URL  = '<%= learner_image_status_my_flashcard_path(@assignment.flashcard_deck) %>';
+  var RESET_URL = '<%= learner_reset_image_status_my_flashcard_path(@assignment.flashcard_deck) %>';
+  var PAGE_URL  = window.location.href;
   var LBL_MAKE = '<%= j (t('learner_fc.img_make') + " " + t('learner_fc.img_cost_suffix', n: 5)) %>';
   var LBL_MIN  = '<%= j t('learner_fc.img_mini_label') %>';
   var LBL_DRAW = '<%= j t('learner_fc.img_drawing') %>';
@@ -72,6 +104,7 @@
   function poll(){
     _pollCount++;
     if (_pollCount > 100) {
+      fetch(RESET_URL, { method:'POST', headers:{'X-CSRF-Token':CSRF} }).catch(function(){});
       AiProgress.error();
       showLpToast(LBL_TOUT, 'error');
       setReady();

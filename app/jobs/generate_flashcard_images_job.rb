@@ -2,7 +2,7 @@ class GenerateFlashcardImagesJob < ApplicationJob
   queue_as :default
 
   DALLE_API_URL = "https://api.openai.com/v1/images/generations"
-  MAX_THREADS   = 3
+  MAX_THREADS   = 5
 
   def perform(deck_id, user_id)
     deck = FlashcardDeck.find_by(id: deck_id)
@@ -49,21 +49,18 @@ class GenerateFlashcardImagesJob < ApplicationJob
   private
 
   def generate_image(card, api_key)
-    deck_context = card.flashcard_deck.subject.presence || card.flashcard_deck.title
-    # Use back content to disambiguate (e.g. "Mouse" + "A pointing device" → computer mouse, not animal)
-    explanation = card.back.to_s.truncate(120)
-    prompt = "Flat illustration for an educational flashcard. " \
-             "Topic/subject: #{deck_context}. " \
-             "Concept: #{card.front}. " \
-             "Definition/explanation: #{explanation}. " \
-             "Illustrate exactly what the definition describes. " \
-             "Clean, simple, colorful vector illustration style. No text, no labels, no words in image."
+    deck_context = (card.flashcard_deck.subject.presence || card.flashcard_deck.title).to_s.truncate(60)
+    concept      = card.front.to_s.truncate(80)
+    explanation  = card.back.to_s.truncate(100)
+    prompt = "Educational flashcard illustration. Subject: #{deck_context}. " \
+             "Concept: #{concept}. Meaning: #{explanation}. " \
+             "Flat colorful vector style. No text, no letters, no words in image."
 
     call_dalle(prompt, card.id, api_key)
   end
 
   def call_dalle(prompt, card_id, api_key)
-    body = { model: "gpt-image-1", prompt: prompt, n: 1, size: "1024x1024", output_format: "webp" }
+    body = { model: "dall-e-2", prompt: prompt, n: 1, size: "512x512", response_format: "b64_json" }
 
     uri = URI(DALLE_API_URL)
     http = Net::HTTP.new(uri.host, uri.port)
@@ -80,10 +77,10 @@ class GenerateFlashcardImagesJob < ApplicationJob
 
     if res.is_a?(Net::HTTPSuccess)
       b64 = data.dig("data", 0, "b64_json")
-      b64.present? ? "data:image/webp;base64,#{b64}" : nil
+      b64.present? ? "data:image/png;base64,#{b64}" : nil
     else
       msg = data.dig("error", "message").to_s
-      Rails.logger.warn "[GenerateFlashcardImagesJob] gpt-image-1 error for card #{card_id}: #{msg}"
+      Rails.logger.warn "[GenerateFlashcardImagesJob] dall-e-2 error for card #{card_id}: #{msg}"
       nil
     end
   rescue => e
