@@ -194,8 +194,8 @@ function fcSpeakRaw(text, btn) {
   var mixed = fcTextIsMixed(text);
   var fd = new FormData();
   fd.append('text', text);
-  fd.append('model', 'eleven_flash_v2_5');
-  if (!mixed) fd.append('language_code', lang); /* skip for mixed VI+EN so ElevenLabs auto-handles each segment */
+  fd.append('model', mixed ? 'eleven_multilingual_v2' : 'eleven_flash_v2_5'); /* multilingual_v2 handles code-switching naturally */
+  if (!mixed) fd.append('language_code', lang);
   fd.append('voice_id', FC_VOICE[lang]);
   fd.append('stability', '0.4');
   fd.append('similarity', '0.85');
