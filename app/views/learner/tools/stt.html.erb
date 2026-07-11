@@ -375,9 +375,9 @@
   var _transAbort  = null;
   function scheduleTranslation() {
     clearTimeout(_transTimer);
-    // ~250ms throttle so translation streams DURING continuous speech, not only
-    // on a pause. Each tick aborts the previous stream; _transSeq drops stale UI.
-    var wait = Math.max(0, 250 - (Date.now() - _lastTransAt));
+    // 80ms throttle — Google Translate responds in ~100ms so we can fire much
+    // more aggressively than Claude and still avoid request flooding.
+    var wait = Math.max(0, 80 - (Date.now() - _lastTransAt));
     _transTimer = setTimeout(function(){ _lastTransAt = Date.now(); doTranslate(); }, wait);
   }
 
@@ -402,6 +402,7 @@
     var fd = new FormData();
     fd.append('text', tail);
     fd.append('target_lang', _targetLang);
+    fd.append('target_code', _targetCode);
     fd.append('final', isFinal ? 'true' : 'false');
     fd.append('authenticity_token', CSRF());
 
