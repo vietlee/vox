@@ -195,8 +195,8 @@
     if (m === _mode) return;
     _mode = m;
     try { sessionStorage.setItem('stt_mode', m); } catch(e) {}
-    // Switching modes auto-clears previous data (both directions)
     window.sttClear();
+    if (_listening) stopRecognition();
     const isTrans = m === 'translate';
     var btnTrans = document.getElementById('stt-mode-transcribe');
     var btnTl    = document.getElementById('stt-mode-translate');
@@ -230,15 +230,17 @@
 
   // ── Tab toggle ──
   window.setSttTab = function(tab) {
+    if (tab === _tab) return;
     _tab = tab;
     const isMic = tab === 'mic';
+    window.sttClear();
+    if (_listening) stopRecognition();
     document.getElementById('stt-panel-mic').style.display  = isMic ? 'block' : 'none';
     document.getElementById('stt-panel-file').style.display = isMic ? 'none'  : 'block';
     document.getElementById('stt-tab-mic').style.color      = isMic ? '#1e3a5f' : '#94a3b8';
     document.getElementById('stt-tab-mic').style.borderBottomColor  = isMic ? '#1e3a5f' : 'transparent';
     document.getElementById('stt-tab-file').style.color     = isMic ? '#94a3b8' : '#1e3a5f';
     document.getElementById('stt-tab-file').style.borderBottomColor = isMic ? 'transparent' : '#1e3a5f';
-    if (!isMic && _listening) stopRecognition();
   };
 
   // ── Web Speech API ──
@@ -549,7 +551,7 @@
   window.sttClear = function() {
     _finalText = ''; _lastInterim = ''; _transSeq = 0;
     _committedTrans = ''; _committedUpTo = 0;
-    clearTimeout(_transTimer);
+    clearTimeout(_transTimer); clearTimeout(_puncTimer);
     updateTranscript('', '');
     document.getElementById('stt-translation-text').textContent = '';
     document.getElementById('stt-translation-interim').textContent = '';
