@@ -345,7 +345,9 @@ Rails.application.routes.draw do
         get    :learner_assignments
         delete :remove_assignment
       end
-      resources :flashcards, only: [:update]
+      resources :flashcards, only: [:update] do
+        member { get :image }
+      end
     end
 
     # Module 3: Tóm tắt tài liệu

@@ -26,7 +26,9 @@ class Admin::FlashcardDecksController < Admin::BaseController
   end
 
   def show
-    @cards = @deck.flashcards
+    # Exclude image_data from the list query — images now served via #image endpoint
+    @cards = @deck.flashcards.select(:id, :front, :back, :position, :flashcard_deck_id).order(:position)
+    @image_card_ids = @deck.flashcards.where.not(image_data: [nil, '']).pluck(:id).to_set
   end
 
   def edit; end

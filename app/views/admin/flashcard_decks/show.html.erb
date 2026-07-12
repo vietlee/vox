@@ -108,7 +108,7 @@
           border_colors = ['#4a80a8','#60a5fa','#34d399','#f472b6','#38bdf8','#c084fc','#fb923c','#93c5fd']
           ac = accent_colors[i % 8]
           bc = border_colors[i % 8]
-          has_img = card.image_data.present?
+          has_img = @image_card_ids.include?(card.id)
         %>
         <div class="group relative" style="perspective:900px;">
           <!-- Action buttons -->
@@ -135,13 +135,9 @@
                  style="backface-visibility:hidden; -webkit-backface-visibility:hidden; background:<%= gradients[i % gradients.size] %>;">
               <% if has_img %>
                 <div class="flex-shrink-0 relative" style="height:160px;overflow:hidden;background:rgba(255,255,255,0.12);">
-                  <% if card.image_data.to_s.strip.start_with?('<svg') %>
-                    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:8px;">
-                      <%= raw card.image_data.to_s.gsub(/<\/script>/i, '') %>
-                    </div>
-                  <% else %>
-                    <img src="<%= card.image_data %>" alt="" style="width:100%;height:100%;object-fit:contain;display:block;padding:6px;">
-                  <% end %>
+                  <img src="<%= image_flashcard_deck_flashcard_path(@deck, card) %>"
+                       alt="" loading="lazy"
+                       style="width:100%;height:100%;object-fit:contain;display:block;padding:6px;">
                   <div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,rgba(0,0,0,0.3));"></div>
                 </div>
                 <div class="flex-1 flex flex-col items-center justify-center p-3 text-center">
