@@ -3,84 +3,123 @@
   <span class="lp-bc-sep">›</span>
   <a href="<%= learner_saved_links_path %>" class="lp-bc-link">Link đã lưu</a>
   <span class="lp-bc-sep">›</span>
-  <span class="lp-bc-current"><%= @link.title.presence || "Chi tiết" %></span>
+  <span class="lp-bc-current" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom;"><%= @link.title.presence || "Chi tiết" %></span>
 <% end %>
 
 <style>
-  .sl-show-wrap { display:flex; flex-direction:column; gap:16px; padding-bottom:24px; }
-  .sl-player-card { background:#000; border-radius:12px; overflow:hidden; position:relative; }
-  .sl-player-card iframe { width:100%; height:0; padding-bottom:56.25%; border:none; display:block; }
-  .sl-player-card iframe { position:absolute; top:0; left:0; width:100%; height:100%; }
-  .sl-iframe-wrap { position:relative; width:100%; padding-bottom:56.25%; border-radius:12px; overflow:hidden; background:#000; }
-  .sl-generic-frame { width:100%; height:60vh; border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.1); }
+  .sl-show { display:flex; flex-direction:column; gap:14px; padding-bottom:28px; }
 
-  .sl-info-card { background:#fff; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,.07); padding:16px; }
-  .sl-info-title { font-size:17px; font-weight:700; color:#1e293b; line-height:1.4; margin-bottom:6px; }
-  .sl-info-url { font-size:12px; color:#94a3b8; word-break:break-all; margin-bottom:10px; }
-  .sl-info-desc { font-size:13px; color:#475569; line-height:1.6; }
-  .sl-info-meta { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
-  .sl-type-pill { font-size:11px; font-weight:600; padding:3px 9px; border-radius:10px; background:#f1f5f9; color:#475569; }
-  .sl-cat-pill { font-size:11px; font-weight:600; padding:3px 9px; border-radius:10px; }
-  .sl-cat-pill.learning { background:#dbeafe; color:#1d4ed8; }
-  .sl-cat-pill.entertainment { background:#fce7f3; color:#be185d; }
+  /* 16:9 responsive video wrapper — correct pattern */
+  .sl-video-wrap { position:relative; width:100%; padding-top:56.25%; border-radius:14px; overflow:hidden; background:#000; box-shadow:0 4px 20px rgba(0,0,0,.2); }
+  .sl-video-wrap iframe { position:absolute; top:0; left:0; width:100%; height:100%; border:none; display:block; }
 
-  .sl-open-btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:13px; background:#1e3a5f; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; text-decoration:none; margin-top:10px; }
+  /* Notice cards for unsupported embeds */
+  .sl-notice { border-radius:14px; padding:28px 20px; text-align:center; }
+  .sl-notice-icon { font-size:40px; margin-bottom:10px; line-height:1; }
+  .sl-notice-title { font-size:16px; font-weight:700; margin-bottom:6px; }
+  .sl-notice-sub { font-size:13px; line-height:1.6; opacity:.8; }
+
+  /* Info card */
+  .sl-info { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.07); overflow:hidden; }
+  .sl-info-body { padding:16px; }
+  .sl-info-pills { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .sl-pill { font-size:11px; font-weight:600; padding:3px 9px; border-radius:10px; }
+  .sl-pill-type { background:#f1f5f9; color:#475569; }
+  .sl-pill-cat.learning { background:#eff6ff; color:#2563eb; }
+  .sl-pill-cat.entertainment { background:#fdf2f8; color:#db2777; }
+  .sl-info-title { font-size:16px; font-weight:700; color:#1e293b; line-height:1.4; margin-bottom:4px; }
+  .sl-info-domain { font-size:12px; color:#94a3b8; margin-bottom:10px; }
+  .sl-info-desc { font-size:13px; color:#475569; line-height:1.65; border-top:1px solid #f1f5f9; padding-top:10px; margin-top:4px; }
+  .sl-open-btn { display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 16px; background:#1e3a5f; color:#fff; text-decoration:none; font-size:14px; font-weight:700; border-top:1px solid #f1f5f9; transition:background .15s; letter-spacing:.2px; }
   .sl-open-btn:hover { background:#16304f; }
-  .sl-fb-notice { background:#e0f2fe; border-radius:10px; padding:14px; font-size:13px; color:#0369a1; text-align:center; line-height:1.6; }
+  .sl-open-btn svg { width:16px; height:16px; flex-shrink:0; }
 </style>
 
-<div class="sl-show-wrap">
+<% type_map = { 'youtube'=>'▶ YouTube','facebook'=>'📘 Facebook','vimeo'=>'🎬 Vimeo','tiktok'=>'🎵 TikTok','generic'=>'🔗 Web' } %>
+<% cat_class = @link.category == 'learning' ? 'learning' : 'entertainment' %>
+<% cat_label = @link.category == 'learning' ? '📚 Học tập' : '🎬 Giải trí' %>
+<% domain = URI.parse(@link.url).hostname.to_s.sub(/\Awww\./, '') rescue @link.url %>
+
+<div class="sl-show">
+
+  <%# ── Video player ── %>
   <% if @link.embeddable? %>
-    <%# YouTube / Vimeo embed %>
-    <div class="sl-iframe-wrap">
+    <div class="sl-video-wrap">
       <iframe src="<%= @link.embed_url %>"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen loading="lazy"></iframe>
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              loading="lazy"
+              title="<%= h(@link.title.presence || 'Video') %>"></iframe>
     </div>
+
   <% elsif @link.link_type == 'facebook' %>
-    <%# Facebook embed via oEmbed page approach %>
-    <div class="sl-fb-notice">
-      <div style="font-size:28px;margin-bottom:8px;">📘</div>
-      <strong>Video Facebook</strong><br>
-      Facebook không cho phép nhúng trực tiếp.<br>
-      Nhấn nút bên dưới để mở trong tab mới.
+    <div class="sl-notice" style="background:#e0f2fe;">
+      <div class="sl-notice-icon">📘</div>
+      <div class="sl-notice-title" style="color:#0369a1;">Video Facebook</div>
+      <div class="sl-notice-sub" style="color:#0369a1;">Facebook không hỗ trợ nhúng trực tiếp.<br>Nhấn nút bên dưới để mở trong tab mới.</div>
     </div>
+
   <% elsif @link.link_type == 'tiktok' %>
-    <div class="sl-fb-notice" style="background:#fff0f3;color:#be185d;">
-      <div style="font-size:28px;margin-bottom:8px;">🎵</div>
-      <strong>Video TikTok</strong><br>
-      TikTok không hỗ trợ nhúng trực tiếp.<br>
-      Nhấn nút bên dưới để mở trong tab mới.
+    <div class="sl-notice" style="background:#fdf2f8;">
+      <div class="sl-notice-icon">🎵</div>
+      <div class="sl-notice-title" style="color:#be185d;">Video TikTok</div>
+      <div class="sl-notice-sub" style="color:#be185d;">TikTok không hỗ trợ nhúng trực tiếp.<br>Nhấn nút bên dưới để mở trong tab mới.</div>
     </div>
+
   <% else %>
-    <%# Generic — try to iframe it %>
-    <iframe class="sl-generic-frame"
-            src="<%= @link.url %>"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-            loading="lazy"
-            title="<%= h(@link.title || @link.url) %>"
-            onerror="this.style.display='none';document.getElementById('sl-iframe-fallback').style.display='block'">
-    </iframe>
-    <div id="sl-iframe-fallback" style="display:none;background:#f8fafc;border-radius:12px;padding:32px;text-align:center;color:#64748b;font-size:14px;">
+    <%# Try generic iframe — show notice if blocked %>
+    <div id="sl-frame-wrap" style="border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08);">
+      <iframe id="sl-frame"
+              src="<%= @link.url %>"
+              style="width:100%;height:62vh;border:none;display:block;"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              loading="lazy"
+              title="<%= h(@link.title.presence || @link.url) %>"></iframe>
+    </div>
+    <div id="sl-frame-fallback" style="display:none;background:#f8fafc;border-radius:14px;padding:32px 20px;text-align:center;color:#64748b;font-size:14px;line-height:1.7;">
+      <div style="font-size:36px;margin-bottom:10px;">🔒</div>
       Trang này không cho phép nhúng trực tiếp.<br>Nhấn nút bên dưới để mở.
     </div>
+    <script>
+      (function() {
+        var fr = document.getElementById('sl-frame');
+        fr.addEventListener('error', function() {
+          document.getElementById('sl-frame-wrap').style.display = 'none';
+          document.getElementById('sl-frame-fallback').style.display = 'block';
+        });
+        /* Heuristic: if iframe loads but page blocks framing, it'll be blank */
+        setTimeout(function() {
+          try {
+            var h = fr.contentWindow.document.body;
+            if (!h || fr.contentWindow.document.body.innerHTML === '') {
+              document.getElementById('sl-frame-wrap').style.display = 'none';
+              document.getElementById('sl-frame-fallback').style.display = 'block';
+            }
+          } catch(e) {
+            /* cross-origin — assume it loaded OK */
+          }
+        }, 3000);
+      })();
+    </script>
   <% end %>
 
-  <%# Info card %>
-  <div class="sl-info-card">
-    <div class="sl-info-meta">
-      <span class="sl-type-pill"><%= { 'youtube' => '▶ YouTube', 'facebook' => '📘 Facebook', 'vimeo' => '🎬 Vimeo', 'tiktok' => '🎵 TikTok', 'generic' => '🔗 Web' }[@link.link_type] || '🔗 Web' %></span>
-      <span class="sl-cat-pill <%= @link.category %>"><%= @link.category == 'learning' ? '📚 Học tập' : '🎬 Giải trí' %></span>
+  <%# ── Info card ── %>
+  <div class="sl-info">
+    <div class="sl-info-body">
+      <div class="sl-info-pills">
+        <span class="sl-pill sl-pill-type"><%= type_map[@link.link_type] || '🔗 Web' %></span>
+        <span class="sl-pill sl-pill-cat <%= cat_class %>"><%= cat_label %></span>
+      </div>
+      <div class="sl-info-title"><%= @link.title.presence || @link.url %></div>
+      <div class="sl-info-domain"><%= domain %></div>
+      <% if @link.description.present? %>
+        <div class="sl-info-desc"><%= @link.description %></div>
+      <% end %>
     </div>
-
-    <div class="sl-info-title"><%= @link.title.presence || @link.url %></div>
-    <div class="sl-info-url"><%= @link.url %></div>
-    <% if @link.description.present? %>
-      <div class="sl-info-desc"><%= @link.description %></div>
-    <% end %>
-
     <a href="<%= @link.url %>" target="_blank" rel="noopener noreferrer" class="sl-open-btn">
-      🔗 Mở link gốc
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+      Mở link gốc
     </a>
   </div>
+
 </div>
