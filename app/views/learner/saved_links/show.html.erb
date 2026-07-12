@@ -45,12 +45,30 @@
   <%# ── Video player ── %>
   <% if @link.embeddable? %>
     <div class="sl-video-wrap">
-      <iframe src="<%= @link.embed_url %>"
+      <iframe id="sl-yt-player"
+              src="<%= @link.embed_url %>"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowfullscreen
-              loading="lazy"
               title="<%= h(@link.title.presence || 'Video') %>"></iframe>
     </div>
+    <% if @link.link_type == 'youtube' %>
+    <script>
+      (function() {
+        function initYT() {
+          new YT.Player('sl-yt-player', {
+            events: { onReady: function(e) { e.target.unMute(); e.target.setVolume(100); } }
+          });
+        }
+        var prev = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = function() { if (prev) prev(); initYT(); };
+        if (window.YT && window.YT.Player) { initYT(); }
+        else if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+          var s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api';
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
+    <% end %>
 
   <% elsif @link.link_type == 'facebook' %>
     <div class="sl-notice" style="background:#e0f2fe;">

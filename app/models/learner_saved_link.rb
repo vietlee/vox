@@ -25,7 +25,7 @@ class LearnerSavedLink < ApplicationRecord
     case link_type
     when 'youtube'
       vid = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)&.[](1)
-      "https://www.youtube.com/embed/#{vid}?autoplay=1" if vid
+      "https://www.youtube.com/embed/#{vid}?autoplay=1&enablejsapi=1" if vid
     when 'vimeo'
       vid = url.match(/vimeo\.com\/(\d+)/)&.[](1)
       "https://player.vimeo.com/video/#{vid}?autoplay=1" if vid
