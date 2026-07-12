@@ -194,7 +194,6 @@
   window.setSttMode = function(m) {
     if (m === _mode) return;
     _mode = m;
-    try { localStorage.setItem('stt_mode', m); } catch(e) {}
     // Switching modes auto-clears previous data (both directions)
     window.sttClear();
     const isTrans = m === 'translate';
@@ -563,10 +562,6 @@
     document.getElementById('stt-error').style.display = 'none';
   }
 
-  // Restore last active mode — must run after all functions are defined
-  try {
-    if (localStorage.getItem('stt_mode') === 'translate') setSttMode('translate');
-  } catch(e) {}
 })();
 </script>
 
