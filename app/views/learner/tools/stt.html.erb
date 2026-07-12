@@ -123,8 +123,8 @@
         <button onclick="sttClear()" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;"><%= t('learner_stt.clear') %></button>
       </div>
     </div>
-    <div style="height:130px;padding:10px;background:#f8fafc;border-radius:8px;position:relative;overflow-y:auto;-webkit-overflow-scrolling:touch;">
-      <span id="stt-transcript-final" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span><span id="stt-transcript-interim" style="font-size:14px;color:#94a3b8;line-height:1.8;font-style:italic;white-space:pre-wrap;"></span>
+    <div id="stt-transcript-box" style="height:130px;padding:10px;background:#f8fafc;border-radius:8px;position:relative;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+      <span id="stt-transcript-final" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span><span id="stt-transcript-interim" style="font-size:14px;color:#0369a1;line-height:1.8;white-space:pre-wrap;background:#e0f2fe;border-radius:4px;padding:0 3px;"></span>
       <p id="stt-placeholder" style="font-size:13px;color:#cbd5e1;margin:0;position:absolute;top:10px;left:10px;"><%= t('learner_stt.placeholder_live') %></p>
     </div>
   </div>
@@ -250,11 +250,15 @@
   window.sttToggleMic = function() { _listening ? stopRecognition() : startRecognition(); };
 
   function resolveRecognitionLang(selected) {
-    // Pass explicit selection through; empty = let the browser auto-detect.
-    // We no longer infer from navigator.languages because forcing 'vi-VN' when the
-    // user speaks another language (e.g. English) prevents isFinal from ever firing,
-    // making all text appear as a single concatenated interim line.
-    return selected;
+    if (selected) return selected;
+    // Auto-detect: prefer vi-VN when Vietnamese is in the browser language list.
+    // isFinal may not fire when lang mismatches speech, but the 1.3s pause timer
+    // handles sentence breaks as a fallback regardless of language.
+    var langs = navigator.languages || (navigator.language ? [navigator.language] : []);
+    for (var i = 0; i < langs.length; i++) {
+      if (langs[i].toLowerCase().startsWith('vi')) return 'vi-VN';
+    }
+    return '';
   }
 
   async function startRecognition() {
@@ -389,9 +393,11 @@
 
   function updateTranscript(final, interim) {
     document.getElementById('stt-transcript-final').textContent  = final;
-    // Interim (in-progress sentence) shown on its own new line below the final text
     document.getElementById('stt-transcript-interim').textContent = interim ? (final ? '\n' : '') + interim : '';
     document.getElementById('stt-placeholder').style.display = (final || interim) ? 'none' : 'block';
+    // Auto-scroll to keep the active (interim) sentence in view
+    var box = document.getElementById('stt-transcript-box');
+    if (box) box.scrollTop = box.scrollHeight;
   }
 
   // ── Realtime translation ──
