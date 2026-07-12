@@ -300,8 +300,7 @@
           var t = e.results[i][0].transcript;
           if (e.results[i].isFinal) {
             clearTimeout(_pauseTimer); _pauseTimer = null;
-            _finalText += (_finalText ? '\n' : '') + t.trim();
-            gotFinal = true;
+            if (commitText(t)) gotFinal = true;
           } else {
             interim += t;
           }
@@ -316,11 +315,13 @@
         if (interim) {
           _pauseTimer = setTimeout(function() {
             if (!_lastInterim) return;
-            _finalText += (_finalText ? '\n' : '') + _lastInterim.trim();
+            var committed = commitText(_lastInterim);
             _lastInterim = '';
             updateTranscript(_finalText, '');
-            if (_mode === 'translate') scheduleTranslation();
-            if (_mode === 'transcribe') schedulePunctuation();
+            if (committed) {
+              if (_mode === 'translate') scheduleTranslation();
+              if (_mode === 'transcribe') schedulePunctuation();
+            }
           }, 1300);
         }
 
@@ -356,13 +357,28 @@
     }
   }
 
+  // Append only the NEW portion of raw text (Chrome vi-VN returns cumulative transcripts).
+  // Strip any prefix already committed, add only the delta as a new line.
+  function commitText(raw) {
+    var chunk = raw.trim();
+    if (!chunk) return false;
+    var flatPrev = _finalText.replace(/\n/g, ' ').trim();
+    var delta = chunk;
+    if (flatPrev && chunk.startsWith(flatPrev)) {
+      delta = chunk.slice(flatPrev.length).replace(/^[\s.,!?،؟]+/, '').trim();
+    }
+    if (!delta) return false;
+    _finalText += (_finalText ? '\n' : '') + delta;
+    return true;
+  }
+
   function stopRecognition() {
     _listening = false;
     setOrbUI(false);
     clearTimeout(_pauseTimer); _pauseTimer = null;
     // Commit any in-progress interim as a final sentence before stopping
     if (_lastInterim.trim()) {
-      _finalText += (_finalText ? '\n' : '') + _lastInterim.trim();
+      commitText(_lastInterim);
       _lastInterim = '';
       updateTranscript(_finalText, '');
     }
