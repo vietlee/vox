@@ -262,18 +262,25 @@
   async function startRecognition() {
     hideError();
 
-    // Explicitly request mic permission first — required on PWA / iOS Safari
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(function(t) { t.stop(); });
-    } catch(e) {
-      showError('Không có quyền truy cập microphone. Vui lòng cho phép trong cài đặt trình duyệt.');
-      return;
-    }
-
     if (!SpeechRecognition) {
       showError('Trình duyệt không hỗ trợ nhận giọng nói realtime. Hãy dùng Chrome hoặc Safari, hoặc chuyển sang tab File để tải lên âm thanh.');
       return;
+    }
+
+    // On iOS, SpeechRecognition handles its own permission dialog natively.
+    // Calling getUserMedia before SpeechRecognition.start() causes audio-capture
+    // conflict on iOS because AVAudioSession hasn't fully reset by the time
+    // SpeechRecognition tries to open the mic.
+    // On Android/desktop, prime getUserMedia first to surface the permission dialog.
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (!isIOS && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(function(t) { t.stop(); });
+      } catch(e) {
+        showError('Không có quyền truy cập microphone. Vui lòng cho phép trong cài đặt trình duyệt.');
+        return;
+      }
     }
 
     try {
