@@ -5,104 +5,151 @@
 <% end %>
 
 <style>
-  .sl-add-card { background:#fff; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,.08); padding:16px; margin-bottom:16px; }
-  .sl-url-row { display:flex; gap:8px; align-items:center; }
-  .sl-url-input { flex:1; border:1.5px solid #e2e8f0; border-radius:8px; padding:10px 12px; font-size:14px; outline:none; transition:border-color .18s; }
-  .sl-url-input:focus { border-color:#1e3a5f; }
-  .sl-detect-btn { background:#1e3a5f; color:#fff; border:none; border-radius:8px; padding:10px 14px; font-size:14px; cursor:pointer; white-space:nowrap; }
-  .sl-detect-btn:disabled { opacity:.5; cursor:default; }
-  .sl-meta-row { display:flex; gap:10px; align-items:flex-start; margin-top:12px; }
-  .sl-thumb-preview { width:64px; height:48px; object-fit:cover; border-radius:6px; flex-shrink:0; background:#f0f4f8; }
-  .sl-thumb-placeholder { width:64px; height:48px; border-radius:6px; background:#e8edf3; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:20px; }
-  .sl-meta-fields { flex:1; display:flex; flex-direction:column; gap:8px; }
-  .sl-title-input { border:1.5px solid #e2e8f0; border-radius:8px; padding:8px 10px; font-size:14px; outline:none; width:100%; box-sizing:border-box; }
-  .sl-title-input:focus { border-color:#1e3a5f; }
-  .sl-cat-row { display:flex; gap:8px; }
-  .sl-cat-btn { flex:1; padding:8px; border:1.5px solid #e2e8f0; border-radius:8px; background:#fff; font-size:13px; cursor:pointer; text-align:center; transition:all .15s; }
-  .sl-cat-btn.active { border-color:#1e3a5f; background:#1e3a5f; color:#fff; }
-  .sl-save-btn { width:100%; margin-top:4px; padding:11px; background:#1e3a5f; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
-  .sl-save-btn:disabled { opacity:.5; cursor:default; }
+/* ── Add form ── */
+.sl-form { background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.07); overflow:hidden; margin-bottom:20px; }
+.sl-form-header { padding:14px 16px 0; display:flex; align-items:center; gap:8px; }
+.sl-form-header-icon { width:30px; height:30px; background:#eef3fa; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+.sl-form-header-title { font-size:14px; font-weight:700; color:#1e3a5f; }
 
-  .sl-section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-  .sl-count { font-size:12px; color:#64748b; }
+.sl-url-wrap { padding:12px 16px; position:relative; }
+.sl-url-field { display:flex; align-items:center; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; overflow:hidden; transition:border-color .2s,box-shadow .2s; }
+.sl-url-field:focus-within { border-color:#1e3a5f; box-shadow:0 0 0 3px rgba(30,58,95,.08); background:#fff; }
+.sl-url-icon { padding:0 10px 0 13px; color:#94a3b8; flex-shrink:0; display:flex; }
+.sl-url-input { flex:1; border:none; background:transparent; padding:11px 0; font-size:14px; color:#1e293b; outline:none; min-width:0; }
+.sl-url-input::placeholder { color:#94a3b8; }
+.sl-detect-btn { margin:6px; padding:7px 14px; background:#1e3a5f; color:#fff; border:none; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:background .15s; }
+.sl-detect-btn:hover { background:#16304f; }
+.sl-detect-btn:disabled { opacity:.5; cursor:default; }
 
-  .sl-list { display:flex; flex-direction:column; gap:10px; }
-  .sl-item { background:#fff; border-radius:12px; box-shadow:0 1px 5px rgba(0,0,0,.07); padding:12px; display:flex; align-items:center; gap:10px; cursor:grab; user-select:none; transition:box-shadow .15s, opacity .15s; }
-  .sl-item:active { cursor:grabbing; }
-  .sl-item.dragging { opacity:.4; box-shadow:0 4px 16px rgba(0,0,0,.15); }
-  .sl-item.drag-over { box-shadow:0 0 0 2px #1e3a5f; }
-  .sl-drag-handle { color:#cbd5e1; font-size:18px; cursor:grab; flex-shrink:0; padding:2px 0; }
-  .sl-favicon { width:32px; height:32px; border-radius:6px; object-fit:cover; flex-shrink:0; background:#f0f4f8; }
-  .sl-favicon-ph { width:32px; height:32px; border-radius:6px; background:#e8edf3; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
-  .sl-info { flex:1; min-width:0; }
-  .sl-item-title { font-size:14px; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .sl-item-url { font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
-  .sl-cat-pill { font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; margin-top:4px; display:inline-block; }
-  .sl-cat-pill.learning { background:#dbeafe; color:#1d4ed8; }
-  .sl-cat-pill.entertainment { background:#fce7f3; color:#be185d; }
-  .sl-actions { display:flex; gap:6px; flex-shrink:0; }
-  .sl-icon-btn { width:34px; height:34px; border:none; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; transition:background .15s; }
-  .sl-play-btn { background:#dcfce7; color:#15803d; }
-  .sl-play-btn:hover { background:#bbf7d0; }
-  .sl-detail-btn { background:#e0f2fe; color:#0369a1; }
-  .sl-detail-btn:hover { background:#bae6fd; }
-  .sl-del-btn { background:#fee2e2; color:#dc2626; }
-  .sl-del-btn:hover { background:#fecaca; }
+.sl-detecting { display:none; align-items:center; gap:8px; font-size:13px; color:#64748b; padding:0 16px 12px; }
+.sl-detecting.show { display:flex; }
+.sl-spinner { width:15px; height:15px; border:2px solid #e2e8f0; border-top-color:#1e3a5f; border-radius:50%; animation:sl-spin .7s linear infinite; flex-shrink:0; }
+@keyframes sl-spin { to { transform:rotate(360deg); } }
 
-  .sl-empty { text-align:center; padding:40px 16px; color:#94a3b8; }
-  .sl-empty-icon { font-size:48px; margin-bottom:12px; }
-  .sl-empty-text { font-size:14px; }
+/* ── Preview / meta panel ── */
+.sl-meta { display:none; border-top:1px solid #f1f5f9; }
+.sl-preview-row { display:flex; gap:12px; align-items:flex-start; padding:14px 16px 12px; }
+.sl-thumb-wrap { position:relative; flex-shrink:0; }
+.sl-thumb { width:90px; height:64px; border-radius:8px; object-fit:cover; display:block; background:#f0f4f8; }
+.sl-thumb-ph { width:90px; height:64px; border-radius:8px; background:#eef3fa; display:flex; align-items:center; justify-content:center; font-size:28px; }
+.sl-type-badge { position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,.55); color:#fff; font-size:9px; font-weight:700; padding:2px 5px; border-radius:4px; letter-spacing:.3px; }
+.sl-preview-fields { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+.sl-title-input { border:1.5px solid #e2e8f0; border-radius:8px; padding:8px 10px; font-size:14px; color:#1e293b; outline:none; width:100%; box-sizing:border-box; transition:border-color .18s; background:#f8fafc; }
+.sl-title-input:focus { border-color:#1e3a5f; background:#fff; }
 
-  .sl-detecting { display:none; align-items:center; gap:8px; font-size:13px; color:#64748b; margin-top:10px; }
-  .sl-detecting.show { display:flex; }
-  .sl-spinner { width:16px; height:16px; border:2px solid #e2e8f0; border-top-color:#1e3a5f; border-radius:50%; animation:spin .7s linear infinite; }
-  @keyframes spin { to { transform:rotate(360deg); } }
+.sl-cat-row { display:flex; gap:6px; }
+.sl-cat-btn { flex:1; padding:7px 6px; border:1.5px solid #e2e8f0; border-radius:8px; background:#f8fafc; font-size:12px; font-weight:600; cursor:pointer; text-align:center; transition:all .15s; color:#475569; }
+.sl-cat-btn.active.learning  { border-color:#2563eb; background:#eff6ff; color:#1d4ed8; }
+.sl-cat-btn.active.entertainment { border-color:#db2777; background:#fdf2f8; color:#be185d; }
+
+.sl-save-row { padding:0 16px 16px; }
+.sl-save-btn { width:100%; padding:12px; background:#1e3a5f; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; transition:background .15s; letter-spacing:.2px; }
+.sl-save-btn:hover { background:#16304f; }
+.sl-save-btn:disabled { opacity:.5; cursor:default; }
+
+/* ── List ── */
+.sl-list-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.sl-list-count { font-size:12px; color:#94a3b8; font-weight:500; }
+.sl-list { display:flex; flex-direction:column; gap:8px; }
+
+.sl-item { background:#fff; border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,.06); display:flex; align-items:stretch; overflow:hidden; cursor:grab; user-select:none; transition:box-shadow .15s,opacity .15s,transform .1s; border:1px solid #f1f5f9; }
+.sl-item:hover { box-shadow:0 3px 10px rgba(0,0,0,.09); }
+.sl-item.dragging { opacity:.4; box-shadow:0 6px 20px rgba(0,0,0,.14); transform:scale(1.01); }
+.sl-item.drag-over { box-shadow:0 0 0 2px #1e3a5f; }
+
+.sl-handle { display:flex; align-items:center; padding:0 6px 0 10px; color:#d1d5db; cursor:grab; flex-shrink:0; }
+.sl-handle svg { width:14px; height:14px; }
+
+/* Thumbnail column for embeddable items */
+.sl-item-thumb { width:72px; flex-shrink:0; position:relative; overflow:hidden; background:#f0f4f8; }
+.sl-item-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+.sl-item-thumb-ph { width:72px; height:100%; display:flex; align-items:center; justify-content:center; font-size:22px; min-height:56px; }
+.sl-item-play-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.3); opacity:0; transition:opacity .15s; }
+.sl-item-thumb:hover .sl-item-play-overlay { opacity:1; }
+.sl-play-circle { width:28px; height:28px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.sl-play-circle svg { width:12px; height:12px; color:#1e3a5f; margin-left:2px; }
+
+.sl-item-body { flex:1; min-width:0; padding:10px 10px 10px 8px; display:flex; flex-direction:column; justify-content:center; gap:3px; }
+.sl-item-title { font-size:13px; font-weight:700; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.3; }
+.sl-item-domain { font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sl-item-pills { display:flex; align-items:center; gap:5px; margin-top:2px; }
+.sl-cat-pill { font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; }
+.sl-cat-pill.learning { background:#eff6ff; color:#2563eb; }
+.sl-cat-pill.entertainment { background:#fdf2f8; color:#db2777; }
+.sl-type-pill { font-size:10px; font-weight:600; padding:2px 6px; border-radius:10px; background:#f1f5f9; color:#64748b; }
+
+.sl-item-actions { display:flex; flex-direction:column; justify-content:center; gap:4px; padding:8px 10px 8px 4px; flex-shrink:0; }
+.sl-icon-btn { width:30px; height:30px; border:none; border-radius:7px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .12s; }
+.sl-icon-btn svg { width:14px; height:14px; }
+.sl-play-btn  { background:#dcfce7; color:#15803d; }
+.sl-play-btn:hover  { background:#bbf7d0; }
+.sl-detail-btn { background:#e0f2fe; color:#0369a1; }
+.sl-detail-btn:hover { background:#bae6fd; }
+.sl-del-btn   { background:#fee2e2; color:#dc2626; }
+.sl-del-btn:hover   { background:#fecaca; }
+
+/* ── Empty state ── */
+.sl-empty { text-align:center; padding:48px 20px; background:#fff; border-radius:14px; border:1.5px dashed #e2e8f0; }
+.sl-empty-icon { font-size:44px; margin-bottom:10px; line-height:1; }
+.sl-empty-title { font-size:15px; font-weight:700; color:#1e293b; margin-bottom:4px; }
+.sl-empty-sub { font-size:13px; color:#94a3b8; }
 </style>
 
-<div style="padding:0 0 24px;">
+<div style="padding-bottom:28px;">
 
-  <%# ── Add link form ── %>
-  <div class="sl-add-card">
-    <div style="font-size:13px;font-weight:600;color:#1e3a5f;margin-bottom:12px;">+ Thêm link mới</div>
-
-    <div class="sl-url-row">
-      <input id="sl-url" class="sl-url-input" type="url" placeholder="Dán link vào đây (YouTube, Facebook, ...)" autocomplete="off" />
-      <button class="sl-detect-btn" id="sl-detect-btn" onclick="slDetect()">Lấy thông tin</button>
+  <%# ── Add form ── %>
+  <div class="sl-form">
+    <div class="sl-form-header">
+      <div class="sl-form-header-icon">🔖</div>
+      <span class="sl-form-header-title">Thêm link mới</span>
+    </div>
+    <div class="sl-url-wrap">
+      <div class="sl-url-field">
+        <span class="sl-url-icon">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+        </span>
+        <input id="sl-url" class="sl-url-input" type="url" placeholder="Dán link vào đây (YouTube, Facebook, …)" autocomplete="off" />
+        <button class="sl-detect-btn" id="sl-detect-btn" onclick="slDetect()">Lấy thông tin</button>
+      </div>
     </div>
 
     <div class="sl-detecting" id="sl-detecting">
-      <div class="sl-spinner"></div> Đang lấy thông tin trang...
+      <div class="sl-spinner"></div> Đang lấy thông tin trang…
     </div>
 
-    <div id="sl-meta" style="display:none;">
-      <div class="sl-meta-row">
-        <div id="sl-thumb-wrap">
-          <div class="sl-thumb-placeholder" id="sl-thumb-ph">🔗</div>
-          <img id="sl-thumb-img" class="sl-thumb-preview" style="display:none;" alt="" />
+    <div class="sl-meta" id="sl-meta">
+      <div class="sl-preview-row">
+        <div class="sl-thumb-wrap">
+          <div class="sl-thumb-ph" id="sl-thumb-ph">🔗</div>
+          <img id="sl-thumb-img" class="sl-thumb" style="display:none;" alt="" />
+          <span class="sl-type-badge" id="sl-type-badge"></span>
         </div>
-        <div class="sl-meta-fields">
+        <div class="sl-preview-fields">
           <input id="sl-title" class="sl-title-input" type="text" placeholder="Tiêu đề" />
           <div class="sl-cat-row">
-            <button class="sl-cat-btn active" id="sl-cat-learning" onclick="slSetCat('learning')">📚 Học tập</button>
-            <button class="sl-cat-btn" id="sl-cat-entertainment" onclick="slSetCat('entertainment')">🎬 Giải trí</button>
+            <button class="sl-cat-btn active learning" id="sl-cat-learning" onclick="slSetCat('learning')">📚 Học tập</button>
+            <button class="sl-cat-btn entertainment" id="sl-cat-entertainment" onclick="slSetCat('entertainment')">🎬 Giải trí</button>
           </div>
         </div>
       </div>
-      <button class="sl-save-btn" id="sl-save-btn" onclick="slSave()">Lưu link</button>
+      <div class="sl-save-row">
+        <button class="sl-save-btn" id="sl-save-btn" onclick="slSave()">Lưu link</button>
+      </div>
     </div>
   </div>
 
   <%# ── List ── %>
-  <div class="sl-section-head">
-    <span class="lp-section-title">Danh sách đã lưu</span>
-    <span class="sl-count" id="sl-count"><%= @links.size %> link</span>
+  <div class="sl-list-header">
+    <span class="lp-section-title">Đã lưu</span>
+    <span class="sl-list-count" id="sl-count"><%= @links.size %> link</span>
   </div>
 
   <div class="sl-list" id="sl-list">
     <% if @links.empty? %>
       <div class="sl-empty" id="sl-empty">
         <div class="sl-empty-icon">🔖</div>
-        <div class="sl-empty-text">Chưa có link nào. Thêm link để bắt đầu!</div>
+        <div class="sl-empty-title">Chưa có link nào</div>
+        <div class="sl-empty-sub">Dán link YouTube, Facebook hoặc bất kỳ trang web nào để bắt đầu!</div>
       </div>
     <% else %>
       <% @links.each do |link| %>
@@ -114,13 +161,16 @@
 
 <script>
 (function() {
-  var DETECT_URL = '<%= detect_learner_saved_links_path %>';
-  var CREATE_URL = '<%= learner_saved_links_path %>';
+  var DETECT_URL  = '<%= detect_learner_saved_links_path %>';
+  var CREATE_URL  = '<%= learner_saved_links_path %>';
   var REORDER_URL = '<%= reorder_learner_saved_links_path %>';
   var csrf = function() { return document.querySelector('meta[name=csrf-token]')?.content || ''; };
 
   var _detected = {};
   var _cat = 'learning';
+
+  var TYPE_LABELS = { youtube:'YouTube', facebook:'Facebook', vimeo:'Vimeo', tiktok:'TikTok', generic:'Web' };
+  var TYPE_ICONS  = { youtube:'▶️', facebook:'📘', vimeo:'🎬', tiktok:'🎵', generic:'🔗' };
 
   window.slSetCat = function(c) {
     _cat = c;
@@ -132,6 +182,7 @@
     var url = document.getElementById('sl-url').value.trim();
     if (!url) { showLpToast('Vui lòng nhập URL', 'error'); return; }
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    document.getElementById('sl-url').value = url;
 
     var btn = document.getElementById('sl-detect-btn');
     btn.disabled = true;
@@ -142,12 +193,13 @@
     fd.append('url', url);
     fd.append('authenticity_token', csrf());
 
-    fetch(DETECT_URL, { method: 'POST', body: fd })
+    fetch(DETECT_URL, { method:'POST', body:fd })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         _detected = d;
         _detected.url = url;
         document.getElementById('sl-title').value = d.title || '';
+
         var img = document.getElementById('sl-thumb-img');
         var ph  = document.getElementById('sl-thumb-ph');
         if (d.thumbnail) {
@@ -157,8 +209,12 @@
         } else {
           img.style.display = 'none';
           ph.style.display = 'flex';
-          ph.textContent = iconForType(d.link_type);
+          ph.textContent = TYPE_ICONS[d.link_type] || '🔗';
         }
+        var badge = document.getElementById('sl-type-badge');
+        badge.textContent = TYPE_LABELS[d.link_type] || 'Web';
+        badge.style.display = d.link_type !== 'generic' ? 'block' : 'none';
+
         document.getElementById('sl-meta').style.display = 'block';
       })
       .catch(function() { showLpToast('Không lấy được thông tin link', 'error'); })
@@ -175,7 +231,7 @@
 
     var btn = document.getElementById('sl-save-btn');
     btn.disabled = true;
-    btn.textContent = 'Đang lưu...';
+    btn.textContent = 'Đang lưu…';
 
     var fd = new FormData();
     fd.append('authenticity_token', csrf());
@@ -183,20 +239,20 @@
     fd.append('saved_link[title]', title);
     fd.append('saved_link[category]', _cat);
     fd.append('saved_link[link_type]', _detected.link_type || 'generic');
-    if (_detected.thumbnail) fd.append('saved_link[thumbnail]', _detected.thumbnail);
-    if (_detected.favicon)   fd.append('saved_link[favicon]',   _detected.favicon);
+    if (_detected.thumbnail)   fd.append('saved_link[thumbnail]',   _detected.thumbnail);
+    if (_detected.favicon)     fd.append('saved_link[favicon]',     _detected.favicon);
     if (_detected.description) fd.append('saved_link[description]', _detected.description);
 
-    fetch(CREATE_URL, { method: 'POST', body: fd })
+    fetch(CREATE_URL, { method:'POST', body:fd })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         if (d.success) {
-          prependLinkCard(d.link);
-          document.getElementById('sl-url').value = '';
+          prependCard(d.link);
+          document.getElementById('sl-url').value  = '';
           document.getElementById('sl-title').value = '';
           document.getElementById('sl-meta').style.display = 'none';
           document.getElementById('sl-thumb-img').style.display = 'none';
-          document.getElementById('sl-thumb-ph').style.display = 'flex';
+          document.getElementById('sl-thumb-ph').style.display  = 'flex';
           _detected = {};
           showLpToast('Đã lưu link!', 'success');
           updateCount(1);
@@ -211,70 +267,75 @@
   window.slDelete = function(id) {
     lpDeleteConfirm('/learner/saved_links/' + id, 'Xóa link?', 'Bạn có chắc muốn xóa link này?', function() {
       var el = document.querySelector('[data-link-id="' + id + '"]');
-      if (el) { el.style.opacity = '0'; setTimeout(function() { el.remove(); updateCount(-1); }, 200); }
+      if (el) { el.style.opacity = '0'; el.style.transform = 'scale(.96)'; el.style.transition = 'all .2s'; setTimeout(function() { el.remove(); updateCount(-1); }, 200); }
     });
   };
 
-  window.slPlay = function(url) {
-    window.open(url, '_blank', 'noopener');
-  };
-
-  window.slDetail = function(id) {
-    window.location.href = '/learner/saved_links/' + id;
-  };
+  window.slPlay   = function(url) { window.open(url, '_blank', 'noopener'); };
+  window.slDetail = function(id)  { window.location.href = '/learner/saved_links/' + id; };
 
   function updateCount(delta) {
     var el = document.getElementById('sl-count');
     var n = (parseInt(el.textContent) || 0) + delta;
     el.textContent = n + ' link';
-    document.getElementById('sl-empty') && (document.getElementById('sl-empty').style.display = n > 0 ? 'none' : 'block');
+    var empty = document.getElementById('sl-empty');
+    if (empty) empty.style.display = n > 0 ? 'none' : 'block';
   }
 
-  function iconForType(t) {
-    return { youtube: '▶️', facebook: '📘', vimeo: '🎬', tiktok: '🎵', generic: '🔗' }[t] || '🔗';
+  function domainOf(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ''); } catch(e) { return url; }
   }
 
-  function prependLinkCard(link) {
-    var list = document.getElementById('sl-list');
+  function prependCard(link) {
+    var list  = document.getElementById('sl-list');
     var empty = document.getElementById('sl-empty');
     if (empty) empty.style.display = 'none';
-    var el = document.createElement('div');
-    el.innerHTML = buildCardHtml(link);
-    var card = el.firstElementChild;
+    var div = document.createElement('div');
+    div.innerHTML = buildCardHtml(link);
+    var card = div.firstElementChild;
     list.insertBefore(card, list.firstChild);
     initDrag(card);
   }
 
   function buildCardHtml(link) {
-    var faviconHtml = link.favicon
-      ? '<img class="sl-favicon" src="' + escHtml(link.favicon) + '" alt="" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
-        '<div class="sl-favicon-ph" style="display:none">' + iconForType(link.link_type) + '</div>'
-      : '<div class="sl-favicon-ph">' + iconForType(link.link_type) + '</div>';
-    var catLabel = link.category === 'learning' ? '📚 Học tập' : '🎬 Giải trí';
-    var playTarget = link.embeddable ? '/learner/saved_links/' + link.id : link.url;
+    var hasThumb = !!link.thumbnail;
+    var typeLabel = TYPE_LABELS[link.link_type] || 'Web';
+    var typeIcon  = TYPE_ICONS[link.link_type]  || '🔗';
+    var catClass  = link.category === 'learning' ? 'learning' : 'entertainment';
+    var catLabel  = link.category === 'learning' ? '📚 Học tập' : '🎬 Giải trí';
     var playAction = link.embeddable ? 'slDetail(' + link.id + ')' : 'slPlay(\'' + escJs(link.url) + '\')';
+
+    var thumbHtml = hasThumb
+      ? '<div class="sl-item-thumb" onclick="' + playAction + '" style="cursor:pointer">' +
+          '<img src="' + escHtml(link.thumbnail) + '" alt="" onerror="this.parentNode.innerHTML=\'<div class=sl-item-thumb-ph>' + typeIcon + '</div>\'">' +
+          '<div class="sl-item-play-overlay"><div class="sl-play-circle"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg></div></div>' +
+        '</div>'
+      : '<div class="sl-item-thumb-ph" style="width:72px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;background:#f0f4f8;">' + typeIcon + '</div>';
+
     return '<div class="sl-item" draggable="true" data-link-id="' + link.id + '">' +
-      '<div class="sl-drag-handle">⋮⋮</div>' +
-      faviconHtml +
-      '<div class="sl-info">' +
+      '<div class="sl-handle"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>' +
+      thumbHtml +
+      '<div class="sl-item-body">' +
         '<div class="sl-item-title">' + escHtml(link.title || link.url) + '</div>' +
-        '<div class="sl-item-url">' + escHtml(link.url) + '</div>' +
-        '<span class="sl-cat-pill ' + link.category + '">' + catLabel + '</span>' +
+        '<div class="sl-item-domain">' + escHtml(domainOf(link.url)) + '</div>' +
+        '<div class="sl-item-pills">' +
+          '<span class="sl-cat-pill ' + catClass + '">' + catLabel + '</span>' +
+          (link.link_type !== 'generic' ? '<span class="sl-type-pill">' + typeLabel + '</span>' : '') +
+        '</div>' +
       '</div>' +
-      '<div class="sl-actions">' +
-        '<button class="sl-icon-btn sl-play-btn" onclick="' + playAction + '" title="Phát">▶</button>' +
-        '<button class="sl-icon-btn sl-detail-btn" onclick="slDetail(' + link.id + ')" title="Xem chi tiết">⤢</button>' +
-        '<button class="sl-icon-btn sl-del-btn" onclick="slDelete(' + link.id + ')" title="Xóa">✕</button>' +
+      '<div class="sl-item-actions">' +
+        '<button class="sl-icon-btn sl-play-btn" onclick="' + playAction + '" title="Phát"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></button>' +
+        '<button class="sl-icon-btn sl-detail-btn" onclick="slDetail(' + link.id + ')" title="Chi tiết"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></button>' +
+        '<button class="sl-icon-btn sl-del-btn" onclick="slDelete(' + link.id + ')" title="Xóa"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>' +
       '</div>' +
     '</div>';
   }
 
-  function escHtml(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function escJs(s)   { return (s || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+  function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function escJs(s)   { return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
-  // ── Drag-and-drop reorder ──
+  /* ── Drag & drop ── */
   var _dragged = null;
-
   function initDrag(el) {
     el.addEventListener('dragstart', function(e) {
       _dragged = el;
@@ -288,35 +349,29 @@
     });
     el.addEventListener('dragover', function(e) {
       e.preventDefault();
-      if (_dragged && _dragged !== el) {
-        document.querySelectorAll('.sl-item').forEach(function(i) { i.classList.remove('drag-over'); });
-        el.classList.add('drag-over');
-        var list = el.parentNode;
-        var items = Array.from(list.querySelectorAll('.sl-item'));
-        var fromIdx = items.indexOf(_dragged);
-        var toIdx = items.indexOf(el);
-        if (fromIdx < toIdx) list.insertBefore(_dragged, el.nextSibling);
-        else list.insertBefore(_dragged, el);
-      }
+      if (!_dragged || _dragged === el) return;
+      document.querySelectorAll('.sl-item').forEach(function(i) { i.classList.remove('drag-over'); });
+      el.classList.add('drag-over');
+      var list = el.parentNode;
+      var items = Array.from(list.querySelectorAll('.sl-item'));
+      if (items.indexOf(_dragged) < items.indexOf(el)) list.insertBefore(_dragged, el.nextSibling);
+      else list.insertBefore(_dragged, el);
     });
     el.addEventListener('dragleave', function() { el.classList.remove('drag-over'); });
     el.addEventListener('drop', function(e) { e.preventDefault(); });
   }
 
   function saveOrder() {
-    var ids = Array.from(document.querySelectorAll('.sl-item[data-link-id]'))
-                   .map(function(el) { return el.dataset.linkId; });
+    var ids = Array.from(document.querySelectorAll('.sl-item[data-link-id]')).map(function(el) { return el.dataset.linkId; });
     var fd = new FormData();
     fd.append('authenticity_token', csrf());
     ids.forEach(function(id) { fd.append('ids[]', id); });
-    fetch(REORDER_URL, { method: 'POST', body: fd }).catch(function() {});
+    fetch(REORDER_URL, { method:'POST', body:fd }).catch(function() {});
   }
 
   document.querySelectorAll('.sl-item').forEach(initDrag);
 
-  // Auto-detect on paste
-  document.getElementById('sl-url').addEventListener('paste', function() {
-    setTimeout(slDetect, 80);
-  });
+  /* Auto-detect on paste */
+  document.getElementById('sl-url').addEventListener('paste', function() { setTimeout(slDetect, 80); });
 })();
 </script>

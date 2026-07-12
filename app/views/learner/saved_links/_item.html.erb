@@ -1,26 +1,50 @@
-<% icon = { 'youtube' => '▶️', 'facebook' => '📘', 'vimeo' => '🎬', 'tiktok' => '🎵', 'generic' => '🔗' }[link.link_type] || '🔗' %>
-<% cat_label = link.category == 'learning' ? '📚 Học tập' : '🎬 Giải trí' %>
+<% type_labels = { 'youtube'=>'YouTube','facebook'=>'Facebook','vimeo'=>'Vimeo','tiktok'=>'TikTok','generic'=>'Web' } %>
+<% type_icons  = { 'youtube'=>'▶️','facebook'=>'📘','vimeo'=>'🎬','tiktok'=>'🎵','generic'=>'🔗' } %>
+<% cat_class   = link.category == 'learning' ? 'learning' : 'entertainment' %>
+<% cat_label   = link.category == 'learning' ? '📚 Học tập' : '🎬 Giải trí' %>
+<% play_action = link.embeddable? ? "slDetail(#{link.id})" : "slPlay('#{j link.url}')" %>
+
 <div class="sl-item" draggable="true" data-link-id="<%= link.id %>">
-  <div class="sl-drag-handle">⋮⋮</div>
-  <% if link.favicon.present? %>
-    <img class="sl-favicon" src="<%= link.favicon %>" alt=""
-         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-    <div class="sl-favicon-ph" style="display:none"><%= icon %></div>
-  <% else %>
-    <div class="sl-favicon-ph"><%= icon %></div>
-  <% end %>
-  <div class="sl-info">
-    <div class="sl-item-title"><%= link.title.presence || link.url %></div>
-    <div class="sl-item-url"><%= link.url %></div>
-    <span class="sl-cat-pill <%= link.category %>"><%= cat_label %></span>
+  <div class="sl-handle">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
   </div>
-  <div class="sl-actions">
-    <% if link.embeddable? %>
-      <button class="sl-icon-btn sl-play-btn" onclick="slDetail(<%= link.id %>)" title="Phát">▶</button>
-    <% else %>
-      <button class="sl-icon-btn sl-play-btn" onclick="slPlay('<%= j link.url %>')" title="Mở link">▶</button>
-    <% end %>
-    <button class="sl-icon-btn sl-detail-btn" onclick="slDetail(<%= link.id %>)" title="Chi tiết">⤢</button>
-    <button class="sl-icon-btn sl-del-btn"    onclick="slDelete(<%= link.id %>)"  title="Xóa">✕</button>
+
+  <% if link.thumbnail.present? %>
+    <div class="sl-item-thumb" onclick="<%= play_action %>" style="cursor:pointer;">
+      <img src="<%= link.thumbnail %>" alt=""
+           onerror="this.parentNode.innerHTML='<div class=sl-item-thumb-ph><%= type_icons[link.link_type] || '🔗' %></div>'">
+      <div class="sl-item-play-overlay">
+        <div class="sl-play-circle">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div style="width:72px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;background:#f0f4f8;">
+      <%= type_icons[link.link_type] || '🔗' %>
+    </div>
+  <% end %>
+
+  <div class="sl-item-body">
+    <div class="sl-item-title"><%= link.title.presence || link.url %></div>
+    <div class="sl-item-domain"><%= URI.parse(link.url).hostname.to_s.sub(/\Awww\./, '') rescue link.url %></div>
+    <div class="sl-item-pills">
+      <span class="sl-cat-pill <%= cat_class %>"><%= cat_label %></span>
+      <% if link.link_type != 'generic' %>
+        <span class="sl-type-pill"><%= type_labels[link.link_type] || link.link_type %></span>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="sl-item-actions">
+    <button class="sl-icon-btn sl-play-btn" onclick="<%= play_action %>" title="Phát">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </button>
+    <button class="sl-icon-btn sl-detail-btn" onclick="slDetail(<%= link.id %>)" title="Chi tiết">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+    </button>
+    <button class="sl-icon-btn sl-del-btn" onclick="slDelete(<%= link.id %>)" title="Xóa">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    </button>
   </div>
 </div>

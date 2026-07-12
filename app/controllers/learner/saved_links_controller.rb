@@ -106,7 +106,17 @@ class Learner::SavedLinksController < Learner::BaseController
     if result[:link_type] == 'youtube'
       vid = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)&.[](1)
       if vid
-        result[:thumbnail] ||= "https://img.youtube.com/vi/#{vid}/hqdefault.jpg"
+        begin
+          oembed_uri = URI("https://www.youtube.com/oembed?url=#{URI.encode_www_form_component("https://www.youtube.com/watch?v=#{vid}")}&format=json")
+          oembed_res = Net::HTTP.start(oembed_uri.host, oembed_uri.port, use_ssl: true, open_timeout: 4, read_timeout: 4) { |h| h.get(oembed_uri.request_uri) }
+          if oembed_res.is_a?(Net::HTTPSuccess)
+            oembed = JSON.parse(oembed_res.body)
+            result[:title]     = oembed['title']
+            result[:thumbnail] = oembed['thumbnail_url']
+          end
+        rescue => _e
+          result[:thumbnail] ||= "https://img.youtube.com/vi/#{vid}/hqdefault.jpg"
+        end
         result[:embed_url] = "https://www.youtube.com/embed/#{vid}"
       end
     end
