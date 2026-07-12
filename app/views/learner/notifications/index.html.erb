@@ -4,10 +4,17 @@
   <span class="lp-bc-current"><%= t('notifications.page_title') %></span>
 <% end %>
 
+<% has_unread = @notifications.any? { |n| !n.read } %>
+
 <div style="max-width:560px;margin:0 auto;width:100%;flex:1;display:flex;flex-direction:column;min-height:0;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
     <h1 style="font-size:18px;font-weight:800;color:#1e293b;margin:0;">🔔 <%= t('notifications.page_title') %></h1>
-    <% if @notifications.any? %>
+    <% if has_unread %>
+      <button id="notif-mark-all-btn" onclick="notifMarkAll()"
+              style="font-size:12px;font-weight:700;color:#6366f1;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:5px 12px;cursor:pointer;">
+        <%= t('notifications.mark_all_read') %>
+      </button>
+    <% elsif @notifications.any? %>
       <span style="font-size:12px;color:#9ca3af;"><%= t('notifications.count', count: @notifications.size) %></span>
     <% end %>
   </div>
@@ -24,13 +31,17 @@
         <% icon = { "quiz_assigned" => "📝", "flashcard_assigned" => "🃏", "path_assigned" => "🗺️", "badge_earned" => "🏆" }[n.notification_type] || "🔔" %>
         <% item_style = "display:flex;align-items:flex-start;gap:12px;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px 16px;text-decoration:none;color:inherit;position:relative;overflow:hidden;" %>
         <% item_style += "border-color:#818cf8;background:#eef2ff;box-shadow:0 2px 8px rgba(99,102,241,.10);" if !n.read %>
+        <%# Click handler: mark individual as read then navigate %>
+        <% click_js = n.read ? nil : "notifMarkRead(#{n.id},this,#{n.action_url.present? ? "'#{j n.action_url}'" : 'null'})" %>
         <% if n.action_url.present? %>
-          <%= link_to n.action_url, style: item_style do %>
+          <a href="<%= n.action_url %>" style="<%= item_style %>"
+             <% if !n.read %>onclick="return notifMarkRead(<%= n.id %>,this,'<%= j n.action_url %>')"<% end %>>
             <% unless n.read %><span style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#6366f1;border-radius:14px 0 0 14px;"></span><% end %>
             <%= render partial: "learner/notifications/item", locals: { n: n, icon: icon } %>
-          <% end %>
+          </a>
         <% else %>
-          <div style="<%= item_style %>">
+          <div id="notif-<%= n.id %>" style="<%= item_style %>"
+               <% if !n.read %>onclick="notifMarkRead(<%= n.id %>,this,null)"<% end %>>
             <% unless n.read %><span style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#6366f1;border-radius:14px 0 0 14px;"></span><% end %>
             <%= render partial: "learner/notifications/item", locals: { n: n, icon: icon } %>
           </div>
@@ -39,21 +50,57 @@
     </div>
   <% end %>
 </div>
-<% if @notifications.any? { |n| !n.read } %>
+
 <script>
-  // Mark all as read after user has seen the page for 1 second
-  setTimeout(function() {
-    var csrf = document.querySelector('meta[name="csrf-token"]');
-    if (!csrf) return;
-    fetch('<%= learner_notifications_mark_all_read_path %>', {
-      method: 'PATCH',
-      headers: { 'X-CSRF-Token': csrf.content, 'Accept': 'application/json' }
-    }).then(function() {
-      // Reset bell badge immediately
+(function(){
+  var CSRF = function(){ return (document.querySelector('meta[name="csrf-token"]')||{}).content; };
+  var MARK_READ_URL = '<%= learner_notification_mark_read_path(":id").gsub("/:id", "") %>';
+  var MARK_ALL_URL  = '<%= learner_notifications_mark_all_read_path %>';
+
+  function patchRead(url) {
+    return fetch(url, { method:'PATCH', headers:{'X-CSRF-Token':CSRF(),'Accept':'application/json'} });
+  }
+
+  // Called when user clicks a single unread notification
+  window.notifMarkRead = function(id, el, dest) {
+    patchRead(MARK_READ_URL + '/' + id + '/read').catch(function(){});
+    // Update badge count
+    var badge = document.getElementById('lp-bell-badge');
+    if (badge && badge.style.display !== 'none') {
+      var cur = parseInt(badge.textContent, 10) || 1;
+      var next = cur - 1;
+      if (next <= 0) { badge.style.display='none'; badge.textContent=''; localStorage.setItem('lp-notif-count','0'); }
+      else { badge.textContent = next > 99 ? '99+' : next; localStorage.setItem('lp-notif-count', String(next)); }
+    }
+    if (dest) { window.location.href = dest; return false; }
+    // No link — just visually mark read
+    el.style.background='#fff'; el.style.borderColor='#e5e7eb'; el.style.boxShadow='';
+    var strip = el.querySelector('span[style*="left:0;top:0;bottom:0"]');
+    if (strip) strip.remove();
+    el.onclick = null;
+    return false;
+  };
+
+  // Called by "Mark all read" button
+  window.notifMarkAll = function() {
+    var btn = document.getElementById('notif-mark-all-btn');
+    if (btn) { btn.disabled=true; btn.textContent='...'; }
+    patchRead(MARK_ALL_URL).then(function(){
+      // Clear badge
       var badge = document.getElementById('lp-bell-badge');
-      if (badge) { badge.style.display = 'none'; badge.textContent = ''; }
-      localStorage.setItem('lp-notif-count', '0');
-    }).catch(function() {});
-  }, 1000);
+      if (badge) { badge.style.display='none'; badge.textContent=''; }
+      localStorage.setItem('lp-notif-count','0');
+      // Visually mark all items as read
+      document.querySelectorAll('[style*="eef2ff"]').forEach(function(el){
+        el.style.background='#fff'; el.style.borderColor='#e5e7eb'; el.style.boxShadow='';
+        var strip = el.querySelector('span[style*="left:0;top:0;bottom:0"]');
+        if (strip) strip.remove();
+        el.onclick = null;
+      });
+      if (btn) btn.remove();
+    }).catch(function(){
+      if (btn) { btn.disabled=false; btn.textContent='<%= j t("notifications.mark_all_read") %>'; }
+    });
+  };
+})();
 </script>
-<% end %>
