@@ -1,3 +1,5 @@
+require 'cgi'
+
 class Learner::SavedLinksController < Learner::BaseController
   before_action :set_link, only: [:show, :destroy, :update]
 
@@ -53,7 +55,7 @@ class Learner::SavedLinksController < Learner::BaseController
       raise ArgumentError, 'invalid scheme' unless %w[http https].include?(uri.scheme)
 
       req = Net::HTTP::Get.new(uri)
-      req['User-Agent'] = 'Mozilla/5.0 (compatible; VOXBot/1.0; +https://vox.edu.vn)'
+      req['User-Agent'] = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
       req['Accept'] = 'text/html,application/xhtml+xml'
       req['Accept-Language'] = 'vi,en-US;q=0.9,en;q=0.8'
 
@@ -82,15 +84,15 @@ class Learner::SavedLinksController < Learner::BaseController
         og_title  = html[/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']{1,300})["']/im, 1] ||
                     html[/<meta[^>]+content=["']([^"']{1,300})["'][^>]+property=["']og:title["']/im, 1]
         title_tag = html[/<title[^>]*>([^<]{1,300})<\/title>/im, 1]
-        result[:title] = (og_title || title_tag)&.strip&.gsub(/\s+/, ' ')&.first(200)
+        result[:title] = CGI.unescapeHTML((og_title || title_tag).to_s.strip.gsub(/\s+/, ' ').first(200)).presence
 
         og_image = html[/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/im, 1] ||
                    html[/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/im, 1]
-        result[:thumbnail] = og_image&.strip&.first(500)
+        result[:thumbnail] = CGI.unescapeHTML(og_image.to_s.strip).first(500).presence
 
         og_desc = html[/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']{1,500})["']/im, 1] ||
                   html[/<meta[^>]+content=["']([^"']{1,500})["'][^>]+property=["']og:description["']/im, 1]
-        result[:description] = og_desc&.strip&.first(300)
+        result[:description] = CGI.unescapeHTML(og_desc.to_s.strip.first(300)).presence
 
         fav = html[/<link[^>]+rel=["'][^"']*(?:shortcut )?icon[^"']*["'][^>]+href=["']([^"']+)["']/im, 1]
         result[:favicon] = if fav
