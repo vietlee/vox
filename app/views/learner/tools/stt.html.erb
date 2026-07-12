@@ -42,8 +42,8 @@
 </div>
 
 <!-- ===== Input tabs: Mic / File ===== -->
-<div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:12px;">
-  <div style="display:flex;border-bottom:1px solid #f0f4f8;">
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:12px;">
+  <div style="display:flex;border-bottom:1px solid #f0f4f8;border-radius:13px 13px 0 0;overflow:hidden;">
     <button id="stt-tab-mic" onclick="setSttTab('mic')"
             style="flex:1;padding:10px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:#fff;color:#1e3a5f;border-bottom:2px solid #1e3a5f;transition:all .15s;">
       🎤 <%= t('learner_stt.tab_mic') %>
@@ -194,6 +194,7 @@
   window.setSttMode = function(m) {
     if (m === _mode) return;
     _mode = m;
+    try { localStorage.setItem('stt_mode', m); } catch(e) {}
     // Switching modes auto-clears previous data (both directions)
     window.sttClear();
     const isTrans = m === 'translate';
@@ -226,6 +227,11 @@
     if (_finalText.trim()) scheduleTranslation();
   };
   setTranslateLang('vi', 'Vietnamese');
+
+  // Restore last mode across page refreshes
+  try {
+    if (localStorage.getItem('stt_mode') === 'translate') setSttMode('translate');
+  } catch(e) {}
 
   // ── Tab toggle ──
   window.setSttTab = function(tab) {
