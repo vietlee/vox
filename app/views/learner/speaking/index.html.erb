@@ -202,7 +202,7 @@
   };
   var _ttsCache = {};
   /* Shared audio element primed on first tap — required for iOS Safari playback */
-  var _spAudio = new Audio(); _spAudio.setAttribute('playsinline','');
+  var _spAudio = new Audio(); _spAudio.setAttribute('playsinline',''); _spAudio.volume = 1.0;
   var _spPrimed = false;
   function spPrime(){ if(_spPrimed) return; _spPrimed=true; try{ var p=_spAudio.play(); if(p&&p.then) p.then(function(){_spAudio.pause();_spAudio.currentTime=0;}).catch(function(){}); }catch(e){} }
   document.addEventListener('touchend', spPrime, {passive:true});
@@ -214,9 +214,10 @@
     var fd = new FormData();
     fd.append('text', text);
     fd.append('voice_id', VOICE_BY_LANG[_lang] || 'EXAVITQu4vr4xnSDxMaL');
-    fd.append('model', 'eleven_multilingual_v2');   // best quality for language practice
-    fd.append('stability', '0.4');
-    fd.append('similarity', '0.85');
+    fd.append('model', 'eleven_multilingual_v2');
+    fd.append('stability', '0.55');
+    fd.append('similarity', '0.80');
+    fd.append('style', '0.25');
     fd.append('authenticity_token', CSRF);
     fetch(TTS_URL, { method:'POST', body:fd })
       .then(function(r){ return r.json(); })
@@ -230,7 +231,15 @@
         playUrl(url);
       }).catch(function(){});
   }
-  function playUrl(url){ try{_spAudio.pause();}catch(e){} _spAudio.src=url; var p=_spAudio.play(); if(p&&p.catch)p.catch(function(){}); }
+  function playUrl(url){
+    try{_spAudio.pause();}catch(e){}
+    _spAudio.volume = 1.0;
+    _spAudio.src = url;
+    // On iOS, after getUserMedia session ends, AVAudioSession may still route to earpiece.
+    // A brief delay lets it switch back to speaker before playback begins.
+    var delay = /iPad|iPhone|iPod/.test(navigator.userAgent) ? 250 : 0;
+    setTimeout(function(){ var p=_spAudio.play(); if(p&&p.catch)p.catch(function(){}); }, delay);
+  }
 
   function aiReply(userText) {
     if (_busy) return;

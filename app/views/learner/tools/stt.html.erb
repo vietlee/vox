@@ -248,10 +248,7 @@
 
   function resolveRecognitionLang(selected) {
     if (selected) return selected;
-    // iOS: forcing any specific lang causes audio-capture if that Siri model isn't installed.
-    // Empty string = use Siri's current language — always safe on iOS PWA.
-    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) return '';
-    // Desktop/Android: prefer vi-VN if Vietnamese is anywhere in the browser language list.
+    // Prefer vi-VN if Vietnamese appears anywhere in the browser language list (all platforms).
     var langs = navigator.languages || (navigator.language ? [navigator.language] : []);
     for (var i = 0; i < langs.length; i++) {
       if (langs[i].toLowerCase().startsWith('vi')) return 'vi-VN';
@@ -263,12 +260,7 @@
     hideError();
 
     if (!SpeechRecognition) {
-      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (isIOS) {
-        showError('Trên iOS, tính năng nhận giọng nói chỉ hoạt động trên Safari. Vui lòng mở Safari (không phải Chrome/Firefox) và thử lại.');
-      } else {
-        showError('Trình duyệt không hỗ trợ nhận giọng nói. Hãy dùng Chrome hoặc Safari trên máy tính, hoặc Safari trên iOS. Có thể chuyển sang tab File để tải âm thanh lên.');
-      }
+      showError('Trình duyệt không hỗ trợ nhận giọng nói. Hãy dùng Chrome, Safari trên máy tính hoặc Safari/Chrome trên iOS. Có thể chuyển sang tab File để tải âm thanh lên.');
       return;
     }
 
