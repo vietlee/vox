@@ -1,7 +1,7 @@
-<% content_for :title, "Link đã lưu" %>
+<% content_for :title, t('saved_links.page_title') %>
 <% content_for :breadcrumb do %>
   <span class="lp-bc-sep">›</span>
-  <span class="lp-bc-current">Link đã lưu</span>
+  <span class="lp-bc-current"><%= t('saved_links.breadcrumb') %></span>
 <% end %>
 
 <style>
@@ -103,20 +103,20 @@
   <div class="sl-form">
     <div class="sl-form-header">
       <div class="sl-form-header-icon">🔖</div>
-      <span class="sl-form-header-title">Thêm link mới</span>
+      <span class="sl-form-header-title"><%= t('saved_links.add_title') %></span>
     </div>
     <div class="sl-url-wrap">
       <div class="sl-url-field">
         <span class="sl-url-icon">
           <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
         </span>
-        <input id="sl-url" class="sl-url-input" type="url" placeholder="Dán link vào đây (YouTube, Facebook, …)" autocomplete="off" />
-        <button class="sl-detect-btn" id="sl-detect-btn" onclick="slDetect()">Lấy thông tin</button>
+        <input id="sl-url" class="sl-url-input" type="url" placeholder="<%= t('saved_links.url_placeholder') %>" autocomplete="off" />
+        <button class="sl-detect-btn" id="sl-detect-btn" onclick="slDetect()"><%= t('saved_links.detect_btn') %></button>
       </div>
     </div>
 
     <div class="sl-detecting" id="sl-detecting">
-      <div class="sl-spinner"></div> Đang lấy thông tin trang…
+      <div class="sl-spinner"></div> <%= t('saved_links.detecting') %>
     </div>
 
     <div class="sl-meta" id="sl-meta">
@@ -127,22 +127,22 @@
           <span class="sl-type-badge" id="sl-type-badge"></span>
         </div>
         <div class="sl-preview-fields">
-          <input id="sl-title" class="sl-title-input" type="text" placeholder="Tiêu đề" />
+          <input id="sl-title" class="sl-title-input" type="text" placeholder="<%= t('saved_links.title_placeholder') %>" />
           <div class="sl-cat-row">
-            <button class="sl-cat-btn active learning" id="sl-cat-learning" onclick="slSetCat('learning')">📚 Học tập</button>
-            <button class="sl-cat-btn entertainment" id="sl-cat-entertainment" onclick="slSetCat('entertainment')">🎬 Giải trí</button>
+            <button class="sl-cat-btn active learning" id="sl-cat-learning" onclick="slSetCat('learning')"><%= t('saved_links.cat_learning') %></button>
+            <button class="sl-cat-btn entertainment" id="sl-cat-entertainment" onclick="slSetCat('entertainment')"><%= t('saved_links.cat_entertainment') %></button>
           </div>
         </div>
       </div>
       <div class="sl-save-row">
-        <button class="sl-save-btn" id="sl-save-btn" onclick="slSave()">Lưu link</button>
+        <button class="sl-save-btn" id="sl-save-btn" onclick="slSave()"><%= t('saved_links.save_btn') %></button>
       </div>
     </div>
   </div>
 
   <%# ── List ── %>
   <div class="sl-list-header">
-    <span class="lp-section-title">Đã lưu</span>
+    <span class="lp-section-title"><%= t('saved_links.section_saved') %></span>
     <span class="sl-list-count" id="sl-count"><%= @links.size %> link</span>
   </div>
 
@@ -150,8 +150,8 @@
     <% if @links.empty? %>
       <div class="sl-empty" id="sl-empty">
         <div class="sl-empty-icon">🔖</div>
-        <div class="sl-empty-title">Chưa có link nào</div>
-        <div class="sl-empty-sub">Dán link YouTube, Facebook hoặc bất kỳ trang web nào để bắt đầu!</div>
+        <div class="sl-empty-title"><%= t('saved_links.empty_title') %></div>
+        <div class="sl-empty-sub"><%= t('saved_links.empty_sub') %></div>
       </div>
     <% else %>
       <% @links.each do |link| %>
@@ -168,6 +168,22 @@
   var REORDER_URL = '<%= reorder_learner_saved_links_path %>';
   var csrf = function() { return document.querySelector('meta[name=csrf-token]')?.content || ''; };
 
+  var I18N = {
+    catLearning:     '<%= j t("saved_links.cat_learning") %>',
+    catEntertainment:'<%= j t("saved_links.cat_entertainment") %>',
+    saving:          '<%= j t("saved_links.saving") %>',
+    saveBtn:         '<%= j t("saved_links.save_btn") %>',
+    toastSaved:      '<%= j t("saved_links.toast_saved") %>',
+    toastUrlRequired:'<%= j t("saved_links.toast_url_required") %>',
+    toastDetectError:'<%= j t("saved_links.toast_detect_error") %>',
+    toastSaveError:  '<%= j t("saved_links.toast_save_error") %>',
+    deleteTitle:     '<%= j t("saved_links.delete_title") %>',
+    deleteMessage:   '<%= j t("saved_links.delete_message") %>',
+    btnPlay:         '<%= j t("saved_links.btn_play") %>',
+    btnDetail:       '<%= j t("saved_links.btn_detail") %>',
+    btnDelete:       '<%= j t("saved_links.btn_delete") %>'
+  };
+
   var _detected = {};
   var _cat = 'learning';
 
@@ -182,7 +198,7 @@
 
   window.slDetect = function() {
     var url = document.getElementById('sl-url').value.trim();
-    if (!url) { showLpToast('Vui lòng nhập URL', 'error'); return; }
+    if (!url) { showLpToast(I18N.toastUrlRequired, 'error'); return; }
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
     document.getElementById('sl-url').value = url;
 
@@ -219,7 +235,7 @@
 
         document.getElementById('sl-meta').style.display = 'block';
       })
-      .catch(function() { showLpToast('Không lấy được thông tin link', 'error'); })
+      .catch(function() { showLpToast(I18N.toastDetectError, 'error'); })
       .finally(function() {
         btn.disabled = false;
         document.getElementById('sl-detecting').classList.remove('show');
@@ -228,12 +244,12 @@
 
   window.slSave = function() {
     var url = _detected.url || document.getElementById('sl-url').value.trim();
-    if (!url) { showLpToast('Vui lòng nhập URL', 'error'); return; }
+    if (!url) { showLpToast(I18N.toastUrlRequired, 'error'); return; }
     var title = document.getElementById('sl-title').value.trim() || url;
 
     var btn = document.getElementById('sl-save-btn');
     btn.disabled = true;
-    btn.textContent = 'Đang lưu…';
+    btn.textContent = I18N.saving;
 
     var fd = new FormData();
     fd.append('authenticity_token', csrf());
@@ -256,18 +272,18 @@
           document.getElementById('sl-thumb-img').style.display = 'none';
           document.getElementById('sl-thumb-ph').style.display  = 'flex';
           _detected = {};
-          showLpToast('Đã lưu link!', 'success');
+          showLpToast(I18N.toastSaved, 'success');
           updateCount(1);
         } else {
-          showLpToast((d.errors || ['Lỗi']).join(', '), 'error');
+          showLpToast((d.errors || [I18N.toastSaveError]).join(', '), 'error');
         }
       })
-      .catch(function() { showLpToast('Lỗi khi lưu', 'error'); })
-      .finally(function() { btn.disabled = false; btn.textContent = 'Lưu link'; });
+      .catch(function() { showLpToast(I18N.toastSaveError, 'error'); })
+      .finally(function() { btn.disabled = false; btn.textContent = I18N.saveBtn; });
   };
 
   window.slDelete = function(id) {
-    lpDeleteConfirm('/learner/saved_links/' + id, 'Xóa link?', 'Bạn có chắc muốn xóa link này?', function() {
+    lpDeleteConfirm('/learner/saved_links/' + id, I18N.deleteTitle, I18N.deleteMessage, function() {
       var el = document.querySelector('[data-link-id="' + id + '"]');
       if (el) { el.style.opacity = '0'; el.style.transform = 'scale(.96)'; el.style.transition = 'all .2s'; setTimeout(function() { el.remove(); updateCount(-1); }, 200); }
     });
@@ -304,7 +320,7 @@
     var typeLabel = TYPE_LABELS[link.link_type] || 'Web';
     var typeIcon  = TYPE_ICONS[link.link_type]  || '🔗';
     var catClass  = link.category === 'learning' ? 'learning' : 'entertainment';
-    var catLabel  = link.category === 'learning' ? '📚 Học tập' : '🎬 Giải trí';
+    var catLabel  = link.category === 'learning' ? I18N.catLearning : I18N.catEntertainment;
     var playAction = link.embeddable ? 'slDetail(' + link.id + ')' : 'slPlay(\'' + escJs(link.url) + '\')';
 
     var thumbHtml = hasThumb
@@ -326,9 +342,9 @@
         '</div>' +
       '</div>' +
       '<div class="sl-item-actions">' +
-        '<button class="sl-icon-btn sl-play-btn" onclick="' + playAction + '" title="Phát"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></button>' +
-        '<button class="sl-icon-btn sl-detail-btn" onclick="slDetail(' + link.id + ')" title="Chi tiết"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></button>' +
-        '<button class="sl-icon-btn sl-del-btn" onclick="slDelete(' + link.id + ')" title="Xóa"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>' +
+        '<button class="sl-icon-btn sl-play-btn" onclick="' + playAction + '" title="' + escHtml(I18N.btnPlay) + '"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></button>' +
+        '<button class="sl-icon-btn sl-detail-btn" onclick="slDetail(' + link.id + ')" title="' + escHtml(I18N.btnDetail) + '"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></button>' +
+        '<button class="sl-icon-btn sl-del-btn" onclick="slDelete(' + link.id + ')" title="' + escHtml(I18N.btnDelete) + '"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>' +
       '</div>' +
     '</div>';
   }

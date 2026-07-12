@@ -1,9 +1,9 @@
-<% content_for :title, (@link.title.presence || "Link") %>
+<% content_for :title, (@link.title.presence || t('saved_links.page_title')) %>
 <% content_for :breadcrumb do %>
   <span class="lp-bc-sep">›</span>
-  <a href="<%= learner_saved_links_path %>" class="lp-bc-link">Link đã lưu</a>
+  <a href="<%= learner_saved_links_path %>" class="lp-bc-link"><%= t('saved_links.breadcrumb') %></a>
   <span class="lp-bc-sep">›</span>
-  <span class="lp-bc-current" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom;"><%= @link.title.presence || "Chi tiết" %></span>
+  <span class="lp-bc-current" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom;"><%= @link.title.presence || t('saved_links.show_breadcrumb_detail') %></span>
 <% end %>
 
 <style>
@@ -35,9 +35,9 @@
   .sl-open-btn svg { width:16px; height:16px; flex-shrink:0; }
 </style>
 
-<% type_map = { 'youtube'=>'▶ YouTube','facebook'=>'📘 Facebook','vimeo'=>'🎬 Vimeo','tiktok'=>'🎵 TikTok','generic'=>'🔗 Web' } %>
+<% type_map = { 'youtube'=>t('saved_links.show_type_youtube'),'facebook'=>t('saved_links.show_type_facebook'),'vimeo'=>t('saved_links.show_type_vimeo'),'tiktok'=>t('saved_links.show_type_tiktok'),'generic'=>t('saved_links.show_type_generic') } %>
 <% cat_class = @link.category == 'learning' ? 'learning' : 'entertainment' %>
-<% cat_label = @link.category == 'learning' ? '📚 Học tập' : '🎬 Giải trí' %>
+<% cat_label = @link.category == 'learning' ? t('saved_links.cat_learning') : t('saved_links.cat_entertainment') %>
 <% domain = URI.parse(@link.url).hostname.to_s.sub(/\Awww\./, '') rescue @link.url %>
 
 <div class="sl-show">
@@ -55,15 +55,15 @@
   <% elsif @link.link_type == 'facebook' %>
     <div class="sl-notice" style="background:#e0f2fe;">
       <div class="sl-notice-icon">📘</div>
-      <div class="sl-notice-title" style="color:#0369a1;">Video Facebook</div>
-      <div class="sl-notice-sub" style="color:#0369a1;">Facebook không hỗ trợ nhúng trực tiếp.<br>Nhấn nút bên dưới để mở trong tab mới.</div>
+      <div class="sl-notice-title" style="color:#0369a1;"><%= t('saved_links.show_fb_notice_title') %></div>
+      <div class="sl-notice-sub" style="color:#0369a1;"><%= t('saved_links.show_fb_notice_sub') %></div>
     </div>
 
   <% elsif @link.link_type == 'tiktok' %>
     <div class="sl-notice" style="background:#fdf2f8;">
       <div class="sl-notice-icon">🎵</div>
-      <div class="sl-notice-title" style="color:#be185d;">Video TikTok</div>
-      <div class="sl-notice-sub" style="color:#be185d;">TikTok không hỗ trợ nhúng trực tiếp.<br>Nhấn nút bên dưới để mở trong tab mới.</div>
+      <div class="sl-notice-title" style="color:#be185d;"><%= t('saved_links.show_tiktok_notice_title') %></div>
+      <div class="sl-notice-sub" style="color:#be185d;"><%= t('saved_links.show_tiktok_notice_sub') %></div>
     </div>
 
   <% else %>
@@ -78,7 +78,7 @@
     </div>
     <div id="sl-frame-fallback" style="display:none;background:#f8fafc;border-radius:14px;padding:32px 20px;text-align:center;color:#64748b;font-size:14px;line-height:1.7;">
       <div style="font-size:36px;margin-bottom:10px;">🔒</div>
-      Trang này không cho phép nhúng trực tiếp.<br>Nhấn nút bên dưới để mở.
+      <%= t('saved_links.show_blocked_notice') %>
     </div>
     <script>
       (function() {
@@ -118,7 +118,7 @@
     </div>
     <a href="<%= @link.url %>" target="_blank" rel="noopener noreferrer" class="sl-open-btn">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-      Mở link gốc
+      <%= t('saved_links.show_open_btn') %>
     </a>
   </div>
 
