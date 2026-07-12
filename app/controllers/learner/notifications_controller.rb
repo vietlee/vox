@@ -1,7 +1,12 @@
 class Learner::NotificationsController < Learner::BaseController
   def index
-    @notifications = current_learner.learner_notifications.recent.limit(50)
+    @notifications = current_learner.learner_notifications
+                       .order(read: :asc, created_at: :desc).limit(50)
+  end
+
+  def mark_all_read
     current_learner.learner_notifications.unread.update_all(read: true)
+    render json: { ok: true }
   end
 
   def mark_read

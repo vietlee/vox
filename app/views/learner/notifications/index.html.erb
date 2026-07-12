@@ -22,14 +22,16 @@
     <div style="display:grid;gap:8px;flex:1;align-content:start;overflow-y:auto;min-height:0;">
       <% @notifications.each do |n| %>
         <% icon = { "quiz_assigned" => "📝", "flashcard_assigned" => "🃏", "path_assigned" => "🗺️", "badge_earned" => "🏆" }[n.notification_type] || "🔔" %>
-        <% item_style = "display:flex;align-items:flex-start;gap:12px;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px 16px;text-decoration:none;color:inherit;" %>
-        <% item_style += "border-color:#c7d2fe;background:#f5f7ff;" if !n.read %>
+        <% item_style = "display:flex;align-items:flex-start;gap:12px;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px 16px;text-decoration:none;color:inherit;position:relative;overflow:hidden;" %>
+        <% item_style += "border-color:#818cf8;background:#eef2ff;box-shadow:0 2px 8px rgba(99,102,241,.10);" if !n.read %>
         <% if n.action_url.present? %>
           <%= link_to n.action_url, style: item_style do %>
+            <% unless n.read %><span style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#6366f1;border-radius:14px 0 0 14px;"></span><% end %>
             <%= render partial: "learner/notifications/item", locals: { n: n, icon: icon } %>
           <% end %>
         <% else %>
           <div style="<%= item_style %>">
+            <% unless n.read %><span style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#6366f1;border-radius:14px 0 0 14px;"></span><% end %>
             <%= render partial: "learner/notifications/item", locals: { n: n, icon: icon } %>
           </div>
         <% end %>
@@ -37,3 +39,21 @@
     </div>
   <% end %>
 </div>
+<% if @notifications.any?(&:unread?) rescue @notifications.any? { |n| !n.read } %>
+<script>
+  // Mark all as read after user has seen the page for 1 second
+  setTimeout(function() {
+    var csrf = document.querySelector('meta[name="csrf-token"]');
+    if (!csrf) return;
+    fetch('<%= learner_notifications_mark_all_read_path %>', {
+      method: 'PATCH',
+      headers: { 'X-CSRF-Token': csrf.content, 'Accept': 'application/json' }
+    }).then(function() {
+      // Reset bell badge immediately
+      var badge = document.getElementById('lp-bell-badge');
+      if (badge) { badge.style.display = 'none'; badge.textContent = ''; }
+      localStorage.setItem('lp-notif-count', '0');
+    }).catch(function() {});
+  }, 1000);
+</script>
+<% end %>

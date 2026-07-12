@@ -978,20 +978,28 @@
   </script>
   <% if learner_signed_in? %>
   <script>
-  // Poll unread notification count every 60s
+  // Poll unread notification count every 60s; show cached count immediately
   (function() {
     var badge = document.getElementById('lp-bell-badge');
     if (!badge) return;
+    function showBadge(n) {
+      if (n > 0) {
+        badge.textContent = n > 99 ? '99+' : n;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+        badge.textContent = '';
+      }
+    }
+    // Show last cached count immediately (no flash/delay)
+    var cached = parseInt(localStorage.getItem('lp-notif-count') || '0', 10);
+    showBadge(cached);
     function fetchCount() {
       fetch('<%= learner_notifications_unread_count_path %>', { headers: { 'Accept': 'application/json' } })
         .then(function(r) { return r.json(); })
         .then(function(d) {
-          if (d.count > 0) {
-            badge.textContent = d.count > 99 ? '99+' : d.count;
-            badge.style.display = 'flex';
-          } else {
-            badge.style.display = 'none';
-          }
+          localStorage.setItem('lp-notif-count', d.count);
+          showBadge(d.count);
         }).catch(function() {});
     }
     fetchCount();
