@@ -30,7 +30,7 @@ class Learner::SavedLinksController < Learner::BaseController
 
   def destroy
     @link.destroy
-    render json: { success: true }
+    render json: { ok: true }
   end
 
   def reorder
