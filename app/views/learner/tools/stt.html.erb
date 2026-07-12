@@ -228,11 +228,6 @@
   };
   setTranslateLang('vi', 'Vietnamese');
 
-  // Restore last mode across page refreshes
-  try {
-    if (localStorage.getItem('stt_mode') === 'translate') setSttMode('translate');
-  } catch(e) {}
-
   // ── Tab toggle ──
   window.setSttTab = function(tab) {
     _tab = tab;
@@ -550,6 +545,11 @@
   function hideError() {
     document.getElementById('stt-error').style.display = 'none';
   }
+
+  // Restore last active mode — must run after all functions are defined
+  try {
+    if (localStorage.getItem('stt_mode') === 'translate') setSttMode('translate');
+  } catch(e) {}
 })();
 </script>
 
