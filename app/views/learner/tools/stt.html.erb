@@ -246,6 +246,19 @@
 
   window.sttToggleMic = function() { _listening ? stopRecognition() : startRecognition(); };
 
+  function resolveRecognitionLang(selected) {
+    if (selected) return selected;
+    // iOS: forcing any specific lang causes audio-capture if that Siri model isn't installed.
+    // Empty string = use Siri's current language — always safe on iOS PWA.
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) return '';
+    // Desktop/Android: prefer vi-VN if Vietnamese is anywhere in the browser language list.
+    var langs = navigator.languages || (navigator.language ? [navigator.language] : []);
+    for (var i = 0; i < langs.length; i++) {
+      if (langs[i].toLowerCase().startsWith('vi')) return 'vi-VN';
+    }
+    return '';
+  }
+
   async function startRecognition() {
     hideError();
 
@@ -267,7 +280,7 @@
       _recognition = new SpeechRecognition();
       _recognition.continuous     = true;
       _recognition.interimResults = true;
-      _recognition.lang = document.getElementById('stt-src-lang').value || 'vi-VN';
+      _recognition.lang = resolveRecognitionLang(document.getElementById('stt-src-lang').value);
 
       _recognition.onstart = function() { _listening = true; setOrbUI(true); };
 
