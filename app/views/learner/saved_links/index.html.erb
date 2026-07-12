@@ -57,8 +57,8 @@
 .sl-item.dragging { opacity:.4; box-shadow:0 6px 20px rgba(0,0,0,.14); transform:scale(1.01); }
 .sl-item.drag-over { box-shadow:0 0 0 2px #1e3a5f; }
 
-.sl-handle { display:flex; align-items:center; padding:0 6px 0 10px; color:#d1d5db; cursor:grab; flex-shrink:0; }
-.sl-handle svg { width:14px; height:14px; }
+.sl-handle { display:flex; align-items:center; padding:0 8px 0 12px; color:#d1d5db; cursor:grab; flex-shrink:0; touch-action:none; }
+.sl-handle svg { width:16px; height:16px; }
 
 /* Thumbnail column for embeddable items */
 .sl-item-thumb { width:72px; flex-shrink:0; position:relative; overflow:hidden; background:#f0f4f8; }
@@ -354,7 +354,41 @@
 
   /* ── Drag & drop ── */
   var _dragged = null;
+  var _touchDragged = null, _touchGhost = null, _touchOffY = 0;
+
+  /* Global touch handlers (registered once) */
+  document.addEventListener('touchmove', function(e) {
+    if (!_touchDragged || !_touchGhost) return;
+    var touch = e.touches[0];
+    _touchGhost.style.top = (touch.clientY - _touchOffY) + 'px';
+    /* Peek through ghost to find target underneath */
+    _touchGhost.style.visibility = 'hidden';
+    var under = document.elementFromPoint(touch.clientX, touch.clientY);
+    _touchGhost.style.visibility = '';
+    var target = under && under.closest && under.closest('.sl-item');
+    if (target && target !== _touchDragged) {
+      var list = _touchDragged.parentNode;
+      var items = Array.from(list.querySelectorAll('.sl-item'));
+      var fi = items.indexOf(_touchDragged), ti = items.indexOf(target);
+      if (fi !== -1 && ti !== -1) {
+        if (fi < ti) list.insertBefore(_touchDragged, target.nextSibling);
+        else         list.insertBefore(_touchDragged, target);
+      }
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchend', function() {
+    if (!_touchDragged) return;
+    _touchDragged.style.opacity = '';
+    if (_touchGhost) { _touchGhost.remove(); _touchGhost = null; }
+    document.querySelectorAll('.sl-item').forEach(function(i) { i.classList.remove('drag-over'); });
+    saveOrder();
+    _touchDragged = null;
+  });
+
   function initDrag(el) {
+    /* Desktop: HTML5 drag */
     el.addEventListener('dragstart', function(e) {
       _dragged = el;
       setTimeout(function() { el.classList.add('dragging'); }, 0);
@@ -377,6 +411,22 @@
     });
     el.addEventListener('dragleave', function() { el.classList.remove('drag-over'); });
     el.addEventListener('drop', function(e) { e.preventDefault(); });
+
+    /* Mobile: touch drag via handle */
+    var handle = el.querySelector('.sl-handle');
+    if (handle) {
+      handle.addEventListener('touchstart', function(e) {
+        var touch = e.touches[0];
+        var rect = el.getBoundingClientRect();
+        _touchOffY = touch.clientY - rect.top;
+        _touchDragged = el;
+        _touchGhost = el.cloneNode(true);
+        _touchGhost.style.cssText = 'position:fixed;width:' + rect.width + 'px;top:' + rect.top + 'px;left:' + rect.left + 'px;opacity:.85;pointer-events:none;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.25);transform:scale(1.02);border-radius:14px;transition:none;';
+        document.body.appendChild(_touchGhost);
+        el.style.opacity = '0.3';
+        e.preventDefault();
+      }, { passive: false });
+    }
   }
 
   function saveOrder() {
