@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_08_143012) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_12_084438) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -481,6 +481,22 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_08_143012) do
     t.datetime "updated_at", null: false
     t.index ["endpoint"], name: "index_learner_push_subscriptions_on_endpoint", unique: true
     t.index ["learner_id"], name: "index_learner_push_subscriptions_on_learner_id"
+  end
+
+  create_table "learner_saved_links", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.text "url", null: false
+    t.string "title"
+    t.text "description"
+    t.string "thumbnail"
+    t.string "favicon"
+    t.string "category", default: "learning", null: false
+    t.string "link_type", default: "generic", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id", "position"], name: "index_learner_saved_links_on_learner_id_and_position"
+    t.index ["learner_id"], name: "index_learner_saved_links_on_learner_id"
   end
 
   create_table "learner_speaking_sessions", force: :cascade do |t|
@@ -1159,6 +1175,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_08_143012) do
   add_foreign_key "learner_notifications", "learners"
   add_foreign_key "learner_payments", "learners"
   add_foreign_key "learner_push_subscriptions", "learners"
+  add_foreign_key "learner_saved_links", "learners"
   add_foreign_key "learning_item_progresses", "learning_path_assignments"
   add_foreign_key "learning_item_progresses", "learning_path_items"
   add_foreign_key "learning_path_assignments", "learning_paths"

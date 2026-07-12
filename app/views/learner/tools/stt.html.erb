@@ -553,9 +553,11 @@
       .then(function(r) { return r.json(); })
       .then(function(d) {
         if (!d.punctuated || d.punctuated === snapshot) return;
-        // Preserve any text appended since we sent the request (on its own line)
+        // Abort if user cleared or switched mode while request was in-flight
+        if (!_finalText.trim()) return;
         var extra = _finalText.slice(snapshot.length).trim();
         _finalText = d.punctuated + (extra ? '\n' + extra : '');
+        _sentences = _finalText.split('\n').filter(Boolean); // keep in sync
         document.getElementById('stt-transcript-final').textContent = _finalText;
       })
       .catch(function() {});

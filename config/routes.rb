@@ -460,6 +460,14 @@ Rails.application.routes.draw do
     post "tools/translate_stream", to: "translate_stream#create", as: :tools_translate_stream
     post "tools/punctuate",  to: "tools#punctuate",    as: :tools_punctuate
 
+    # Saved links
+    resources :saved_links, only: [:index, :show, :create, :update, :destroy] do
+      collection do
+        post :reorder
+        post :detect
+      end
+    end
+
     # Credits
     get  "credits",                to: "credits#index",          as: :credits
     post "credits/checkout",       to: "credits#checkout",       as: :credits_checkout

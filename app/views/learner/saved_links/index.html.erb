@@ -1,0 +1,322 @@
+<% content_for :title, "Link đã lưu" %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current">Link đã lưu</span>
+<% end %>
+
+<style>
+  .sl-add-card { background:#fff; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,.08); padding:16px; margin-bottom:16px; }
+  .sl-url-row { display:flex; gap:8px; align-items:center; }
+  .sl-url-input { flex:1; border:1.5px solid #e2e8f0; border-radius:8px; padding:10px 12px; font-size:14px; outline:none; transition:border-color .18s; }
+  .sl-url-input:focus { border-color:#1e3a5f; }
+  .sl-detect-btn { background:#1e3a5f; color:#fff; border:none; border-radius:8px; padding:10px 14px; font-size:14px; cursor:pointer; white-space:nowrap; }
+  .sl-detect-btn:disabled { opacity:.5; cursor:default; }
+  .sl-meta-row { display:flex; gap:10px; align-items:flex-start; margin-top:12px; }
+  .sl-thumb-preview { width:64px; height:48px; object-fit:cover; border-radius:6px; flex-shrink:0; background:#f0f4f8; }
+  .sl-thumb-placeholder { width:64px; height:48px; border-radius:6px; background:#e8edf3; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:20px; }
+  .sl-meta-fields { flex:1; display:flex; flex-direction:column; gap:8px; }
+  .sl-title-input { border:1.5px solid #e2e8f0; border-radius:8px; padding:8px 10px; font-size:14px; outline:none; width:100%; box-sizing:border-box; }
+  .sl-title-input:focus { border-color:#1e3a5f; }
+  .sl-cat-row { display:flex; gap:8px; }
+  .sl-cat-btn { flex:1; padding:8px; border:1.5px solid #e2e8f0; border-radius:8px; background:#fff; font-size:13px; cursor:pointer; text-align:center; transition:all .15s; }
+  .sl-cat-btn.active { border-color:#1e3a5f; background:#1e3a5f; color:#fff; }
+  .sl-save-btn { width:100%; margin-top:4px; padding:11px; background:#1e3a5f; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+  .sl-save-btn:disabled { opacity:.5; cursor:default; }
+
+  .sl-section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .sl-count { font-size:12px; color:#64748b; }
+
+  .sl-list { display:flex; flex-direction:column; gap:10px; }
+  .sl-item { background:#fff; border-radius:12px; box-shadow:0 1px 5px rgba(0,0,0,.07); padding:12px; display:flex; align-items:center; gap:10px; cursor:grab; user-select:none; transition:box-shadow .15s, opacity .15s; }
+  .sl-item:active { cursor:grabbing; }
+  .sl-item.dragging { opacity:.4; box-shadow:0 4px 16px rgba(0,0,0,.15); }
+  .sl-item.drag-over { box-shadow:0 0 0 2px #1e3a5f; }
+  .sl-drag-handle { color:#cbd5e1; font-size:18px; cursor:grab; flex-shrink:0; padding:2px 0; }
+  .sl-favicon { width:32px; height:32px; border-radius:6px; object-fit:cover; flex-shrink:0; background:#f0f4f8; }
+  .sl-favicon-ph { width:32px; height:32px; border-radius:6px; background:#e8edf3; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .sl-info { flex:1; min-width:0; }
+  .sl-item-title { font-size:14px; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sl-item-url { font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+  .sl-cat-pill { font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; margin-top:4px; display:inline-block; }
+  .sl-cat-pill.learning { background:#dbeafe; color:#1d4ed8; }
+  .sl-cat-pill.entertainment { background:#fce7f3; color:#be185d; }
+  .sl-actions { display:flex; gap:6px; flex-shrink:0; }
+  .sl-icon-btn { width:34px; height:34px; border:none; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; transition:background .15s; }
+  .sl-play-btn { background:#dcfce7; color:#15803d; }
+  .sl-play-btn:hover { background:#bbf7d0; }
+  .sl-detail-btn { background:#e0f2fe; color:#0369a1; }
+  .sl-detail-btn:hover { background:#bae6fd; }
+  .sl-del-btn { background:#fee2e2; color:#dc2626; }
+  .sl-del-btn:hover { background:#fecaca; }
+
+  .sl-empty { text-align:center; padding:40px 16px; color:#94a3b8; }
+  .sl-empty-icon { font-size:48px; margin-bottom:12px; }
+  .sl-empty-text { font-size:14px; }
+
+  .sl-detecting { display:none; align-items:center; gap:8px; font-size:13px; color:#64748b; margin-top:10px; }
+  .sl-detecting.show { display:flex; }
+  .sl-spinner { width:16px; height:16px; border:2px solid #e2e8f0; border-top-color:#1e3a5f; border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+
+<div style="padding:0 0 24px;">
+
+  <%# ── Add link form ── %>
+  <div class="sl-add-card">
+    <div style="font-size:13px;font-weight:600;color:#1e3a5f;margin-bottom:12px;">+ Thêm link mới</div>
+
+    <div class="sl-url-row">
+      <input id="sl-url" class="sl-url-input" type="url" placeholder="Dán link vào đây (YouTube, Facebook, ...)" autocomplete="off" />
+      <button class="sl-detect-btn" id="sl-detect-btn" onclick="slDetect()">Lấy thông tin</button>
+    </div>
+
+    <div class="sl-detecting" id="sl-detecting">
+      <div class="sl-spinner"></div> Đang lấy thông tin trang...
+    </div>
+
+    <div id="sl-meta" style="display:none;">
+      <div class="sl-meta-row">
+        <div id="sl-thumb-wrap">
+          <div class="sl-thumb-placeholder" id="sl-thumb-ph">🔗</div>
+          <img id="sl-thumb-img" class="sl-thumb-preview" style="display:none;" alt="" />
+        </div>
+        <div class="sl-meta-fields">
+          <input id="sl-title" class="sl-title-input" type="text" placeholder="Tiêu đề" />
+          <div class="sl-cat-row">
+            <button class="sl-cat-btn active" id="sl-cat-learning" onclick="slSetCat('learning')">📚 Học tập</button>
+            <button class="sl-cat-btn" id="sl-cat-entertainment" onclick="slSetCat('entertainment')">🎬 Giải trí</button>
+          </div>
+        </div>
+      </div>
+      <button class="sl-save-btn" id="sl-save-btn" onclick="slSave()">Lưu link</button>
+    </div>
+  </div>
+
+  <%# ── List ── %>
+  <div class="sl-section-head">
+    <span class="lp-section-title">Danh sách đã lưu</span>
+    <span class="sl-count" id="sl-count"><%= @links.size %> link</span>
+  </div>
+
+  <div class="sl-list" id="sl-list">
+    <% if @links.empty? %>
+      <div class="sl-empty" id="sl-empty">
+        <div class="sl-empty-icon">🔖</div>
+        <div class="sl-empty-text">Chưa có link nào. Thêm link để bắt đầu!</div>
+      </div>
+    <% else %>
+      <% @links.each do |link| %>
+        <%= render partial: 'learner/saved_links/item', locals: { link: link } %>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<script>
+(function() {
+  var DETECT_URL = '<%= learner_detect_saved_links_path %>';
+  var CREATE_URL = '<%= learner_saved_links_path %>';
+  var REORDER_URL = '<%= learner_reorder_saved_links_path %>';
+  var csrf = function() { return document.querySelector('meta[name=csrf-token]')?.content || ''; };
+
+  var _detected = {};
+  var _cat = 'learning';
+
+  window.slSetCat = function(c) {
+    _cat = c;
+    document.getElementById('sl-cat-learning').classList.toggle('active', c === 'learning');
+    document.getElementById('sl-cat-entertainment').classList.toggle('active', c === 'entertainment');
+  };
+
+  window.slDetect = function() {
+    var url = document.getElementById('sl-url').value.trim();
+    if (!url) { showLpToast('Vui lòng nhập URL', 'error'); return; }
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+    var btn = document.getElementById('sl-detect-btn');
+    btn.disabled = true;
+    document.getElementById('sl-detecting').classList.add('show');
+    document.getElementById('sl-meta').style.display = 'none';
+
+    var fd = new FormData();
+    fd.append('url', url);
+    fd.append('authenticity_token', csrf());
+
+    fetch(DETECT_URL, { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        _detected = d;
+        _detected.url = url;
+        document.getElementById('sl-title').value = d.title || '';
+        var img = document.getElementById('sl-thumb-img');
+        var ph  = document.getElementById('sl-thumb-ph');
+        if (d.thumbnail) {
+          img.src = d.thumbnail;
+          img.style.display = 'block';
+          ph.style.display = 'none';
+        } else {
+          img.style.display = 'none';
+          ph.style.display = 'flex';
+          ph.textContent = iconForType(d.link_type);
+        }
+        document.getElementById('sl-meta').style.display = 'block';
+      })
+      .catch(function() { showLpToast('Không lấy được thông tin link', 'error'); })
+      .finally(function() {
+        btn.disabled = false;
+        document.getElementById('sl-detecting').classList.remove('show');
+      });
+  };
+
+  window.slSave = function() {
+    var url = _detected.url || document.getElementById('sl-url').value.trim();
+    if (!url) { showLpToast('Vui lòng nhập URL', 'error'); return; }
+    var title = document.getElementById('sl-title').value.trim() || url;
+
+    var btn = document.getElementById('sl-save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    var fd = new FormData();
+    fd.append('authenticity_token', csrf());
+    fd.append('saved_link[url]', url);
+    fd.append('saved_link[title]', title);
+    fd.append('saved_link[category]', _cat);
+    fd.append('saved_link[link_type]', _detected.link_type || 'generic');
+    if (_detected.thumbnail) fd.append('saved_link[thumbnail]', _detected.thumbnail);
+    if (_detected.favicon)   fd.append('saved_link[favicon]',   _detected.favicon);
+    if (_detected.description) fd.append('saved_link[description]', _detected.description);
+
+    fetch(CREATE_URL, { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.success) {
+          prependLinkCard(d.link);
+          document.getElementById('sl-url').value = '';
+          document.getElementById('sl-title').value = '';
+          document.getElementById('sl-meta').style.display = 'none';
+          document.getElementById('sl-thumb-img').style.display = 'none';
+          document.getElementById('sl-thumb-ph').style.display = 'flex';
+          _detected = {};
+          showLpToast('Đã lưu link!', 'success');
+          updateCount(1);
+        } else {
+          showLpToast((d.errors || ['Lỗi']).join(', '), 'error');
+        }
+      })
+      .catch(function() { showLpToast('Lỗi khi lưu', 'error'); })
+      .finally(function() { btn.disabled = false; btn.textContent = 'Lưu link'; });
+  };
+
+  window.slDelete = function(id) {
+    lpDeleteConfirm('/learner/saved_links/' + id, 'Xóa link?', 'Bạn có chắc muốn xóa link này?', function() {
+      var el = document.querySelector('[data-link-id="' + id + '"]');
+      if (el) { el.style.opacity = '0'; setTimeout(function() { el.remove(); updateCount(-1); }, 200); }
+    });
+  };
+
+  window.slPlay = function(url) {
+    window.open(url, '_blank', 'noopener');
+  };
+
+  window.slDetail = function(id) {
+    window.location.href = '/learner/saved_links/' + id;
+  };
+
+  function updateCount(delta) {
+    var el = document.getElementById('sl-count');
+    var n = (parseInt(el.textContent) || 0) + delta;
+    el.textContent = n + ' link';
+    document.getElementById('sl-empty') && (document.getElementById('sl-empty').style.display = n > 0 ? 'none' : 'block');
+  }
+
+  function iconForType(t) {
+    return { youtube: '▶️', facebook: '📘', vimeo: '🎬', tiktok: '🎵', generic: '🔗' }[t] || '🔗';
+  }
+
+  function prependLinkCard(link) {
+    var list = document.getElementById('sl-list');
+    var empty = document.getElementById('sl-empty');
+    if (empty) empty.style.display = 'none';
+    var el = document.createElement('div');
+    el.innerHTML = buildCardHtml(link);
+    var card = el.firstElementChild;
+    list.insertBefore(card, list.firstChild);
+    initDrag(card);
+  }
+
+  function buildCardHtml(link) {
+    var faviconHtml = link.favicon
+      ? '<img class="sl-favicon" src="' + escHtml(link.favicon) + '" alt="" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
+        '<div class="sl-favicon-ph" style="display:none">' + iconForType(link.link_type) + '</div>'
+      : '<div class="sl-favicon-ph">' + iconForType(link.link_type) + '</div>';
+    var catLabel = link.category === 'learning' ? '📚 Học tập' : '🎬 Giải trí';
+    var playTarget = link.embeddable ? '/learner/saved_links/' + link.id : link.url;
+    var playAction = link.embeddable ? 'slDetail(' + link.id + ')' : 'slPlay(\'' + escJs(link.url) + '\')';
+    return '<div class="sl-item" draggable="true" data-link-id="' + link.id + '">' +
+      '<div class="sl-drag-handle">⋮⋮</div>' +
+      faviconHtml +
+      '<div class="sl-info">' +
+        '<div class="sl-item-title">' + escHtml(link.title || link.url) + '</div>' +
+        '<div class="sl-item-url">' + escHtml(link.url) + '</div>' +
+        '<span class="sl-cat-pill ' + link.category + '">' + catLabel + '</span>' +
+      '</div>' +
+      '<div class="sl-actions">' +
+        '<button class="sl-icon-btn sl-play-btn" onclick="' + playAction + '" title="Phát">▶</button>' +
+        '<button class="sl-icon-btn sl-detail-btn" onclick="slDetail(' + link.id + ')" title="Xem chi tiết">⤢</button>' +
+        '<button class="sl-icon-btn sl-del-btn" onclick="slDelete(' + link.id + ')" title="Xóa">✕</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function escHtml(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function escJs(s)   { return (s || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+  // ── Drag-and-drop reorder ──
+  var _dragged = null;
+
+  function initDrag(el) {
+    el.addEventListener('dragstart', function(e) {
+      _dragged = el;
+      setTimeout(function() { el.classList.add('dragging'); }, 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    el.addEventListener('dragend', function() {
+      el.classList.remove('dragging');
+      document.querySelectorAll('.sl-item').forEach(function(i) { i.classList.remove('drag-over'); });
+      saveOrder();
+    });
+    el.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      if (_dragged && _dragged !== el) {
+        document.querySelectorAll('.sl-item').forEach(function(i) { i.classList.remove('drag-over'); });
+        el.classList.add('drag-over');
+        var list = el.parentNode;
+        var items = Array.from(list.querySelectorAll('.sl-item'));
+        var fromIdx = items.indexOf(_dragged);
+        var toIdx = items.indexOf(el);
+        if (fromIdx < toIdx) list.insertBefore(_dragged, el.nextSibling);
+        else list.insertBefore(_dragged, el);
+      }
+    });
+    el.addEventListener('dragleave', function() { el.classList.remove('drag-over'); });
+    el.addEventListener('drop', function(e) { e.preventDefault(); });
+  }
+
+  function saveOrder() {
+    var ids = Array.from(document.querySelectorAll('.sl-item[data-link-id]'))
+                   .map(function(el) { return el.dataset.linkId; });
+    var fd = new FormData();
+    fd.append('authenticity_token', csrf());
+    ids.forEach(function(id) { fd.append('ids[]', id); });
+    fetch(REORDER_URL, { method: 'POST', body: fd }).catch(function() {});
+  }
+
+  document.querySelectorAll('.sl-item').forEach(initDrag);
+
+  // Auto-detect on paste
+  document.getElementById('sl-url').addEventListener('paste', function() {
+    setTimeout(slDetect, 80);
+  });
+})();
+</script>

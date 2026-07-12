@@ -1,0 +1,26 @@
+<% icon = { 'youtube' => '▶️', 'facebook' => '📘', 'vimeo' => '🎬', 'tiktok' => '🎵', 'generic' => '🔗' }[link.link_type] || '🔗' %>
+<% cat_label = link.category == 'learning' ? '📚 Học tập' : '🎬 Giải trí' %>
+<div class="sl-item" draggable="true" data-link-id="<%= link.id %>">
+  <div class="sl-drag-handle">⋮⋮</div>
+  <% if link.favicon.present? %>
+    <img class="sl-favicon" src="<%= link.favicon %>" alt=""
+         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div class="sl-favicon-ph" style="display:none"><%= icon %></div>
+  <% else %>
+    <div class="sl-favicon-ph"><%= icon %></div>
+  <% end %>
+  <div class="sl-info">
+    <div class="sl-item-title"><%= link.title.presence || link.url %></div>
+    <div class="sl-item-url"><%= link.url %></div>
+    <span class="sl-cat-pill <%= link.category %>"><%= cat_label %></span>
+  </div>
+  <div class="sl-actions">
+    <% if link.embeddable? %>
+      <button class="sl-icon-btn sl-play-btn" onclick="slDetail(<%= link.id %>)" title="Phát">▶</button>
+    <% else %>
+      <button class="sl-icon-btn sl-play-btn" onclick="slPlay('<%= j link.url %>')" title="Mở link">▶</button>
+    <% end %>
+    <button class="sl-icon-btn sl-detail-btn" onclick="slDetail(<%= link.id %>)" title="Chi tiết">⤢</button>
+    <button class="sl-icon-btn sl-del-btn"    onclick="slDelete(<%= link.id %>)"  title="Xóa">✕</button>
+  </div>
+</div>
