@@ -125,6 +125,17 @@
       const dlLink = document.getElementById('lp-tts-download');
       if (!player) return;
       player.src = url; dlLink.href = url;
+      player.volume = 1.0;
+      // Boost audio through a GainNode so volume exceeds the hardware cap
+      if (!player._gainInited) {
+        player._gainInited = true;
+        try {
+          var ctx = new (window.AudioContext || window.webkitAudioContext)();
+          var src = ctx.createMediaElementSource(player);
+          var gain = ctx.createGain(); gain.gain.value = 2.0;
+          src.connect(gain); gain.connect(ctx.destination);
+        } catch(e) {}
+      }
       document.getElementById('lp-tts-result').style.display = 'block';
       document.getElementById('lp-tts-result').scrollIntoView({behavior:'smooth', block:'nearest'});
       const p = player.play(); if (p && p.catch) p.catch(function(){});

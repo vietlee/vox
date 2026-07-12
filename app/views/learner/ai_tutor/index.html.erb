@@ -337,7 +337,7 @@ function lpSpeakNative(text) {
     var u = new SpeechSynthesisUtterance(plain);
     u.lang = isVi ? 'vi-VN' : 'en-US';
     var v = lpPickVoice(isVi); if (v) u.voice = v;
-    u.rate = 1.0; u.pitch = 1.0;
+    u.rate = 1.0; u.pitch = 1.0; u.volume = 1.0;
     window.speechSynthesis.speak(u);
     return true;
   } catch(e) { return false; }
@@ -349,10 +349,28 @@ function lpStopNative() { try { if ('speechSynthesis' in window) window.speechSy
 // reuse it for every TTS clip so autoplay-after-fetch works on mobile.
 var _lpAudioEl = new Audio();
 _lpAudioEl.setAttribute('playsinline', '');
+_lpAudioEl.volume = 1.0;
+
+// AudioContext gain boost: routes audio through a 2× GainNode so the signal
+// is amplified before reaching the speaker — works even when device is at max.
+var _lpAudioCtx = null, _lpGainNode = null;
+function _lpInitGain() {
+  if (_lpAudioCtx) return;
+  try {
+    _lpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var src = _lpAudioCtx.createMediaElementSource(_lpAudioEl);
+    _lpGainNode = _lpAudioCtx.createGain();
+    _lpGainNode.gain.value = 2.0;
+    src.connect(_lpGainNode);
+    _lpGainNode.connect(_lpAudioCtx.destination);
+  } catch(e) {}
+}
+
 var _lpAudioPrimed = false;
 function lpPrimeAudio() {
   if (_lpAudioPrimed) return;
   _lpAudioPrimed = true;
+  _lpInitGain();
   try { var p = _lpAudioEl.play(); if (p && p.then) p.then(function(){ _lpAudioEl.pause(); _lpAudioEl.currentTime = 0; }).catch(function(){}); } catch(e){}
 }
 document.addEventListener('touchend', lpPrimeAudio, { passive: true });

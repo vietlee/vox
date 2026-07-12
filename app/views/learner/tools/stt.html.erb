@@ -169,6 +169,7 @@
 <script>
 (function(){
   const CSRF      = () => document.querySelector('meta[name="csrf-token"]').content;
+  const APP_LOCALE = '<%= I18n.locale %>';
   const STT_URL   = '<%= learner_ai_tutor_stt_path %>';
   const TRANS_URL = '<%= learner_tools_translate_path %>';
   const TRANS_STREAM_URL = '<%= learner_tools_translate_stream_path %>';
@@ -289,9 +290,10 @@
 
   function resolveRecognitionLang(selected) {
     if (selected) return selected;
-    // Auto-detect: prefer vi-VN when Vietnamese is in the browser language list.
-    // isFinal may not fire when lang mismatches speech, but the 1.3s pause timer
-    // handles sentence breaks as a fallback regardless of language.
+    // Auto-detect: use app locale as primary hint so Vietnamese VOX users on
+    // English-language phones still get vi-VN recognition. Fall back to browser
+    // languages, then '' (Chrome multi-language auto-detect) as last resort.
+    if (APP_LOCALE === 'vi') return 'vi-VN';
     var langs = navigator.languages || (navigator.language ? [navigator.language] : []);
     for (var i = 0; i < langs.length; i++) {
       if (langs[i].toLowerCase().startsWith('vi')) return 'vi-VN';
