@@ -123,7 +123,7 @@
         <button onclick="sttClear()" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;"><%= t('learner_stt.clear') %></button>
       </div>
     </div>
-    <div id="stt-transcript-box" style="height:130px;padding:10px;background:#f8fafc;border-radius:8px;position:relative;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+    <div id="stt-transcript-box" style="height:130px;padding:10px 10px 20px;background:#f8fafc;border-radius:8px;position:relative;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <span id="stt-transcript-final" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span><span id="stt-transcript-interim" style="font-size:14px;color:#0369a1;line-height:1.8;white-space:pre-wrap;background:#e0f2fe;border-radius:4px;padding:0 3px;"></span>
       <p id="stt-placeholder" style="font-size:13px;color:#cbd5e1;margin:0;position:absolute;top:10px;left:10px;"><%= t('learner_stt.placeholder_live') %></p>
     </div>
@@ -140,7 +140,7 @@
         <button onclick="sttCopy('stt-translation-text')" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;color:#475569;cursor:pointer;">📋 <%= t('learner_stt.copy') %></button>
       </div>
     </div>
-    <div style="height:130px;padding:10px;background:#f5f3ff;border-radius:8px;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+    <div style="height:130px;padding:10px 10px 20px;background:#f5f3ff;border-radius:8px;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <span id="stt-translation-text" style="font-size:14px;color:#1e293b;line-height:1.8;white-space:pre-wrap;"></span>
       <span id="stt-translation-interim" style="font-size:14px;color:#94a3b8;line-height:1.8;font-style:italic;"></span>
     </div>
@@ -189,6 +189,7 @@
   let _transTimer  = null; // debounce timer for translation
   let _puncTimer   = null; // debounce timer for punctuation
   let _pauseTimer  = null; // commit interim as sentence after silence
+  let _pauseCommittedText = ''; // text just committed by pause timer; lets isFinal skip the duplicate
   let _transSeq    = 0;    // sequence number — ignore stale translation responses
 
   // ── Mode toggle ──
@@ -315,7 +316,9 @@
         if (interim) {
           _pauseTimer = setTimeout(function() {
             if (!_lastInterim) return;
-            var committed = commitText(_lastInterim);
+            var text = _lastInterim;
+            var committed = commitText(text);
+            if (committed) _pauseCommittedText = text.trim(); // isFinal will skip this duplicate
             _lastInterim = '';
             updateTranscript(_finalText, '');
             if (committed) {
@@ -357,11 +360,20 @@
     }
   }
 
-  // Append only the NEW portion of raw text (Chrome vi-VN returns cumulative transcripts).
-  // Strip any prefix already committed, add only the delta as a new line.
+  // Append only the NEW portion of raw text.
+  // Handles two cases:
+  //   1. Cumulative (Chrome vi-VN): new text = all old + new sentence → strip known prefix.
+  //   2. Pause-then-isFinal duplicate: pause timer already committed this text;
+  //      isFinal fires the same segment → _pauseCommittedText flags it to skip.
   function commitText(raw) {
     var chunk = raw.trim();
     if (!chunk) return false;
+    // Skip if pause timer just committed this exact text (isFinal firing for same segment)
+    if (_pauseCommittedText && (chunk === _pauseCommittedText || chunk.endsWith(_pauseCommittedText))) {
+      _pauseCommittedText = '';
+      return false;
+    }
+    _pauseCommittedText = '';
     var flatPrev = _finalText.replace(/\n/g, ' ').trim();
     var delta = chunk;
     if (flatPrev && chunk.startsWith(flatPrev)) {
@@ -583,7 +595,7 @@
 
   window.sttClear = function() {
     _finalText = ''; _lastInterim = ''; _transSeq = 0;
-    _committedTrans = ''; _committedUpTo = 0;
+    _committedTrans = ''; _committedUpTo = 0; _pauseCommittedText = '';
     clearTimeout(_transTimer); clearTimeout(_puncTimer); clearTimeout(_pauseTimer);
     _pauseTimer = null;
     updateTranscript('', '');
