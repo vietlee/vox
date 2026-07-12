@@ -182,15 +182,15 @@
   let _recognition = null;
   let _listening   = false;
   let _pendingFile = null;
-  let _finalText     = '';   // raw accumulated final transcript
-  let _lastInterim   = '';   // latest interim (in-progress) transcript
-  let _committedTrans = '';  // locked translation of fully-finalized text
-  let _committedUpTo  = 0;   // chars of _finalText already committed (translated + locked)
-  let _transTimer  = null; // debounce timer for translation
-  let _puncTimer   = null; // debounce timer for punctuation
-  let _pauseTimer  = null; // commit interim as sentence after silence
-  let _pauseCommittedText = ''; // text just committed by pause timer; lets isFinal skip the duplicate
-  let _transSeq    = 0;    // sequence number — ignore stale translation responses
+  let _sentences    = [];  // finalized sentences (one per element)
+  let _finalText    = '';  // derived: _sentences.join('\n') — kept for translation compat
+  let _lastInterim  = '';  // raw interim from browser (may be cumulative across session)
+  let _committedTrans = '';
+  let _committedUpTo  = 0;
+  let _transTimer  = null;
+  let _puncTimer   = null;
+  let _pauseTimer  = null;
+  let _transSeq    = 0;
 
   // ── Mode toggle ──
   window.setSttMode = function(m) {
@@ -250,6 +250,43 @@
 
   window.sttToggleMic = function() { _listening ? stopRecognition() : startRecognition(); };
 
+  // ── Sentence helpers ──
+
+  // Normalize text for dedup comparison (lowercase, strip punctuation & extra spaces)
+  function normText(s) {
+    return (s || '').toLowerCase().replace(/[.,!?،؟]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  // Strip already-committed sentences from raw browser text using word-level fuzzy match.
+  // Chrome with vi-VN returns the ENTIRE session history in interim/final results,
+  // so we skip the prefix that matches what we've already committed.
+  function stripCommitted(raw) {
+    var t = (raw || '').trim();
+    if (!t || !_sentences.length) return t;
+    var committedWords = normText(_sentences.join(' ')).split(' ').filter(Boolean);
+    var tWords = t.split(/\s+/).filter(Boolean);
+    var normTWords = tWords.map(function(w) { return normText(w); });
+    var match = 0;
+    for (var i = 0; i < committedWords.length && i < normTWords.length; i++) {
+      if (normTWords[i] === committedWords[i]) match++;
+      else break;
+    }
+    var delta = match > 0 ? tWords.slice(match).join(' ').replace(/^[\s.,!?]+/, '').trim() : t;
+    return delta;
+  }
+
+  // Commit a new sentence. Strips cumulative prefix, dedupes against last sentence.
+  // Returns true if a new sentence was added.
+  function pushSentence(raw) {
+    var chunk = stripCommitted(raw);
+    if (!chunk) return false;
+    // Dedup: same as last committed sentence (handles pause-timer + isFinal for same segment)
+    if (_sentences.length && normText(chunk) === normText(_sentences[_sentences.length - 1])) return false;
+    _sentences.push(chunk);
+    _finalText = _sentences.join('\n');
+    return true;
+  }
+
   function resolveRecognitionLang(selected) {
     if (selected) return selected;
     // Auto-detect: prefer vi-VN when Vietnamese is in the browser language list.
@@ -295,30 +332,29 @@
       _recognition.onstart = function() { _listening = true; setOrbUI(true); };
 
       _recognition.onresult = function(e) {
-        var interim = '';
+        var rawInterim = '';
         var gotFinal = false;
         for (var i = e.resultIndex; i < e.results.length; i++) {
           var t = e.results[i][0].transcript;
           if (e.results[i].isFinal) {
             clearTimeout(_pauseTimer); _pauseTimer = null;
-            if (commitText(t)) gotFinal = true;
+            if (pushSentence(t)) gotFinal = true;
           } else {
-            interim += t;
+            rawInterim += t;
           }
         }
 
-        _lastInterim = interim;
-        updateTranscript(_finalText, interim);
+        _lastInterim = rawInterim;
+        // Show only the new part of interim (strip already-committed sentences)
+        updateTranscript(_finalText, stripCommitted(rawInterim));
 
-        // Pause-based sentence commit: if isFinal never fires (common when recognition
-        // lang doesn't match the spoken language), commit interim after 1.3s of silence.
+        // Pause-based commit: if isFinal never fires (lang mismatch), treat a 1.3s
+        // silence as a sentence boundary. pushSentence dedupes so no double-commit.
         clearTimeout(_pauseTimer);
-        if (interim) {
+        if (rawInterim) {
           _pauseTimer = setTimeout(function() {
             if (!_lastInterim) return;
-            var text = _lastInterim;
-            var committed = commitText(text);
-            if (committed) _pauseCommittedText = text.trim(); // isFinal will skip this duplicate
+            var committed = pushSentence(_lastInterim);
             _lastInterim = '';
             updateTranscript(_finalText, '');
             if (committed) {
@@ -360,37 +396,12 @@
     }
   }
 
-  // Append only the NEW portion of raw text.
-  // Handles two cases:
-  //   1. Cumulative (Chrome vi-VN): new text = all old + new sentence → strip known prefix.
-  //   2. Pause-then-isFinal duplicate: pause timer already committed this text;
-  //      isFinal fires the same segment → _pauseCommittedText flags it to skip.
-  function commitText(raw) {
-    var chunk = raw.trim();
-    if (!chunk) return false;
-    // Skip if pause timer just committed this exact text (isFinal firing for same segment)
-    if (_pauseCommittedText && (chunk === _pauseCommittedText || chunk.endsWith(_pauseCommittedText))) {
-      _pauseCommittedText = '';
-      return false;
-    }
-    _pauseCommittedText = '';
-    var flatPrev = _finalText.replace(/\n/g, ' ').trim();
-    var delta = chunk;
-    if (flatPrev && chunk.startsWith(flatPrev)) {
-      delta = chunk.slice(flatPrev.length).replace(/^[\s.,!?،؟]+/, '').trim();
-    }
-    if (!delta) return false;
-    _finalText += (_finalText ? '\n' : '') + delta;
-    return true;
-  }
-
   function stopRecognition() {
     _listening = false;
     setOrbUI(false);
     clearTimeout(_pauseTimer); _pauseTimer = null;
-    // Commit any in-progress interim as a final sentence before stopping
     if (_lastInterim.trim()) {
-      commitText(_lastInterim);
+      pushSentence(_lastInterim);
       _lastInterim = '';
       updateTranscript(_finalText, '');
     }
@@ -594,8 +605,8 @@
   };
 
   window.sttClear = function() {
-    _finalText = ''; _lastInterim = ''; _transSeq = 0;
-    _committedTrans = ''; _committedUpTo = 0; _pauseCommittedText = '';
+    _sentences = []; _finalText = ''; _lastInterim = ''; _transSeq = 0;
+    _committedTrans = ''; _committedUpTo = 0;
     clearTimeout(_transTimer); clearTimeout(_puncTimer); clearTimeout(_pauseTimer);
     _pauseTimer = null;
     updateTranscript('', '');
