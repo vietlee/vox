@@ -194,6 +194,7 @@
   window.setSttMode = function(m) {
     if (m === _mode) return;
     _mode = m;
+    try { sessionStorage.setItem('stt_mode', m); } catch(e) {}
     // Switching modes auto-clears previous data (both directions)
     window.sttClear();
     const isTrans = m === 'translate';
@@ -562,6 +563,10 @@
     document.getElementById('stt-error').style.display = 'none';
   }
 
+  // Restore mode from current browser session (survives refresh, clears on new tab/window)
+  try {
+    if (sessionStorage.getItem('stt_mode') === 'translate') setSttMode('translate');
+  } catch(e) {}
 })();
 </script>
 
