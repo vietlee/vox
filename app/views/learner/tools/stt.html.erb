@@ -263,7 +263,12 @@
     hideError();
 
     if (!SpeechRecognition) {
-      showError('Trình duyệt không hỗ trợ nhận giọng nói realtime. Hãy dùng Chrome hoặc Safari, hoặc chuyển sang tab File để tải lên âm thanh.');
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        showError('Trên iOS, tính năng nhận giọng nói chỉ hoạt động trên Safari. Vui lòng mở Safari (không phải Chrome/Firefox) và thử lại.');
+      } else {
+        showError('Trình duyệt không hỗ trợ nhận giọng nói. Hãy dùng Chrome hoặc Safari trên máy tính, hoặc Safari trên iOS. Có thể chuyển sang tab File để tải âm thanh lên.');
+      }
       return;
     }
 
