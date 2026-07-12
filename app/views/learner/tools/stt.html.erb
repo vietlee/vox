@@ -188,6 +188,7 @@
   let _committedUpTo  = 0;   // chars of _finalText already committed (translated + locked)
   let _transTimer  = null; // debounce timer for translation
   let _puncTimer   = null; // debounce timer for punctuation
+  let _pauseTimer  = null; // commit interim as sentence after silence
   let _transSeq    = 0;    // sequence number — ignore stale translation responses
 
   // ── Mode toggle ──
@@ -249,13 +250,11 @@
   window.sttToggleMic = function() { _listening ? stopRecognition() : startRecognition(); };
 
   function resolveRecognitionLang(selected) {
-    if (selected) return selected;
-    // Prefer vi-VN if Vietnamese appears anywhere in the browser language list (all platforms).
-    var langs = navigator.languages || (navigator.language ? [navigator.language] : []);
-    for (var i = 0; i < langs.length; i++) {
-      if (langs[i].toLowerCase().startsWith('vi')) return 'vi-VN';
-    }
-    return '';
+    // Pass explicit selection through; empty = let the browser auto-detect.
+    // We no longer infer from navigator.languages because forcing 'vi-VN' when the
+    // user speaks another language (e.g. English) prevents isFinal from ever firing,
+    // making all text appear as a single concatenated interim line.
+    return selected;
   }
 
   async function startRecognition() {
@@ -296,7 +295,7 @@
         for (var i = e.resultIndex; i < e.results.length; i++) {
           var t = e.results[i][0].transcript;
           if (e.results[i].isFinal) {
-            // Each finalized chunk on its own line; punctuation added server-side later
+            clearTimeout(_pauseTimer); _pauseTimer = null;
             _finalText += (_finalText ? '\n' : '') + t.trim();
             gotFinal = true;
           } else {
@@ -307,15 +306,21 @@
         _lastInterim = interim;
         updateTranscript(_finalText, interim);
 
-        // Translation: fire on EVERY result (interim + final) for true realtime —
-        // translates only the untranslated tail (current sentence), so each request
-        // is short → fast. Interim previews are free; only finalized text costs credit.
-        if (_mode === 'translate') {
-          scheduleTranslation();
+        // Pause-based sentence commit: if isFinal never fires (common when recognition
+        // lang doesn't match the spoken language), commit interim after 1.3s of silence.
+        clearTimeout(_pauseTimer);
+        if (interim) {
+          _pauseTimer = setTimeout(function() {
+            if (!_lastInterim) return;
+            _finalText += (_finalText ? '\n' : '') + _lastInterim.trim();
+            _lastInterim = '';
+            updateTranscript(_finalText, '');
+            if (_mode === 'translate') scheduleTranslation();
+            if (_mode === 'transcribe') schedulePunctuation();
+          }, 1300);
         }
 
-        // Punctuation: only in transcribe mode. (In translate mode it would rewrite
-        // _finalText and desync the translation's char-offset tracker.)
+        if (_mode === 'translate') scheduleTranslation();
         if (gotFinal && _mode === 'transcribe') schedulePunctuation();
       };
 
@@ -350,12 +355,18 @@
   function stopRecognition() {
     _listening = false;
     setOrbUI(false);
+    clearTimeout(_pauseTimer); _pauseTimer = null;
+    // Commit any in-progress interim as a final sentence before stopping
+    if (_lastInterim.trim()) {
+      _finalText += (_finalText ? '\n' : '') + _lastInterim.trim();
+      _lastInterim = '';
+      updateTranscript(_finalText, '');
+    }
     if (_recognition) {
       _recognition.onend = null;
       try { _recognition.stop(); } catch(e) {}
       _recognition = null;
     }
-    // Final punctuation pass when user stops recording (transcribe mode only)
     if (_finalText.trim() && _mode === 'transcribe') doPunctuate();
   }
 
@@ -551,7 +562,8 @@
   window.sttClear = function() {
     _finalText = ''; _lastInterim = ''; _transSeq = 0;
     _committedTrans = ''; _committedUpTo = 0;
-    clearTimeout(_transTimer); clearTimeout(_puncTimer);
+    clearTimeout(_transTimer); clearTimeout(_puncTimer); clearTimeout(_pauseTimer);
+    _pauseTimer = null;
     updateTranscript('', '');
     document.getElementById('stt-translation-text').textContent = '';
     document.getElementById('stt-translation-interim').textContent = '';
