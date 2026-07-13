@@ -8,6 +8,15 @@ class Learner::BaseController < ApplicationController
 
   helper_method :current_learner
 
+  # Override ApplicationController#set_locale to use a learner-specific
+  # session key, so admin locale changes (session[:locale]) don't bleed in.
+  def set_locale
+    if params[:locale].present? && I18n.available_locales.map(&:to_s).include?(params[:locale])
+      session[:learner_locale] = params[:locale]
+    end
+    I18n.locale = session[:learner_locale]&.to_sym || :vi
+  end
+
   private
 
   SESSION_TTL = 2.hours
