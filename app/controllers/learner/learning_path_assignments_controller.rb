@@ -4,8 +4,13 @@ class Learner::LearningPathAssignmentsController < Learner::BaseController
 
   def show
     @path  = @assignment.learning_path
-    @items = @path.learning_path_items.includes(:quiz_set, :flashcard_deck).order(:position)
+    @items = @path.learning_path_items.includes(:quiz_set, :flashcard_deck).order(:position).to_a
     @progresses = @assignment.learning_item_progresses.index_by(&:learning_path_item_id)
+
+    quiz_set_ids = @items.filter_map(&:quiz_set_id)
+    deck_ids     = @items.filter_map(&:flashcard_deck_id)
+    @qa_by_set   = current_learner.quiz_assignments.where(quiz_set_id: quiz_set_ids).index_by(&:quiz_set_id)
+    @fa_by_deck  = current_learner.flashcard_assignments.where(flashcard_deck_id: deck_ids).index_by(&:flashcard_deck_id)
   end
 
   def complete_item
