@@ -18,7 +18,8 @@ class Learner::FlashcardAssignmentsController < Learner::BaseController
     mastered = params[:mastered].in?([true, "true", 1, "1"])
     rating   = params[:rating].to_s  # "again"|"hard"|"good"|"easy"
 
-    save_srs_review(params[:flashcard_id].to_i, rating) if params[:flashcard_id].present?
+    flashcard_id = verified_flashcard_id
+    save_srs_review(flashcard_id, rating) if flashcard_id
 
     gam_result = nil
     if mastered
@@ -37,7 +38,7 @@ class Learner::FlashcardAssignmentsController < Learner::BaseController
       { icon: b.info[:icon], title: b.info[:title], desc: b.info[:desc] }
     end
 
-    review_record = FlashcardReview.find_by(flashcard_id: params[:flashcard_id], learner_id: current_learner.id)
+    review_record = flashcard_id ? FlashcardReview.find_by(flashcard_id: flashcard_id, learner_id: current_learner.id) : nil
     render json: { ok: true, completed: @assignment.completed?,
                    progress: @assignment.cards_reviewed, total: total,
                    next_review_at: review_record&.next_review_at,
@@ -69,5 +70,11 @@ class Learner::FlashcardAssignmentsController < Learner::BaseController
 
   def set_assignment
     @assignment = current_learner.flashcard_assignments.find_by!(token: params[:token])
+  end
+
+  def verified_flashcard_id
+    return nil unless params[:flashcard_id].present?
+    id = params[:flashcard_id].to_i
+    @assignment.flashcard_deck.flashcards.exists?(id) ? id : nil
   end
 end
