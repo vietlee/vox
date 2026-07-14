@@ -5,6 +5,7 @@
   html, body { background: #0F172A !important; }
   .lp-main { background: #0F172A !important; overflow-y: auto !important; min-height: 100dvh !important; padding-bottom: 0 !important; }
   .lp-page { padding: 0 !important; max-width: none !important; width: 100% !important; }
+  .lp-topbar, .lp-bottom-nav { display: none !important; }
   .lp-alert-success, .lp-alert-error { display: none !important; }
 </style>
 <% end %>
@@ -12,11 +13,15 @@
 <div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 16px; font-family:'Inter',sans-serif;">
 
   <div style="width:100%;max-width:440px;">
-    <!-- Logo -->
+    <!-- Logo + lang switcher -->
     <div style="text-align:center; margin-bottom:16px;">
       <div style="display:inline-flex; align-items:center; gap:10px; filter:drop-shadow(0 6px 18px rgba(26,107,255,0.4));">
         <img src="/icon.svg" width="36" height="36" alt="VOX" style="display:block;">
         <div style="font-size:28px; font-weight:800; letter-spacing:8px; color:#2D1B8B; line-height:1; padding-left:4px;">VOX</div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-top:10px; background:rgba(255,255,255,0.07); border-radius:99px; padding:3px; width:fit-content; margin-left:auto; margin-right:auto;">
+        <%= link_to request.path + "?locale=vi", style: "padding:4px 12px; border-radius:99px; font-size:11px; font-weight:700; text-decoration:none; transition:all .15s; #{I18n.locale == :vi ? 'background:rgba(255,255,255,0.18); color:#fff;' : 'color:rgba(255,255,255,0.45);'}" do %>🇻🇳 VI<% end %>
+        <%= link_to request.path + "?locale=en", style: "padding:4px 12px; border-radius:99px; font-size:11px; font-weight:700; text-decoration:none; transition:all .15s; #{I18n.locale == :en ? 'background:rgba(255,255,255,0.18); color:#fff;' : 'color:rgba(255,255,255,0.45);'}" do %>🇬🇧 EN<% end %>
       </div>
     </div>
 
