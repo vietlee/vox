@@ -1,6 +1,6 @@
 class Learner < ApplicationRecord
   devise :database_authenticatable, :registerable, :recoverable,
-         :rememberable, :trackable, :confirmable
+         :rememberable, :trackable
 
   has_many :learner_payments,            dependent: :destroy
   has_many :learner_suggestions,         dependent: :destroy
@@ -24,8 +24,6 @@ class Learner < ApplicationRecord
   validates :email, presence: true, uniqueness: { case_sensitive: false },
                     format: { with: URI::MailTo::EMAIL_REGEXP }
 
-  before_create :skip_confirmation_for_invite
-
   MONTHLY_FREE_CREDITS = 50
 
   def deduct_credits!(amount)
@@ -48,7 +46,6 @@ class Learner < ApplicationRecord
     self.invite_token = SecureRandom.urlsafe_base64(24)
     self.invite_sent_at = Time.current
     self.password = SecureRandom.hex(16)
-    self.skip_confirmation!
     save!
     LearnerMailer.invite(self, assigned_by).deliver_later
   end
@@ -62,9 +59,4 @@ class Learner < ApplicationRecord
     learner
   end
 
-  private
-
-  def skip_confirmation_for_invite
-    skip_confirmation! if invite_token.present?
-  end
 end

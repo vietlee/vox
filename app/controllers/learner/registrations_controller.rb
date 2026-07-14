@@ -6,7 +6,9 @@ class Learner::RegistrationsController < Devise::RegistrationsController
   protected
 
   def after_sign_up_path_for(resource)
-    learner_root_path
+    sign_out resource
+    flash[:notice] = t('learner_auth.signup_success')
+    new_learner_session_path(email: resource.email)
   end
 
   def sign_up_params
