@@ -4,7 +4,21 @@
   <span class="lp-bc-current"><%= t('learner_dashboard.library') %></span>
 <% end %>
 
-<h1 style="font-size:18px;font-weight:800;color:#0f172a;margin:8px 0 16px;"><%= t('learner_dashboard.library') %></h1>
+<h1 style="font-size:18px;font-weight:800;color:#0f172a;margin:8px 0 12px;"><%= t('learner_dashboard.library') %></h1>
+
+<%# Search bar %>
+<%= form_with url: learner_library_path, method: :get, local: true, data: { turbo: false } do |f| %>
+  <div style="position:relative;margin-bottom:16px;">
+    <svg width="16" height="16" fill="none" stroke="#94a3b8" viewBox="0 0 24 24" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/></svg>
+    <%= f.text_field :q, value: @search_query, placeholder: "Tìm bài kiểm tra, bộ thẻ, lộ trình...",
+      style: "display:block;width:100%;padding:10px 36px 10px 36px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:14px;outline:none;font-family:inherit;",
+      onfocus: "this.style.borderColor='#1e3a5f'", onblur: "this.style.borderColor='#e2e8f0'",
+      "aria-label": "Tìm kiếm" %>
+    <% if @search_query.present? %>
+      <%= link_to learner_library_path, style: "position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:18px;text-decoration:none;line-height:1;" do %>✕<% end %>
+    <% end %>
+  </div>
+<% end %>
 
 <%# small orange "+" add button per section %>
 <% add_btn = ->(url, _color, label) {

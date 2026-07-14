@@ -59,6 +59,18 @@ class Learner::MyFlashcardsController < Learner::BaseController
     render json: { ok: true }
   end
 
+  def update_card
+    deck = FlashcardDeck.find_by!(id: params[:deck_id], learner_id: current_learner.id)
+    card = deck.flashcards.find(params[:id])
+    front = params[:front].to_s.strip
+    back  = params[:back].to_s.strip
+    return render json: { error: "Nội dung không được để trống." }, status: :unprocessable_entity if front.blank? || back.blank?
+    card.update!(front: front.truncate(300), back: back.truncate(600))
+    render json: { ok: true, front: card.front, back: card.back }
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: "Không tìm thấy thẻ." }, status: :not_found
+  end
+
   def generate
     unless current_learner.credits >= GENERATE_COST
       return render json: { error: "Không đủ credits. Cần #{GENERATE_COST} credits để tạo bộ flashcard." }, status: :payment_required

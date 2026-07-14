@@ -1,0 +1,61 @@
+<% content_for :title, "Hội thoại #{@sp_session.created_at.strftime('%d/%m/%Y')}" %>
+<% content_for :breadcrumb do %>
+  <span class="lp-bc-sep">›</span>
+  <%= link_to "Luyện nói", learner_speaking_path, class: "lp-bc-link" %>
+  <span class="lp-bc-sep">›</span>
+  <span class="lp-bc-current">Chi tiết</span>
+<% end %>
+
+<%
+  lang_names = { "en" => "English", "vi" => "Tiếng Việt", "ja" => "日本語", "ko" => "한국어", "zh" => "中文", "fr" => "Français" }
+  scenario_names = { "free" => "Trò chuyện tự do", "restaurant" => "Gọi món nhà hàng", "interview" => "Phỏng vấn xin việc", "travel" => "Du lịch / hỏi đường", "shopping" => "Mua sắm", "smalltalk" => "Giao tiếp xã giao" }
+%>
+
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+  <div style="width:44px;height:44px;background:linear-gradient(135deg,#3b82f6,#2563eb);border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+    <span style="font-size:22px;">🗣️</span>
+  </div>
+  <div>
+    <h1 style="font-size:17px;font-weight:800;color:#0f172a;margin:0;"><%= scenario_names[@sp_session.scenario] || @sp_session.scenario %></h1>
+    <p style="font-size:12px;color:#94a3b8;margin:2px 0 0;"><%= lang_names[@sp_session.language] || @sp_session.language %> · <%= @sp_session.created_at.strftime("%d/%m/%Y %H:%M") %> · <%= @sp_session.turns %> lượt</p>
+  </div>
+</div>
+
+<% if @sp_session.score.present? %>
+  <div style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1.5px solid #a7f3d0;border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px;">
+    <div style="font-size:28px;font-weight:900;color:#059669;flex-shrink:0;line-height:1;"><%= @sp_session.score %></div>
+    <div>
+      <p style="font-size:11px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Điểm đánh giá</p>
+      <p style="font-size:13px;color:#065f46;margin:0;line-height:1.6;"><%= @sp_session.feedback %></p>
+    </div>
+  </div>
+<% end %>
+
+<% history = Array(@sp_session.history) %>
+<% if history.any? %>
+  <p style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px;">Nội dung hội thoại</p>
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <% history.each do |msg| %>
+      <% is_user = msg["role"] == "user" %>
+      <div style="display:flex;flex-direction:<%= is_user ? 'row-reverse' : 'row' %>;align-items:flex-end;gap:8px;">
+        <div style="width:28px;height:28px;border-radius:50%;background:<%= is_user ? 'linear-gradient(135deg,#3b82f6,#2563eb)' : '#f1f5f9' %>;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;">
+          <%= is_user ? '👤' : '🤖' %>
+        </div>
+        <div style="max-width:78%;padding:10px 14px;border-radius:<%= is_user ? '16px 4px 16px 16px' : '4px 16px 16px 16px' %>;background:<%= is_user ? '#3b82f6' : '#f1f5f9' %>;color:<%= is_user ? '#fff' : '#1e293b' %>;font-size:14px;line-height:1.6;">
+          <%= msg["content"] %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <div style="text-align:center;padding:32px 16px;color:#94a3b8;">
+    <p style="font-size:14px;">Phiên này không có dữ liệu hội thoại.</p>
+    <p style="font-size:12px;margin-top:4px;">(Chỉ các phiên mới sẽ lưu lịch sử.)</p>
+  </div>
+<% end %>
+
+<div style="margin-top:20px;">
+  <%= link_to learner_speaking_path, style: "display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;font-size:13px;color:#64748b;text-decoration:none;border:1.5px solid #e2e8f0;border-radius:12px;" do %>
+    ← Quay lại luyện nói
+  <% end %>
+</div>

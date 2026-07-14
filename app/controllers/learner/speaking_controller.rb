@@ -16,7 +16,13 @@ class Learner::SpeakingController < Learner::BaseController
   def index
     @scenarios = SCENARIOS
     @langs      = LANGS
-    @recent     = current_learner.learner_speaking_sessions.order(created_at: :desc).limit(5)
+    @recent     = current_learner.learner_speaking_sessions.order(created_at: :desc).limit(10)
+  end
+
+  def transcript
+    @sp_session = current_learner.learner_speaking_sessions.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    redirect_to learner_speaking_path, alert: "Không tìm thấy phiên hội thoại."
   end
 
   # Learner spoke → AI conversational reply in target language
@@ -84,15 +90,16 @@ class Learner::SpeakingController < Learner::BaseController
     data = (JSON.parse(raw.match(/\{[\s\S]*\}/)[0]) rescue { "score" => nil, "feedback" => raw.to_s.truncate(400) })
 
     end_free_tts_session!(:sp_active)
-    session = current_learner.learner_speaking_sessions.create!(
+    sp_session = current_learner.learner_speaking_sessions.create!(
       language: lang_code.presence || "en",
       scenario: params[:scenario].to_s.presence || "free",
       turns:    user_turns,
       score:    data["score"],
-      feedback: data["feedback"].to_s
+      feedback: data["feedback"].to_s,
+      history:  history.map { |m| { role: m["role"], content: m["content"].to_s.truncate(1000) } }
     )
 
-    render json: { score: session.score, feedback: session.feedback, turns: session.turns }
+    render json: { score: sp_session.score, feedback: sp_session.feedback, turns: sp_session.turns, session_id: sp_session.id }
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

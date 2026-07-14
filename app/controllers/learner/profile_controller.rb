@@ -8,10 +8,30 @@ class Learner::ProfileController < Learner::BaseController
 
   def update
     if current_learner.update(profile_params)
-      redirect_to learner_profile_path, notice: "Đã cập nhật thông tin."
+      redirect_to learner_profile_path, notice: t('learner_profile.saved')
     else
       render :show, status: :unprocessable_entity
     end
+  end
+
+  def change_password
+    current_pw  = params[:current_password].to_s
+    new_pw      = params[:new_password].to_s
+    new_pw_conf = params[:new_password_confirmation].to_s
+
+    unless current_learner.valid_password?(current_pw)
+      return redirect_to learner_profile_path(anchor: "pw"), alert: t('learner_profile.pw_wrong_current')
+    end
+    if new_pw.length < 8
+      return redirect_to learner_profile_path(anchor: "pw"), alert: t('learner_profile.pw_too_short')
+    end
+    if new_pw != new_pw_conf
+      return redirect_to learner_profile_path(anchor: "pw"), alert: t('learner_profile.pw_mismatch')
+    end
+
+    current_learner.update!(password: new_pw, password_confirmation: new_pw_conf)
+    bypass_sign_in(current_learner, scope: :learner)
+    redirect_to learner_profile_path, notice: t('learner_profile.pw_changed')
   end
 
   private

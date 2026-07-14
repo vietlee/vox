@@ -17,7 +17,7 @@ class QuizAssignment < ApplicationRecord
     return quiz_set.quiz_questions.count if completed?
     attempt = quiz_set.quiz_attempts.find_by(participant_email: learner.email)
     return 0 unless attempt
-    attempt.quiz_attempt_answers.where.not(quiz_option_id: nil).count
+    attempt.quiz_attempt_answers.where("quiz_option_id IS NOT NULL OR (text_answer IS NOT NULL AND text_answer != '')").count
   end
 
   def progress_pct

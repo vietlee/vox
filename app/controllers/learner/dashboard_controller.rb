@@ -32,15 +32,22 @@ class Learner::DashboardController < Learner::BaseController
 
   # GET /learner/library — full catalog of all assigned/created content
   def library
-    @pagy_quiz, @quiz_assignments =
-      pagy(current_learner.quiz_assignments.includes(:quiz_set).order(created_at: :desc),
-           items: 10, page: params[:quiz_page] || 1)
-    @pagy_fc, @flashcard_assignments =
-      pagy(current_learner.flashcard_assignments.includes(:flashcard_deck).order(created_at: :desc),
-           items: 10, page: params[:fc_page] || 1)
-    @pagy_path, @path_assignments =
-      pagy(current_learner.learning_path_assignments.includes(:learning_path).order(created_at: :desc),
-           items: 10, page: params[:path_page] || 1)
+    q = params[:q].to_s.strip
+    @search_query = q
+
+    quiz_scope = current_learner.quiz_assignments.includes(:quiz_set).order(created_at: :desc)
+    fc_scope   = current_learner.flashcard_assignments.includes(:flashcard_deck).order(created_at: :desc)
+    path_scope = current_learner.learning_path_assignments.includes(:learning_path).order(created_at: :desc)
+
+    if q.present?
+      quiz_scope = quiz_scope.joins(:quiz_set).where("quiz_sets.title ILIKE ?", "%#{q}%")
+      fc_scope   = fc_scope.joins(:flashcard_deck).where("flashcard_decks.title ILIKE ?", "%#{q}%")
+      path_scope = path_scope.joins(:learning_path).where("learning_paths.title ILIKE ?", "%#{q}%")
+    end
+
+    @pagy_quiz, @quiz_assignments      = pagy(quiz_scope, items: 10, page: params[:quiz_page] || 1)
+    @pagy_fc,   @flashcard_assignments = pagy(fc_scope,   items: 10, page: params[:fc_page]   || 1)
+    @pagy_path, @path_assignments      = pagy(path_scope, items: 10, page: params[:path_page] || 1)
   end
 
   # GET /learner/suggestion/fetch — called via AJAX after page load

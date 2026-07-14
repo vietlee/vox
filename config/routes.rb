@@ -484,7 +484,17 @@ Rails.application.routes.draw do
     patch "notifications/:id/read",         to: "notifications#mark_read",    as: :notification_mark_read
 
     # Profile
-    resource :profile, only: [:show, :update], controller: "profile"
+    resource :profile, only: [:show, :update], controller: "profile" do
+      member do
+        patch :change_password
+      end
+    end
+
+    # Learner flashcard card editing
+    patch "my_flashcards/:deck_id/cards/:id", to: "my_flashcards#update_card", as: :update_my_flashcard_card
+
+    # Speaking history transcript
+    get "speaking/:id/transcript", to: "speaking#transcript", as: :speaking_transcript
   end
 
   # Public quiz routes (học sinh làm bài)

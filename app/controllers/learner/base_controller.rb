@@ -13,8 +13,9 @@ class Learner::BaseController < ApplicationController
   def set_locale
     if params[:locale].present? && I18n.available_locales.map(&:to_s).include?(params[:locale])
       session[:learner_locale] = params[:locale]
+      current_learner&.update_column(:preferred_locale, params[:locale])
     end
-    I18n.locale = session[:learner_locale]&.to_sym || :vi
+    I18n.locale = (session[:learner_locale] || current_learner&.preferred_locale)&.to_sym || :vi
   end
 
   private

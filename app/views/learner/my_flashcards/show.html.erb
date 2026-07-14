@@ -49,34 +49,89 @@
   </div>
 </div>
 
-<!-- Preview cards -->
+<!-- All cards (editable) -->
 <p class="lp-section-title"><%= t('learner_fc.preview_title') %></p>
-<% preview_cards = @deck.flashcards.limit(6).to_a %>
-<% has_any_image = preview_cards.any? { |c| c.image_data.present? } %>
-<div style="display:grid;gap:10px;">
-  <% preview_cards.each do |card| %>
+<% all_cards = @deck.flashcards.order(:position).to_a %>
+<div style="display:grid;gap:10px;" id="fc-cards-list">
+  <% all_cards.each do |card| %>
     <% has_img = card.image_data.present? %>
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;<%= has_img ? '' : 'padding:14px 16px;' %>">
-      <% if has_img %>
-        <div style="display:flex;align-items:stretch;gap:0;">
-          <div style="width:80px;flex-shrink:0;background:#f1f5f9;">
-            <img src="<%= learner_flashcard_image_path(card.id) %>" alt="" style="width:80px;height:80px;object-fit:cover;display:block;">
+    <div id="fc-card-<%= card.id %>" style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+      <%# Display mode %>
+      <div id="fc-view-<%= card.id %>" style="<%= has_img ? '' : 'padding:12px 14px;' %>">
+        <% if has_img %>
+          <div style="display:flex;align-items:stretch;">
+            <div style="width:72px;flex-shrink:0;background:#f1f5f9;">
+              <img src="<%= learner_flashcard_image_path(card.id) %>" alt="" style="width:72px;height:72px;object-fit:cover;display:block;">
+            </div>
+            <div style="padding:10px 12px;flex:1;min-width:0;">
+              <p style="font-size:13px;font-weight:700;color:#0f172a;margin:0 0 2px;"><%= card.front %></p>
+              <p style="font-size:12px;color:#64748b;margin:0;line-height:1.5;"><%= card.back %></p>
+            </div>
+            <button onclick="fcEditCard(<%= card.id %>)" style="flex-shrink:0;padding:0 12px;border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px;" title="Sửa">✏️</button>
           </div>
-          <div style="padding:10px 14px;flex:1;min-width:0;">
-            <p style="font-size:13px;font-weight:700;color:#0f172a;margin:0 0 3px;"><%= card.front %></p>
-            <p style="font-size:12px;color:#64748b;margin:0;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;"><%= card.back %></p>
+        <% else %>
+          <div style="display:flex;align-items:flex-start;gap:8px;">
+            <div style="flex:1;min-width:0;">
+              <p style="font-size:13px;font-weight:700;color:#0f172a;margin:0 0 3px;"><%= card.front %></p>
+              <p style="font-size:12px;color:#64748b;margin:0;line-height:1.5;"><%= card.back %></p>
+            </div>
+            <button onclick="fcEditCard(<%= card.id %>)" style="flex-shrink:0;border:none;background:none;cursor:pointer;color:#94a3b8;padding:2px 4px;font-size:15px;" title="Sửa">✏️</button>
           </div>
+        <% end %>
+      </div>
+      <%# Edit mode (hidden by default) %>
+      <div id="fc-edit-<%= card.id %>" style="display:none;padding:12px 14px;">
+        <textarea id="fc-front-<%= card.id %>" rows="2"
+          style="display:block;width:100%;padding:8px 10px;border:1.5px solid #6366f1;border-radius:10px;font-size:13px;font-weight:700;color:#0f172a;resize:vertical;font-family:inherit;margin-bottom:8px;"><%= card.front %></textarea>
+        <textarea id="fc-back-<%= card.id %>" rows="3"
+          style="display:block;width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;color:#374151;resize:vertical;font-family:inherit;margin-bottom:10px;"><%= card.back %></textarea>
+        <div style="display:flex;gap:8px;">
+          <button onclick="fcSaveCard(<%= card.id %>)"
+            style="flex:1;padding:8px;background:#4f46e5;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
+            Lưu
+          </button>
+          <button onclick="fcCancelEdit(<%= card.id %>)"
+            style="padding:8px 14px;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
+            Huỷ
+          </button>
         </div>
-      <% else %>
-        <p style="font-size:13px;font-weight:700;color:#0f172a;margin:0 0 4px;"><%= card.front %></p>
-        <p style="font-size:12px;color:#64748b;margin:0;line-height:1.5;"><%= card.back %></p>
-      <% end %>
+      </div>
     </div>
   <% end %>
-  <% if @deck.card_count > 6 %>
-    <p style="text-align:center;font-size:12px;color:#94a3b8;margin:4px 0 0;"><%= t('learner_fc.preview_more', n: @deck.card_count - 6) %></p>
-  <% end %>
 </div>
+<script>
+var FC_CSRF = document.querySelector('meta[name="csrf-token"]').content;
+var FC_BASE = '<%= learner_my_flashcard_path(@deck) %>/cards/';
+function fcEditCard(id) {
+  document.getElementById('fc-view-' + id).style.display = 'none';
+  document.getElementById('fc-edit-' + id).style.display = 'block';
+  document.getElementById('fc-front-' + id).focus();
+}
+function fcCancelEdit(id) {
+  document.getElementById('fc-edit-' + id).style.display = 'none';
+  document.getElementById('fc-view-' + id).style.display = '';
+}
+function fcSaveCard(id) {
+  var front = document.getElementById('fc-front-' + id).value.trim();
+  var back  = document.getElementById('fc-back-' + id).value.trim();
+  if (!front || !back) { alert('Không được để trống.'); return; }
+  fetch(FC_BASE + id, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': FC_CSRF, 'Accept': 'application/json' },
+    body: JSON.stringify({ front: front, back: back })
+  }).then(function(r){ return r.json(); }).then(function(d) {
+    if (d.ok) {
+      var viewEl = document.getElementById('fc-view-' + id);
+      var ps = viewEl.querySelectorAll('p');
+      if (ps[0]) ps[0].textContent = d.front;
+      if (ps[1]) ps[1].textContent = d.back;
+      fcCancelEdit(id);
+    } else {
+      alert(d.error || 'Lỗi khi lưu.');
+    }
+  }).catch(function(){ alert('Lỗi kết nối.'); });
+}
+</script>
 
 <script>
 (function(){
