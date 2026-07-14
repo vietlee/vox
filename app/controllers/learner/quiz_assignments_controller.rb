@@ -59,14 +59,11 @@ class Learner::QuizAssignmentsController < Learner::BaseController
 
   def result
     @quiz_set  = @assignment.quiz_set
-    @attempt   = current_learner.quiz_assignments
-                   .find_by!(token: params[:token])
-                   .quiz_set.quiz_attempts
+    @attempt   = @assignment.quiz_set.quiz_attempts
                    .where(participant_email: current_learner.email)
                    .order(created_at: :desc).first
 
-    # Per-question detail
-    @questions = @quiz_set.quiz_questions.includes(:quiz_options).order(:position)
+    @questions    = @quiz_set.quiz_questions.includes(:quiz_options).order(:position)
     @answers_by_q = @attempt ? @attempt.quiz_attempt_answers.index_by(&:quiz_question_id) : {}
   end
 
@@ -99,11 +96,11 @@ class Learner::QuizAssignmentsController < Learner::BaseController
 
   def calculate_score(attempt)
     total = 0; earned = 0
-    attempt.quiz_attempt_answers.each do |ans|
+    attempt.quiz_attempt_answers.includes(quiz_question: :quiz_options).each do |ans|
       q = ans.quiz_question
       total += 1
       if ans.quiz_option_id.present?
-        opt = q.quiz_options.find_by(id: ans.quiz_option_id)
+        opt = q.quiz_options.find { |o| o.id == ans.quiz_option_id }
         earned += 1 if opt&.is_correct?
       end
     end
