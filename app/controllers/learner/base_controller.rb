@@ -11,13 +11,15 @@ class Learner::BaseController < ApplicationController
   # Override ApplicationController#set_locale to use a learner-specific
   # session key, so admin locale changes (session[:locale]) don't bleed in.
   def set_locale
-    if params[:locale].present? && I18n.available_locales.map(&:to_s).include?(params[:locale])
+    # Only change locale when the user explicitly clicked the language switcher (?_ls=1).
+    # Navigation URLs that happen to carry ?locale= (e.g. stale Turbo-cache entries from
+    # before the default_url_options fix) must NOT update the user's stored locale.
+    if params[:_ls] == "1" && params[:locale].present? && I18n.available_locales.map(&:to_s).include?(params[:locale])
       locale_str = params[:locale]
       session[:learner_locale] = locale_str
       current_learner&.update_column(:preferred_locale, locale_str)
     end
-    # DB value is primary truth for signed-in learners — survives session resets and
-    # cookie expiry. Session is a fallback only for unauthenticated state (login page).
+    # DB value is primary truth for signed-in learners — survives session resets/cookie expiry.
     I18n.locale = (current_learner&.preferred_locale || session[:learner_locale])&.to_sym || :vi
   end
 
@@ -47,7 +49,10 @@ class Learner::BaseController < ApplicationController
   end
 
   def default_url_options
-    { locale: I18n.locale == I18n.default_locale ? nil : I18n.locale }
+    # Never embed locale in navigation URLs — locale is stored in DB (preferred_locale),
+    # not URL state. Putting ?locale=en in every link caused a Turbo-cache chain reaction:
+    # cached pages carried locale=en in all links, which re-wrote DB on every nav click.
+    {}
   end
 
   def current_learner
