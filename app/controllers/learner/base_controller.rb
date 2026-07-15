@@ -12,10 +12,13 @@ class Learner::BaseController < ApplicationController
   # session key, so admin locale changes (session[:locale]) don't bleed in.
   def set_locale
     if params[:locale].present? && I18n.available_locales.map(&:to_s).include?(params[:locale])
-      session[:learner_locale] = params[:locale]
-      current_learner&.update_column(:preferred_locale, params[:locale])
+      locale_str = params[:locale]
+      session[:learner_locale] = locale_str
+      current_learner&.update_column(:preferred_locale, locale_str)
     end
-    I18n.locale = (session[:learner_locale] || current_learner&.preferred_locale)&.to_sym || :vi
+    # DB value is primary truth for signed-in learners — survives session resets and
+    # cookie expiry. Session is a fallback only for unauthenticated state (login page).
+    I18n.locale = (current_learner&.preferred_locale || session[:learner_locale])&.to_sym || :vi
   end
 
   private
