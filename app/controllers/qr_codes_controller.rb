@@ -57,6 +57,13 @@ class QrCodesController < ActionController::Base
 
     <<~SVG
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 #{total} #{total}" width="#{total}" height="#{total}" shape-rendering="crispEdges">
+        <defs>
+          <linearGradient id="voxbg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#6C5CE7"/>
+            <stop offset="1" stop-color="#2D1B8B"/>
+          </linearGradient>
+        </defs>
+
         <!-- White background -->
         <rect width="#{total}" height="#{total}" rx="#{radius}" ry="#{radius}" fill="#ffffff"/>
         <!-- Border -->
@@ -68,14 +75,14 @@ class QrCodesController < ActionController::Base
         <!-- Logo white background -->
         <rect x="#{logo_x}" y="#{logo_y}" width="#{logo_bg}" height="#{logo_bg}" rx="#{(logo_bg * 0.22).round}" ry="#{(logo_bg * 0.22).round}" fill="#ffffff" stroke="#e0e7ff" stroke-width="1.5"/>
 
-        <!-- Icon only (no VOX text) -->
-        <g transform="translate(#{icon_x}, #{icon_y}) scale(#{(logo_sz / 36.0).round(4)})">
-          <rect x="0" y="0" width="36" height="36" rx="9" fill="#1A6BFF"/>
-          <polygon points="10,24 6,31 16,24" fill="white"/>
-          <rect x="6" y="6" width="24" height="19" rx="5" fill="white"/>
-          <rect x="10" y="11" width="4" height="7" rx="1" fill="#1A6BFF"/>
-          <rect x="16" y="8" width="4" height="13" rx="1" fill="#1A6BFF"/>
-          <rect x="23" y="10" width="4" height="9" rx="1" fill="#1A6BFF"/>
+        <!-- VOX logo: soundwave mark (100×100 viewBox scaled to logo_sz) -->
+        <g transform="translate(#{icon_x}, #{icon_y}) scale(#{(logo_sz / 100.0).round(4)})">
+          <rect x="4" y="4" width="92" height="92" rx="24" fill="url(#voxbg)"/>
+          <rect x="46" y="27" width="8" height="46" rx="4" fill="#ffffff"/>
+          <rect x="32" y="34" width="8" height="32" rx="4" fill="#ffffff" opacity="0.92"/>
+          <rect x="60" y="34" width="8" height="32" rx="4" fill="#ffffff" opacity="0.92"/>
+          <rect x="18" y="41" width="8" height="18" rx="4" fill="#ffffff" opacity="0.78"/>
+          <rect x="74" y="41" width="8" height="18" rx="4" fill="#ffffff" opacity="0.78"/>
         </g>
       </svg>
     SVG
