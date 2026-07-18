@@ -208,6 +208,7 @@
     .vox-spl-dot:nth-child(3){animation-delay:.36s}
   </style>
   <script>if(sessionStorage.getItem('vox_loaded'))document.documentElement.classList.add('vox-loaded');</script>
+  <script>(function(){var t=localStorage.getItem('vox_theme');if(t)document.documentElement.dataset.theme=t;})();</script>
 </head>
 <body data-page="<%= "#{controller_path}/#{action_name}".gsub('/', '-') %>">
   <div id="vox-splash" role="status" aria-label="Đang tải...">
@@ -254,6 +255,12 @@
         <%= link_to request.path + "?locale=vi&_ls=1", style: "padding:3px 10px;border-radius:16px;font-size:11px;font-weight:700;text-decoration:none;transition:all .15s;#{I18n.locale == :vi ? 'background:white;color:#1e3a5f;' : 'color:rgba(255,255,255,0.7);'}" do %>🇻🇳 VI<% end %>
         <%= link_to request.path + "?locale=en&_ls=1", style: "padding:3px 10px;border-radius:16px;font-size:11px;font-weight:700;text-decoration:none;transition:all .15s;#{I18n.locale == :en ? 'background:white;color:#1e3a5f;' : 'color:rgba(255,255,255,0.7);'}" do %>🇬🇧 EN<% end %>
       </div>
+      <%# Dark/light mode toggle %>
+      <button id="lp-theme-btn" onclick="lpToggleTheme()" aria-label="Chuyển giao diện"
+              style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:none;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;-webkit-tap-highlight-color:transparent;"
+              onmousedown="this.style.background='rgba(255,255,255,0.22)'" onmouseup="this.style.background='rgba(255,255,255,0.12)'" ontouchstart="this.style.background='rgba(255,255,255,0.22)'" ontouchend="this.style.background='rgba(255,255,255,0.12)'">
+        <svg id="lp-theme-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
       <%# Bell icon notification %>
       <%= link_to learner_notifications_path, id: "lp-bell-btn",
             style: "position:relative;display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);text-decoration:none;" do %>
@@ -520,6 +527,29 @@
     }
   </script>
   <% end %>
+  <script>
+  // Dark/light mode toggle
+  var MOON_PATH = 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z';
+  var SUN_PATH  = 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z';
+  function lpUpdateThemeIcon() {
+    var icon = document.getElementById('lp-theme-icon');
+    if (!icon) return;
+    var stored = localStorage.getItem('vox_theme');
+    var isDark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    icon.querySelector('path').setAttribute('d', isDark ? SUN_PATH : MOON_PATH);
+    icon.querySelector('path').setAttribute('stroke-width', isDark ? '1.5' : '2');
+  }
+  window.lpToggleTheme = function() {
+    var curr = document.documentElement.dataset.theme;
+    if (!curr) curr = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    var next = curr === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem('vox_theme', next);
+    lpUpdateThemeIcon();
+  };
+  document.addEventListener('turbo:load', lpUpdateThemeIcon);
+  lpUpdateThemeIcon();
+  </script>
   <script>
     // Global helper — call after any AI action that returns credits_remaining
     window.updateLpCredits = function(n) {
