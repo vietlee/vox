@@ -42,8 +42,8 @@
       --bottomnav-h: calc(50px + var(--safe-bottom));
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { height: 100%; height: -webkit-fill-available; background: white; }
-    body { height: 100%; min-height: -webkit-fill-available; min-height: 100dvh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--lp-text); display: flex; flex-direction: column; background: white; }
+    html { height: 100%; height: -webkit-fill-available; background: var(--lp-bg); }
+    body { height: 100%; min-height: -webkit-fill-available; min-height: 100dvh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--lp-text); display: flex; flex-direction: column; background: var(--lp-bg); }
     /* Consistent app canvas on every page so the empty area below short content
        reads as intentional background (not a stark white void). */
     .lp-main { background: var(--lp-bg); }
@@ -111,7 +111,7 @@
     }
     .lp-bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-      background: white; border-top: 1px solid var(--lp-border);
+      background: var(--lp-card); border-top: 1px solid var(--lp-border);
       display: flex; height: calc(56px + min(env(safe-area-inset-bottom, 0px), 34px));
       padding-top: 2px; padding-bottom: min(env(safe-area-inset-bottom, 0px), 34px);
       box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
@@ -131,7 +131,7 @@
     .lp-nav-item.active svg { stroke-width: 2.5; }
     .lp-nav-item.active .lp-nav-icon { background: rgba(30,58,95,0.1); border-radius: 8px; padding: 3px 10px; margin-bottom: 1px; }
     .lp-nav-icon { padding: 3px 10px; margin-bottom: 1px; transition: background 0.15s; }
-    .lp-card { background: white; border-radius: 16px; box-shadow: 0 1px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04); margin-bottom: 12px; overflow: hidden; }
+    .lp-card { background: var(--lp-card); border-radius: 16px; box-shadow: 0 1px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04); margin-bottom: 12px; overflow: hidden; transition: transform 0.12s; }
     .lp-card-header { padding: 16px 16px 12px; border-bottom: 1px solid #f3f4f6; }
     .lp-card-body { padding: 16px; }
     .lp-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
@@ -167,11 +167,37 @@
       .lp-page { padding: 28px 24px; }
       .lp-card { border-radius: 20px; margin-bottom: 16px; }
     }
+    /* Tap feedback for linked cards */
+    .lp-link-card { text-decoration:none;-webkit-tap-highlight-color:transparent;transition:transform .12s; }
+    .lp-link-card:active { transform:scale(0.975); }
+    /* Skeleton shimmer */
+    @keyframes lp-shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+    .lp-skel { background:linear-gradient(90deg,var(--lp-border) 25%,var(--lp-bg) 50%,var(--lp-border) 75%);background-size:800px 100%;animation:lp-shimmer 1.5s infinite;border-radius:4px; }
+    /* Dark mode */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --lp-bg: #0f172a;
+        --lp-card: #1e293b;
+        --lp-text: #f1f5f9;
+        --lp-muted: #94a3b8;
+        --lp-border: #334155;
+      }
+      .lp-card { box-shadow: 0 1px 8px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04); }
+      .lp-nav-item { color: var(--lp-muted); }
+      .lp-nav-item.active { color: #7bb8d4; }
+      .lp-section-title { color: var(--lp-muted) !important; }
+    }
+    :root[data-theme="dark"] {
+      --lp-bg: #0f172a; --lp-card: #1e293b; --lp-text: #f1f5f9; --lp-muted: #94a3b8; --lp-border: #334155;
+    }
+    :root[data-theme="light"] {
+      --lp-bg: #f0f4f8; --lp-card: #ffffff; --lp-text: #1e293b; --lp-muted: #6b7280; --lp-border: #e5e7eb;
+    }
   </style>
   <%= yield :head %>
   <%# VOX splash: shows on PWA cold-start, hidden instantly on subsequent Turbo navigations %>
   <style>
-    #vox-splash{position:fixed;inset:0;z-index:99999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .3s ease;}
+    #vox-splash{position:fixed;inset:0;z-index:99999;background:var(--lp-bg,#fff);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .3s ease;}
     html.vox-loaded #vox-splash{display:none!important;}
     #vox-splash.vox-splash-out{opacity:0;pointer-events:none;}
     @keyframes vox-spl-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.85);opacity:.7}}
@@ -236,7 +262,7 @@
       <% end %>
       <%= link_to learner_credits_path, class: "lp-credits-badge" do %>
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-        <span id="lp-credits-val"><%= current_learner.credits %></span><span style="opacity:0.55;font-weight:500;">/</span><span style="opacity:0.55;font-weight:500;"><%= current_learner.max_credits %></span>
+        <span id="lp-credits-val"><%= current_learner.credits %></span>
       <% end %>
     </div>
   </header>

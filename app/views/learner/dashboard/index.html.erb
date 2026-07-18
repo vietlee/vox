@@ -10,12 +10,12 @@
     <%= link_to learner_progress_path, style:"flex-shrink:0;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:14px;padding:8px 12px;text-decoration:none;color:#fff;" do %>
       <div style="text-align:center;">
         <div style="font-size:18px;font-weight:900;line-height:1;">🔥 <%= @streak %></div>
-        <div style="font-size:9px;opacity:.7;margin-top:2px;">streak</div>
+        <div style="font-size:11px;opacity:.7;margin-top:2px;">streak</div>
       </div>
       <div style="width:1px;height:26px;background:rgba(255,255,255,.2);"></div>
       <div style="text-align:center;">
         <div style="font-size:18px;font-weight:900;line-height:1;">⚡ <%= @xp %></div>
-        <div style="font-size:9px;opacity:.7;margin-top:2px;">XP</div>
+        <div style="font-size:11px;opacity:.7;margin-top:2px;">XP</div>
       </div>
     <% end %>
   </div>
@@ -37,15 +37,15 @@
   <div style="display:flex;gap:16px;margin-top:14px;">
     <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:10px 14px;flex:1;text-align:center;">
       <p style="font-size:20px;font-weight:800;"><%= @quiz_assignments.count %></p>
-      <p style="font-size:11px;opacity:0.8;"><%= t('learner_dashboard.quiz_count') %></p>
+      <p style="font-size:12px;opacity:0.8;"><%= t('learner_dashboard.quiz_count') %></p>
     </div>
     <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:10px 14px;flex:1;text-align:center;">
       <p style="font-size:20px;font-weight:800;"><%= @flashcard_assignments.count %></p>
-      <p style="font-size:11px;opacity:0.8;"><%= t('learner_dashboard.flashcard_count') %></p>
+      <p style="font-size:12px;opacity:0.8;"><%= t('learner_dashboard.flashcard_count') %></p>
     </div>
     <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:10px 14px;flex:1;text-align:center;">
       <p style="font-size:20px;font-weight:800;"><%= @path_assignments.count %></p>
-      <p style="font-size:11px;opacity:0.8;"><%= t('learner_dashboard.lp_count') %></p>
+      <p style="font-size:12px;opacity:0.8;"><%= t('learner_dashboard.lp_count') %></p>
     </div>
   </div>
 </div>
@@ -53,7 +53,8 @@
 <%# Daily Challenge card %>
 <% dc = @daily_challenge %>
 <%= link_to learner_daily_challenge_path,
-      style: "display:block;text-decoration:none;margin-bottom:14px;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #f59e0b;border-radius:16px;padding:14px 16px;" do %>
+      class: "lp-link-card",
+      style: "display:block;margin-bottom:14px;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #f59e0b;border-radius:16px;padding:14px 16px;" do %>
   <div style="display:flex;align-items:center;gap:12px;">
     <div style="width:44px;height:44px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
       <span style="font-size:22px;">⚔️</span>
@@ -81,7 +82,7 @@
     <p style="font-size:12px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;">🔁 Thẻ cần ôn hôm nay</p>
     <div style="display:grid;gap:7px;overflow:hidden;">
       <% @srs_due_decks.each do |d| %>
-        <%= link_to d[:url], style:"display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1.5px solid #c4b5fd;border-radius:14px;padding:12px 14px;text-decoration:none;min-width:0;overflow:hidden;" do %>
+        <%= link_to d[:url], class: "lp-link-card", style:"display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1.5px solid #c4b5fd;border-radius:14px;padding:12px 14px;min-width:0;overflow:hidden;" do %>
           <div style="width:40px;height:40px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <span style="font-size:20px;">🃏</span>
           </div>
@@ -95,6 +96,19 @@
     </div>
   </div>
 <% end %>
+
+<%# AI Suggestion skeleton (shown while async card loads) %>
+<div id="lp-suggest-skeleton" style="margin-bottom:16px;background:var(--lp-card);border-radius:16px;padding:14px 16px;border:1.5px solid var(--lp-border);">
+  <div style="display:flex;align-items:flex-start;gap:10px;">
+    <div class="lp-skel" style="width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:2px;"></div>
+    <div style="flex:1;min-width:0;">
+      <div class="lp-skel" style="height:10px;width:38%;margin-bottom:8px;"></div>
+      <div class="lp-skel" style="height:13px;width:92%;margin-bottom:4px;"></div>
+      <div class="lp-skel" style="height:13px;width:68%;margin-bottom:12px;"></div>
+      <div class="lp-skel" style="height:36px;width:100%;border-radius:10px;"></div>
+    </div>
+  </div>
+</div>
 
 <%# AI Suggestion card (loaded async) %>
 <div id="lp-suggest-wrap" style="margin-bottom:16px;display:none;">
@@ -119,8 +133,7 @@
     <p class="lp-section-title" style="margin:0;"><%= t('learner_dashboard.section_continue') %></p>
     <% if total_items > 0 %>
       <%= link_to t('learner_dashboard.view_all', n: total_items), learner_library_path,
-            onmouseover: "this.style.background='#c2410c'", onmouseout: "this.style.background='#ea580c'",
-            style:"font-size:12px;font-weight:700;color:#fff;text-decoration:none;background:#ea580c;padding:6px 12px;border-radius:9px;box-shadow:0 1px 4px rgba(234,88,12,.35);transition:background .15s;" %>
+            style:"font-size:12px;font-weight:700;color:#fff;text-decoration:none;background:#1e3a5f;padding:5px 12px;border-radius:9px;transition:background .15s;" %>
     <% end %>
   </div>
   <div style="display:grid;gap:10px;margin-bottom:22px;">
@@ -157,28 +170,25 @@
 <%# ── Quick actions ── %>
 <p class="lp-section-title" style="margin-bottom:8px;"><%= t('learner_dashboard.section_explore') %></p>
 <style>
-  #lp-explore-grid{grid-template-columns:repeat(3,1fr);}
-  @media(max-width:280px){#lp-explore-grid{grid-template-columns:repeat(2,1fr);}}
+  #lp-explore-grid{grid-template-columns:repeat(2,1fr);}
+  @media(max-width:280px){#lp-explore-grid{grid-template-columns:1fr;}}
 </style>
-<div id="lp-explore-grid" style="display:grid;gap:8px;margin-bottom:20px;">
+<div id="lp-explore-grid" style="display:grid;gap:10px;margin-bottom:20px;">
   <% quick = [
        { url: learner_ai_tutor_path,        icon:'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z', label: t('learner_dashboard.explore_tutor_label'), desc: t('learner_dashboard.explore_tutor_desc'), c:'#6b21a8', bg:'#faf5ff', bd:'#e9d5ff' },
        { url: learner_speaking_path,         icon:'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z', label: t('learner_dashboard.explore_speaking_label'), desc: t('learner_dashboard.explore_speaking_desc'), c:'#92400e', bg:'#fffbeb', bd:'#fde68a' },
        { url: learner_study_plans_path,      icon:'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', label: t('learner_dashboard.explore_path_label'), desc: t('learner_dashboard.explore_path_desc'), c:'#3730a3', bg:'#eef2ff', bd:'#c7d2fe' },
        { url: learner_new_my_flashcard_path, icon:'M12 4v16m8-8H4', label: t('learner_dashboard.explore_flashcard_label'), desc: t('learner_dashboard.explore_flashcard_desc'), c:'#065f46', bg:'#ecfdf5', bd:'#a7f3d0' },
-       { url: learner_progress_path,         icon:'M16 8v8m-4-5v5m-4-2v2M3 20h18', label: t('learner_dashboard.explore_progress_label'), desc: t('learner_dashboard.explore_progress_desc'), c:'#0284c7', bg:'#f0f9ff', bd:'#7dd3fc' },
        { url: learner_tools_summarize_path,  icon:'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', label: t('learner_dashboard.explore_summarize_label'), desc: t('learner_dashboard.explore_summarize_desc'), c:'#be123c', bg:'#fff1f2', bd:'#fecdd3' },
-       { url: learner_tools_tts_path,        icon:'M3 18v-6a9 9 0 0118 0v6M3 18a1 1 0 001 1h1a1 1 0 001-1v-3a1 1 0 00-1-1H4a1 1 0 00-1 1v3zM21 18a1 1 0 01-1 1h-1a1 1 0 01-1-1v-3a1 1 0 011-1h1a1 1 0 011 1v3z', label: t('learner_dashboard.explore_tts_label'), desc: t('learner_dashboard.explore_tts_desc'), c:'#0f766e', bg:'#f0fdfa', bd:'#99f6e4' },
-       { url: learner_tools_stt_path,        icon:'M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z', label: t('learner_dashboard.explore_stt_label'), desc: t('learner_dashboard.explore_stt_desc'), c:'#334155', bg:'#f8fafc', bd:'#cbd5e1' },
-       { url: learner_saved_links_path,       icon:'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z', label: t('learner_dashboard.explore_saved_links_label'), desc: t('learner_dashboard.explore_saved_links_desc'), c:'#b45309', bg:'#fffbeb', bd:'#fde68a' }
+       { url: learner_tools_tts_path,        icon:'M3 18v-6a9 9 0 0118 0v6M3 18a1 1 0 001 1h1a1 1 0 001-1v-3a1 1 0 00-1-1H4a1 1 0 00-1 1v3zM21 18a1 1 0 01-1 1h-1a1 1 0 01-1-1v-3a1 1 0 011-1h1a1 1 0 011 1v3z', label: t('learner_dashboard.explore_tts_label'), desc: t('learner_dashboard.explore_tts_desc'), c:'#0f766e', bg:'#f0fdfa', bd:'#99f6e4' }
      ] %>
   <% quick.each do |q| %>
-    <%= link_to q[:url], style:"text-decoration:none;background:#{q[:bg]};border:1.5px solid #{q[:bd]};border-radius:12px;padding:10px;display:block;" do %>
-      <div style="width:30px;height:30px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
-        <svg width="16" height="16" fill="none" stroke="<%= q[:c] %>" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="<%= q[:icon] %>"/></svg>
+    <%= link_to q[:url], class: "lp-link-card", style:"background:#{q[:bg]};border:1.5px solid #{q[:bd]};border-radius:14px;padding:12px;display:block;" do %>
+      <div style="width:34px;height:34px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+        <svg width="17" height="17" fill="none" stroke="<%= q[:c] %>" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="<%= q[:icon] %>"/></svg>
       </div>
-      <p style="font-size:12px;font-weight:700;color:<%= q[:c] %>;margin:0;line-height:1.3;"><%= q[:label] %></p>
-      <p style="font-size:10px;color:#94a3b8;margin:2px 0 0;line-height:1.3;"><%= q[:desc] %></p>
+      <p style="font-size:13px;font-weight:700;color:<%= q[:c] %>;margin:0;line-height:1.3;"><%= q[:label] %></p>
+      <p style="font-size:12px;color:#94a3b8;margin:3px 0 0;line-height:1.3;"><%= q[:desc] %></p>
     <% end %>
   <% end %>
 </div>
@@ -234,10 +244,12 @@
         '<div style="flex:1;min-width:0;">' +
           '<p style="font-size:12px;font-weight:800;color:#64748b;margin:0 24px 3px 0;text-transform:uppercase;letter-spacing:.5px;">' + d.title + '</p>' +
           '<p style="font-size:13px;color:#1e293b;line-height:1.5;margin:0 0 12px;">' + d.body + '</p>' +
-          '<a href="' + actionHref + '" style="display:block;width:50%;margin:0 auto;text-align:center;padding:9px 16px;border-radius:10px;background:' + btnBg + ';color:white;font-size:12px;font-weight:700;text-decoration:none;">' + d.action_label + '</a>' +
+          '<a href="' + actionHref + '" style="display:block;width:100%;text-align:center;padding:10px 16px;border-radius:10px;background:' + btnBg + ';color:white;font-size:13px;font-weight:700;text-decoration:none;">' + d.action_label + '</a>' +
         '</div>' +
       '</div>';
 
+    var skel = document.getElementById('lp-suggest-skeleton');
+    if (skel) skel.style.display = 'none';
     wrap.style.display = 'block';
     wrap.style.opacity = '0';
     wrap.style.transform = 'translateY(-8px)';
@@ -263,8 +275,11 @@
   setTimeout(function() {
     fetch(FETCH_URL, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function(r) { return r.json(); })
-      .then(function(d) { if (!d.none) render(d); })
-      .catch(function() {});
+      .then(function(d) {
+        if (!d.none) { render(d); }
+        else { var s=document.getElementById('lp-suggest-skeleton'); if(s) s.style.display='none'; }
+      })
+      .catch(function() { var s=document.getElementById('lp-suggest-skeleton'); if(s) s.style.display='none'; });
   }, 400);
 })();
 </script>
