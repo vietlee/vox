@@ -395,27 +395,40 @@
       </div>
 
       <!-- header row -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 12px 6px;">
-        <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin:0;"><%= t('learner_portal.tools_title') %></p>
-        <button onclick="closeLpTools()" style="width:26px;height:26px;border-radius:50%;border:none;background:#f1f5f9;color:#94a3b8;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;line-height:1;">×</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 12px 8px;">
+        <p style="font-size:13px;font-weight:800;color:var(--lp-text,#1e293b);margin:0;">Tất cả tính năng</p>
+        <button onclick="closeLpTools()" style="width:28px;height:28px;border-radius:50%;border:none;background:#f1f5f9;color:#94a3b8;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;line-height:1;">×</button>
       </div>
 
       <style>
-        .lp-tool-grouplabel { font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;padding:8px 16px 4px;margin:0; }
-        .lp-tools-grid { display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 2px; }
-        .lp-tool-tile { display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:12px;background:#f8fafc;border:1px solid #eef2f7;text-decoration:none;transition:background .15s,transform .1s; }
+        .lp-tool-grouplabel { font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;padding:6px 14px 4px;margin:0; }
+        .lp-tools-grid { display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 12px 2px; }
+        .lp-tool-tile { display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:12px;background:#f8fafc;border:1px solid #eef2f7;text-decoration:none;transition:background .15s,transform .1s;-webkit-tap-highlight-color:transparent; }
         .lp-tool-tile:hover { background:#f1f5f9; }
         .lp-tool-tile:active { transform:scale(.97); }
         .lp-tool-tile span { font-size:12.5px;font-weight:600;color:#1e293b;line-height:1.25; }
         .lp-tool-tile .ic { width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px; }
+        /* Progress full-width tile */
+        .lp-tool-tile-wide { display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;background:linear-gradient(135deg,#1e3a5f,#16304f);text-decoration:none;margin:0 12px 8px;transition:opacity .15s,transform .1s;-webkit-tap-highlight-color:transparent; }
+        .lp-tool-tile-wide:active { transform:scale(.98); }
       </style>
+
+      <%# Progress — featured full-width row %>
+      <a href="<%= learner_progress_path %>" class="lp-tool-tile-wide" onclick="closeLpTools()">
+        <div style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:17px;">📊</div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:13px;font-weight:700;color:#fff;margin:0;"><%= t('learner_portal.tool_progress') %></p>
+          <p style="font-size:11px;color:rgba(255,255,255,0.6);margin:0;">XP · streak · huy hiệu · bảng xếp hạng</p>
+        </div>
+        <svg width="14" height="14" fill="none" stroke="rgba(255,255,255,0.5)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </a>
 
       <p class="lp-tool-grouplabel"><%= t('learner_portal.tools_group_learn') %></p>
       <div class="lp-tools-grid">
         <% [
-             [learner_study_plans_path, "🧠", "#f3e8ff", t('learner_portal.tool_study_plan')],
-             [learner_speaking_path,    "🗣️", "#fef3c7", t('learner_portal.tool_speaking')],
-             [learner_my_quizzes_path,  "📝", "#eff6ff", t('learner_portal.tool_quiz')],
+             [learner_study_plans_path,   "🧠", "#f3e8ff", t('learner_portal.tool_study_plan')],
+             [learner_speaking_path,      "🗣️", "#fef3c7", t('learner_portal.tool_speaking')],
+             [learner_my_quizzes_path,    "📝", "#eff6ff", t('learner_portal.tool_quiz')],
              [learner_my_flashcards_path, "🃏", "#ecfdf5", t('learner_portal.tool_flashcard')]
            ].each do |url, ic, bg, label| %>
           <a href="<%= url %>" class="lp-tool-tile" onclick="closeLpTools()">
@@ -427,7 +440,6 @@
       <p class="lp-tool-grouplabel"><%= t('learner_portal.tools_group_utility') %></p>
       <div class="lp-tools-grid">
         <% [
-             [learner_progress_path,        "📊", "#fff7ed", t('learner_portal.tool_progress')],
              [learner_tools_summarize_path, "📄", "#eef3fa", t('learner_portal.tool_summarize')],
              [learner_tools_tts_path,       "🔊", "#f0fdf4", t('learner_portal.tool_tts')],
              [learner_tools_stt_path,       "🎤", "#fdf4ff", t('learner_portal.tool_stt')],
@@ -443,8 +455,8 @@
 
   <nav class="lp-bottom-nav">
     <% _lp_home_active    = controller_name == 'dashboard' && action_name == 'index' %>
-    <% _lp_lib_active     = (controller_name == 'dashboard' && action_name == 'library') || %w[quiz_assignments flashcard_assignments learning_path_assignments my_flashcards my_quizzes study_plans].include?(controller_name) %>
-    <% _lp_prog_active    = controller_name == 'progress' %>
+    <% _lp_lib_active     = (controller_name == 'dashboard' && action_name == 'library') || %w[quiz_assignments flashcard_assignments learning_path_assignments].include?(controller_name) %>
+    <% _lp_tools_active   = %w[study_plans speaking progress my_flashcards my_quizzes tools saved_links].include?(controller_name) %>
     <% _lp_profile_active = %w[profile passwords credits notifications].include?(controller_name) %>
     <%= link_to learner_root_path, class: "lp-nav-item #{_lp_home_active ? 'active' : ''}" do %>
       <div class="lp-nav-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg></div>
@@ -458,10 +470,12 @@
       <div class="lp-nav-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg></div>
       <span><%= t('learner_portal.nav_library') %></span>
     <% end %>
-    <%= link_to learner_progress_path, class: "lp-nav-item #{_lp_prog_active ? 'active' : ''}" do %>
-      <div class="lp-nav-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
-      <span><%= t('learner_portal.nav_progress') %></span>
-    <% end %>
+    <button type="button" onclick="openLpTools()" class="lp-nav-item <%= _lp_tools_active ? 'active' : '' %>" style="border:none;cursor:pointer;font-family:inherit;background:transparent;">
+      <div class="lp-nav-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+      </div>
+      <span><%= t('learner_portal.nav_tools') %></span>
+    </button>
     <%= link_to learner_profile_path, class: "lp-nav-item #{_lp_profile_active ? 'active' : ''}" do %>
       <div class="lp-nav-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></div>
       <span><%= t('learner_portal.nav_profile') %></span>
