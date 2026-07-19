@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_14_163752) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_15_012223) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -583,7 +583,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_14_163752) do
     t.date "last_active_on"
     t.integer "daily_goal", default: 3, null: false
     t.datetime "last_seen_at"
-    t.string "preferred_locale"
+    t.string "preferred_locale", default: "vi"
     t.index ["confirmation_token"], name: "index_learners_on_confirmation_token", unique: true
     t.index ["email"], name: "index_learners_on_email", unique: true
     t.index ["invite_token"], name: "index_learners_on_invite_token", unique: true

@@ -1,6 +1,7 @@
 source "https://rubygems.org"
 
 gem "rails", "~> 7.2.3", ">= 7.2.3.1"
+gem "rack-cors"
 gem "propshaft"
 gem "pg", "~> 1.1"
 gem "puma", ">= 5.0"

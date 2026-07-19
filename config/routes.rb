@@ -508,6 +508,115 @@ Rails.application.routes.draw do
     get  "result/:result_token", to: "quiz#public_result", as: :quiz_public_result
   end
 
+  # Flutter Mobile JSON API
+  namespace :api do
+    namespace :learner do
+      namespace :v1 do
+        post   'session',    to: 'sessions#create'
+        delete 'session',    to: 'sessions#destroy'
+        get    'session/me', to: 'sessions#me'
+
+        get  'dashboard',                     to: 'dashboard#index'
+        get  'suggestion/fetch',              to: 'suggestion#fetch'
+        post 'suggestion/:id/dismiss',        to: 'suggestion#dismiss'
+
+        get 'library',    to: 'library#index'
+        get 'progress',   to: 'progress#index'
+
+        resources :notifications, only: [:index] do
+          collection do
+            patch :mark_all_read
+            get   :unread_count
+          end
+          member do
+            patch :mark_read
+          end
+        end
+
+        get  'daily_challenge',        to: 'daily_challenges#show'
+        post 'daily_challenge/submit', to: 'daily_challenges#submit'
+
+        resources :study_plans, only: [:index, :create, :destroy] do
+          member do
+            post 'items/:item_id/toggle', to: 'study_plans#toggle_item', as: :toggle_item
+          end
+        end
+
+        post 'tutor/chat',   to: 'ai_tutor#chat'
+        post 'tutor/voice',  to: 'ai_tutor#voice'
+        get  'tutor/voices', to: 'ai_tutor#tts_voices'
+        post 'tutor/tts',    to: 'ai_tutor#tts_generate'
+        post 'tutor/stt',    to: 'ai_tutor#stt_chunk'
+
+        resources :flashcard_assignments, param: :token, only: [] do
+          member do
+            get  :show
+            get  :study
+            post :review
+          end
+        end
+
+        resources :quiz_assignments, param: :token, only: [] do
+          member do
+            get  :show
+            get  :take
+            post :save_answer
+            post :submit
+            get  :result
+          end
+        end
+
+        resources :learning_path_assignments, param: :token, only: [] do
+          member do
+            get  :show
+            post 'complete_item/:item_id', to: 'learning_path_assignments#complete_item', as: :complete_item
+          end
+        end
+
+        resources :my_flashcards, only: [:index, :show, :destroy] do
+          collection { post :generate }
+          member do
+            post :generate_images
+            get  :image_status
+            post   'cards',          to: 'my_flashcards#create_card',  as: :create_card
+            patch  'cards/:card_id', to: 'my_flashcards#update_card',  as: :update_card
+            delete 'cards/:card_id', to: 'my_flashcards#destroy_card', as: :destroy_card
+          end
+        end
+
+        resources :my_quizzes, only: [:index, :destroy] do
+          collection { post :generate }
+        end
+
+        get  'speaking/sessions',       to: 'speaking#sessions'
+        get  'speaking/sessions/:id',   to: 'speaking#transcript'
+        post 'speaking/reply',          to: 'speaking#reply'
+        post 'speaking/finish',         to: 'speaking#finish'
+
+        post 'tools/tts',       to: 'tools#tts'
+        post 'tools/stt',       to: 'tools#stt'
+        post 'tools/summarize', to: 'tools#summarize'
+        post 'tools/translate', to: 'tools#translate'
+        post 'tools/punctuate', to: 'tools#punctuate'
+
+        resources :saved_links, only: [:index, :create, :update, :destroy] do
+          collection do
+            post :reorder
+            get  :detect
+          end
+        end
+
+        get  'credits',                    to: 'credits#index'
+        post 'credits/checkout',           to: 'credits#checkout'
+        get  'credits/payment_status/:id', to: 'credits#payment_status', as: :credit_payment_status
+
+        get   'profile',   to: 'profile#show'
+        patch 'profile',   to: 'profile#update'
+        patch 'passwords', to: 'profile#change_password'
+      end
+    end
+  end
+
   # Catch-all: phải đặt cuối cùng — bắt mọi URL không khớp
   # Loại trừ /rails/... để ActiveStorage & các engine nội bộ hoạt động đúng
   match "*unmatched_path", to: "errors#not_found", via: :all,
