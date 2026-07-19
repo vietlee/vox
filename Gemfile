@@ -15,7 +15,7 @@ gem "redis", ">= 4.0.1"
 gem "connection_pool", "~> 2.4"
 
 # File storage — DigitalOcean Spaces (S3-compatible)
-gem "aws-sdk-s3", "~> 1.170", require: false
+gem "aws-sdk-s3", "~> 1.225", require: false
 
 # Authentication & Authorization
 gem "devise"
