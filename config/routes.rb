@@ -610,6 +610,7 @@ Rails.application.routes.draw do
         post 'credits/checkout',           to: 'credits#checkout'
         get  'credits/payment_status/:id', to: 'credits#payment_status', as: :credit_payment_status
 
+        post  'passwords/reset', to: 'passwords#reset'
         get   'profile',   to: 'profile#show'
         patch 'profile',   to: 'profile#update'
         patch 'passwords', to: 'profile#change_password'
