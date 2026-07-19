@@ -45,7 +45,7 @@ gem "grover"
 
 # Excel export
 gem "axlsx_rails"
-gem "roo", "~> 2.10"
+gem "roo", "~> 3.0"
 gem "rubyzip"
 
 # Charts
