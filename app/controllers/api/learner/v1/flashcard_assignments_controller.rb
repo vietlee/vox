@@ -72,6 +72,11 @@ class Api::Learner::V1::FlashcardAssignmentsController < Api::Learner::V1::BaseC
     }
   end
 
+  def destroy
+    @assignment.destroy!
+    render json: { ok: true }
+  end
+
   private
 
   def set_assignment

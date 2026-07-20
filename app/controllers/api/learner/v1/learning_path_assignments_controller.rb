@@ -48,6 +48,11 @@ class Api::Learner::V1::LearningPathAssignmentsController < Api::Learner::V1::Ba
     }
   end
 
+  def destroy
+    @assignment.destroy!
+    render json: { ok: true }
+  end
+
   private
 
   def set_assignment

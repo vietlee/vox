@@ -550,26 +550,29 @@ Rails.application.routes.draw do
 
         resources :flashcard_assignments, param: :token, only: [] do
           member do
-            get  :show
-            get  :study
-            post :review
+            get    :show
+            get    :study
+            post   :review
+            delete :destroy
           end
         end
 
         resources :quiz_assignments, param: :token, only: [] do
           member do
-            get  :show
-            post :take
-            post :save_answer
-            post :submit
-            get  :result
+            get    :show
+            post   :take
+            post   :save_answer
+            post   :submit
+            get    :result
+            delete :destroy
           end
         end
 
         resources :learning_path_assignments, param: :token, only: [] do
           member do
-            get  :show
-            post 'complete_item/:item_id', to: 'learning_path_assignments#complete_item', as: :complete_item
+            get    :show
+            post   'complete_item/:item_id', to: 'learning_path_assignments#complete_item', as: :complete_item
+            delete :destroy
           end
         end
 
