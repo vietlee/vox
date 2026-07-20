@@ -41,6 +41,9 @@ class Api::Learner::V1::QuizAssignmentsController < Api::Learner::V1::BaseContro
         }
       }
     }
+  rescue => e
+    Rails.logger.error "[QuizTake] #{e.class}: #{e.message}\n#{e.backtrace.first(5).join("\n")}"
+    render json: { error: e.message, type: e.class.name }, status: :unprocessable_entity
   end
 
   def save_answer
