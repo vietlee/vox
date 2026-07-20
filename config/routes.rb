@@ -559,7 +559,7 @@ Rails.application.routes.draw do
         resources :quiz_assignments, param: :token, only: [] do
           member do
             get  :show
-            get  :take
+            post :take
             post :save_answer
             post :submit
             get  :result
