@@ -127,4 +127,44 @@ class Api::Learner::V1::ToolsController < Api::Learner::V1::BaseController
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
+
+  # Fast translation using Google Translate (~100ms) for realtime STT.
+  # Interim calls (final=false) are free; final calls cost 1 credit.
+  def translate_fast
+    text        = params[:text].to_s.strip
+    target_code = params[:target_code].to_s.strip.presence || "vi"
+    is_final    = params[:final].to_s == "true"
+
+    return render json: { translated: "" } if text.blank?
+    if is_final
+      return render json: { error: "Không đủ credit.", credits_remaining: current_learner.credits },
+                    status: :payment_required unless current_learner.credits >= 1
+    end
+
+    translated = google_translate_gtx(text, target_code)
+    if is_final
+      current_learner.deduct_credits!(1)
+      render json: { translated: translated, credits_remaining: current_learner.reload.credits }
+    else
+      render json: { translated: translated }
+    end
+  rescue => e
+    render json: { translated: "" }
+  end
+
+  private
+
+  def google_translate_gtx(text, target_code)
+    require "net/http"
+    uri = URI("https://translate.googleapis.com/translate_a/single")
+    uri.query = URI.encode_www_form(client: "gtx", sl: "auto", tl: target_code, dt: "t", q: text)
+    http = Net::HTTP.new(uri.host, 443)
+    http.use_ssl = true; http.open_timeout = 4; http.read_timeout = 6
+    res  = http.get(uri.request_uri, "User-Agent" => "Mozilla/5.0")
+    data = JSON.parse(res.body)
+    data[0]&.map { |chunk| chunk&.first }&.compact&.join || ""
+  rescue => e
+    Rails.logger.warn "[ToolsTranslateFast] #{e.message}"
+    ""
+  end
 end

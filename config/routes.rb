@@ -596,11 +596,12 @@ Rails.application.routes.draw do
         post 'speaking/reply',          to: 'speaking#reply'
         post 'speaking/finish',         to: 'speaking#finish'
 
-        post 'tools/tts',       to: 'tools#tts'
-        post 'tools/stt',       to: 'tools#stt'
-        post 'tools/summarize', to: 'tools#summarize'
-        post 'tools/translate', to: 'tools#translate'
-        post 'tools/punctuate', to: 'tools#punctuate'
+        post 'tools/tts',            to: 'tools#tts'
+        post 'tools/stt',            to: 'tools#stt'
+        post 'tools/summarize',      to: 'tools#summarize'
+        post 'tools/translate',      to: 'tools#translate'
+        post 'tools/translate_fast', to: 'tools#translate_fast'
+        post 'tools/punctuate',      to: 'tools#punctuate'
 
         resources :saved_links, only: [:index, :create, :update, :destroy] do
           collection do
