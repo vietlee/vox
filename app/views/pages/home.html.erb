@@ -41,13 +41,27 @@
         <a href="?locale=vi" style="padding:5px 12px; <%= I18n.locale.to_s == 'vi' ? 'background:#1e3a5f; color:#fff;' : 'color:rgba(255,255,255,.5);' %>">VI</a>
         <a href="?locale=en" style="padding:5px 12px; <%= I18n.locale.to_s == 'en' ? 'background:#1e3a5f; color:#fff;' : 'color:rgba(255,255,255,.5);' %>">EN</a>
       </div>
-      <%= link_to t.("nav.sign_in_learner"), new_learner_session_path, class: "hidden sm:inline", style: "font-size:13px; font-weight:600; color:rgba(255,255,255,.65); padding:8px 12px;", onmouseover: "this.style.color='#fff'", onmouseout: "this.style.color='rgba(255,255,255,.65)'" %>
-      <%= link_to t.("nav.sign_in_trainer"), new_user_session_path, class: "hidden sm:inline", style: "font-size:13px; font-weight:600; color:rgba(255,255,255,.65); padding:8px 12px;", onmouseover: "this.style.color='#fff'", onmouseout: "this.style.color='rgba(255,255,255,.65)'" %>
-      <%# Mobile: both login buttons; Desktop: trainer registration (filled) %>
-      <div class="inline-flex sm:hidden" style="gap:6px; align-items:center;">
-        <%= link_to t.("nav.sign_in_learner"), new_learner_session_path, style: "font-size:12px; font-weight:700; color:rgba(255,255,255,.85); padding:7px 11px; border-radius:8px; border:1px solid rgba(255,255,255,.22); white-space:nowrap; text-decoration:none;" %>
-        <%= link_to t.("nav.sign_in_trainer"), new_user_session_path, style: "font-size:12px; font-weight:700; color:rgba(255,255,255,.65); padding:7px 11px; border-radius:8px; border:1px solid rgba(255,255,255,.15); white-space:nowrap; text-decoration:none;" %>
-      </div>
+      <%# Single sign-in dropdown (learner / trainer) — shared by mobile & desktop %>
+      <style>#signin-menu summary::-webkit-details-marker { display: none; }</style>
+      <details id="signin-menu" style="position:relative;">
+        <summary style="list-style:none; cursor:pointer; font-size:13px; font-weight:700; color:rgba(255,255,255,.85); padding:8px 14px; border-radius:8px; border:1px solid rgba(255,255,255,.22); white-space:nowrap; display:flex; align-items:center; gap:5px;">
+          <%= t.("nav.sign_in") %><span style="font-size:9px; opacity:.6;">▼</span>
+        </summary>
+        <div style="position:absolute; right:0; top:calc(100% + 8px); min-width:170px; background:#0b1a2e; border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:6px; box-shadow:0 12px 32px rgba(0,0,0,.5); z-index:200;">
+          <%= link_to new_learner_session_path, style: "display:block; padding:10px 14px; border-radius:8px; font-size:13px; font-weight:600; color:#fff; text-decoration:none;", onmouseover: "this.style.background='rgba(255,255,255,.08)'", onmouseout: "this.style.background='transparent'" do %>
+            <%= t.("nav.role_learner") %><span style="display:block; font-size:11px; font-weight:500; color:rgba(255,255,255,.45);"><%= t.("nav.sign_in_learner") %></span>
+          <% end %>
+          <%= link_to new_user_session_path, style: "display:block; padding:10px 14px; border-radius:8px; font-size:13px; font-weight:600; color:#fff; text-decoration:none;", onmouseover: "this.style.background='rgba(255,255,255,.08)'", onmouseout: "this.style.background='transparent'" do %>
+            <%= t.("nav.role_trainer") %><span style="display:block; font-size:11px; font-weight:500; color:rgba(255,255,255,.45);"><%= t.("nav.sign_in_trainer") %></span>
+          <% end %>
+        </div>
+      </details>
+      <script>
+        document.addEventListener("click", function(e) {
+          var m = document.getElementById("signin-menu");
+          if (m && m.open && !m.contains(e.target)) m.removeAttribute("open");
+        });
+      </script>
       <%= link_to t.("nav.get_started"), new_user_registration_path, class: "hidden sm:inline", style: "font-size:13px; font-weight:700; color:#fff; padding:9px 18px; border-radius:8px; background:linear-gradient(135deg,#1e3a5f,#2d5f8a); box-shadow:0 0 20px rgba(30,58,95,.5);", onmouseover: "this.style.opacity='.88'", onmouseout: "this.style.opacity='1'" %>
     </div>
   </div>
