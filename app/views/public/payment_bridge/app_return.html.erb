@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Thanh toán thành công</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #06101f;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      text-align: center;
+      max-width: 340px;
+      width: 100%;
+    }
+    .icon {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 24px;
+      box-shadow: 0 0 40px rgba(34,197,94,.35);
+    }
+    h1 { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+    p  { font-size: 14px; color: rgba(255,255,255,.55); line-height: 1.6; margin-bottom: 28px; }
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1e3a5f, #2d5f8a);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 0 30px rgba(30,58,95,.5);
+    }
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #status { font-size: 13px; color: rgba(255,255,255,.4); margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">✓</div>
+    <h1>Thanh toán thành công!</h1>
+    <p>Credits đã được cộng vào tài khoản của bạn.<br>Đang quay về ứng dụng VOX...</p>
+    <a href="<%= @deep_link %>" class="btn">
+      <span class="spinner"></span>Quay về ứng dụng
+    </a>
+    <p id="status">Tự động chuyển hướng sau 1 giây...</p>
+  </div>
+
+  <script>
+    // Auto deep-link redirect
+    var deepLink = "<%= @deep_link %>";
+    var redirected = false;
+
+    function tryDeepLink() {
+      if (redirected) return;
+      redirected = true;
+      window.location.href = deepLink;
+      // If deep link didn't open app (browser stayed), update status after 2s
+      setTimeout(function() {
+        var el = document.getElementById('status');
+        if (el) el.textContent = 'Nhấn nút "Quay về ứng dụng" hoặc đóng cửa sổ này.';
+      }, 2000);
+    }
+
+    // Redirect after short delay to let the page render first
+    setTimeout(tryDeepLink, 800);
+  </script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 class LearnerQuizGenerator
   COST = 4
 
-  def initialize(learner, title:, prompt:, count:, include_essay: false, time_limit: nil, files: [])
+  def initialize(learner, title:, prompt:, count:, include_essay: false, time_limit: nil, files: [], attachments: [])
     @learner       = learner
     @title         = title.to_s.strip
     @prompt        = prompt.to_s.strip
@@ -10,6 +10,7 @@ class LearnerQuizGenerator
     @include_essay = include_essay
     @time_limit    = time_limit.to_i
     @files         = Array(files)
+    @attachments   = Array(attachments)
   end
 
   def generate!
@@ -93,6 +94,7 @@ class LearnerQuizGenerator
     P
     parts << { type: "text", text: instruction }
 
+    # Legacy: ActionDispatch uploaded files
     @files.each do |f|
       next unless f.respond_to?(:content_type)
       if f.content_type.to_s.start_with?("image/")
@@ -101,6 +103,21 @@ class LearnerQuizGenerator
       else
         text = f.read.force_encoding("UTF-8").scrub.truncate(15_000)
         parts << { type: "text", text: "Tài liệu tham khảo (#{f.original_filename}):\n#{text}" }
+      end
+    end
+    # Structured attachments from mobile app (base64-encoded)
+    @attachments.each do |a|
+      mime     = (a[:mime] || a["mime"]).to_s
+      data     = (a[:data] || a["data"]).to_s
+      filename = (a[:filename] || a["filename"] || "file").to_s
+      next if data.blank?
+      if mime.start_with?("image/")
+        parts << { type: "image", source: { type: "base64", media_type: mime, data: data } }
+      elsif mime == "application/pdf"
+        parts << { type: "document", source: { type: "base64", media_type: "application/pdf", data: data } }
+      else
+        text = Base64.decode64(data).force_encoding("UTF-8").scrub.truncate(15_000)
+        parts << { type: "text", text: "Tài liệu tham khảo (#{filename}):\n#{text}" }
       end
     end
     parts

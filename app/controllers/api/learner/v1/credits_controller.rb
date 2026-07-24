@@ -40,14 +40,14 @@ class Api::Learner::V1::CreditsController < Api::Learner::V1::BaseController
       order_code:  order_code,
       amount:      total_cents,
       description: "VOX Credits #{amount}",
-      return_url:  learner_credits_return_url(payment_id: payment.id),
-      cancel_url:  learner_credits_cancel_url(payment_id: payment.id),
+      return_url:  payment_app_return_url(payment_id: payment.id),
+      cancel_url:  payment_app_cancel_url(payment_id: payment.id),
       expired_at:  15.minutes.from_now
     )
 
     if result
       payment.update_column(:payment_link_id, result["paymentLinkId"])
-      render json: { checkout_url: result["checkoutUrl"] }
+      render json: { checkout_url: result["checkoutUrl"], payment_id: payment.id }
     else
       payment.update_column(:status, LearnerPayment.statuses[:failed])
       render json: { error: "Không thể kết nối PayOS. Vui lòng thử lại." }, status: :unprocessable_entity

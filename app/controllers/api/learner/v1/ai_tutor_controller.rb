@@ -133,14 +133,18 @@ class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
   def build_user_content(message, params)
     parts = []
 
-    if params[:image_data].present? && params[:image_media_type].present?
+    # Support images[] array (multi-image) or legacy single image_data
+    if params[:images].present?
+      Array(params[:images]).first(5).each do |img|
+        data = img[:data].presence || img["data"]
+        mime = img[:mime].presence  || img["mime"]
+        next unless data.present? && mime.present?
+        parts << { type: "image", source: { type: "base64", media_type: mime.to_s, data: data.to_s } }
+      end
+    elsif params[:image_data].present? && params[:image_media_type].present?
       parts << {
         type: "image",
-        source: {
-          type: "base64",
-          media_type: params[:image_media_type].to_s,
-          data: params[:image_data].to_s
-        }
+        source: { type: "base64", media_type: params[:image_media_type].to_s, data: params[:image_data].to_s }
       }
     end
 

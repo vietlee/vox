@@ -39,6 +39,10 @@ Rails.application.routes.draw do
   # Short links
   get  "/l/:code", to: "public/short_links#show", as: :short_link
 
+  # PayOS bridge pages for Flutter app (no session auth required)
+  get "/payment/app_return", to: "public/payment_bridge#app_return", as: :payment_app_return
+  get "/payment/app_cancel", to: "public/payment_bridge#app_cancel", as: :payment_app_cancel
+
   # Public report share (no login required)
   get  "/r/:token",             to: "public/reports#show",        as: :public_report
   get  "/r/:token/preview_pdf",  to: "public/reports#preview_pdf",  as: :public_report_preview_pdf
