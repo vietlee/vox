@@ -54,6 +54,60 @@ class Api::Learner::V1::SpeakingController < Api::Learner::V1::BaseController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def reply_with_tts
+    lang_code = params[:language].to_s
+    lang      = LANGS[lang_code] || "English"
+    scenario  = SCENARIOS[params[:scenario].to_s] || SCENARIOS["free"]
+    message   = params[:message].to_s.strip
+    history   = Array(params[:history]).last(12)
+
+    return render json: { error: "Nội dung trống" }, status: :unprocessable_entity if message.blank?
+
+    first_turn = history.empty?
+    if first_turn
+      return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= CREDIT_COST
+      start_free_tts_session!(:sp_active)
+    end
+
+    system_prompt = <<~P
+      You are a friendly #{lang} conversation partner helping a learner practice speaking.
+      Scenario: #{scenario}.
+      Rules:
+      - Reply ONLY in #{lang}, in natural spoken style (1-2 short sentences).
+      - Keep the conversation going by asking a simple follow-up question.
+      - Match the learner's level; keep vocabulary approachable.
+      - NO markdown, NO translations, NO explanations — just your spoken reply.
+    P
+
+    messages = history.map { |m| { role: m["role"], content: m["content"].to_s.truncate(500) } }
+    messages << { role: "user", content: message }
+
+    svc   = ClaudeService.for_feature("ai_tutor", timeout: 25)
+    reply = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 200).strip
+
+    current_learner.deduct_credits!(CREDIT_COST) if first_turn
+    LearnerGamification.record!(current_learner, :speaking_turn)
+
+    # Generate TTS in same request — saves 1 round-trip
+    tts_svc  = ElevenLabsService.new
+    audio    = tts_svc.text_to_speech(
+      text:       reply,
+      voice_id:   params[:voice_id].presence || ElevenLabsService::DEFAULT_VOICE,
+      model:      params[:model].presence    || "eleven_flash_v2_5",
+      speed:      (params[:speed].presence   || 1.0).to_f.clamp(0.7, 1.2),
+      stability:  (params[:stability].presence || 0.55).to_f.clamp(0.0, 1.0),
+      similarity: 0.75, style: 0.0
+    )
+
+    render json: {
+      reply:             reply,
+      audio_base64:      Base64.strict_encode64(audio),
+      credits_remaining: current_learner.reload.credits
+    }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def finish
     lang_code  = params[:language].to_s
     lang       = LANGS[lang_code] || "English"

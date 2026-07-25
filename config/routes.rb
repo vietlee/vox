@@ -546,11 +546,13 @@ Rails.application.routes.draw do
           end
         end
 
-        post 'tutor/chat',   to: 'ai_tutor#chat'
-        post 'tutor/voice',  to: 'ai_tutor#voice'
-        get  'tutor/voices', to: 'ai_tutor#tts_voices'
-        post 'tutor/tts',    to: 'ai_tutor#tts_generate'
-        post 'tutor/stt',    to: 'ai_tutor#stt_chunk'
+        post 'tutor/chat',           to: 'ai_tutor#chat'
+        post 'tutor/voice',          to: 'ai_tutor#voice'
+        post 'tutor/voice_with_tts', to: 'ai_tutor#voice_with_tts'
+        post 'tutor/start_call',     to: 'ai_tutor#start_call'
+        get  'tutor/voices',         to: 'ai_tutor#tts_voices'
+        post 'tutor/tts',            to: 'ai_tutor#tts_generate'
+        post 'tutor/stt',            to: 'ai_tutor#stt_chunk'
 
         resources :flashcard_assignments, param: :token, only: [] do
           member do
@@ -598,6 +600,7 @@ Rails.application.routes.draw do
         get  'speaking/sessions',       to: 'speaking#sessions'
         get  'speaking/sessions/:id',   to: 'speaking#transcript'
         post 'speaking/reply',          to: 'speaking#reply'
+        post 'speaking/reply_with_tts', to: 'speaking#reply_with_tts'
         post 'speaking/finish',         to: 'speaking#finish'
 
         post 'tools/tts',            to: 'tools#tts'

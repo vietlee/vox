@@ -103,6 +103,61 @@ class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def voice_with_tts
+    message    = params[:message].to_s.strip
+    history    = Array(params[:history]).last(10)
+    context    = params[:context].to_s.strip
+
+    first_turn = history.empty?
+    if first_turn
+      return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= VOICE_SESSION_COST
+      start_free_tts_session!(:vc_active)
+    end
+
+    system_prompt = <<~PROMPT
+      You are a friendly VOICE AI Tutor in a live spoken phone-call conversation.
+      - CRITICAL: You ARE speaking out loud. Reply must be short, natural spoken phrases (1-2 sentences max).
+      - NO markdown, bullets, bold, headers, or emoji — plain spoken prose only.
+      - ALWAYS reply in the same language the learner is speaking.
+      #{context.present? ? "Context: #{context.truncate(300)}" : ""}
+    PROMPT
+
+    messages = history.map { |m| { role: m["role"], content: m["content"].to_s.truncate(1000) } }
+    messages << { role: "user", content: message }
+
+    svc   = ClaudeService.haiku
+    reply = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 300)
+    current_learner.deduct_credits!(VOICE_SESSION_COST) if first_turn
+
+    # Generate TTS in same request — saves 1 round-trip
+    tts_svc  = ElevenLabsService.new
+    audio    = tts_svc.text_to_speech(
+      text:       reply.strip,
+      voice_id:   params[:voice_id].presence || ElevenLabsService::DEFAULT_VOICE,
+      model:      params[:model].presence    || "eleven_flash_v2_5",
+      speed:      (params[:speed].presence   || 1.0).to_f.clamp(0.7, 1.2),
+      stability:  (params[:stability].presence || 0.55).to_f.clamp(0.0, 1.0),
+      similarity: 0.75, style: 0.0
+    )
+
+    render json: {
+      reply:             reply.strip,
+      audio_base64:      Base64.strict_encode64(audio),
+      credits_remaining: current_learner.reload.credits
+    }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def start_call
+    return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= VOICE_SESSION_COST
+    current_learner.deduct_credits!(VOICE_SESSION_COST)
+    start_free_tts_session!(:vc_active)
+    render json: { ok: true, credits_remaining: current_learner.reload.credits }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def stt_chunk
     embedded = in_speaking_session? || in_voice_session?
     unless embedded
