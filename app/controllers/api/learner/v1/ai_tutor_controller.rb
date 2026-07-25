@@ -112,13 +112,14 @@ class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
     blob = params[:chunk]
     return render json: { error: "Không có dữ liệu âm thanh" }, status: :unprocessable_entity unless blob.present?
 
-    tmp = Tempfile.new(["stt", ".webm"])
+    ext = File.extname(blob.original_filename.to_s).presence || ".m4a"
+    tmp = Tempfile.new(["stt", ext])
     tmp.binmode
     tmp.write(blob.read)
     tmp.rewind
 
     svc    = ElevenLabsService.new
-    result = svc.speech_to_text(audio_io: tmp, filename: "chunk.webm")
+    result = svc.speech_to_text(audio_io: tmp, filename: "chunk#{ext}")
 
     current_learner.deduct_credits!(STT_CREDIT_COST) unless embedded
     render json: { text: result[:text], credits_remaining: current_learner.reload.credits }
