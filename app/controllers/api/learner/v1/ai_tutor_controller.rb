@@ -112,6 +112,7 @@ class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
     blob = params[:chunk]
     return render json: { error: "Không có dữ liệu âm thanh" }, status: :unprocessable_entity unless blob.present?
 
+    Rails.logger.info "STT chunk received: #{blob.size} bytes, filename=#{blob.original_filename}, content_type=#{blob.content_type}"
     ext = File.extname(blob.original_filename.to_s).presence || ".m4a"
     tmp = Tempfile.new(["stt", ext])
     tmp.binmode
