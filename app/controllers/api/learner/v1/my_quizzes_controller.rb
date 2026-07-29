@@ -51,6 +51,7 @@ class Api::Learner::V1::MyQuizzesController < Api::Learner::V1::BaseController
       count:         params[:count],
       include_essay: [true, "true", "1", 1].include?(params[:include_essay]),
       time_limit:    params[:time_limit],
+      passing_score: params[:passing_score],
       attachments:   attachments
     ).generate!
 

@@ -2,13 +2,15 @@
 class LearnerQuizGenerator
   COST = 4
 
-  def initialize(learner, title:, prompt:, count:, include_essay: false, time_limit: nil, files: [], attachments: [])
+  def initialize(learner, title:, prompt:, count:, include_essay: false, time_limit: nil, passing_score: 70, files: [], attachments: [])
     @learner       = learner
     @title         = title.to_s.strip
     @prompt        = prompt.to_s.strip
     @count         = count.to_i.clamp(3, 30)
     @include_essay = include_essay
     @time_limit    = time_limit.to_i
+    ps             = passing_score.to_i
+    @passing_score = (ps.positive? ? ps : 70).clamp(1, 100)
     @files         = Array(files)
     @attachments   = Array(attachments)
   end
@@ -32,7 +34,7 @@ class LearnerQuizGenerator
         result_mode:        :result_immediate,
         show_answers:       true,
         allow_retake:       true,
-        passing_score:      50,
+        passing_score:      @passing_score,
         passing_score_type: "percent",
         time_limit_minutes: (@time_limit.positive? ? @time_limit : nil)
       )
