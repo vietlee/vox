@@ -6,6 +6,9 @@ class Api::Learner::V1::SessionsController < ApplicationController
   def create
     learner = Learner.find_by(email: params.dig(:learner, :email).to_s.strip.downcase)
     if learner&.valid_password?(params.dig(:learner, :password).to_s)
+      # Issue a long-lived remember token so the app stays signed in even after
+      # the rolling session cookie lapses (Devise rememberable Warden hook).
+      learner.remember_me = true
       sign_in(:learner, learner)
       learner.update_column(:last_seen_at, Time.current)
       render json: {

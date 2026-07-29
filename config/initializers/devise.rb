@@ -167,7 +167,9 @@ Devise.setup do |config|
 
   # ==> Configuration for :rememberable
   # The time the user will be remembered without asking for credentials again.
-  config.remember_for = 30.days
+  # Long window so the mobile app keeps learners signed in for up to a year of
+  # inactivity (active users roll forward indefinitely via extend_remember_period).
+  config.remember_for = 1.year
 
   # Invalidates all the remember me tokens when the user signs out.
   config.expire_all_remember_me_on_sign_out = true
