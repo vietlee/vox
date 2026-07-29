@@ -43,6 +43,37 @@ class Api::Learner::V1::StudyPlansController < Api::Learner::V1::BaseController
     render json: { error: "Không tạo được lộ trình: #{e.message}" }, status: :unprocessable_entity
   end
 
+  # Editable content of a learning path (for the review/edit screen).
+  def show
+    plan = current_learner.learner_study_plans.find(params[:id])
+    render json: {
+      id:    plan.id,
+      title: plan.title,
+      items: plan.items.map { |it|
+        { id: it.id, title: it.title, description: it.description }
+      }
+    }
+  end
+
+  # Save review edits to a learning path before the learner uses it.
+  def update
+    plan = current_learner.learner_study_plans.find(params[:id])
+    ActiveRecord::Base.transaction do
+      plan.update!(title: params[:title].to_s.strip) if params[:title].present?
+      Array(params[:items]).each do |it|
+        item = plan.items.find_by(id: it[:id] || it["id"])
+        next unless item
+        item.update!(
+          title:       (it[:title] || it["title"]).to_s,
+          description: (it[:description] || it["description"]).to_s.presence
+        )
+      end
+    end
+    render json: { ok: true }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def destroy
     plan = current_learner.learner_study_plans.find(params[:id])
     plan.destroy!
