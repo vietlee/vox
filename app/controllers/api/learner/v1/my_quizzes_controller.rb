@@ -55,9 +55,56 @@ class Api::Learner::V1::MyQuizzesController < Api::Learner::V1::BaseController
     ).generate!
 
     render json: {
+      quiz_set_id:       result[:assignment].quiz_set_id,
       assignment_token:  result[:assignment].token,
       credits_remaining: current_learner.reload.credits
     }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  # Editable content of a self-generated quiz (for the review/edit screen).
+  def content
+    quiz = QuizSet.find_by!(id: params[:id], learner_id: current_learner.id)
+    render json: {
+      id:    quiz.id,
+      title: quiz.title,
+      questions: quiz.quiz_questions.order(:position).map { |q|
+        {
+          id:            q.id,
+          question_text: q.question_text,
+          question_type: q.question_type,
+          explanation:   q.explanation,
+          essay_rubric:  q.essay_rubric,
+          options: q.quiz_options.order(:position).map { |o|
+            { id: o.id, option_text: o.option_text, is_correct: o.is_correct }
+          }
+        }
+      }
+    }
+  end
+
+  # Save edits made in the review screen before the learner uses the quiz.
+  def update
+    quiz = QuizSet.find_by!(id: params[:id], learner_id: current_learner.id)
+    ActiveRecord::Base.transaction do
+      quiz.update!(title: params[:title].to_s.strip) if params[:title].present?
+      Array(params[:questions]).each do |q|
+        question = quiz.quiz_questions.find_by(id: q[:id] || q["id"])
+        next unless question
+        question.update!(
+          question_text: (q[:question_text] || q["question_text"]).to_s,
+          explanation:   (q[:explanation]   || q["explanation"]).to_s.presence
+        )
+        Array(q[:options] || q["options"]).each do |o|
+          opt = question.quiz_options.find_by(id: o[:id] || o["id"])
+          next unless opt
+          truthy = [true, "true", "1", 1].include?(o[:is_correct].nil? ? o["is_correct"] : o[:is_correct])
+          opt.update!(option_text: (o[:option_text] || o["option_text"]).to_s, is_correct: truthy)
+        end
+      end
+    end
+    render json: { ok: true }
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
