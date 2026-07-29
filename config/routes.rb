@@ -425,12 +425,10 @@ Rails.application.routes.draw do
     delete "my_flashcards/:id",      to: "my_flashcards#destroy",  as: :destroy_my_flashcard
 
     # Learner self-generated quizzes
-    get    "my_quizzes",             to: "my_quizzes#index",    as: :my_quizzes
-    get    "my_quizzes/new",         to: "my_quizzes#new",      as: :new_my_quiz
-    post   "my_quizzes/generate",    to: "my_quizzes#generate", as: :generate_my_quiz
-    get    "my_quizzes/:id/content", to: "my_quizzes#content",  as: :content_my_quiz
-    patch  "my_quizzes/:id",         to: "my_quizzes#update",   as: :update_my_quiz
-    delete "my_quizzes/:id",         to: "my_quizzes#destroy",  as: :destroy_my_quiz
+    get    "my_quizzes",          to: "my_quizzes#index",    as: :my_quizzes
+    get    "my_quizzes/new",      to: "my_quizzes#new",      as: :new_my_quiz
+    post   "my_quizzes/generate", to: "my_quizzes#generate", as: :generate_my_quiz
+    delete "my_quizzes/:id",      to: "my_quizzes#destroy",  as: :destroy_my_quiz
     post "my_flashcards/:id/images",            to: "my_flashcards#generate_images",  as: :generate_images_my_flashcard
     get  "my_flashcards/:id/image_status",      to: "my_flashcards#image_status",     as: :image_status_my_flashcard
     post "my_flashcards/:id/reset_image_status",to: "my_flashcards#reset_image_status", as: :reset_image_status_my_flashcard
@@ -595,8 +593,9 @@ Rails.application.routes.draw do
           end
         end
 
-        resources :my_quizzes, only: [:index, :destroy] do
+        resources :my_quizzes, only: [:index, :update, :destroy] do
           collection { post :generate }
+          member     { get  :content }
         end
 
         get  'speaking/sessions',       to: 'speaking#sessions'
