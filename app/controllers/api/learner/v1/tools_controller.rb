@@ -29,7 +29,12 @@ class Api::Learner::V1::ToolsController < Api::Learner::V1::BaseController
   end
 
   def stt
-    return render json: { error: "Không đủ credit.", credits_remaining: current_learner.credits }, status: :payment_required unless current_learner.credits >= 2
+    # Interim/partial calls (realtime preview while still speaking) are free;
+    # only the final transcript of each utterance costs 2 credits.
+    partial = params[:partial].to_s == "true"
+    unless partial
+      return render json: { error: "Không đủ credit.", credits_remaining: current_learner.credits }, status: :payment_required unless current_learner.credits >= 2
+    end
 
     blob = params[:chunk] || params[:file]
     return render json: { error: "Không có dữ liệu âm thanh" }, status: :unprocessable_entity unless blob.present?
@@ -42,7 +47,7 @@ class Api::Learner::V1::ToolsController < Api::Learner::V1::BaseController
     svc    = ElevenLabsService.new
     result = svc.speech_to_text(audio_io: tmp, filename: "chunk.webm")
 
-    current_learner.deduct_credits!(2)
+    current_learner.deduct_credits!(2) unless partial
     render json: { text: result[:text], credits_remaining: current_learner.reload.credits }
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
