@@ -1,4 +1,6 @@
 class Api::Learner::V1::DailyChallengesController < Api::Learner::V1::BaseController
+  CREDITS_PER_CORRECT = 2
+
   before_action :load_challenge
 
   def show
@@ -22,9 +24,22 @@ class Api::Learner::V1::DailyChallengesController < Api::Learner::V1::BaseContro
 
     answers = params[:answers]&.to_unsafe_h || {}
     correct = @challenge.submit!(answers)
-    LearnerGamification.record!(current_learner, :daily_challenge)
+    gam     = LearnerGamification.record!(current_learner, :daily_challenge)
 
-    render json: { ok: true, correct: correct, total: @challenge.total, score_pct: @challenge.score_pct }
+    # Reward credits for correct answers (2 each). Safe to grant unconditionally —
+    # the challenge is once per day (guarded by the completed? check above).
+    credits_awarded = correct.to_i * CREDITS_PER_CORRECT
+    current_learner.add_credits!(credits_awarded) if credits_awarded > 0
+
+    render json: {
+      ok:                true,
+      correct:           correct,
+      total:             @challenge.total,
+      score_pct:         @challenge.score_pct,
+      xp_earned:         gam[:xp_gained].to_i,
+      credits_awarded:   credits_awarded,
+      credits_remaining: current_learner.reload.credits
+    }
   end
 
   private
