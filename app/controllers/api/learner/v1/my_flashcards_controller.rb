@@ -122,12 +122,17 @@ class Api::Learner::V1::MyFlashcardsController < Api::Learner::V1::BaseControlle
     assignment = current_learner.flashcard_assignments.find_by(flashcard_deck_id: deck.id)
     cards      = deck.flashcards.order(:position, :id)
     render json: {
-      id:               deck.id,
-      title:            deck.title,
-      subject:          deck.subject,
-      card_count:       deck.card_count,
-      assignment_token: assignment&.token,
-      cards:            cards.map { |c| { id: c.id, front: c.front, back: c.back, position: c.position } }
+      id:                deck.id,
+      title:             deck.title,
+      subject:           deck.subject,
+      card_count:        deck.card_count,
+      assignment_token:  assignment&.token,
+      image_generating:  deck.image_generating,
+      images_done:       deck.flashcards.where.not(image_data: [nil, ""]).count,
+      cards:             cards.map { |c|
+        { id: c.id, front: c.front, back: c.back, position: c.position,
+          image_data: c.image_data.presence }
+      }
     }
   end
 
