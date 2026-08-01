@@ -20,11 +20,27 @@ class Learner < ApplicationRecord
   has_many :flashcard_decks, through: :flashcard_assignments
   has_many :learning_paths,  through: :learning_path_assignments
 
+  # Referral: who invited me, and everyone I invited.
+  belongs_to :referrer, class_name: "Learner", foreign_key: :referred_by_id, optional: true
+  has_many   :referrals, class_name: "Learner", foreign_key: :referred_by_id, dependent: :nullify
+
+  before_create :ensure_referral_code
+
   validates :name,  presence: true
   validates :email, presence: true, uniqueness: { case_sensitive: false },
                     format: { with: URI::MailTo::EMAIL_REGEXP }
 
   MONTHLY_FREE_CREDITS = 50
+  REFERRAL_REWARD      = 50   # credits granted to BOTH inviter and new user
+
+  # A short unique code used in invite links / QR codes.
+  def ensure_referral_code
+    return if referral_code.present?
+    loop do
+      self.referral_code = SecureRandom.alphanumeric(7).upcase
+      break unless Learner.exists?(referral_code: referral_code)
+    end
+  end
 
   def deduct_credits!(amount)
     raise "Không đủ credit" if credits < amount

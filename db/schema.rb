@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_15_012223) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_31_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -584,10 +584,15 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_15_012223) do
     t.integer "daily_goal", default: 3, null: false
     t.datetime "last_seen_at"
     t.string "preferred_locale", default: "vi"
+    t.string "referral_code"
+    t.bigint "referred_by_id"
+    t.datetime "referral_rewarded_at"
     t.index ["confirmation_token"], name: "index_learners_on_confirmation_token", unique: true
     t.index ["email"], name: "index_learners_on_email", unique: true
     t.index ["invite_token"], name: "index_learners_on_invite_token", unique: true
     t.index ["last_seen_at"], name: "index_learners_on_last_seen_at"
+    t.index ["referral_code"], name: "index_learners_on_referral_code", unique: true
+    t.index ["referred_by_id"], name: "index_learners_on_referred_by_id"
     t.index ["reset_password_token"], name: "index_learners_on_reset_password_token", unique: true
   end
 

@@ -43,6 +43,9 @@ Rails.application.routes.draw do
   get "/payment/app_return", to: "public/payment_bridge#app_return", as: :payment_app_return
   get "/payment/app_cancel", to: "public/payment_bridge#app_cancel", as: :payment_app_cancel
 
+  # Public referral invite landing (no login required)
+  get "/invite/:code", to: "referral_landing#show", as: :referral_invite
+
   # Public report share (no login required)
   get  "/r/:token",             to: "public/reports#show",        as: :public_report
   get  "/r/:token/preview_pdf",  to: "public/reports#preview_pdf",  as: :public_report_preview_pdf
@@ -516,9 +519,11 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :learner do
       namespace :v1 do
-        post   'session',    to: 'sessions#create'
-        delete 'session',    to: 'sessions#destroy'
-        get    'session/me', to: 'sessions#me'
+        post   'session',      to: 'sessions#create'
+        delete 'session',      to: 'sessions#destroy'
+        get    'session/me',   to: 'sessions#me'
+        post   'registration', to: 'registrations#create'
+        get    'referrals',    to: 'referrals#show'
 
         get  'dashboard',                     to: 'dashboard#index'
         get  'suggestion/fetch',              to: 'suggestion#fetch'
