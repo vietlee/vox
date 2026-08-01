@@ -627,6 +627,9 @@ Rails.application.routes.draw do
           collection do
             post :reorder
             get  :detect
+            # Public (token-authorized) cached thumbnail — keeps Facebook/TikTok
+            # video thumbnails alive after their signed CDN URL expires.
+            get 'thumb/:token', to: 'saved_links#thumbnail', as: :thumbnail
           end
         end
 

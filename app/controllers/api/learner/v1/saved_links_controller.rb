@@ -1,6 +1,8 @@
 require 'cgi'
 
 class Api::Learner::V1::SavedLinksController < Api::Learner::V1::BaseController
+  skip_before_action :authenticate_learner!, only: [:thumbnail]
+  skip_before_action :touch_last_seen!,      only: [:thumbnail]
   before_action :set_link, only: [:update, :destroy]
 
   def index
@@ -124,10 +126,41 @@ class Api::Learner::V1::SavedLinksController < Api::Learner::V1::BaseController
     render json: result
   end
 
+  # Public: serves a saved link's thumbnail by capability token. Returns the
+  # cached bytes once available, otherwise redirects to the (still-valid)
+  # original URL and kicks off caching.
+  def thumbnail
+    link = LearnerSavedLink.find_by(thumbnail_token: params[:token])
+    return head :not_found unless link
+
+    data = link.thumbnail_data.to_s
+    if data.start_with?('data:')
+      meta, b64 = data.split(',', 2)
+      ctype = meta[/data:([^;]+)/, 1] || 'image/jpeg'
+      response.headers['Cache-Control'] = 'public, max-age=86400'
+      send_data Base64.decode64(b64.to_s), type: ctype, disposition: 'inline'
+    elsif link.thumbnail.present?
+      CacheSavedLinkThumbnailJob.perform_later(link.id)
+      redirect_to link.thumbnail, allow_other_host: true
+    else
+      head :not_found
+    end
+  end
+
   private
 
   def set_link
     @link = current_learner.learner_saved_links.find(params[:id])
+  end
+
+  # For expiring hosts, hand the app our permanent proxy URL instead of the
+  # raw signed CDN URL that will 403 in a few hours.
+  def thumbnail_url_for(link)
+    return link.thumbnail unless link.thumbnail_expiring?
+    # Backfill a token for links saved before caching existed; the proxy
+    # endpoint caches the bytes on first view.
+    link.update_column(:thumbnail_token, SecureRandom.urlsafe_base64(16)) if link.thumbnail_token.blank?
+    "#{request.base_url}/api/learner/v1/saved_links/thumb/#{link.thumbnail_token}"
   end
 
   def link_params
@@ -136,7 +169,7 @@ class Api::Learner::V1::SavedLinksController < Api::Learner::V1::BaseController
 
   def link_json(link)
     { id: link.id, url: link.url, title: link.title, description: link.description,
-      thumbnail: link.thumbnail, favicon: link.favicon, category: link.category,
+      thumbnail: thumbnail_url_for(link), favicon: link.favicon, category: link.category,
       link_type: link.link_type, position: link.position,
       embed_url: link.embed_url, embeddable: link.embeddable? }
   end
