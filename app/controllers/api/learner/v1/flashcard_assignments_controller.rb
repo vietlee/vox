@@ -9,7 +9,7 @@ class Api::Learner::V1::FlashcardAssignmentsController < Api::Learner::V1::BaseC
       deck: { title: deck.title, subject: deck.subject },
       cards: cards.map { |c|
         { id: c.id, front: c.front, back: c.back,
-          image_data: c.image_data.presence, position: c.position }
+          image_url: card_image_url(c), position: c.position }
       }
     }
   end
@@ -31,7 +31,7 @@ class Api::Learner::V1::FlashcardAssignmentsController < Api::Learner::V1::BaseC
       deck: { title: deck.title, subject: deck.subject },
       cards: cards.map { |c|
         { id: c.id, front: c.front, back: c.back,
-          image_data: c.image_data.presence, position: c.position }
+          image_url: card_image_url(c), position: c.position }
       }
     }
   end
@@ -81,6 +81,13 @@ class Api::Learner::V1::FlashcardAssignmentsController < Api::Learner::V1::BaseC
 
   def set_assignment
     @assignment = current_learner.flashcard_assignments.find_by!(token: params[:token])
+  end
+
+  # A small, cacheable URL to the card's AI image (nil when it has none), keyed
+  # by the assignment token so the client can load it without embedding base64.
+  def card_image_url(card)
+    return nil if card.image_data.blank?
+    "#{request.base_url}/api/learner/v1/flashcards/#{card.id}/image?token=#{@assignment.token}"
   end
 
   def assignment_json(a)

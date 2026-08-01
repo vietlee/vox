@@ -60,6 +60,9 @@ class Api::Learner::V1::MyFlashcardsController < Api::Learner::V1::BaseControlle
 
           Trả về JSON theo đúng format này, không có text nào khác:
           {"title":"<tiêu đề ngắn gọn cho bộ thẻ>","cards":[{"front":"...","back":"..."}]}
+
+          QUAN TRỌNG: JSON phải hợp lệ. Trong giá trị chuỗi KHÔNG được xuống dòng thật;
+          nếu cần xuống dòng hãy dùng \\n. Không thêm dấu phẩy thừa.
         PROMPT
       }],
       max_tokens: 4000
@@ -69,7 +72,10 @@ class Api::Learner::V1::MyFlashcardsController < Api::Learner::V1::BaseControlle
     title     = parsed["title"].presence || topic.truncate(100)
     cards_arr = parsed["cards"] || []
 
-    return render json: { error: "AI không trả về dữ liệu hợp lệ, vui lòng thử lại." } if cards_arr.empty?
+    if cards_arr.empty?
+      return render json: { error: "AI không trả về dữ liệu hợp lệ, vui lòng thử lại." },
+                    status: :unprocessable_entity
+    end
 
     deck       = nil
     assignment = nil
@@ -131,7 +137,8 @@ class Api::Learner::V1::MyFlashcardsController < Api::Learner::V1::BaseControlle
       images_done:       deck.flashcards.where.not(image_data: [nil, ""]).count,
       cards:             cards.map { |c|
         { id: c.id, front: c.front, back: c.back, position: c.position,
-          image_data: c.image_data.presence }
+          image_url: (c.image_data.present? && assignment&.token.present? ?
+            "#{request.base_url}/api/learner/v1/flashcards/#{c.id}/image?token=#{assignment.token}" : nil) }
       }
     }
   end
@@ -206,18 +213,24 @@ class Api::Learner::V1::MyFlashcardsController < Api::Learner::V1::BaseControlle
 
   private
 
+  # Robustly pull the {"title","cards":[...]} object out of the model's reply.
+  # Handles markdown ```json fences, leading/trailing prose, and — the common
+  # failure mode — RAW (unescaped) newlines/tabs inside string values, which are
+  # invalid JSON. We take the outermost {...} block and try it as-is, then with
+  # control characters flattened to spaces.
   def extract_json(raw)
-    raw.scan(/\{[\s\S]*?\}/).each do |candidate|
+    text  = raw.to_s.gsub(/```(?:json)?/i, "").strip
+    first = text.index("{")
+    last  = text.rindex("}")
+    return {} unless first && last && last > first
+
+    block = text[first..last]
+    [block, block.gsub(/[\r\n\t]+/, " ")].each do |candidate|
       parsed = JSON.parse(candidate)
-      return parsed if parsed["cards"].is_a?(Array)
+      return parsed if parsed.is_a?(Hash) && parsed["cards"].is_a?(Array)
     rescue JSON::ParserError
       next
     end
-
-    if (m = raw.match(/\{[\s\S]*"cards"[\s\S]*\}/))
-      JSON.parse(m[0]) rescue {}
-    else
-      {}
-    end
+    {}
   end
 end
