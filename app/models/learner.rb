@@ -12,6 +12,7 @@ class Learner < ApplicationRecord
   has_many :learner_push_subscriptions,  dependent: :destroy
   has_many :learner_notifications,       dependent: :destroy
   has_many :learner_saved_links,         dependent: :destroy
+  has_many :learner_mission_claims,      dependent: :destroy
   has_many :flashcard_reviews,           dependent: :destroy, foreign_key: :learner_id
   has_many :quiz_assignments,           dependent: :destroy
   has_many :flashcard_assignments,      dependent: :destroy

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_31_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_31_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -440,6 +440,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_31_120000) do
     t.datetime "updated_at", null: false
     t.index ["created_by_id"], name: "index_learner_folders_on_created_by_id"
     t.index ["workspace_id"], name: "index_learner_folders_on_workspace_id"
+  end
+
+  create_table "learner_mission_claims", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.string "mission_key", null: false
+    t.string "period", null: false
+    t.integer "reward", default: 0, null: false
+    t.datetime "claimed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id", "mission_key", "period"], name: "idx_mission_claims_unique", unique: true
+    t.index ["learner_id"], name: "index_learner_mission_claims_on_learner_id"
   end
 
   create_table "learner_notifications", force: :cascade do |t|

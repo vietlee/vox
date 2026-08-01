@@ -545,6 +545,9 @@ Rails.application.routes.draw do
         get  'daily_challenge',        to: 'daily_challenges#show'
         post 'daily_challenge/submit', to: 'daily_challenges#submit'
 
+        get  'missions',            to: 'missions#index'
+        post 'missions/:key/claim', to: 'missions#claim'
+
         resources :study_plans, only: [:index, :show, :create, :update, :destroy] do
           member do
             post 'items/:item_id/toggle', to: 'study_plans#toggle_item', as: :toggle_item
