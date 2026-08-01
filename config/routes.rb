@@ -601,6 +601,10 @@ Rails.application.routes.draw do
           end
         end
 
+        # Serves a card's AI image as a small, cacheable URL (token-authorized)
+        # so study/detail payloads don't embed base64.
+        get 'flashcards/:id/image', to: 'flashcards#image'
+
         resources :my_quizzes, only: [:index, :update, :destroy] do
           collection { post :generate }
           member     { get  :content }
