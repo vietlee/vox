@@ -69,6 +69,26 @@ class Learner < ApplicationRecord
     increment!(:max_credits, amount)
   end
 
+  # ── XP → credit exchange (gives XP real value) ──────────────────────────
+  XP_PER_BLOCK      = 100   # spend this much XP…
+  CREDITS_PER_BLOCK = 10    # …to gain this many credits
+
+  def convertible_credits_from_xp
+    (xp.to_i / XP_PER_BLOCK) * CREDITS_PER_BLOCK
+  end
+
+  # Converts every whole block of XP into credits. Returns credits gained.
+  def convert_xp_to_credits!
+    blocks = xp.to_i / XP_PER_BLOCK
+    raise "Không đủ XP để quy đổi (cần tối thiểu #{XP_PER_BLOCK} XP)." if blocks < 1
+    gained = blocks * CREDITS_PER_BLOCK
+    transaction do
+      update_column(:xp, xp - blocks * XP_PER_BLOCK)
+      add_credits!(gained)
+    end
+    gained
+  end
+
   # Called by MonthlyFreeResetJob on the 1st of each month
   def reset_monthly_credits!
     update_columns(credits: MONTHLY_FREE_CREDITS, max_credits: MONTHLY_FREE_CREDITS)

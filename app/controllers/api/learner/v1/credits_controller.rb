@@ -8,6 +8,10 @@ class Api::Learner::V1::CreditsController < Api::Learner::V1::BaseController
     render json: {
       credits:          current_learner.credits,
       max_credits:      current_learner.max_credits,
+      xp:               current_learner.xp,
+      xp_convertible:   current_learner.convertible_credits_from_xp,
+      xp_per_block:     Learner::XP_PER_BLOCK,
+      credits_per_block: Learner::CREDITS_PER_BLOCK,
       price_per_credit: PRICE_PER_CREDIT,
       monthly_free:     Learner::MONTHLY_FREE_CREDITS,
       payments: payments.map { |p|
@@ -15,6 +19,16 @@ class Api::Learner::V1::CreditsController < Api::Learner::V1::BaseController
           status: p.status, created_at: p.created_at }
       }
     }
+  end
+
+  # Exchange accumulated XP for credits (100 XP → 10 credits).
+  def convert_xp
+    gained = current_learner.convert_xp_to_credits!
+    l = current_learner.reload
+    render json: { ok: true, credits_gained: gained, credits: l.credits, xp: l.xp,
+                   xp_convertible: l.convertible_credits_from_xp }
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def checkout

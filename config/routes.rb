@@ -634,6 +634,7 @@ Rails.application.routes.draw do
         end
 
         get  'credits',                    to: 'credits#index'
+        post 'credits/convert_xp',         to: 'credits#convert_xp'
         post 'credits/checkout',           to: 'credits#checkout'
         get  'credits/payment_status/:id', to: 'credits#payment_status', as: :credit_payment_status
 
