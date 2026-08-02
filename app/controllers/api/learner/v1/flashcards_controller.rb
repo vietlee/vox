@@ -24,7 +24,9 @@ class Api::Learner::V1::FlashcardsController < Api::Learner::V1::BaseController
       meta, b64 = data.split(",", 2)
       content_type = meta[/data:([^;]+)/, 1] || "image/webp"
       bytes = Base64.decode64(b64.to_s)
-      bytes = ImageThumbnailer.resize(bytes, params[:w]) || bytes  # optional ?w= downscale
+      if (thumb = ImageThumbnailer.resize(bytes, params[:w]))  # optional ?w= downscale
+        bytes, content_type = thumb
+      end
       response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
       send_data bytes, type: content_type, disposition: "inline"
     elsif data.start_with?("http")

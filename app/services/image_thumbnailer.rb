@@ -16,7 +16,11 @@ module ImageThumbnailer
     tmp.write(bytes)
     tmp.flush
     tmp.rewind
-    ImageProcessing::Vips.source(tmp.path).resize_to_limit(w, w).call.read
+    # Force webp output — vips can't infer the format from the ".img" temp name,
+    # and webp is compact + supported by Flutter/browsers. Callers serve it as
+    # image/webp. Returns [bytes, "image/webp"].
+    out = ImageProcessing::Vips.source(tmp.path).resize_to_limit(w, w).convert("webp").saver(quality: 78).call.read
+    [out, "image/webp"]
   rescue => e
     Rails.logger.warn "[ImageThumbnailer] #{e.message}"
     nil

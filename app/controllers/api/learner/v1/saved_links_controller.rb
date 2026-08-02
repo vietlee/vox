@@ -138,7 +138,9 @@ class Api::Learner::V1::SavedLinksController < Api::Learner::V1::BaseController
       meta, b64 = data.split(',', 2)
       ctype = meta[/data:([^;]+)/, 1] || 'image/jpeg'
       bytes = Base64.decode64(b64.to_s)
-      bytes = ImageThumbnailer.resize(bytes, params[:w]) || bytes  # optional ?w= downscale
+      if (thumb = ImageThumbnailer.resize(bytes, params[:w]))  # optional ?w= downscale
+        bytes, ctype = thumb
+      end
       response.headers['Cache-Control'] = 'public, max-age=86400'
       send_data bytes, type: ctype, disposition: 'inline'
     elsif link.thumbnail.present?
