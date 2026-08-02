@@ -39,6 +39,7 @@ class LearnerGamification
     end
 
     new_badges = check_badges!
+    check_missions!
 
     {
       xp_gained:       amount,
@@ -93,9 +94,48 @@ class LearnerGamification
 
     candidates.each do |key|
       badge = LearnerBadge.award!(@learner, key)
-      earned << badge if badge
+      next unless badge
+      earned << badge
+      notify_badge!(badge)
     end
     earned
+  end
+
+  # Bell notification when a badge is newly earned.
+  def notify_badge!(badge)
+    info = (badge.info rescue {}) || {}
+    LearnerNotification.notify!(
+      learner: @learner,
+      title:  "#{info[:icon] || '🏅'} Huy hiệu mới: #{info[:title] || 'Thành tựu'}",
+      body:   info[:desc],
+      type:   "badge_earned"
+    )
+  rescue => e
+    Rails.logger.warn "[gamification] notify_badge!: #{e.message}"
+  end
+
+  # Bell notification the first time a mission becomes claimable (deduped by a
+  # per-mission action_url; skipped once the reward is claimed). Milestones fire
+  # once ever; daily missions once per day.
+  def check_missions!
+    claimed = LearnerMissionClaim
+                .where(learner_id: @learner.id, period: [Date.current.to_s, "once"])
+                .pluck(:mission_key, :period).to_set
+    MissionCatalog.all.each do |m|
+      next if MissionCatalog.progress_for(m, @learner) < m[:target]
+      period = MissionCatalog.period_for(m)
+      next if claimed.include?([m[:key], period])
+      url = "/missions?m=#{m[:key]}:#{period}"
+      next if @learner.learner_notifications.exists?(action_url: url)
+      LearnerNotification.notify!(
+        learner: @learner,
+        title:  "🎯 Nhiệm vụ hoàn thành +#{m[:reward]} credit",
+        body:   "Bạn đã đủ điều kiện — mở mục Nhiệm vụ và bấm Nhận thưởng.",
+        action_url: url
+      )
+    end
+  rescue => e
+    Rails.logger.warn "[gamification] check_missions!: #{e.message}"
   end
 
   def update_streak!(today)

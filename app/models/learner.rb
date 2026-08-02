@@ -46,6 +46,21 @@ class Learner < ApplicationRecord
   def deduct_credits!(amount)
     raise "Không đủ credit" if credits < amount
     decrement!(:credits, amount)
+    notify_out_of_credits! if amount.to_i.positive? && credits.zero?
+  end
+
+  # In-app bell notification when the balance hits zero. Deduped against an
+  # existing unread one so it fires once per "run out", not every action.
+  def notify_out_of_credits!
+    return if learner_notifications.unread.exists?(action_url: "/credits")
+    LearnerNotification.notify!(
+      learner: self,
+      title:  "⚡ Bạn đã hết credit",
+      body:   "Nhận thêm credit miễn phí: mời bạn bè, làm thử thách hằng ngày và hoàn thành nhiệm vụ.",
+      action_url: "/credits"
+    )
+  rescue => e
+    Rails.logger.warn "[Learner#notify_out_of_credits!] #{id}: #{e.message}"
   end
 
   # Called when a learner purchases credits
