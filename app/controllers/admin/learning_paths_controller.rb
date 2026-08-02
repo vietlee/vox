@@ -200,8 +200,10 @@ class Admin::LearningPathsController < Admin::BaseController
         host: Rails.application.config.action_mailer.default_url_options[:host]
       )
       LearnerMailer.assignment_notification(learner, "Lộ trình học", @learning_path.title, url).deliver_later
-      LearnerNotification.notify!(learner: learner, title: "Bạn có lộ trình học mới: #{@learning_path.title}",
-        body: due_date ? "Hạn hoàn thành: #{due_date.to_date.strftime('%d/%m/%Y')}" : nil,
+      LearnerNotification.notify_t!(learner: learner,
+        title_key: "path_new", title_args: { title: @learning_path.title },
+        body_key: (due_date ? "due_finish" : nil),
+        body_args: { when: due_date&.to_date&.strftime('%d/%m/%Y') },
         type: "path_assigned", action_url: url)
       assigned += 1
     rescue => e

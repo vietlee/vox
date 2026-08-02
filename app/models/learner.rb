@@ -53,10 +53,10 @@ class Learner < ApplicationRecord
   # existing unread one so it fires once per "run out", not every action.
   def notify_out_of_credits!
     return if learner_notifications.unread.exists?(action_url: "/credits")
-    LearnerNotification.notify!(
+    LearnerNotification.notify_t!(
       learner: self,
-      title:  "⚡ Bạn đã hết credit",
-      body:   "Nhận thêm credit miễn phí: mời bạn bè, làm thử thách hằng ngày và hoàn thành nhiệm vụ.",
+      title_key: "out_credits_title",
+      body_key:  "out_credits_body",
       action_url: "/credits"
     )
   rescue => e

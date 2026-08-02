@@ -137,8 +137,10 @@ class Api::Learner::V1::SavedLinksController < Api::Learner::V1::BaseController
     if data.start_with?('data:')
       meta, b64 = data.split(',', 2)
       ctype = meta[/data:([^;]+)/, 1] || 'image/jpeg'
+      bytes = Base64.decode64(b64.to_s)
+      bytes = ImageThumbnailer.resize(bytes, params[:w]) || bytes  # optional ?w= downscale
       response.headers['Cache-Control'] = 'public, max-age=86400'
-      send_data Base64.decode64(b64.to_s), type: ctype, disposition: 'inline'
+      send_data bytes, type: ctype, disposition: 'inline'
     elsif link.thumbnail.present?
       CacheSavedLinkThumbnailJob.perform_later(link.id)
       redirect_to link.thumbnail, allow_other_host: true

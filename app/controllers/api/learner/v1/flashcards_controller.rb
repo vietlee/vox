@@ -23,8 +23,10 @@ class Api::Learner::V1::FlashcardsController < Api::Learner::V1::BaseController
     if data.start_with?("data:")
       meta, b64 = data.split(",", 2)
       content_type = meta[/data:([^;]+)/, 1] || "image/webp"
+      bytes = Base64.decode64(b64.to_s)
+      bytes = ImageThumbnailer.resize(bytes, params[:w]) || bytes  # optional ?w= downscale
       response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-      send_data Base64.decode64(b64.to_s), type: content_type, disposition: "inline"
+      send_data bytes, type: content_type, disposition: "inline"
     elsif data.start_with?("http")
       redirect_to data, allow_other_host: true
     else

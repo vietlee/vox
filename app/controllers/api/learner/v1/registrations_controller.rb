@@ -52,10 +52,11 @@ class Api::Learner::V1::RegistrationsController < ApplicationController
   private
 
   def notify_referrer(referrer, new_learner)
-    referrer.learner_notifications.create!(
-      title:             "Bạn nhận được #{Learner::REFERRAL_REWARD} credit! 🎉",
-      body:              "#{new_learner.name} vừa đăng ký bằng mã giới thiệu của bạn.",
-      notification_type: "referral"
+    LearnerNotification.notify_t!(
+      learner:    referrer,
+      title_key:  "referral_title", title_args: { n: Learner::REFERRAL_REWARD },
+      body_key:   "referral_body",  body_args:  { name: new_learner.name },
+      type:       "referral"
     )
   rescue => e
     Rails.logger.warn "[Referral notify] #{e.message}"

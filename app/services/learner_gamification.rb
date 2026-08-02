@@ -104,11 +104,12 @@ class LearnerGamification
   # Bell notification when a badge is newly earned.
   def notify_badge!(badge)
     info = (badge.info rescue {}) || {}
-    LearnerNotification.notify!(
+    LearnerNotification.notify_t!(
       learner: @learner,
-      title:  "#{info[:icon] || '🏅'} Huy hiệu mới: #{info[:title] || 'Thành tựu'}",
-      body:   info[:desc],
-      type:   "badge_earned"
+      title_key: "badge_title",
+      title_args: { icon: info[:icon] || "🏅", name: info[:title] || "Thành tựu" },
+      body: info[:desc],   # badge desc is content; passed through untranslated
+      type: "badge_earned"
     )
   rescue => e
     Rails.logger.warn "[gamification] notify_badge!: #{e.message}"
@@ -127,10 +128,10 @@ class LearnerGamification
       next if claimed.include?([m[:key], period])
       url = "/missions?m=#{m[:key]}:#{period}"
       next if @learner.learner_notifications.exists?(action_url: url)
-      LearnerNotification.notify!(
+      LearnerNotification.notify_t!(
         learner: @learner,
-        title:  "🎯 Nhiệm vụ hoàn thành +#{m[:reward]} credit",
-        body:   "Bạn đã đủ điều kiện — mở mục Nhiệm vụ và bấm Nhận thưởng.",
+        title_key: "mission_title", title_args: { n: m[:reward] },
+        body_key:  "mission_body",
         action_url: url
       )
     end

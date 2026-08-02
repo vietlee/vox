@@ -215,8 +215,10 @@ class Admin::FlashcardDecksController < Admin::BaseController
         host: Rails.application.config.action_mailer.default_url_options[:host]
       )
       LearnerMailer.assignment_notification(learner, "Flashcard", @deck.title, url).deliver_later
-      LearnerNotification.notify!(learner: learner, title: "Bạn có bộ flashcard mới: #{@deck.title}",
-        body: due_at ? "Hạn hoàn thành: #{due_at.to_datetime.strftime('%d/%m/%Y %H:%M')}" : nil,
+      LearnerNotification.notify_t!(learner: learner,
+        title_key: "flashcard_new", title_args: { title: @deck.title },
+        body_key: (due_at ? "due_finish" : nil),
+        body_args: { when: due_at&.to_datetime&.strftime('%d/%m/%Y %H:%M') },
         type: "flashcard_assigned", action_url: url)
       assigned += 1
     rescue => e
