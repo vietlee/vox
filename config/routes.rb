@@ -639,6 +639,7 @@ Rails.application.routes.draw do
         end
 
         delete 'account',                  to: 'account#destroy'
+        post 'iap/apple',                  to: 'iap#apple'
         get  'credits',                    to: 'credits#index'
         post 'credits/convert_xp',         to: 'credits#convert_xp'
         post 'credits/checkout',           to: 'credits#checkout'
