@@ -306,6 +306,30 @@
         <%= t('learner_profile.logout') %>
       </button>
 
+      <!-- Delete account -->
+      <button type="button" onclick="document.getElementById('delete-confirm').style.display='flex'"
+              style="width:100%;margin-top:10px;background:transparent;color:#991b1b;border:1px solid #fecaca;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:700;">
+        <%= t('learner_profile.delete_account', default: 'Xoá tài khoản') %>
+      </button>
+      <div id="delete-confirm" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.5);align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:16px;padding:24px;max-width:360px;width:90%;text-align:center;">
+          <div style="width:48px;height:48px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;">⚠️</div>
+          <p style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 6px;"><%= t('learner_profile.delete_confirm_title', default: 'Xoá tài khoản?') %></p>
+          <p style="font-size:13px;color:#94a3b8;margin:0 0 20px;"><%= t('learner_profile.delete_confirm_desc', default: 'Toàn bộ dữ liệu học, credit và nội dung sẽ bị xoá vĩnh viễn. Không thể hoàn tác.') %></p>
+          <div style="display:flex;gap:10px;">
+            <button type="button" onclick="document.getElementById('delete-confirm').style.display='none'"
+                    style="flex:1;background:#f1f5f9;border:none;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:600;">
+              <%= t('learner_profile.logout_cancel', default: 'Huỷ') %>
+            </button>
+            <%= form_with url: destroy_account_learner_profile_path, method: :delete, style: "flex:1;" do %>
+              <button type="submit" style="width:100%;background:#dc2626;color:#fff;border:none;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:700;">
+                <%= t('learner_profile.delete_account', default: 'Xoá tài khoản') %>
+              </button>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
       <!-- Confirm popup -->
       <div id="logout-confirm" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.5);align-items:center;justify-content:center;">
         <div style="background:#fff;border-radius:18px;padding:28px 24px;width:100%;max-width:320px;margin:16px;box-shadow:0 8px 40px rgba(0,0,0,0.18);text-align:center;">

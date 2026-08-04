@@ -12,6 +12,9 @@ class PagesController < ActionController::Base
     end
   end
 
+  def privacy; end
+  def terms;   end
+
   private
 
   def set_locale

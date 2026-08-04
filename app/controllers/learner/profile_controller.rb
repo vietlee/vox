@@ -6,6 +6,14 @@ class Learner::ProfileController < Learner::BaseController
                                     .limit(1).pick(:reminder_hour) || "20"
   end
 
+  # Permanently deletes the learner and all their data, then signs out.
+  def destroy_account
+    learner = current_learner
+    sign_out(learner)
+    learner.destroy
+    redirect_to root_path, notice: t('learner_profile.account_deleted', default: 'Tài khoản của bạn đã được xoá.')
+  end
+
   def update
     if current_learner.update(profile_params)
       redirect_to learner_profile_path, notice: t('learner_profile.saved')

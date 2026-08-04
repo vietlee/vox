@@ -10,6 +10,10 @@ Rails.application.routes.draw do
   root to: "pages#home"
   get "home", to: "pages#home", as: :home_page
 
+  # Legal / privacy (required for App Store & Play Store)
+  get "privacy", to: "pages#privacy", as: :privacy
+  get "terms",   to: "pages#terms",   as: :terms
+
   # Public template library
   resources :templates, only: [:index, :show] do
     member do
@@ -493,7 +497,8 @@ Rails.application.routes.draw do
     # Profile
     resource :profile, only: [:show, :update], controller: "profile" do
       member do
-        patch :change_password
+        patch  :change_password
+        delete :destroy_account
       end
     end
 
@@ -633,6 +638,7 @@ Rails.application.routes.draw do
           end
         end
 
+        delete 'account',                  to: 'account#destroy'
         get  'credits',                    to: 'credits#index'
         post 'credits/convert_xp',         to: 'credits#convert_xp'
         post 'credits/checkout',           to: 'credits#checkout'
