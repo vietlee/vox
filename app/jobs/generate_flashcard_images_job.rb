@@ -36,7 +36,7 @@ class GenerateFlashcardImagesJob < ApplicationJob
     if deck.learner_id.present?
       deck.learner&.deduct_credits!(5)
     else
-      deck.workspace&.credit_subscription&.deduct_credits!(5)
+      deck.workspace&.credit_subscription&.deduct_credits!(CreditCost[:flashcard_images])
     end
     deck.update_column(:image_generating, false)
     Rails.logger.info "[GenerateFlashcardImagesJob] Done for deck #{deck_id}"

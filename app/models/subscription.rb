@@ -18,8 +18,17 @@ class Subscription < ApplicationRecord
   end
 
   def deduct_credits!(amount)
-    raise "Insufficient AI credits" if credit_balance < amount
-    update!(credit_balance: credit_balance - amount, credit_used: credit_used + amount)
+    amount = amount.to_i
+    return if amount <= 0
+    # Atomic check-and-deduct: a single conditional UPDATE avoids the lost-update
+    # race when two AI actions run concurrently (both reading the old balance).
+    affected = self.class
+                   .where(id: id)
+                   .where("credit_balance >= ?", amount)
+                   .update_all("credit_balance = credit_balance - #{amount}, " \
+                               "credit_used = credit_used + #{amount}, updated_at = NOW()")
+    raise "Insufficient AI credits" if affected.zero?
+    reload
   end
 
   def credit_percentage

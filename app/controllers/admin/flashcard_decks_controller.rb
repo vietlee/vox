@@ -13,7 +13,7 @@ class Admin::FlashcardDecksController < Admin::BaseController
     @deck = current_workspace.flashcard_decks.new(deck_params.merge(created_by: current_user))
     if @deck.save
       if (src = params[:source_text].to_s.strip).present?
-        return unless require_credits!(3)
+        return unless require_credits!(:flashcard_generate)
         @deck.update!(ai_generating: true)
         GenerateFlashcardsJob.perform_later(@deck.id, src.truncate(8000), 15, current_user.id)
         redirect_to flashcard_deck_path(@deck), notice: "Bộ thẻ đã tạo — AI đang sinh thẻ từ tài liệu..."
@@ -58,7 +58,7 @@ class Admin::FlashcardDecksController < Admin::BaseController
   end
 
   def ai_generate
-    require_credits!(3)
+    require_credits!(:flashcard_generate)
     topic = params[:topic].to_s.strip.presence || @deck.title
     count = params[:count].to_i.clamp(5, 30)
     @deck.update!(ai_generating: true)
@@ -79,7 +79,7 @@ class Admin::FlashcardDecksController < Admin::BaseController
     return render json: { error: "Không có thẻ nào" }, status: :unprocessable_entity if @deck.flashcards.empty?
     return render json: { error: "Đang xử lý" }, status: :unprocessable_entity if @deck.image_generating?
 
-    require_credits!(5)
+    require_credits!(:flashcard_images)
     @deck.update!(image_generating: true)
     GenerateFlashcardImagesJob.perform_later(@deck.id, current_user.id)
 

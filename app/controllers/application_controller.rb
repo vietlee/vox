@@ -81,7 +81,10 @@ class ApplicationController < ActionController::Base
     true
   end
 
+  # Accepts either a raw Integer or a CreditCost key (Symbol), so call sites can
+  # reference the single pricing source: require_credits!(:quiz_generate).
   def require_credits!(amount)
+    amount = CreditCost[amount] if amount.is_a?(Symbol)
     subscription = current_workspace&.credit_subscription
     if subscription.nil? || subscription.credit_balance < amount
       respond_to do |format|
@@ -93,6 +96,12 @@ class ApplicationController < ActionController::Base
       return false
     end
     true
+  end
+
+  # Charge the workspace's billing subscription for an action, priced from the
+  # single CreditCost source. Pass a CreditCost key: charge_credits!(:quiz_generate).
+  def charge_credits!(cost_key)
+    current_workspace&.credit_subscription&.deduct_credits!(CreditCost[cost_key])
   end
 
   # Returns template_id from session if it was stored within the last 30 minutes,

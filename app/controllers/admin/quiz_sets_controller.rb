@@ -21,7 +21,7 @@ class Admin::QuizSetsController < Admin::BaseController
     @quiz_set.user = current_user
     if @quiz_set.save
       if (src = params[:source_text].to_s.strip).present?
-        return unless require_credits!(5)
+        return unless require_credits!(:quiz_generate)
         GenerateQuizQuestionsJob.perform_later(@quiz_set.id, src.truncate(12000), 10, nil)
         redirect_to edit_quiz_set_path(@quiz_set), notice: "Bộ đề đã tạo — AI đang sinh câu hỏi từ tài liệu..."
       else
@@ -85,7 +85,7 @@ class Admin::QuizSetsController < Admin::BaseController
       return render json: { html: attempt.ai_evaluation, cached: true, evaluated_at: attempt.ai_evaluated_at }
     end
 
-    return unless require_credits!(2)
+    return unless require_credits!(:quiz_eval_student)
 
     questions    = @quiz_set.quiz_questions.includes(:quiz_options)
     answers_by_q = attempt.quiz_attempt_answers.includes(:quiz_option).group_by(&:quiz_question_id)
@@ -141,7 +141,7 @@ class Admin::QuizSetsController < Admin::BaseController
     )
 
     html = markdown_to_html(result)
-    workspace_billing_subscription&.deduct_credits!(2)
+    charge_credits!(:quiz_eval_student)
     attempt.update_columns(ai_evaluation: html, ai_evaluated_at: Time.current)
 
     render json: { html: html, cached: false, evaluated_at: Time.current }
@@ -160,7 +160,7 @@ class Admin::QuizSetsController < Admin::BaseController
       return render json: { html: @quiz_set.ai_class_evaluation, cached: true, evaluated_at: @quiz_set.ai_class_evaluated_at }
     end
 
-    return unless require_credits!(3)
+    return unless require_credits!(:quiz_eval_class)
 
     avg       = attempts.sum(&:score_pct).to_f / attempts.count
     passed    = attempts.select(&:passed?).count
@@ -206,7 +206,7 @@ class Admin::QuizSetsController < Admin::BaseController
       max_tokens:    1200
     )
     html = markdown_to_html(result)
-    workspace_billing_subscription&.deduct_credits!(3)
+    charge_credits!(:quiz_eval_class)
     @quiz_set.update_columns(ai_class_evaluation: html, ai_class_evaluated_at: Time.current)
     render json: { html: html, cached: false, evaluated_at: Time.current }
   rescue => e
@@ -225,7 +225,7 @@ class Admin::QuizSetsController < Admin::BaseController
   def ai_generate
     request.format = :json
     @quiz_set = current_workspace.quiz_sets.find(params[:id])
-    return unless require_credits!(5)
+    return unless require_credits!(:quiz_generate)
 
     uploaded_files = Array(params[:files]).compact.select { |f| f.respond_to?(:read) }
     # Fallback: support old single-file param
@@ -324,7 +324,7 @@ class Admin::QuizSetsController < Admin::BaseController
       return render json: { grade: answer.ai_grade, feedback: answer.ai_feedback, cached: true }
     end
 
-    return unless require_credits!(1)
+    return unless require_credits!(:quiz_grade_essay)
 
     student_answer = answer.text_answer.to_s.strip
     if student_answer.blank?
@@ -355,7 +355,7 @@ class Admin::QuizSetsController < Admin::BaseController
     grade    = [data["grade"].to_i, max_pts].min
     feedback = data["feedback"].to_s
 
-    workspace_billing_subscription&.deduct_credits!(1)
+    charge_credits!(:quiz_grade_essay)
     answer.update_columns(ai_grade: grade, ai_feedback: feedback, ai_graded_at: Time.current)
 
     render json: { grade: grade, feedback: feedback, max_points: max_pts, cached: false }

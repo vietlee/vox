@@ -30,7 +30,7 @@ class Admin::LearningPathItemsController < Admin::BaseController
   def ai_content
     item = @path.learning_path_items.find(params[:id])
     return render json: { error: "Chỉ dùng cho bài học" }, status: :unprocessable_entity unless item.lesson?
-    return unless require_credits!(2)
+    return unless require_credits!(:lp_item_content)
 
     subject = @path.subject.presence || @path.title
     prompt = <<~PROMPT
@@ -48,7 +48,7 @@ class Admin::LearningPathItemsController < Admin::BaseController
 
     svc = ClaudeService.new(model: ClaudeService::HAIKU_MODEL)
     content = svc.call(system_prompt: "Bạn là chuyên gia viết tài liệu học tập. Viết nội dung súc tích, tự nhiên, đúng trọng tâm.", user_prompt: prompt, max_tokens: 1500)
-    workspace_billing_subscription&.deduct_credits!(2)
+    charge_credits!(:lp_item_content)
     html = MarkdownRenderer.render(content)
     render json: { content: content, html: html }
   rescue => e
@@ -58,7 +58,7 @@ class Admin::LearningPathItemsController < Admin::BaseController
   def ai_create_quiz
     item = @path.learning_path_items.find(params[:id])
     return render json: { error: "Chỉ dùng cho bài kiểm tra" }, status: :unprocessable_entity unless item.quiz?
-    return unless require_credits!(5)
+    return unless require_credits!(:lp_item_quiz)
 
     subject = @path.subject.presence || @path.title
     quiz_set = current_workspace.quiz_sets.create!(
@@ -81,7 +81,7 @@ class Admin::LearningPathItemsController < Admin::BaseController
   def ai_create_flashcard
     item = @path.learning_path_items.find(params[:id])
     return render json: { error: "Chỉ dùng cho thẻ ghi nhớ" }, status: :unprocessable_entity unless item.flashcard?
-    return unless require_credits!(3)
+    return unless require_credits!(:lp_item_flashcard)
 
     subject = @path.subject.presence || @path.title
     deck = current_workspace.flashcard_decks.create!(

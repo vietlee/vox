@@ -119,7 +119,7 @@ class GenerateDocumentSummaryJob < ApplicationJob
     json_str = cleaned.match(/\{.*\}/m)&.to_s || cleaned
     data     = JSON.parse(json_str)
 
-    summary.workspace.credit_subscription&.deduct_credits!(2)
+    summary.workspace.credit_subscription&.deduct_credits!(CreditCost[:document_summary])
     summary.update!(
       summary:    data["summary"],
       key_points: data["key_points"].to_json,

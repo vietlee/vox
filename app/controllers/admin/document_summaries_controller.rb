@@ -8,7 +8,7 @@ class Admin::DocumentSummariesController < Admin::BaseController
   def new; @summary = DocumentSummary.new; end
 
   def create
-    return unless require_credits!(2)
+    return unless require_credits!(:document_summary)
 
     @summary = current_workspace.document_summaries.new(
       title:        params[:title].to_s.strip,

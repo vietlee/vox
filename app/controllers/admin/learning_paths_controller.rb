@@ -56,7 +56,7 @@ class Admin::LearningPathsController < Admin::BaseController
   end
 
   def ai_generate
-    require_credits!(5)
+    require_credits!(:learning_path_generate)
     prompt = params[:prompt].to_s.strip
 
     @learning_path.update!(ai_generating: true)
@@ -122,11 +122,11 @@ class Admin::LearningPathsController < Admin::BaseController
       Viết súc tích, khách quan, bằng tiếng Việt. Không dùng LaTeX.
     PROMPT
 
-    return unless require_credits!(3)
+    return unless require_credits!(:learning_path_eval)
     svc    = ClaudeService.for_feature("learning_path_eval", timeout: 120)
     result = svc.call(system_prompt: "Bạn là chuyên gia phân tích kết quả học tập. Trả lời bằng tiếng Việt, dùng markdown.", user_prompt: prompt, max_tokens: 1200)
     html   = markdown_to_html(result)
-    workspace_billing_subscription&.deduct_credits!(3)
+    charge_credits!(:learning_path_eval)
     render json: { html: html }
   end
 

@@ -55,11 +55,11 @@ class Admin::LearningPathAssignmentsController < Admin::BaseController
       Viết thân thiện, khích lệ, cá nhân hóa với tên học viên. Bằng tiếng Việt. Không dùng LaTeX.
     PROMPT
 
-    return unless require_credits!(2)
+    return unless require_credits!(:lp_assignment_eval)
     svc    = ClaudeService.for_feature("learning_path_eval", timeout: 120)
     result = svc.call(system_prompt: "Bạn là chuyên gia đánh giá học tập. Viết nhận xét cá nhân, thân thiện bằng tiếng Việt, dùng markdown.", user_prompt: prompt, max_tokens: 900)
     html   = markdown_to_html(result)
-    workspace_billing_subscription&.deduct_credits!(2)
+    charge_credits!(:lp_assignment_eval)
     @assignment.update_columns(ai_feedback: html, ai_feedback_at: Time.current)
     render json: { html: html }
   end

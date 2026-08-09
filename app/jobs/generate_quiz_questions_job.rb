@@ -36,7 +36,7 @@ class GenerateQuizQuestionsJob < ApplicationJob
     raise "No questions found in AI response" if questions.blank?
 
     ActiveRecord::Base.transaction do
-      quiz_set.workspace.credit_subscription&.deduct_credits!(5)
+      quiz_set.workspace.credit_subscription&.deduct_credits!(CreditCost[:quiz_generate])
       quiz_set.update!(source_type: :ai_generated, ai_generating: false, ai_failed: false)
       questions.each_with_index do |q, idx|
         qtype = q[:question_type]&.to_sym == :essay ? :essay : :multiple_choice

@@ -41,7 +41,7 @@ class GenerateFlashcardsJob < ApplicationJob
     end
 
     # Deduct credits after successful card creation
-    deck.workspace.credit_subscription&.deduct_credits!(3)
+    deck.workspace.credit_subscription&.deduct_credits!(CreditCost[:flashcard_generate])
 
     deck.update_column(:ai_generating, false)
     Rails.logger.info "[GenerateFlashcardsJob] deck #{deck_id} done with #{created_cards.size} cards"

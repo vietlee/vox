@@ -2,14 +2,14 @@ class Admin::AiController < Admin::BaseController
   include ActionController::Live
   def generate_survey
     return unless require_ai_feature!(:ai_survey_builder)
-    return unless require_credits!(5)
+    return unless require_credits!(:survey_builder)
 
-    workspace_billing_subscription&.deduct_credits!(5)
+    charge_credits!(:survey_builder)
     job = AiJob.create!(
       workspace: current_workspace,
       user: current_user,
       job_type: "survey_builder",
-      credits_cost: 5,
+      credits_cost: CreditCost[:survey_builder],
       input_data: { prompt: params[:prompt], language: current_workspace.language }
     )
     AiSurveyBuilderJob.perform_later(job.id)
@@ -18,14 +18,14 @@ class Admin::AiController < Admin::BaseController
 
   def check_question
     return unless require_ai_feature!(:ai_survey_builder)
-    return unless require_credits!(1)
+    return unless require_credits!(:question_checker)
 
-    workspace_billing_subscription&.deduct_credits!(1)
+    charge_credits!(:question_checker)
     job = AiJob.create!(
       workspace: current_workspace,
       user: current_user,
       job_type: "question_checker",
-      credits_cost: 1,
+      credits_cost: CreditCost[:question_checker],
       input_data: { question_text: params[:question_text], language: current_workspace.language }
     )
     AiQuestionCheckerJob.perform_later(job.id)
@@ -34,22 +34,22 @@ class Admin::AiController < Admin::BaseController
 
   def analyze_survey
     return unless require_ai_feature!(:ai_analysis)
-    return unless require_credits!(5)
+    return unless require_credits!(:survey_analysis)
 
     survey = current_workspace.surveys.find(params[:survey_id])
-    workspace_billing_subscription&.deduct_credits!(5)
-    job = AiJob.create!(workspace: current_workspace, user: current_user, job_type: "survey_analysis", resource_type: "Survey", resource_id: survey.id, credits_cost: 5)
+    charge_credits!(:survey_analysis)
+    job = AiJob.create!(workspace: current_workspace, user: current_user, job_type: "survey_analysis", resource_type: "Survey", resource_id: survey.id, credits_cost: CreditCost[:survey_analysis])
     AiSurveyAnalysisJob.perform_later(job.id)
     render json: { job_id: job.id }
   end
 
   def generate_report
     return unless require_ai_feature!(:ai_executive_report)
-    return unless require_credits!(15)
+    return unless require_credits!(:executive_report)
 
     survey = current_workspace.surveys.find(params[:survey_id])
-    workspace_billing_subscription&.deduct_credits!(15)
-    job = AiJob.create!(workspace: current_workspace, user: current_user, job_type: "executive_report", resource_type: "Survey", resource_id: survey.id, credits_cost: 15, input_data: { language: params[:language] || "vi" })
+    charge_credits!(:executive_report)
+    job = AiJob.create!(workspace: current_workspace, user: current_user, job_type: "executive_report", resource_type: "Survey", resource_id: survey.id, credits_cost: CreditCost[:executive_report], input_data: { language: params[:language] || "vi" })
     AiExecutiveReportJob.perform_later(job.id)
     render json: { job_id: job.id }
   end
@@ -60,10 +60,10 @@ class Admin::AiController < Admin::BaseController
 
   def chat
     return unless require_ai_feature!(:ai_chat)
-    return unless require_credits!(2)
+    return unless require_credits!(:ai_chat)
 
-    workspace_billing_subscription&.deduct_credits!(2)
-    job = AiJob.create!(workspace: current_workspace, user: current_user, job_type: "ai_chat", credits_cost: 2, input_data: { message: params[:message], conversation_history: params[:history] || [] })
+    charge_credits!(:ai_chat)
+    job = AiJob.create!(workspace: current_workspace, user: current_user, job_type: "ai_chat", credits_cost: CreditCost[:ai_chat], input_data: { message: params[:message], conversation_history: params[:history] || [] })
     AiChatJob.perform_later(job.id)
     render json: { job_id: job.id }
   end
@@ -87,7 +87,7 @@ class Admin::AiController < Admin::BaseController
   end
 
   def tutor
-    return unless require_credits!(1)
+    return unless require_credits!(:tutor)
     message    = params[:message].to_s.strip
     history    = params[:history] || []
     voice_mode = params[:voice_mode] == 'true'
@@ -136,7 +136,7 @@ class Admin::AiController < Admin::BaseController
     end
 
     result = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: max_tokens)
-    workspace_billing_subscription&.deduct_credits!(1)
+    charge_credits!(:tutor)
     render json: { response: result }
   rescue => e
     Rails.logger.error "[AI Tutor] #{e.class}: #{e.message}"
@@ -146,7 +146,7 @@ class Admin::AiController < Admin::BaseController
   # Streaming voice-mode tutor — streams text chunks directly so client can start
   # TTS on the first sentence without waiting for the full response.
   def tutor_voice
-    return unless require_credits!(1)
+    return unless require_credits!(:tutor_voice)
     message      = params[:message].to_s.strip
     history      = params[:history] || []
     context_text = resolve_tutor_content(params[:context_type], params[:context_id])
@@ -171,7 +171,7 @@ class Admin::AiController < Admin::BaseController
     svc.stream_call(system_prompt: system_prompt, messages: messages, max_tokens: 200) do |chunk|
       response.stream.write(chunk)
     end
-    workspace_billing_subscription&.deduct_credits!(1)
+    charge_credits!(:tutor_voice)
   rescue => e
     Rails.logger.error "[AI Tutor Voice] #{e.class}: #{e.message}"
   ensure
@@ -180,7 +180,7 @@ class Admin::AiController < Admin::BaseController
 
   # AI Writing assistant — sửa lỗi và cải thiện văn bản
   def writing
-    return unless require_credits!(1)
+    return unless require_credits!(:writing)
     text   = params[:text].to_s.strip
     action = params[:action_type].to_s  # 'correct', 'improve', 'summarize', 'rewrite'
 
@@ -192,7 +192,7 @@ class Admin::AiController < Admin::BaseController
     }
     instruction = instructions[action] || instructions["correct"]
 
-    workspace_billing_subscription&.deduct_credits!(1)
+    charge_credits!(:writing)
     result = ClaudeService.for_feature("ai_chat").call(
       system_prompt: "Bạn là trợ lý viết văn bản chuyên nghiệp. #{instruction} Trả lời bằng tiếng Việt với markdown.",
       user_prompt: "Văn bản cần xử lý:\n\n#{text.truncate(5000)}",
