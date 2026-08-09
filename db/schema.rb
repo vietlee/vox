@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_31_130000) do
+ActiveRecord::Schema[7.2].define(version: 2026_08_09_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -152,6 +152,30 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_31_130000) do
     t.index ["created_at"], name: "index_audit_logs_on_created_at"
     t.index ["user_id"], name: "index_audit_logs_on_user_id"
     t.index ["workspace_id"], name: "index_audit_logs_on_workspace_id"
+  end
+
+  create_table "class_chat_messages", force: :cascade do |t|
+    t.bigint "learner_folder_id", null: false
+    t.string "sender_type", null: false
+    t.bigint "sender_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_folder_id", "created_at"], name: "index_class_chat_messages_on_learner_folder_id_and_created_at"
+    t.index ["learner_folder_id"], name: "index_class_chat_messages_on_learner_folder_id"
+    t.index ["sender_type", "sender_id"], name: "index_class_chat_messages_on_sender"
+  end
+
+  create_table "class_chat_reads", force: :cascade do |t|
+    t.bigint "learner_folder_id", null: false
+    t.string "member_type", null: false
+    t.bigint "member_id", null: false
+    t.datetime "last_read_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_folder_id", "member_type", "member_id"], name: "idx_class_chat_reads_unique", unique: true
+    t.index ["learner_folder_id"], name: "index_class_chat_reads_on_learner_folder_id"
+    t.index ["member_type", "member_id"], name: "index_class_chat_reads_on_member"
   end
 
   create_table "content_outlines", force: :cascade do |t|
@@ -442,6 +466,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_31_130000) do
     t.index ["workspace_id"], name: "index_learner_folders_on_workspace_id"
   end
 
+  create_table "learner_iap_purchases", force: :cascade do |t|
+    t.bigint "learner_id", null: false
+    t.string "platform", default: "apple", null: false
+    t.string "product_id", null: false
+    t.string "transaction_id", null: false
+    t.integer "credits", default: 0, null: false
+    t.string "status", default: "granted", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_id"], name: "index_learner_iap_purchases_on_learner_id"
+    t.index ["platform", "transaction_id"], name: "index_learner_iap_purchases_on_platform_and_transaction_id", unique: true
+  end
+
   create_table "learner_mission_claims", force: :cascade do |t|
     t.bigint "learner_id", null: false
     t.string "mission_key", null: false
@@ -507,8 +544,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_31_130000) do
     t.integer "position", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "thumbnail_data"
+    t.string "thumbnail_token"
     t.index ["learner_id", "position"], name: "index_learner_saved_links_on_learner_id_and_position"
     t.index ["learner_id"], name: "index_learner_saved_links_on_learner_id"
+    t.index ["thumbnail_token"], name: "index_learner_saved_links_on_thumbnail_token", unique: true
   end
 
   create_table "learner_speaking_sessions", force: :cascade do |t|
@@ -1162,6 +1202,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_31_130000) do
   add_foreign_key "answers", "responses"
   add_foreign_key "audit_logs", "users"
   add_foreign_key "audit_logs", "workspaces"
+  add_foreign_key "class_chat_messages", "learner_folders"
+  add_foreign_key "class_chat_reads", "learner_folders"
   add_foreign_key "content_outlines", "users", column: "created_by_id"
   add_foreign_key "content_outlines", "workspaces"
   add_foreign_key "document_summaries", "users", column: "created_by_id"
@@ -1191,6 +1233,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_31_130000) do
   add_foreign_key "learner_folder_members", "learners"
   add_foreign_key "learner_folders", "users", column: "created_by_id"
   add_foreign_key "learner_folders", "workspaces"
+  add_foreign_key "learner_iap_purchases", "learners"
   add_foreign_key "learner_notifications", "learners"
   add_foreign_key "learner_payments", "learners"
   add_foreign_key "learner_push_subscriptions", "learners"

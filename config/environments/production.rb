@@ -33,10 +33,13 @@ Rails.application.configure do
   # Store uploaded files on DigitalOcean Spaces (S3-compatible).
   config.active_storage.service = :spaces
 
-  # Mount Action Cable outside main process or domain.
-  # config.action_cable.mount_path = nil
-  # config.action_cable.url = "wss://example.com/cable"
-  # config.action_cable.allowed_request_origins = [ "http://example.com", /http:\/\/example.*/ ]
+  # Action Cable — served in-process at /cable (nginx proxies the WebSocket).
+  # Used by the class group chat on both the web admin and the Vox Learner app.
+  # The app sets Origin: https://vox.czin.net on its handshake so this passes.
+  config.action_cable.url = "wss://#{ENV.fetch("APP_HOST", "vox.czin.net")}/cable"
+  config.action_cable.allowed_request_origins = [
+    "https://#{ENV.fetch("APP_HOST", "vox.czin.net")}"
+  ]
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   # Can be used together with config.force_ssl for Strict-Transport-Security and secure cookies.

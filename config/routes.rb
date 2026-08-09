@@ -334,6 +334,10 @@ Rails.application.routes.draw do
         delete :remove_learner
         get    :template
         post   :import
+        # Class group chat (teacher side)
+        get    :chat_messages
+        post   :chat_send
+        post   :chat_read
       end
     end
     get  'workspace_learners', to: 'learner_folders#workspace_learners_json', as: :workspace_learners
@@ -536,6 +540,12 @@ Rails.application.routes.draw do
         get    'invite/:token',        to: 'invitations#show'
         post   'invite/:token/accept', to: 'invitations#accept'
         get    'referrals',    to: 'referrals#show'
+
+        # Class group chats
+        get  'class_chats',              to: 'class_chats#index'
+        get  'class_chats/:id/messages', to: 'class_chats#messages'
+        post 'class_chats/:id/messages', to: 'class_chats#create'
+        post 'class_chats/:id/read',     to: 'class_chats#mark_read'
 
         get  'dashboard',                     to: 'dashboard#index'
         get  'suggestion/fetch',              to: 'suggestion#fetch'

@@ -38,6 +38,11 @@
           style="border-bottom:2px solid transparent;color:#64748b;font-weight:600;">
     👥 Học viên (<%= @class_stats[:total] %>)
   </button>
+  <button id="tab-btn-chat" onclick="switchTab('chat')"
+          class="px-4 py-2.5 text-[13px] rounded-t-xl -mb-px transition-colors"
+          style="border-bottom:2px solid transparent;color:#64748b;font-weight:600;">
+    💬 Chat lớp
+  </button>
 </div>
 
 <!-- ═══════════ TAB: DASHBOARD ═══════════ -->
@@ -414,6 +419,33 @@
 
 </div><%# end tab-learners %>
 
+<!-- ═══════════ TAB: CHAT ═══════════ -->
+<div id="tab-chat" style="display:none">
+  <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col" style="height:min(70vh,620px);"
+       data-folder-id="<%= @folder.id %>"
+       data-messages-url="<%= chat_messages_learner_folder_path(@folder) %>"
+       data-send-url="<%= chat_send_learner_folder_path(@folder) %>"
+       id="class-chat">
+    <div class="px-4 py-3 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
+      <span class="text-[14px] font-bold text-slate-800">💬 <%= @folder.name %></span>
+      <span class="text-[12px] text-slate-400"><%= @class_stats[:total] %> học viên</span>
+      <span id="chat-conn" class="ml-auto text-[11px] font-semibold text-slate-400">Đang kết nối…</span>
+    </div>
+    <div id="chat-messages" class="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50/40">
+      <p class="text-center text-[13px] text-slate-400 py-8">Đang tải tin nhắn…</p>
+    </div>
+    <form id="chat-form" class="flex items-end gap-2 p-3 border-t border-slate-100 bg-white">
+      <textarea id="chat-input" rows="1" placeholder="Nhắn cho cả lớp…"
+                class="flex-1 resize-none px-3.5 py-2.5 text-[14px] border border-slate-200 rounded-xl focus:outline-none focus:border-[#1e3a5f]"
+                style="max-height:120px;"></textarea>
+      <button type="submit"
+              class="px-4 py-2.5 text-[13px] font-bold bg-[#1e3a5f] hover:bg-[#16304f] text-white rounded-xl transition-colors shrink-0">
+        Gửi
+      </button>
+    </form>
+  </div>
+</div><%# end tab-chat %>
+
 <!-- Add learner modal -->
 <div id="add-learner-modal" style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);"
      onclick="if(event.target===this)this.style.display='none'">
@@ -506,7 +538,8 @@
 
 <script>
 function switchTab(name) {
-  ['dashboard','learners'].forEach(function(t) {
+  if (name === 'chat' && window.__initClassChat) window.__initClassChat();
+  ['dashboard','learners','chat'].forEach(function(t) {
     var panel = document.getElementById('tab-' + t);
     var btn   = document.getElementById('tab-btn-' + t);
     if (!panel || !btn) return;
@@ -619,4 +652,109 @@ function confirmRemoveLearner(url, email) {
 function submitRemoveLearner() {
   document.getElementById('remove-learner-form').submit();
 }
+</script>
+
+<script type="module">
+import { createConsumer } from "@rails/actioncable";
+
+// Lazily initialise the class chat the first time its tab is opened.
+window.__initClassChat = (function () {
+  let started = false;
+  return function () {
+    if (started) return;
+    started = true;
+
+    const root     = document.getElementById('class-chat');
+    const box      = document.getElementById('chat-messages');
+    const form     = document.getElementById('chat-form');
+    const input    = document.getElementById('chat-input');
+    const connEl   = document.getElementById('chat-conn');
+    const folderId = root.dataset.folderId;
+    const csrf     = document.querySelector('meta[name="csrf-token"]')?.content;
+    let me = null;
+    const seen = new Set();
+
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
+    const atBottom = () => box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    const scrollDown = () => { box.scrollTop = box.scrollHeight; };
+
+    function bubble(m) {
+      const mine = me && m.sender_type === me.type && String(m.sender_id) === String(me.id);
+      const time = new Date(m.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      const roleTag = m.sender_role === 'teacher'
+        ? '<span style="font-size:10px;font-weight:700;color:#1e3a5f;background:#e0ecf7;padding:1px 6px;border-radius:6px;">GV</span>'
+        : '';
+      const align = mine ? 'align-items:flex-end;' : 'align-items:flex-start;';
+      const bg    = mine ? 'background:#1e3a5f;color:#fff;' : 'background:#fff;color:#0f172a;border:1px solid #e2e8f0;';
+      return `<div style="display:flex;flex-direction:column;${align}">
+        <div style="font-size:11px;color:#94a3b8;margin:0 4px 2px;">${esc(m.sender_name)} ${roleTag} · ${time}</div>
+        <div style="max-width:78%;padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word;${bg}">${esc(m.body)}</div>
+      </div>`;
+    }
+
+    function append(m, keepBottom) {
+      if (seen.has(m.id)) return;
+      seen.add(m.id);
+      const wants = keepBottom && atBottom();
+      box.insertAdjacentHTML('beforeend', bubble(m));
+      if (wants) scrollDown();
+    }
+
+    // Initial load.
+    fetch(root.dataset.messagesUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+      .then((r) => r.json())
+      .then((data) => {
+        me = data.me;
+        box.innerHTML = '';
+        if (!data.messages.length) {
+          box.innerHTML = '<p class="text-center text-[13px] text-slate-400 py-8">Chưa có tin nhắn. Hãy gửi lời chào đầu tiên 👋</p>';
+        }
+        data.messages.forEach((m) => append(m, false));
+        scrollDown();
+      })
+      .catch(() => { box.innerHTML = '<p class="text-center text-[13px] text-red-400 py-8">Không tải được tin nhắn.</p>'; });
+
+    // Real-time subscription.
+    const consumer = createConsumer();
+    consumer.subscriptions.create({ channel: 'ClassChatChannel', folder_id: folderId }, {
+      connected()    { connEl.textContent = '● Trực tuyến'; connEl.style.color = '#16a34a'; },
+      disconnected() { connEl.textContent = '○ Mất kết nối'; connEl.style.color = '#f59e0b'; },
+      rejected()     { connEl.textContent = 'Không có quyền'; connEl.style.color = '#dc2626'; },
+      received(data) {
+        if (data.type === 'new_message') {
+          const first = box.querySelector('p');
+          if (first) first.remove();
+          append(data.message, true);
+        }
+      },
+    });
+
+    // Send.
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const body = input.value.trim();
+      if (!body) return;
+      input.value = '';
+      input.style.height = 'auto';
+      fetch(root.dataset.sendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': csrf },
+        credentials: 'same-origin',
+        body: JSON.stringify({ body }),
+      })
+        .then((r) => r.json())
+        .then((data) => { if (data.message) append(data.message, true); }) // echo instantly; broadcast is de-duped by id
+        .catch(() => {});
+    });
+
+    // Enter to send, Shift+Enter for newline; auto-grow.
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+    });
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    });
+  };
+})();
 </script>

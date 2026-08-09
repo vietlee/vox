@@ -14,6 +14,9 @@ class Learner < ApplicationRecord
   has_many :learner_saved_links,         dependent: :destroy
   has_many :learner_mission_claims,      dependent: :destroy
   has_many :learner_iap_purchases,       dependent: :destroy
+  has_many :learner_folder_members,      dependent: :destroy
+  has_many :learner_folders,             through: :learner_folder_members
+  has_many :sent_class_chat_messages,    as: :sender, class_name: "ClassChatMessage", dependent: :destroy
   has_many :flashcard_reviews,           dependent: :destroy, foreign_key: :learner_id
   has_many :quiz_assignments,           dependent: :destroy
   has_many :flashcard_assignments,      dependent: :destroy

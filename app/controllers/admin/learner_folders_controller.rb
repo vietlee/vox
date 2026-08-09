@@ -2,7 +2,7 @@ require "axlsx"
 require "roo"
 
 class Admin::LearnerFoldersController < Admin::BaseController
-  before_action :set_folder, only: [:show, :edit, :update, :destroy, :add_learner, :remove_learner, :template, :import]
+  before_action :set_folder, only: [:show, :edit, :update, :destroy, :add_learner, :remove_learner, :template, :import, :chat_messages, :chat_send, :chat_read]
 
   def index
     @folders = current_workspace.learner_folders.includes(:created_by).order(created_at: :desc)
@@ -371,6 +371,31 @@ class Admin::LearnerFoldersController < Admin::BaseController
         { id: l.id, name: l.name, email: l.email }
       }
     }
+  end
+
+  # ── Class group chat (teacher side) ──────────────────────────────────
+  def chat_messages
+    msgs = @folder.class_chat_messages.order(created_at: :asc).last(200)
+    ClassChatRead.touch_for!(@folder, current_user)
+    render json: {
+      messages: msgs.map(&:as_chat_json),
+      me: { type: "User", id: current_user.id, name: current_user.name }
+    }
+  end
+
+  def chat_send
+    body = params[:body].to_s.strip
+    if body.blank?
+      return render json: { error: "Tin nhắn trống." }, status: :unprocessable_entity
+    end
+    msg = @folder.class_chat_messages.create!(sender: current_user, body: body)
+    ClassChatRead.touch_for!(@folder, current_user)
+    render json: { message: msg.as_chat_json }
+  end
+
+  def chat_read
+    ClassChatRead.touch_for!(@folder, current_user)
+    render json: { ok: true }
   end
 
   private
