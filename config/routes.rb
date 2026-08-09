@@ -14,6 +14,11 @@ Rails.application.routes.draw do
   get "privacy", to: "pages#privacy", as: :privacy
   get "terms",   to: "pages#terms",   as: :terms
 
+  # Deep-link association files (iOS Universal Links / Android App Links).
+  # Let an https://vox.czin.net/learn/invite/... link open the native app.
+  get ".well-known/apple-app-site-association", to: "well_known#apple_app_site_association"
+  get ".well-known/assetlinks.json",            to: "well_known#assetlinks"
+
   # Public template library
   resources :templates, only: [:index, :show] do
     member do
@@ -528,6 +533,8 @@ Rails.application.routes.draw do
         delete 'session',      to: 'sessions#destroy'
         get    'session/me',   to: 'sessions#me'
         post   'registration', to: 'registrations#create'
+        get    'invite/:token',        to: 'invitations#show'
+        post   'invite/:token/accept', to: 'invitations#accept'
         get    'referrals',    to: 'referrals#show'
 
         get  'dashboard',                     to: 'dashboard#index'
