@@ -170,12 +170,23 @@ const STORAGE_KEY = "vox_chat_<%= current_workspace.id %>_<%= current_user.id %>
 
 let conversationHistory = [];
 
+// One chat "session" = one conversation. Credits are charged once per session
+// (server-side), so we keep a stable id for the whole conversation and only
+// rotate it when the user starts a new chat.
+function newSessionId() {
+  return (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : 's-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+}
+let sessionId = newSessionId();
+
 // ── Persistence helpers ───────────────────────────────────────────────────────
 function saveChat() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      history: conversationHistory,
-      html:    document.getElementById('chat-messages').innerHTML
+      history:    conversationHistory,
+      html:       document.getElementById('chat-messages').innerHTML,
+      session_id: sessionId
     }));
   } catch(e) {}
 }
@@ -185,6 +196,7 @@ function restoreChat() {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
     if (!saved || !saved.history?.length) return;
     conversationHistory = saved.history;
+    if (saved.session_id) sessionId = saved.session_id; // keep same session → no re-charge
     document.getElementById('chat-messages').innerHTML = saved.html;
     // scroll to bottom
     const el = document.getElementById('chat-messages');
@@ -240,6 +252,7 @@ function closeClearConfirm() {
 function doClearChat() {
   closeClearConfirm();
   conversationHistory = [];
+  sessionId = newSessionId(); // next message starts (and is charged as) a new session
   localStorage.removeItem(STORAGE_KEY);
   const messages = document.getElementById('chat-messages');
   while (messages.children.length > 1) messages.removeChild(messages.lastChild);
@@ -321,7 +334,7 @@ async function sendMessage() {
     const res = await fetch(CHAT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF, 'Accept': 'application/json' },
-      body: JSON.stringify({ message: msg, history: conversationHistory.slice(-10) })
+      body: JSON.stringify({ message: msg, history: conversationHistory.slice(-10), session_id: sessionId })
     });
 
     if (!res.ok) {

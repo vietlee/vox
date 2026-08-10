@@ -14,7 +14,7 @@ module CreditCost
     question_checker:       1,  # ai#check_question
     survey_analysis:        5,  # ai#analyze_survey
     executive_report:      15,  # ai#generate_report
-    ai_chat:                2,  # ai#chat
+    ai_chat:                2,  # ai#chat — charged once per conversation session
     survey_suggest_prompt:  3,  # surveys#ai_suggest_prompt
     feedback_summarize:     3,  # feedback_boards#ai_summarize
     moderation:             1,  # AiModerationJob
