@@ -186,6 +186,20 @@ try {
   if (saved) chatHistory = JSON.parse(saved);
 } catch(e) { chatHistory = []; }
 
+// One tutor "session" = one conversation. Credits are charged once per session
+// (server-side, shared by text + voice); keep a stable id and only rotate it
+// when the user clears history.
+function newTutorSession() {
+  return (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : 't-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+}
+let tutorSessionId = chatHistory.length
+  ? (localStorage.getItem(STORAGE_KEY + '_sid') || newTutorSession())
+  : newTutorSession();
+localStorage.setItem(STORAGE_KEY + '_sid', tutorSessionId);
+let tutorEverCharged = chatHistory.length > 0; // existing conversation already paid
+
 // Render lại lịch sử khi tải trang
 (function restoreHistory() {
   if (!chatHistory.length) return;
@@ -205,6 +219,9 @@ function saveHistory() {
 
 function clearHistory() {
   chatHistory = [];
+  tutorSessionId = newTutorSession(); // next message starts (and is charged as) a new session
+  localStorage.setItem(STORAGE_KEY + '_sid', tutorSessionId);
+  tutorEverCharged = false;
   localStorage.removeItem(STORAGE_KEY);
   document.getElementById('chat-messages').innerHTML = '';
 }
@@ -295,7 +312,7 @@ async function sendMsg() {
     const res = await fetch('<%= ai_tutor_path %>', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf() },
-      body: JSON.stringify({ message: payloadMsg, history: chatHistory.slice(0,-1), context_type: contextType, context_id: contextId })
+      body: JSON.stringify({ message: payloadMsg, history: chatHistory.slice(0,-1), context_type: contextType, context_id: contextId, session_id: tutorSessionId })
     });
     const data = await res.json();
     const reply = data.response || data.error || 'Lỗi không xác định';
@@ -303,7 +320,9 @@ async function sendMsg() {
     if (data.response) {
       chatHistory.push({ role: 'assistant', content: data.response });
       saveHistory();
-      if (typeof window.deductDisplayCredits === 'function') window.deductDisplayCredits(1);
+      // Charged once per session — only decrement the display on the first message.
+      if (data.charged && typeof window.deductDisplayCredits === 'function') window.deductDisplayCredits(1);
+      tutorEverCharged = true;
       if (_autoSpeak) speakText(data.response);
       addSpeakButton(thinkingEl, data.response);
     }
@@ -778,7 +797,7 @@ async function vcProcessAndReply() {
     vcRes = await fetch('<%= ai_tutor_voice_path %>', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf() },
-      body: JSON.stringify({ message: userText, history: chatHistory.slice(0,-1), context_type: contextType, context_id: contextId, voice_language: _vcVoiceLang })
+      body: JSON.stringify({ message: userText, history: chatHistory.slice(0,-1), context_type: contextType, context_id: contextId, voice_language: _vcVoiceLang, session_id: tutorSessionId })
     });
   } catch(e) { thinkEl.innerHTML = '<span class="text-red-500">Lỗi kết nối.</span>'; if (_vcActive) vcStartListening(); return; }
 
@@ -881,7 +900,11 @@ async function vcProcessAndReply() {
   if (reply) {
     chatHistory.push({ role: 'assistant', content: reply });
     saveHistory();
-    if (typeof window.deductDisplayCredits === 'function') window.deductDisplayCredits(1);
+    // Voice streams (no charged flag) — decrement once per session via local flag.
+    if (!tutorEverCharged) {
+      tutorEverCharged = true;
+      if (typeof window.deductDisplayCredits === 'function') window.deductDisplayCredits(1);
+    }
     addSpeakButton(thinkEl, reply);
     if (txEl) txEl.textContent = '🤖 ' + reply.slice(0, 80) + (reply.length > 80 ? '...' : '');
   }

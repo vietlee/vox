@@ -60,28 +60,15 @@ class Admin::AiController < Admin::BaseController
 
   def chat
     return unless require_ai_feature!(:ai_chat)
-
-    # Charge once per conversation *session*, not per message. The client sends a
-    # stable session_id for the whole conversation; we mark it as charged in the
-    # cache so follow-up messages in the same session are free. A "new chat"
-    # starts a new session_id and is charged again.
-    session_id  = params[:session_id].to_s.presence
-    charge_key  = session_id && "ai_chat_session:#{current_workspace.id}:#{session_id}"
-    already_charged = charge_key.present? && Rails.cache.exist?(charge_key)
-
-    unless already_charged
-      return unless require_credits!(:ai_chat)
-      charge_credits!(:ai_chat)
-      Rails.cache.write(charge_key, true, expires_in: 24.hours) if charge_key
-    end
+    return unless charge_once_per_session!("ai_chat_session", :ai_chat)
 
     job = AiJob.create!(
       workspace: current_workspace, user: current_user, job_type: "ai_chat",
-      credits_cost: already_charged ? 0 : CreditCost[:ai_chat],
+      credits_cost: @session_charged ? CreditCost[:ai_chat] : 0,
       input_data: { message: params[:message], conversation_history: params[:history] || [] }
     )
     AiChatJob.perform_later(job.id)
-    render json: { job_id: job.id }
+    render json: { job_id: job.id, charged: @session_charged }
   end
 
   def job_status
@@ -103,7 +90,7 @@ class Admin::AiController < Admin::BaseController
   end
 
   def tutor
-    return unless require_credits!(:tutor)
+    return unless charge_once_per_session!("ai_tutor_session", :tutor)
     message    = params[:message].to_s.strip
     history    = params[:history] || []
     voice_mode = params[:voice_mode] == 'true'
@@ -152,8 +139,7 @@ class Admin::AiController < Admin::BaseController
     end
 
     result = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: max_tokens)
-    charge_credits!(:tutor)
-    render json: { response: result }
+    render json: { response: result, charged: @session_charged }
   rescue => e
     Rails.logger.error "[AI Tutor] #{e.class}: #{e.message}"
     render json: { error: e.message }, status: :unprocessable_entity
@@ -162,7 +148,9 @@ class Admin::AiController < Admin::BaseController
   # Streaming voice-mode tutor — streams text chunks directly so client can start
   # TTS on the first sentence without waiting for the full response.
   def tutor_voice
-    return unless require_credits!(:tutor_voice)
+    # Shares the tutor session with #tutor: one charge per conversation session,
+    # whether the learner types or speaks.
+    return unless charge_once_per_session!("ai_tutor_session", :tutor)
     message      = params[:message].to_s.strip
     history      = params[:history] || []
     context_text = resolve_tutor_content(params[:context_type], params[:context_id])
@@ -187,7 +175,6 @@ class Admin::AiController < Admin::BaseController
     svc.stream_call(system_prompt: system_prompt, messages: messages, max_tokens: 200) do |chunk|
       response.stream.write(chunk)
     end
-    charge_credits!(:tutor_voice)
   rescue => e
     Rails.logger.error "[AI Tutor Voice] #{e.class}: #{e.message}"
   ensure
@@ -246,6 +233,27 @@ class Admin::AiController < Admin::BaseController
   end
 
   private
+
+  # Charge `cost_key` once per conversation *session*, not per message. The
+  # client sends a stable session_id for the whole conversation; the first
+  # message charges and marks the session in the cache, follow-ups are free.
+  # Sets @session_charged (used for AiJob.credits_cost and the client display).
+  # Returns false — and leaves a rendered error — when credits are insufficient.
+  def charge_once_per_session!(prefix, cost_key)
+    session_id = params[:session_id].to_s.presence
+    key = session_id && "#{prefix}:#{current_workspace&.id}:#{session_id}"
+
+    if key && Rails.cache.exist?(key)
+      @session_charged = false
+      return true
+    end
+
+    return false unless require_credits!(cost_key)
+    charge_credits!(cost_key)
+    Rails.cache.write(key, true, expires_in: 24.hours) if key
+    @session_charged = true
+    true
+  end
 
   def resolve_tutor_context
     case params[:context_type]

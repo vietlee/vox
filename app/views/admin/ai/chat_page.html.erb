@@ -349,8 +349,8 @@ async function sendMessage() {
       return;
     }
 
-    const { job_id } = await res.json();
-    pollChat(job_id, btn);
+    const { job_id, charged } = await res.json();
+    pollChat(job_id, btn, charged);
   } catch (e) {
     document.getElementById('typing-indicator')?.remove();
     appendMessage('assistant', '❌ ' + ERROR_CONNECT);
@@ -358,7 +358,7 @@ async function sendMessage() {
   }
 }
 
-async function pollChat(jobId, btn) {
+async function pollChat(jobId, btn, charged) {
   const res  = await fetch(STATUS_URL.replace('__ID__', jobId));
   const data = await res.json();
 
@@ -368,7 +368,8 @@ async function pollChat(jobId, btn) {
     appendMessage('assistant', reply);
     conversationHistory.push({ role: 'assistant', content: reply });
 
-    window.deductDisplayCredits?.(2); // AI chat costs 2 credits
+    // Charged once per session — only decrement the display on the first message.
+    if (charged) window.deductDisplayCredits?.(2);
     saveChat();
 
     btn.disabled = false; btn.style.opacity = '';
