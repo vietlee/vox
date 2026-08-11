@@ -46,12 +46,12 @@
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
               <%= t("learner_folders.index.view_btn") %>
             <% end %>
-            <%= button_to learner_folder_path(folder), method: :delete,
-                data: { confirm: t("learner_folders.index.delete_confirm", name: folder.name) },
-                class: "inline-flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors border-0 cursor-pointer" do %>
+            <button type="button"
+                onclick="confirmDeleteFolder('<%= learner_folder_path(folder) %>', '<%= j folder.name %>')"
+                class="inline-flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors border-0 cursor-pointer">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               <%= t("learner_folders.index.delete_btn") %>
-            <% end %>
+            </button>
           </div>
         </div>
       </div>
@@ -89,3 +89,35 @@
     <% end %>
   </div>
 </div>
+
+<!-- Delete folder confirm modal -->
+<div id="delete-folder-modal" style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);"
+     onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);width:100%;max-width:380px;padding:28px 24px;">
+    <div style="width:44px;height:44px;border-radius:12px;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+      <svg style="width:22px;height:22px;color:#dc2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    </div>
+    <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 8px;"><%= t("learner_folders.index.delete_modal_title") %></h3>
+    <p id="delete-folder-msg" style="font-size:13px;color:#64748b;margin:0 0 20px;line-height:1.5;"></p>
+    <div style="display:flex;gap:8px;">
+      <button type="button" onclick="submitDeleteFolder()"
+              style="flex:1;padding:11px;background:#dc2626;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;"><%= t("learner_folders.index.delete_btn") %></button>
+      <button type="button" onclick="document.getElementById('delete-folder-modal').style.display='none'"
+              style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;"><%= t("learner_folders.index.cancel") %></button>
+    </div>
+  </div>
+</div>
+
+<%= form_with url: "#", method: :delete, id: "delete-folder-form", html: { style: "display:none;" } do %><% end %>
+
+<script>
+  var DELETE_FOLDER_MSG = "<%= j t('learner_folders.index.delete_confirm', name: '__NAME__') %>";
+  function confirmDeleteFolder(url, name) {
+    document.getElementById('delete-folder-form').action = url;
+    document.getElementById('delete-folder-msg').textContent = DELETE_FOLDER_MSG.replace('__NAME__', name);
+    document.getElementById('delete-folder-modal').style.display = 'flex';
+  }
+  function submitDeleteFolder() {
+    document.getElementById('delete-folder-form').submit();
+  }
+</script>
