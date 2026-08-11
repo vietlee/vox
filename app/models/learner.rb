@@ -111,6 +111,12 @@ class Learner < ApplicationRecord
     if learner.new_record?
       learner.name = name.presence || email.split("@").first.capitalize
       learner.invite!(assigned_by: assigned_by)
+    elsif !learner.password_set?
+      # Existing learner who never finished setup → resend the invite so being
+      # added to a class always delivers the setup link. Learners who already
+      # have an account (password_set) can just sign in, so we don't email them.
+      learner.name = name if name.present? && learner.name.blank?
+      learner.invite!(assigned_by: assigned_by)
     end
     learner
   end
