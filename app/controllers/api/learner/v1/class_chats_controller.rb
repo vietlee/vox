@@ -53,6 +53,16 @@ class Api::Learner::V1::ClassChatsController < Api::Learner::V1::BaseController
     render json: { ok: true }
   end
 
+  # GET /api/learner/v1/class_chats/unread_count
+  # Lightweight aggregate for the Messenger-style badge on the "Lớp học" nav
+  # item: total unread across every class the learner belongs to, plus whether
+  # they belong to any class at all (drives showing the tab).
+  def unread_count
+    folders = current_learner.learner_folders.to_a
+    total = folders.sum { |f| f.unread_count_for(current_learner) }
+    render json: { count: total, has_classes: folders.any? }
+  end
+
   # GET /api/learner/v1/class_chats/:id/content
   # The learner's quiz / flashcard / learning-path assignments made through this
   # class, so the app can show class content alongside the chat.

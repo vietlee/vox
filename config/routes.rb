@@ -543,6 +543,7 @@ Rails.application.routes.draw do
 
         # Class group chats
         get  'class_chats',              to: 'class_chats#index'
+        get  'class_chats/unread_count', to: 'class_chats#unread_count'
         get  'class_chats/:id/messages', to: 'class_chats#messages'
         post 'class_chats/:id/messages', to: 'class_chats#create'
         post 'class_chats/:id/read',     to: 'class_chats#mark_read'
