@@ -106,6 +106,21 @@ class Learner < ApplicationRecord
     LearnerMailer.invite(self, assigned_by).deliver_later
   end
 
+  # Notify an already-registered learner that they were added to a class —
+  # both an email and an in-app bell notification. No-op for pending learners
+  # (they get the setup invite instead).
+  def notify_added_to_class!(folder:, assigned_by:)
+    LearnerMailer.added_to_class(self, folder, assigned_by).deliver_later
+    LearnerNotification.notify_t!(
+      learner:    self,
+      title_key:  "added_to_class_title", title_args: { name: folder.name },
+      body_key:   "added_to_class_body",  body_args:  { name: folder.name, teacher: assigned_by&.name || "Giáo viên" },
+      type:       "general"
+    )
+  rescue => e
+    Rails.logger.warn "[AddedToClass notify] #{e.message}"
+  end
+
   def self.find_or_invite!(email:, name:, assigned_by:)
     learner = find_or_initialize_by(email: email.downcase.strip)
     if learner.new_record?

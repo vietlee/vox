@@ -187,6 +187,8 @@ class Admin::LearnerFoldersController < Admin::BaseController
     end
 
     @folder.learner_folder_members.create!(learner: learner)
+    # New/pending learners already got the setup invite; notify existing ones.
+    learner.notify_added_to_class!(folder: @folder, assigned_by: current_user) if learner.password_set?
     redirect_to learner_folder_path(@folder), notice: "Đã thêm #{learner.email}."
   rescue => e
     redirect_to learner_folder_path(@folder), alert: "Lỗi: #{e.message}"
@@ -233,6 +235,7 @@ class Admin::LearnerFoldersController < Admin::BaseController
       learner = Learner.find_or_invite!(email: email, name: name, assigned_by: current_user)
       next if @folder.learner_folder_members.exists?(learner: learner)
       @folder.learner_folder_members.create!(learner: learner)
+      learner.notify_added_to_class!(folder: @folder, assigned_by: current_user) if learner.password_set?
       imported += 1
     rescue => e
       errors << "#{email}: #{e.message}"

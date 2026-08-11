@@ -9,6 +9,18 @@ class LearnerMailer < ApplicationMailer
     mail(to: learner.email, subject: "#{assigned_by.name} đã mời bạn tham gia VOX Learn")
   end
 
+  # Sent when an already-registered learner is added to a class (they don't need
+  # the setup invite — just a heads-up that they now belong to a class).
+  def added_to_class(learner, folder, assigned_by)
+    @learner    = learner
+    @class_name = folder.name
+    @teacher    = assigned_by&.name
+    @login_url  = Rails.application.routes.url_helpers.new_learner_session_url(
+      host: Rails.application.config.action_mailer.default_url_options[:host]
+    )
+    mail(to: learner.email, subject: "Bạn được thêm vào lớp #{folder.name}")
+  end
+
   def assignment_notification(learner, type_label, resource_title, access_url)
     @learner        = learner
     @resource_title = resource_title
