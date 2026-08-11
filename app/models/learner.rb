@@ -115,7 +115,8 @@ class Learner < ApplicationRecord
       learner:    self,
       title_key:  "added_to_class_title", title_args: { name: folder.name },
       body_key:   "added_to_class_body",  body_args:  { name: folder.name, teacher: assigned_by&.name || "Giáo viên" },
-      type:       "general"
+      type:       "general",
+      action_url: "/class-chat/#{folder.id}?name=#{CGI.escape(folder.name)}"
     )
   rescue => e
     Rails.logger.warn "[AddedToClass notify] #{e.message}"

@@ -749,7 +749,12 @@ window.__initClassChat = (function () {
 
     // Enter to send, Shift+Enter for newline; auto-grow.
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+      // e.isComposing / keyCode 229 = Vietnamese IME still finishing a syllable —
+      // don't submit, or the composing tail gets sent again as a second message.
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
     });
     input.addEventListener('input', () => {
       input.style.height = 'auto';
