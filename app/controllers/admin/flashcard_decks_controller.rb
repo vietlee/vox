@@ -209,7 +209,7 @@ class Admin::FlashcardDecksController < Admin::BaseController
 
     learners.each do |learner|
       next if FlashcardAssignment.exists?(flashcard_deck: @deck, learner: learner)
-      assignment = FlashcardAssignment.create!(flashcard_deck: @deck, learner: learner, assigned_by: current_user, due_at: due_at)
+      assignment = FlashcardAssignment.create!(flashcard_deck: @deck, learner: learner, assigned_by: current_user, due_at: due_at, learner_folder: folder)
       url = Rails.application.routes.url_helpers.learner_flashcard_assignment_url(
         assignment, token: assignment.token,
         host: Rails.application.config.action_mailer.default_url_options[:host]

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_08_09_150000) do
+ActiveRecord::Schema[7.2].define(version: 2026_08_11_143000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -359,8 +359,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_09_150000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "cards_reviewed", default: 0, null: false
+    t.bigint "learner_folder_id"
     t.index ["flashcard_deck_id", "learner_id"], name: "idx_on_flashcard_deck_id_learner_id_acaee1ea5f", unique: true
     t.index ["flashcard_deck_id"], name: "index_flashcard_assignments_on_flashcard_deck_id"
+    t.index ["learner_folder_id"], name: "index_flashcard_assignments_on_learner_folder_id"
     t.index ["learner_id"], name: "index_flashcard_assignments_on_learner_id"
     t.index ["token"], name: "index_flashcard_assignments_on_token", unique: true
   end
@@ -672,8 +674,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_09_150000) do
     t.bigint "learner_id"
     t.string "token"
     t.datetime "completed_at"
+    t.bigint "learner_folder_id"
     t.index ["assigned_by_id"], name: "index_learning_path_assignments_on_assigned_by_id"
     t.index ["assignee_id"], name: "index_learning_path_assignments_on_assignee_id"
+    t.index ["learner_folder_id"], name: "index_learning_path_assignments_on_learner_folder_id"
     t.index ["learner_id"], name: "index_learning_path_assignments_on_learner_id"
     t.index ["learning_path_id", "assignee_id"], name: "idx_on_learning_path_id_assignee_id_44b44d6f23", unique: true
     t.index ["learning_path_id"], name: "index_learning_path_assignments_on_learning_path_id"
@@ -822,6 +826,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_09_150000) do
     t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "learner_folder_id"
+    t.index ["learner_folder_id"], name: "index_quiz_assignments_on_learner_folder_id"
     t.index ["learner_id"], name: "index_quiz_assignments_on_learner_id"
     t.index ["quiz_set_id", "learner_id"], name: "index_quiz_assignments_on_quiz_set_id_and_learner_id", unique: true
     t.index ["quiz_set_id"], name: "index_quiz_assignments_on_quiz_set_id"
@@ -1221,6 +1227,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_09_150000) do
   add_foreign_key "feedbacks", "feedback_boards"
   add_foreign_key "feedbacks", "workspaces"
   add_foreign_key "flashcard_assignments", "flashcard_decks"
+  add_foreign_key "flashcard_assignments", "learner_folders"
   add_foreign_key "flashcard_assignments", "learners"
   add_foreign_key "flashcard_decks", "users", column: "created_by_id"
   add_foreign_key "flashcard_decks", "workspaces"
@@ -1240,6 +1247,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_09_150000) do
   add_foreign_key "learner_saved_links", "learners"
   add_foreign_key "learning_item_progresses", "learning_path_assignments"
   add_foreign_key "learning_item_progresses", "learning_path_items"
+  add_foreign_key "learning_path_assignments", "learner_folders"
   add_foreign_key "learning_path_assignments", "learning_paths"
   add_foreign_key "learning_path_assignments", "users", column: "assigned_by_id"
   add_foreign_key "learning_path_assignments", "users", column: "assignee_id"
@@ -1253,6 +1261,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_09_150000) do
   add_foreign_key "qr_codes", "workspaces"
   add_foreign_key "question_options", "questions"
   add_foreign_key "questions", "surveys"
+  add_foreign_key "quiz_assignments", "learner_folders"
   add_foreign_key "quiz_assignments", "learners"
   add_foreign_key "quiz_assignments", "quiz_sets"
   add_foreign_key "quiz_attempt_answers", "quiz_attempts"

@@ -193,7 +193,8 @@ class Admin::LearningPathsController < Admin::BaseController
       next if LearningPathAssignment.exists?(learning_path: @learning_path, learner: learner)
       assignment = LearningPathAssignment.create!(
         learning_path: @learning_path, learner: learner,
-        assigned_by: current_user, due_date: due_date, status: :active
+        assigned_by: current_user, due_date: due_date, status: :active,
+        learner_folder: folder
       )
       url = Rails.application.routes.url_helpers.learner_learning_path_assignment_url(
         assignment, token: assignment.token,

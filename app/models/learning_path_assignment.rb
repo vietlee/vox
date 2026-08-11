@@ -3,6 +3,7 @@ class LearningPathAssignment < ApplicationRecord
   belongs_to :assigned_by, class_name: "User"
   belongs_to :assignee,    class_name: "User",    optional: true
   belongs_to :learner,                             optional: true
+  belongs_to :learner_folder,                      optional: true
   has_many :learning_item_progresses, dependent: :destroy
 
   enum :status, { active: 0, completed: 1, cancelled: 2 }

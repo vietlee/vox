@@ -546,6 +546,7 @@ Rails.application.routes.draw do
         get  'class_chats/:id/messages', to: 'class_chats#messages'
         post 'class_chats/:id/messages', to: 'class_chats#create'
         post 'class_chats/:id/read',     to: 'class_chats#mark_read'
+        get  'class_chats/:id/content',  to: 'class_chats#content'
 
         get  'dashboard',                     to: 'dashboard#index'
         get  'suggestion/fetch',              to: 'suggestion#fetch'

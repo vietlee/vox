@@ -391,7 +391,7 @@ class Admin::QuizSetsController < Admin::BaseController
 
     learners.each do |learner|
       next if QuizAssignment.exists?(quiz_set: @quiz_set, learner: learner)
-      assignment = QuizAssignment.create!(quiz_set: @quiz_set, learner: learner, assigned_by: current_user, due_at: due_at)
+      assignment = QuizAssignment.create!(quiz_set: @quiz_set, learner: learner, assigned_by: current_user, due_at: due_at, learner_folder: folder)
       url = Rails.application.routes.url_helpers.learner_quiz_assignment_url(
         assignment, token: assignment.token,
         host: Rails.application.config.action_mailer.default_url_options[:host]

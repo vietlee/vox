@@ -2,7 +2,7 @@
 # (learner_folder) they belong to. Real-time delivery is over ActionCable
 # (ClassChatChannel); this controller handles list / history / send / read.
 class Api::Learner::V1::ClassChatsController < Api::Learner::V1::BaseController
-  before_action :set_folder, only: [:messages, :create, :mark_read]
+  before_action :set_folder, only: [:messages, :create, :mark_read, :content]
 
   # GET /api/learner/v1/class_chats
   # List the learner's classes with a preview + unread count.
@@ -48,6 +48,24 @@ class Api::Learner::V1::ClassChatsController < Api::Learner::V1::BaseController
   def mark_read
     ClassChatRead.touch_for!(@folder, current_learner)
     render json: { ok: true }
+  end
+
+  # GET /api/learner/v1/class_chats/:id/content
+  # The learner's quiz / flashcard / learning-path assignments made through this
+  # class, so the app can show class content alongside the chat.
+  def content
+    quizzes = current_learner.quiz_assignments
+                .where(learner_folder_id: @folder.id).includes(:quiz_set).order(created_at: :desc)
+    flashcards = current_learner.flashcard_assignments
+                .where(learner_folder_id: @folder.id).includes(:flashcard_deck).order(created_at: :desc)
+    paths = current_learner.learning_path_assignments
+                .where(learner_folder_id: @folder.id).includes(:learning_path).order(created_at: :desc)
+
+    render json: {
+      quizzes:    quizzes.map { |a| { token: a.token, title: a.quiz_set&.title, status: a.status, due_at: a.due_at&.iso8601 } },
+      flashcards: flashcards.map { |a| { token: a.token, title: a.flashcard_deck&.title, status: a.status } },
+      paths:      paths.map { |a| { token: a.token, title: a.learning_path&.title, status: a.status } }
+    }
   end
 
   private

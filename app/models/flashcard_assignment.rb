@@ -2,6 +2,7 @@ class FlashcardAssignment < ApplicationRecord
   belongs_to :flashcard_deck
   belongs_to :learner
   belongs_to :assigned_by, class_name: "User", optional: true
+  belongs_to :learner_folder, optional: true
 
   enum :status, { pending: 0, in_progress: 1, completed: 2 }
 
