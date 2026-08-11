@@ -387,11 +387,14 @@ class Admin::LearnerFoldersController < Admin::BaseController
   end
 
   def chat_send
-    body = params[:body].to_s.strip
-    if body.blank?
+    body  = params[:body].to_s.strip
+    files = Array(params[:files]).reject(&:blank?)
+    if body.blank? && files.empty?
       return render json: { error: "Tin nhắn trống." }, status: :unprocessable_entity
     end
-    msg = @folder.class_chat_messages.create!(sender: current_user, body: body)
+    msg = @folder.class_chat_messages.new(sender: current_user, body: body)
+    msg.files.attach(files) if files.any?
+    msg.save!
     ClassChatRead.touch_for!(@folder, current_user)
     render json: { message: msg.as_chat_json }
   end

@@ -441,7 +441,17 @@
     <div id="chat-messages" class="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50/40">
       <p class="text-center text-[13px] text-slate-400 py-8">Đang tải tin nhắn…</p>
     </div>
+    <div id="chat-attach-preview" class="flex flex-wrap gap-2 px-3 pt-2" style="display:none;"></div>
     <form id="chat-form" class="flex items-end gap-2 p-3 border-t border-slate-100 bg-white">
+      <input type="file" id="chat-file-input" multiple class="hidden"
+             accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip">
+      <input type="file" id="chat-image-input" accept="image/*" capture="environment" class="hidden">
+      <button type="button" id="chat-attach-btn" title="Đính kèm tệp/hình ảnh"
+              class="px-1.5 py-2.5 text-[18px] text-slate-500 hover:text-[#1e3a5f] shrink-0">📎</button>
+      <button type="button" id="chat-camera-btn" title="Chụp ảnh"
+              class="px-1.5 py-2.5 text-[18px] text-slate-500 hover:text-[#1e3a5f] shrink-0">📷</button>
+      <button type="button" id="chat-voice-btn" title="Ghi âm"
+              class="px-1.5 py-2.5 text-[18px] text-slate-500 hover:text-[#1e3a5f] shrink-0">🎤</button>
       <textarea id="chat-input" rows="1" placeholder="Nhắn cho cả lớp…"
                 class="flex-1 resize-none px-3.5 py-2.5 text-[14px] border border-slate-200 rounded-xl focus:outline-none focus:border-[#1e3a5f]"
                 style="max-height:120px;"></textarea>
@@ -706,6 +716,21 @@ window.__initClassChat = (function () {
     const atBottom = () => box.scrollHeight - box.scrollTop - box.clientHeight < 80;
     const scrollDown = () => { box.scrollTop = box.scrollHeight; };
 
+    function attachmentsHtml(atts, mine) {
+      if (!atts || !atts.length) return '';
+      return atts.filter(Boolean).map((a) => {
+        if (a.kind === 'image') {
+          return `<a href="${a.url}" target="_blank" rel="noopener"><img src="${a.url}" alt="${esc(a.filename)}" style="max-width:220px;max-height:220px;border-radius:12px;margin-top:4px;display:block;"></a>`;
+        } else if (a.kind === 'audio') {
+          return `<audio controls src="${a.url}" style="margin-top:4px;max-width:240px;display:block;"></audio>`;
+        }
+        const st = mine
+          ? 'background:rgba(255,255,255,0.15);color:#fff;'
+          : 'background:#f1f5f9;color:#1e3a5f;';
+        return `<a href="${a.url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:8px 10px;border-radius:8px;font-size:13px;text-decoration:none;${st}">📄 ${esc(a.filename)}</a>`;
+      }).join('');
+    }
+
     function bubble(m) {
       const mine = me && m.sender_type === me.type && String(m.sender_id) === String(me.id);
       const time = new Date(m.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -714,9 +739,13 @@ window.__initClassChat = (function () {
         : '';
       const align = mine ? 'align-items:flex-end;' : 'align-items:flex-start;';
       const bg    = mine ? 'background:#1e3a5f;color:#fff;' : 'background:#fff;color:#0f172a;border:1px solid #e2e8f0;';
+      const bodyHtml = m.body
+        ? `<div style="max-width:78%;padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word;${bg}">${esc(m.body)}</div>`
+        : '';
       return `<div style="display:flex;flex-direction:column;${align}">
         <div style="font-size:11px;color:#94a3b8;margin:0 4px 2px;">${esc(m.sender_name)} ${roleTag} · ${time}</div>
-        <div style="max-width:78%;padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word;${bg}">${esc(m.body)}</div>
+        ${bodyHtml}
+        ${attachmentsHtml(m.attachments, mine)}
       </div>`;
     }
 
@@ -757,21 +786,70 @@ window.__initClassChat = (function () {
       },
     });
 
-    // Send.
+    // ── Attachments (images, docs, voice; multiple) ──
+    const fileInput  = document.getElementById('chat-file-input');
+    const imageInput = document.getElementById('chat-image-input');
+    const preview    = document.getElementById('chat-attach-preview');
+    let pending = [];
+
+    function renderPreview() {
+      if (!pending.length) { preview.style.display = 'none'; preview.innerHTML = ''; return; }
+      preview.style.display = 'flex';
+      preview.innerHTML = pending.map((f, i) => {
+        const ic = f.type && f.type.startsWith('image/') ? '🖼️' : (f.type && f.type.startsWith('audio/') ? '🎤' : '📄');
+        return `<span style="display:inline-flex;align-items:center;gap:6px;background:#eef3f9;border:1px solid #d9e5f1;border-radius:8px;padding:4px 8px;font-size:12px;color:#1e3a5f;">${ic} ${esc(f.name)}<button type="button" data-i="${i}" class="chat-att-x" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:14px;line-height:1;">✕</button></span>`;
+      }).join('');
+      preview.querySelectorAll('.chat-att-x').forEach((b) =>
+        b.addEventListener('click', () => { pending.splice(+b.dataset.i, 1); renderPreview(); }));
+    }
+    function addFiles(list) { for (const f of list) pending.push(f); renderPreview(); }
+
+    document.getElementById('chat-attach-btn').addEventListener('click', () => fileInput.click());
+    document.getElementById('chat-camera-btn').addEventListener('click', () => imageInput.click());
+    fileInput.addEventListener('change',  () => { addFiles(fileInput.files);  fileInput.value  = ''; });
+    imageInput.addEventListener('change', () => { addFiles(imageInput.files); imageInput.value = ''; });
+
+    // Voice recording via MediaRecorder — tap to start, tap again to stop.
+    let mediaRec = null, chunks = [];
+    const voiceBtn = document.getElementById('chat-voice-btn');
+    voiceBtn.addEventListener('click', async () => {
+      if (mediaRec && mediaRec.state === 'recording') { mediaRec.stop(); return; }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        chunks = [];
+        mediaRec = new MediaRecorder(stream);
+        mediaRec.ondataavailable = (ev) => { if (ev.data.size) chunks.push(ev.data); };
+        mediaRec.onstop = () => {
+          stream.getTracks().forEach((t) => t.stop());
+          const type = mediaRec.mimeType || 'audio/webm';
+          const ext  = type.includes('mp4') ? 'm4a' : (type.includes('ogg') ? 'ogg' : 'webm');
+          pending.push(new File([new Blob(chunks, { type })], `voice-${Date.now()}.${ext}`, { type }));
+          renderPreview();
+          voiceBtn.textContent = '🎤'; voiceBtn.style.color = '';
+        };
+        mediaRec.start();
+        voiceBtn.textContent = '⏹'; voiceBtn.style.color = '#dc2626';
+      } catch (err) { alert('Không truy cập được micro.'); }
+    });
+
+    // Send (text and/or attachments).
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const body = input.value.trim();
-      if (!body) return;
-      input.value = '';
-      input.style.height = 'auto';
+      if (!body && !pending.length) return;
+      const fd = new FormData();
+      fd.append('body', body);
+      pending.forEach((f) => fd.append('files[]', f, f.name));
+      input.value = ''; input.style.height = 'auto';
+      pending = []; renderPreview();
       fetch(root.dataset.sendUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': csrf },
+        headers: { 'Accept': 'application/json', 'X-CSRF-Token': csrf },
         credentials: 'same-origin',
-        body: JSON.stringify({ body }),
+        body: fd,
       })
         .then((r) => r.json())
-        .then((data) => { if (data.message) append(data.message, true); }) // echo instantly; broadcast is de-duped by id
+        .then((data) => { if (data.message) append(data.message, true); else if (data.error) alert(data.error); })
         .catch(() => {});
     });
 
