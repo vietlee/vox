@@ -562,6 +562,7 @@ Rails.application.routes.draw do
           end
           member do
             patch :mark_read
+            patch :read, action: :mark_read # app calls .../read; keep both paths
           end
         end
 
