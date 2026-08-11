@@ -3,7 +3,14 @@
 <div class="flex items-center gap-3 mb-5">
   <%= render "admin/shared/back_btn" %>
   <div class="flex-1 min-w-0">
-    <h1 class="text-[20px] font-extrabold text-slate-900 truncate">📁 <%= @folder.name %></h1>
+    <div class="flex items-center gap-2">
+      <h1 class="text-[20px] font-extrabold text-slate-900 truncate">📁 <%= @folder.name %></h1>
+      <button type="button" title="<%= t('learner_folders.show.rename_btn') %>"
+              onclick="document.getElementById('rename-folder-modal').style.display='flex'"
+              class="shrink-0 text-slate-400 hover:text-[#1e3a5f] transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      </button>
+    </div>
     <p class="text-[13px] text-slate-400 mt-0.5"><%= @class_stats[:total] %> học viên · Tạo <%= @folder.created_at.strftime("%d/%m/%Y") %></p>
   </div>
   <div class="flex items-center gap-2">
@@ -445,6 +452,27 @@
     </form>
   </div>
 </div><%# end tab-chat %>
+
+<!-- Rename folder modal -->
+<div id="rename-folder-modal" style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);"
+     onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);width:100%;max-width:380px;padding:28px 24px;">
+    <h3 style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 16px;"><%= t("learner_folders.show.rename_title") %></h3>
+    <%= form_with url: learner_folder_path(@folder), method: :patch do %>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;"><%= t("learner_folders.index.folder_name_label") %></label>
+        <%= text_field_tag "learner_folder[name]", @folder.name, required: true,
+            style: "width:100%;box-sizing:border-box;padding:11px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;font-family:inherit;",
+            onfocus: "this.style.borderColor='#1e3a5f'", onblur: "this.style.borderColor='#e5e7eb'" %>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <%= submit_tag t("learner_folders.show.rename_save"), style: "flex:1;padding:11px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;" %>
+        <button type="button" onclick="document.getElementById('rename-folder-modal').style.display='none'"
+                style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;"><%= t("learner_folders.index.cancel") %></button>
+      </div>
+    <% end %>
+  </div>
+</div>
 
 <!-- Add learner modal -->
 <div id="add-learner-modal" style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);"
