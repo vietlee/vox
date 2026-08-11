@@ -320,8 +320,9 @@ async function sendMsg() {
     if (data.response) {
       chatHistory.push({ role: 'assistant', content: data.response });
       saveHistory();
-      // Charged once per session — only decrement the display on the first message.
-      if (data.charged && typeof window.deductDisplayCredits === 'function') window.deductDisplayCredits(1);
+      // Length-based billing — decrement the display by the credits actually
+      // charged for this turn (server returns the real token-based cost).
+      if (data.charged && typeof window.deductDisplayCredits === 'function') window.deductDisplayCredits(data.charged);
       tutorEverCharged = true;
       if (_autoSpeak) speakText(data.response);
       addSpeakButton(thinkingEl, data.response);
@@ -900,11 +901,11 @@ async function vcProcessAndReply() {
   if (reply) {
     chatHistory.push({ role: 'assistant', content: reply });
     saveHistory();
-    // Voice streams (no charged flag) — decrement once per session via local flag.
-    if (!tutorEverCharged) {
-      tutorEverCharged = true;
-      if (typeof window.deductDisplayCredits === 'function') window.deductDisplayCredits(1);
-    }
+    // Voice streams can't return a JSON charged amount; each spoken turn is a
+    // short Haiku reply billed ≈1 credit, so decrement 1 per turn as an estimate
+    // (exact balance reconciles on the next page load).
+    tutorEverCharged = true;
+    if (typeof window.deductDisplayCredits === 'function') window.deductDisplayCredits(1);
     addSpeakButton(thinkEl, reply);
     if (txEl) txEl.textContent = '🤖 ' + reply.slice(0, 80) + (reply.length > 80 ? '...' : '');
   }

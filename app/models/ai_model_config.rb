@@ -16,7 +16,7 @@ class AiModelConfig < ApplicationRecord
     "quiz_generate"       => { label: "Quiz — Tạo bộ đề từ tài liệu",       default: "claude-sonnet-4-6",         credit_note: "#{CreditCost[:quiz_generate]} credits/lần" },
     "quiz_eval_student"   => { label: "Quiz — Nhận xét AI từng học viên",    default: "claude-sonnet-4-6",         credit_note: "#{CreditCost[:quiz_eval_student]} credits/lần" },
     "quiz_eval_class"     => { label: "Quiz — Phân tích AI toàn bộ kết quả", default: "claude-sonnet-4-6",         credit_note: "#{CreditCost[:quiz_eval_class]} credits/lần" },
-    "ai_chat"             => { label: "AI Chat workspace",                    default: "claude-sonnet-4-6",         credit_note: "#{CreditCost[:ai_chat]} credits/phiên chat" },
+    "ai_chat"             => { label: "AI Chat workspace",                    default: "claude-sonnet-4-6",         credit_note: "Theo độ dài (~#{AiTokenPricing::TOKENS_PER_CREDIT} token/credit)" },
     "survey_analysis"     => { label: "Khảo sát — Phân tích sâu",            default: "claude-opus-4-5",           credit_note: "#{CreditCost[:survey_analysis]} credits/lần" },
     "survey_builder"      => { label: "Khảo sát — Tạo khảo sát bằng AI",    default: "claude-sonnet-4-6",         credit_note: "#{CreditCost[:survey_builder]} credits/lần" },
     "survey_report"       => { label: "Khảo sát — Tạo báo cáo AI",           default: "claude-sonnet-4-6",         credit_note: "#{CreditCost[:executive_report]} credits/lần" },

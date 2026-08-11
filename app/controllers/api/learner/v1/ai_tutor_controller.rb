@@ -1,6 +1,4 @@
 class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
-  CHAT_SESSION_COST    = 2
-  VOICE_SESSION_COST   = 1
   TTS_CHARS_PER_CREDIT = 200
   STT_CREDIT_COST      = 2
 
@@ -11,20 +9,18 @@ class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
     has_attach = params[:image_data].present? || params[:file_text].present?
 
     return render json: { error: "Tin nhắn trống" }, status: :unprocessable_entity if message.blank? && !has_attach
-
-    first_turn = history.empty?
-    if first_turn
-      return render json: { error: "Không đủ credit. Vui lòng mua thêm." }, status: :payment_required unless current_learner.credits >= CHAT_SESSION_COST
-    end
+    # Length-based billing: every turn needs at least 1 credit; the real cost is
+    # charged from the model's token usage after it responds.
+    return render json: { error: "Không đủ credit. Vui lòng mua thêm." }, status: :payment_required unless current_learner.credits >= 1
 
     system_prompt = build_system_prompt(context)
     messages = history.map { |m| { role: m["role"], content: m["content"].to_s.truncate(2000) } }
     messages << { role: "user", content: build_user_content(message, params) }
 
     svc      = ClaudeService.for_feature("ai_tutor", timeout: 30)
-    response = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 1000)
+    response = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 1000, cache: true)
 
-    current_learner.deduct_credits!(CHAT_SESSION_COST) if first_turn
+    charge_learner_tokens!(svc)
     LearnerGamification.record!(current_learner, :tutor_chat)
     render json: { response: response, credits_remaining: current_learner.reload.credits }
   rescue => e
@@ -37,10 +33,8 @@ class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
     context    = params[:context].to_s.strip
 
     first_turn = history.empty?
-    if first_turn
-      return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= VOICE_SESSION_COST
-      start_free_tts_session!(:vc_active)
-    end
+    return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= 1
+    start_free_tts_session!(:vc_active) if first_turn
 
     system_prompt = <<~PROMPT
       You are a friendly VOICE AI Tutor in a live spoken phone-call conversation.
@@ -55,8 +49,8 @@ class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
     messages << { role: "user", content: message }
 
     svc   = ClaudeService.haiku
-    reply = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 300)
-    current_learner.deduct_credits!(VOICE_SESSION_COST) if first_turn
+    reply = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 300, cache: true)
+    charge_learner_tokens!(svc)
     render json: { reply: reply, credits_remaining: current_learner.reload.credits }
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
@@ -109,10 +103,8 @@ class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
     context    = params[:context].to_s.strip
 
     first_turn = history.empty?
-    if first_turn
-      return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= VOICE_SESSION_COST
-      start_free_tts_session!(:vc_active)
-    end
+    return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= 1
+    start_free_tts_session!(:vc_active) if first_turn
 
     system_prompt = <<~PROMPT
       You are a friendly VOICE AI Tutor in a live spoken phone-call conversation.
@@ -126,8 +118,8 @@ class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
     messages << { role: "user", content: message }
 
     svc   = ClaudeService.haiku
-    reply = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 300)
-    current_learner.deduct_credits!(VOICE_SESSION_COST) if first_turn
+    reply = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: 300, cache: true)
+    charge_learner_tokens!(svc)
 
     # Generate TTS in same request — saves 1 round-trip
     tts_svc  = ElevenLabsService.new
@@ -150,8 +142,9 @@ class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
   end
 
   def start_call
-    return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= VOICE_SESSION_COST
-    current_learner.deduct_credits!(VOICE_SESSION_COST)
+    # No flat open fee anymore — each spoken turn is billed by its real token
+    # length. Just gate on having at least 1 credit to begin.
+    return render json: { error: "Không đủ credit." }, status: :payment_required unless current_learner.credits >= 1
     start_free_tts_session!(:vc_active)
     render json: { ok: true, credits_remaining: current_learner.reload.credits }
   rescue => e
@@ -186,6 +179,16 @@ class Api::Learner::V1::AiTutorController < Api::Learner::V1::BaseController
   end
 
   private
+
+  # Charge the learner for one conversational turn by its real token usage,
+  # capped at the remaining balance so the final turn never raises. Returns the
+  # credits charged.
+  def charge_learner_tokens!(svc)
+    want   = AiTokenPricing.credits_for(input_tokens: svc.last_input_tokens, output_tokens: svc.last_output_tokens)
+    charge = [want, current_learner.credits].min
+    current_learner.deduct_credits!(charge) if charge.positive?
+    charge
+  end
 
   def build_user_content(message, params)
     parts = []

@@ -349,8 +349,8 @@ async function sendMessage() {
       return;
     }
 
-    const { job_id, charged } = await res.json();
-    pollChat(job_id, btn, charged);
+    const { job_id } = await res.json();
+    pollChat(job_id, btn);
   } catch (e) {
     document.getElementById('typing-indicator')?.remove();
     appendMessage('assistant', '❌ ' + ERROR_CONNECT);
@@ -358,7 +358,7 @@ async function sendMessage() {
   }
 }
 
-async function pollChat(jobId, btn, charged) {
+async function pollChat(jobId, btn) {
   const res  = await fetch(STATUS_URL.replace('__ID__', jobId));
   const data = await res.json();
 
@@ -368,8 +368,9 @@ async function pollChat(jobId, btn, charged) {
     appendMessage('assistant', reply);
     conversationHistory.push({ role: 'assistant', content: reply });
 
-    // Charged once per session — only decrement the display on the first message.
-    if (charged) window.deductDisplayCredits?.(2);
+    // Length-based billing — decrement the display by the credits actually
+    // charged for this turn (from the model's real token usage).
+    if (data.charged) window.deductDisplayCredits?.(data.charged);
     saveChat();
 
     btn.disabled = false; btn.style.opacity = '';

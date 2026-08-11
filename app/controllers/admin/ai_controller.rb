@@ -60,23 +60,26 @@ class Admin::AiController < Admin::BaseController
 
   def chat
     return unless require_ai_feature!(:ai_chat)
-    return unless charge_once_per_session!("ai_chat_session", :ai_chat)
+    # Length-based billing: gate on ≥1 credit; the job charges the real token
+    # cost after the model responds (credits_cost is filled in then).
+    return unless require_credits!(1)
 
     job = AiJob.create!(
       workspace: current_workspace, user: current_user, job_type: "ai_chat",
-      credits_cost: @session_charged ? CreditCost[:ai_chat] : 0,
+      credits_cost: 0,
       input_data: { message: params[:message], conversation_history: params[:history] || [] }
     )
     AiChatJob.perform_later(job.id)
-    render json: { job_id: job.id, charged: @session_charged }
+    render json: { job_id: job.id }
   end
 
   def job_status
     job = current_workspace.ai_jobs.find(params[:id])
     render json: {
-      status: job.status,
-      output: job.done? ? job.output_data : nil,
-      error:  job.failed? ? job.error_message : nil
+      status:  job.status,
+      output:  job.done? ? job.output_data : nil,
+      charged: job.done? ? job.credits_cost : nil,
+      error:   job.failed? ? job.error_message : nil
     }
   end
 
@@ -90,7 +93,9 @@ class Admin::AiController < Admin::BaseController
   end
 
   def tutor
-    return unless charge_once_per_session!("ai_tutor_session", :tutor)
+    # Length-based billing: require at least 1 credit up front, then charge the
+    # turn's real token cost after the model responds.
+    return unless require_credits!(1)
     message    = params[:message].to_s.strip
     history    = params[:history] || []
     voice_mode = params[:voice_mode] == 'true'
@@ -138,8 +143,9 @@ class Admin::AiController < Admin::BaseController
       max_tokens = 1024
     end
 
-    result = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: max_tokens)
-    render json: { response: result, charged: @session_charged }
+    result  = svc.call(system_prompt: system_prompt, messages: messages, max_tokens: max_tokens, cache: true)
+    charged = charge_ai_tokens!(input_tokens: svc.last_input_tokens, output_tokens: svc.last_output_tokens)
+    render json: { response: result, charged: charged }
   rescue => e
     Rails.logger.error "[AI Tutor] #{e.class}: #{e.message}"
     render json: { error: e.message }, status: :unprocessable_entity
@@ -148,9 +154,9 @@ class Admin::AiController < Admin::BaseController
   # Streaming voice-mode tutor — streams text chunks directly so client can start
   # TTS on the first sentence without waiting for the full response.
   def tutor_voice
-    # Shares the tutor session with #tutor: one charge per conversation session,
-    # whether the learner types or speaks.
-    return unless charge_once_per_session!("ai_tutor_session", :tutor)
+    # Length-based billing (same as #tutor): gate on ≥1 credit, then charge the
+    # streamed turn's real token usage once it finishes.
+    return unless require_credits!(1)
     message      = params[:message].to_s.strip
     history      = params[:history] || []
     context_text = resolve_tutor_content(params[:context_type], params[:context_id])
@@ -172,9 +178,11 @@ class Admin::AiController < Admin::BaseController
     response.headers['X-Accel-Buffering'] = 'no'
 
     svc = ClaudeService.new(model: ClaudeService::HAIKU_MODEL, timeout: 15)
-    svc.stream_call(system_prompt: system_prompt, messages: messages, max_tokens: 200) do |chunk|
+    svc.stream_call(system_prompt: system_prompt, messages: messages, max_tokens: 200, cache: true) do |chunk|
       response.stream.write(chunk)
     end
+    # Charge the streamed turn by its real token usage (captured during the stream).
+    charge_ai_tokens!(input_tokens: svc.last_input_tokens, output_tokens: svc.last_output_tokens)
   rescue => e
     Rails.logger.error "[AI Tutor Voice] #{e.class}: #{e.message}"
   ensure

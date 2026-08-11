@@ -104,6 +104,18 @@ class ApplicationController < ActionController::Base
     current_workspace&.credit_subscription&.deduct_credits!(CreditCost[cost_key])
   end
 
+  # Token-metered charge for conversational AI (chat/tutor). Given the usage of
+  # one turn, deducts the length-based credit cost from the workspace, capped at
+  # the remaining balance so the last turn never raises. Returns credits charged.
+  def charge_ai_tokens!(input_tokens:, output_tokens:)
+    sub = current_workspace&.credit_subscription
+    return 0 unless sub
+    want   = AiTokenPricing.credits_for(input_tokens: input_tokens, output_tokens: output_tokens)
+    charge = [want, sub.credit_balance].min
+    sub.deduct_credits!(charge) if charge.positive?
+    charge
+  end
+
   # Returns template_id from session if it was stored within the last 30 minutes,
   # and clears it. Returns nil if absent or expired (prevents stale redirects
   # when a user visits /templates, then comes back days later to sign up normally).

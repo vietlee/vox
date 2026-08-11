@@ -37,11 +37,23 @@ class AiChatJob < ApplicationJob
     messages = history.map { |h| { role: h["role"], content: h["content"] } }
     messages << { role: "user", content: message }
 
-    result_text = ClaudeService.for_feature("ai_chat").call(
+    svc = ClaudeService.for_feature("ai_chat")
+    result_text = svc.call(
       system_prompt: system_prompt,
       messages: messages,
-      max_tokens: 1024
+      max_tokens: 1024,
+      cache: true
     )
+
+    # Length-based billing: charge the workspace for this turn's real token
+    # usage (cache-read history excluded), capped at the remaining balance.
+    sub = workspace.credit_subscription
+    if sub
+      want   = AiTokenPricing.credits_for(input_tokens: svc.last_input_tokens, output_tokens: svc.last_output_tokens)
+      charge = [want, sub.credit_balance].min
+      sub.deduct_credits!(charge) if charge.positive?
+      job.update(credits_cost: charge)
+    end
 
     job.complete!({ response: result_text })
   rescue => e
