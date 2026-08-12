@@ -97,11 +97,13 @@
   <div class="lp-card-body">
     <p style="font-weight:700;font-size:14px;margin-bottom:12px;">🌐 <%= t('learner_profile.language_label', default: 'Ngôn ngữ') %></p>
     <div style="display:flex;gap:8px;">
-      <%= link_to request.path + "?locale=vi&_ls=1",
+      <%# turbo:false → full page reload so the whole app re-renders in the new
+          locale and Turbo's page cache (which holds old-locale snapshots) resets. %>
+      <%= link_to request.path + "?locale=vi&_ls=1", data: { turbo: false },
             style: "flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:12px;border:1.5px solid #{I18n.locale == :vi ? '#1e3a5f' : '#e5e7eb'};background:#{I18n.locale == :vi ? '#f0f6ff' : '#fff'};font-size:14px;font-weight:700;color:#{I18n.locale == :vi ? '#1e3a5f' : '#64748b'};text-decoration:none;" do %>
         🇻🇳 Tiếng Việt
       <% end %>
-      <%= link_to request.path + "?locale=en&_ls=1",
+      <%= link_to request.path + "?locale=en&_ls=1", data: { turbo: false },
             style: "flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:12px;border:1.5px solid #{I18n.locale == :en ? '#1e3a5f' : '#e5e7eb'};background:#{I18n.locale == :en ? '#f0f6ff' : '#fff'};font-size:14px;font-weight:700;color:#{I18n.locale == :en ? '#1e3a5f' : '#64748b'};text-decoration:none;" do %>
         🇬🇧 English
       <% end %>
