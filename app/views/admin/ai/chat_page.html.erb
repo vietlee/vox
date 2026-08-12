@@ -170,7 +170,8 @@ const STORAGE_KEY = "vox_chat_<%= current_workspace.id %>_<%= current_user.id %>
 
 let conversationHistory = [];
 
-// One chat "session" = one conversation. Credits are charged once per session
+// Credits are charged per turn by real token length (session_id kept only for
+// grouping/history; the server no longer charges once per session).
 // (server-side), so we keep a stable id for the whole conversation and only
 // rotate it when the user starts a new chat.
 function newSessionId() {

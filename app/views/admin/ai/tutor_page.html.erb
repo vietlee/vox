@@ -186,7 +186,8 @@ try {
   if (saved) chatHistory = JSON.parse(saved);
 } catch(e) { chatHistory = []; }
 
-// One tutor "session" = one conversation. Credits are charged once per session
+// Credits are charged per turn by real token length (session_id kept only for
+// grouping/history; the server no longer charges once per session).
 // (server-side, shared by text + voice); keep a stable id and only rotate it
 // when the user clears history.
 function newTutorSession() {
