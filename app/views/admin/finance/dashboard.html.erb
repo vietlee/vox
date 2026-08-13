@@ -1,8 +1,8 @@
 <% content_for :title, "Thu – Chi" %>
 <% fmt = ->(c){ "#{c.to_i.to_s.reverse.gsub(/\d{3}(?=.)/,'\0.').reverse} ₫" } %>
 
-<div class="max-w-[1100px] mx-auto px-4 py-6">
-  <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+<div class="max-w-[1100px] mx-auto px-4 py-6" data-finance>
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
     <div>
       <h1 class="text-[22px] font-extrabold text-slate-800">💰 Quản lý Thu – Chi</h1>
       <p class="text-[13px] text-slate-500">Theo dõi học phí, thu chi và doanh thu của bạn.</p>
@@ -15,157 +15,324 @@
     </div>
   </div>
 
-  <!-- Summary cards -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-    <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-      <p class="text-[12px] font-semibold text-emerald-700">Doanh thu (thu vào)</p>
-      <p class="text-[24px] font-extrabold text-emerald-700 mt-1"><%= fmt.(@income_total) %></p>
-    </div>
-    <div class="rounded-2xl border border-rose-100 bg-rose-50 p-4">
-      <p class="text-[12px] font-semibold text-rose-600">Chi phí</p>
-      <p class="text-[24px] font-extrabold text-rose-600 mt-1"><%= fmt.(@expense_total) %></p>
-    </div>
-    <div class="rounded-2xl border border-slate-200 bg-[#1e3a5f] p-4">
-      <p class="text-[12px] font-semibold text-white/70">Còn lại (lợi nhuận)</p>
-      <p class="text-[24px] font-extrabold text-white mt-1"><%= fmt.(@net) %></p>
-    </div>
-  </div>
-
-  <!-- Tuition by class -->
-  <div class="rounded-2xl border border-slate-200 bg-white p-4 mb-6">
-    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-      <h2 class="text-[15px] font-bold text-slate-800">🎓 Học phí theo lớp</h2>
-      <span class="text-[12px] text-slate-500"><%= TuitionPayment.period_label(@period_key) %></span>
-    </div>
-    <% if @class_summaries.empty? %>
-      <p class="text-[13px] text-slate-400 py-6 text-center">Chưa có lớp nào. Tạo lớp ở mục Học viên trước.</p>
-    <% else %>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <% @class_summaries.each do |cs| %>
-          <% f = cs[:folder] %>
-          <%= link_to finance_class_path(f), class: "block rounded-xl border border-slate-200 hover:border-[#1e3a5f]/40 p-3 transition" do %>
-            <div class="flex items-center justify-between">
-              <p class="font-bold text-slate-800 text-[14px]"><%= f.name %></p>
-              <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600"><%= f.cycle_quarterly? ? "Theo quý" : "Theo tháng" %></span>
-            </div>
-            <div class="flex items-center gap-4 mt-2 text-[12px]">
-              <span class="text-slate-500">Học phí: <b class="text-slate-700"><%= f.tuition_amount_cents > 0 ? fmt.(f.tuition_amount_cents) : "chưa đặt" %></b></span>
-            </div>
-            <div class="flex items-center gap-2 mt-2">
-              <div class="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
-                <div class="h-full bg-emerald-500" style="width: <%= cs[:total] > 0 ? (cs[:paid]*100/cs[:total]) : 0 %>%"></div>
-              </div>
-              <span class="text-[12px] font-semibold text-slate-600"><%= cs[:paid] %>/<%= cs[:total] %> đã nộp</span>
-            </div>
-            <p class="text-[12px] text-emerald-600 mt-1 font-semibold">Đã thu: <%= fmt.(cs[:collected]) %></p>
-          <% end %>
-        <% end %>
-      </div>
+  <!-- Tabs -->
+  <div class="flex gap-1 border-b border-slate-200 mb-5">
+    <% [["overview","📊 Tổng quan"],["tuition","🎓 Học phí"],["ledger","📒 Sổ thu chi"]].each_with_index do |(tab,lbl),i| %>
+      <button type="button" data-tab-btn="<%= tab %>"
+        class="tab-btn px-4 py-2.5 text-[14px] font-semibold border-b-2 -mb-px transition <%= i==0 ? 'border-[#1e3a5f] text-[#1e3a5f]' : 'border-transparent text-slate-400 hover:text-slate-600' %>">
+        <%= lbl %>
+      </button>
     <% end %>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- Quick add + ledger -->
+  <!-- ══ TAB: Tổng quan ══ -->
+  <section data-tab-panel="overview">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+        <p class="text-[12px] font-semibold text-emerald-700">Doanh thu (thu vào)</p>
+        <p class="text-[24px] font-extrabold text-emerald-700 mt-1"><%= fmt.(@income_total) %></p>
+      </div>
+      <div class="rounded-2xl border border-rose-100 bg-rose-50 p-4">
+        <p class="text-[12px] font-semibold text-rose-600">Chi phí</p>
+        <p class="text-[24px] font-extrabold text-rose-600 mt-1"><%= fmt.(@expense_total) %></p>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-[#1e3a5f] p-4">
+        <p class="text-[12px] font-semibold text-white/70">Còn lại (lợi nhuận)</p>
+        <p class="text-[24px] font-extrabold text-white mt-1"><%= fmt.(@net) %></p>
+      </div>
+    </div>
+
     <div class="rounded-2xl border border-slate-200 bg-white p-4">
-      <h2 class="text-[15px] font-bold text-slate-800 mb-3">📒 Ghi khoản thu / chi</h2>
-      <%= form_with url: finance_entries_path, method: :post, local: true, class: "space-y-2.5" do |form| %>
-        <%= form.fields_for :finance_entry do |ff| %>
-          <div class="flex gap-2">
-            <label class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-emerald-200 bg-emerald-50 cursor-pointer text-[13px] font-semibold text-emerald-700 has-[:checked]:ring-2 has-[:checked]:ring-emerald-400">
-              <%= ff.radio_button :kind, "income", checked: true, class: "accent-emerald-600" %> Thu vào
-            </label>
-            <label class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-rose-200 bg-rose-50 cursor-pointer text-[13px] font-semibold text-rose-600 has-[:checked]:ring-2 has-[:checked]:ring-rose-400">
-              <%= ff.radio_button :kind, "expense", class: "accent-rose-600" %> Chi ra
-            </label>
-          </div>
-          <%= ff.number_field :amount_cents, placeholder: "Số tiền (VND)", required: true, min: 1,
-                class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[14px] focus:border-[#1e3a5f] outline-none" %>
-          <div class="flex gap-2">
-            <%= ff.date_field :occurred_on, value: Date.current, required: true,
-                  class: "flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] outline-none" %>
-            <%= ff.text_field :category, placeholder: "Danh mục (VD Thuê phòng)",
-                  class: "flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] outline-none" %>
-          </div>
-          <%= ff.collection_select :learner_folder_id, @folders, :id, :name,
-                { include_blank: "— Gắn lớp (tùy chọn) —" },
-                { class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] outline-none bg-white" } %>
-          <%= ff.text_field :note, placeholder: "Ghi chú",
-                class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] outline-none" %>
-        <% end %>
-        <%= form.submit "Lưu khoản", class: "w-full py-2.5 rounded-lg bg-[#1e3a5f] text-white font-semibold text-[14px] cursor-pointer" %>
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h2 class="text-[15px] font-bold text-slate-800">Tình hình học phí</h2>
+        <span class="text-[12px] text-slate-500"><%= TuitionPayment.period_label(@period_key) %></span>
+      </div>
+      <% if @class_summaries.empty? %>
+        <p class="text-[13px] text-slate-400 py-6 text-center">Chưa có lớp nào. Tạo lớp ở mục Học viên trước.</p>
+      <% else %>
+        <div class="space-y-2.5">
+          <% @class_summaries.each do |cs| %>
+            <% f = cs[:folder]; pct = cs[:total] > 0 ? (cs[:paid]*100/cs[:total]) : 0 %>
+            <%= link_to finance_class_path(f), class: "flex items-center gap-3 rounded-xl border border-slate-100 hover:border-[#1e3a5f]/30 p-3 transition" do %>
+              <div class="flex-1 min-w-0">
+                <p class="font-bold text-slate-800 text-[14px] truncate"><%= f.name %></p>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <div class="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden max-w-[200px]">
+                    <div class="h-full bg-emerald-500" style="width: <%= pct %>%"></div>
+                  </div>
+                  <span class="text-[11px] font-semibold text-slate-500"><%= cs[:paid] %>/<%= cs[:total] %></span>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="text-[13px] font-bold text-emerald-600"><%= fmt.(cs[:collected]) %></p>
+                <p class="text-[11px] text-slate-400">đã thu</p>
+              </div>
+              <span class="text-slate-300 text-[18px]">›</span>
+            <% end %>
+          <% end %>
+        </div>
       <% end %>
     </div>
+  </section>
 
-    <!-- AI import -->
-    <div class="rounded-2xl border border-slate-200 bg-white p-4">
-      <h2 class="text-[15px] font-bold text-slate-800 mb-1">✨ Nhập bằng AI</h2>
-      <p class="text-[12px] text-slate-500 mb-3">Tải ảnh (biên lai, danh sách nộp tiền, sao kê) hoặc dán văn bản — AI bóc dữ liệu để bạn xem & sửa trước khi nhập.</p>
-      <input type="file" id="ai-image" accept="image/*" class="block w-full text-[13px] mb-2 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-600" />
-      <textarea id="ai-text" rows="3" placeholder="Hoặc dán văn bản danh sách thu/chi..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] outline-none mb-2"></textarea>
-      <button id="ai-extract-btn" class="w-full py-2.5 rounded-lg bg-violet-600 text-white font-semibold text-[14px]">Bóc dữ liệu bằng AI</button>
-      <div id="ai-preview" class="mt-3 hidden">
-        <p class="text-[12px] font-semibold text-slate-600 mb-1.5">Xem lại & sửa trước khi nhập:</p>
-        <div id="ai-rows" class="space-y-1.5 max-h-64 overflow-y-auto"></div>
-        <%= form_with url: finance_ai_import_path, method: :post, local: true, id: "ai-import-form" do |f| %>
-          <div id="ai-rows-hidden"></div>
-          <button type="submit" class="w-full mt-2 py-2.5 rounded-lg bg-emerald-600 text-white font-semibold text-[14px]">Nhập các khoản này</button>
-        <% end %>
+  <!-- ══ TAB: Học phí ══ -->
+  <section data-tab-panel="tuition" hidden>
+    <% if @class_summaries.empty? %>
+      <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+        <p class="text-[13px] text-slate-400">Chưa có lớp nào. Tạo lớp ở mục Học viên, sau đó quay lại đây để đặt học phí.</p>
       </div>
-    </div>
-  </div>
-
-  <!-- Ledger list -->
-  <div class="rounded-2xl border border-slate-200 bg-white p-4 mt-6">
-    <h2 class="text-[15px] font-bold text-slate-800 mb-3">📜 Lịch sử thu chi gần đây</h2>
-    <% if @entries.empty? %>
-      <p class="text-[13px] text-slate-400 py-6 text-center">Chưa có khoản nào.</p>
     <% else %>
-      <div class="divide-y divide-slate-100">
-        <% @entries.each do |e| %>
-          <div class="flex items-center gap-3 py-2.5">
-            <span class="w-8 h-8 rounded-lg flex items-center justify-center text-[15px] <%= e.income? ? 'bg-emerald-50' : 'bg-rose-50' %>"><%= e.income? ? "⬇️" : "⬆️" %></span>
-            <div class="flex-1 min-w-0">
-              <p class="text-[13px] font-semibold text-slate-700 truncate"><%= e.category.presence || (e.income? ? "Thu" : "Chi") %><% if e.learner_folder %> · <span class="text-slate-400"><%= e.learner_folder.name %></span><% end %></p>
-              <p class="text-[11px] text-slate-400 truncate"><%= l e.occurred_on, format: :long rescue e.occurred_on %><%= " · #{e.note}" if e.note.present? %></p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <% @class_summaries.each do |cs| %>
+          <% f = cs[:folder]; pct = cs[:total] > 0 ? (cs[:paid]*100/cs[:total]) : 0; unset = f.tuition_amount_cents.to_i <= 0 %>
+          <div class="rounded-2xl border <%= unset ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200 bg-white' %> p-4">
+            <div class="flex items-center justify-between gap-2">
+              <p class="font-bold text-slate-800 text-[15px] truncate"><%= f.name %></p>
+              <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0"><%= f.cycle_quarterly? ? "Theo quý" : "Theo tháng" %></span>
             </div>
-            <span class="text-[14px] font-bold <%= e.income? ? 'text-emerald-600' : 'text-rose-600' %>"><%= e.income? ? "+" : "−" %><%= fmt.(e.amount_cents) %></span>
-            <%= button_to finance_entry_path(e), method: :delete, form: { data: { turbo_confirm: "Xoá khoản này?" } },
-                  class: "text-slate-300 hover:text-rose-500 text-[16px] leading-none px-1" do %>×<% end %>
+            <p class="text-[12px] mt-1.5 text-slate-500">Học phí/kỳ:
+              <b class="<%= unset ? 'text-amber-600' : 'text-slate-700' %>"><%= unset ? "chưa đặt" : fmt.(f.tuition_amount_cents) %></b>
+            </p>
+            <% if cs[:total] > 0 %>
+              <div class="flex items-center gap-2 mt-2.5">
+                <div class="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div class="h-full bg-emerald-500" style="width: <%= pct %>%"></div>
+                </div>
+                <span class="text-[12px] font-semibold text-slate-600"><%= cs[:paid] %>/<%= cs[:total] %></span>
+              </div>
+              <p class="text-[12px] text-emerald-600 mt-1.5 font-semibold">Đã thu: <%= fmt.(cs[:collected]) %></p>
+            <% else %>
+              <p class="text-[12px] text-slate-400 mt-2.5"><%= cs[:members] %> học viên · chưa tạo danh sách kỳ này</p>
+            <% end %>
+            <%= link_to "Điểm danh nộp phí →", finance_class_path(f),
+                  class: "mt-3 block text-center py-2 rounded-lg bg-[#1e3a5f] text-white font-semibold text-[13px]" %>
           </div>
         <% end %>
       </div>
+    <% end %>
+  </section>
+
+  <!-- ══ TAB: Sổ thu chi ══ -->
+  <section data-tab-panel="ledger" hidden>
+    <!-- AI import (collapsed) -->
+    <div class="rounded-2xl border border-slate-200 bg-white mb-4 overflow-hidden">
+      <button type="button" data-ai-toggle class="w-full flex items-center justify-between px-4 py-3 text-left">
+        <span class="text-[14px] font-bold text-slate-800">✨ Nhập nhanh bằng AI</span>
+        <span class="text-[12px] text-slate-400" data-ai-caret>Mở ▾</span>
+      </button>
+      <div data-ai-body hidden class="px-4 pb-4 border-t border-slate-100 pt-3">
+        <p class="text-[12px] text-slate-500 mb-3">Tải ảnh (biên lai, danh sách nộp tiền, sao kê) hoặc dán văn bản — AI bóc dữ liệu để bạn xem &amp; sửa trước khi nhập.</p>
+        <input type="file" id="ai-image" accept="image/*" class="block w-full text-[13px] mb-2 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-600" />
+        <textarea id="ai-text" rows="3" placeholder="Hoặc dán văn bản danh sách thu/chi..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] outline-none mb-2"></textarea>
+        <button id="ai-extract-btn" class="w-full py-2.5 rounded-lg bg-violet-600 text-white font-semibold text-[14px]">Bóc dữ liệu bằng AI</button>
+        <div id="ai-preview" class="mt-3 hidden">
+          <p class="text-[12px] font-semibold text-slate-600 mb-1.5">Xem lại &amp; sửa trước khi nhập:</p>
+          <div id="ai-rows" class="space-y-1.5 max-h-64 overflow-y-auto"></div>
+          <%= form_with url: finance_ai_import_path, method: :post, local: true, id: "ai-import-form" do |f| %>
+            <div id="ai-rows-hidden"></div>
+            <button type="submit" class="w-full mt-2 py-2.5 rounded-lg bg-emerald-600 text-white font-semibold text-[14px]">Nhập các khoản này</button>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ledger list -->
+    <div class="rounded-2xl border border-slate-200 bg-white p-4">
+      <h2 class="text-[15px] font-bold text-slate-800 mb-3">📜 Lịch sử thu chi gần đây</h2>
+      <% if @entries.empty? %>
+        <p class="text-[13px] text-slate-400 py-6 text-center">Chưa có khoản nào. Bấm <b>＋ Ghi khoản</b> để thêm.</p>
+      <% else %>
+        <div class="divide-y divide-slate-100">
+          <% @entries.each do |e| %>
+            <div class="flex items-center gap-3 py-2.5">
+              <span class="w-8 h-8 rounded-lg flex items-center justify-center text-[15px] <%= e.income? ? 'bg-emerald-50' : 'bg-rose-50' %>"><%= e.income? ? "⬇️" : "⬆️" %></span>
+              <div class="flex-1 min-w-0">
+                <p class="text-[13px] font-semibold text-slate-700 truncate"><%= e.category.presence || (e.income? ? "Thu" : "Chi") %><% if e.learner_folder %> · <span class="text-slate-400"><%= e.learner_folder.name %></span><% end %></p>
+                <p class="text-[11px] text-slate-400 truncate"><%= l e.occurred_on, format: :long rescue e.occurred_on %><%= " · #{e.note}" if e.note.present? %></p>
+              </div>
+              <span class="text-[14px] font-bold <%= e.income? ? 'text-emerald-600' : 'text-rose-600' %>"><%= e.income? ? "+" : "−" %><%= fmt.(e.amount_cents) %></span>
+              <%= button_to finance_entry_path(e), method: :delete, form: { data: { turbo_confirm: "Xoá khoản này?" } },
+                    class: "text-slate-300 hover:text-rose-500 text-[16px] leading-none px-1" do %>×<% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+</div>
+
+<!-- Floating "add entry" button -->
+<button type="button" data-open-entry
+  class="fixed bottom-6 right-6 z-30 flex items-center gap-2 px-5 py-3.5 rounded-full bg-[#1e3a5f] text-white font-bold text-[14px] shadow-lg shadow-[#1e3a5f]/30 hover:bg-[#16304d] transition">
+  <span class="text-[18px] leading-none">＋</span> Ghi khoản
+</button>
+
+<!-- Entry modal -->
+<div data-entry-modal hidden class="fixed inset-0 z-40 flex items-end sm:items-center justify-center">
+  <div data-entry-backdrop class="absolute inset-0 bg-slate-900/40"></div>
+  <div class="relative w-full sm:max-w-[440px] bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-xl max-h-[92vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-[16px] font-bold text-slate-800">Ghi khoản thu / chi</h2>
+      <button type="button" data-close-entry class="text-slate-400 hover:text-slate-600 text-[22px] leading-none">×</button>
+    </div>
+
+    <%= form_with url: finance_entries_path, method: :post, local: true, class: "space-y-3", data: { entry_form: true } do |form| %>
+      <%= form.fields_for :finance_entry do |ff| %>
+        <div class="flex gap-2">
+          <label class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-emerald-200 bg-emerald-50 cursor-pointer text-[13px] font-semibold text-emerald-700 has-[:checked]:ring-2 has-[:checked]:ring-emerald-400">
+            <%= ff.radio_button :kind, "income", checked: true, class: "accent-emerald-600", data: { kind_radio: "income" } %> Thu vào
+          </label>
+          <label class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-rose-200 bg-rose-50 cursor-pointer text-[13px] font-semibold text-rose-600 has-[:checked]:ring-2 has-[:checked]:ring-rose-400">
+            <%= ff.radio_button :kind, "expense", class: "accent-rose-600", data: { kind_radio: "expense" } %> Chi ra
+          </label>
+        </div>
+
+        <!-- Amount: formatted display + hidden real field -->
+        <div>
+          <div class="relative">
+            <input type="text" inputmode="numeric" data-amount-display placeholder="0"
+              class="w-full px-3 py-3 pr-9 border border-slate-200 rounded-lg text-[20px] font-bold text-slate-800 focus:border-[#1e3a5f] outline-none" />
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[15px] text-slate-400 font-semibold">₫</span>
+          </div>
+          <%= ff.hidden_field :amount_cents, data: { amount_real: true } %>
+          <div class="flex gap-1.5 mt-2">
+            <% [["+50k",50000],["+100k",100000],["+500k",500000],["+1tr",1000000]].each do |lbl,v| %>
+              <button type="button" data-amount-add="<%= v %>" class="flex-1 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-[12px] font-semibold hover:bg-slate-200"><%= lbl %></button>
+            <% end %>
+            <button type="button" data-amount-clear class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-400 text-[12px] font-semibold hover:bg-slate-200">C</button>
+          </div>
+        </div>
+
+        <!-- Category chips -->
+        <div>
+          <%= ff.text_field :category, placeholder: "Danh mục", data: { category_input: true },
+                class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] outline-none focus:border-[#1e3a5f]" %>
+          <div class="flex flex-wrap gap-1.5 mt-2" data-chips="income">
+            <% ["Học phí","Bán tài liệu","Thu khác"].each do |c| %>
+              <button type="button" data-chip="<%= c %>" class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[12px] font-semibold hover:bg-emerald-100"><%= c %></button>
+            <% end %>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mt-2" data-chips="expense" hidden>
+            <% ["Thuê phòng","Lương trợ giảng","Thiết bị","Marketing","Chi khác"].each do |c| %>
+              <button type="button" data-chip="<%= c %>" class="px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 text-[12px] font-semibold hover:bg-rose-100"><%= c %></button>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <%= ff.date_field :occurred_on, value: Date.current, required: true,
+                class: "flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] outline-none" %>
+          <%= ff.collection_select :learner_folder_id, @folders, :id, :name,
+                { include_blank: "— Gắn lớp —" },
+                { class: "flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] outline-none bg-white" } %>
+        </div>
+        <%= ff.text_field :note, placeholder: "Ghi chú (tùy chọn)",
+              class: "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] outline-none" %>
+      <% end %>
+      <%= form.submit "Lưu khoản", class: "w-full py-3 rounded-lg bg-[#1e3a5f] text-white font-bold text-[15px] cursor-pointer" %>
     <% end %>
   </div>
 </div>
 
 <script>
 (function(){
-  const btn = document.getElementById('ai-extract-btn');
-  if (!btn) return;
-  const token = document.querySelector('meta[name="csrf-token"]')?.content;
-  btn.addEventListener('click', async () => {
-    const img = document.getElementById('ai-image').files[0];
-    const text = document.getElementById('ai-text').value;
-    if (!img && !text.trim()) { alert('Chọn ảnh hoặc dán văn bản.'); return; }
-    btn.disabled = true; btn.textContent = 'Đang bóc dữ liệu...';
-    const fd = new FormData();
-    if (img) fd.append('image', img);
-    fd.append('text', text);
-    try {
-      const res = await fetch('<%= finance_ai_extract_path %>', { method:'POST', headers:{'X-CSRF-Token':token}, body: fd });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      renderRows(data.rows || []);
-    } catch(e) { alert('Lỗi: ' + e.message); }
-    btn.disabled = false; btn.textContent = 'Bóc dữ liệu bằng AI';
+  const root = document.querySelector('[data-finance]');
+  if (!root) return;
+
+  // ── Tabs ──
+  const btns = document.querySelectorAll('[data-tab-btn]');
+  const panels = document.querySelectorAll('[data-tab-panel]');
+  function showTab(name){
+    panels.forEach(p => p.hidden = (p.dataset.tabPanel !== name));
+    btns.forEach(b => {
+      const on = b.dataset.tabBtn === name;
+      b.classList.toggle('border-[#1e3a5f]', on);
+      b.classList.toggle('text-[#1e3a5f]', on);
+      b.classList.toggle('border-transparent', !on);
+      b.classList.toggle('text-slate-400', !on);
+    });
+    try { location.hash = name; } catch(e){}
+  }
+  btns.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tabBtn)));
+  const h = (location.hash||'').replace('#','');
+  if (['overview','tuition','ledger'].includes(h)) showTab(h);
+
+  // ── AI panel toggle ──
+  const aiToggle = document.querySelector('[data-ai-toggle]');
+  if (aiToggle) aiToggle.addEventListener('click', () => {
+    const body = document.querySelector('[data-ai-body]');
+    const caret = document.querySelector('[data-ai-caret]');
+    body.hidden = !body.hidden;
+    caret.textContent = body.hidden ? 'Mở ▾' : 'Đóng ▴';
   });
 
+  // ── Entry modal ──
+  const modal = document.querySelector('[data-entry-modal]');
+  const openBtn = document.querySelector('[data-open-entry]');
+  const display = modal.querySelector('[data-amount-display]');
+  const real = modal.querySelector('[data-amount-real]');
+  const catInput = modal.querySelector('[data-category-input]');
+  function openModal(){ modal.hidden = false; document.body.style.overflow='hidden'; setTimeout(()=>display.focus(),50); }
+  function closeModal(){ modal.hidden = true; document.body.style.overflow=''; }
+  openBtn.addEventListener('click', openModal);
+  modal.querySelector('[data-close-entry]').addEventListener('click', closeModal);
+  modal.querySelector('[data-entry-backdrop]').addEventListener('click', closeModal);
+  document.addEventListener('keydown', e => { if(e.key==='Escape' && !modal.hidden) closeModal(); });
+
+  // Amount formatting
+  const groups = n => (n||'').toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  function setAmount(n){ real.value = n>0 ? n : ''; display.value = n>0 ? groups(String(n)) : ''; }
+  display.addEventListener('input', () => {
+    const digits = display.value.replace(/\D/g,'');
+    real.value = digits ? parseInt(digits,10) : '';
+    display.value = digits ? groups(digits) : '';
+  });
+  modal.querySelectorAll('[data-amount-add]').forEach(b => b.addEventListener('click', () => {
+    setAmount((parseInt(real.value||'0',10)) + parseInt(b.dataset.amountAdd,10));
+  }));
+  modal.querySelector('[data-amount-clear]').addEventListener('click', () => setAmount(0));
+
+  // Kind → swap chip sets
+  const chipSets = { income: modal.querySelector('[data-chips="income"]'), expense: modal.querySelector('[data-chips="expense"]') };
+  modal.querySelectorAll('[data-kind-radio]').forEach(r => r.addEventListener('change', () => {
+    const k = r.dataset.kindRadio;
+    chipSets.income.hidden = k !== 'income';
+    chipSets.expense.hidden = k !== 'expense';
+  }));
+  modal.querySelectorAll('[data-chip]').forEach(c => c.addEventListener('click', () => { catInput.value = c.dataset.chip; }));
+
+  // Guard: block submit if amount empty
+  modal.querySelector('[data-entry-form]').addEventListener('submit', e => {
+    if (!real.value || parseInt(real.value,10) <= 0){ e.preventDefault(); display.focus(); display.classList.add('border-rose-400'); }
+  });
+
+  // ── AI extract (unchanged behaviour) ──
+  const btn = document.getElementById('ai-extract-btn');
+  if (btn){
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    btn.addEventListener('click', async () => {
+      const img = document.getElementById('ai-image').files[0];
+      const text = document.getElementById('ai-text').value;
+      if (!img && !text.trim()) { alert('Chọn ảnh hoặc dán văn bản.'); return; }
+      btn.disabled = true; btn.textContent = 'Đang bóc dữ liệu...';
+      const fd = new FormData();
+      if (img) fd.append('image', img);
+      fd.append('text', text);
+      try {
+        const res = await fetch('<%= finance_ai_extract_path %>', { method:'POST', headers:{'X-CSRF-Token':token}, body: fd });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        renderRows(data.rows || []);
+      } catch(e) { alert('Lỗi: ' + e.message); }
+      btn.disabled = false; btn.textContent = 'Bóc dữ liệu bằng AI';
+    });
+  }
   function renderRows(rows){
     const wrap = document.getElementById('ai-rows');
     const hidden = document.getElementById('ai-rows-hidden');
     wrap.innerHTML=''; hidden.innerHTML='';
     if (!rows.length){ wrap.innerHTML = '<p class="text-[13px] text-slate-400">AI không tìm thấy khoản nào.</p>'; document.getElementById('ai-preview').classList.remove('hidden'); return; }
-    rows.forEach((r,i) => {
+    rows.forEach((r) => {
       const row = document.createElement('div');
       row.className = 'flex gap-1.5 items-center';
       row.innerHTML = `
@@ -178,13 +345,12 @@
         <input data-f="category" value="${r.category||''}" placeholder="Danh mục" class="border border-slate-200 rounded px-1.5 py-1 text-[12px] flex-1 min-w-0">`;
       wrap.appendChild(row);
     });
-    // mirror into hidden fields on submit
     document.getElementById('ai-import-form').addEventListener('submit', () => {
       hidden.innerHTML='';
       wrap.querySelectorAll(':scope > div').forEach((row,i) => {
         row.querySelectorAll('[data-f]').forEach(inp => {
-          const h=document.createElement('input'); h.type='hidden';
-          h.name=`rows[${i}][${inp.dataset.f}]`; h.value=inp.value; hidden.appendChild(h);
+          const hi=document.createElement('input'); hi.type='hidden';
+          hi.name=`rows[${i}][${inp.dataset.f}]`; hi.value=inp.value; hidden.appendChild(hi);
         });
       });
     }, { once:false });

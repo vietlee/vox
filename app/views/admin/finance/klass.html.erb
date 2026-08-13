@@ -2,7 +2,7 @@
 <% fmt = ->(c){ "#{c.to_i.to_s.reverse.gsub(/\d{3}(?=.)/,'\0.').reverse} ₫" } %>
 
 <div class="max-w-[820px] mx-auto px-4 py-6">
-  <%= link_to "← Thu – Chi", finance_path, class: "text-[13px] text-slate-500 hover:text-[#1e3a5f]" %>
+  <%= link_to "← Thu – Chi", finance_path(anchor: "tuition"), class: "text-[13px] text-slate-500 hover:text-[#1e3a5f]" %>
   <div class="flex items-center justify-between mt-2 mb-4 flex-wrap gap-2">
     <h1 class="text-[20px] font-extrabold text-slate-800">🎓 <%= @folder.name %></h1>
     <% if @periods.size > 1 || @folder.tuition_payments.exists? %>
@@ -22,8 +22,13 @@
     <%= form_with url: finance_tuition_plan_path(@folder), method: :post, local: true, class: "flex flex-wrap items-end gap-2" do |f| %>
       <div>
         <label class="block text-[11px] text-slate-500 mb-1">Số tiền / kỳ</label>
-        <%= number_field_tag :tuition_amount_cents, @folder.tuition_amount_cents, min: 0,
-              class: "px-3 py-2 border border-slate-200 rounded-lg text-[14px] w-[150px] outline-none" %>
+        <div class="relative">
+          <input type="text" inputmode="numeric" data-plan-display
+            value="<%= @folder.tuition_amount_cents.to_i > 0 ? @folder.tuition_amount_cents.to_i.to_s.reverse.gsub(/\d{3}(?=.)/,'\0.').reverse : '' %>"
+            placeholder="0" class="px-3 py-2 pr-7 border border-slate-200 rounded-lg text-[14px] w-[160px] outline-none font-semibold" />
+          <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[13px] text-slate-400">₫</span>
+        </div>
+        <%= number_field_tag :tuition_amount_cents, @folder.tuition_amount_cents, min: 0, data: { plan_real: true }, class: "hidden" %>
       </div>
       <div>
         <label class="block text-[11px] text-slate-500 mb-1">Chu kỳ</label>
@@ -47,31 +52,51 @@
       <p class="text-[13px] text-slate-400 py-6 text-center">Chưa có danh sách. Đặt học phí rồi bấm “Tạo danh sách kỳ này”.</p>
     <% else %>
       <% paid = @records.select(&:paid?).size %>
-      <div class="flex items-center gap-2 mb-3">
-        <div class="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
-          <div class="h-full bg-emerald-500" style="width: <%= @records.size>0 ? paid*100/@records.size : 0 %>%"></div>
+      <div class="sticky top-0 bg-white z-10 pb-3 mb-1">
+        <div class="flex items-center gap-2">
+          <div class="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden">
+            <div class="h-full bg-emerald-500 transition-all" style="width: <%= @records.size>0 ? paid*100/@records.size : 0 %>%"></div>
+          </div>
+          <span class="text-[12px] font-semibold text-slate-600 shrink-0"><%= paid %>/<%= @records.size %> đã nộp</span>
         </div>
-        <span class="text-[12px] font-semibold text-slate-600"><%= paid %>/<%= @records.size %> đã nộp · thu <%= fmt.(@records.select(&:paid?).sum(&:amount_cents)) %></span>
+        <p class="text-[12px] text-emerald-600 font-semibold mt-1">Đã thu: <%= fmt.(@records.select(&:paid?).sum(&:amount_cents)) %></p>
       </div>
       <div class="divide-y divide-slate-100">
         <% @records.each do |r| %>
-          <div class="flex items-center gap-3 py-2.5">
+          <div class="flex items-center gap-3 py-3">
             <div class="flex-1 min-w-0">
-              <p class="text-[13.5px] font-semibold text-slate-700 truncate"><%= r.learner.name %></p>
+              <p class="text-[14px] font-semibold text-slate-700 truncate"><%= r.learner.name %></p>
               <p class="text-[11px] text-slate-400"><%= fmt.(r.amount_cents) %><%= " · nộp #{l r.paid_on, format: :long rescue r.paid_on}" if r.paid? && r.paid_on %></p>
             </div>
             <% if r.paid? %>
-              <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold">Đã nộp</span>
-              <%= button_to "Hoàn tác", finance_mark_unpaid_path(r), method: :post,
-                    class: "text-[12px] text-slate-400 hover:text-rose-500 underline" %>
+              <%= button_to finance_mark_unpaid_path(r), method: :post,
+                    class: "flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-50 text-emerald-700 font-semibold text-[13px] hover:bg-emerald-100" do %>
+                <span>✓</span> Đã nộp
+              <% end %>
             <% else %>
-              <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-semibold">Chưa nộp</span>
               <%= button_to "Đánh dấu đã nộp", finance_mark_paid_path(r), method: :post,
-                    class: "text-[12px] px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold" %>
+                    class: "px-4 py-2 rounded-lg bg-[#1e3a5f] text-white font-semibold text-[13px] hover:bg-[#16304d]" %>
             <% end %>
           </div>
         <% end %>
       </div>
+      <p class="text-[11px] text-slate-400 mt-3 text-center">Bấm “Đã nộp” để hoàn tác về chưa nộp.</p>
     <% end %>
   </div>
 </div>
+
+<script>
+(function(){
+  // Format tuition-plan amount input, sync to hidden real field.
+  const disp = document.querySelector('[data-plan-display]');
+  const real = document.querySelector('[data-plan-real]');
+  if (disp && real){
+    const groups = n => n.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    disp.addEventListener('input', () => {
+      const d = disp.value.replace(/\D/g,'');
+      real.value = d ? parseInt(d,10) : 0;
+      disp.value = d ? groups(d) : '';
+    });
+  }
+})();
+</script>
