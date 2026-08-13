@@ -12,7 +12,7 @@
     </div>
     <div class="flex gap-1.5 bg-slate-100 rounded-xl p-1">
       <% [["month","Tháng này"],["quarter","Quý này"],["year","Năm nay"]].each do |val,lbl| %>
-        <%= link_to lbl, finance_path(range: val),
+        <%= link_to lbl, finance_path(range: val, on: params[:on]),
               class: "px-3 py-1.5 rounded-lg text-[13px] font-semibold #{(params[:range].presence||'month')==val ? 'bg-white text-[#1e3a5f] shadow-sm' : 'text-slate-500'}" %>
       <% end %>
     </div>
@@ -48,7 +48,7 @@
     <div class="rounded-2xl border border-slate-200 bg-white p-4">
       <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
         <h2 class="text-[15px] font-bold text-slate-800">Tình hình học phí</h2>
-        <span class="text-[12px] text-slate-500"><%= TuitionPayment.period_label(@period_key) %></span>
+        <span class="text-[12px] text-slate-500"><%= TuitionPayment.period_label(@ref_month.strftime("%Y-%m")) %></span>
       </div>
       <% if @class_summaries.empty? %>
         <p class="text-[13px] text-slate-400 py-6 text-center">Chưa có lớp nào. Tạo lớp ở mục Học viên trước.</p>
@@ -56,7 +56,7 @@
         <div class="space-y-2.5">
           <% @class_summaries.each do |cs| %>
             <% f = cs[:folder]; pct = cs[:total] > 0 ? (cs[:paid]*100/cs[:total]) : 0 %>
-            <%= link_to finance_class_path(f), class: "flex items-center gap-3 rounded-xl border border-slate-100 hover:border-[#1e3a5f]/30 p-3 transition" do %>
+            <%= link_to finance_class_path(f, period: cs[:period_key]), class: "flex items-center gap-3 rounded-xl border border-slate-100 hover:border-[#1e3a5f]/30 p-3 transition" do %>
               <div class="flex-1 min-w-0">
                 <p class="font-bold text-slate-800 text-[14px] truncate"><%= f.name %></p>
                 <div class="flex items-center gap-2 mt-1.5">
@@ -85,6 +85,19 @@
         <p class="text-[13px] text-slate-400">Chưa có lớp nào. Tạo lớp ở mục Học viên, sau đó quay lại đây để đặt học phí.</p>
       </div>
     <% else %>
+      <!-- Month navigator -->
+      <div class="flex items-center justify-center gap-3 mb-4">
+        <%= link_to finance_path(range: params[:range], on: @prev_month, anchor: "tuition"),
+              class: "w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-[#1e3a5f] hover:border-[#1e3a5f]/40 text-[18px] leading-none" do %>‹<% end %>
+        <span class="text-[14px] font-bold text-slate-700 min-w-[130px] text-center"><%= TuitionPayment.period_label(@ref_month.strftime("%Y-%m")) %></span>
+        <% if @at_current_month %>
+          <span class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-100 text-slate-300 text-[18px] leading-none cursor-not-allowed">›</span>
+        <% else %>
+          <%= link_to finance_path(range: params[:range], on: @next_month, anchor: "tuition"),
+                class: "w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-[#1e3a5f] hover:border-[#1e3a5f]/40 text-[18px] leading-none" do %>›<% end %>
+        <% end %>
+      </div>
+
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <% @class_summaries.each do |cs| %>
           <% f = cs[:folder]; pct = cs[:total] > 0 ? (cs[:paid]*100/cs[:total]) : 0; unset = f.tuition_amount_cents.to_i <= 0 %>
@@ -95,6 +108,7 @@
             </div>
             <p class="text-[12px] mt-1.5 text-slate-500">Học phí/kỳ:
               <b class="<%= unset ? 'text-amber-600' : 'text-slate-700' %>"><%= unset ? "chưa đặt" : fmt.(f.tuition_amount_cents) %></b>
+              <% if f.cycle_quarterly? %><span class="text-slate-400">· <%= TuitionPayment.period_label(cs[:period_key]) %></span><% end %>
             </p>
             <% if cs[:total] > 0 %>
               <div class="flex items-center gap-2 mt-2.5">
@@ -107,7 +121,7 @@
             <% else %>
               <p class="text-[12px] text-slate-400 mt-2.5"><%= cs[:members] %> học viên · chưa tạo danh sách kỳ này</p>
             <% end %>
-            <%= link_to "Điểm danh nộp phí →", finance_class_path(f),
+            <%= link_to "Điểm danh nộp phí →", finance_class_path(f, period: cs[:period_key]),
                   class: "mt-3 block text-center py-2 rounded-lg bg-[#1e3a5f] text-white font-semibold text-[13px]" %>
           </div>
         <% end %>
@@ -153,26 +167,35 @@
       </div>
     </div>
 
-    <!-- Ledger list -->
+    <!-- Ledger list, grouped by month -->
     <div class="rounded-2xl border border-slate-200 bg-white p-4">
-      <h2 class="text-[15px] font-bold text-slate-800 mb-3">📜 Lịch sử thu chi gần đây</h2>
+      <h2 class="text-[15px] font-bold text-slate-800 mb-3">📜 Sổ thu chi — <%= { "month" => "tháng này", "quarter" => "quý này", "year" => "năm nay" }[(params[:range].presence || "month")] %></h2>
       <% if @entries.empty? %>
-        <p class="text-[13px] text-slate-400 py-6 text-center">Chưa có khoản nào. Bấm <b>＋ Ghi khoản</b> để thêm.</p>
+        <p class="text-[13px] text-slate-400 py-6 text-center">Chưa có khoản nào trong kỳ này. Bấm <b>＋ Ghi khoản</b> để thêm, hoặc đổi bộ lọc phía trên.</p>
       <% else %>
-        <div class="divide-y divide-slate-100">
-          <% @entries.each do |e| %>
-            <div class="flex items-center gap-3 py-2.5">
-              <span class="w-8 h-8 rounded-lg flex items-center justify-center text-[15px] <%= e.income? ? 'bg-emerald-50' : 'bg-rose-50' %>"><%= e.income? ? "⬇️" : "⬆️" %></span>
-              <div class="flex-1 min-w-0">
-                <p class="text-[13px] font-semibold text-slate-700 truncate"><%= e.category.presence || (e.income? ? "Thu" : "Chi") %><% if e.learner_folder %> · <span class="text-slate-400"><%= e.learner_folder.name %></span><% end %></p>
-                <p class="text-[11px] text-slate-400 truncate"><%= l e.occurred_on, format: :long rescue e.occurred_on %><%= " · #{e.note}" if e.note.present? %></p>
-              </div>
-              <span class="text-[14px] font-bold <%= e.income? ? 'text-emerald-600' : 'text-rose-600' %>"><%= e.income? ? "+" : "−" %><%= fmt.(e.amount_cents) %></span>
-              <%= button_to finance_entry_path(e), method: :delete, form: { data: { turbo_confirm: "Xoá khoản này?" } },
-                    class: "text-slate-300 hover:text-rose-500 text-[16px] leading-none px-1" do %>×<% end %>
+        <% @entries.group_by { |e| e.occurred_on.beginning_of_month }.each do |month, list| %>
+          <% mi = list.select(&:income?).sum(&:amount_cents); me = list.select(&:expense?).sum(&:amount_cents) %>
+          <div class="mb-4 last:mb-0">
+            <div class="flex items-center justify-between mb-1.5 px-0.5">
+              <h3 class="text-[12px] font-bold text-slate-500"><%= TuitionPayment.period_label(month.strftime("%Y-%m")) %></h3>
+              <span class="text-[11px] font-semibold"><span class="text-emerald-600">+<%= fmt.(mi) %></span> <span class="text-slate-300">·</span> <span class="text-rose-500">−<%= fmt.(me) %></span></span>
             </div>
-          <% end %>
-        </div>
+            <div class="divide-y divide-slate-100 border-t border-slate-100">
+              <% list.each do |e| %>
+                <div class="flex items-center gap-3 py-2.5">
+                  <span class="w-8 h-8 rounded-lg flex items-center justify-center text-[15px] <%= e.income? ? 'bg-emerald-50' : 'bg-rose-50' %>"><%= e.income? ? "⬇️" : "⬆️" %></span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[13px] font-semibold text-slate-700 truncate"><%= e.category.presence || (e.income? ? "Thu" : "Chi") %><% if e.learner_folder %> · <span class="text-slate-400"><%= e.learner_folder.name %></span><% end %></p>
+                    <p class="text-[11px] text-slate-400 truncate"><%= l e.occurred_on, format: :long rescue e.occurred_on %><%= " · #{e.note}" if e.note.present? %></p>
+                  </div>
+                  <span class="text-[14px] font-bold <%= e.income? ? 'text-emerald-600' : 'text-rose-600' %>"><%= e.income? ? "+" : "−" %><%= fmt.(e.amount_cents) %></span>
+                  <%= button_to finance_entry_path(e), method: :delete, form: { data: { turbo_confirm: "Xoá khoản này?" } },
+                        class: "text-slate-300 hover:text-rose-500 text-[16px] leading-none px-1" do %>×<% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
       <% end %>
     </div>
   </section>

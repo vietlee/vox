@@ -11,14 +11,23 @@ class Admin::FinanceController < Admin::BaseController
     @income_total  = entries.income.sum(:amount_cents)
     @expense_total = entries.expense.sum(:amount_cents)
     @net           = @income_total - @expense_total
-    @entries       = current_workspace.finance_entries.recent.includes(:learner_folder, :learner).limit(60)
+    # Ledger list follows the selected window (month/quarter/year); the view
+    # groups it by month so many months stay browsable.
+    @entries = current_workspace.finance_entries.in_range(@from, @to)
+                 .recent.includes(:learner_folder, :learner).limit(500)
 
     @folders = current_workspace.learner_folders.order(:name).to_a
-    @period_key = params[:period].presence || default_period_key(@folders.first)
-    # Per-class tuition summary for the selected period
+    # Tuition tab navigates by a reference month. Each class resolves its OWN
+    # period key from that month + its cycle, so monthly and quarterly classes
+    # both read correctly (no single global key that mismatches quarterly ones).
+    @ref_month = (Date.parse("#{params[:on]}-01") rescue nil) || Date.current.beginning_of_month
+    @prev_month = (@ref_month << 1).strftime("%Y-%m")
+    @next_month = (@ref_month >> 1).strftime("%Y-%m")
+    @at_current_month = @ref_month >= Date.current.beginning_of_month
     @class_summaries = @folders.map do |f|
-      recs = f.tuition_payments.for_period(@period_key)
-      { folder: f, total: recs.count, paid: recs.paid.count,
+      key  = TuitionPayment.key_for(f.tuition_cycle, @ref_month)
+      recs = f.tuition_payments.for_period(key)
+      { folder: f, period_key: key, total: recs.count, paid: recs.paid.count,
         collected: recs.paid.sum(:amount_cents), members: f.member_count }
     end
   end
@@ -62,8 +71,7 @@ class Admin::FinanceController < Admin::BaseController
     @period_key = params[:period].presence || default_period_key(@folder)
     @records = @folder.tuition_payments.for_period(@period_key)
                       .includes(:learner).order("learners.name")
-    @periods = @folder.tuition_payments.distinct.pluck(:period_key).sort.reverse
-    @periods = [@period_key] if @periods.empty?
+    @periods = (@folder.tuition_payments.distinct.pluck(:period_key) | [@period_key]).sort.reverse
   end
 
   def mark_paid
