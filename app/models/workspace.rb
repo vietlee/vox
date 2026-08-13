@@ -27,6 +27,8 @@ class Workspace < ApplicationRecord
   has_many :learning_paths,     dependent: :destroy
   has_many :flashcard_decks,    dependent: :destroy
   has_many :learner_folders,    dependent: :destroy
+  has_many :finance_entries,    dependent: :destroy
+  has_many :tuition_payments,   dependent: :destroy
   has_many :document_summaries, dependent: :destroy
   has_many :content_outlines,   dependent: :destroy
   has_one  :current_subscription, -> { where(status: :active).order(created_at: :desc) }, class_name: "Subscription"
