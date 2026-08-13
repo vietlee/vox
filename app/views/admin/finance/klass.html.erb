@@ -1,10 +1,10 @@
 <% content_for :title, "Học phí · #{@folder.name}" %>
 <% fmt = ->(c){ "#{c.to_i.to_s.reverse.gsub(/\d{3}(?=.)/,'\0.').reverse} ₫" } %>
 
-<div class="max-w-[820px] mx-auto px-4 py-6">
-  <%= link_to "← Thu – Chi", finance_path(anchor: "tuition"), class: "text-[13px] text-slate-500 hover:text-[#1e3a5f]" %>
-  <div class="flex items-center justify-between mt-2 mb-4 flex-wrap gap-2">
-    <h1 class="text-[20px] font-extrabold text-slate-800">🎓 <%= @folder.name %></h1>
+<div class="max-w-[820px]">
+  <div class="flex items-center gap-3 mb-5 flex-wrap">
+    <%= render "admin/shared/back_btn" %>
+    <h1 class="text-[20px] font-extrabold text-slate-900 flex-1 min-w-0 truncate">🎓 <%= @folder.name %></h1>
     <% if @periods.size > 1 || @folder.tuition_payments.exists? %>
       <form method="get" action="<%= finance_class_path(@folder) %>">
         <select name="period" onchange="this.form.submit()" class="px-3 py-1.5 border border-slate-200 rounded-lg text-[13px] bg-white outline-none">
@@ -75,7 +75,7 @@
               <% end %>
             <% else %>
               <%= button_to "Đánh dấu đã nộp", finance_mark_paid_path(r), method: :post,
-                    class: "px-4 py-2 rounded-lg bg-[#1e3a5f] text-white font-semibold text-[13px] hover:bg-[#16304d]" %>
+                    class: "px-4 py-2 rounded-lg bg-[#1e3a5f] text-white font-semibold text-[13px] hover:bg-[#16304f]" %>
             <% end %>
           </div>
         <% end %>
