@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_08_11_143000) do
+ActiveRecord::Schema[7.2].define(version: 2026_08_13_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -348,6 +348,29 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_11_143000) do
     t.index ["workspace_id"], name: "index_feedbacks_on_workspace_id"
   end
 
+  create_table "finance_entries", force: :cascade do |t|
+    t.bigint "workspace_id", null: false
+    t.integer "kind", default: 0, null: false
+    t.integer "amount_cents", default: 0, null: false
+    t.date "occurred_on", null: false
+    t.string "category"
+    t.text "note"
+    t.integer "source", default: 0, null: false
+    t.bigint "learner_folder_id"
+    t.bigint "learner_id"
+    t.bigint "tuition_payment_id"
+    t.bigint "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_finance_entries_on_created_by_id"
+    t.index ["learner_folder_id"], name: "index_finance_entries_on_learner_folder_id"
+    t.index ["learner_id"], name: "index_finance_entries_on_learner_id"
+    t.index ["tuition_payment_id"], name: "index_finance_entries_on_tuition_payment_id"
+    t.index ["workspace_id", "kind"], name: "index_finance_entries_on_workspace_id_and_kind"
+    t.index ["workspace_id", "occurred_on"], name: "index_finance_entries_on_workspace_id_and_occurred_on"
+    t.index ["workspace_id"], name: "index_finance_entries_on_workspace_id"
+  end
+
   create_table "flashcard_assignments", force: :cascade do |t|
     t.bigint "flashcard_deck_id", null: false
     t.bigint "learner_id", null: false
@@ -464,6 +487,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_11_143000) do
     t.string "name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "tuition_amount_cents", default: 0, null: false
+    t.integer "tuition_cycle", default: 0, null: false
     t.index ["created_by_id"], name: "index_learner_folders_on_created_by_id"
     t.index ["workspace_id"], name: "index_learner_folders_on_workspace_id"
   end
@@ -1057,6 +1082,24 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_11_143000) do
     t.index ["workspace_id"], name: "index_surveys_on_workspace_id"
   end
 
+  create_table "tuition_payments", force: :cascade do |t|
+    t.bigint "workspace_id", null: false
+    t.bigint "learner_folder_id", null: false
+    t.bigint "learner_id", null: false
+    t.string "period_key", null: false
+    t.integer "amount_cents", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.date "paid_on"
+    t.string "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["learner_folder_id", "learner_id", "period_key"], name: "idx_tuition_unique_period", unique: true
+    t.index ["learner_folder_id"], name: "index_tuition_payments_on_learner_folder_id"
+    t.index ["learner_id"], name: "index_tuition_payments_on_learner_id"
+    t.index ["workspace_id", "period_key"], name: "index_tuition_payments_on_workspace_id_and_period_key"
+    t.index ["workspace_id"], name: "index_tuition_payments_on_workspace_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.bigint "workspace_id"
     t.string "email", default: "", null: false
@@ -1226,6 +1269,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_11_143000) do
   add_foreign_key "feedback_upvotes", "feedbacks"
   add_foreign_key "feedbacks", "feedback_boards"
   add_foreign_key "feedbacks", "workspaces"
+  add_foreign_key "finance_entries", "learner_folders"
+  add_foreign_key "finance_entries", "learners"
+  add_foreign_key "finance_entries", "tuition_payments"
+  add_foreign_key "finance_entries", "users", column: "created_by_id"
+  add_foreign_key "finance_entries", "workspaces"
   add_foreign_key "flashcard_assignments", "flashcard_decks"
   add_foreign_key "flashcard_assignments", "learner_folders"
   add_foreign_key "flashcard_assignments", "learners"
@@ -1280,6 +1328,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_11_143000) do
   add_foreign_key "subscriptions", "workspaces"
   add_foreign_key "surveys", "users"
   add_foreign_key "surveys", "workspaces"
+  add_foreign_key "tuition_payments", "learner_folders"
+  add_foreign_key "tuition_payments", "learners"
+  add_foreign_key "tuition_payments", "workspaces"
   add_foreign_key "users", "workspaces"
   add_foreign_key "vote_options", "votes"
   add_foreign_key "vote_responses", "users", on_delete: :nullify

@@ -8,7 +8,29 @@ class LearnerFolder < ApplicationRecord
   has_many :class_chat_messages, dependent: :destroy
   has_many :class_chat_reads,    dependent: :destroy
 
+  # Tuition / finance
+  has_many :tuition_payments, dependent: :destroy
+  has_many :finance_entries,  dependent: :nullify
+  enum :tuition_cycle, { monthly: 0, quarterly: 1 }, prefix: :cycle
+
   validates :name, presence: true
+
+  # Create unpaid tuition records for every current member for [period_key]
+  # (idempotent — skips members who already have one). Returns count created.
+  def generate_tuition_roster!(period_key)
+    created = 0
+    learners.find_each do |l|
+      rec = tuition_payments.find_or_initialize_by(learner_id: l.id, period_key: period_key)
+      if rec.new_record?
+        rec.workspace    = workspace
+        rec.amount_cents = tuition_amount_cents
+        rec.status       = :unpaid
+        rec.save!
+        created += 1
+      end
+    end
+    created
+  end
 
   def member_count
     learner_folder_members.count

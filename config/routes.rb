@@ -344,6 +344,18 @@ Rails.application.routes.draw do
     get  'learners/:learner_id/detail', to: 'learner_folders#learner_detail', as: :workspace_learner_detail
     post 'learners/:learner_id/ai_analyze', to: 'learner_folders#ai_analyze_learner', as: :ai_analyze_learner
 
+    # ── Teacher finance: tuition tracking + income/expense ledger + AI import ──
+    get    'finance',                       to: 'finance#dashboard',           as: :finance
+    get    'finance/class/:id',             to: 'finance#klass',               as: :finance_class
+    post   'finance/entries',               to: 'finance#create_entry',        as: :finance_entries
+    delete 'finance/entries/:id',           to: 'finance#destroy_entry',       as: :finance_entry
+    post   'finance/class/:folder_id/plan', to: 'finance#update_tuition_plan',  as: :finance_tuition_plan
+    post   'finance/class/:folder_id/roster', to: 'finance#generate_roster',    as: :finance_generate_roster
+    post   'finance/tuition/:id/pay',        to: 'finance#mark_paid',           as: :finance_mark_paid
+    post   'finance/tuition/:id/unpay',      to: 'finance#mark_unpaid',         as: :finance_mark_unpaid
+    post   'finance/ai_extract',             to: 'finance#ai_extract',          as: :finance_ai_extract
+    post   'finance/ai_import',              to: 'finance#ai_import',           as: :finance_ai_import
+
     resources :learning_path_assignments, only: [:show, :destroy] do
       member do
         patch :update_progress
