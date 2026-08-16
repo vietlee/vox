@@ -608,7 +608,10 @@ Rails.application.routes.draw do
           end
         end
 
-        resources :quiz_assignments, param: :token, only: [] do
+        # Tokens contain a dot + id suffix (e.g. "abc123.12"); the regex
+        # constraint stops Rails treating ".12" as a format extension, which
+        # otherwise makes the route fall through to 404/422.
+        resources :quiz_assignments, param: :token, only: [], constraints: { token: /[^\/]+/ } do
           member do
             get    :show
             post   :take
@@ -619,7 +622,7 @@ Rails.application.routes.draw do
           end
         end
 
-        resources :learning_path_assignments, param: :token, only: [] do
+        resources :learning_path_assignments, param: :token, only: [], constraints: { token: /[^\/]+/ } do
           member do
             get    :show
             post   'complete_item/:item_id', to: 'learning_path_assignments#complete_item', as: :complete_item
