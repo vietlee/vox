@@ -30,7 +30,14 @@ class Api::Learner::V1::QuizAssignmentsController < Api::Learner::V1::BaseContro
         token: @assignment.token,
         status: @assignment.status,
         title: quiz_set.title,
-        progress_pct: @assignment.progress_pct
+        progress_pct: @assignment.progress_pct,
+        # Passing threshold so the app shows the real value (not a hardcoded %).
+        passing: {
+          type:   (quiz_set.passing_score_type.presence || "percent"),
+          score:  quiz_set.passing_score,
+          points: quiz_set.passing_score_points,
+          total:  quiz_set.computed_total_score
+        }
       },
       questions: questions.map { |q|
         {
