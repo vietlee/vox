@@ -446,17 +446,26 @@
       <input type="file" id="chat-file-input" multiple class="hidden"
              accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip">
       <input type="file" id="chat-image-input" accept="image/*" capture="environment" class="hidden">
-      <button type="button" id="chat-attach-btn" title="Đính kèm tệp/hình ảnh"
-              class="px-1.5 py-2.5 text-[18px] text-slate-500 hover:text-[#1e3a5f] shrink-0">📎</button>
-      <button type="button" id="chat-camera-btn" title="Chụp ảnh"
-              class="px-1.5 py-2.5 text-[18px] text-slate-500 hover:text-[#1e3a5f] shrink-0">📷</button>
-      <button type="button" id="chat-voice-btn" title="Ghi âm"
-              class="px-1.5 py-2.5 text-[18px] text-slate-500 hover:text-[#1e3a5f] shrink-0">🎤</button>
-      <textarea id="chat-input" rows="1" placeholder="Nhắn cho cả lớp…"
-                class="flex-1 resize-none px-3.5 py-2.5 text-[14px] border border-slate-200 rounded-xl focus:outline-none focus:border-[#1e3a5f]"
-                style="max-height:120px;"></textarea>
+      <!-- Input pill with the attach / camera / mic actions tucked inside -->
+      <div class="flex-1 flex items-end gap-0.5 rounded-2xl border border-slate-200 bg-white px-1.5 py-1.5 transition-colors focus-within:border-[#1e3a5f]">
+        <button type="button" id="chat-attach-btn" title="Đính kèm tệp/hình ảnh"
+                class="p-2 text-slate-400 hover:text-[#1e3a5f] hover:bg-slate-100 rounded-lg shrink-0 transition-colors">
+          <svg class="w-[19px] h-[19px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"/></svg>
+        </button>
+        <button type="button" id="chat-camera-btn" title="Chụp ảnh"
+                class="p-2 text-slate-400 hover:text-[#1e3a5f] hover:bg-slate-100 rounded-lg shrink-0 transition-colors">
+          <svg class="w-[19px] h-[19px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"/></svg>
+        </button>
+        <button type="button" id="chat-voice-btn" title="Ghi âm"
+                class="p-2 text-slate-400 hover:text-[#1e3a5f] hover:bg-slate-100 rounded-lg shrink-0 transition-colors">
+          <svg class="w-[19px] h-[19px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+        </button>
+        <textarea id="chat-input" rows="1" placeholder="Nhắn cho cả lớp…"
+                  class="flex-1 resize-none bg-transparent px-2 py-2 text-[14px] border-0 focus:outline-none focus:ring-0"
+                  style="max-height:120px;"></textarea>
+      </div>
       <button type="submit"
-              class="px-4 py-2.5 text-[13px] font-bold bg-[#1e3a5f] hover:bg-[#16304f] text-white rounded-xl transition-colors shrink-0">
+              class="px-5 py-2.5 text-[13px] font-bold bg-[#1e3a5f] hover:bg-[#16304f] text-white rounded-xl transition-colors shrink-0">
         Gửi
       </button>
     </form>
@@ -825,10 +834,10 @@ window.__initClassChat = (function () {
           const ext  = type.includes('mp4') ? 'm4a' : (type.includes('ogg') ? 'ogg' : 'webm');
           pending.push(new File([new Blob(chunks, { type })], `voice-${Date.now()}.${ext}`, { type }));
           renderPreview();
-          voiceBtn.textContent = '🎤'; voiceBtn.style.color = '';
+          voiceBtn.style.color = '';   // reset mic icon colour (SVG uses currentColor)
         };
         mediaRec.start();
-        voiceBtn.textContent = '⏹'; voiceBtn.style.color = '#dc2626';
+        voiceBtn.style.color = '#dc2626';   // recording → mic turns red (tap to stop)
       } catch (err) { alert('Không truy cập được micro.'); }
     });
 
