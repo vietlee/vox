@@ -123,17 +123,34 @@ class LearnerGamification
                 .where(learner_id: @learner.id, period: [Date.current.to_s, "once"])
                 .pluck(:mission_key, :period).to_set
     MissionCatalog.all.each do |m|
-      next if MissionCatalog.progress_for(m, @learner) < m[:target]
-      period = MissionCatalog.period_for(m)
-      next if claimed.include?([m[:key], period])
-      url = "/missions?m=#{m[:key]}:#{period}"
-      next if @learner.learner_notifications.exists?(action_url: url)
-      LearnerNotification.notify_t!(
-        learner: @learner,
-        title_key: "mission_title", title_args: { n: m[:reward] },
-        body_key:  "mission_body",
-        action_url: url
-      )
+      period     = MissionCatalog.period_for(m)
+      key_prefix = "/missions?m=#{m[:key]}:"      # ":" delimiter avoids key-prefix collisions
+      url        = "#{key_prefix}#{period}"
+      eligible   = MissionCatalog.progress_for(m, @learner) >= m[:target] &&
+                   !claimed.include?([m[:key], period])
+      scope = @learner.learner_notifications.where("action_url LIKE ?", "#{key_prefix}%")
+
+      unless eligible
+        # Claimed or no longer eligible → clear any leftover notifications.
+        scope.delete_all
+        next
+      end
+
+      # Eligible: keep exactly ONE notification for the current period.
+      # Drop stale-period notifications (daily missions mint a new period each
+      # day) and any duplicates, without resetting an unread current one.
+      scope.where.not(action_url: url).delete_all
+      current = scope.where(action_url: url)
+      if current.count > 1
+        current.where.not(id: current.minimum(:id)).delete_all
+      elsif current.count.zero?
+        LearnerNotification.notify_t!(
+          learner: @learner,
+          title_key: "mission_title", title_args: { n: m[:reward] },
+          body_key:  "mission_body",
+          action_url: url
+        )
+      end
     end
   rescue => e
     Rails.logger.warn "[gamification] check_missions!: #{e.message}"
