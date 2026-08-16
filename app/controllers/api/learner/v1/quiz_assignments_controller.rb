@@ -129,7 +129,11 @@ class Api::Learner::V1::QuizAssignmentsController < Api::Learner::V1::BaseContro
   private
 
   def set_assignment
-    @assignment = current_learner.quiz_assignments.find_by!(token: params[:token])
+    # Tolerate legacy deep links whose token carried a ".<id>" suffix
+    # (mis-generated as a format segment); fall back to the bare token.
+    tok = params[:token].to_s
+    @assignment = current_learner.quiz_assignments.find_by(token: tok) ||
+                  current_learner.quiz_assignments.find_by!(token: tok.sub(/\.\d+\z/, ""))
   end
 
   def ensure_published

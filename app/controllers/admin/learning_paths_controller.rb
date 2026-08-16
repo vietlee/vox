@@ -197,7 +197,7 @@ class Admin::LearningPathsController < Admin::BaseController
         learner_folder: folder
       )
       url = Rails.application.routes.url_helpers.learner_learning_path_assignment_url(
-        assignment, token: assignment.token,
+        assignment.token,
         host: Rails.application.config.action_mailer.default_url_options[:host]
       )
       LearnerMailer.assignment_notification(learner, "Lộ trình học", @learning_path.title, url).deliver_later

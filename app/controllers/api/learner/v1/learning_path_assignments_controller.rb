@@ -56,6 +56,8 @@ class Api::Learner::V1::LearningPathAssignmentsController < Api::Learner::V1::Ba
   private
 
   def set_assignment
-    @assignment = current_learner.learning_path_assignments.find_by!(token: params[:token])
+    tok = params[:token].to_s
+    @assignment = current_learner.learning_path_assignments.find_by(token: tok) ||
+                  current_learner.learning_path_assignments.find_by!(token: tok.sub(/\.\d+\z/, ""))
   end
 end
