@@ -479,6 +479,18 @@ class ContentOutlineGenerator
       - Mỗi slide content PHẢI có visual element: số liệu lớn, chart, grid card, hay timeline.
       - Tuyệt đối KHÔNG dùng plain bullet list thuần túy — luôn có cấu trúc visual.
 
+      HỆ THỐNG THIẾT KẾ ĐỒNG BỘ (yếu tố QUAN TRỌNG NHẤT — cả bộ slide phải trông như MỘT thể thống nhất, không rời rạc):
+      - Bảng màu CỐ ĐỊNH cho cả deck: 1 màu nền chính, 1 màu chữ tương phản tốt, tối đa 1–2 màu nhấn (tổng ≤4 màu). Giữ y nguyên tông màu này ở MỌI slide, không slide nào đổi tông.
+      - Typography NHẤT QUÁN: mọi title dùng chung một cấp cỡ chữ Hero, mọi category label chung một cỡ, mọi body chung một cỡ — không slide nào lệch cỡ/độ đậm so với slide khác.
+      - Lưới & lề ĐỒNG NHẤT: mọi slide dùng chung margin trái/phải; category label luôn ở cùng vị trí trên đầu; số trang luôn ở góc dưới phải.
+      - Nguyên tắc 6×6: tối đa ~6 dòng nội dung mỗi slide, mỗi dòng ngắn (≤6–8 từ). Ưu tiên số liệu / biểu đồ / icon thay cho đoạn văn dài.
+      - Icon đồng nhất một phong cách xuyên suốt; không trộn nhiều kiểu minh hoạ khác nhau.
+      - Nhịp điệu: đặt slide AGENDA ngay sau cover (liệt kê 3–6 phần); deck dài thì chia bằng các mốc chuyển phần để tạo khoảng nghỉ.
+      - Kiểm tra cuối: không được có bất kỳ slide nào "lệch tông" (màu/font/bố cục) so với phần còn lại.
+
+      THƯ VIỆN LAYOUT (dùng ĐA DẠNG, chọn đúng theo nội dung, KHÔNG lặp cùng layout ở 2 slide liên tiếp; một deck tốt dùng ≥4–5 loại khác nhau):
+      agenda=mục lục · bullets=ý chính có icon · cards/pillars=3–5 khối song song · stats=số liệu lớn · chart=biểu đồ cột · donut=tỉ trọng % · two-col=so sánh/đối chiếu song song · timeline=mốc thời gian · roles=nhóm/nhân sự · okr=mục tiêu–kết quả · principles=nguyên tắc.
+
       CUNG BẬC CÂU CHUYỆN (narrative arc) — Khi thiết kế deck, hãy nghĩ như một câu chuyện:
       1. Móc câu (Hook): Vấn đề/Cơ hội hiện tại là gì? (1-2 slide đầu)
       2. Bằng chứng: Dữ liệu/phân tích ủng hộ luận điểm (1-2 slide)
