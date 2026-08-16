@@ -692,6 +692,41 @@ class ContentOutlineGenerator
         - Trách nhiệm :: Mỗi người rõ ownership với task của mình, không đổ lỗi
         - Cải tiến liên tục :: Học hỏi từ mỗi sprint, apply cải tiến ngay lập tức
 
+      LAYOUT: table
+        Khi nào dùng: so sánh nhiều tiêu chí giữa 2–4 phương án/gói/đối tượng — dữ liệu có cấu trúc rõ.
+        Format: dòng đầu "HEADERS: Cột1 | Cột2 | Cột3", các dòng sau "ROW: giá trị1 | giá trị2 | giá trị3" (số cột phải khớp headers, tối đa 4 cột, 5 hàng).
+        Ví dụ:
+        HEADERS: Tiêu chí | Gói Cơ bản | Gói Pro
+        ROW: Giá / tháng | 199k | 499k
+        ROW: Số lớp học | 3 | Không giới hạn
+        ROW: Hỗ trợ | Email | Ưu tiên 24/7
+
+      LAYOUT: process
+        Khi nào dùng: quy trình các BƯỚC nối tiếp nhau (3–5 bước) — nhấn mạnh trình tự/luồng.
+        Format: mỗi dòng "- Tên bước ngắn :: Mô tả ngắn 1 câu"
+        Ví dụ:
+        - Khảo sát :: Thu thập nhu cầu và mục tiêu học tập
+        - Thiết kế :: Xây lộ trình và nội dung phù hợp
+        - Triển khai :: Dạy và theo dõi tiến độ
+        - Đánh giá :: Đo kết quả và tối ưu
+
+      LAYOUT: quadrant
+        Khi nào dùng: phân loại/ưu tiên theo ma trận 2×2 (VD Impact vs Effort). Đúng 4 ô.
+        Format: (tuỳ chọn) "X_AXIS: nhãn trục ngang" + "Y_AXIS: nhãn trục dọc", rồi 4 dòng theo thứ tự Trên-trái, Trên-phải, Dưới-trái, Dưới-phải: "- Nhãn ô :: Mô tả ngắn"
+        Ví dụ:
+        X_AXIS: Công sức (thấp → cao)
+        Y_AXIS: Tác động (thấp → cao)
+        - Ưu tiên làm ngay :: Tác động cao, ít công sức
+        - Dự án lớn :: Tác động cao nhưng tốn công
+        - Việc phụ :: Ít tác động, ít công sức
+        - Cân nhắc bỏ :: Ít tác động, tốn công
+
+      LAYOUT: section
+        Khi nào dùng: slide chuyển phần/chương (tạo nhịp nghỉ giữa các nội dung) — nền tối đậm, ít chữ.
+        Format: (tuỳ chọn) dòng "NUM: 01" làm số thứ tự lớn. TITLE = tên phần. SUBTITLE = 1 câu dẫn (tuỳ chọn). Không cần BODY nhiều.
+        Ví dụ:
+        NUM: 02
+
       ═══════════════════════════════════════════
       HƯỚNG DẪN CHỌN LAYOUT:
       ═══════════════════════════════════════════
@@ -992,6 +1027,31 @@ class ContentOutlineGenerator
           { "title" => parts[0].gsub(/\s*\[icon=[a-z_]+\]/i, "").strip, "desc" => parts[1] || "" }
         end
         slide["bullets"] = lines
+      when "table"
+        hl = lines.find { |l| l.start_with?("HEADERS:") }
+        slide["headers"] = hl ? hl.sub("HEADERS:", "").split("|").map(&:strip) : []
+        slide["rows"] = lines.select { |l| l.start_with?("ROW:") }
+                             .map { |l| l.sub("ROW:", "").split("|").map(&:strip) }
+        slide["bullets"] = lines
+      when "process"
+        slide["items"] = lines.map do |l|
+          parts = l.split("::", 2).map(&:strip)
+          { "step" => parts[0].gsub(/\s*\[icon=[a-z_]+\]/i, "").strip, "desc" => parts[1] || "" }
+        end
+        slide["bullets"] = lines
+      when "quadrant"
+        slide["x_axis"] = (lines.find { |l| l =~ /\AX_AXIS:/i } || "").sub(/\AX_AXIS:/i, "").strip
+        slide["y_axis"] = (lines.find { |l| l =~ /\AY_AXIS:/i } || "").sub(/\AY_AXIS:/i, "").strip
+        qlines = lines.reject { |l| l =~ /\A(X_AXIS|Y_AXIS):/i }
+        slide["items"] = qlines.first(4).map do |l|
+          parts = l.split("::", 2).map(&:strip)
+          { "label" => parts[0].gsub(/\s*\[icon=[a-z_]+\]/i, "").strip, "desc" => parts[1] || "" }
+        end
+        slide["bullets"] = qlines
+      when "section"
+        numl = lines.find { |l| l =~ /\ANUM:/i }
+        slide["section_num"] = numl ? numl.sub(/\ANUM:/i, "").strip : nil
+        slide["bullets"] = lines
       else
         has_desc = lines.any? { |l| l.include?("::") }
         if has_desc
@@ -1069,6 +1129,7 @@ class ContentOutlineGenerator
       sl_style = s["style"] || {}
       bg_color_override = sl_style["bg_color"]
       bg_mode = sl_style["bg"]  # "dark", "light", "custom"
+      bg_mode = "dark" if s["layout"] == "section"  # section dividers are full-bleed dark
       bg = if bg_color_override&.start_with?("#")
              { "type" => "solid", "color" => bg_color_override }
            elsif bg_color_override&.start_with?("gradient:")
@@ -1478,6 +1539,9 @@ class ContentOutlineGenerator
   # ─── Content ────────────────────────────────────────────────────────────────
 
   def compile_content(s, t, idx, total)
+    # Section divider — full-bleed slide, no header/footer/callout.
+    return compile_section(s, t, idx, total) if s["layout"] == "section"
+
     has_note = false
     has_callout = s["callout"].present?
     bot = has_callout ? 4.72 : 5.10
@@ -1493,6 +1557,9 @@ class ContentOutlineGenerator
       when "roles"      then compile_roles(s, t, has_note, bot)
       when "okr"        then compile_okr(s, t, has_note, bot)
       when "principles" then compile_principles(s, t, has_note, bot)
+      when "table"      then compile_table(s, t, has_note, bot)
+      when "process"    then compile_process(s, t, has_note, bot)
+      when "quadrant"   then compile_quadrant(s, t, has_note, bot)
       else                   compile_bullets(s, t, has_note, bot)
       end
     callout_els = if has_callout
@@ -1857,6 +1924,140 @@ class ContentOutlineGenerator
       els << el_text("pdsc#{i}", cx + 0.42, cy + 0.42, col_w - 0.42, 0.40, desc,
         body_style(8, color: "#5B6478", line_height: 1.4)) if desc.present?
     end
+    els
+  end
+
+  # ─── Table ────────────────────────────────────────────────────────────────
+  # Comparison / spec table: header band + zebra rows.
+  def compile_table(s, t, has_note, bot)
+    headers = s["headers"] || []
+    rows    = s["rows"] || []
+    return compile_bullets(s, t, has_note, bot) if headers.empty? && rows.empty?
+    els  = []
+    top  = 1.78
+    ncol = [headers.length, (rows.map(&:length).max || 1)].max
+    ncol = 1 if ncol < 1
+    col_w    = CW / ncol
+    header_h = 0.50
+    nrow     = rows.length
+    avail    = bot - top - header_h
+    row_h    = nrow > 0 ? [[avail / nrow, 0.80].min, 0.34].max : 0.40
+    ac       = t["primary"] || "#1e3a5f"
+
+    ncol.times do |c|
+      cx = LM + c * col_w
+      els << el_rect("th_bg#{c}", cx, top, col_w, header_h, ac, z: 1)
+      els << el_text("th#{c}", cx + 0.12, top, col_w - 0.24, header_h, headers[c] || "",
+        heading_style(11, color: "#fff", align: (c.zero? ? "left" : "center")).merge("valign" => "center"), z: 2)
+    end
+
+    rows.each_with_index do |row, r|
+      ry = top + header_h + r * row_h
+      break if ry + row_h > bot + 0.02
+      zebra = r.even? ? "#F5F8FC" : "#FFFFFF"
+      els << el_rect("tr#{r}", LM, ry, CW, row_h, zebra, z: 1, stroke: "#E2E8F0", sw: 0.01)
+      ncol.times do |c|
+        cx = LM + c * col_w
+        strong = c.zero?
+        style  = body_style(9, color: (strong ? "#1F2A44" : "#5B6478"), align: (strong ? "left" : "center")).merge("valign" => "center")
+        style  = style.merge("fontWeight" => "700") if strong
+        els << el_text("td#{r}_#{c}", cx + 0.12, ry, col_w - 0.24, row_h, row[c] || "", style, z: 2)
+      end
+    end
+    els
+  end
+
+  # ─── Process / Flow ─────────────────────────────────────────────────────────
+  # Horizontal numbered steps connected by chevrons.
+  def compile_process(s, t, has_note, bot)
+    items = s["items"] || []
+    n = [items.length, 5].min
+    return compile_bullets(s, t, has_note, bot) if n.zero?
+    els     = []
+    arrow_w = 0.34
+    step_w  = (CW - arrow_w * (n - 1)) / n
+    top     = 1.95
+    card_h  = [bot - top - 0.20, 2.4].min
+    bsz     = 0.44
+    n.times do |i|
+      it = items[i]; ac = t["card_icons"][i % 3]
+      cx = LM + i * (step_w + arrow_w)
+      els << el_rect("prbg#{i}", cx, top, step_w, card_h, t["card_bgs"][i % 3], radius: 10, z: 1)
+      els << el_rect("prn_bg#{i}", cx + (step_w - bsz) / 2, top + 0.18, bsz, bsz, ac, radius: 100, z: 2)
+      els << el_text("prn#{i}", cx + (step_w - bsz) / 2, top + 0.18, bsz, bsz, format("%d", i + 1),
+        heading_style(15, color: "#fff", align: "center").merge("valign" => "center"), z: 3)
+      els << el_text("prstep#{i}", cx + 0.08, top + 0.18 + bsz + 0.12, step_w - 0.16, 0.42,
+        it["step"] || "", heading_style(10, color: "#1F2A44", align: "center", line_height: 1.15), z: 2)
+      els << el_text("prdsc#{i}", cx + 0.10, top + 0.18 + bsz + 0.56, step_w - 0.20, card_h - (0.18 + bsz + 0.64),
+        it["desc"] || "", body_style(8, color: "#5B6478", align: "center", line_height: 1.35), z: 2)
+      if i < n - 1
+        els << el_text("prarr#{i}", cx + step_w, top + card_h / 2 - 0.24, arrow_w, 0.48, "›",
+          heading_style(30, color: ac, align: "center").merge("valign" => "center"), z: 2)
+      end
+    end
+    els
+  end
+
+  # ─── Quadrant / 2×2 Matrix ──────────────────────────────────────────────────
+  def compile_quadrant(s, t, has_note, bot)
+    items = s["items"] || []
+    return compile_bullets(s, t, has_note, bot) if items.empty?
+    els    = []
+    top    = 1.82
+    gut    = 0.34                      # left/bottom gutter for axis labels
+    gx     = LM + gut
+    gw     = CW - gut
+    gbot   = bot - (s["x_axis"].present? ? gut : 0.05)
+    gh     = gbot - top
+    cell_w = (gw - 0.14) / 2
+    cell_h = (gh - 0.14) / 2
+    tints  = ["#EAF2FB", "#EAF7EF", "#FDF3E7", "#F3EEFB"]
+    pos    = [[0, 0], [1, 0], [0, 1], [1, 1]] # TL, TR, BL, BR
+    items.first(4).each_with_index do |it, i|
+      col, rw = pos[i]
+      cx = gx + col * (cell_w + 0.14)
+      cy = top + rw * (cell_h + 0.14)
+      ac = t["card_icons"][i % 3]
+      els << el_rect("qbg#{i}", cx, cy, cell_w, cell_h, tints[i % 4], radius: 10, z: 1)
+      els << el_rect("qbar#{i}", cx, cy, 0.06, cell_h, ac, radius: 2, z: 2)
+      els << el_text("qlab#{i}", cx + 0.20, cy + 0.14, cell_w - 0.32, 0.42, it["label"] || "",
+        heading_style(12, color: "#1F2A44"), z: 3)
+      els << el_text("qdsc#{i}", cx + 0.20, cy + 0.58, cell_w - 0.36, cell_h - 0.72, it["desc"] || "",
+        body_style(9, color: "#5B6478", line_height: 1.4), z: 3) if (it["desc"] || "").present?
+    end
+    if s["x_axis"].present?
+      els << el_text("qxax", gx, gbot + 0.04, gw, gut - 0.06, s["x_axis"],
+        body_style(9, color: (t["accent"] || "#1e3a5f"), align: "center").merge("fontWeight" => "700"), z: 2)
+    end
+    if s["y_axis"].present?
+      els << el_text("qyax", LM - 0.05, top - 0.02, gut + 2.2, 0.28, s["y_axis"],
+        body_style(9, color: (t["accent"] || "#1e3a5f"), align: "left").merge("fontWeight" => "700"), z: 2)
+    end
+    els
+  end
+
+  # ─── Section divider ─────────────────────────────────────────────────────────
+  # Full-bleed dark slide: big section number + title (no header/footer).
+  def compile_section(s, t, idx, total)
+    els = []
+    accent = t["accent"] || "#D4A24C"
+    num = s["section_num"].presence
+    ty  = 1.35
+    if num
+      els << el_text("snum", LM, 1.00, CW, 1.55, num,
+        heading_style(90, color: accent, align: "left", line_height: 1.0), z: 2)
+      els << el_line("sdiv", LM + 0.05, 2.78, LM + 2.30, 2.78, accent)
+      ty = 3.00
+    end
+    els << el_text("stitle", LM, ty, CW, 1.40, s["title"] || "",
+      heading_style(34, color: "#FFFFFF", align: "left", line_height: 1.15), z: 2)
+    if s["subtitle"].present?
+      els << el_text("ssub", LM, ty + 1.15, CW, 0.70, s["subtitle"],
+        body_style(13, color: "rgba(255,255,255,0.78)", align: "left"), z: 2)
+    end
+    els << el_text("spg", SW - 1.0, SH - 0.30, 0.90, 0.25,
+      "#{(idx + 1).to_s.rjust(2, '0')} / #{total.to_s.rjust(2, '0')}",
+      body_style(9, color: "rgba(255,255,255,0.55)", align: "right"), z: 2)
     els
   end
 
