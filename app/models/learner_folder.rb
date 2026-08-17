@@ -11,6 +11,11 @@ class LearnerFolder < ApplicationRecord
   # Tuition / finance
   has_many :tuition_payments, dependent: :destroy
   has_many :finance_entries,  dependent: :nullify
+  # Assignments can be tied to a class; deleting the class only unlinks them
+  # (the learner keeps their assignment/attempts) — avoids an FK violation.
+  has_many :quiz_assignments,          dependent: :nullify
+  has_many :flashcard_assignments,     dependent: :nullify
+  has_many :learning_path_assignments, dependent: :nullify
   enum :tuition_cycle, { monthly: 0, quarterly: 1 }, prefix: :cycle
 
   validates :name, presence: true
