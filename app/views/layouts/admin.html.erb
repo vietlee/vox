@@ -1072,5 +1072,60 @@ window.markFieldError = function(el) {
   setTimeout(function() { el.addEventListener('focus', clearErr, {once: true}); }, 0);
 };
 </script>
+
+<!-- Custom HTML confirm dialog — replaces the native window.confirm for all
+     data-turbo-confirm actions across the admin. -->
+<div id="vox-confirm" style="display:none;position:fixed;inset:0;z-index:9998;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.5);">
+  <div style="background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);width:100%;max-width:380px;padding:26px 24px;">
+    <div style="width:44px;height:44px;border-radius:12px;background:#eef3fa;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+      <svg style="width:22px;height:22px;color:#1e3a5f;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+    </div>
+    <h3 id="vox-confirm-title" style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 8px;">Xác nhận</h3>
+    <p id="vox-confirm-msg" style="font-size:13.5px;color:#64748b;margin:0 0 20px;line-height:1.5;"></p>
+    <div style="display:flex;gap:8px;">
+      <button type="button" id="vox-confirm-cancel"
+              style="flex:1;padding:11px;background:#f1f5f9;color:#475569;font-weight:600;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">Hủy</button>
+      <button type="button" id="vox-confirm-ok"
+              style="flex:1;padding:11px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;">Đồng ý</button>
+    </div>
+  </div>
+</div>
+
+<script data-turbo-eval="false">
+(function () {
+  function voxConfirm(message) {
+    return new Promise(function (resolve) {
+      var modal  = document.getElementById('vox-confirm');
+      var msgEl  = document.getElementById('vox-confirm-msg');
+      var okBtn  = document.getElementById('vox-confirm-ok');
+      var noBtn  = document.getElementById('vox-confirm-cancel');
+      if (!modal) { resolve(window.confirm(message)); return; }
+      msgEl.textContent = message || 'Bạn có chắc chắn?';
+      modal.style.display = 'flex';
+      function cleanup(result) {
+        modal.style.display = 'none';
+        okBtn.removeEventListener('click', onOk);
+        noBtn.removeEventListener('click', onNo);
+        modal.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+        resolve(result);
+      }
+      function onOk() { cleanup(true); }
+      function onNo() { cleanup(false); }
+      function onBackdrop(e) { if (e.target === modal) cleanup(false); }
+      function onKey(e) { if (e.key === 'Escape') cleanup(false); else if (e.key === 'Enter') cleanup(true); }
+      okBtn.addEventListener('click', onOk);
+      noBtn.addEventListener('click', onNo);
+      modal.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
+    });
+  }
+  function install() {
+    if (window.Turbo && Turbo.setConfirmMethod) { Turbo.setConfirmMethod(voxConfirm); }
+  }
+  install();
+  document.addEventListener('turbo:load', install);
+})();
+</script>
 </body>
 </html>
