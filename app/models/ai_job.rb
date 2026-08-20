@@ -2,6 +2,9 @@ class AiJob < ApplicationRecord
   belongs_to :workspace
   belongs_to :user, optional: true
   has_many   :ai_analysis_results, dependent: :destroy
+  # Optional source files (images/documents) attached to an AI job — e.g. the
+  # AI Survey Builder reads existing questions from an uploaded photo or file.
+  has_many_attached :input_files
 
   enum :status, { pending: 0, running: 1, done: 2, failed: 3 }
 

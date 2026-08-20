@@ -1,7 +1,22 @@
 class Admin::AiController < Admin::BaseController
   include ActionController::Live
+  # Allowed attachment types + limits for the AI Survey Builder. Images are read
+  # by Claude vision; documents are text-extracted (see FileContentExtractor).
+  SURVEY_BUILDER_FILE_EXTS = %w[png jpg jpeg webp gif bmp pdf doc docx txt csv xlsx xls pptx].freeze
+  SURVEY_BUILDER_MAX_FILES = 5
+  SURVEY_BUILDER_MAX_FILE_SIZE = 10.megabytes
+
   def generate_survey
     return unless require_ai_feature!(:ai_survey_builder)
+
+    prompt = params[:prompt].to_s.strip
+    return render json: { error: t("surveys.ai_builder_error") }, status: :unprocessable_entity if prompt.blank?
+
+    files = Array(params[:files]).reject(&:blank?)
+    if (msg = survey_builder_files_error(files))
+      return render json: { error: msg }, status: :unprocessable_entity
+    end
+
     return unless require_credits!(:survey_builder)
 
     charge_credits!(:survey_builder)
@@ -10,8 +25,9 @@ class Admin::AiController < Admin::BaseController
       user: current_user,
       job_type: "survey_builder",
       credits_cost: CreditCost[:survey_builder],
-      input_data: { prompt: params[:prompt], language: current_workspace.language }
+      input_data: { prompt: prompt, language: current_workspace.language, has_files: files.any? }
     )
+    job.input_files.attach(files) if files.any?
     AiSurveyBuilderJob.perform_later(job.id)
     render json: { job_id: job.id, status: "queued" }
   end
@@ -241,6 +257,23 @@ class Admin::AiController < Admin::BaseController
   end
 
   private
+
+  # Validates AI Survey Builder attachments; returns an error string or nil.
+  def survey_builder_files_error(files)
+    return nil if files.empty?
+    return t("surveys.ai_builder_too_many_files", count: SURVEY_BUILDER_MAX_FILES) if files.size > SURVEY_BUILDER_MAX_FILES
+
+    files.each do |f|
+      ext = File.extname(f.original_filename.to_s).delete(".").downcase
+      unless ext.in?(SURVEY_BUILDER_FILE_EXTS)
+        return t("surveys.ai_builder_file_type", name: f.original_filename)
+      end
+      if f.size.to_i > SURVEY_BUILDER_MAX_FILE_SIZE
+        return t("surveys.ai_builder_file_too_big", name: f.original_filename)
+      end
+    end
+    nil
+  end
 
   # Charge `cost_key` once per conversation *session*, not per message. The
   # client sends a stable session_id for the whole conversation; the first

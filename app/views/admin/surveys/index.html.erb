@@ -15,7 +15,7 @@
       </div>
     </div>
     <div class="flex gap-2">
-      <button onclick="document.getElementById('ai-builder-modal').classList.remove('hidden'); var p=document.getElementById('ai-prompt'); p.value=''; document.getElementById('ai-submit-btn').disabled=true;"
+      <button onclick="document.getElementById('ai-builder-modal').classList.remove('hidden'); var p=document.getElementById('ai-prompt'); p.value=''; document.getElementById('ai-submit-btn').disabled=true; window.resetAiFiles&&window.resetAiFiles();"
         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-white border border-slate-200 hover:bg-[#1e3a5f] hover:text-white hover:border-[#1e3a5f] text-slate-700 transition-colors">
         <%= t("surveys.ai_create") %> ✨
       </button>
@@ -182,6 +182,19 @@
       <textarea id="ai-prompt" rows="4" placeholder="<%= j t("surveys.ai_builder_placeholder") %>"
         oninput="document.getElementById('ai-submit-btn').disabled = !this.value.trim()"
         class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-[13px] text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-none outline-none"></textarea>
+
+      <div class="mt-3">
+        <input id="ai-files" type="file" multiple class="hidden"
+          accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.xls,.pptx"
+          onchange="onAiFilesChange(this)">
+        <button type="button" onclick="document.getElementById('ai-files').click()"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-slate-300 rounded-lg text-[12px] font-semibold text-slate-600 hover:border-indigo-400 hover:text-indigo-600">
+          <span class="text-[14px]">📎</span> <%= t("surveys.ai_builder_attach") %>
+        </button>
+        <p class="text-[11px] text-slate-400 mt-1.5"><%= t("surveys.ai_builder_attach_hint") %></p>
+        <div id="ai-files-list" class="flex flex-wrap gap-1.5 mt-2"></div>
+      </div>
+
       <div class="flex gap-2 mt-4">
         <button id="ai-submit-btn" onclick="generateAiSurvey()" disabled
           class="flex-1 py-2 text-white text-[13px] font-semibold rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
@@ -394,6 +407,35 @@ function startProgress() {
 function finishProgress(onDone) { clearInterval(_progressTimer); setProgress(100, "<%= j t('surveys.ai_progress.done') %>"); setTimeout(onDone, 600); }
 function stopProgress() { clearInterval(_progressTimer); setProgress(0); }
 
+let _aiFiles = [];
+
+function renderAiFiles() {
+  const list = document.getElementById('ai-files-list');
+  if (!list) return;
+  list.innerHTML = '';
+  _aiFiles.forEach((f, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'inline-flex items-center gap-1 pl-2 pr-1 py-1 bg-slate-100 rounded-md text-[11px] text-slate-600';
+    const name = document.createElement('span');
+    name.className = 'max-w-[160px] truncate'; name.textContent = f.name;
+    const x = document.createElement('button');
+    x.type = 'button'; x.className = 'text-slate-400 hover:text-red-500 px-1'; x.textContent = '✕';
+    x.onclick = () => { _aiFiles.splice(i, 1); renderAiFiles(); };
+    chip.appendChild(name); chip.appendChild(x); list.appendChild(chip);
+  });
+}
+
+function onAiFilesChange(input) {
+  for (const f of input.files) {
+    if (_aiFiles.length >= 5) break;
+    _aiFiles.push(f);
+  }
+  input.value = '';
+  renderAiFiles();
+}
+
+function resetAiFiles() { _aiFiles = []; renderAiFiles(); }
+
 async function generateAiSurvey() {
   const prompt = document.getElementById('ai-prompt').value;
   if (!prompt.trim()) return;
@@ -403,12 +445,16 @@ async function generateAiSurvey() {
   if (errEl) errEl.classList.add('hidden');
   startProgress();
 
+  const fd = new FormData();
+  fd.append('prompt', prompt);
+  _aiFiles.forEach(f => fd.append('files[]', f));
+
   let data, resp;
   try {
     resp = await fetch('<%= ai_generate_survey_path %>', {
       method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-Token':document.querySelector('meta[name=csrf-token]').content},
-      body: JSON.stringify({ prompt })
+      headers:{'Accept':'application/json','X-CSRF-Token':document.querySelector('meta[name=csrf-token]').content},
+      body: fd
     });
     data = await resp.json();
   } catch(e) { stopProgress(); resetAiBuilder('<%= j t("surveys.ai_builder_error") %>'); return; }
@@ -469,6 +515,6 @@ function resetAiBuilder(msg) {
   }
 }
 
-Object.assign(window, { filterSurveys, surveyAction, showConfirm, closeConfirm, submitConfirm, cloneSurvey, generateAiSurvey, resetAiBuilder });
+Object.assign(window, { filterSurveys, surveyAction, showConfirm, closeConfirm, submitConfirm, cloneSurvey, generateAiSurvey, resetAiBuilder, onAiFilesChange, resetAiFiles });
 })();
 </script>
