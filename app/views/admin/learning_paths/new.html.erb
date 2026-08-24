@@ -28,31 +28,39 @@
     <div class="space-y-4">
       <div>
         <label class="block text-[12px] font-bold text-slate-700 mb-1 uppercase tracking-wide">Tiêu đề lộ trình *</label>
-        <p class="text-[11px] text-slate-400 mb-1.5">Tên ngắn gọn, rõ mục tiêu học — AI sẽ dùng tiêu đề này để tạo bài học phù hợp</p>
+        <p class="text-[11px] text-slate-400 mb-1.5">Chỉ cần nhập tiêu đề — AI sẽ tự tạo toàn bộ bài học. Các mục khác là tùy chọn.</p>
         <%= f.text_field :title, required: true,
             placeholder: "VD: Ôn thi Toán THPT, Python căn bản, Giao tiếp tiếng Anh...",
             class: "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 outline-none" %>
       </div>
-      <div>
-        <label class="block text-[12px] font-bold text-slate-700 mb-1 uppercase tracking-wide">Môn học / Lĩnh vực</label>
-        <p class="text-[11px] text-slate-400 mb-1.5">Giúp AI phân loại nội dung và gợi ý bài học đúng chủ đề</p>
-        <%= f.text_field :subject, placeholder: "VD: Toán học, Lập trình, Tiếng Anh, Marketing...",
-            class: "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 outline-none" %>
-      </div>
-      <div>
-        <label class="block text-[12px] font-bold text-slate-700 mb-1 uppercase tracking-wide">Mô tả</label>
-        <p class="text-[11px] text-slate-400 mb-1.5">Tùy chọn — mô tả thêm để học viên hiểu lộ trình này dành cho ai</p>
-        <%= f.text_area :description, rows: 3,
-            placeholder: "VD: Dành cho học sinh lớp 12, ôn tập các dạng bài thi quan trọng nhất...",
-            class: "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 outline-none resize-none" %>
-      </div>
-      <div>
-        <label class="block text-[12px] font-bold text-slate-700 mb-1 uppercase tracking-wide">Yêu cầu thêm cho AI</label>
-        <p class="text-[11px] text-slate-400 mb-1.5">Tùy chọn — số bài, cấp độ, thời lượng… AI sẽ tự tạo toàn bộ bài học từ những thông tin trên</p>
-        <%= text_area_tag :ai_prompt, nil, rows: 2,
-            placeholder: "VD: 8 bài, từ cơ bản đến nâng cao, mỗi bài ~15 phút, có quiz cuối mỗi phần...",
-            class: "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 outline-none resize-none" %>
-      </div>
+      <details class="group border border-slate-200 rounded-xl overflow-hidden">
+        <summary class="flex items-center justify-between px-4 py-3 cursor-pointer select-none text-[13px] font-semibold text-slate-600 hover:bg-slate-50 list-none [&::-webkit-details-marker]:hidden">
+          <span>⚙️ Tùy chọn nâng cao <span class="font-normal text-slate-400">— môn học, mô tả, yêu cầu riêng cho AI</span></span>
+          <span class="text-slate-400 transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div class="space-y-4 px-4 pb-4 pt-1 border-t border-slate-100">
+          <div>
+            <label class="block text-[12px] font-bold text-slate-700 mb-1 uppercase tracking-wide">Môn học / Lĩnh vực</label>
+            <p class="text-[11px] text-slate-400 mb-1.5">Giúp AI phân loại nội dung và gợi ý bài học đúng chủ đề</p>
+            <%= f.text_field :subject, placeholder: "VD: Toán học, Lập trình, Tiếng Anh, Marketing...",
+                class: "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 outline-none" %>
+          </div>
+          <div>
+            <label class="block text-[12px] font-bold text-slate-700 mb-1 uppercase tracking-wide">Mô tả</label>
+            <p class="text-[11px] text-slate-400 mb-1.5">Mô tả để học viên hiểu lộ trình này dành cho ai</p>
+            <%= f.text_area :description, rows: 3,
+                placeholder: "VD: Dành cho học sinh lớp 12, ôn tập các dạng bài thi quan trọng nhất...",
+                class: "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 outline-none resize-none" %>
+          </div>
+          <div>
+            <label class="block text-[12px] font-bold text-slate-700 mb-1 uppercase tracking-wide">Yêu cầu riêng cho AI</label>
+            <p class="text-[11px] text-slate-400 mb-1.5">Số bài, cấp độ, thời lượng… nếu muốn kiểm soát chi tiết hơn</p>
+            <%= text_area_tag :ai_prompt, nil, rows: 2,
+                placeholder: "VD: 8 bài, từ cơ bản đến nâng cao, mỗi bài ~15 phút, có quiz cuối mỗi phần...",
+                class: "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-[14px] focus:border-indigo-500 outline-none resize-none" %>
+          </div>
+        </div>
+      </details>
       <div class="flex flex-wrap items-center gap-2 pt-1">
         <button type="submit" name="generate" value="ai"
           class="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl cursor-pointer transition-colors">
