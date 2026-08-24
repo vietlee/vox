@@ -1336,13 +1336,29 @@ class ContentOutlineGenerator
       "style" => { "stroke" => color, "strokeWidth" => width } }
   end
 
-  def el_chart(id, x, y, w, h, chart_type, data, label: nil, theme: nil, y_label: nil, x_label: nil)
+  def el_chart(id, x, y, w, h, chart_type, data, label: nil, theme: nil, y_label: nil, x_label: nil, colors: nil)
     el = { "id" => id, "type" => "chart_#{chart_type}", "x" => x, "y" => y, "w" => w, "h" => h, "z" => 2,
            "chart" => { "type" => chart_type, "data" => data, "label" => label,
                         "y_label" => y_label, "x_label" => x_label } }
-    # Embed theme colors so PPTX generator can use them without a separate lookup
-    el["_theme_colors"] = theme["card_icons"] if theme
+    el["chart"]["colors"] = colors if colors.present?
+    # Embed colors so both the JS renderer and the PPTX generator use the same palette
+    el["_theme_colors"] = colors.presence || (theme && theme["card_icons"])
     el
+  end
+
+  # Distinct, on-theme palette for multi-segment charts (donut). Stays within the
+  # theme's navy/accent family so segments never fall back to an off-palette color.
+  def chart_palette(t)
+    ([t["primary"], t["accent"], t["primary_lt"], t["text_light"], t["primary_dk"]] +
+     (t["card_icons"] || [])).compact.uniq
+  end
+
+  # Clean a bullet for single-line display: strip [icon=..] tags and render a
+  # "Title :: Desc" pair as "Title — Desc" instead of leaking the raw "::".
+  def tidy_bullet(b)
+    s = b.to_s.gsub(/\s*\[icon=[a-z_]+\]/i, "").strip
+    return s unless s.include?("::")
+    s.split("::").map(&:strip).reject(&:empty?).join(" — ")
   end
 
   def heading_style(size, color: "#1F2A44", align: "left", weight: 700, line_height: 1.2)
@@ -1388,6 +1404,7 @@ class ContentOutlineGenerator
     cat   = s.dig("style", "category") || ""
     fg    = t["fg"] || "#fff"
     fg_lt = t["fg_light"] || t["text_light"]
+    s     = s.merge("bullets" => (s["bullets"] || []).map { |b| tidy_bullet(b) })
     els   = []
     # Decorations vary by deco_style
     case t["deco_style"] || "circles"
@@ -1504,6 +1521,8 @@ class ContentOutlineGenerator
       extracted += (s["items"] || []).map { |it| it.is_a?(Hash) ? (it["title"] || it["label"] || it.values.first).to_s : it.to_s }.first(3)
       s = s.merge("bullets" => extracted.reject(&:blank?).first(4)) if extracted.any?
     end
+    # Never leak the raw "::" separator on the closing slide.
+    s = s.merge("bullets" => (s["bullets"] || []).map { |b| tidy_bullet(b) })
     els   = []
     unless t["deco_style"] == "clean"
       els << el_ellipse("deco1", -2.0, 1.0, 6.5, 6.5, t["accent"], opacity: 0.20)
@@ -1790,12 +1809,11 @@ class ContentOutlineGenerator
 
   def compile_donut(s, t, has_note, bot)
     items = normalize_bullet_items(s["items"] || [])
-    # Determine per-segment colors (same logic as JS renderer)
-    raw_colors = t["card_icons"] || []
-    all_same = raw_colors.uniq.length <= 1
-    seg_colors = all_same ? DONUT_PALETTE : (raw_colors + DONUT_PALETTE)
+    # On-theme palette shared by the arc (via chart colors), the legend dots, and PPTX.
+    pal = chart_palette(t)
+    seg_colors = pal.length >= 3 ? pal : DONUT_PALETTE
     els = [el_chart("donut", LM, 1.65, 4.50, bot - 1.65, "donut", items,
-      label: "#{s['center_text']}|#{s['center_sub']}", theme: t)]
+      label: "#{s['center_text']}|#{s['center_sub']}", theme: t, colors: seg_colors)]
     donut_icons = %w[chart leaf rocket globe lightbulb shield]
     legend_start = 1.70; item_h = [[0.80, (bot - legend_start) / [items.length, 1].max].min, 0.42].max
     items.first(8).each_with_index do |it, i|
