@@ -12,6 +12,9 @@
     .ql-editor blockquote{border-left:3px solid #6366f1;padding:.3em 1em;background:#f5f3ff;color:#5b21b6;border-radius:0 6px 6px 0;margin:.5em 0}
     .ql-editor code,.ql-editor pre{background:#f1f5f9;color:#7c3aed;border-radius:4px}
     .ql-editor pre{padding:10px 14px;font-size:12px;margin:.4em 0}
+    /* Active item: distinct tinted block + navy accent so it stands out from the list */
+    .lp-item-open{background:#f3f7fc;box-shadow:inset 4px 0 0 0 #1e3a5f;}
+    .lp-item-open > div:first-child{background:transparent;}
   </style>
 <% end %>
 
@@ -264,7 +267,7 @@
                 </div>
               </div>
               <!-- Inline edit panel -->
-              <div id="edit-item-<%= item.id %>" class="hidden bg-slate-50 border-t border-slate-100 px-5 py-4">
+              <div id="edit-item-<%= item.id %>" class="hidden bg-transparent border-t border-slate-200 px-5 py-4">
                 <div class="space-y-3">
                   <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -327,7 +330,7 @@
                         <button type="button" onclick="aiCreateQuiz(<%= item.id %>)"
                                 id="ai-quiz-btn-<%= item.id %>"
                                 class="flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold text-white rounded-xl border-0 cursor-pointer whitespace-nowrap shrink-0 transition-all"
-                                style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+                                style="background:#1e3a5f">
                           ✨ AI tạo mới · 5 credits
                         </button>
                       </div>
@@ -381,7 +384,7 @@
                         <button type="button" onclick="aiCreateFlashcard(<%= item.id %>)"
                                 id="ai-fc-btn-<%= item.id %>"
                                 class="flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold text-white rounded-xl border-0 cursor-pointer whitespace-nowrap shrink-0 transition-all"
-                                style="background:linear-gradient(135deg,#d97706,#b45309)">
+                                style="background:#1e3a5f">
                           ✨ AI tạo mới · 3 credits
                         </button>
                       </div>
@@ -393,7 +396,7 @@
                         <button type="button" onclick="aiGenerateContent(<%= item.id %>)"
                                 id="ai-content-btn-<%= item.id %>"
                                 class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-white rounded-lg border-0 cursor-pointer transition-colors"
-                                style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
+                                style="background:#1e3a5f;">
                           ✨ AI viết nội dung · 2 credits
                         </button>
                       </div>
@@ -693,7 +696,7 @@ var quillEditors = {};
 
 const ITEM_CONTENT = {
 <% @items.select(&:lesson?).each do |item| %>
-  <%= item.id %>: <%= raw item.content.to_json %>,
+  <%= item.id %>: <%= raw render_content(item.content).to_s.to_json %>,
 <% end %>
 };
 
@@ -784,6 +787,8 @@ function toggleItemEdit(id) {
   if (!panel) return;
   const wasHidden = panel.classList.contains('hidden');
   panel.classList.toggle('hidden');
+  const wrap = panel.closest('[data-item-id]');
+  if (wrap) wrap.classList.toggle('lp-item-open', wasHidden);
   if (wasHidden) setTimeout(() => initQuill(id), 50);
 }
 
