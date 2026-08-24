@@ -18,7 +18,7 @@ class Admin::LearningPathsController < Admin::BaseController
     if @learning_path.save
       if wants_ai
         @learning_path.update!(ai_generating: true)
-        GenerateLearningPathJob.perform_later(@learning_path.id, params[:ai_prompt].to_s.strip)
+        GenerateLearningPathJob.perform_later(@learning_path.id, @learning_path.description.to_s.strip)
         redirect_to learning_path_path(@learning_path), notice: "AI đang tạo lộ trình, vui lòng chờ..."
       else
         redirect_to learning_path_path(@learning_path), notice: "Đã tạo lộ trình."
