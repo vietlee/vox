@@ -10,9 +10,19 @@ class Admin::LearningPathsController < Admin::BaseController
   end
 
   def create
+    wants_ai = params[:generate] == "ai"
+    # Gate credits before creating so we don't leave an orphan path when short.
+    return if wants_ai && !require_credits!(:learning_path_generate)
+
     @learning_path = current_workspace.learning_paths.new(path_params.merge(created_by: current_user))
     if @learning_path.save
-      redirect_to learning_path_path(@learning_path), notice: "Đã tạo lộ trình."
+      if wants_ai
+        @learning_path.update!(ai_generating: true)
+        GenerateLearningPathJob.perform_later(@learning_path.id, params[:ai_prompt].to_s.strip)
+        redirect_to learning_path_path(@learning_path), notice: "AI đang tạo lộ trình, vui lòng chờ..."
+      else
+        redirect_to learning_path_path(@learning_path), notice: "Đã tạo lộ trình."
+      end
     else
       render :new, status: :unprocessable_entity
     end
