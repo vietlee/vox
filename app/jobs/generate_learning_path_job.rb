@@ -22,15 +22,17 @@ class GenerateLearningPathJob < ApplicationJob
         {"title":"Kiểm tra...","item_type":"quiz","estimated_minutes":20}
       ]}
 
-      Tạo 6-9 items. Xen kẽ lesson → flashcard → quiz theo từng module. Content lesson phải đầy đủ, có cấu trúc markdown.
+      Tạo 6-8 items. Xen kẽ lesson → flashcard → quiz theo từng module.
+      Content lesson NGẮN GỌN (~200-300 từ, markdown có heading + gạch đầu dòng) — đủ ý, không dài dòng.
     P
 
     svc = ClaudeService.for_feature("quiz_generate", timeout: 180)
-    raw  = svc.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 4000)
-    data = JSON.parse(raw.match(/\{.*\}/m)&.to_s || raw)
+    raw  = svc.call(system_prompt: system_prompt, user_prompt: user_prompt, max_tokens: 8000)
+    items = parse_items(raw)
+    raise "AI không trả về item hợp lệ" if items.blank?
 
     ActiveRecord::Base.transaction do
-      data["items"].each_with_index do |item, i|
+      items.each_with_index do |item, i|
         type = case item["item_type"]
                when "quiz"      then :quiz
                when "flashcard" then :flashcard
@@ -65,5 +67,53 @@ class GenerateLearningPathJob < ApplicationJob
   rescue => e
     lp&.update(ai_generating: false)
     Rails.logger.error "[GenerateLearningPathJob] #{learning_path_id}: #{e.message}"
+  end
+
+  private
+
+  # Parse the AI's item list. Falls back to salvaging every complete {...} object
+  # inside the "items" array when the JSON is truncated (e.g. hit max_tokens),
+  # so a cut-off response still yields the items it managed to produce.
+  def parse_items(raw)
+    json = raw[/\{.*\}/m] || raw
+    parsed = JSON.parse(json)
+    arr = parsed["items"]
+    return arr if arr.is_a?(Array) && arr.any?
+    []
+  rescue JSON::ParserError
+    salvage_items(raw)
+  end
+
+  # Extract complete top-level objects from a (possibly truncated) items array,
+  # tracking string/escape state so braces inside content don't confuse depth.
+  def salvage_items(raw)
+    body = raw[/"items"\s*:\s*\[(.*)/m, 1] or return []
+    objs = []
+    buf = +""; depth = 0; in_str = false; esc = false
+    body.each_char do |ch|
+      if in_str
+        buf << ch
+        if esc then esc = false
+        elsif ch == "\\" then esc = true
+        elsif ch == '"' then in_str = false
+        end
+      else
+        case ch
+        when '"' then in_str = true; buf << ch
+        when '{' then depth += 1; buf << ch
+        when '}'
+          buf << ch
+          depth -= 1
+          if depth == 0
+            obj = (JSON.parse(buf) rescue nil)
+            objs << obj if obj.is_a?(Hash)
+            buf = +""
+          end
+        else
+          buf << ch if depth > 0
+        end
+      end
+    end
+    objs
   end
 end
