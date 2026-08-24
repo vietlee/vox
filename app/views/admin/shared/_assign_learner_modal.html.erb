@@ -9,7 +9,7 @@
     <%= t("assign_learner_modal.open_btn") %>
   </button>
 <% else %>
-  <span title="Cần công khai trước khi giao cho learner"
+  <span title="Cần công khai trước khi giao cho học viên"
         class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-bold border border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
     <%= t("assign_learner_modal.open_btn") %>
@@ -327,7 +327,7 @@
   function renderLearnerList(learners) {
     var el = document.getElementById('alm-learner-list');
     if (!learners.length) {
-      el.innerHTML = '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">Không tìm thấy learner.</div>';
+      el.innerHTML = '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">Không tìm thấy học viên.</div>';
       updateCount();
       return;
     }
@@ -376,7 +376,7 @@
   // ── Submit ────────────────────────────────────────────────────────
   window.almSubmit = function() {
     var ids = Array.from(document.querySelectorAll('.alm-cb:checked')).map(function(cb) { return cb.value; });
-    if (!ids.length) { alert('Vui lòng chọn ít nhất một learner.'); return; }
+    if (!ids.length) { alert('Vui lòng chọn ít nhất một học viên.'); return; }
 
     var form = document.getElementById('alm-form');
     document.getElementById('alm-hidden-ids').innerHTML =
@@ -418,7 +418,7 @@
 
   function renderAssignmentList(el, data) {
     if (!data.length) {
-      el.innerHTML = '<div style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;">Chưa có learner nào được giao.</div>';
+      el.innerHTML = '<div style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;">Chưa có học viên nào được giao.</div>';
       return;
     }
     var statusLabel = { pending: '⏳ Chờ', in_progress: '📖 Đang học', completed: '✅ Hoàn thành', active: '✅ Đang học' };
@@ -452,17 +452,17 @@
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:12px;">' +
         '<div>' +
           '<p style="font-size:13px;font-weight:700;color:#1e293b;margin:0;">📁 ' + f.name + '</p>' +
-          '<p style="font-size:11px;color:#9ca3af;margin:2px 0 0;">' + n + ' learner</p>' +
+          '<p style="font-size:11px;color:#9ca3af;margin:2px 0 0;">' + n + ' học viên</p>' +
         '</div>' +
         (n > 0
           ? '<button onclick="almAssignFolder(' + f.id + ',this)" style="padding:7px 14px;background:#1e3a5f;color:#fff;font-size:12px;font-weight:700;border:none;border-radius:9px;cursor:pointer;">Giao cả folder</button>'
-          : '<span style="font-size:11px;color:#d1d5db;">Chưa có learner</span>') +
+          : '<span style="font-size:11px;color:#d1d5db;">Chưa có học viên</span>') +
       '</div>';
     }).join('');
   }
 
   window.almAssignFolder = function(folderId, btn) {
-    if (!confirm('Giao cho tất cả learner trong folder này?')) return;
+    if (!confirm('Giao cho tất cả học viên trong Lớp/Nhóm này?')) return;
     btn.textContent = 'Đang giao...'; btn.disabled = true;
     document.getElementById('alm-folder-id-input').value = folderId;
     document.getElementById('alm-folder-due-hidden').value = document.getElementById('alm-due-date') ? document.getElementById('alm-due-date').value : '';
