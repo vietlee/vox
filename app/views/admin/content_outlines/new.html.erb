@@ -242,6 +242,9 @@ async function runCoGenerate() {
       showCoError(data.error); return;
     }
     if (data.pending) {
+      // Capture poll/show URLs immediately so "Thu nhỏ" works even if clicked
+      // within the first 2s (before the first pollCoStatus tick sets them).
+      _coPollUrl = data.poll_url; _coShowUrl = data.show_url;
       setTimeout(function() { pollCoStatus(data.poll_url, data.show_url); }, 2000);
     } else {
       if (_coRingCtrl) _coRingCtrl.finish();
