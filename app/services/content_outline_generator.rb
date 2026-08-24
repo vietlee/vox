@@ -131,6 +131,17 @@ class ContentOutlineGenerator
                      "accent" => "#34D399", "card_bgs" => %w[#ECFDF5 #D1FAE5 #A7F3D0],
                      "card_icons" => %w[#059669 #047857 #065F46], "text_light" => "#A7F3D0",
                      "cover_style" => "minimal", "card_style" => "outlined", "deco_style" => "none" },
+    # ── Executive: premium consulting look (navy + gold, flat, restrained) ──
+    # Modeled on high-end B2B proposal decks: muted palette, no bright gradients on
+    # content, neutral card backgrounds, single gold accent used sparingly.
+    "executive" => { "cover_bg" => "linear-gradient(135deg,#0A1721 0%,#13293D 55%,#1B354B 100%)",
+                     "primary" => "#1B354B", "primary_dk" => "#0A1721",
+                     "primary_lt" => "#51728A", "primary_xl" => "#E6EBEE",
+                     "accent" => "#B68A35", "card_bgs" => %w[#F3F5F6 #E6EBEE #FAF9F4],
+                     "card_icons" => %w[#1B354B #355871 #92722A], "text_light" => "#A3B4C0",
+                     "muted" => "#51728A",
+                     "fg" => "#FFFFFF", "fg_light" => "rgba(255,255,255,0.72)",
+                     "cover_style" => "minimal", "card_style" => "shadow", "deco_style" => "clean" },
     # ── Original: clean white, no gradients ─────────────────────────────────
     "original"  => { "cover_bg" => "linear-gradient(135deg,#0A1929 0%,#0F2942 55%,#1a3a5c 100%)",
                      "primary" => "#0F2942", "primary_dk" => "#0A1929",
@@ -182,6 +193,20 @@ class ContentOutlineGenerator
     end
 
     nil
+  end
+
+  # Pick the base deck theme from the topic. Business/proposal/report/corporate
+  # decks get the premium "executive" look (navy + gold, flat); everything else
+  # keeps the original navy theme. A user-specified color always uses "original",
+  # whose color-injection path is purpose-built to recolor cleanly.
+  def detect_slide_theme
+    return "original" if @user_color
+    text = [@outline.title, @outline.subject, @outline.prompt_input].compact.join(" ").downcase
+    if text.match?(/đề xuất|proposal|báo cáo|report|doanh nghiệp|business|kế hoạch kinh doanh|business plan|chiến lược|strategy|đầu tư|investor|invest|tài chính|finance|corporate|quarterly|q[1-4]\s|tổng kết|roadmap|pitch|gọi vốn|thầu|tender|hồ sơ năng lực|đối tác|partnership/)
+      "executive"
+    else
+      "original"
+    end
   end
 
   def recompile(raw_slides, theme_name)
@@ -500,10 +525,22 @@ class ContentOutlineGenerator
       6. Kêu gọi hành động (Closing): Bước tiếp theo là gì?
       Không phải mọi deck đều cần đủ 6 bước — linh hoạt theo nội dung thực tế.
 
+      CẤU TRÚC HEADER 3 TẦNG (yếu tố làm nên vẻ chuyên nghiệp của deck cao cấp — BẮT BUỘC mọi content slide):
+      - Tầng 1 — KICKER (category): nhãn SECTION viết hoa, 1-3 từ (VD "BỐI CẢNH", "GIẢI PHÁP", "TRIỂN KHAI").
+      - Tầng 2 — HEADLINE (title): MỘT KHẲNG ĐỊNH cụ thể, không phải tên chủ đề chung chung.
+          ĐÚNG: "Sáu giai đoạn từ khởi tạo đến chứng nhận" · "Phạm vi được chốt ngay từ đầu"
+          SAI:  "Quy trình" · "Phạm vi" · "Tổng quan" (quá cụt, không nói lên điều gì)
+      - Tầng 3 — SUBTITLE (câu "so-what"): 1 câu HOÀN CHỈNH dẫn dắt, giải thích VÌ SAO slide này quan trọng
+          hoặc tóm tắt kết luận (≤105 ký tự). Đây là tầng quan trọng nhất tạo cảm giác "được biên tập kỹ".
+          VD: "Sáu giai đoạn, từ kêu gọi di trú đến chứng nhận. Mỗi bước đều được nộp, duyệt và ghi nhận."
+
+      NHÃN SECTION CHẠY XUYÊN SUỐT (tạo mạch liên kết): Chia deck thành 3-5 phần (VD BỐI CẢNH → GIẢI PHÁP → TRIỂN KHAI → THƯƠNG MẠI → KẾT). Mọi slide trong CÙNG một phần dùng CÙNG một category. Slide agenda liệt kê đúng các phần này.
+
       QUY TẮC BẮT BUỘC:
       1. COVER: TITLE = tên chủ đề ngắn (tối đa 4 từ). SUBTITLE = 1 câu mô tả định vị. KHÔNG có số liệu.
-      2. Mỗi content slide có STYLE: category= (nhãn 2-3 từ viết hoa, ví dụ: "BỐI CẢNH THỊ TRƯỜNG").
-      3. TITLE content slide: insight 1 câu (≤50 ký tự), viết thường, không dấu chấm hỏi.
+      2. Mỗi content slide có STYLE: category= = tên SECTION mà slide thuộc về (viết hoa, 1-3 từ). Các slide cùng section dùng chung nhãn này.
+      3. TITLE content slide = HEADLINE khẳng định (≤55 ký tự), viết thường tự nhiên, không dấu chấm hỏi, KHÔNG chỉ 1-2 từ cụt lủn.
+      3b. SUBTITLE content slide BẮT BUỘC — 1 câu "so-what" hoàn chỉnh (≤105 ký tự), không lặp lại y hệt title.
       4. Layout đa dạng, KHÔNG lặp liên tiếp cùng layout — xen kẽ: stats, cards, pillars, two-col, timeline, chart, donut.
       5. KHÔNG dùng emoji hay [icon placeholder]. KHÔNG có accent lines dưới title.
       6. TIÊU ĐỀ item/bullet: ≤25 ký tự. Giải thích sau "::".
@@ -545,8 +582,8 @@ class ContentOutlineGenerator
       Tạo số slide PHÙ HỢP (6–12 slide, tuỳ nội dung — 1 cover + N content + 1 summary), mỗi slide theo đúng format này:
 
       ---SLIDE---
-      TITLE: Tiêu đề slide (viết thường tự nhiên, tối đa 50 ký tự, slide cover chỉ ghi TÊN dự án)
-      SUBTITLE: Dòng mô tả ngắn bổ sung cho title (italic, 1 câu giải thích ngữ cảnh)
+      TITLE: HEADLINE — một khẳng định cụ thể (viết thường tự nhiên, tối đa 55 ký tự, KHÔNG cụt 1-2 từ; slide cover chỉ ghi TÊN dự án)
+      SUBTITLE: Câu "so-what" — 1 câu HOÀN CHỈNH dẫn dắt slide, giải thích vì sao quan trọng hoặc tóm tắt kết luận (≤105 ký tự). BẮT BUỘC cho content slide, không lặp lại title.
       LAYOUT: [tên layout]
       BODY:
       [nội dung theo format của layout đã chọn]
@@ -786,6 +823,7 @@ class ContentOutlineGenerator
 
       ═══ QUY TẮC ĐỘ DÀI TEXT (CHỐNG TRÀN) ═══
       - TITLE content slide: tối đa 55 ký tự
+      - SUBTITLE content slide: tối đa 105 ký tự (1 câu, không xuống dòng 3 lần)
       - Mỗi bullet (trước ::): tối đa 35 ký tự
       - Mỗi mô tả (sau ::): tối đa 80 ký tự (1-2 câu ngắn)
       - FOOTER: tối đa 80 ký tự
@@ -879,7 +917,7 @@ class ContentOutlineGenerator
   # ── Slide parsing & HTML viewer ─────────────────────────────────────────────
 
   def parse_slides(text)
-    @slide_theme = "original"
+    @slide_theme = detect_slide_theme
     if @user_color
       # User specified a color in their prompt — always use it
       @slide_color = @user_color
@@ -1319,12 +1357,19 @@ class ContentOutlineGenerator
 
   def common_header(s, t, idx, total)
     els = []
-    cat = s.dig("style", "category") || ""
-    els << el_text("cat", 0, 0.35, SW, 0.30, cat,
-      heading_style(11, color: t["accent"], align: "center").merge(
+    cat   = s.dig("style", "category") || ""
+    sub   = s["subtitle"].to_s.strip
+    muted = t["muted"] || "#5B6B7A"
+    # Three-tier left-aligned header (consulting style): kicker → headline → so-what.
+    els << el_text("cat", LM, 0.40, CW, 0.24, cat,
+      heading_style(10.5, color: t["accent"], align: "left").merge(
         "textTransform" => "uppercase", "letterSpacing" => 2)) if cat.present?
-    els << el_text("title", 0, 0.68, SW, 0.90, s["title"] || "",
-      heading_style(22, align: "center"), z: 2)
+    els << el_text("title", LM, 0.66, CW, 0.50, s["title"] || "",
+      heading_style(20, align: "left", weight: 800, line_height: 1.12), z: 2)
+    if sub.present?
+      els << el_text("subtitle", LM, 1.18, CW, 0.42, sub,
+        body_style(12, color: muted, align: "left", line_height: 1.3), z: 2)
+    end
     if s["footer"].present?
       els << el_text("footer", LM, SH - 0.28, 8.0, 0.25, s["footer"],
         body_style(7, color: "#94A3B8"), z: 1)
@@ -1418,7 +1463,10 @@ class ContentOutlineGenerator
       els << el_text("sub", 0.80, 3.50, SW - 1.60, 0.70, s["subtitle"] || "",
         body_style(15, color: fg_lt, align: "center"))
     when "minimal"
-      els << el_text("title", 0.80, 1.20, SW - 1.60, 1.80, s["title"] || "",
+      els << el_text("cat", 0.82, 0.95, SW - 1.64, 0.30, cat,
+        heading_style(11, color: t["accent"], align: "left").merge(
+          "textTransform" => "uppercase", "letterSpacing" => 2)) if cat.present?
+      els << el_text("title", 0.80, 1.30, SW - 1.60, 1.80, s["title"] || "",
         heading_style(44, color: fg, align: "left", line_height: 1.1))
       els << el_line("div", LM, 3.20, LM + 2.5, 3.20, t["accent"])
       els << el_text("sub", 0.80, 3.40, SW - 1.60, 0.70, s["subtitle"] || "",
