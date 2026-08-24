@@ -14,7 +14,6 @@
     .ql-editor pre{padding:10px 14px;font-size:12px;margin:.4em 0}
     /* Active item: distinct tinted block + navy accent so it stands out from the list */
     .lp-item-open{background:#f3f7fc;box-shadow:inset 4px 0 0 0 #1e3a5f;}
-    .lp-item-open > div:first-child{background:transparent;}
   </style>
 <% end %>
 
@@ -786,6 +785,16 @@ function toggleItemEdit(id) {
   const panel = document.getElementById('edit-item-' + id);
   if (!panel) return;
   const wasHidden = panel.classList.contains('hidden');
+  // Accordion: opening one item closes any other open item so only one is active.
+  if (wasHidden) {
+    document.querySelectorAll('[id^="edit-item-"]').forEach(p => {
+      if (p !== panel && !p.classList.contains('hidden')) {
+        p.classList.add('hidden');
+        const w = p.closest('[data-item-id]');
+        if (w) w.classList.remove('lp-item-open');
+      }
+    });
+  }
   panel.classList.toggle('hidden');
   const wrap = panel.closest('[data-item-id]');
   if (wrap) wrap.classList.toggle('lp-item-open', wasHidden);
