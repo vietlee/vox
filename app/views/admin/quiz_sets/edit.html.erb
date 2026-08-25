@@ -501,18 +501,12 @@ function minimizeAiTask() {
 }
 
 <% if @quiz_set.ai_generating? %>
-// Quiz đang sinh câu hỏi từ background job — đăng ký task window ngay
+// Landed here while a background job is still writing questions: show the
+// loading overlay + poll so the user sees progress instead of an empty page.
+// "Thu nhỏ" (minimizeAiTask) hands off to the corner task dock.
 document.addEventListener('DOMContentLoaded', function() {
-  if (window.VoxTaskManager) {
-    VoxTaskManager.add({
-      id:           QUIZ_SET_META.id,
-      icon:         '🎯',
-      label:        'Tạo Quiz',
-      title:        QUIZ_SET_META.title,
-      poll_url:     ROUTES.aiGenerateStatus,
-      redirect_url: ROUTES.editQuizSet
-    });
-  }
+  showAiLoadingOverlay();
+  pollAiStatus(ROUTES.aiGenerateStatus);
 });
 <% end %>
 
