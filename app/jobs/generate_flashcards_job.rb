@@ -20,7 +20,7 @@ class GenerateFlashcardsJob < ApplicationJob
         Trả về JSON theo đúng format này, không có text nào khác:
         {"cards":[{"front":"...","back":"..."}]}
       PROMPT
-      max_tokens: 3500
+      max_tokens: 6000
     )
 
     cards_data = extract_cards(raw)
@@ -54,24 +54,42 @@ class GenerateFlashcardsJob < ApplicationJob
   private
 
   def extract_cards(raw)
-    raw.scan(/\{[^{}]*"cards"\s*:\s*\[[\s\S]*?\]\s*\}/m).each do |candidate|
-      parsed = JSON.parse(candidate)
-      return parsed["cards"] if parsed["cards"].is_a?(Array)
-    rescue JSON::ParserError
-      next
+    json = raw[/\{.*\}/m]
+    if json
+      parsed = (JSON.parse(json) rescue nil)
+      return parsed["cards"] if parsed.is_a?(Hash) && parsed["cards"].is_a?(Array) && parsed["cards"].any?
     end
+    # Truncated output (e.g. hit max_tokens): salvage every complete card object.
+    salvage_objects(raw, "cards")
+  end
 
-    parsed = JSON.parse(raw)
-    return parsed["cards"] if parsed["cards"].is_a?(Array)
-    []
-  rescue JSON::ParserError
-    begin
-      match = raw.match(/\{.+\}/m)&.to_s
-      return [] if match.nil?
-      parsed = JSON.parse(match)
-      parsed["cards"].is_a?(Array) ? parsed["cards"] : []
-    rescue
-      []
+  # Extract complete top-level {...} objects from a possibly-truncated "<key>":[ ... ]
+  # array, tracking string/escape state so braces inside values don't skew depth.
+  def salvage_objects(raw, key)
+    body = raw[/"#{key}"\s*:\s*\[(.*)/m, 1] or return []
+    objs = []; buf = +""; depth = 0; in_str = false; esc = false
+    body.each_char do |ch|
+      if in_str
+        buf << ch
+        if esc then esc = false
+        elsif ch == "\\" then esc = true
+        elsif ch == '"' then in_str = false
+        end
+      else
+        case ch
+        when '"' then in_str = true; buf << ch
+        when '{' then depth += 1; buf << ch
+        when '}'
+          buf << ch; depth -= 1
+          if depth.zero?
+            obj = (JSON.parse(buf) rescue nil)
+            objs << obj if obj.is_a?(Hash)
+            buf = +""
+          end
+        else buf << ch if depth > 0
+        end
+      end
     end
+    objs
   end
 end

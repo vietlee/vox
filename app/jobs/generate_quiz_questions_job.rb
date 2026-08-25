@@ -220,8 +220,41 @@ class GenerateQuizQuestionsJob < ApplicationJob
       JSON.parse(sanitize_backslashes(json_str), symbolize_names: true) rescue nil
     end
 
-    return nil unless parsed
-    parsed.is_a?(Array) ? parsed : parsed[:questions]
+    questions = parsed.is_a?(Array) ? parsed : parsed&.dig(:questions)
+    # Truncated output (e.g. hit max_tokens): salvage every complete question object.
+    questions = salvage_questions(raw) if questions.blank?
+    questions.presence
+  end
+
+  # Extract complete top-level {...} objects from a possibly-truncated questions
+  # array, tracking string/escape state so braces inside values don't skew depth.
+  def salvage_questions(raw)
+    body = raw[/"questions"\s*:\s*\[(.*)/m, 1] || raw[/\[(.*)/m, 1]
+    return [] unless body
+    objs = []; buf = +""; depth = 0; in_str = false; esc = false
+    body.each_char do |ch|
+      if in_str
+        buf << ch
+        if esc then esc = false
+        elsif ch == "\\" then esc = true
+        elsif ch == '"' then in_str = false
+        end
+      else
+        case ch
+        when '"' then in_str = true; buf << ch
+        when '{' then depth += 1; buf << ch
+        when '}'
+          buf << ch; depth -= 1
+          if depth.zero?
+            obj = (JSON.parse(buf, symbolize_names: true) rescue nil)
+            objs << obj if obj.is_a?(Hash)
+            buf = +""
+          end
+        else buf << ch if depth > 0
+        end
+      end
+    end
+    objs
   end
 
   def extract_json(str)
