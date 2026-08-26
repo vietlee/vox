@@ -317,22 +317,32 @@
                           <p class="text-[11px] text-violet-400 mt-2">Đang tạo ~8 câu hỏi trắc nghiệm · 20–40 giây</p>
                         </div>
                       </div>
-                      <!-- Actions row -->
-                      <div class="flex gap-2">
-                        <select id="item-quiz-<%= item.id %>"
-                                class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-[13px] bg-white focus:border-indigo-500 outline-none">
-                          <option value="">— Chọn bộ câu hỏi có sẵn —</option>
-                          <% @quiz_sets.each do |qs| %>
-                            <option value="<%= qs.id %>" <%= item.quiz_set_id == qs.id ? 'selected' : '' %>><%= qs.title %></option>
-                          <% end %>
-                        </select>
-                        <button type="button" onclick="aiCreateQuiz(<%= item.id %>)"
-                                id="ai-quiz-btn-<%= item.id %>"
-                                class="flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold text-white rounded-xl border-0 cursor-pointer whitespace-nowrap shrink-0 transition-all"
-                                style="background:#1e3a5f">
-                          ✨ AI tạo mới · 5 credits
-                        </button>
-                      </div>
+                      <!-- Actions row (choose an existing quiz or AI-create a new one) -->
+                      <% quiz_actions = capture do %>
+                        <div class="flex gap-2">
+                          <select id="item-quiz-<%= item.id %>"
+                                  class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-[13px] bg-white focus:border-indigo-500 outline-none">
+                            <option value="">— Chọn bộ câu hỏi có sẵn —</option>
+                            <% @quiz_sets.each do |qs| %>
+                              <option value="<%= qs.id %>" <%= item.quiz_set_id == qs.id ? 'selected' : '' %>><%= qs.title %></option>
+                            <% end %>
+                          </select>
+                          <button type="button" onclick="aiCreateQuiz(<%= item.id %>)"
+                                  id="ai-quiz-btn-<%= item.id %>"
+                                  class="flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold text-white rounded-xl border-0 cursor-pointer whitespace-nowrap shrink-0 transition-all"
+                                  style="background:#1e3a5f">
+                            ✨ AI tạo mới · 5 credits
+                          </button>
+                        </div>
+                      <% end %>
+                      <% if item.quiz_set %>
+                        <details class="mt-1">
+                          <summary class="text-[11px] text-slate-400 cursor-pointer hover:text-slate-600 select-none">🔄 Đổi bộ câu hỏi khác / tạo lại bằng AI</summary>
+                          <div class="pt-2"><%= quiz_actions %></div>
+                        </details>
+                      <% else %>
+                        <%= quiz_actions %>
+                      <% end %>
                     </div>
                   <% elsif item.flashcard? %>
                     <div>
@@ -348,7 +358,7 @@
                           <% if item.flashcard_deck.ai_generating? %>
                             <span class="hidden" data-fc-poll="<%= ai_status_flashcard_deck_path(item.flashcard_deck, format: :json) %>"></span>
                           <% end %>
-                          <a href="<%= edit_flashcard_deck_path(item.flashcard_deck) %>" target="_blank" class="text-[11px] text-amber-700 font-semibold hover:underline shrink-0">Xem →</a>
+                          <a href="<%= flashcard_deck_path(item.flashcard_deck) %>" target="_blank" class="text-[11px] text-amber-700 font-semibold hover:underline shrink-0">Xem →</a>
                         </div>
                       <% else %>
                         <div id="fc-linked-<%= item.id %>" class="hidden"></div>
@@ -374,22 +384,33 @@
                           <p class="text-[11px] text-amber-400 mt-2">Đang tạo ~15 thẻ · 20–40 giây</p>
                         </div>
                       </div>
-                      <!-- Actions row -->
-                      <div class="flex gap-2">
-                        <select id="item-flashcard-<%= item.id %>"
-                                class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-[13px] bg-white focus:border-indigo-500 outline-none">
-                          <option value="">— Chọn bộ thẻ có sẵn —</option>
-                          <% @flashcard_decks.each do |deck| %>
-                            <option value="<%= deck.id %>" <%= item.flashcard_deck_id == deck.id ? 'selected' : '' %>><%= deck.title %> (<%= deck.card_count %> thẻ)</option>
-                          <% end %>
-                        </select>
-                        <button type="button" onclick="aiCreateFlashcard(<%= item.id %>)"
-                                id="ai-fc-btn-<%= item.id %>"
-                                class="flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold text-white rounded-xl border-0 cursor-pointer whitespace-nowrap shrink-0 transition-all"
-                                style="background:#1e3a5f">
-                          ✨ AI tạo mới · 3 credits
-                        </button>
-                      </div>
+                      <!-- Actions row (choose an existing deck or AI-create a new one) -->
+                      <% fc_actions = capture do %>
+                        <div class="flex gap-2">
+                          <select id="item-flashcard-<%= item.id %>"
+                                  class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-[13px] bg-white focus:border-indigo-500 outline-none">
+                            <option value="">— Chọn bộ thẻ có sẵn —</option>
+                            <% @flashcard_decks.each do |deck| %>
+                              <option value="<%= deck.id %>" <%= item.flashcard_deck_id == deck.id ? 'selected' : '' %>><%= deck.title %> (<%= deck.card_count %> thẻ)</option>
+                            <% end %>
+                          </select>
+                          <button type="button" onclick="aiCreateFlashcard(<%= item.id %>)"
+                                  id="ai-fc-btn-<%= item.id %>"
+                                  class="flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold text-white rounded-xl border-0 cursor-pointer whitespace-nowrap shrink-0 transition-all"
+                                  style="background:#1e3a5f">
+                            ✨ AI tạo mới · 3 credits
+                          </button>
+                        </div>
+                      <% end %>
+                      <% if item.flashcard_deck %>
+                        <%# A deck already exists → keep the create/replace controls tucked away %>
+                        <details class="mt-1">
+                          <summary class="text-[11px] text-slate-400 cursor-pointer hover:text-slate-600 select-none">🔄 Đổi bộ thẻ khác / tạo lại bằng AI</summary>
+                          <div class="pt-2"><%= fc_actions %></div>
+                        </details>
+                      <% else %>
+                        <%= fc_actions %>
+                      <% end %>
                     </div>
                   <% else %>
                     <div>

@@ -39,25 +39,16 @@ class GenerateLearningPathJob < ApplicationJob
                else :lesson
                end
 
-        deck_id = nil
-        if type == :flashcard
-          deck = lp.workspace.flashcard_decks.create!(
-            title: item["title"],
-            subject: lp.subject.presence || lp.title,
-            created_by: lp.created_by,
-            ai_generating: true
-          )
-          GenerateFlashcardsJob.perform_later(deck.id, "#{item['title']} (#{lp.title})", 15, lp.created_by_id)
-          deck_id = deck.id
-        end
-
+        # Only build the lesson STRUCTURE here. Quiz/flashcard CONTENT is
+        # generated on demand when the trainer opens each item ("AI tạo mới"),
+        # so quiz and flashcard behave the same way and no credits are spent
+        # up front generating content the trainer may not keep.
         lp.learning_path_items.create!(
           title:              item["title"],
           item_type:          type,
           content:            item["content"].to_s,
           estimated_minutes:  item["estimated_minutes"].to_i.clamp(5, 120),
-          position:           i,
-          flashcard_deck_id:  deck_id
+          position:           i
         )
       end
       lp.update!(ai_generated: true, ai_generating: false)
