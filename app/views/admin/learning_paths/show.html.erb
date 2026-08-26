@@ -345,6 +345,9 @@
                             <div class="text-[13px] font-semibold text-amber-900 truncate"><%= item.flashcard_deck.title %></div>
                             <div class="text-[11px] text-amber-600"><%= item.flashcard_deck.card_count %> thẻ<% if item.flashcard_deck.ai_generating? %> · <span class="text-amber-500">đang tạo...</span><% end %></div>
                           </div>
+                          <% if item.flashcard_deck.ai_generating? %>
+                            <span class="hidden" data-fc-poll="<%= ai_status_flashcard_deck_path(item.flashcard_deck, format: :json) %>"></span>
+                          <% end %>
                           <a href="<%= edit_flashcard_deck_path(item.flashcard_deck) %>" target="_blank" class="text-[11px] text-amber-700 font-semibold hover:underline shrink-0">Xem →</a>
                         </div>
                       <% else %>
@@ -913,6 +916,31 @@ function aiCreateQuiz(id) {
   .catch(e => { overlay.classList.add('hidden'); alert('Lỗi: ' + e.message); btn.disabled = false; btn.innerHTML = '✨ AI tạo mới · 5 credits'; });
 }
 
+// Poll a deck's AI status until generation finishes, then refresh so the
+// "đang tạo..." state updates to the real card count (or a failure).
+function pollDeckStatus(url) {
+  if (!url) return;
+  var tries = 0;
+  var iv = setInterval(function() {
+    tries++;
+    fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.pending) { if (tries > 60) clearInterval(iv); return; } // ~3 min cap
+        clearInterval(iv);
+        location.reload();
+      })
+      .catch(() => { if (tries > 60) clearInterval(iv); });
+  }, 3000);
+}
+
+// On load, resume polling for any deck still shown as "đang tạo...".
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[data-fc-poll]').forEach(function(el) {
+    pollDeckStatus(el.getAttribute('data-fc-poll'));
+  });
+});
+
 function aiCreateFlashcard(id) {
   const btn     = document.getElementById('ai-fc-btn-' + id);
   const overlay = document.getElementById('fc-gen-overlay-' + id);
@@ -952,6 +980,7 @@ function aiCreateFlashcard(id) {
       card.style.display = 'block';
       document.getElementById('fc-linked-' + id).style.display = 'none';
       btn.innerHTML = '✓ Đã tạo'; btn.style.background = '#10b981';
+      pollDeckStatus(data.poll_url);   // auto-refresh when cards are ready
     }, 600);
   })
   .catch(e => { overlay.classList.add('hidden'); alert('Lỗi: ' + e.message); btn.disabled = false; btn.innerHTML = '✨ AI tạo mới · 3 credits'; });
